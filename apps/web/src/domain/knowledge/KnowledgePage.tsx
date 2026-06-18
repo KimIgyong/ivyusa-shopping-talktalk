@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { PageHeader } from '@/components/PageHeader';
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
@@ -19,6 +20,8 @@ import {
 import type { KnowledgeSource, KnowledgeDocument } from './knowledge.service';
 
 export function KnowledgePage() {
+  const { t } = useTranslation('knowledge');
+  const { t: tc } = useTranslation('common');
   const sources = useSources();
   const createSource = useCreateSource();
   const toggleSource = useToggleSource();
@@ -69,22 +72,22 @@ export function KnowledgePage() {
   };
 
   const removeDoc = (id: string) => {
-    if (window.confirm('Delete this document?')) {
+    if (window.confirm(t('deleteDocumentConfirm'))) {
       deleteDocument.mutate(id);
     }
   };
 
   const sourceColumns: Column<KnowledgeSource>[] = [
-    { key: 'name', header: 'Name', render: (r) => r.name },
-    { key: 'type', header: 'Type', render: (r) => r.type ?? '—' },
+    { key: 'name', header: t('name'), render: (r) => r.name },
+    { key: 'type', header: t('type'), render: (r) => r.type ?? '—' },
     {
       key: 'documentCount',
-      header: 'Documents',
+      header: t('documentsColumn'),
       render: (r) => (r.documentCount ?? 0).toLocaleString(),
     },
     {
       key: 'enabled',
-      header: 'Enabled',
+      header: t('enabled'),
       render: (r) => (
         <Button
           variant="ghost"
@@ -93,25 +96,25 @@ export function KnowledgePage() {
           onClick={() => toggleSource.mutate({ id: r.id, enabled: !r.enabled })}
         >
           <Badge tone={r.enabled ? 'success' : 'gray'}>
-            {r.enabled ? 'Enabled' : 'Disabled'}
+            {r.enabled ? tc('enabled') : tc('disabled')}
           </Badge>
         </Button>
       ),
     },
     {
       key: 'createdAt',
-      header: 'Created',
+      header: t('created'),
       render: (r) => (r.createdAt ? new Date(r.createdAt).toLocaleDateString() : '—'),
     },
   ];
 
   const docColumns: Column<KnowledgeDocument>[] = [
-    { key: 'title', header: 'Title', render: (r) => r.title },
-    { key: 'source', header: 'Source', render: (r) => sourceName_(r.sourceId) },
-    { key: 'status', header: 'Status', render: (r) => <StatusBadge status={r.status} /> },
+    { key: 'title', header: t('title_column'), render: (r) => r.title },
+    { key: 'source', header: t('source'), render: (r) => sourceName_(r.sourceId) },
+    { key: 'status', header: t('status'), render: (r) => <StatusBadge status={r.status} /> },
     {
       key: 'createdAt',
-      header: 'Created',
+      header: t('created'),
       render: (r) => (r.createdAt ? new Date(r.createdAt).toLocaleDateString() : '—'),
     },
     {
@@ -125,7 +128,7 @@ export function KnowledgePage() {
           disabled={deleteDocument.isPending}
           onClick={() => removeDoc(r.id)}
         >
-          Delete
+          {tc('delete')}
         </Button>
       ),
     },
@@ -133,33 +136,33 @@ export function KnowledgePage() {
 
   return (
     <div>
-      <PageHeader title="Knowledge" subtitle="Manage sources and documents" />
+      <PageHeader title={t('title')} subtitle={t('subtitle')} />
 
       <div className="space-y-6">
         <Card
-          title="Sources"
-          action={<Button onClick={() => setSourceOpen(true)}>Add source</Button>}
+          title={t('sources')}
+          action={<Button onClick={() => setSourceOpen(true)}>{t('addSource')}</Button>}
         >
           <Table<KnowledgeSource>
             columns={sourceColumns}
             data={sources.data}
             loading={sources.isLoading}
             error={sources.error ? (sources.error as Error).message : null}
-            emptyMessage="No sources yet."
+            emptyMessage={t('noSources')}
             rowKey={(r) => r.id}
           />
         </Card>
 
         <Card
-          title="Documents"
-          action={<Button onClick={() => setDocOpen(true)}>Add document</Button>}
+          title={t('documents')}
+          action={<Button onClick={() => setDocOpen(true)}>{t('addDocument')}</Button>}
         >
           <Table<KnowledgeDocument>
             columns={docColumns}
             data={documents.data}
             loading={documents.isLoading}
             error={documents.error ? (documents.error as Error).message : null}
-            emptyMessage="No documents yet."
+            emptyMessage={t('noDocuments')}
             rowKey={(r) => r.id}
           />
         </Card>
@@ -168,22 +171,22 @@ export function KnowledgePage() {
       <Modal
         open={sourceOpen}
         onClose={closeSource}
-        title="Add source"
+        title={t('addSource')}
         footer={
           <>
             <Button variant="ghost" onClick={closeSource}>
-              Cancel
+              {tc('cancel')}
             </Button>
             <Button onClick={saveSource} disabled={createSource.isPending || !sourceName}>
-              Save
+              {tc('save')}
             </Button>
           </>
         }
       >
-        <FormRow label="Name">
+        <FormRow label={t('name')}>
           <Input value={sourceName} onChange={(e) => setSourceName(e.target.value)} />
         </FormRow>
-        <FormRow label="Type">
+        <FormRow label={t('type')}>
           <Select value={sourceType} onChange={(e) => setSourceType(e.target.value)}>
             <option value="url">url</option>
             <option value="file">file</option>
@@ -196,24 +199,24 @@ export function KnowledgePage() {
       <Modal
         open={docOpen}
         onClose={closeDoc}
-        title="Add document"
+        title={t('addDocument')}
         footer={
           <>
             <Button variant="ghost" onClick={closeDoc}>
-              Cancel
+              {tc('cancel')}
             </Button>
             <Button onClick={saveDoc} disabled={createDocument.isPending || !docTitle}>
-              Save
+              {tc('save')}
             </Button>
           </>
         }
       >
-        <FormRow label="Title">
+        <FormRow label={t('title_column')}>
           <Input value={docTitle} onChange={(e) => setDocTitle(e.target.value)} />
         </FormRow>
-        <FormRow label="Source">
+        <FormRow label={t('source')}>
           <Select value={docSourceId} onChange={(e) => setDocSourceId(e.target.value)}>
-            <option value="">— none —</option>
+            <option value="">{tc('none')}</option>
             {sourceList.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.name}
@@ -221,7 +224,7 @@ export function KnowledgePage() {
             ))}
           </Select>
         </FormRow>
-        <FormRow label="Content">
+        <FormRow label={t('content')}>
           <textarea
             className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-primary-500"
             rows={4}

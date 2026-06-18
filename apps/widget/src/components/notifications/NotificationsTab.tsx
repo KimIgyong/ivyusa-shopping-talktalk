@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { BellOff } from 'lucide-react';
-import { strings } from '../../i18n/strings';
+import { useTranslation } from 'react-i18next';
 import { useWidgetStore } from '../../store/widgetStore';
 import {
   useMarkRead,
@@ -11,12 +11,12 @@ import { Spinner } from '../ui/Spinner';
 import { formatTime, groupByDate } from '../../lib/format';
 import type { NotificationItem } from '../../lib/types';
 
-const FILTERS: { key: string; label: string }[] = [
-  { key: 'all', label: strings.notifications.filters.all },
-  { key: 'payment', label: strings.notifications.filters.payment },
-  { key: 'shipping', label: strings.notifications.filters.shipping },
-  { key: 'event', label: strings.notifications.filters.event },
-  { key: 'review', label: strings.notifications.filters.review },
+const FILTERS: { key: string; labelKey: string }[] = [
+  { key: 'all', labelKey: 'notifications.filters.all' },
+  { key: 'payment', labelKey: 'notifications.filters.payment' },
+  { key: 'shipping', labelKey: 'notifications.filters.shipping' },
+  { key: 'event', labelKey: 'notifications.filters.event' },
+  { key: 'review', labelKey: 'notifications.filters.review' },
 ];
 
 function Row({
@@ -62,6 +62,7 @@ function Row({
 }
 
 export function NotificationsTab() {
+  const { t } = useTranslation();
   const sessionToken = useWidgetStore((s) => s.sessionToken);
   const [filter, setFilter] = useState('all');
   const { data, isLoading, isError } = useNotifications(sessionToken, filter);
@@ -83,22 +84,22 @@ export function NotificationsTab() {
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
           >
-            {f.label}
+            {t(f.labelKey)}
           </button>
         ))}
       </div>
 
       <div className="scroll-thin flex-1 overflow-y-auto p-2">
-        {isLoading && <Spinner label={strings.common.loading} />}
+        {isLoading && <Spinner label={t('common.loading')} />}
         {isError && (
           <p className="py-8 text-center text-sm text-gray-400">
-            {strings.common.error}
+            {t('common.error')}
           </p>
         )}
         {!isLoading && !isError && groups.length === 0 && (
           <div className="flex flex-col items-center gap-2 py-12 text-gray-400">
             <BellOff className="h-6 w-6" />
-            <span className="text-sm">{strings.notifications.empty}</span>
+            <span className="text-sm">{t('notifications.empty')}</span>
           </div>
         )}
         {groups.map((g) => (

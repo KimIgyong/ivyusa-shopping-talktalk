@@ -1,0 +1,9 @@
+{
+  "title": "Registro de auditoría",
+  "time": "Hora",
+  "actor": "Actor",
+  "action": "Acción",
+  "target": "Objetivo",
+  "ip": "IP",
+  "empty": "No hay entradas de auditoría."
+}

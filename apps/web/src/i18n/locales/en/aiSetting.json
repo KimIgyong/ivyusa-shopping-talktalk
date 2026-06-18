@@ -1,0 +1,28 @@
+{
+  "title": "AI Settings",
+  "subtitle": "Configure the engine powering each AI function",
+  "aiFunctions": "AI functions",
+  "noFunctions": "No AI functions configured.",
+  "enginesAvailable": "{{count}} engine(s) available",
+  "selectEngine": "Select engine…",
+  "functions": {
+    "chat": "Chat",
+    "rag": "RAG / Retrieval",
+    "summary": "Summarization",
+    "assist": "Agent Assist",
+    "moderation": "Moderation"
+  },
+  "moderationRules": "Moderation rules",
+  "addRule": "Add rule",
+  "addModerationRule": "Add moderation rule",
+  "noRules": "No moderation rules.",
+  "pattern": "Pattern",
+  "patternLabel": "Pattern (keyword or regex)",
+  "action": "Action",
+  "description": "Description",
+  "descriptionOptional": "Description (optional)",
+  "block": "Block",
+  "flag": "Flag",
+  "warn": "Warn",
+  "deleteRuleConfirm": "Delete this moderation rule?"
+}

@@ -31,6 +31,7 @@ import { AuditModule } from './domain/audit/audit.module';
 import { AiEngineModule } from './domain/ai-engine/ai-engine.module';
 import { AnalyticsModule } from './domain/analytics/analytics.module';
 import { CustomerModule } from './domain/customer/customer.module';
+import { PrivacyModule } from './domain/privacy/privacy.module';
 
 @Module({
   imports: [
@@ -68,6 +69,7 @@ import { CustomerModule } from './domain/customer/customer.module';
     AuditModule,
     AiEngineModule,
     AnalyticsModule,
+    PrivacyModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: JwtAuthGuard }],
 })

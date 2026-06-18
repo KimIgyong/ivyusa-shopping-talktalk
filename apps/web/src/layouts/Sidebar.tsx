@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom';
 import { Sparkles } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '@/store/auth-store';
 import { useUiStore } from '@/store/ui-store';
 import { makeCan } from '@/lib/rbac';
@@ -7,6 +8,7 @@ import { TENANT_NAV, ADMIN_NAV, type NavItem } from './nav-config';
 import { cn } from '@/lib/cn';
 
 export function Sidebar() {
+  const { t } = useTranslation('nav');
   const principal = useAuthStore((s) => s.principal);
   const collapsed = useUiStore((s) => s.sidebarCollapsed);
   const isAdmin = principal?.actorType === 'admin';
@@ -33,7 +35,7 @@ export function Sidebar() {
         {!collapsed && (
           <div className="leading-tight">
             <p className="text-sm font-semibold text-gray-900">IVY TalkTalk</p>
-            <p className="text-xs text-gray-400">{isAdmin ? 'Platform Admin' : 'Console'}</p>
+            <p className="text-xs text-gray-400">{isAdmin ? t('platformAdmin') : t('console')}</p>
           </div>
         )}
       </div>
@@ -41,6 +43,7 @@ export function Sidebar() {
       <nav className="flex-1 space-y-1 overflow-y-auto p-3">
         {items.map((item) => {
           const Icon = item.icon;
+          const label = t(item.labelKey);
           return (
             <NavLink
               key={item.to}
@@ -55,10 +58,10 @@ export function Sidebar() {
                   collapsed && 'justify-center px-0',
                 )
               }
-              title={collapsed ? item.label : undefined}
+              title={collapsed ? label : undefined}
             >
               <Icon className="h-5 w-5 shrink-0" />
-              {!collapsed && <span className="truncate">{item.label}</span>}
+              {!collapsed && <span className="truncate">{label}</span>}
             </NavLink>
           );
         })}

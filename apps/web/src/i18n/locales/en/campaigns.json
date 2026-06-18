@@ -1,0 +1,14 @@
+{
+  "title": "Campaigns",
+  "subtitle": "Create and send outbound campaigns",
+  "newCampaign": "New campaign",
+  "name": "Name",
+  "channel": "Channel",
+  "status": "Status",
+  "audience": "Audience",
+  "sent": "Sent",
+  "created": "Created",
+  "send": "Send",
+  "message": "Message",
+  "empty": "No campaigns yet."
+}

@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { UserPlus } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { PageHeader } from '@/components/PageHeader';
 import { Card } from '@/components/Card';
 import { Badge } from '@/components/Badge';
@@ -30,8 +31,9 @@ function LabelCheckboxes({
   selected: string[];
   onToggle: (code: string) => void;
 }) {
+  const { t } = useTranslation('users');
   if (labels.length === 0) {
-    return <p className="text-sm text-gray-400">No job labels available.</p>;
+    return <p className="text-sm text-gray-400">{t('noJobLabels')}</p>;
   }
   return (
     <div className="space-y-2">
@@ -51,6 +53,8 @@ function LabelCheckboxes({
 }
 
 export function UsersPage() {
+  const { t } = useTranslation('users');
+  const { t: tc } = useTranslation('common');
   const { data: users, isLoading, error } = useUsers();
   const { data: jobLabels } = useJobLabels();
   const inviteUser = useInviteUser();
@@ -105,11 +109,11 @@ export function UsersPage() {
   };
 
   const columns: Column<TenantUser>[] = [
-    { key: 'email', header: 'Email', render: (u) => u.email },
-    { key: 'rank', header: 'Rank', render: (u) => <Badge tone="primary">{u.rank}</Badge> },
+    { key: 'email', header: t('email'), render: (u) => u.email },
+    { key: 'rank', header: t('rank'), render: (u) => <Badge tone="primary">{u.rank}</Badge> },
     {
       key: 'labels',
-      header: 'Labels',
+      header: t('labels'),
       render: (u) => {
         const codes = u.labels ?? [];
         if (codes.length === 0) return '—';
@@ -122,14 +126,14 @@ export function UsersPage() {
         );
       },
     },
-    { key: 'status', header: 'Status', render: (u) => <StatusBadge status={u.status} /> },
-    { key: 'createdAt', header: 'Created', render: (u) => fmtDate(u.createdAt) },
+    { key: 'status', header: t('status'), render: (u) => <StatusBadge status={u.status} /> },
+    { key: 'createdAt', header: t('created'), render: (u) => fmtDate(u.createdAt) },
     {
       key: 'action',
       header: '',
       render: (u) => (
         <Button variant="secondary" size="sm" onClick={() => openEdit(u)}>
-          Edit
+          {tc('edit')}
         </Button>
       ),
     },
@@ -138,12 +142,12 @@ export function UsersPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Users"
-        subtitle="Manage team members and their access."
+        title={t('title')}
+        subtitle={t('subtitle')}
         action={
           <Button onClick={openInvite}>
             <UserPlus className="mr-1.5 h-4 w-4" />
-            Invite user
+            {t('inviteUser')}
           </Button>
         }
       />
@@ -154,7 +158,7 @@ export function UsersPage() {
           data={users}
           loading={isLoading}
           error={error ? (error as Error).message : null}
-          emptyMessage="No users yet."
+          emptyMessage={t('empty')}
           rowKey={(u) => u.id}
         />
       </Card>
@@ -162,27 +166,27 @@ export function UsersPage() {
       <Modal
         open={inviteOpen}
         onClose={() => setInviteOpen(false)}
-        title="Invite user"
+        title={t('inviteUser')}
         footer={
           <>
             <Button variant="ghost" onClick={() => setInviteOpen(false)}>
-              Cancel
+              {tc('cancel')}
             </Button>
             <Button onClick={onInvite} disabled={inviteUser.isPending || !email}>
-              {inviteUser.isPending ? 'Sending…' : 'Send invite'}
+              {inviteUser.isPending ? tc('sending') : t('sendInvite')}
             </Button>
           </>
         }
       >
-        <FormRow label="Email">
+        <FormRow label={t('email')}>
           <Input
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="name@company.com"
+            placeholder={t('emailPlaceholder')}
           />
         </FormRow>
-        <FormRow label="Rank">
+        <FormRow label={t('rank')}>
           <Select value={inviteRank} onChange={(e) => setInviteRank(e.target.value)}>
             {RANKS.map((r) => (
               <option key={r} value={r}>
@@ -191,7 +195,7 @@ export function UsersPage() {
             ))}
           </Select>
         </FormRow>
-        <FormRow label="Job labels">
+        <FormRow label={t('jobLabels')}>
           <LabelCheckboxes
             labels={labels}
             selected={inviteCodes}
@@ -203,19 +207,19 @@ export function UsersPage() {
       <Modal
         open={editing !== null}
         onClose={() => setEditing(null)}
-        title="Edit user"
+        title={t('editUser')}
         footer={
           <>
             <Button variant="ghost" onClick={() => setEditing(null)}>
-              Cancel
+              {tc('cancel')}
             </Button>
             <Button onClick={onUpdate} disabled={updateUser.isPending}>
-              {updateUser.isPending ? 'Saving…' : 'Save'}
+              {updateUser.isPending ? tc('saving') : tc('save')}
             </Button>
           </>
         }
       >
-        <FormRow label="Rank">
+        <FormRow label={t('rank')}>
           <Select value={editRank} onChange={(e) => setEditRank(e.target.value)}>
             {RANKS.map((r) => (
               <option key={r} value={r}>
@@ -224,14 +228,14 @@ export function UsersPage() {
             ))}
           </Select>
         </FormRow>
-        <FormRow label="Job labels">
+        <FormRow label={t('jobLabels')}>
           <LabelCheckboxes
             labels={labels}
             selected={editCodes}
             onToggle={(code) => setEditCodes((prev) => toggle(prev, code))}
           />
         </FormRow>
-        <FormRow label="Status">
+        <FormRow label={t('status')}>
           <Select value={editStatus} onChange={(e) => setEditStatus(e.target.value)}>
             {STATUSES.map((s) => (
               <option key={s} value={s}>

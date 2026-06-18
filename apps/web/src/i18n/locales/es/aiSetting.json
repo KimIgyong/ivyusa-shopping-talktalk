@@ -1,0 +1,28 @@
+{
+  "title": "Configuración de IA",
+  "subtitle": "Configure el motor que impulsa cada función de IA",
+  "aiFunctions": "Funciones de IA",
+  "noFunctions": "No hay funciones de IA configuradas.",
+  "enginesAvailable": "{{count}} motor(es) disponible(s)",
+  "selectEngine": "Seleccionar motor…",
+  "functions": {
+    "chat": "Chat",
+    "rag": "RAG / Recuperación",
+    "summary": "Resumen",
+    "assist": "Asistencia al agente",
+    "moderation": "Moderación"
+  },
+  "moderationRules": "Reglas de moderación",
+  "addRule": "Añadir regla",
+  "addModerationRule": "Añadir regla de moderación",
+  "noRules": "No hay reglas de moderación.",
+  "pattern": "Patrón",
+  "patternLabel": "Patrón (palabra clave o expresión regular)",
+  "action": "Acción",
+  "description": "Descripción",
+  "descriptionOptional": "Descripción (opcional)",
+  "block": "Bloquear",
+  "flag": "Marcar",
+  "warn": "Advertir",
+  "deleteRuleConfirm": "¿Eliminar esta regla de moderación?"
+}

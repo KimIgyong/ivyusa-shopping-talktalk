@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { Loader2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 export interface Column<T> {
   key: string;
@@ -23,10 +24,12 @@ export function Table<T>({
   data,
   loading,
   error,
-  emptyMessage = 'No records found.',
+  emptyMessage,
   rowKey,
   onRowClick,
 }: TableProps<T>) {
+  const { t } = useTranslation('common');
+  const empty = emptyMessage ?? t('empty');
   return (
     <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
       <table className="w-full text-left">
@@ -47,7 +50,7 @@ export function Table<T>({
             <tr>
               <td colSpan={columns.length} className="px-4 py-12 text-center text-gray-400">
                 <Loader2 className="mx-auto mb-2 h-5 w-5 animate-spin" />
-                Loading…
+                {t('loading')}
               </td>
             </tr>
           )}
@@ -61,7 +64,7 @@ export function Table<T>({
           {!loading && !error && (!data || data.length === 0) && (
             <tr>
               <td colSpan={columns.length} className="px-4 py-12 text-center text-gray-400">
-                {emptyMessage}
+                {empty}
               </td>
             </tr>
           )}

@@ -33,6 +33,7 @@ export class SessionService {
     const session = await this.sessionRepo.save(
       this.sessionRepo.create({
         sessionToken: generateToken(),
+        tenantId: tenant?.id ?? null,
         language: this.resolveLanguage(locale),
         consentState: CONSENT_STATE.PENDING,
         customerId: null,

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { PageHeader } from '@/components/PageHeader';
 import { Button } from '@/components/Button';
 import { Badge } from '@/components/Badge';
@@ -15,6 +16,8 @@ const PAGE_SIZE = 20;
 const PLANS = ['starter', 'growth', 'enterprise'];
 
 export function TenantsPage() {
+  const { t } = useTranslation('tenants');
+  const { t: tc } = useTranslation('common');
   const [page, setPage] = useState(1);
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
@@ -44,16 +47,16 @@ export function TenantsPage() {
   };
 
   const columns: Column<Tenant>[] = [
-    { key: 'name', header: 'Name', render: (r) => r.name },
-    { key: 'slug', header: 'Slug', render: (r) => r.slug ?? '—' },
+    { key: 'name', header: t('name'), render: (r) => r.name },
+    { key: 'slug', header: t('slug'), render: (r) => r.slug ?? '—' },
     {
       key: 'plan',
-      header: 'Plan',
+      header: t('plan'),
       render: (r) => (r.plan ? <Badge tone="primary">{r.plan}</Badge> : '—'),
     },
-    { key: 'status', header: 'Status', render: (r) => <StatusBadge status={r.status} /> },
-    { key: 'userCount', header: 'Users', render: (r) => r.userCount ?? '—' },
-    { key: 'createdAt', header: 'Created', render: (r) => r.createdAt ?? '—' },
+    { key: 'status', header: t('status'), render: (r) => <StatusBadge status={r.status} /> },
+    { key: 'userCount', header: t('users'), render: (r) => r.userCount ?? '—' },
+    { key: 'createdAt', header: t('created'), render: (r) => r.createdAt ?? '—' },
     {
       key: 'action',
       header: '',
@@ -65,7 +68,7 @@ export function TenantsPage() {
             disabled={setStatus.isPending}
             onClick={() => setStatus.mutate({ id: r.id, status: 'suspended' })}
           >
-            Suspend
+            {t('suspend')}
           </Button>
         ) : (
           <Button
@@ -74,7 +77,7 @@ export function TenantsPage() {
             disabled={setStatus.isPending}
             onClick={() => setStatus.mutate({ id: r.id, status: 'active' })}
           >
-            Activate
+            {t('activate')}
           </Button>
         ),
     },
@@ -83,8 +86,8 @@ export function TenantsPage() {
   return (
     <div>
       <PageHeader
-        title="Tenants"
-        action={<Button onClick={() => setOpen(true)}>New tenant</Button>}
+        title={t('title')}
+        action={<Button onClick={() => setOpen(true)}>{t('newTenant')}</Button>}
       />
 
       <Table
@@ -93,7 +96,7 @@ export function TenantsPage() {
         loading={isLoading}
         error={error ? (error as Error).message : null}
         rowKey={(r) => r.id}
-        emptyMessage="No tenants."
+        emptyMessage={t('empty')}
       />
       <Pagination
         page={page}
@@ -105,28 +108,28 @@ export function TenantsPage() {
       <Modal
         open={open}
         onClose={() => setOpen(false)}
-        title="New tenant"
+        title={t('newTenant')}
         footer={
           <>
             <Button variant="secondary" onClick={() => setOpen(false)}>
-              Cancel
+              {tc('cancel')}
             </Button>
             <Button
               onClick={handleCreate}
               disabled={createTenant.isPending || !name || !slug}
             >
-              Create
+              {tc('create')}
             </Button>
           </>
         }
       >
-        <FormRow label="Name">
+        <FormRow label={t('name')}>
           <Input value={name} onChange={(e) => setName(e.target.value)} />
         </FormRow>
-        <FormRow label="Slug">
+        <FormRow label={t('slug')}>
           <Input value={slug} onChange={(e) => setSlug(e.target.value)} />
         </FormRow>
-        <FormRow label="Plan">
+        <FormRow label={t('plan')}>
           <Select value={plan} onChange={(e) => setPlan(e.target.value)}>
             {PLANS.map((p) => (
               <option key={p} value={p}>

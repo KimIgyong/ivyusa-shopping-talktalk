@@ -20,3 +20,14 @@ export function setConsent(
     granted,
   });
 }
+
+/** Sync the backend session language. `language` is an uppercase code, e.g. 'EN'. */
+export function setSessionLanguage(
+  sessionToken: string,
+  language: string,
+): Promise<unknown> {
+  return apiClient.post('/session/language', {
+    session_token: sessionToken,
+    language,
+  });
+}

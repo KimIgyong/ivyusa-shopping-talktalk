@@ -1,0 +1,9 @@
+{
+  "title": "Audit Log",
+  "time": "Time",
+  "actor": "Actor",
+  "action": "Action",
+  "target": "Target",
+  "ip": "IP",
+  "empty": "No audit entries."
+}

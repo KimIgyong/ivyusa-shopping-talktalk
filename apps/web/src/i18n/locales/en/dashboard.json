@@ -1,0 +1,13 @@
+{
+  "title": "Dashboard",
+  "subtitle": "Realtime overview of your support operations",
+  "activeChats": "Active chats",
+  "todayNotifications": "Today's notifications",
+  "aiResolutionRate": "AI resolution rate",
+  "unresolvedTopN": "Unresolved (top N)",
+  "totalConversations": "Total conversations",
+  "totalOrders": "Total orders",
+  "popularQuestions": "Popular questions",
+  "integrationStatus": "Integration status",
+  "noIntegrations": "No integrations configured."
+}

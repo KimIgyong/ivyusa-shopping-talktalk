@@ -1,0 +1,20 @@
+{
+  "title": "지식",
+  "subtitle": "소스와 문서를 관리하세요",
+  "sources": "소스",
+  "documents": "문서",
+  "addSource": "소스 추가",
+  "addDocument": "문서 추가",
+  "name": "이름",
+  "type": "유형",
+  "documentsColumn": "문서",
+  "enabled": "활성화",
+  "created": "생성일",
+  "title_column": "제목",
+  "source": "소스",
+  "status": "상태",
+  "content": "내용",
+  "noSources": "아직 소스가 없습니다.",
+  "noDocuments": "아직 문서가 없습니다.",
+  "deleteDocumentConfirm": "이 문서를 삭제하시겠습니까?"
+}

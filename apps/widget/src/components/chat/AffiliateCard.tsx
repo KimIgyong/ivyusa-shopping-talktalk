@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Users, CheckCircle2 } from 'lucide-react';
-import { strings } from '../../i18n/strings';
+import { useTranslation } from 'react-i18next';
 import {
   affiliateApply,
   affiliateStatus,
@@ -13,7 +13,8 @@ export function AffiliateCard({
 }: {
   sessionToken: string | null;
 }) {
-  const a = strings.affiliate;
+  const { t } = useTranslation();
+  const steps = t('affiliate.steps', { returnObjects: true }) as string[];
   const [applying, setApplying] = useState(false);
   const [localStatus, setLocalStatus] = useState<string | null>(null);
 
@@ -43,10 +44,10 @@ export function AffiliateCard({
     <div className="rounded-lg border border-gray-200 bg-white p-3">
       <div className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-gray-800">
         <Users className="h-4 w-4 text-primary-500" />
-        {a.title}
+        {t('affiliate.title')}
       </div>
       <ol className="mb-3 space-y-1.5">
-        {a.steps.map((step, i) => (
+        {steps.map((step, i) => (
           <li key={i} className="flex items-start gap-2 text-xs text-gray-600">
             <span className="flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full bg-primary-500/10 text-[10px] font-semibold text-primary-600">
               {i + 1}
@@ -58,17 +59,17 @@ export function AffiliateCard({
       {status === 'approved' ? (
         <div className="flex items-center gap-1.5 text-sm font-medium text-success">
           <CheckCircle2 className="h-4 w-4" />
-          {a.approved}
+          {t('affiliate.approved')}
         </div>
       ) : status === 'pending' ? (
-        <p className="text-sm font-medium text-warning">{a.pending}</p>
+        <p className="text-sm font-medium text-warning">{t('affiliate.pending')}</p>
       ) : (
         <button
           disabled={applying}
           onClick={apply}
           className="w-full rounded-lg bg-primary-500 px-3 py-2 text-sm font-medium text-white hover:bg-primary-600 disabled:opacity-50"
         >
-          {applying ? strings.common.loading : a.apply}
+          {applying ? t('common.loading') : t('affiliate.apply')}
         </button>
       )}
     </div>

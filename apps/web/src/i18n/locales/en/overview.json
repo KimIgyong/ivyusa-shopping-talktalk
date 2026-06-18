@@ -1,0 +1,10 @@
+{
+  "title": "Platform Overview",
+  "totalTenants": "Total tenants",
+  "activeTenants": "Active tenants",
+  "aiEngines": "AI engines",
+  "conversations": "Conversations",
+  "comingSoon": "coming soon",
+  "integrationStatus": "Integration status",
+  "noIntegrations": "No integrations configured."
+}

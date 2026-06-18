@@ -1,0 +1,21 @@
+{
+  "console": "Console",
+  "platformAdmin": "Platform Admin",
+  "dashboard": "Dashboard",
+  "liveChat": "Live Chat",
+  "history": "Conversation History",
+  "aiSettings": "AI Settings",
+  "knowledge": "Knowledge",
+  "customers": "Customers",
+  "campaigns": "Campaigns",
+  "users": "Users & Labels",
+  "settings": "Tenant Settings",
+  "overview": "Overview",
+  "tenants": "Tenants",
+  "aiEngines": "AI Engines",
+  "audit": "Audit Log",
+  "toggleSidebar": "Toggle sidebar",
+  "changePassword": "Change password",
+  "logout": "Log out",
+  "language": "Language"
+}

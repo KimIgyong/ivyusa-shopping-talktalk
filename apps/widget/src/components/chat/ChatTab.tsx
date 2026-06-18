@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Send, Sparkles, Headphones } from 'lucide-react';
-import { strings } from '../../i18n/strings';
+import { useTranslation } from 'react-i18next';
 import { useWidgetStore } from '../../store/widgetStore';
 import { useChat } from '../../hooks/useChat';
 import { setConsent } from '../../services/sessionService';
@@ -16,6 +16,7 @@ const CONSENT_KEY = 'ivy_consent';
 type Inline = 'auth' | 'contact' | 'affiliate' | null;
 
 export function ChatTab() {
+  const { t } = useTranslation();
   const sessionToken = useWidgetStore((s) => s.sessionToken);
   const authenticated = useWidgetStore((s) => s.authenticated);
   const setAuthenticated = useWidgetStore((s) => s.setAuthenticated);
@@ -85,15 +86,15 @@ export function ChatTab() {
         setInline('affiliate');
         return;
       case 'cancelRefund':
-        return doSend(strings.chat.templates.cancelRefund);
+        return doSend(t('chat.templates.cancelRefund'));
       case 'usage':
-        return doSend(strings.chat.templates.usage);
+        return doSend(t('chat.templates.usage'));
       case 'ingredients':
-        return doSend(strings.chat.templates.ingredients);
+        return doSend(t('chat.templates.ingredients'));
       case 'exchange':
-        return doSend(strings.chat.templates.exchange);
+        return doSend(t('chat.templates.exchange'));
       case 'restock':
-        return doSend(strings.chat.templates.restock);
+        return doSend(t('chat.templates.restock'));
     }
   }
 
@@ -110,7 +111,7 @@ export function ChatTab() {
       {/* AI disclosure */}
       <div className="flex items-center gap-1.5 border-b border-gray-100 bg-gray-50 px-3 py-1.5 text-[11px] text-gray-500">
         <Sparkles className="h-3 w-3 text-primary-400" />
-        {strings.chat.aiDisclosure}
+        {t('chat.aiDisclosure')}
       </div>
 
       {/* Thread */}
@@ -130,7 +131,7 @@ export function ChatTab() {
           message={{
             id: 'welcome',
             senderType: 'ai',
-            body: strings.chat.welcome,
+            body: t('chat.welcome'),
             createdAt: new Date().toISOString(),
           }}
         />
@@ -173,7 +174,7 @@ export function ChatTab() {
             className="flex w-full items-center justify-center gap-2 rounded-lg border border-primary-400 bg-primary-500/5 px-3 py-2 text-sm font-medium text-primary-600 hover:bg-primary-500/10"
           >
             <Headphones className="h-4 w-4" />
-            {strings.chat.connectAgent}
+            {t('chat.connectAgent')}
           </button>
         )}
       </div>
@@ -186,14 +187,14 @@ export function ChatTab() {
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder={strings.chat.inputPlaceholder}
+          placeholder={t('chat.inputPlaceholder')}
           disabled={!consented}
           className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-primary-400 focus:outline-none disabled:bg-gray-50"
         />
         <button
           type="submit"
           disabled={!consented || sending || !input.trim()}
-          aria-label={strings.chat.send}
+          aria-label={t('chat.send')}
           className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-primary-500 text-white hover:bg-primary-600 disabled:opacity-40"
         >
           <Send className="h-4 w-4" />

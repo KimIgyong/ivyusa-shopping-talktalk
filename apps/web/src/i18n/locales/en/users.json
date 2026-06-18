@@ -1,0 +1,16 @@
+{
+  "title": "Users",
+  "subtitle": "Manage team members and their access.",
+  "inviteUser": "Invite user",
+  "email": "Email",
+  "emailPlaceholder": "name@company.com",
+  "rank": "Rank",
+  "labels": "Labels",
+  "jobLabels": "Job labels",
+  "status": "Status",
+  "created": "Created",
+  "editUser": "Edit user",
+  "sendInvite": "Send invite",
+  "noJobLabels": "No job labels available.",
+  "empty": "No users yet."
+}

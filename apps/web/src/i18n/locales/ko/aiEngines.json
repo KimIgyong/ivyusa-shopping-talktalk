@@ -1,0 +1,15 @@
+{
+  "title": "AI 엔진",
+  "addEngine": "엔진 추가",
+  "editEngine": "엔진 편집",
+  "name": "이름",
+  "provider": "제공자",
+  "model": "모델",
+  "status": "상태",
+  "apiKey": "API 키",
+  "apiKeyEdit": "API 키 (변경하지 않으려면 비워 두세요)",
+  "created": "생성일",
+  "enable": "활성화",
+  "disable": "비활성화",
+  "empty": "구성된 엔진이 없습니다."
+}

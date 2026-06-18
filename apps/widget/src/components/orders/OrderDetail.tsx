@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ArrowLeft, MessageSquare, Truck, Star } from 'lucide-react';
-import { strings } from '../../i18n/strings';
+import { useTranslation } from 'react-i18next';
 import { useOrder, useTracking } from '../../hooks/useOrders';
 import { Badge, toneForStatus } from '../ui/Badge';
 import { Spinner } from '../ui/Spinner';
@@ -19,16 +19,17 @@ export function OrderDetailView({
   onBack: () => void;
   onAsk: (orderNumber: string) => void;
 }) {
+  const { t } = useTranslation();
   const { data, isLoading, isError } = useOrder(orderId, sessionToken);
   const [showTrack, setShowTrack] = useState(false);
   const [reviewItemId, setReviewItemId] = useState<string | null>(null);
   const tracking = useTracking(showTrack ? orderId : null, sessionToken);
 
-  if (isLoading) return <Spinner label={strings.common.loading} />;
+  if (isLoading) return <Spinner label={t('common.loading')} />;
   if (isError || !data)
     return (
       <p className="py-8 text-center text-sm text-gray-400">
-        {strings.common.error}
+        {t('common.error')}
       </p>
     );
 
@@ -42,7 +43,7 @@ export function OrderDetailView({
         className="mb-3 flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700"
       >
         <ArrowLeft className="h-3.5 w-3.5" />
-        {strings.orders.back}
+        {t('orders.back')}
       </button>
 
       <div className="mb-3 rounded-lg border border-gray-200 bg-white p-3">
@@ -53,7 +54,7 @@ export function OrderDetailView({
           <Badge tone={toneForStatus(order.statusUi)}>{order.statusUi}</Badge>
         </div>
         <div className="mt-2 flex items-center justify-between text-sm">
-          <span className="text-gray-500">{strings.orders.total}</span>
+          <span className="text-gray-500">{t('orders.total')}</span>
           <span className="font-semibold text-gray-900">
             {formatMoney(order.total, order.currency)}
           </span>
@@ -61,7 +62,7 @@ export function OrderDetailView({
       </div>
 
       <div className="mb-2 text-xs font-medium text-gray-400">
-        {strings.orders.items}
+        {t('orders.items')}
       </div>
       <div className="mb-3 space-y-2">
         {items.map((it, i) => (
@@ -89,7 +90,7 @@ export function OrderDetailView({
                 className="mt-2 flex items-center gap-1 text-xs font-medium text-primary-600 hover:underline"
               >
                 <Star className="h-3.5 w-3.5" />
-                {strings.orders.writeReview}
+                {t('orders.writeReview')}
               </button>
             )}
           </div>
@@ -119,14 +120,14 @@ export function OrderDetailView({
           className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
         >
           <Truck className="h-4 w-4" />
-          {strings.orders.track}
+          {t('orders.track')}
         </button>
         <button
           onClick={() => onAsk(order.orderNumber)}
           className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-primary-500 px-3 py-2 text-sm font-medium text-white hover:bg-primary-600"
         >
           <MessageSquare className="h-4 w-4" />
-          {strings.orders.ask}
+          {t('orders.ask')}
         </button>
       </div>
     </div>

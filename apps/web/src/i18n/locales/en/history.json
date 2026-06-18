@@ -1,0 +1,18 @@
+{
+  "title": "Conversation History",
+  "subtitle": "Browse past customer conversations",
+  "id": "ID",
+  "customer": "Customer",
+  "status": "Status",
+  "escalated": "Escalated",
+  "messages": "Messages",
+  "started": "Started",
+  "ended": "Ended",
+  "summary": "Summary",
+  "allStatuses": "All statuses",
+  "open": "Open",
+  "resolved": "Resolved",
+  "ended_status": "Ended",
+  "empty": "No conversations found.",
+  "detailTitle": "Conversation detail"
+}

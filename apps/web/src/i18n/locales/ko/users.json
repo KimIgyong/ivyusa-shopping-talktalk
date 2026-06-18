@@ -1,0 +1,16 @@
+{
+  "title": "사용자",
+  "subtitle": "팀원과 접근 권한을 관리하세요.",
+  "inviteUser": "사용자 초대",
+  "email": "이메일",
+  "emailPlaceholder": "name@company.com",
+  "rank": "직급",
+  "labels": "라벨",
+  "jobLabels": "직무 라벨",
+  "status": "상태",
+  "created": "생성일",
+  "editUser": "사용자 편집",
+  "sendInvite": "초대 보내기",
+  "noJobLabels": "사용 가능한 직무 라벨이 없습니다.",
+  "empty": "아직 사용자가 없습니다."
+}

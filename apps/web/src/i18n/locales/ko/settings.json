@@ -1,0 +1,18 @@
+{
+  "title": "테넌트 설정",
+  "subtitle": "연동과 자격 증명을 관리하세요.",
+  "integrationCredentials": "연동 자격 증명",
+  "provider": "제공자",
+  "status": "상태",
+  "key": "키",
+  "lastUpdated": "마지막 수정",
+  "connected": "연결됨",
+  "notSet": "미설정",
+  "updateCredential": "자격 증명 수정",
+  "updateProvider": "{{provider}} 수정",
+  "apiKey": "API 키",
+  "apiKeyPlaceholder": "API 키를 입력하세요",
+  "secretOptional": "시크릿 (선택)",
+  "secretPlaceholder": "시크릿을 입력하세요",
+  "empty": "사용 가능한 연동이 없습니다."
+}

@@ -1,0 +1,10 @@
+{
+  "title": "플랫폼 개요",
+  "totalTenants": "전체 테넌트",
+  "activeTenants": "활성 테넌트",
+  "aiEngines": "AI 엔진",
+  "conversations": "대화",
+  "comingSoon": "출시 예정",
+  "integrationStatus": "연동 상태",
+  "noIntegrations": "구성된 연동이 없습니다."
+}

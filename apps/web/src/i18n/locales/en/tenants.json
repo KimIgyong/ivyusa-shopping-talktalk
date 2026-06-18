@@ -1,0 +1,13 @@
+{
+  "title": "Tenants",
+  "newTenant": "New tenant",
+  "name": "Name",
+  "slug": "Slug",
+  "plan": "Plan",
+  "status": "Status",
+  "users": "Users",
+  "created": "Created",
+  "suspend": "Suspend",
+  "activate": "Activate",
+  "empty": "No tenants."
+}

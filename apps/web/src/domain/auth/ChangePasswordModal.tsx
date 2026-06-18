@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/Modal';
 import { Button } from '@/components/Button';
 import { FormRow, Input } from '@/components/Field';
@@ -13,6 +14,8 @@ interface Props {
 }
 
 export function ChangePasswordModal({ open, forced, onClose }: Props) {
+  const { t } = useTranslation('auth');
+  const { t: tc } = useTranslation('common');
   const [current, setCurrent] = useState('');
   const [next, setNext] = useState('');
   const [confirm, setConfirm] = useState('');
@@ -21,20 +24,20 @@ export function ChangePasswordModal({ open, forced, onClose }: Props) {
 
   const submit = async () => {
     if (next !== confirm) {
-      toast.error('New passwords do not match.');
+      toast.error(t('passwordsDoNotMatch'));
       return;
     }
     setLoading(true);
     try {
       await authService.changePassword(current, next);
       clearMustChange();
-      toast.success('Password changed.');
+      toast.success(t('passwordChanged'));
       setCurrent('');
       setNext('');
       setConfirm('');
       onClose();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Failed to change password.');
+      toast.error(e instanceof Error ? e.message : t('changePasswordFailed'));
     } finally {
       setLoading(false);
     }
@@ -44,32 +47,28 @@ export function ChangePasswordModal({ open, forced, onClose }: Props) {
     <Modal
       open={open}
       onClose={forced ? undefined : onClose}
-      title={forced ? 'You must change your password' : 'Change password'}
+      title={forced ? t('mustChangeTitle') : t('changePassword')}
       footer={
         <>
           {!forced && (
             <Button variant="secondary" onClick={onClose}>
-              Cancel
+              {tc('cancel')}
             </Button>
           )}
           <Button onClick={submit} disabled={loading || !current || !next}>
-            {loading ? 'Saving…' : 'Update password'}
+            {loading ? tc('saving') : t('updatePassword')}
           </Button>
         </>
       }
     >
-      {forced && (
-        <p className="mb-4 text-sm text-gray-500">
-          A password change is required before you continue.
-        </p>
-      )}
-      <FormRow label="Current password">
+      {forced && <p className="mb-4 text-sm text-gray-500">{t('mustChangeNotice')}</p>}
+      <FormRow label={t('currentPassword')}>
         <Input type="password" value={current} onChange={(e) => setCurrent(e.target.value)} />
       </FormRow>
-      <FormRow label="New password">
+      <FormRow label={t('newPassword')}>
         <Input type="password" value={next} onChange={(e) => setNext(e.target.value)} />
       </FormRow>
-      <FormRow label="Confirm new password">
+      <FormRow label={t('confirmPassword')}>
         <Input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} />
       </FormRow>
     </Modal>

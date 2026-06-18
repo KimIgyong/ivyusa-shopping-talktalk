@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AppRouter } from '@/router/AppRouter';
 import { ToastViewport } from '@/components/Toast';
+import './i18n/i18n';
 import './index.css';
 
 const queryClient = new QueryClient({

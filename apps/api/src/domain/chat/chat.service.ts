@@ -17,6 +17,34 @@ import { EventBusService, EVENTS } from '../../infrastructure/infrastructure.mod
 
 const ESCALATION_CONFIDENCE = 0.45;
 
+/**
+ * Localized backend-generated conversational strings (en/es/ko) keyed by
+ * session.language. Backend ERROR messages stay English (localized by code on
+ * the client); these are user-facing chat turns, so they honor the UI language.
+ */
+const SYSTEM_MESSAGES = {
+  authRequired: {
+    EN: 'To look up your order I need to verify your identity. Please sign in or use guest order lookup.',
+    ES: 'Para consultar tu pedido necesito verificar tu identidad. Inicia sesión o usa la búsqueda de pedido como invitado.',
+    KO: '주문을 조회하려면 본인 확인이 필요합니다. 로그인하거나 비회원 주문 조회를 이용해 주세요.',
+  },
+  connectingAgent: {
+    EN: "I'm connecting you with a support agent who can help with this.",
+    ES: 'Te estoy conectando con un agente de soporte que puede ayudarte con esto.',
+    KO: '이 문제를 도와드릴 상담원에게 연결해 드리겠습니다.',
+  },
+  offerAgent: {
+    EN: 'Would you like me to connect you with a support agent?',
+    ES: '¿Quieres que te conecte con un agente de soporte?',
+    KO: '상담원에게 연결해 드릴까요?',
+  },
+} as const;
+
+function sysMsg(key: keyof typeof SYSTEM_MESSAGES, lang: string): string {
+  const set = SYSTEM_MESSAGES[key];
+  return (set as Record<string, string>)[lang] ?? set.EN;
+}
+
 export interface ChatTurnResult {
   conversationId: number;
   reply: { senderType: string; body: string; citations?: unknown };
@@ -63,7 +91,7 @@ export class ChatService {
   }
 
   async handleUserMessage(session: Session, text: string): Promise<ChatTurnResult> {
-    const tenantId = await this.resolveTenantId();
+    const tenantId = session.tenantId ?? (await this.resolveTenantId());
     const conversation = await this.getOrCreateConversation(session.id);
 
     await this.persist(conversation.id, SENDER_TYPE.USER, text, session.language);
@@ -79,8 +107,7 @@ export class ChatService {
     // Intent + scope check (FN-015): order data requires authentication first.
     const intent = await this.rag.classifyIntent(tenantId, text);
     if (intent.needsOrderData && session.customerId == null) {
-      const body =
-        'To look up your order I need to verify your identity. Please sign in or use guest order lookup.';
+      const body = sysMsg('authRequired', session.language);
       await this.persist(conversation.id, SENDER_TYPE.SYSTEM, body, session.language);
       return { conversationId: conversation.id, reply: { senderType: 'system', body }, escalate: false, needsAuth: true };
     }
@@ -101,14 +128,14 @@ export class ChatService {
       answer.confidence < ESCALATION_CONFIDENCE || moderated.decision === MODERATION_DECISION.BLOCKED;
 
     if (moderated.decision === MODERATION_DECISION.BLOCKED) {
-      const body = "I'm connecting you with a support agent who can help with this.";
+      const body = sysMsg('connectingAgent', session.language);
       await this.persist(conversation.id, SENDER_TYPE.SYSTEM, body, session.language);
       await this.markWaiting(conversation.id);
       return { conversationId: conversation.id, reply: { senderType: 'system', body }, escalate: true, needsAuth: false };
     }
 
     const finalText = escalate
-      ? `${moderated.text}\n\nWould you like me to connect you with a support agent?`
+      ? `${moderated.text}\n\n${sysMsg('offerAgent', session.language)}`
       : moderated.text;
 
     await this.persist(conversation.id, SENDER_TYPE.AI, finalText, session.language, {

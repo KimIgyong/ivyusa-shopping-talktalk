@@ -1,0 +1,14 @@
+{
+  "title": "Customers",
+  "subtitle": "Manage customer accounts and tiers",
+  "name": "Name",
+  "email": "Email",
+  "tier": "Tier",
+  "orders": "Orders",
+  "totalSpent": "Total spent",
+  "created": "Created",
+  "editTier": "Edit tier",
+  "editTierTitle": "Edit customer tier",
+  "tierFor": "Tier for {{name}}",
+  "empty": "No customers found."
+}

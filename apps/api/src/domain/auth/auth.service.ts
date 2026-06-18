@@ -4,6 +4,7 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
+import { BCRYPT_ROUNDS } from '../../global/constant/security.constant';
 import { AdminLevel, JobLabel, Principal, UserRank } from '@ivy/types';
 import { AdminUser } from './entity/admin-user.entity';
 import { User } from '../user/entity/user.entity';
@@ -134,7 +135,7 @@ export class AuthService {
     if (!currentHash || !(await bcrypt.compare(current, currentHash))) {
       throw new BusinessException(ERROR_CODE.INVALID_CREDENTIALS, HttpStatus.UNAUTHORIZED);
     }
-    await save(await bcrypt.hash(next, 10));
+    await save(await bcrypt.hash(next, BCRYPT_ROUNDS));
   }
 
   private issue(

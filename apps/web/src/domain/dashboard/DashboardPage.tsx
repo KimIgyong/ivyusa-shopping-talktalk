@@ -6,6 +6,7 @@ import {
   MessageCircle,
   ShoppingCart,
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { PageHeader } from '@/components/PageHeader';
 import { KpiCard } from '@/components/KpiCard';
 import { Card } from '@/components/Card';
@@ -19,43 +20,45 @@ function pct(value: number | undefined) {
 }
 
 export function DashboardPage() {
+  const { t } = useTranslation('dashboard');
+  const { t: tc } = useTranslation('common');
   const { data, isLoading } = useDashboard();
   const { data: integrations, isLoading: intLoading } = useIntegrationStatus();
 
   return (
     <div>
-      <PageHeader title="Dashboard" subtitle="Realtime overview of your support operations" />
+      <PageHeader title={t('title')} subtitle={t('subtitle')} />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <KpiCard label="Active chats" value={data?.activeChats ?? (isLoading ? '…' : 0)} icon={MessagesSquare} />
+        <KpiCard label={t('activeChats')} value={data?.activeChats ?? (isLoading ? '…' : 0)} icon={MessagesSquare} />
         <KpiCard
-          label="Today's notifications"
+          label={t('todayNotifications')}
           value={data?.todayNotifications ?? (isLoading ? '…' : 0)}
           icon={Bell}
         />
         <KpiCard
-          label="AI resolution rate"
+          label={t('aiResolutionRate')}
           value={isLoading ? '…' : pct(data?.aiResolutionRate)}
           icon={Bot}
         />
         <KpiCard
-          label="Unresolved (top N)"
+          label={t('unresolvedTopN')}
           value={data?.unresolvedTopN ?? (isLoading ? '…' : 0)}
           icon={AlertTriangle}
         />
         <KpiCard
-          label="Total conversations"
+          label={t('totalConversations')}
           value={data?.totalConversations ?? (isLoading ? '…' : 0)}
           icon={MessageCircle}
         />
-        <KpiCard label="Total orders" value={data?.totalOrders ?? (isLoading ? '…' : 0)} icon={ShoppingCart} />
+        <KpiCard label={t('totalOrders')} value={data?.totalOrders ?? (isLoading ? '…' : 0)} icon={ShoppingCart} />
       </div>
 
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <Card title="Popular questions" className="lg:col-span-2">
-          {isLoading && <p className="text-sm text-gray-400">Loading…</p>}
+        <Card title={t('popularQuestions')} className="lg:col-span-2">
+          {isLoading && <p className="text-sm text-gray-400">{tc('loading')}</p>}
           {!isLoading && (!data?.popularQuestions || data.popularQuestions.length === 0) && (
-            <p className="text-sm text-gray-400">No data yet.</p>
+            <p className="text-sm text-gray-400">{tc('noData')}</p>
           )}
           <ul className="divide-y divide-gray-100">
             {data?.popularQuestions?.map((q, i) => (
@@ -72,10 +75,10 @@ export function DashboardPage() {
           </ul>
         </Card>
 
-        <Card title="Integration status">
-          {intLoading && <p className="text-sm text-gray-400">Loading…</p>}
+        <Card title={t('integrationStatus')}>
+          {intLoading && <p className="text-sm text-gray-400">{tc('loading')}</p>}
           {!intLoading && (!integrations || integrations.length === 0) && (
-            <p className="text-sm text-gray-400">No integrations configured.</p>
+            <p className="text-sm text-gray-400">{t('noIntegrations')}</p>
           )}
           <ul className="space-y-3">
             {integrations?.map((it) => (

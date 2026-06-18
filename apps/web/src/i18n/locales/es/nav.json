@@ -1,0 +1,21 @@
+{
+  "console": "Consola",
+  "platformAdmin": "Administración de plataforma",
+  "dashboard": "Panel",
+  "liveChat": "Chat en vivo",
+  "history": "Historial de conversaciones",
+  "aiSettings": "Configuración de IA",
+  "knowledge": "Conocimiento",
+  "customers": "Clientes",
+  "campaigns": "Campañas",
+  "users": "Usuarios y etiquetas",
+  "settings": "Configuración del inquilino",
+  "overview": "Resumen",
+  "tenants": "Inquilinos",
+  "aiEngines": "Motores de IA",
+  "audit": "Registro de auditoría",
+  "toggleSidebar": "Alternar barra lateral",
+  "changePassword": "Cambiar contraseña",
+  "logout": "Cerrar sesión",
+  "language": "Idioma"
+}

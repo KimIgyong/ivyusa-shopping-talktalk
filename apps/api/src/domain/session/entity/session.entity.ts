@@ -11,6 +11,12 @@ export class Session {
   @Column({ name: 'session_token', type: 'varchar', length: 128 })
   sessionToken: string;
 
+  // Tenant the session belongs to (resolved at creation). Threads tenant context
+  // through the chat/notification path instead of a "first tenant" lookup.
+  @Column({ name: 'tenant_id', type: 'bigint', nullable: true, transformer: bigintTransformer })
+  @Index('idx_sessions_tenant')
+  tenantId: number | null;
+
   @Column({ name: 'customer_id', type: 'bigint', nullable: true, transformer: bigintTransformer })
   @Index('idx_sessions_customer')
   customerId: number | null;

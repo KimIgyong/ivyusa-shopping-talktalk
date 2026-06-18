@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { PageHeader } from '@/components/PageHeader';
 import { Card } from '@/components/Card';
 import { Badge } from '@/components/Badge';
@@ -17,6 +18,8 @@ function fmtDate(value?: string): string {
 }
 
 export function SettingsPage() {
+  const { t } = useTranslation('settings');
+  const { t: tc } = useTranslation('common');
   const { data, isLoading, error } = useCredentials();
   const updateCredential = useUpdateCredential();
 
@@ -40,25 +43,25 @@ export function SettingsPage() {
   };
 
   const columns: Column<CredentialStatus>[] = [
-    { key: 'provider', header: 'Provider', render: (c) => c.provider },
+    { key: 'provider', header: t('provider'), render: (c) => c.provider },
     {
       key: 'configured',
-      header: 'Status',
+      header: t('status'),
       render: (c) =>
-        c.configured ? <Badge tone="success">Connected</Badge> : <Badge>Not set</Badge>,
+        c.configured ? <Badge tone="success">{t('connected')}</Badge> : <Badge>{t('notSet')}</Badge>,
     },
     {
       key: 'maskedKey',
-      header: 'Key',
+      header: t('key'),
       render: (c) => <span className="font-mono text-xs">{c.maskedKey || '—'}</span>,
     },
-    { key: 'lastUpdatedAt', header: 'Last updated', render: (c) => fmtDate(c.lastUpdatedAt) },
+    { key: 'lastUpdatedAt', header: t('lastUpdated'), render: (c) => fmtDate(c.lastUpdatedAt) },
     {
       key: 'action',
       header: '',
       render: (c) => (
         <Button variant="secondary" size="sm" onClick={() => openEdit(c)}>
-          Update
+          {tc('update')}
         </Button>
       ),
     },
@@ -66,15 +69,15 @@ export function SettingsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Tenant Settings" subtitle="Manage integrations and credentials." />
+      <PageHeader title={t('title')} subtitle={t('subtitle')} />
 
-      <Card title="Integration credentials">
+      <Card title={t('integrationCredentials')}>
         <Table<CredentialStatus>
           columns={columns}
           data={data}
           loading={isLoading}
           error={error ? (error as Error).message : null}
-          emptyMessage="No integrations available."
+          emptyMessage={t('empty')}
           rowKey={(c) => c.provider}
         />
       </Card>
@@ -82,33 +85,33 @@ export function SettingsPage() {
       <Modal
         open={editing !== null}
         onClose={() => setEditing(null)}
-        title={editing ? `Update ${editing.provider}` : 'Update credential'}
+        title={editing ? t('updateProvider', { provider: editing.provider }) : t('updateCredential')}
         footer={
           <>
             <Button variant="ghost" onClick={() => setEditing(null)}>
-              Cancel
+              {tc('cancel')}
             </Button>
             <Button onClick={onSave} disabled={updateCredential.isPending}>
-              {updateCredential.isPending ? 'Saving…' : 'Save'}
+              {updateCredential.isPending ? tc('saving') : tc('save')}
             </Button>
           </>
         }
       >
-        <FormRow label="API key">
+        <FormRow label={t('apiKey')}>
           <Input
             type="password"
             value={apiKey}
             onChange={(e) => setApiKey(e.target.value)}
-            placeholder="Enter API key"
+            placeholder={t('apiKeyPlaceholder')}
             autoComplete="off"
           />
         </FormRow>
-        <FormRow label="Secret (optional)">
+        <FormRow label={t('secretOptional')}>
           <Input
             type="password"
             value={secret}
             onChange={(e) => setSecret(e.target.value)}
-            placeholder="Enter secret"
+            placeholder={t('secretPlaceholder')}
             autoComplete="off"
           />
         </FormRow>

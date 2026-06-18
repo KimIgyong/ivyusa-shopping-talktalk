@@ -11,7 +11,7 @@ import {
   Leaf,
   Bell,
 } from 'lucide-react';
-import { strings } from '../../i18n/strings';
+import { useTranslation } from 'react-i18next';
 
 export type ScenarioAction =
   | 'delivery'
@@ -50,30 +50,29 @@ export function ScenarioMenu({
 }: {
   onAction: (a: ScenarioAction) => void;
 }) {
+  const { t } = useTranslation();
   const [sub, setSub] = useState(false);
-  const s = strings.chat.scenarios;
-  const p = strings.chat.productHelp;
 
   if (sub) {
     return (
       <div className="grid grid-cols-2 gap-2">
-        <MenuButton icon={<HelpCircle className="h-4 w-4" />} label={p.usage} onClick={() => onAction('usage')} />
-        <MenuButton icon={<Leaf className="h-4 w-4" />} label={p.ingredients} onClick={() => onAction('ingredients')} />
-        <MenuButton icon={<RotateCcw className="h-4 w-4" />} label={p.exchange} onClick={() => onAction('exchange')} />
-        <MenuButton icon={<Bell className="h-4 w-4" />} label={p.restock} onClick={() => onAction('restock')} />
-        <MenuButton icon={<ArrowLeft className="h-4 w-4" />} label={p.back} onClick={() => setSub(false)} />
+        <MenuButton icon={<HelpCircle className="h-4 w-4" />} label={t('chat.productHelp.usage')} onClick={() => onAction('usage')} />
+        <MenuButton icon={<Leaf className="h-4 w-4" />} label={t('chat.productHelp.ingredients')} onClick={() => onAction('ingredients')} />
+        <MenuButton icon={<RotateCcw className="h-4 w-4" />} label={t('chat.productHelp.exchange')} onClick={() => onAction('exchange')} />
+        <MenuButton icon={<Bell className="h-4 w-4" />} label={t('chat.productHelp.restock')} onClick={() => onAction('restock')} />
+        <MenuButton icon={<ArrowLeft className="h-4 w-4" />} label={t('chat.productHelp.back')} onClick={() => setSub(false)} />
       </div>
     );
   }
 
   return (
     <div className="grid grid-cols-2 gap-2">
-      <MenuButton icon={<Truck className="h-4 w-4" />} label={s.delivery} onClick={() => onAction('delivery')} />
-      <MenuButton icon={<RotateCcw className="h-4 w-4" />} label={s.cancelRefund} onClick={() => onAction('cancelRefund')} />
-      <MenuButton icon={<Sparkles className="h-4 w-4" />} label={s.productHelp} onClick={() => setSub(true)} />
-      <MenuButton icon={<Phone className="h-4 w-4" />} label={s.contact} onClick={() => onAction('contact')} />
-      <MenuButton icon={<Users className="h-4 w-4" />} label={s.affiliate} onClick={() => onAction('affiliate')} />
-      <MenuButton icon={<Package className="h-4 w-4" />} label={s.myOrders} onClick={() => onAction('myOrders')} />
+      <MenuButton icon={<Truck className="h-4 w-4" />} label={t('chat.scenarios.delivery')} onClick={() => onAction('delivery')} />
+      <MenuButton icon={<RotateCcw className="h-4 w-4" />} label={t('chat.scenarios.cancelRefund')} onClick={() => onAction('cancelRefund')} />
+      <MenuButton icon={<Sparkles className="h-4 w-4" />} label={t('chat.scenarios.productHelp')} onClick={() => setSub(true)} />
+      <MenuButton icon={<Phone className="h-4 w-4" />} label={t('chat.scenarios.contact')} onClick={() => onAction('contact')} />
+      <MenuButton icon={<Users className="h-4 w-4" />} label={t('chat.scenarios.affiliate')} onClick={() => onAction('affiliate')} />
+      <MenuButton icon={<Package className="h-4 w-4" />} label={t('chat.scenarios.myOrders')} onClick={() => onAction('myOrders')} />
     </div>
   );
 }

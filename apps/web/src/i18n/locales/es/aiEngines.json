@@ -1,0 +1,15 @@
+{
+  "title": "Motores de IA",
+  "addEngine": "Añadir motor",
+  "editEngine": "Editar motor",
+  "name": "Nombre",
+  "provider": "Proveedor",
+  "model": "Modelo",
+  "status": "Estado",
+  "apiKey": "Clave de API",
+  "apiKeyEdit": "Clave de API (deje en blanco para mantener la actual)",
+  "created": "Creado",
+  "enable": "Activar",
+  "disable": "Desactivar",
+  "empty": "No hay motores configurados."
+}

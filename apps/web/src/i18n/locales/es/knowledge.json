@@ -1,0 +1,20 @@
+{
+  "title": "Conocimiento",
+  "subtitle": "Gestione fuentes y documentos",
+  "sources": "Fuentes",
+  "documents": "Documentos",
+  "addSource": "Añadir fuente",
+  "addDocument": "Añadir documento",
+  "name": "Nombre",
+  "type": "Tipo",
+  "documentsColumn": "Documentos",
+  "enabled": "Activado",
+  "created": "Creado",
+  "title_column": "Título",
+  "source": "Fuente",
+  "status": "Estado",
+  "content": "Contenido",
+  "noSources": "Aún no hay fuentes.",
+  "noDocuments": "Aún no hay documentos.",
+  "deleteDocumentConfirm": "¿Eliminar este documento?"
+}

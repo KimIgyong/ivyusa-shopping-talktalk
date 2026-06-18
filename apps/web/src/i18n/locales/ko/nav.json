@@ -1,0 +1,21 @@
+{
+  "console": "콘솔",
+  "platformAdmin": "플랫폼 관리자",
+  "dashboard": "대시보드",
+  "liveChat": "실시간 상담",
+  "history": "대화 이력",
+  "aiSettings": "AI 설정",
+  "knowledge": "지식",
+  "customers": "고객",
+  "campaigns": "캠페인",
+  "users": "사용자 및 라벨",
+  "settings": "테넌트 설정",
+  "overview": "개요",
+  "tenants": "테넌트",
+  "aiEngines": "AI 엔진",
+  "audit": "감사 로그",
+  "toggleSidebar": "사이드바 전환",
+  "changePassword": "비밀번호 변경",
+  "logout": "로그아웃",
+  "language": "언어"
+}

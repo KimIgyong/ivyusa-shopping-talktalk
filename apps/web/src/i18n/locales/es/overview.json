@@ -1,0 +1,10 @@
+{
+  "title": "Resumen de la plataforma",
+  "totalTenants": "Total de inquilinos",
+  "activeTenants": "Inquilinos activos",
+  "aiEngines": "Motores de IA",
+  "conversations": "Conversaciones",
+  "comingSoon": "próximamente",
+  "integrationStatus": "Estado de integraciones",
+  "noIntegrations": "No hay integraciones configuradas."
+}

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Star, CheckCircle2 } from 'lucide-react';
-import { strings } from '../../i18n/strings';
+import { useTranslation } from 'react-i18next';
 import { createReview } from '../../services/miscService';
 
 export function ReviewForm({
@@ -12,6 +12,7 @@ export function ReviewForm({
   orderItemId: string;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   const [rating, setRating] = useState(0);
   const [hover, setHover] = useState(0);
   const [body, setBody] = useState('');
@@ -36,13 +37,13 @@ export function ReviewForm({
       <div className="flex flex-col items-center gap-2 rounded-lg border border-gray-200 bg-white p-4 text-center">
         <CheckCircle2 className="h-6 w-6 text-success" />
         <p className="text-sm font-medium text-gray-800">
-          {strings.review.thanks}
+          {t('review.thanks')}
         </p>
         <button
           onClick={onClose}
           className="text-xs text-primary-600 hover:underline"
         >
-          {strings.orders.back}
+          {t('orders.back')}
         </button>
       </div>
     );
@@ -51,9 +52,9 @@ export function ReviewForm({
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-3">
       <div className="mb-2 text-sm font-semibold text-gray-800">
-        {strings.review.title}
+        {t('review.title')}
       </div>
-      <div className="mb-1 text-xs text-gray-500">{strings.review.rating}</div>
+      <div className="mb-1 text-xs text-gray-500">{t('review.rating')}</div>
       <div className="mb-3 flex gap-1">
         {[1, 2, 3, 4, 5].map((v) => (
           <button
@@ -77,7 +78,7 @@ export function ReviewForm({
       <textarea
         value={body}
         onChange={(e) => setBody(e.target.value)}
-        placeholder={strings.review.placeholder}
+        placeholder={t('review.placeholder')}
         rows={3}
         className="mb-2 w-full resize-none rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-primary-400 focus:outline-none"
       />
@@ -87,13 +88,13 @@ export function ReviewForm({
           onClick={submit}
           className="flex-1 rounded-lg bg-primary-500 px-3 py-2 text-sm font-medium text-white hover:bg-primary-600 disabled:opacity-50"
         >
-          {loading ? strings.common.loading : strings.review.submit}
+          {loading ? t('common.loading') : t('review.submit')}
         </button>
         <button
           onClick={onClose}
           className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50"
         >
-          {strings.orders.back}
+          {t('orders.back')}
         </button>
       </div>
     </div>

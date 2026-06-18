@@ -1,0 +1,13 @@
+{
+  "title": "Panel",
+  "subtitle": "Resumen en tiempo real de sus operaciones de soporte",
+  "activeChats": "Chats activos",
+  "todayNotifications": "Notificaciones de hoy",
+  "aiResolutionRate": "Tasa de resolución por IA",
+  "unresolvedTopN": "Sin resolver (top N)",
+  "totalConversations": "Conversaciones totales",
+  "totalOrders": "Pedidos totales",
+  "popularQuestions": "Preguntas populares",
+  "integrationStatus": "Estado de integraciones",
+  "noIntegrations": "No hay integraciones configuradas."
+}

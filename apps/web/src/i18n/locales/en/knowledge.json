@@ -1,0 +1,20 @@
+{
+  "title": "Knowledge",
+  "subtitle": "Manage sources and documents",
+  "sources": "Sources",
+  "documents": "Documents",
+  "addSource": "Add source",
+  "addDocument": "Add document",
+  "name": "Name",
+  "type": "Type",
+  "documentsColumn": "Documents",
+  "enabled": "Enabled",
+  "created": "Created",
+  "title_column": "Title",
+  "source": "Source",
+  "status": "Status",
+  "content": "Content",
+  "noSources": "No sources yet.",
+  "noDocuments": "No documents yet.",
+  "deleteDocumentConfirm": "Delete this document?"
+}

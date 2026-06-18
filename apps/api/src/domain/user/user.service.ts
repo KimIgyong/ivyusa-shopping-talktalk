@@ -18,7 +18,7 @@ import {
 } from './dto/response/user.response';
 
 const TEMP_PASSWORD = 'amb2026!@';
-const BCRYPT_ROUNDS = 10;
+import { BCRYPT_ROUNDS } from '../../global/constant/security.constant';
 const INVITE_TTL_MS = 72 * 60 * 60 * 1000;
 
 /**

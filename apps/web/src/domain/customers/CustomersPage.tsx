@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { PageHeader } from '@/components/PageHeader';
 import { Badge } from '@/components/Badge';
 import { Button } from '@/components/Button';
@@ -24,6 +25,8 @@ function fmtDate(value?: string): string {
 }
 
 export function CustomersPage() {
+  const { t } = useTranslation('customers');
+  const { t: tc } = useTranslation('common');
   const [page, setPage] = useState(1);
   const [editing, setEditing] = useState<Customer | null>(null);
   const [tier, setTier] = useState<string>('bronze');
@@ -43,16 +46,16 @@ export function CustomersPage() {
   };
 
   const columns: Column<Customer>[] = [
-    { key: 'name', header: 'Name', render: (c) => c.name ?? '—' },
-    { key: 'email', header: 'Email', render: (c) => c.email ?? '—' },
+    { key: 'name', header: t('name'), render: (c) => c.name ?? '—' },
+    { key: 'email', header: t('email'), render: (c) => c.email ?? '—' },
     {
       key: 'tier',
-      header: 'Tier',
+      header: t('tier'),
       render: (c) => (c.tier ? <Badge tone="primary">{c.tier}</Badge> : '—'),
     },
-    { key: 'orders', header: 'Orders', render: (c) => c.orders ?? 0 },
-    { key: 'totalSpent', header: 'Total spent', render: (c) => fmtMoney(c.totalSpent) },
-    { key: 'createdAt', header: 'Created', render: (c) => fmtDate(c.createdAt) },
+    { key: 'orders', header: t('orders'), render: (c) => c.orders ?? 0 },
+    { key: 'totalSpent', header: t('totalSpent'), render: (c) => fmtMoney(c.totalSpent) },
+    { key: 'createdAt', header: t('created'), render: (c) => fmtDate(c.createdAt) },
     {
       key: 'actions',
       header: '',
@@ -66,7 +69,7 @@ export function CustomersPage() {
             openEdit(c);
           }}
         >
-          Edit tier
+          {t('editTier')}
         </Button>
       ),
     },
@@ -74,14 +77,14 @@ export function CustomersPage() {
 
   return (
     <div>
-      <PageHeader title="Customers" subtitle="Manage customer accounts and tiers" />
+      <PageHeader title={t('title')} subtitle={t('subtitle')} />
 
       <Table
         columns={columns}
         data={data?.items}
         loading={isLoading}
         error={error ? (error as Error).message : null}
-        emptyMessage="No customers found."
+        emptyMessage={t('empty')}
         rowKey={(c) => c.id}
       />
 
@@ -95,21 +98,21 @@ export function CustomersPage() {
       <Modal
         open={!!editing}
         onClose={() => setEditing(null)}
-        title="Edit customer tier"
+        title={t('editTierTitle')}
         size="sm"
         footer={
           <>
             <Button variant="ghost" onClick={() => setEditing(null)}>
-              Cancel
+              {tc('cancel')}
             </Button>
             <Button onClick={onSave} disabled={updateTier.isPending}>
-              Save
+              {tc('save')}
             </Button>
           </>
         }
       >
         {editing && (
-          <FormRow label={`Tier for ${editing.name ?? editing.id}`}>
+          <FormRow label={t('tierFor', { name: editing.name ?? editing.id })}>
             <Select value={tier} onChange={(e) => setTier(e.target.value)}>
               {TIERS.map((t) => (
                 <option key={t} value={t}>

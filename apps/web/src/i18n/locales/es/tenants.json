@@ -1,0 +1,13 @@
+{
+  "title": "Inquilinos",
+  "newTenant": "Nuevo inquilino",
+  "name": "Nombre",
+  "slug": "Slug",
+  "plan": "Plan",
+  "status": "Estado",
+  "users": "Usuarios",
+  "created": "Creado",
+  "suspend": "Suspender",
+  "activate": "Activar",
+  "empty": "No hay inquilinos."
+}

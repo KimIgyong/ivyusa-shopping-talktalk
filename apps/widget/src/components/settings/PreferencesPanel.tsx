@@ -1,5 +1,5 @@
 import { ArrowLeft, ShieldOff } from 'lucide-react';
-import { strings } from '../../i18n/strings';
+import { useTranslation } from 'react-i18next';
 import { useWidgetStore } from '../../store/widgetStore';
 import { usePrefs, useSetPref } from '../../hooks/useNotifications';
 import { Spinner } from '../ui/Spinner';
@@ -46,6 +46,7 @@ function Toggle({
 }
 
 export function PreferencesPanel({ onBack }: { onBack: () => void }) {
+  const { t } = useTranslation();
   const sessionToken = useWidgetStore((s) => s.sessionToken);
   const { data, isLoading } = usePrefs(sessionToken);
   const setPref = useSetPref(sessionToken);
@@ -69,14 +70,14 @@ export function PreferencesPanel({ onBack }: { onBack: () => void }) {
         className="mb-3 flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700"
       >
         <ArrowLeft className="h-3.5 w-3.5" />
-        {strings.orders.back}
+        {t('orders.back')}
       </button>
       <div className="mb-3 text-sm font-semibold text-gray-900">
-        {strings.prefs.title}
+        {t('prefs.title')}
       </div>
 
       {isLoading ? (
-        <Spinner label={strings.common.loading} />
+        <Spinner label={t('common.loading')} />
       ) : (
         <div className="overflow-hidden rounded-lg border border-gray-200">
           <table className="w-full text-xs">
@@ -85,7 +86,7 @@ export function PreferencesPanel({ onBack }: { onBack: () => void }) {
                 <th className="p-2 text-left font-medium">Category</th>
                 {CHANNELS.map((c) => (
                   <th key={c} className="p-2 text-center font-medium">
-                    {strings.prefs.channels[c]}
+                    {t(`prefs.channels.${c}`)}
                   </th>
                 ))}
               </tr>
@@ -94,9 +95,7 @@ export function PreferencesPanel({ onBack }: { onBack: () => void }) {
               {CATEGORIES.map((cat) => (
                 <tr key={cat} className="border-t border-gray-100">
                   <td className="p-2 font-medium text-gray-700">
-                    {strings.prefs.categories[
-                      cat as keyof typeof strings.prefs.categories
-                    ] ?? cat}
+                    {t(`prefs.categories.${cat}`)}
                   </td>
                   {CHANNELS.map((ch) => {
                     const alwaysOn = ch === 'in_app';
@@ -126,7 +125,7 @@ export function PreferencesPanel({ onBack }: { onBack: () => void }) {
       )}
 
       <p className="mt-2 text-[11px] text-gray-400">
-        {strings.prefs.channels.in_app}: {strings.prefs.alwaysOn}
+        {t('prefs.channels.in_app')}: {t('prefs.alwaysOn')}
       </p>
 
       <a
@@ -146,7 +145,7 @@ export function PreferencesPanel({ onBack }: { onBack: () => void }) {
         className="mt-4 flex items-center gap-1.5 text-xs font-medium text-gray-500 underline hover:text-error"
       >
         <ShieldOff className="h-3.5 w-3.5" />
-        {strings.prefs.ccpa}
+        {t('prefs.ccpa')}
       </a>
     </div>
   );

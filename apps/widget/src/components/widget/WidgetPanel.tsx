@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Settings, X } from 'lucide-react';
-import { strings } from '../../i18n/strings';
+import { useTranslation } from 'react-i18next';
 import { useWidgetStore } from '../../store/widgetStore';
+import { LanguageSwitcher } from './LanguageSwitcher';
 import { TabBar } from './TabBar';
 import { ChatTab } from '../chat/ChatTab';
 import { NotificationsTab } from '../notifications/NotificationsTab';
@@ -9,6 +10,7 @@ import { OrdersTab } from '../orders/OrdersTab';
 import { PreferencesPanel } from '../settings/PreferencesPanel';
 
 export function WidgetPanel() {
+  const { t } = useTranslation();
   const activeTab = useWidgetStore((s) => s.activeTab);
   const setPanelOpen = useWidgetStore((s) => s.setPanelOpen);
   const [showSettings, setShowSettings] = useState(false);
@@ -27,12 +29,13 @@ export function WidgetPanel() {
       {/* Header */}
       <header className="flex items-center justify-between bg-primary-500 px-4 py-3 text-white">
         <span className="text-sm font-semibold">
-          {strings.notificationCenter}
+          {t('notificationCenter')}
         </span>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1.5">
+          <LanguageSwitcher />
           <button
             onClick={() => setShowSettings((v) => !v)}
-            aria-label={strings.settings}
+            aria-label={t('settings')}
             className={`rounded-lg p-1.5 hover:bg-white/20 ${
               showSettings ? 'bg-white/20' : ''
             }`}

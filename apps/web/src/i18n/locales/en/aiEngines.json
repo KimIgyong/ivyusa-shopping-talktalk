@@ -1,0 +1,15 @@
+{
+  "title": "AI Engines",
+  "addEngine": "Add engine",
+  "editEngine": "Edit engine",
+  "name": "Name",
+  "provider": "Provider",
+  "model": "Model",
+  "status": "Status",
+  "apiKey": "API key",
+  "apiKeyEdit": "API key (leave blank to keep current)",
+  "created": "Created",
+  "enable": "Enable",
+  "disable": "Disable",
+  "empty": "No engines configured."
+}

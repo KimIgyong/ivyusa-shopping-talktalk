@@ -1,0 +1,18 @@
+{
+  "title": "Tenant Settings",
+  "subtitle": "Manage integrations and credentials.",
+  "integrationCredentials": "Integration credentials",
+  "provider": "Provider",
+  "status": "Status",
+  "key": "Key",
+  "lastUpdated": "Last updated",
+  "connected": "Connected",
+  "notSet": "Not set",
+  "updateCredential": "Update credential",
+  "updateProvider": "Update {{provider}}",
+  "apiKey": "API key",
+  "apiKeyPlaceholder": "Enter API key",
+  "secretOptional": "Secret (optional)",
+  "secretPlaceholder": "Enter secret",
+  "empty": "No integrations available."
+}

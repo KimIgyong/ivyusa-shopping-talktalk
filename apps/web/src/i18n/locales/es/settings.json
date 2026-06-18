@@ -1,0 +1,18 @@
+{
+  "title": "Configuración del inquilino",
+  "subtitle": "Gestione integraciones y credenciales.",
+  "integrationCredentials": "Credenciales de integración",
+  "provider": "Proveedor",
+  "status": "Estado",
+  "key": "Clave",
+  "lastUpdated": "Última actualización",
+  "connected": "Conectado",
+  "notSet": "Sin configurar",
+  "updateCredential": "Actualizar credencial",
+  "updateProvider": "Actualizar {{provider}}",
+  "apiKey": "Clave de API",
+  "apiKeyPlaceholder": "Introduzca la clave de API",
+  "secretOptional": "Secreto (opcional)",
+  "secretPlaceholder": "Introduzca el secreto",
+  "empty": "No hay integraciones disponibles."
+}

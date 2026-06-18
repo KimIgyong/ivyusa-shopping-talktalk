@@ -1,0 +1,14 @@
+{
+  "title": "Clientes",
+  "subtitle": "Gestione las cuentas y los niveles de los clientes",
+  "name": "Nombre",
+  "email": "Correo electrónico",
+  "tier": "Nivel",
+  "orders": "Pedidos",
+  "totalSpent": "Total gastado",
+  "created": "Creado",
+  "editTier": "Editar nivel",
+  "editTierTitle": "Editar nivel del cliente",
+  "tierFor": "Nivel para {{name}}",
+  "empty": "No se encontraron clientes."
+}

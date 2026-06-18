@@ -17,7 +17,16 @@ Format based on [Keep a Changelog](https://keepachangelog.com/); follows Amoeba 
 - **Widget frontend** (`apps/widget`, :5174): Naver TalkTalk–style floating widget — Notification Center (3 tabs), RAG chat, scenario menu + Product Help submenu, CCPA consent + AI disclosure, auth gate, orders panel + 4-step delivery stepper, review form, affiliate/contact cards, notification preferences (SCR-001..013).
 - **Admin frontend** (`apps/web`, :5173): tenant console (dashboard, live chat + AI briefing, history, AI settings + moderation rules, knowledge, customers, campaigns, users/labels, settings) + platform admin (tenants, AI engines, audit), RBAC-gated nav (SCR-101..207).
 
-### Verified (2026-06-18)
+### Added — i18n + Standards alignment (2026-06-19)
+- **i18n en/es/ko** end-to-end: react-i18next in `apps/web` (16 namespaces) and `apps/widget` (session-tied), language switchers, `fallbackLng:'en'`; backend chat conversational strings localized by `session.language`. No hardcoded UI text (per code_convention §14).
+- **Standards-compliance audit** → `docs/report/RPT-Standards-Compliance-Audit-20260619.md` (6 standards + code_convention violation table + remediation roadmap).
+- **Standard-aligned docs**: `SPEC.md` rewritten to the Amoeba SPEC v2 12-section template (+ approved deviations §13, gap roadmap §14); `CLAUDE.md` rewritten to skill/convention/structure; new project skill `.claude/skills/ivy-talktalk-dev/SKILL.md`.
+- **High-priority gap fixes**:
+  - **Privacy/GDPR** (`domain/privacy`): Shopify compliance webhooks (`customers/data_request`, `customers/redact`, `shop/redact`, HMAC-verified) + DSAR endpoints (export/portability, delete/anonymize) + CCPA "Do Not Sell or Share" opt-out toggle. Privileged actions audited.
+  - **Tenant threading**: `sessions.tenant_id` added and used by chat (removed the "first tenant" lookup; safe fallback retained).
+  - **bcrypt** cost raised 10→12 via shared `BCRYPT_ROUNDS` constant.
+
+### Verified (2026-06-18 / 2026-06-19)
 - Full `turbo run build` green (5/5 workspaces).
 - Infra up, seed builds 37 tables + data, API boots with all routes, RabbitMQ connected.
 - E2E smoke tests pass: auth, RBAC allow/deny, widget RAG chat with KB citations through the moderation gate, auth gate, guest order lookup.

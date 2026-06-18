@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { PageHeader } from '@/components/PageHeader';
 import { Button } from '@/components/Button';
 import { Table } from '@/components/Table';
@@ -10,6 +11,8 @@ import { useCampaigns, useCreateCampaign, useSendCampaign } from './campaigns.ho
 import type { Campaign } from './campaigns.service';
 
 export function CampaignsPage() {
+  const { t } = useTranslation('campaigns');
+  const { t: tc } = useTranslation('common');
   const { data, isLoading, error } = useCampaigns();
   const createCampaign = useCreateCampaign();
   const sendCampaign = useSendCampaign();
@@ -34,18 +37,18 @@ export function CampaignsPage() {
   };
 
   const columns: Column<Campaign>[] = [
-    { key: 'name', header: 'Name', render: (r) => r.name },
-    { key: 'channel', header: 'Channel', render: (r) => r.channel ?? '—' },
-    { key: 'status', header: 'Status', render: (r) => <StatusBadge status={r.status} /> },
+    { key: 'name', header: t('name'), render: (r) => r.name },
+    { key: 'channel', header: t('channel'), render: (r) => r.channel ?? '—' },
+    { key: 'status', header: t('status'), render: (r) => <StatusBadge status={r.status} /> },
     {
       key: 'audienceSize',
-      header: 'Audience',
+      header: t('audience'),
       render: (r) => (r.audienceSize ?? 0).toLocaleString(),
     },
-    { key: 'sentCount', header: 'Sent', render: (r) => (r.sentCount ?? 0).toLocaleString() },
+    { key: 'sentCount', header: t('sent'), render: (r) => (r.sentCount ?? 0).toLocaleString() },
     {
       key: 'createdAt',
-      header: 'Created',
+      header: t('created'),
       render: (r) => (r.createdAt ? new Date(r.createdAt).toLocaleDateString() : '—'),
     },
     {
@@ -59,7 +62,7 @@ export function CampaignsPage() {
           disabled={sendCampaign.isPending}
           onClick={() => sendCampaign.mutate(r.id)}
         >
-          Send
+          {t('send')}
         </Button>
       ),
     },
@@ -68,9 +71,9 @@ export function CampaignsPage() {
   return (
     <div>
       <PageHeader
-        title="Campaigns"
-        subtitle="Create and send outbound campaigns"
-        action={<Button onClick={() => setOpen(true)}>New campaign</Button>}
+        title={t('title')}
+        subtitle={t('subtitle')}
+        action={<Button onClick={() => setOpen(true)}>{t('newCampaign')}</Button>}
       />
 
       <Table<Campaign>
@@ -78,39 +81,39 @@ export function CampaignsPage() {
         data={data}
         loading={isLoading}
         error={error ? (error as Error).message : null}
-        emptyMessage="No campaigns yet."
+        emptyMessage={t('empty')}
         rowKey={(r) => r.id}
       />
 
       <Modal
         open={open}
         onClose={close}
-        title="New campaign"
+        title={t('newCampaign')}
         footer={
           <>
             <Button variant="ghost" onClick={close}>
-              Cancel
+              {tc('cancel')}
             </Button>
             <Button
               onClick={save}
               disabled={createCampaign.isPending || !name || !message}
             >
-              Save
+              {tc('save')}
             </Button>
           </>
         }
       >
-        <FormRow label="Name">
+        <FormRow label={t('name')}>
           <Input value={name} onChange={(e) => setName(e.target.value)} />
         </FormRow>
-        <FormRow label="Channel">
+        <FormRow label={t('channel')}>
           <Select value={channel} onChange={(e) => setChannel(e.target.value)}>
             <option value="email">email</option>
             <option value="sms">sms</option>
             <option value="kakao">kakao</option>
           </Select>
         </FormRow>
-        <FormRow label="Message">
+        <FormRow label={t('message')}>
           <textarea
             className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-primary-500"
             rows={4}

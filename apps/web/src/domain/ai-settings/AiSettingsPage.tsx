@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { PageHeader } from '@/components/PageHeader';
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
@@ -16,26 +17,22 @@ import {
 } from './ai-settings.hooks';
 import type { AiFunctionSetting, ModerationRule } from './ai-settings.service';
 
-const FUNCTION_LABELS: Record<string, string> = {
-  chat: 'Chat',
-  rag: 'RAG / Retrieval',
-  summary: 'Summarization',
-  assist: 'Agent Assist',
-  moderation: 'Moderation',
-};
+const FUNCTION_KEYS = new Set(['chat', 'rag', 'summary', 'assist', 'moderation']);
 
 export function AiSettingsPage() {
+  const { t } = useTranslation('aiSetting');
+  const { t: tc } = useTranslation('common');
   const { data: settings, isLoading } = useAiSettings();
   const update = useUpdateAiSetting();
 
   return (
     <div className="space-y-6">
-      <PageHeader title="AI Settings" subtitle="Configure the engine powering each AI function" />
+      <PageHeader title={t('title')} subtitle={t('subtitle')} />
 
-      <Card title="AI functions">
-        {isLoading && <p className="text-sm text-gray-400">Loading…</p>}
+      <Card title={t('aiFunctions')}>
+        {isLoading && <p className="text-sm text-gray-400">{tc('loading')}</p>}
         {!isLoading && (!settings || settings.length === 0) && (
-          <p className="text-sm text-gray-400">No AI functions configured.</p>
+          <p className="text-sm text-gray-400">{t('noFunctions')}</p>
         )}
         <div className="divide-y divide-gray-100">
           {settings?.map((s) => (
@@ -63,14 +60,16 @@ function FunctionRow({
   onSelect: (engineId: string) => void;
   saving: boolean;
 }) {
+  const { t } = useTranslation('aiSetting');
+  const label = FUNCTION_KEYS.has(setting.function)
+    ? t(`functions.${setting.function}`)
+    : setting.function;
   return (
     <div className="flex items-center justify-between py-4">
       <div>
-        <p className="text-sm font-medium text-gray-800">
-          {FUNCTION_LABELS[setting.function] ?? setting.function}
-        </p>
+        <p className="text-sm font-medium text-gray-800">{label}</p>
         <p className="text-xs text-gray-400">
-          {setting.availableEngines.length} engine(s) available
+          {t('enginesAvailable', { count: setting.availableEngines.length })}
         </p>
       </div>
       <div className="w-64">
@@ -80,7 +79,7 @@ function FunctionRow({
           onChange={(e) => onSelect(e.target.value)}
         >
           <option value="" disabled>
-            Select engine…
+            {t('selectEngine')}
           </option>
           {setting.availableEngines.map((eng) => (
             <option key={eng.id} value={eng.id}>
@@ -95,6 +94,8 @@ function FunctionRow({
 }
 
 function ModerationSection() {
+  const { t } = useTranslation('aiSetting');
+  const { t: tc } = useTranslation('common');
   const { data: rules, isLoading, error } = useModerationRules();
   const createRule = useCreateRule();
   const deleteRule = useDeleteRule();
@@ -113,17 +114,17 @@ function ModerationSection() {
   };
 
   const columns: Column<ModerationRule>[] = [
-    { key: 'pattern', header: 'Pattern', render: (r) => <span className="font-mono text-xs">{r.pattern}</span> },
+    { key: 'pattern', header: t('pattern'), render: (r) => <span className="font-mono text-xs">{r.pattern}</span> },
     {
       key: 'action',
-      header: 'Action',
+      header: t('action'),
       render: (r) => (
         <Badge tone={r.action === 'block' ? 'error' : r.action === 'flag' ? 'warning' : 'gray'}>
           {r.action}
         </Badge>
       ),
     },
-    { key: 'description', header: 'Description', render: (r) => r.description ?? '—' },
+    { key: 'description', header: t('description'), render: (r) => r.description ?? '—' },
     {
       key: 'actions',
       header: '',
@@ -134,7 +135,7 @@ function ModerationSection() {
           size="sm"
           disabled={deleteRule.isPending}
           onClick={() => {
-            if (window.confirm('Delete this moderation rule?')) deleteRule.mutate(r.id);
+            if (window.confirm(t('deleteRuleConfirm'))) deleteRule.mutate(r.id);
           }}
         >
           <Trash2 className="h-4 w-4" />
@@ -145,10 +146,10 @@ function ModerationSection() {
 
   return (
     <Card
-      title="Moderation rules"
+      title={t('moderationRules')}
       action={
         <Button size="sm" onClick={() => setOpen(true)}>
-          <Plus className="h-4 w-4" /> Add rule
+          <Plus className="h-4 w-4" /> {t('addRule')}
         </Button>
       }
     >
@@ -157,36 +158,36 @@ function ModerationSection() {
         data={rules}
         loading={isLoading}
         error={error instanceof Error ? error.message : null}
-        emptyMessage="No moderation rules."
+        emptyMessage={t('noRules')}
         rowKey={(r) => r.id}
       />
 
       <Modal
         open={open}
         onClose={() => setOpen(false)}
-        title="Add moderation rule"
+        title={t('addModerationRule')}
         footer={
           <>
             <Button variant="secondary" onClick={() => setOpen(false)}>
-              Cancel
+              {tc('cancel')}
             </Button>
             <Button onClick={submit} disabled={createRule.isPending || !pattern.trim()}>
-              Add rule
+              {t('addRule')}
             </Button>
           </>
         }
       >
-        <FormRow label="Pattern (keyword or regex)">
+        <FormRow label={t('patternLabel')}>
           <Input value={pattern} onChange={(e) => setPattern(e.target.value)} placeholder="e.g. \\bbadword\\b" />
         </FormRow>
-        <FormRow label="Action">
+        <FormRow label={t('action')}>
           <Select value={action} onChange={(e) => setAction(e.target.value)}>
-            <option value="block">Block</option>
-            <option value="flag">Flag</option>
-            <option value="warn">Warn</option>
+            <option value="block">{t('block')}</option>
+            <option value="flag">{t('flag')}</option>
+            <option value="warn">{t('warn')}</option>
           </Select>
         </FormRow>
-        <FormRow label="Description (optional)">
+        <FormRow label={t('descriptionOptional')}>
           <Input value={description} onChange={(e) => setDescription(e.target.value)} />
         </FormRow>
       </Modal>

@@ -1,34 +1,51 @@
 # CLAUDE.md — IVY USA Chat & Support Widget
 
-AI working instructions for this repo. Read alongside `SPEC.md`, `reference/` (Amoeba
-standards), and `design/` (design artifacts; `README.md` is the artifact index).
+AI working instructions for this repo, aligned to the Amoeba standards in `reference/`
+(skill, SPEC, structure, code_convention, web_style_guide, privacy_compliance v2).
+Read with `SPEC.md` and the project skill `.claude/skills/ivy-talktalk-dev/SKILL.md`.
 
-## What this is
-Multi-tenant Shopify chat/support widget + tenant console + platform admin.
-Stack: **NestJS + TypeORM + MySQL + Redis + RabbitMQ** (backend), **React + Vite + Tailwind** (frontends).
-Turborepo monorepo: `apps/{api,web,widget}`, `packages/{types,common}`.
+## 1. What this is
+Multi-tenant Shopify chat/support widget (Naver TalkTalk style) + tenant console +
+platform admin. Turborepo monorepo: `apps/{api,web,widget}`, `packages/{types,common}`.
+Stack: **NestJS 10 + TypeORM + MySQL 8 + Redis + RabbitMQ** (backend); **React 18 + Vite +
+Tailwind + Zustand + React Query + react-i18next** (frontends). Pluggable AI gateway
+(stub adapter runs with no key; Anthropic ready). Languages: **en (default) / es / ko**.
 
-## Conventions (non-negotiable — from reference/amoeba_code_convention_v2)
-- **DTO case**: request DTO `snake_case`; response DTO `camelCase`. Query params `snake_case`.
-- **Layers**: Controller → Service → Repository/Entity. Controllers hold no business logic.
-- **Auth**: `@Auth()` (JWT + tenant scope) by default; `@AdminOnly()`, `@MasterOrAdmin()`, `@Public()`.
-- **Multitenancy**: every tenant-scoped query filters by `tenant_id`. Never leak cross-tenant data.
-- **Entities**: nullable columns get explicit `type` in `@Column`. Tables/columns are `snake_case` (legacy schema names kept as-is, no `amb_` prefix — this project predates that prefix).
-- **Response**: wrap via the global transform interceptor → `BaseSingleResponse`/`BaseListResponse`.
-- **Naming**: files kebab-case; classes PascalCase; React components PascalCase; hooks `useX`; services `*.service.ts`.
-- **i18n**: no hardcoded UI text; namespaces per domain; locales en/es/ko (en default for storefront NA + es).
-- **Moderation**: all AI + agent outbound messages MUST pass `ModerationService` (fail-safe block).
+## 2. Conventions (MUST — `reference/amoeba_code_convention_v2`)
+- **DTO case**: request DTO `snake_case` (class-validator); response shaped `camelCase` via a static Mapper. Query params `snake_case`.
+- **Layers**: Controller → Service → Repository/Entity. Controllers do DTO/mapper glue only — **no business logic**.
+- **Auth decorators** (`global/decorator/auth.decorator.ts`): `@Auth()` (JWT), `@AdminOnly(level?)`, `@RequireRank(...ranks)`, `@RequireCapability(...caps)`, `@Public()` (widget/storefront), `@CurrentUser()`. Global `JwtAuthGuard` (authn) + `AuthorizationGuard` (authz/RBAC). *(Standard's `@MasterOrAdmin`/`@PartnerOnly` ≈ `@RequireRank`/`@AdminOnly` here.)*
+- **RBAC**: rank (master/director/manager/staff) × label (consult/accounting/operations) via `@ivy/common/permission-matrix`; system admin super/admin. ACL owner-visibility (POL-019) above it.
+- **Multitenancy**: tenant-scoped queries filter by `tenant_id` (from `user.tenantId`; narrow the `Principal` union with `asTenantUser()`/`actorType==='user'`). **Never leak cross-tenant data.** ⚠️ Several legacy tables still lack `tenant_id` — see §6 gaps; add it when touching them.
+- **Entities**: nullable columns get explicit `type` in `@Column`; `BIGINT`→`bigintTransformer`, `DECIMAL`→`decimalTransformer`; camelCase prop ↔ snake_case `name:`. Tables/columns are **bare snake_case** (no `amb_`/`cw_` prefix — approved deviation, see SPEC §13). Backtick reserved words (`` `rank` ``, `` `function` ``).
+- **Response**: never hand-build the envelope — return plain objects/entities (global `TransformInterceptor` wraps them) or `new Paginated(items, buildPagination(page,size,total))` for lists.
+- **Errors**: `throw new BusinessException(ERROR_CODE.X, HttpStatus.Y)` (Exxxx codes in `global/constant/error-code.constant.ts`). Backend messages English; client localizes by code.
+- **i18n**: NO hardcoded UI text — use `t()` from `useTranslation()`; register namespaces in each app's `i18n.ts`; `fallbackLng: 'en'`; locales en/es/ko. Backend conversational strings localized by `session.language`; AI/RAG answers honor it.
+- **Moderation**: ALL AI + agent outbound MUST pass `ModerationService.moderate()` (fail-safe = block on error) — non-bypassable (FR-069/POL-020).
+- **Security/Privacy**: passwords bcrypt; credentials AES-256-GCM (`crypto.util`); PII masked in logs; privileged actions → `AuditService.write`. CCPA/GDPR posture (consent, opt-out) — see `reference/amoeba_privacy_compliance_v2`.
+- **Naming**: files kebab-case (`*.service.ts`, `*.entity.ts`, `*.dto.ts`); classes PascalCase; React components PascalCase; hooks `useX`; enums = const object + derived type.
 
-## Commands
-- `npm run db:up` — start MySQL/Redis/RabbitMQ (docker/docker-compose.dev.yml)
-- `npm run dev` — turbo dev (api + web + widget)
-- `npm run db:seed` — seed tenant `ivyusa`, admin + master accounts, labels, AI engine, filter rules
-- API: `apps/api` (port 3000), web admin: `apps/web` (5173), widget: `apps/widget` (5174)
+## 3. Domain module skeleton (backend)
+`apps/api/src/domain/{domain}/`: `entity/{name}.entity.ts` · `dto/request/*.request.ts` (snake) + `dto/response/*.response.ts` (camel) · `{domain}.service.ts` · `{domain}.controller.ts` · `{domain}.mapper.ts` (static) · `{domain}.module.ts` (+ `repository/` optional). Register the module in `app.module.ts`.
 
-## Seed credentials (must change on first login — POL-018)
-- System Admin: `admin@amoeba.group` / `amb2026!@`
-- Tenant Master (ivyusa): `dev@amoeba.group` / `amb2026!@`
+## 4. Frontend module pattern
+`src/{components,hooks,services,store,i18n,lib}`. Data via React Query (include `tenantId` in query keys); global state via Zustand; API via the shared `api-client` that unwraps the envelope; all text via `t()`.
 
-## Traceability
-Keep code mapped to design IDs (FR/FN/SCR/TBL/SEQ). Add a short implementation report
-to `docs/implementation/RPT-{title}-Report-{YYYYMMDD}.md` per module.
+## 5. Commands
+- `npm run db:up` — MySQL :3316 / Redis :6389 / RabbitMQ :5682 (`docker/docker-compose.dev.yml`)
+- `npm run db:seed` — seed tenant ivyusa, admin+master, labels, AI engine routing, KB, demo data
+- `npm run dev` — turbo dev (API :3000 `/api/v1/docs`, web :5173, widget :5174)
+- `npm run build` / `npm run typecheck` — full monorepo via turbo
+- Lighter run (less memory): prebuilt `node apps/api/dist/main.js` + `vite` per app
+> Dev DB/Redis/RabbitMQ host ports are remapped off occupied defaults; `env/backend/.env.development` matches. If Docker Desktop is unstable, let the daemon fully settle (~40s) before `db:up`.
+
+## 6. Seed credentials & known gaps
+Seed logins (must change on first login): `admin@amoeba.group` / `amb2026!@` (System Admin),
+`dev@amoeba.group` / `amb2026!@` (Tenant Master, ivyusa).
+**Open gaps (remediation roadmap)** — see `docs/report/RPT-Standards-Compliance-Audit-20260619.md` & SPEC §14:
+High = full `tenant_id` coverage + tenant-scope guard (remove chat "first tenant"), Shopify GDPR webhooks, DSAR/opt-out; Med = PII masking/audit, bcrypt 10→12, DTO/mapper normalization, residual hardcoded strings; Low = tests (currently 0), soft-delete, staging/prod Docker.
+
+## 7. Workflow & traceability (`reference/amoeba_basic_skill_v2`, `_Structure_v2` §8.2)
+Requirements work: Analysis → Plan → Implementation → Test cases → Implementation report
+(`docs/{analysis,plan,implementation,test}/`). Keep code mapped to design IDs
+(FR→FN→SCR→TBL→SEQ→T). Git: branch `feature/*` from `main`, PR + squash-merge.

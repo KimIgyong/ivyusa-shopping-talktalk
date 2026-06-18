@@ -1,0 +1,13 @@
+{
+  "title": "테넌트",
+  "newTenant": "새 테넌트",
+  "name": "이름",
+  "slug": "슬러그",
+  "plan": "요금제",
+  "status": "상태",
+  "users": "사용자",
+  "created": "생성일",
+  "suspend": "정지",
+  "activate": "활성화",
+  "empty": "테넌트가 없습니다."
+}

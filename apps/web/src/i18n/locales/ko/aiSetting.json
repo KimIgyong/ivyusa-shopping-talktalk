@@ -1,0 +1,28 @@
+{
+  "title": "AI 설정",
+  "subtitle": "각 AI 기능을 구동하는 엔진을 구성하세요",
+  "aiFunctions": "AI 기능",
+  "noFunctions": "구성된 AI 기능이 없습니다.",
+  "enginesAvailable": "사용 가능한 엔진 {{count}}개",
+  "selectEngine": "엔진 선택…",
+  "functions": {
+    "chat": "채팅",
+    "rag": "RAG / 검색",
+    "summary": "요약",
+    "assist": "상담원 지원",
+    "moderation": "모더레이션"
+  },
+  "moderationRules": "모더레이션 규칙",
+  "addRule": "규칙 추가",
+  "addModerationRule": "모더레이션 규칙 추가",
+  "noRules": "모더레이션 규칙이 없습니다.",
+  "pattern": "패턴",
+  "patternLabel": "패턴 (키워드 또는 정규식)",
+  "action": "작업",
+  "description": "설명",
+  "descriptionOptional": "설명 (선택)",
+  "block": "차단",
+  "flag": "플래그",
+  "warn": "경고",
+  "deleteRuleConfirm": "이 모더레이션 규칙을 삭제하시겠습니까?"
+}

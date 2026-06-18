@@ -1,5 +1,6 @@
 import 'reflect-metadata';
 import * as bcrypt from 'bcryptjs';
+import { BCRYPT_ROUNDS } from '../global/constant/security.constant';
 import { AppDataSource } from './data-source';
 import { Tenant } from '../domain/tenant/entity/tenant.entity';
 import { AdminUser } from '../domain/auth/entity/admin-user.entity';
@@ -24,7 +25,7 @@ const AI_FUNCTIONS = ['chat', 'rag', 'summary', 'assist', 'moderation'];
 /** Bootstrap seed (FR-062) — idempotent. Re-run safe. */
 async function run(): Promise<void> {
   await AppDataSource.initialize();
-  const hash = await bcrypt.hash(PW, 10);
+  const hash = await bcrypt.hash(PW, BCRYPT_ROUNDS);
 
   const tenantRepo = AppDataSource.getRepository(Tenant);
   let tenant = await tenantRepo.findOne({ where: { name: 'ivyusa' } });

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Send, Sparkles, User, Loader2, CheckCircle2, XCircle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { PageHeader } from '@/components/PageHeader';
 import { Button } from '@/components/Button';
 import { StatusBadge } from '@/components/StatusBadge';
@@ -9,6 +10,7 @@ import { useSessions, useConversation, useConversationActions } from './live-cha
 import { cn } from '@/lib/cn';
 
 export function LiveChatPage() {
+  const { t } = useTranslation('livechat');
   const [selected, setSelected] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
   const { data: sessions, isLoading: sessionsLoading } = useSessions();
@@ -24,22 +26,22 @@ export function LiveChatPage() {
     } catch (e) {
       const err = e as Error & { status?: number };
       if (err.status === 422) {
-        toast.warning('Message blocked by moderation.');
+        toast.warning(t('messageBlocked'));
       } else {
-        toast.error(err.message || 'Failed to send.');
+        toast.error(err.message || t('sendFailed'));
       }
     }
   };
 
   return (
     <div>
-      <PageHeader title="Live Chat" subtitle="Handle active customer conversations" />
+      <PageHeader title={t('title')} subtitle={t('subtitle')} />
 
       <div className="grid h-[calc(100vh-220px)] grid-cols-12 gap-4">
         {/* Session list */}
         <div className="col-span-3 overflow-y-auto rounded-lg border border-gray-200 bg-white">
           <div className="border-b border-gray-100 px-4 py-3 text-sm font-medium text-gray-600">
-            Sessions {sessions ? `(${sessions.length})` : ''}
+            {t('sessions')} {sessions ? `(${sessions.length})` : ''}
           </div>
           {sessionsLoading && (
             <div className="p-6 text-center text-sm text-gray-400">
@@ -47,7 +49,7 @@ export function LiveChatPage() {
             </div>
           )}
           {!sessionsLoading && (!sessions || sessions.length === 0) && (
-            <p className="p-6 text-center text-sm text-gray-400">No active sessions.</p>
+            <p className="p-6 text-center text-sm text-gray-400">{t('noActiveSessions')}</p>
           )}
           <ul className="divide-y divide-gray-100">
             {sessions?.map((s) => (
@@ -61,7 +63,7 @@ export function LiveChatPage() {
                 >
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium text-gray-800">
-                      {s.customerName ?? `Session ${s.id.slice(0, 6)}`}
+                      {s.customerName ?? t('sessionLabel', { id: s.id.slice(0, 6) })}
                     </span>
                     <StatusBadge status={s.status} />
                   </div>
@@ -76,7 +78,7 @@ export function LiveChatPage() {
         <div className="col-span-6 flex flex-col rounded-lg border border-gray-200 bg-white">
           {!selected && (
             <div className="flex flex-1 items-center justify-center text-sm text-gray-400">
-              Select a session to start.
+              {t('selectSession')}
             </div>
           )}
           {selected && (
@@ -84,7 +86,7 @@ export function LiveChatPage() {
               <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium text-gray-800">
-                    {convo?.customer?.name ?? 'Conversation'}
+                    {convo?.customer?.name ?? t('conversation')}
                   </span>
                   <StatusBadge status={convo?.status} />
                 </div>
@@ -95,7 +97,7 @@ export function LiveChatPage() {
                     onClick={() => accept.mutate()}
                     disabled={accept.isPending}
                   >
-                    <CheckCircle2 className="h-4 w-4" /> Accept
+                    <CheckCircle2 className="h-4 w-4" /> {t('accept')}
                   </Button>
                   <Button
                     size="sm"
@@ -103,7 +105,7 @@ export function LiveChatPage() {
                     onClick={() => end.mutate()}
                     disabled={end.isPending}
                   >
-                    <XCircle className="h-4 w-4" /> End
+                    <XCircle className="h-4 w-4" /> {t('end')}
                   </Button>
                 </div>
               </div>
@@ -142,7 +144,7 @@ export function LiveChatPage() {
                   </div>
                 ))}
                 {convo && convo.messages.length === 0 && !convoLoading && (
-                  <p className="text-center text-sm text-gray-400">No messages yet.</p>
+                  <p className="text-center text-sm text-gray-400">{t('noMessages')}</p>
                 )}
               </div>
 
@@ -151,7 +153,7 @@ export function LiveChatPage() {
                   value={draft}
                   onChange={(e) => setDraft(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && onSend()}
-                  placeholder="Type a reply…"
+                  placeholder={t('replyPlaceholder')}
                   className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-primary-500"
                 />
                 <Button onClick={onSend} disabled={send.isPending || !draft.trim()}>
@@ -166,37 +168,37 @@ export function LiveChatPage() {
         <div className="col-span-3 space-y-4 overflow-y-auto">
           <div className="rounded-lg border border-gray-200 bg-white p-4">
             <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-gray-800">
-              <Sparkles className="h-4 w-4 text-primary-500" /> AI Briefing
+              <Sparkles className="h-4 w-4 text-primary-500" /> {t('aiBriefing')}
             </div>
             <p className="text-sm text-gray-600">
               {selected
-                ? convo?.briefing ?? 'No briefing available.'
-                : 'Select a conversation.'}
+                ? convo?.briefing ?? t('noBriefing')
+                : t('selectConversation')}
             </p>
           </div>
 
           <div className="rounded-lg border border-gray-200 bg-white p-4">
             <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-gray-800">
-              <User className="h-4 w-4 text-gray-500" /> Customer
+              <User className="h-4 w-4 text-gray-500" /> {t('customer')}
             </div>
             {convo?.customer ? (
               <dl className="space-y-2 text-sm">
-                <Row label="Name" value={convo.customer.name} />
-                <Row label="Email" value={convo.customer.email} />
-                <Row label="Phone" value={convo.customer.phone} />
+                <Row label={t('name')} value={convo.customer.name} />
+                <Row label={t('email')} value={convo.customer.email} />
+                <Row label={t('phone')} value={convo.customer.phone} />
                 <div className="flex items-center justify-between">
-                  <dt className="text-gray-500">Tier</dt>
+                  <dt className="text-gray-500">{t('tier')}</dt>
                   <dd>{convo.customer.tier ? <Badge tone="primary">{convo.customer.tier}</Badge> : '—'}</dd>
                 </div>
               </dl>
             ) : (
-              <p className="text-sm text-gray-400">No customer context.</p>
+              <p className="text-sm text-gray-400">{t('noCustomerContext')}</p>
             )}
           </div>
 
           {convo?.customer?.recentOrders && convo.customer.recentOrders.length > 0 && (
             <div className="rounded-lg border border-gray-200 bg-white p-4">
-              <div className="mb-3 text-sm font-semibold text-gray-800">Recent orders</div>
+              <div className="mb-3 text-sm font-semibold text-gray-800">{t('recentOrders')}</div>
               <ul className="space-y-2">
                 {convo.customer.recentOrders.map((o) => (
                   <li key={o.id} className="flex items-center justify-between text-sm">

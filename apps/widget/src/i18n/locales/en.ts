@@ -1,4 +1,4 @@
-export const strings = {
+export const en = {
   appName: 'IVY USA',
   notificationCenter: 'Notification Center',
   settings: 'Settings',
@@ -137,4 +137,4 @@ export const strings = {
   },
 };
 
-export type Strings = typeof strings;
+export type Translation = typeof en;

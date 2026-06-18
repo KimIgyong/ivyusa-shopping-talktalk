@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { PageHeader } from '@/components/PageHeader';
 import { Card } from '@/components/Card';
 import { Badge } from '@/components/Badge';
@@ -23,6 +24,8 @@ function fmtDate(value?: string): string {
 }
 
 export function HistoryPage() {
+  const { t } = useTranslation('history');
+  const { t: tc } = useTranslation('common');
   const [page, setPage] = useState(1);
   const [status, setStatus] = useState<StatusFilter>('');
   const [escalated, setEscalated] = useState<EscalatedFilter>('all');
@@ -36,26 +39,26 @@ export function HistoryPage() {
   });
 
   const columns: Column<ConversationRow>[] = [
-    { key: 'id', header: 'ID', render: (r) => <span className="font-mono">{r.id.slice(0, 8)}</span> },
-    { key: 'customer', header: 'Customer', render: (r) => r.customerName ?? '—' },
-    { key: 'status', header: 'Status', render: (r) => <StatusBadge status={r.status} /> },
+    { key: 'id', header: t('id'), render: (r) => <span className="font-mono">{r.id.slice(0, 8)}</span> },
+    { key: 'customer', header: t('customer'), render: (r) => r.customerName ?? '—' },
+    { key: 'status', header: t('status'), render: (r) => <StatusBadge status={r.status} /> },
     {
       key: 'escalated',
-      header: 'Escalated',
+      header: t('escalated'),
       render: (r) =>
-        r.escalated ? <Badge tone="error">Yes</Badge> : <Badge tone="gray">No</Badge>,
+        r.escalated ? <Badge tone="error">{tc('yes')}</Badge> : <Badge tone="gray">{tc('no')}</Badge>,
     },
-    { key: 'messages', header: 'Messages', render: (r) => r.messageCount ?? 0 },
-    { key: 'startedAt', header: 'Started', render: (r) => fmtDate(r.startedAt) },
+    { key: 'messages', header: t('messages'), render: (r) => r.messageCount ?? 0 },
+    { key: 'startedAt', header: t('started'), render: (r) => fmtDate(r.startedAt) },
   ];
 
   return (
     <div>
-      <PageHeader title="Conversation History" subtitle="Browse past customer conversations" />
+      <PageHeader title={t('title')} subtitle={t('subtitle')} />
 
       <Card className="mb-4">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <FormRow label="Status">
+          <FormRow label={t('status')}>
             <Select
               value={status}
               onChange={(e) => {
@@ -63,14 +66,14 @@ export function HistoryPage() {
                 setPage(1);
               }}
             >
-              <option value="">All statuses</option>
-              <option value="open">Open</option>
-              <option value="resolved">Resolved</option>
-              <option value="escalated">Escalated</option>
-              <option value="ended">Ended</option>
+              <option value="">{t('allStatuses')}</option>
+              <option value="open">{t('open')}</option>
+              <option value="resolved">{t('resolved')}</option>
+              <option value="escalated">{t('escalated')}</option>
+              <option value="ended">{t('ended_status')}</option>
             </Select>
           </FormRow>
-          <FormRow label="Escalated">
+          <FormRow label={t('escalated')}>
             <Select
               value={escalated}
               onChange={(e) => {
@@ -78,9 +81,9 @@ export function HistoryPage() {
                 setPage(1);
               }}
             >
-              <option value="all">All</option>
-              <option value="yes">Yes</option>
-              <option value="no">No</option>
+              <option value="all">{tc('all')}</option>
+              <option value="yes">{tc('yes')}</option>
+              <option value="no">{tc('no')}</option>
             </Select>
           </FormRow>
         </div>
@@ -91,7 +94,7 @@ export function HistoryPage() {
         data={data?.items}
         loading={isLoading}
         error={error ? (error as Error).message : null}
-        emptyMessage="No conversations found."
+        emptyMessage={t('empty')}
         rowKey={(r) => r.id}
         onRowClick={(r) => setSelected(r)}
       />
@@ -106,25 +109,25 @@ export function HistoryPage() {
       <Modal
         open={!!selected}
         onClose={() => setSelected(null)}
-        title="Conversation detail"
+        title={t('detailTitle')}
         size="md"
       >
         {selected && (
           <dl className="space-y-3 text-sm">
-            <DetailRow label="ID" value={selected.id} mono />
-            <DetailRow label="Customer" value={selected.customerName} />
+            <DetailRow label={t('id')} value={selected.id} mono />
+            <DetailRow label={t('customer')} value={selected.customerName} />
             <div className="flex items-center justify-between">
-              <dt className="text-gray-500">Status</dt>
+              <dt className="text-gray-500">{t('status')}</dt>
               <dd>
                 <StatusBadge status={selected.status} />
               </dd>
             </div>
             <div className="flex items-start justify-between gap-4">
-              <dt className="text-gray-500">Summary</dt>
+              <dt className="text-gray-500">{t('summary')}</dt>
               <dd className="text-right text-gray-700">{selected.summary ?? '—'}</dd>
             </div>
-            <DetailRow label="Started" value={fmtDate(selected.startedAt)} />
-            <DetailRow label="Ended" value={fmtDate(selected.endedAt)} />
+            <DetailRow label={t('started')} value={fmtDate(selected.startedAt)} />
+            <DetailRow label={t('ended')} value={fmtDate(selected.endedAt)} />
           </dl>
         )}
       </Modal>

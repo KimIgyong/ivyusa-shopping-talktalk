@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { PageHeader } from '@/components/PageHeader';
 import { Button } from '@/components/Button';
 import { Badge } from '@/components/Badge';
@@ -18,6 +19,8 @@ import type { AiEngine } from './admin.service';
 const PROVIDERS = ['openai', 'anthropic', 'google', 'azure'];
 
 export function AiEnginesPage() {
+  const { t } = useTranslation('aiEngines');
+  const { t: tc } = useTranslation('common');
   const { data, isLoading, error } = useEngines();
   const createEngine = useCreateEngine();
   const updateEngine = useUpdateEngine();
@@ -74,27 +77,27 @@ export function AiEnginesPage() {
   };
 
   const columns: Column<AiEngine>[] = [
-    { key: 'name', header: 'Name', render: (r) => r.name },
+    { key: 'name', header: t('name'), render: (r) => r.name },
     {
       key: 'provider',
-      header: 'Provider',
+      header: t('provider'),
       render: (r) => (r.provider ? <Badge tone="primary">{r.provider}</Badge> : '—'),
     },
-    { key: 'model', header: 'Model', render: (r) => r.model ?? '—' },
+    { key: 'model', header: t('model'), render: (r) => r.model ?? '—' },
     {
       key: 'enabled',
-      header: 'Status',
+      header: t('status'),
       render: (r) => <StatusBadge status={r.enabled ? 'enabled' : 'disabled'} />,
     },
-    { key: 'maskedApiKey', header: 'API key', render: (r) => r.maskedApiKey ?? '••••' },
-    { key: 'createdAt', header: 'Created', render: (r) => r.createdAt ?? '—' },
+    { key: 'maskedApiKey', header: t('apiKey'), render: (r) => r.maskedApiKey ?? '••••' },
+    { key: 'createdAt', header: t('created'), render: (r) => r.createdAt ?? '—' },
     {
       key: 'actions',
       header: '',
       render: (r) => (
         <div className="flex items-center justify-end gap-2">
           <Button variant="secondary" size="sm" onClick={() => openEdit(r)}>
-            Edit
+            {tc('edit')}
           </Button>
           <Button
             variant={r.enabled ? 'danger' : 'secondary'}
@@ -102,7 +105,7 @@ export function AiEnginesPage() {
             disabled={setEnabled.isPending}
             onClick={() => setEnabled.mutate({ id: r.id, enabled: !r.enabled })}
           >
-            {r.enabled ? 'Disable' : 'Enable'}
+            {r.enabled ? t('disable') : t('enable')}
           </Button>
         </div>
       ),
@@ -112,8 +115,8 @@ export function AiEnginesPage() {
   return (
     <div>
       <PageHeader
-        title="AI Engines"
-        action={<Button onClick={() => setCreateOpen(true)}>Add engine</Button>}
+        title={t('title')}
+        action={<Button onClick={() => setCreateOpen(true)}>{t('addEngine')}</Button>}
       />
 
       <Table
@@ -122,31 +125,31 @@ export function AiEnginesPage() {
         loading={isLoading}
         error={error ? (error as Error).message : null}
         rowKey={(r) => r.id}
-        emptyMessage="No engines configured."
+        emptyMessage={t('empty')}
       />
 
       <Modal
         open={createOpen}
         onClose={() => setCreateOpen(false)}
-        title="Add engine"
+        title={t('addEngine')}
         footer={
           <>
             <Button variant="secondary" onClick={() => setCreateOpen(false)}>
-              Cancel
+              {tc('cancel')}
             </Button>
             <Button
               onClick={handleCreate}
               disabled={createEngine.isPending || !name || !model || !apiKey}
             >
-              Create
+              {tc('create')}
             </Button>
           </>
         }
       >
-        <FormRow label="Name">
+        <FormRow label={t('name')}>
           <Input value={name} onChange={(e) => setName(e.target.value)} />
         </FormRow>
-        <FormRow label="Provider">
+        <FormRow label={t('provider')}>
           <Select value={provider} onChange={(e) => setProvider(e.target.value)}>
             {PROVIDERS.map((p) => (
               <option key={p} value={p}>
@@ -155,10 +158,10 @@ export function AiEnginesPage() {
             ))}
           </Select>
         </FormRow>
-        <FormRow label="Model">
+        <FormRow label={t('model')}>
           <Input value={model} onChange={(e) => setModel(e.target.value)} />
         </FormRow>
-        <FormRow label="API key">
+        <FormRow label={t('apiKey')}>
           <Input
             type="password"
             value={apiKey}
@@ -171,25 +174,25 @@ export function AiEnginesPage() {
       <Modal
         open={editing !== null}
         onClose={() => setEditing(null)}
-        title="Edit engine"
+        title={t('editEngine')}
         footer={
           <>
             <Button variant="secondary" onClick={() => setEditing(null)}>
-              Cancel
+              {tc('cancel')}
             </Button>
             <Button onClick={handleUpdate} disabled={updateEngine.isPending || !editName}>
-              Save
+              {tc('save')}
             </Button>
           </>
         }
       >
-        <FormRow label="Name">
+        <FormRow label={t('name')}>
           <Input value={editName} onChange={(e) => setEditName(e.target.value)} />
         </FormRow>
-        <FormRow label="Model">
+        <FormRow label={t('model')}>
           <Input value={editModel} onChange={(e) => setEditModel(e.target.value)} />
         </FormRow>
-        <FormRow label="API key (leave blank to keep current)">
+        <FormRow label={t('apiKeyEdit')}>
           <Input
             type="password"
             value={editApiKey}

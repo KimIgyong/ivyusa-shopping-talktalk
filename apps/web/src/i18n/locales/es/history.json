@@ -1,0 +1,18 @@
+{
+  "title": "Historial de conversaciones",
+  "subtitle": "Examine conversaciones anteriores con clientes",
+  "id": "ID",
+  "customer": "Cliente",
+  "status": "Estado",
+  "escalated": "Escalado",
+  "messages": "Mensajes",
+  "started": "Iniciado",
+  "ended": "Finalizado",
+  "summary": "Resumen",
+  "allStatuses": "Todos los estados",
+  "open": "Abierto",
+  "resolved": "Resuelto",
+  "ended_status": "Finalizado",
+  "empty": "No se encontraron conversaciones.",
+  "detailTitle": "Detalle de la conversación"
+}

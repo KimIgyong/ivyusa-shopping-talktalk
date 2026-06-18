@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Sparkles, Loader2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { authService } from './auth.service';
 import { useAuthStore } from '@/store/auth-store';
 import { Button } from '@/components/Button';
@@ -11,6 +12,7 @@ import { cn } from '@/lib/cn';
 type Mode = 'user' | 'admin';
 
 export function LoginPage() {
+  const { t } = useTranslation('auth');
   const [mode, setMode] = useState<Mode>('user');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -27,10 +29,10 @@ export function LoginPage() {
           ? await authService.adminLogin(email, password)
           : await authService.userLogin(email, password);
       setAuth(res);
-      toast.success('Signed in.');
+      toast.success(t('signedIn'));
       navigate(res.principal.actorType === 'admin' ? '/admin' : '/', { replace: true });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Login failed.');
+      toast.error(err instanceof Error ? err.message : t('loginFailed'));
     } finally {
       setLoading(false);
     }
@@ -47,7 +49,7 @@ export function LoginPage() {
             <Sparkles className="h-6 w-6" />
           </div>
           <h1 className="text-xl font-semibold text-gray-900">IVY TalkTalk</h1>
-          <p className="text-sm text-gray-500">Admin Console</p>
+          <p className="text-sm text-gray-500">{t('consoleSubtitle')}</p>
         </div>
 
         <div className="rounded-lg border border-gray-200 bg-white p-6">
@@ -62,23 +64,23 @@ export function LoginPage() {
                   mode === m ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-500',
                 )}
               >
-                {m === 'user' ? 'Tenant user' : 'System admin'}
+                {m === 'user' ? t('tenantUser') : t('systemAdmin')}
               </button>
             ))}
           </div>
 
           <form onSubmit={submit}>
-            <FormRow label="Email">
+            <FormRow label={t('email')}>
               <Input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@company.com"
+                placeholder={t('emailPlaceholder')}
                 required
                 autoFocus
               />
             </FormRow>
-            <FormRow label="Password">
+            <FormRow label={t('password')}>
               <Input
                 type="password"
                 value={password}
@@ -89,11 +91,11 @@ export function LoginPage() {
             </FormRow>
             <Button type="submit" className="mt-2 w-full" disabled={loading}>
               {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-              Sign in
+              {t('signIn')}
             </Button>
           </form>
 
-          <p className="mt-4 text-center text-xs text-gray-400">Dev credentials: {hint}</p>
+          <p className="mt-4 text-center text-xs text-gray-400">{t('devCredentials', { hint })}</p>
         </div>
       </div>
     </div>

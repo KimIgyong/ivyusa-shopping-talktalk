@@ -1,0 +1,14 @@
+{
+  "title": "캠페인",
+  "subtitle": "발신 캠페인을 생성하고 발송하세요",
+  "newCampaign": "새 캠페인",
+  "name": "이름",
+  "channel": "채널",
+  "status": "상태",
+  "audience": "대상",
+  "sent": "발송됨",
+  "created": "생성일",
+  "send": "발송",
+  "message": "메시지",
+  "empty": "아직 캠페인이 없습니다."
+}

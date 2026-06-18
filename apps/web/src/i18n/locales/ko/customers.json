@@ -1,0 +1,14 @@
+{
+  "title": "고객",
+  "subtitle": "고객 계정과 등급을 관리하세요",
+  "name": "이름",
+  "email": "이메일",
+  "tier": "등급",
+  "orders": "주문",
+  "totalSpent": "총 지출액",
+  "created": "생성일",
+  "editTier": "등급 편집",
+  "editTierTitle": "고객 등급 편집",
+  "tierFor": "{{name}}의 등급",
+  "empty": "고객을 찾을 수 없습니다."
+}

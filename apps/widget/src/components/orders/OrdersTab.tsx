@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ChevronRight, PackageSearch, Lock } from 'lucide-react';
-import { strings } from '../../i18n/strings';
+import { useTranslation } from 'react-i18next';
 import { useWidgetStore } from '../../store/widgetStore';
 import { useOrders } from '../../hooks/useOrders';
 import { Badge, toneForStatus } from '../ui/Badge';
@@ -12,10 +12,10 @@ import type { OrderSummary } from '../../lib/types';
 
 type SubTab = 'payments' | 'shipping' | 'inquiries';
 
-const SUBTABS: { key: SubTab; label: string }[] = [
-  { key: 'payments', label: strings.orders.subtabs.payments },
-  { key: 'shipping', label: strings.orders.subtabs.shipping },
-  { key: 'inquiries', label: strings.orders.subtabs.inquiries },
+const SUBTABS: { key: SubTab; labelKey: string }[] = [
+  { key: 'payments', labelKey: 'orders.subtabs.payments' },
+  { key: 'shipping', labelKey: 'orders.subtabs.shipping' },
+  { key: 'inquiries', labelKey: 'orders.subtabs.inquiries' },
 ];
 
 function filterForSubtab(orders: OrderSummary[], sub: SubTab): OrderSummary[] {
@@ -27,6 +27,7 @@ function filterForSubtab(orders: OrderSummary[], sub: SubTab): OrderSummary[] {
 }
 
 export function OrdersTab() {
+  const { t } = useTranslation();
   const sessionToken = useWidgetStore((s) => s.sessionToken);
   const authenticated = useWidgetStore((s) => s.authenticated);
   const setAuthenticated = useWidgetStore((s) => s.setAuthenticated);
@@ -68,32 +69,32 @@ export function OrdersTab() {
   return (
     <div className="flex h-full flex-col">
       <div className="flex border-b border-gray-100">
-        {SUBTABS.map((t) => (
+        {SUBTABS.map((tab) => (
           <button
-            key={t.key}
-            onClick={() => setSub(t.key)}
+            key={tab.key}
+            onClick={() => setSub(tab.key)}
             className={`flex-1 py-2 text-xs font-medium transition-colors ${
-              sub === t.key
+              sub === tab.key
                 ? 'border-b-2 border-primary-500 text-primary-600'
                 : 'text-gray-500 hover:text-gray-700'
             }`}
           >
-            {t.label}
+            {t(tab.labelKey)}
           </button>
         ))}
       </div>
 
       <div className="scroll-thin flex-1 overflow-y-auto p-2">
-        {isLoading && <Spinner label={strings.common.loading} />}
+        {isLoading && <Spinner label={t('common.loading')} />}
         {isError && (
           <p className="py-8 text-center text-sm text-gray-400">
-            {strings.common.error}
+            {t('common.error')}
           </p>
         )}
         {!isLoading && !isError && orders.length === 0 && (
           <div className="flex flex-col items-center gap-2 py-12 text-gray-400">
             <PackageSearch className="h-6 w-6" />
-            <span className="text-sm">{strings.orders.empty}</span>
+            <span className="text-sm">{t('orders.empty')}</span>
           </div>
         )}
         {orders.map((o) => (

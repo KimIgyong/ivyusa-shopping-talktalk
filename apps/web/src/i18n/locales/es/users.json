@@ -1,0 +1,16 @@
+{
+  "title": "Usuarios",
+  "subtitle": "Gestione los miembros del equipo y su acceso.",
+  "inviteUser": "Invitar usuario",
+  "email": "Correo electrónico",
+  "emailPlaceholder": "nombre@empresa.com",
+  "rank": "Rango",
+  "labels": "Etiquetas",
+  "jobLabels": "Etiquetas de puesto",
+  "status": "Estado",
+  "created": "Creado",
+  "editUser": "Editar usuario",
+  "sendInvite": "Enviar invitación",
+  "noJobLabels": "No hay etiquetas de puesto disponibles.",
+  "empty": "Aún no hay usuarios."
+}

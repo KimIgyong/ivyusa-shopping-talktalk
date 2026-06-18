@@ -1,0 +1,14 @@
+{
+  "title": "Campañas",
+  "subtitle": "Cree y envíe campañas salientes",
+  "newCampaign": "Nueva campaña",
+  "name": "Nombre",
+  "channel": "Canal",
+  "status": "Estado",
+  "audience": "Audiencia",
+  "sent": "Enviado",
+  "created": "Creado",
+  "send": "Enviar",
+  "message": "Mensaje",
+  "empty": "Aún no hay campañas."
+}
