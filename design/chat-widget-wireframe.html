@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>IVY Chat &amp; Support Widget — Wireframe (저충실도)</title>
+<style>
+  :root{ --ink:#333; --line:#9aa0a6; --line2:#c7ccd1; --bg:#f4f5f6; --box:#e9ebed; --chip:#eef0f2; --accent:#3a6df0; }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans KR",sans-serif;color:var(--ink);background:#dfe2e5;}
+  .wrap{max-width:1180px;margin:0 auto;padding:18px;}
+  h1{font-size:18px;margin:0 0 2px}
+  .sub{color:#666;font-size:12px;margin-bottom:14px}
+  .toolbar{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+  .toolbar button{font:inherit;font-size:12px;border:1px solid var(--line);background:#fff;border-radius:18px;padding:6px 12px;cursor:pointer}
+  .toolbar button.active{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .stage{display:flex;gap:22px;flex-wrap:wrap;align-items:flex-start}
+  /* device */
+  .device{width:380px;background:#fff;border:2px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:0 6px 18px rgba(0,0,0,.12)}
+  .wf-head{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px dashed var(--line2)}
+  .wf-title{font-weight:700}
+  .gear{width:22px;height:22px;border:1px dashed var(--line);border-radius:50%;display:grid;place-items:center;font-size:11px;cursor:pointer}
+  .tabs{display:flex;border-bottom:1px solid var(--line2)}
+  .tab{flex:1;text-align:center;padding:10px 6px;font-size:13px;color:#777;cursor:pointer;border-bottom:2px solid transparent}
+  .tab.active{color:var(--ink);font-weight:700;border-bottom-color:var(--ink)}
+  .badge{display:inline-block;min-width:16px;height:16px;line-height:16px;background:#bbb;color:#fff;border-radius:9px;font-size:10px;padding:0 4px;margin-left:4px}
+  .body{height:520px;overflow:auto;padding:12px 14px;background:#fcfcfd}
+  .chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+  .chip{border:1px solid var(--line2);background:var(--chip);border-radius:16px;padding:5px 10px;font-size:12px;cursor:pointer}
+  .chip.sel{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .group{font-size:11px;color:#999;margin:10px 0 6px}
+  .card{border:1px solid var(--line2);border-radius:8px;padding:10px;margin-bottom:8px;background:#fff;cursor:pointer}
+  .row{display:flex;gap:8px;align-items:center}
+  .ph{background:var(--box);border:1px dashed var(--line2);border-radius:6px}
+  .ph.img{width:46px;height:46px;flex:none}
+  .ph.line{height:9px;margin:5px 0;border-radius:4px}
+  .w70{width:70%}.w50{width:50%}.w40{width:40%}.w90{width:90%}
+  .pill{display:inline-block;font-size:10px;border:1px solid var(--line);border-radius:10px;padding:1px 7px;color:#555}
+  .pill.g{background:#e7f3ea}.pill.o{background:#fbeede}.pill.p{background:#efe7f5}.pill.d{background:#eceef0}
+  .msg{max-width:80%;padding:8px 10px;border-radius:10px;font-size:12px;margin:6px 0}
+  .msg.bot{background:#eef0f2;border:1px solid var(--line2)}
+  .msg.me{background:#dfe7fb;border:1px solid #c2d2f7;margin-left:auto}
+  .btnstack{display:flex;flex-direction:column;gap:6px;margin-top:6px}
+  .opt{border:1px solid var(--line);border-radius:18px;padding:7px 10px;font-size:12px;text-align:center;cursor:pointer;background:#fff}
+  .inputbar{display:flex;gap:8px;align-items:center;padding:10px 12px;border-top:1px solid var(--line2)}
+  .inputbar .ph{flex:1;height:34px;border-radius:18px}
+  .send{width:34px;height:34px;border-radius:50%;border:1px dashed var(--line);display:grid;place-items:center}
+  .disc{font-size:10px;color:#999;text-align:center;padding:4px}
+  .stepper{display:flex;align-items:center;margin:10px 0}
+  .step{flex:1;text-align:center;font-size:10px;color:#888}
+  .dot{width:22px;height:22px;border-radius:50%;border:1px solid var(--line);margin:0 auto 4px;display:grid;place-items:center;font-size:10px;background:#fff}
+  .dot.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .bar{height:2px;background:var(--line2);flex:1;margin-top:-16px}
+  .back{font-size:12px;color:#666;cursor:pointer;margin-bottom:8px;display:inline-block}
+  .scrtag{font-size:10px;color:#aaa;float:right}
+  .totrow{display:flex;justify-content:space-between;font-size:12px;margin:3px 0}
+  table.kv{width:100%;font-size:12px;border-collapse:collapse}
+  table.kv td{padding:3px 0;vertical-align:top}
+  /* modal */
+  .modal{position:absolute;inset:0;background:rgba(0,0,0,.25);display:none;align-items:center;justify-content:center}
+  .modal.show{display:flex}
+  .sheet{background:#fff;border:1px solid var(--line);border-radius:10px;width:300px;padding:14px}
+  .hidden{display:none}
+  /* admin */
+  .admin{width:760px;background:#fff;border:2px solid var(--line);border-radius:12px;overflow:hidden;box-shadow:0 6px 18px rgba(0,0,0,.12)}
+  .admin .top{display:flex}
+  .nav{width:170px;background:#f0f1f3;border-right:1px solid var(--line2);padding:10px;font-size:12px}
+  .nav .navi{padding:7px 8px;border-radius:6px;cursor:pointer;color:#555}
+  .nav .navi.active{background:var(--ink);color:#fff}
+  .nav .seclbl{font-size:10px;color:#999;margin:10px 4px 4px}
+  .content{flex:1;padding:14px;min-height:480px;background:#fcfcfd}
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
+  .kpi{border:1px solid var(--line2);border-radius:8px;padding:10px;background:#fff}
+  .kpi b{font-size:18px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .panel{border:1px solid var(--line2);border-radius:8px;padding:10px;background:#fff}
+  .panel h4{margin:0 0 8px;font-size:13px}
+  .three{display:grid;grid-template-columns:150px 1fr 200px;gap:8px;height:430px}
+  .col{border:1px solid var(--line2);border-radius:8px;padding:8px;overflow:auto;background:#fff}
+  .legend{font-size:11px;color:#666;margin-top:10px;max-width:380px}
+  .note{font-size:11px;color:#888;margin-top:6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>IVY USA Chat &amp; Support Widget — Wireframe (와이어프레임 · 저충실도)</h1>
+  <div class="sub">CHATWIDGET-WIREFRAME-1.0.0 · clickable low-fi · SCR 매핑 표기 · Figma는 별도 고충실도</div>
+
+  <div class="toolbar">
+    <button id="tWidget" class="active" onclick="surface('widget')">📱 Widget</button>
+    <button id="tAdmin" onclick="surface('admin')">🖥️ Admin</button>
+    <span style="flex:1"></span>
+    <button id="authBtn" onclick="toggleAuth()">상태: 비로그인(Guest)</button>
+  </div>
+
+  <div class="stage">
+    <!-- ================= WIDGET ================= -->
+    <div id="widget" class="device">
+      <div class="wf-head">
+        <div class="wf-title">알림센터</div>
+        <div class="gear" title="알림 설정" onclick="go('set')">⚙</div>
+      </div>
+      <div class="tabs">
+        <div class="tab active" data-tab="noti" onclick="tab('noti')">Notifications <span class="badge">4</span></div>
+        <div class="tab" data-tab="chat" onclick="tab('chat')">Chat <span class="badge">1</span></div>
+        <div class="tab" data-tab="orders" onclick="tab('orders')">Orders <span class="badge">1</span></div>
+      </div>
+
+      <!-- NOTIFICATIONS (SCR-002) -->
+      <div class="body" id="v-noti">
+        <span class="scrtag">SCR-002</span>
+        <div class="chips">
+          <span class="chip sel">전체</span><span class="chip">결제</span><span class="chip">배송</span><span class="chip">이벤트</span><span class="chip">리뷰</span>
+        </div>
+        <div class="group">오늘 받은 알림</div>
+        <div class="card" onclick="go('detail')">
+          <div class="row"><div class="ph img"></div><div style="flex:1">
+            <div class="row"><span class="pill g">Confirmed</span><span class="ph line w40" style="margin-left:6px;width:30%"></span></div>
+            <div class="ph line w90"></div><div class="ph line w50"></div></div></div>
+        </div>
+        <div class="card" onclick="go('track')">
+          <div class="row"><div class="ph img"></div><div style="flex:1">
+            <div class="row"><span class="pill o">In Transit</span></div>
+            <div class="ph line w90"></div><div class="note">배송조회 ▸ (SCR-011)</div></div></div>
+        </div>
+        <div class="card" onclick="go('review')">
+          <div class="row"><div class="ph img"></div><div style="flex:1">
+            <div class="row"><span class="pill p">Review</span></div>
+            <div class="ph line w70"></div><div class="note">⭐ 리뷰 쓰기 ▸ (SCR-012)</div></div></div>
+        </div>
+        <div class="group">어제 알림</div>
+        <div class="card"><div class="row"><div class="ph img"></div><div style="flex:1">
+          <div class="row"><span class="pill d">Delivered</span></div><div class="ph line w90"></div></div></div></div>
+      </div>
+
+      <!-- CHAT (SCR-003/004/005/006/007) -->
+      <div class="body hidden" id="v-chat">
+        <span class="scrtag" id="chatScr">SCR-003</span>
+        <div id="chatThread">
+          <div class="msg bot">안녕하세요! IVY Beauty입니다. 무엇을 도와드릴까요?</div>
+          <div class="btnstack">
+            <div class="opt" onclick="chat('delivery')">배송 상태</div>
+            <div class="opt" onclick="chat('cancel')">취소 / 환불</div>
+            <div class="opt" onclick="chat('help')">Product Help</div>
+            <div class="opt" onclick="chat('support')">Contact Support</div>
+            <div class="opt" onclick="chat('affiliate')">Affiliate</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ORDERS (SCR-009) -->
+      <div class="body hidden" id="v-orders">
+        <span class="scrtag">SCR-009</span>
+        <div class="chips">
+          <span class="chip sel">결제내역</span><span class="chip" onclick="go('track')">배송현황</span><span class="chip">문의하기 <span class="badge">1</span></span>
+        </div>
+        <div class="card" onclick="go('detail')"><div class="row"><div style="flex:1">
+          <div class="row"><span class="pill d">Delivered</span><span class="note" style="margin-left:auto">03.03.2026</span></div>
+          <div class="ph line w90"></div><div class="ph line w40"></div></div></div></div>
+        <div class="card" onclick="go('detail')"><div class="row"><div style="flex:1">
+          <div class="row"><span class="pill o">In Transit</span><span class="note" style="margin-left:auto">03.01.2026</span></div>
+          <div class="ph line w70"></div><div class="ph line w40"></div></div></div></div>
+        <div class="card" onclick="go('detail')"><div class="row"><div style="flex:1">
+          <div class="row"><span class="pill d">Delivered</span><span class="note" style="margin-left:auto">02.20.2026</span></div>
+          <div class="ph line w90"></div><div class="ph line w40"></div></div></div></div>
+      </div>
+
+      <!-- ORDER DETAIL (SCR-010) -->
+      <div class="body hidden" id="v-detail">
+        <span class="scrtag">SCR-010</span>
+        <span class="back" onclick="back()">← 주문 상세 · IVY-39891</span>
+        <div class="card" style="cursor:default"><div class="row"><div class="ph img"></div><div style="flex:1">
+          <div class="ph line w90"></div><div class="ph line w50"></div></div><div>$4.99</div></div></div>
+        <div class="card" style="cursor:default"><div class="row"><div class="ph img"></div><div style="flex:1">
+          <div class="ph line w70"></div><div class="ph line w40"></div></div><div>$4.99</div></div></div>
+        <div style="border-top:1px dashed var(--line2);margin:8px 0;padding-top:8px">
+          <div class="totrow"><span>Discount</span><span>-$4.99</span></div>
+          <div class="totrow"><span>Subtotal · 2 items</span><span>$0.00</span></div>
+          <div class="totrow"><span>Shipping</span><span>Free</span></div>
+          <div class="totrow"><b>Total</b><b>USD $0.00</b></div>
+        </div>
+        <div class="group">Shipping address</div>
+        <table class="kv"><tr><td><div class="ph line w90"></div><div class="ph line w70"></div></td></tr></table>
+        <div class="opt" style="margin-top:10px" onclick="chatFromOrder()">문의하기 ▸ (채팅에 주문 컨텍스트 첨부)</div>
+      </div>
+
+      <!-- DELIVERY TRACKING (SCR-011) -->
+      <div class="body hidden" id="v-track">
+        <span class="scrtag">SCR-011</span>
+        <span class="back" onclick="back()">← 배송 추적 · IVY-39891</span>
+        <div class="stepper">
+          <div class="step"><div class="dot on">1</div>발송준비</div><div class="bar"></div>
+          <div class="step"><div class="dot on">2</div>배송시작</div><div class="bar"></div>
+          <div class="step"><div class="dot on">3</div>배송중</div><div class="bar"></div>
+          <div class="step"><div class="dot">4</div>배송완료</div>
+        </div>
+        <div class="note" style="text-align:center;color:#c06">고객님께 배송중입니다! 빠르게 배송해드릴게요!</div>
+        <div class="opt" style="margin-top:10px">Track Order</div>
+      </div>
+
+      <!-- REVIEW (SCR-012) -->
+      <div class="body hidden" id="v-review">
+        <span class="scrtag">SCR-012</span>
+        <span class="back" onclick="back()">← 리뷰 쓰기</span>
+        <div class="card" style="cursor:default"><div class="row"><div class="ph img"></div><div style="flex:1"><div class="ph line w90"></div><div class="ph line w40"></div></div></div></div>
+        <div class="group">평점</div><div style="font-size:20px;color:#bbb">☆ ☆ ☆ ☆ ☆</div>
+        <div class="group">내용</div><div class="ph" style="height:90px"></div>
+        <div class="opt" style="margin-top:10px">제출</div>
+      </div>
+
+      <!-- SETTINGS (SCR-013) -->
+      <div class="body hidden" id="v-set">
+        <span class="scrtag">SCR-013</span>
+        <span class="back" onclick="back()">← 알림 설정</span>
+        <table class="kv">
+          <tr><td>인앱 (필수)</td><td style="text-align:right">[ON · 고정]</td></tr>
+          <tr><td>이메일</td><td style="text-align:right">[ ◯ ]</td></tr>
+          <tr><td>SMS</td><td style="text-align:right">[ ◯ ]</td></tr>
+          <tr><td>Web Push</td><td style="text-align:right">[ ◯ ]</td></tr>
+        </table>
+        <div class="group">카테고리</div>
+        <div class="chips"><span class="chip sel">결제</span><span class="chip sel">배송</span><span class="chip">이벤트</span><span class="chip">리뷰</span></div>
+        <div class="note">CCPA opt-out ▸</div>
+      </div>
+
+      <!-- input bar (chat only) -->
+      <div class="inputbar hidden" id="inputbar"><div class="ph"></div><div class="send">➤</div></div>
+      <div class="disc hidden" id="disc">This chat is AI-powered for faster assistance</div>
+
+      <!-- AUTH GATE modal (SCR-008) -->
+      <div class="modal" id="authModal">
+        <div class="sheet">
+          <div style="font-weight:700;margin-bottom:8px">로그인이 필요합니다 <span class="scrtag">SCR-008</span></div>
+          <div class="note" style="margin-bottom:10px">주문/구매 정보 확인을 위해 인증이 필요합니다.</div>
+          <div class="btnstack">
+            <div class="opt" onclick="doAuth()">Shopify 계정 로그인</div>
+            <div class="opt" onclick="doAuth()">소셜 로그인</div>
+            <div class="opt" onclick="doAuth()">게스트 주문조회 (주문번호 + 이메일)</div>
+            <div class="opt" style="border-style:dashed" onclick="closeAuth()">취소</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= ADMIN ================= -->
+    <div id="admin" class="admin hidden">
+      <div class="wf-head"><div class="wf-title">IVY TalkTalk — Admin <span class="scrtag">Wireframe</span></div><div class="note">Howdy, LISA</div></div>
+      <div class="top">
+        <div class="nav">
+          <div class="seclbl">모니터링</div>
+          <div class="navi active" data-a="ov" onclick="adm('ov')">Overview</div>
+          <div class="navi" data-a="chat" onclick="adm('chat')">실시간 채팅 <span class="badge">3</span></div>
+          <div class="navi" data-a="noti" onclick="adm('noti')">알림 발송</div>
+          <div class="navi" data-a="hist" onclick="adm('hist')">상담 이력</div>
+          <div class="seclbl">고객·상품</div>
+          <div class="navi" data-a="cust" onclick="adm('cust')">고객 관리</div>
+          <div class="navi" data-a="prod" onclick="adm('prod')">상품 관리</div>
+          <div class="seclbl">설정</div>
+          <div class="navi" data-a="ai" onclick="adm('ai')">AI Setting</div>
+          <div class="navi" data-a="aichat" onclick="adm('aichat')">AI Chat Setting</div>
+        </div>
+        <div class="content" id="admContent"></div>
+      </div>
+    </div>
+
+    <div class="legend">
+      <b>사용법</b>: 상단 Widget/Admin 전환. 위젯 탭(Notifications/Chat/Orders) 클릭, 알림·주문 카드 클릭 → 상세/배송/리뷰. 비로그인 상태에서 주문 데이터 접근 시 인증 게이트(SCR-008)가 뜹니다. "상태" 버튼으로 로그인/비로그인 토글.<br>
+      <span class="note">저충실도 와이어프레임 — 시각 디자인은 Figma 고충실도 목업/프로토타입 참조. 각 화면 우상단 SCR ID는 화면 정의서와 매핑.</span>
+    </div>
+  </div>
+</div>
+
+<script>
+var authed=false, lastView='noti';
+function surface(s){
+  document.getElementById('widget').classList.toggle('hidden', s!=='widget');
+  document.getElementById('admin').classList.toggle('hidden', s!=='admin');
+  document.getElementById('tWidget').classList.toggle('active', s==='widget');
+  document.getElementById('tAdmin').classList.toggle('active', s==='admin');
+  if(s==='admin') adm('ov');
+}
+function toggleAuth(){ authed=!authed; document.getElementById('authBtn').textContent='상태: '+(authed?'로그인(Member)':'비로그인(Guest)'); }
+var views=['noti','chat','orders','detail','track','review','set'];
+function showView(v){
+  views.forEach(function(x){ document.getElementById('v-'+x).classList.toggle('hidden', x!==v); });
+  var isChat=(v==='chat');
+  document.getElementById('inputbar').classList.toggle('hidden', !isChat);
+  document.getElementById('disc').classList.toggle('hidden', !isChat);
+}
+function tab(t){
+  document.querySelectorAll('.tab').forEach(function(el){ el.classList.toggle('active', el.dataset.tab===t); });
+  if((t==='orders') && !authed){ openAuth(); }
+  lastView=t; showView(t);
+}
+function go(v){
+  if((v==='detail'||v==='track') && !authed){ openAuth(); return; }
+  showView(v);
+}
+function back(){ showView(lastView==='orders'?'orders':'noti'); }
+// chat flow
+function chat(kind){
+  var t=document.getElementById('chatThread');
+  var scr=document.getElementById('chatScr');
+  function add(html){ t.insertAdjacentHTML('beforeend', html); document.getElementById('v-chat').scrollTop=9999; }
+  if(kind==='delivery'||kind==='cancel'){ if(!authed){ openAuth(); return; } add('<div class="msg me">'+(kind==='delivery'?'배송 상태':'취소 / 환불')+'</div>'); add('<div class="msg bot">주문 인증이 완료되었습니다. 주문을 선택해주세요.</div>'); }
+  if(kind==='help'){ scr.textContent='SCR-004'; add('<div class="msg me">Product Help</div>'); add('<div class="msg bot">어떤 도움이 필요하신가요?</div><div class="btnstack"><div class="opt">제품 사용법</div><div class="opt">성분 문의</div><div class="opt">교환 / 반품</div><div class="opt">재입고 알림</div><div class="opt">처음으로</div></div>'); }
+  if(kind==='support'){ scr.textContent='SCR-005'; add('<div class="msg me">Contact Support</div>'); add('<div class="msg bot">고객센터 연결 방법을 선택해주세요.<br>📞 전화 1588-0000 (평일 10–18)<br>✉️ help@ivy.com<br>💬 채팅 상담 — 지금 바로 연결</div>'); }
+  if(kind==='affiliate'){ scr.textContent='SCR-006'; add('<div class="msg me">How to become an Affiliate?</div>'); add('<div class="msg bot">IVY Beauty 제휴 파트너!<br>① 신청서 제출 ② 심사 1–3영업일 ③ 활동 &amp; 수익(판매 10% 적립)</div><div class="btnstack"><div class="opt">지금 신청하기</div><div class="opt">더 알아보기</div><div class="opt">처음으로</div></div>'); }
+}
+function chatFromOrder(){ tab('chat'); var t=document.getElementById('chatThread'); t.insertAdjacentHTML('beforeend','<div class="msg me">[주문 IVY-39891 문의]</div><div class="msg bot">주문 IVY-39891에 대해 무엇을 도와드릴까요?</div>'); }
+// auth modal
+function openAuth(){ document.getElementById('authModal').classList.add('show'); }
+function closeAuth(){ document.getElementById('authModal').classList.remove('show'); }
+function doAuth(){ authed=true; document.getElementById('authBtn').textContent='상태: 로그인(Member)'; closeAuth(); }
+// admin screens
+function adm(a){
+  document.querySelectorAll('.navi').forEach(function(el){ el.classList.toggle('active', el.dataset.a===a); });
+  var c=document.getElementById('admContent'); var h='';
+  if(a==='ov'){ h='<span class="scrtag">SCR-101</span><div class="kpis">'
+    +'<div class="kpi">활성 채팅 세션<br><b>4</b><div class="note">대기1·AI2·상담사1</div></div>'
+    +'<div class="kpi">오늘 발송 알림<br><b>128</b><div class="note">성공126·실패2</div></div>'
+    +'<div class="kpi">AI 해결률<br><b>73%</b></div>'
+    +'<div class="kpi">플랫폼 연동<br><div class="note">Shopify·Klaviyo·Odoo·Fulfillment 연결됨</div></div></div>'
+    +'<div class="grid2"><div class="panel"><h4>AI 처리 현황</h4><div class="ph line w90"></div><div class="ph line w70"></div><div class="ph line w90"></div><div class="note">미해결 패턴 Top3: 환불요청·배송지연·재고문의</div></div>'
+    +'<div class="panel"><h4>알림 발송 현황</h4><div class="note">주문확인(자동·Shopify)<br>배송상태(자동·Fulfillment)<br>리뷰요청(자동·N일)<br>이벤트(수동·세그먼트)</div></div></div>'; }
+  if(a==='chat'){ h='<span class="scrtag">SCR-102</span><div class="three">'
+    +'<div class="col"><b style="font-size:12px">세션</b><div class="card" style="cursor:default"><div class="ph line w90"></div><div class="note">상담사 연결</div></div><div class="card" style="cursor:default"><div class="ph line w70"></div><div class="note">AI 응답 중</div></div><div class="card" style="cursor:default"><div class="ph line w70"></div><div class="note">대기</div></div></div>'
+    +'<div class="col"><b style="font-size:12px">대화</b><div class="msg bot" style="max-width:100%">고객 메시지…</div><div class="msg me" style="max-width:100%">상담사 응답…</div><div style="border-top:1px dashed var(--line2);margin-top:8px;padding-top:6px"><span class="pill">개입 중</span> <span class="pill">종료</span></div></div>'
+    +'<div class="col"><b style="font-size:12px">AI 상황 브리핑</b><div class="note">요약 / 고객정보(총주문·이전문의) / 의도분석 / 키워드 / 감정온도 / 추천액션</div><div class="ph line w90"></div><div class="ph line w70"></div><div class="ph line w90"></div></div></div>'; }
+  if(a==='noti'){ h='<span class="scrtag">SCR-103</span><div class="panel"><h4>알림 발송 / Event Setting / Campaign Recipes</h4><div class="chips"><span class="chip">Recommended</span><span class="chip">Popular</span></div><div class="grid2"><div class="ph" style="height:70px"></div><div class="ph" style="height:70px"></div></div><div class="note">세그먼트 선택(Klaviyo) → 발송(수동, opt-out 필터)</div></div>'; }
+  if(a==='hist'){ h='<span class="scrtag">SCR-104</span><div class="panel"><h4>상담 이력</h4><div class="ph line w90"></div><div class="row" style="gap:6px;margin:6px 0"><span class="chip">날짜</span><span class="chip">고객</span><span class="chip">의도</span><span class="chip">상태</span></div><div class="card" style="cursor:default"><div class="ph line w90"></div></div><div class="card" style="cursor:default"><div class="ph line w70"></div></div><div class="note">검색·열람·내보내기(큐레이션)</div></div>'; }
+  if(a==='cust'){ h='<span class="scrtag">SCR-106</span><div class="panel"><h4>고객 관리</h4><div class="card" style="cursor:default"><div class="ph line w90"></div><div class="note">주문·문의 이력(CJM)</div></div></div>'; }
+  if(a==='prod'){ h='<span class="scrtag">SCR-106</span><div class="panel"><h4>상품 관리</h4><div class="card" style="cursor:default"><div class="ph line w90"></div><div class="note">카탈로그·재고(Odoo/Shopify)</div></div></div>'; }
+  if(a==='ai'||a==='aichat'){ h='<span class="scrtag">SCR-105</span><div class="panel"><h4>AI Setting / AI Chat Setting</h4><div class="chips"><span class="chip sel">Bot 페르소나</span><span class="chip">Rules</span><span class="chip">Knowledge</span><span class="chip">시나리오 버튼</span></div><div class="ph" style="height:120px"></div><div class="note">KB 편집 → 재임베딩 / 시나리오 변경 → 위젯 반영</div></div>'; }
+  c.innerHTML=h;
+}
+showView('noti');
+</script>
+</body>
+</html>

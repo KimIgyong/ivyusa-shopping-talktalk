@@ -1,0 +1,66 @@
+import { Body, Controller, Get, Param, ParseIntPipe, Post, Put, Query } from '@nestjs/common';
+import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { buildPagination, normalizePage } from '@ivy/common';
+import { NotificationService } from './notification.service';
+import { ReadNotificationRequest, UpdatePrefRequest } from './notification.dto';
+import { toNotificationResponse, toPrefResponse } from './notification.mapper';
+import { Public } from '../../global/decorator/public.decorator';
+import { Paginated } from '../../global/interceptor/transform.interceptor';
+
+/** Widget-facing notification endpoints (public; session-token identified). */
+@ApiTags('Notification')
+@Controller('notifications')
+export class NotificationController {
+  constructor(private readonly notificationService: NotificationService) {}
+
+  @Get()
+  @Public()
+  @ApiOperation({ summary: "List the customer's notifications (FR-030)" })
+  async list(
+    @Query('session_token') token: string,
+    @Query('category') category?: string,
+    @Query('page') page?: string,
+    @Query('size') size?: string,
+  ) {
+    const { page: p, size: s } = normalizePage(page, size);
+    const [items, total] = await this.notificationService.list(token, category, p, s);
+    return new Paginated(items.map(toNotificationResponse), buildPagination(p, s, total));
+  }
+
+  @Get('unread-count')
+  @Public()
+  @ApiOperation({ summary: 'Unread notification count' })
+  async unreadCount(@Query('session_token') token: string) {
+    const count = await this.notificationService.unreadCount(token);
+    return { count };
+  }
+
+  @Get('prefs')
+  @Public()
+  @ApiOperation({ summary: 'List notification preferences (channel x category)' })
+  async listPrefs(@Query('session_token') token: string) {
+    const prefs = await this.notificationService.listPrefs(token);
+    return prefs.map(toPrefResponse);
+  }
+
+  @Put('prefs')
+  @Public()
+  @ApiOperation({ summary: 'Upsert a notification preference (in_app stays always-on)' })
+  async upsertPref(@Body() body: UpdatePrefRequest) {
+    const pref = await this.notificationService.upsertPref(
+      body.session_token,
+      body.channel,
+      body.category,
+      body.enabled,
+    );
+    return toPrefResponse(pref);
+  }
+
+  @Post(':id/read')
+  @Public()
+  @ApiOperation({ summary: 'Mark a notification read (verifies ownership)' })
+  async markRead(@Param('id', ParseIntPipe) id: number, @Body() body: ReadNotificationRequest) {
+    const notif = await this.notificationService.markRead(body.session_token, id);
+    return toNotificationResponse(notif);
+  }
+}

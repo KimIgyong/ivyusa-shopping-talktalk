@@ -1,0 +1,66 @@
+import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import Redis from 'ioredis';
+
+/**
+ * Redis wrapper (session cache, unread counts). Keys are tenant-prefixed by callers.
+ * Degrades gracefully if Redis is unavailable (returns null / no-ops) so local dev
+ * works without the container.
+ */
+@Injectable()
+export class RedisService implements OnModuleDestroy {
+  private readonly logger = new Logger(RedisService.name);
+  private client: Redis | null = null;
+
+  constructor(private readonly config: ConfigService) {
+    try {
+      this.client = new Redis({
+        host: config.get<string>('REDIS_HOST', '127.0.0.1'),
+        port: config.get<number>('REDIS_PORT', 6379),
+        lazyConnect: false,
+        maxRetriesPerRequest: 1,
+        retryStrategy: () => null,
+      });
+      this.client.on('error', (e) => this.logger.warn(`Redis unavailable: ${e.message}`));
+    } catch (e) {
+      this.logger.warn(`Redis init failed: ${(e as Error).message}`);
+    }
+  }
+
+  async get(key: string): Promise<string | null> {
+    try {
+      return (await this.client?.get(key)) ?? null;
+    } catch {
+      return null;
+    }
+  }
+
+  async set(key: string, value: string, ttlSec?: number): Promise<void> {
+    try {
+      if (ttlSec) await this.client?.set(key, value, 'EX', ttlSec);
+      else await this.client?.set(key, value);
+    } catch {
+      /* no-op when unavailable */
+    }
+  }
+
+  async incr(key: string): Promise<number> {
+    try {
+      return (await this.client?.incr(key)) ?? 0;
+    } catch {
+      return 0;
+    }
+  }
+
+  async del(key: string): Promise<void> {
+    try {
+      await this.client?.del(key);
+    } catch {
+      /* no-op */
+    }
+  }
+
+  onModuleDestroy(): void {
+    this.client?.disconnect();
+  }
+}

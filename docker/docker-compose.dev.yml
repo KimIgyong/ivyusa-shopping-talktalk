@@ -1,0 +1,47 @@
+# Development infrastructure containers (DB, Redis, RabbitMQ) — Amoeba Structure v2.
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: ivy_mysql
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    environment:
+      MYSQL_ROOT_PASSWORD: root_dev_pw
+      MYSQL_DATABASE: db_ivy_talktalk
+      MYSQL_USER: ivy
+      MYSQL_PASSWORD: ivy_dev_pw
+    ports:
+      - '3316:3306'
+    volumes:
+      - ivy_mysql_data:/var/lib/mysql
+      # Schema is built by TypeORM synchronize in dev (npm run db:seed).
+      # The DDL in sql/01-schema.sql is the staging/production migration reference.
+    healthcheck:
+      test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: ivy_redis
+    ports:
+      - '6389:6379'
+    volumes:
+      - ivy_redis_data:/data
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: ivy_rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: ivy
+      RABBITMQ_DEFAULT_PASS: ivy_dev_pw
+    ports:
+      - '5682:5672'
+      - '15682:15672'
+    volumes:
+      - ivy_rabbitmq_data:/var/lib/rabbitmq
+
+volumes:
+  ivy_mysql_data:
+  ivy_redis_data:
+  ivy_rabbitmq_data:

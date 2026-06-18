@@ -1,0 +1,35 @@
+# dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# builds
+dist/
+build/
+.next/
+out/
+*.tsbuildinfo
+
+# turbo
+.turbo/
+
+# env / secrets (never commit)
+secrets/
+docs/log/
+.env
+.env.local
+docker/staging/.env.staging
+docker/production/.env.production
+
+# logs
+*.log
+npm-debug.log*
+
+# os / editor
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# uploads (local dev kb files)
+apps/api/storage/

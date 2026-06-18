@@ -1,0 +1,445 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>IVY USA Chat &amp; Support Widget — Prototype (고충실도)</title>
+<style>
+  :root{
+    --pink:#ff2e74; --pink2:#ff6a3d; --blue:#3a6df0; --ink:#1f2329; --muted:#8a9099;
+    --line:#eceef1; --bg:#f6f7f9; --green:#19b36b; --orange:#ff8c1a; --grey:#9aa0a6; --purple:#8b5cf6;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans KR",sans-serif;color:var(--ink);background:#0e0f12;}
+  /* storefront backdrop */
+  .store{min-height:100vh;background:#fff;position:relative;overflow:hidden}
+  .promo{background:linear-gradient(90deg,var(--pink),var(--pink2));color:#fff;text-align:center;font-size:13px;padding:9px;font-weight:600}
+  .nav{display:flex;align-items:center;gap:26px;padding:16px 28px;border-bottom:1px solid var(--line)}
+  .logo{font-weight:800;font-size:20px}
+  .nav a{font-size:13px;color:#333;text-decoration:none}
+  .navright{margin-left:auto;display:flex;align-items:center;gap:16px;font-size:13px;color:#444}
+  .navbadge{position:relative}
+  .navbadge .dot{position:absolute;top:-6px;right:-8px;background:var(--pink);color:#fff;border-radius:9px;font-size:10px;padding:0 5px;line-height:15px}
+  .hero{padding:60px 28px;color:#aab}
+  .hero h2{font-size:34px;color:#dfe2e6;margin:0 0 6px}
+  .gridph{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;padding:0 28px}
+  .gridph .c{height:160px;background:linear-gradient(135deg,#f3f4f6,#e9ebef);border-radius:12px}
+  /* launcher */
+  .launcher{position:fixed;right:24px;bottom:24px;width:58px;height:58px;border-radius:50%;background:linear-gradient(135deg,var(--pink),var(--pink2));color:#fff;display:grid;place-items:center;font-size:24px;cursor:pointer;box-shadow:0 8px 24px rgba(255,46,116,.45);z-index:40}
+  .launcher .lb{position:absolute;top:-4px;right:-4px;background:#fff;color:var(--pink);border-radius:10px;font-size:11px;font-weight:700;padding:0 5px;line-height:18px;border:2px solid var(--pink)}
+  /* widget panel */
+  .panel{position:fixed;right:24px;top:18px;bottom:18px;width:390px;background:#fff;border-radius:18px;box-shadow:0 24px 70px rgba(0,0,0,.35);display:flex;flex-direction:column;overflow:hidden;z-index:50}
+  .phead{display:flex;align-items:center;justify-content:space-between;padding:16px 18px 6px}
+  .phead .t{font-weight:800;font-size:19px}
+  .ico{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;color:#9aa0a6;cursor:pointer}
+  .ico:hover{background:#f2f3f5}
+  .tabs{display:flex;padding:0 10px;border-bottom:1px solid var(--line)}
+  .tab{flex:1;text-align:center;padding:12px 4px;font-size:14px;color:#9aa0a6;cursor:pointer;border-bottom:2px solid transparent;font-weight:600}
+  .tab.active{color:var(--ink);border-bottom-color:var(--ink)}
+  .tb{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;background:var(--pink);color:#fff;border-radius:9px;font-size:10px;padding:0 5px;margin-left:5px;vertical-align:middle}
+  .scroll{flex:1;overflow:auto;padding:14px 16px;background:#fbfcfd}
+  .chips{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:12px}
+  .chip{border:1px solid var(--line);background:#fff;border-radius:18px;padding:6px 13px;font-size:12.5px;color:#555;cursor:pointer}
+  .chip.sel{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .glabel{font-size:11px;color:#a6abb2;margin:12px 2px 8px;font-weight:600}
+  .ncard{display:flex;gap:11px;padding:12px;border-radius:12px;background:#fff;border:1px solid var(--line);margin-bottom:9px;cursor:pointer;transition:.15s}
+  .ncard:hover{box-shadow:0 4px 14px rgba(0,0,0,.07)}
+  .ncard.unread{background:#fff6f2}
+  .nicon{width:42px;height:42px;border-radius:10px;background:#f0f2f5;display:grid;place-items:center;font-size:18px;flex:none}
+  .nbody{flex:1;min-width:0}
+  .ntop{display:flex;align-items:center;gap:6px;margin-bottom:3px}
+  .oid{font-weight:700;font-size:13px}
+  .ntext{font-size:13px;color:#3c424a;line-height:1.35}
+  .ntime{font-size:11px;color:#aab;margin-top:3px}
+  .reddot{width:8px;height:8px;border-radius:50%;background:var(--pink);align-self:flex-start;margin-top:4px}
+  .st{font-size:10.5px;font-weight:700;border-radius:11px;padding:2px 9px;color:#fff}
+  .st.green{background:var(--green)} .st.orange{background:var(--orange)} .st.grey{background:var(--grey)} .st.purple{background:var(--purple)}
+  .link{color:var(--blue);font-weight:600;cursor:pointer}
+  /* chat */
+  .msg{max-width:82%;padding:10px 13px;border-radius:14px;font-size:13.5px;line-height:1.45;margin:7px 0}
+  .bot{background:#f0f2f5;border-top-left-radius:4px}
+  .me{background:var(--blue);color:#fff;margin-left:auto;border-top-right-radius:4px}
+  .opts{display:flex;flex-direction:column;gap:8px;margin:8px 0}
+  .opt{border:1px solid #d7dbe0;border-radius:22px;padding:10px 14px;font-size:13.5px;text-align:center;cursor:pointer;background:#fff;transition:.15s}
+  .opt:hover{border-color:var(--blue);color:var(--blue)}
+  .optrow{display:flex;gap:7px;flex-wrap:wrap}
+  .optrow .opt{flex:1;min-width:44%}
+  .ordcard{border:1px solid var(--line);border-radius:12px;padding:12px;margin:8px 0;cursor:pointer;background:#fff}
+  .infoCard{border:1px solid var(--line);border-radius:12px;padding:13px;margin:8px 0;background:#fff}
+  .infoCard b{font-size:13.5px}
+  .stepwrap{display:flex;align-items:flex-start;margin:14px 2px}
+  .step{flex:1;text-align:center}
+  .sdot{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;margin:0 auto;font-size:12px;font-weight:700;background:#eef0f3;color:#9aa0a6;border:2px solid #eef0f3}
+  .sdot.on{background:var(--blue);color:#fff;border-color:var(--blue)}
+  .slbl{font-size:10.5px;color:#7a818a;margin-top:5px}
+  .sbar{height:3px;background:#e6e9ee;margin-top:13px}
+  .sbar.on{background:var(--blue)}
+  .foot{padding:10px 14px;border-top:1px solid var(--line);background:#fff}
+  .inrow{display:flex;align-items:center;gap:9px}
+  .input{flex:1;border:1px solid #dfe3e8;border-radius:22px;padding:10px 14px;font-size:13px;color:#aab}
+  .send{width:38px;height:38px;border-radius:50%;background:var(--blue);color:#fff;display:grid;place-items:center;cursor:pointer;flex:none}
+  .disc{font-size:10.5px;color:#aab;text-align:center;padding-top:7px}
+  .back{font-size:13px;color:#667;cursor:pointer;margin-bottom:10px;display:inline-flex;gap:5px;align-items:center}
+  .detItem{display:flex;gap:11px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+  .thumb{width:48px;height:48px;border-radius:9px;background:linear-gradient(135deg,#f3d9e3,#e7d3f0);flex:none}
+  .price{font-weight:700;font-size:13px}
+  .totline{display:flex;justify-content:space-between;font-size:13px;margin:5px 0;color:#444}
+  .totline.big{font-size:16px;font-weight:800;color:var(--ink)}
+  .stars{font-size:26px;color:#ffb400;letter-spacing:4px;cursor:pointer}
+  .ta{width:100%;height:96px;border:1px solid #dfe3e8;border-radius:10px;padding:10px;font:inherit;font-size:13px;resize:none}
+  .cta{display:block;width:100%;text-align:center;background:var(--blue);color:#fff;border:none;border-radius:24px;padding:12px;font-size:14px;font-weight:700;cursor:pointer;margin-top:12px}
+  .toggle{width:42px;height:24px;border-radius:14px;background:#d7dbe0;position:relative;cursor:pointer;flex:none}
+  .toggle.on{background:var(--green)}
+  .toggle .k{position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff;transition:.15s}
+  .toggle.on .k{left:20px}
+  .setrow{display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--line);font-size:14px}
+  .modalbg{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;z-index:60}
+  .modalbg.show{display:flex}
+  .modal{background:#fff;border-radius:16px;width:320px;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,.4)}
+  .modal h3{margin:0 0 4px;font-size:16px}
+  .modal p{margin:0 0 14px;font-size:12.5px;color:#8a9099}
+  .hidden{display:none}
+  .scrtag{position:absolute;top:6px;right:10px;font-size:9px;color:#cfd3d8;font-weight:700}
+  .authpill{position:fixed;left:16px;top:16px;z-index:70;background:#fff;border:1px solid var(--line);border-radius:18px;padding:7px 12px;font-size:12px;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.15)}
+  .modeToggle{position:fixed;left:16px;top:54px;z-index:70;display:flex;gap:6px}
+  .modeToggle button{background:#fff;border:1px solid var(--line);border-radius:16px;padding:6px 12px;font-size:12px;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.12)}
+  .modeToggle button.active{background:var(--ink);color:#fff;border-color:var(--ink)}
+  /* admin */
+  .adminWrap{position:fixed;inset:0;background:#0e0f12;display:none;z-index:30;padding:64px 24px 24px;overflow:auto}
+  .adminWrap.show{display:block}
+  .adminCard{max-width:1000px;margin:0 auto;background:#fff;border-radius:14px;overflow:hidden;display:flex;min-height:560px}
+  .anav{width:190px;background:#14161a;color:#cfd3d8;padding:16px 12px}
+  .anav .logo2{color:#fff;font-weight:800;margin:0 6px 14px}
+  .anav .sl{font-size:10px;color:#6b7280;margin:14px 6px 6px}
+  .anav .ai{padding:9px 10px;border-radius:8px;font-size:13px;cursor:pointer;color:#aeb4bd}
+  .anav .ai.active{background:var(--blue);color:#fff}
+  .acont{flex:1;padding:20px;background:#f6f7f9;overflow:auto}
+  .akpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px}
+  .akpi{background:#fff;border-radius:12px;padding:14px;box-shadow:0 2px 8px rgba(0,0,0,.04)}
+  .akpi .k{font-size:12px;color:#8a9099}.akpi b{font-size:24px;display:block;margin-top:4px}
+  .apanel{background:#fff;border-radius:12px;padding:14px;box-shadow:0 2px 8px rgba(0,0,0,.04);margin-bottom:12px}
+  .apanel h4{margin:0 0 10px;font-size:14px}
+  .agrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .barrow{display:flex;align-items:center;gap:8px;margin:5px 0;font-size:12px;color:#555}
+  .barrow .bb{height:9px;background:var(--blue);border-radius:5px}
+  .sess{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line);font-size:12.5px}
+  .av{width:28px;height:28px;border-radius:50%;background:#f0c8d6;display:grid;place-items:center;font-size:11px;font-weight:700;color:#a0466b}
+</style>
+</head>
+<body>
+
+<div class="authpill" id="authPill" onclick="toggleAuth()">● 비로그인 (Guest)</div>
+<div class="modeToggle">
+  <button id="mWidget" class="active" onclick="mode('widget')">Widget</button>
+  <button id="mAdmin" onclick="mode('admin')">Admin</button>
+</div>
+
+<!-- STOREFRONT -->
+<div class="store">
+  <div class="promo">Free Shipping on Orders Over $50 &nbsp;|&nbsp; Use Code: FREESHIP</div>
+  <div class="nav">
+    <div class="logo">ivy Beauty</div>
+    <a>전체상품</a><a>베스트셀러</a><a>신상품</a><a>세일</a><a>스킨케어</a><a>메이크업</a><a>향수</a>
+    <div class="navright">
+      <span id="hiName">Hi, Guest</span>
+      <span class="navbadge">🛒<span class="dot">4</span></span>
+      <span class="navbadge">🔔<span class="dot">3</span></span>
+    </div>
+  </div>
+  <div class="hero"><h2>Glow Up Collection</h2></div>
+  <div class="gridph"><div class="c"></div><div class="c"></div><div class="c"></div><div class="c"></div></div>
+</div>
+
+<!-- LAUNCHER -->
+<div class="launcher" id="launcher" onclick="openPanel()">💬<span class="lb">5</span></div>
+
+<!-- WIDGET PANEL -->
+<div class="panel hidden" id="panel">
+  <div class="phead"><div class="t">알림센터</div>
+    <div style="display:flex;gap:2px"><div class="ico" onclick="go('set')">⚙</div><div class="ico" onclick="closePanel()">✕</div></div>
+  </div>
+  <div class="tabs">
+    <div class="tab active" data-tab="noti" onclick="tab('noti')">Notifications<span class="tb">4</span></div>
+    <div class="tab" data-tab="chat" onclick="tab('chat')">Chat<span class="tb">1</span></div>
+    <div class="tab" data-tab="orders" onclick="tab('orders')">Orders<span class="tb">1</span></div>
+  </div>
+
+  <!-- NOTIFICATIONS -->
+  <div class="scroll" id="v-noti">
+    <span class="scrtag">SCR-002</span>
+    <div class="chips" id="notiChips">
+      <span class="chip sel" onclick="selChip(this)">전체</span>
+      <span class="chip" onclick="selChip(this)">결제</span>
+      <span class="chip" onclick="selChip(this)">배송</span>
+      <span class="chip" onclick="selChip(this)">이벤트</span>
+      <span class="chip" onclick="selChip(this)">리뷰</span>
+    </div>
+    <div class="glabel">오늘 받은 알림</div>
+    <div class="ncard unread" onclick="go('detail')">
+      <div class="nicon">📦</div>
+      <div class="nbody"><div class="ntop"><span class="oid">IVY-39891</span><span class="st green">Confirmed</span></div>
+        <div class="ntext">Glow Up Cream 50ml</div><div class="ntime">1시간 전</div></div>
+      <div class="reddot"></div>
+    </div>
+    <div class="ncard unread" onclick="go('track')">
+      <div class="nicon">🚚</div>
+      <div class="nbody"><div class="ntop"><span class="oid">IVY-39890</span><span class="st orange">In Transit</span></div>
+        <div class="ntext">Hydrating Face Mask (10pcs) + 2 items</div>
+        <div class="ntime">2시간 전 · <span class="link">배송조회</span></div></div>
+      <div class="reddot"></div>
+    </div>
+    <div class="ncard" onclick="go('review')">
+      <div class="nicon">⭐</div>
+      <div class="nbody"><div class="ntop"><span class="oid">IVY-39875</span><span class="st purple">Review</span></div>
+        <div class="ntext">Rose Hip Facial Oil 30ml · $55.00</div>
+        <div class="ntime">4월 전 · <span class="link">리뷰 쓰기</span></div></div>
+    </div>
+    <div class="ncard" onclick="alert('이벤트 상세 (프로토타입)')">
+      <div class="nicon">🎁</div>
+      <div class="nbody"><div class="ntop"><b>Mad Shade</b></div>
+        <div class="ntext">Buy one Get One 50% OFF today!</div><div class="ntime">3시간 전</div></div>
+    </div>
+    <div class="glabel">어제 알림</div>
+    <div class="ncard" onclick="go('detail')">
+      <div class="nicon">📦</div>
+      <div class="nbody"><div class="ntop"><span class="oid">IVY-39885</span><span class="st grey">Delivered</span></div>
+        <div class="ntext">Ultra Mini Portable Fan + 2 items</div><div class="ntime">어제</div></div>
+    </div>
+  </div>
+
+  <!-- CHAT -->
+  <div class="scroll hidden" id="v-chat">
+    <span class="scrtag" id="chatScr">SCR-003</span>
+    <div id="thread">
+      <div class="msg bot">안녕하세요! IVY Beauty입니다. 무엇을 도와드릴까요? 😊</div>
+      <div class="opts">
+        <div class="opt" onclick="chat('delivery')">배송 상태</div>
+        <div class="opt" onclick="chat('cancel')">취소 / 환불</div>
+        <div class="opt" onclick="chat('help')">Product Help</div>
+        <div class="opt" onclick="chat('support')">Contact Support</div>
+        <div class="opt" onclick="chat('affiliate')">Affiliate</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ORDERS -->
+  <div class="scroll hidden" id="v-orders">
+    <span class="scrtag">SCR-009</span>
+    <div class="chips">
+      <span class="chip sel" onclick="selChip(this)">결제내역</span>
+      <span class="chip" onclick="selChip(this);go('track')">배송현황</span>
+      <span class="chip" onclick="selChip(this)">문의하기<span class="tb">1</span></span>
+    </div>
+    <div class="ordcard" onclick="go('detail')"><div class="ntop"><span class="st grey">Delivered</span><span style="margin-left:auto;font-size:11px;color:#aab">03.03.2026</span></div>
+      <div class="oid" style="margin-top:5px">IVY-39891</div><div class="ntext">Ultra Mini Portable Fan… +2 · $55.00</div></div>
+    <div class="ordcard" onclick="go('detail')"><div class="ntop"><span class="st orange">In Transit</span><span style="margin-left:auto;font-size:11px;color:#aab">03.01.2026</span></div>
+      <div class="oid" style="margin-top:5px">IVY-39641</div><div class="ntext">Vitamin C Serum Set · $78.50</div></div>
+    <div class="ordcard" onclick="go('detail')"><div class="ntop"><span class="st grey">Delivered</span><span style="margin-left:auto;font-size:11px;color:#aab">02.20.2026</span></div>
+      <div class="oid" style="margin-top:5px">IVY-39500</div><div class="ntext">So Jelly Highlighter Stick · $24.00</div></div>
+  </div>
+
+  <!-- ORDER DETAIL -->
+  <div class="scroll hidden" id="v-detail">
+    <span class="scrtag">SCR-010</span>
+    <div class="back" onclick="back()">← 주문 상세 · IVY-39891</div>
+    <div class="detItem"><div class="thumb"></div><div style="flex:1"><div style="font-size:13px;font-weight:600">Hydrating Face Mask (10pcs)</div><div style="font-size:11px;color:#aab">Single</div></div><div class="price">$4.99</div></div>
+    <div class="detItem"><div class="thumb"></div><div style="flex:1"><div style="font-size:13px;font-weight:600">Extra Long Soft Cotton Socks</div><div style="font-size:11px;color:#aab">Burgundy / 6-8</div></div><div class="price">$4.99</div></div>
+    <div style="margin-top:12px">
+      <div class="totline"><span>Discount</span><span style="color:var(--pink)">-$4.99</span></div>
+      <div class="totline"><span>Subtotal · 2 items</span><span>$0.00</span></div>
+      <div class="totline"><span>Shipping</span><span>Free</span></div>
+      <div class="totline big"><span>Total</span><span>USD $0.00</span></div>
+    </div>
+    <div class="glabel">Shipping address</div>
+    <div style="font-size:12.5px;color:#444;line-height:1.5">Hyein Kim<br>25 Harbor Park Dr<br>Port Washington, NY 11050-4605</div>
+    <button class="cta" style="background:#fff;color:var(--ink);border:1px solid #d7dbe0" onclick="chatFromOrder()">문의하기 ›</button>
+  </div>
+
+  <!-- DELIVERY TRACKING -->
+  <div class="scroll hidden" id="v-track">
+    <span class="scrtag">SCR-011</span>
+    <div class="back" onclick="back()">← 배송 추적 · IVY-39890</div>
+    <div class="oid" style="margin-bottom:2px">Hydrating Face Mask (10pcs) + 2 items</div>
+    <span class="st orange">In Transit</span>
+    <div class="stepwrap">
+      <div class="step"><div class="sdot on">1</div><div class="slbl">발송준비</div></div>
+      <div class="sbar on"></div>
+      <div class="step"><div class="sdot on">2</div><div class="slbl">배송시작</div></div>
+      <div class="sbar on"></div>
+      <div class="step"><div class="sdot on">3</div><div class="slbl">배송중</div></div>
+      <div class="sbar"></div>
+      <div class="step"><div class="sdot">4</div><div class="slbl">배송완료</div></div>
+    </div>
+    <div style="text-align:center;color:var(--pink);font-weight:600;font-size:13px;margin-top:6px">고객님께 배송중입니다! 빠르게 배송해드릴게요! 🚚</div>
+    <button class="cta">Track Order</button>
+  </div>
+
+  <!-- REVIEW -->
+  <div class="scroll hidden" id="v-review">
+    <span class="scrtag">SCR-012</span>
+    <div class="back" onclick="back()">← 리뷰 쓰기</div>
+    <div class="detItem"><div class="thumb"></div><div style="flex:1"><div style="font-size:13px;font-weight:600">Rose Hip Facial Oil 30ml</div><div style="font-size:11px;color:#aab">$55.00</div></div></div>
+    <div class="glabel">평점</div>
+    <div class="stars" id="stars">☆ ☆ ☆ ☆ ☆</div>
+    <div class="glabel">내용</div>
+    <textarea class="ta" placeholder="상품은 어떠셨나요?"></textarea>
+    <button class="cta" onclick="alert('리뷰가 제출되었습니다. (프로토타입)');back()">제출</button>
+  </div>
+
+  <!-- SETTINGS -->
+  <div class="scroll hidden" id="v-set">
+    <span class="scrtag">SCR-013</span>
+    <div class="back" onclick="back()">← 알림 설정</div>
+    <div class="glabel">채널</div>
+    <div class="setrow"><span>인앱 알림 <span style="font-size:11px;color:#aab">(필수)</span></span><div class="toggle on" style="opacity:.5"><div class="k"></div></div></div>
+    <div class="setrow"><span>이메일</span><div class="toggle on" onclick="this.classList.toggle('on')"><div class="k"></div></div></div>
+    <div class="setrow"><span>SMS</span><div class="toggle" onclick="this.classList.toggle('on')"><div class="k"></div></div></div>
+    <div class="setrow"><span>Web Push</span><div class="toggle" onclick="this.classList.toggle('on')"><div class="k"></div></div></div>
+    <div class="glabel">카테고리</div>
+    <div class="chips"><span class="chip sel" onclick="selChip(this)">결제</span><span class="chip sel" onclick="selChip(this)">배송</span><span class="chip" onclick="selChip(this)">이벤트</span><span class="chip" onclick="selChip(this)">리뷰</span></div>
+    <div class="ntime" style="margin-top:14px"><span class="link">CCPA opt-out / 데이터 삭제 요청</span></div>
+  </div>
+
+  <!-- chat footer -->
+  <div class="foot hidden" id="foot">
+    <div class="inrow"><div class="input">Ask Anything…</div><div class="send">➤</div></div>
+    <div class="disc">This chat is AI-powered for faster assistance</div>
+  </div>
+</div>
+
+<!-- AUTH MODAL -->
+<div class="modalbg" id="authModal">
+  <div class="modal">
+    <h3>로그인이 필요합니다</h3>
+    <p>주문·구매 정보 확인을 위해 인증이 필요합니다.</p>
+    <div class="opts">
+      <div class="opt" onclick="doAuth()">Shopify 계정 로그인</div>
+      <div class="opt" onclick="doAuth()">소셜 로그인</div>
+      <div class="opt" onclick="doAuth()">게스트 주문조회 (주문번호 + 이메일)</div>
+      <div class="opt" style="border-style:dashed;color:#aab" onclick="closeAuth()">취소</div>
+    </div>
+  </div>
+</div>
+
+<!-- ADMIN -->
+<div class="adminWrap" id="adminWrap">
+  <div class="adminCard">
+    <div class="anav">
+      <div class="logo2">IVY TalkTalk</div>
+      <div class="sl">모니터링</div>
+      <div class="ai active" data-a="ov" onclick="adm('ov')">Overview</div>
+      <div class="ai" data-a="live" onclick="adm('live')">실시간 채팅</div>
+      <div class="ai" data-a="noti" onclick="adm('noti')">알림 발송</div>
+      <div class="ai" data-a="hist" onclick="adm('hist')">상담 이력</div>
+      <div class="sl">설정</div>
+      <div class="ai" data-a="ai" onclick="adm('ai')">AI Setting</div>
+    </div>
+    <div class="acont" id="acont"></div>
+  </div>
+</div>
+
+<script>
+var authed=false;
+function toggleAuth(){authed=!authed;syncAuth();}
+function syncAuth(){
+  document.getElementById('authPill').innerHTML=(authed?'● 로그인 (Hyein Kim)':'● 비로그인 (Guest)');
+  document.getElementById('hiName').textContent=authed?'Hi, Kim':'Hi, Guest';
+}
+function mode(m){
+  document.getElementById('mWidget').classList.toggle('active',m==='widget');
+  document.getElementById('mAdmin').classList.toggle('active',m==='admin');
+  document.getElementById('adminWrap').classList.toggle('show',m==='admin');
+  if(m==='admin') adm('ov');
+}
+function openPanel(){document.getElementById('panel').classList.remove('hidden');document.getElementById('launcher').classList.add('hidden');}
+function closePanel(){document.getElementById('panel').classList.add('hidden');document.getElementById('launcher').classList.remove('hidden');}
+var views=['noti','chat','orders','detail','track','review','set'];
+function showView(v){
+  views.forEach(function(x){document.getElementById('v-'+x).classList.toggle('hidden',x!==v);});
+  var c=(v==='chat');
+  document.getElementById('foot').classList.toggle('hidden',!c);
+}
+var curTab='noti';
+function tab(t){
+  if(t==='orders' && !authed){openAuth();return;}
+  document.querySelectorAll('.tab').forEach(function(el){el.classList.toggle('active',el.dataset.tab===t);});
+  curTab=t;showView(t);
+}
+function go(v){
+  if((v==='detail'||v==='track') && !authed){openAuth();return;}
+  showView(v);
+}
+function back(){showView(curTab==='orders'?'orders':'noti');}
+function selChip(el){var p=el.parentNode;p.querySelectorAll('.chip').forEach(function(c){c.classList.remove('sel');});el.classList.add('sel');}
+function chat(kind){
+  var t=document.getElementById('thread'),scr=document.getElementById('chatScr');
+  function add(h){t.insertAdjacentHTML('beforeend',h);var s=document.getElementById('v-chat');s.scrollTop=s.scrollHeight;}
+  if(kind==='delivery'||kind==='cancel'){
+    if(!authed){openAuth();return;}
+    add('<div class="msg me">'+(kind==='delivery'?'배송 상태':'취소 / 환불')+'</div>');
+    add('<div class="msg bot">최근 주문을 조회했어요! 📦</div>'+
+        '<div class="ordcard" onclick="go(\'track\')"><div class="ntop"><span class="oid">IVY-39890</span><span class="st orange">In Transit</span></div><div class="ntext">Hydrating Face Mask (10pcs) + 2 items</div></div>');
+  }
+  if(kind==='help'){scr.textContent='SCR-004';add('<div class="msg me">Product Help</div>');
+    add('<div class="msg bot">어떤 도움이 필요하신가요? 원하시는 항목을 선택해주세요 😊</div>'+
+        '<div class="optrow"><div class="opt" onclick="help(\'use\')">제품 사용법</div><div class="opt" onclick="help(\'ing\')">성분 문의</div><div class="opt" onclick="help(\'ret\')">교환 / 반품</div><div class="opt" onclick="help(\'restock\')">재입고 알림</div></div>');}
+  if(kind==='support'){scr.textContent='SCR-005';add('<div class="msg me">Contact Support</div>');
+    add('<div class="msg bot">고객센터 연결 방법을 선택해주세요.</div>'+
+        '<div class="infoCard">📞 <b>전화 상담</b><br><span style="font-size:12px;color:#888">평일 10:00–18:00</span><br><span class="link">1588-0000</span></div>'+
+        '<div class="infoCard">✉️ <b>이메일 문의</b><br><span style="font-size:12px;color:#888">24시간 접수 · 1영업일 내 회신</span><br><span class="link">help@ivy.com</span></div>'+
+        '<div class="infoCard">💬 <b>채팅 상담</b><br><span style="font-size:12px;color:#888">평일 10:00–18:00</span><br><span class="link">지금 바로 연결</span></div>');}
+  if(kind==='affiliate'){scr.textContent='SCR-006';add('<div class="msg me">How to become an Affiliate?</div>');
+    add('<div class="msg bot">IVY Beauty 제휴 파트너가 되어주세요! 💼</div>'+
+        '<div class="infoCard"><b>① 신청서 제출</b><br><span style="font-size:12px;color:#888">간단한 양식을 작성해주세요.</span></div>'+
+        '<div class="infoCard"><b>② 심사 (1–3 영업일)</b><br><span style="font-size:12px;color:#888">팀에서 검토 후 이메일로 안내드려요.</span></div>'+
+        '<div class="infoCard"><b>③ 활동 시작 &amp; 수익</b><br><span style="font-size:12px;color:#888">전용 링크 공유 → 판매 시 10% 적립</span></div>'+
+        '<div class="optrow"><div class="opt" onclick="add2(\'지금 신청하기\')">지금 신청하기</div><div class="opt">더 알아보기</div></div>');}
+}
+function add2(t){var th=document.getElementById('thread');th.insertAdjacentHTML('beforeend','<div class="msg me">'+t+'</div><div class="msg bot">신청서를 접수했어요! 심사 결과는 이메일로 안내드릴게요. (1–3 영업일)</div>');var s=document.getElementById('v-chat');s.scrollTop=s.scrollHeight;}
+function help(k){var th=document.getElementById('thread');var m={use:'제품 사용법 안내를 도와드릴게요. 어떤 제품인가요?',ing:'성분 정보를 확인해 드릴게요. 제품명을 알려주세요.',ret:'교환·반품은 수령 후 7일 이내 신청 가능합니다. 제품은 미개봉 상태여야 합니다.',restock:'재입고 알림을 신청하시겠어요? 재입고 시 바로 알려드릴게요. 🔔'}[k];
+  th.insertAdjacentHTML('beforeend','<div class="msg bot">'+m+'</div>');var s=document.getElementById('v-chat');s.scrollTop=s.scrollHeight;}
+function chatFromOrder(){tab('chat');var th=document.getElementById('thread');th.insertAdjacentHTML('beforeend','<div class="msg me">[주문 IVY-39891 문의]</div><div class="msg bot">주문 IVY-39891에 대해 무엇을 도와드릴까요?</div>');var s=document.getElementById('v-chat');s.scrollTop=s.scrollHeight;}
+function openAuth(){document.getElementById('authModal').classList.add('show');}
+function closeAuth(){document.getElementById('authModal').classList.remove('show');}
+function doAuth(){authed=true;syncAuth();closeAuth();}
+// stars
+document.getElementById('stars').addEventListener('click',function(){this.textContent='★ ★ ★ ★ ☆';});
+// admin
+function adm(a){
+  document.querySelectorAll('.ai').forEach(function(el){el.classList.toggle('active',el.dataset.a===a);});
+  var c=document.getElementById('acont'),h='';
+  if(a==='ov'){h='<div class="akpis">'
+    +'<div class="akpi"><div class="k">활성 채팅 세션</div><b>4</b><div class="k">대기1·AI2·상담사1</div></div>'
+    +'<div class="akpi"><div class="k">오늘 발송 알림</div><b>128</b><div class="k">성공126·실패2</div></div>'
+    +'<div class="akpi"><div class="k">AI 해결률</div><b>73%</b><div class="k">상담사 인계 11건</div></div>'
+    +'<div class="akpi"><div class="k">플랫폼 연동</div><b style="font-size:14px;color:var(--green)">● 4 연결됨</b><div class="k">Shopify·Klaviyo·Odoo·Fulfillment</div></div></div>'
+    +'<div class="agrid"><div class="apanel"><h4>AI 처리 현황</h4>'
+    +'<div class="barrow"><span style="width:34px">14시</span><div class="bb" style="width:85%"></div><span>8</span></div>'
+    +'<div class="barrow"><span style="width:34px">15시</span><div class="bb" style="width:74%"></div><span>7</span></div>'
+    +'<div class="barrow"><span style="width:34px">13시</span><div class="bb" style="width:64%"></div><span>6</span></div>'
+    +'<div class="k" style="margin-top:8px">미해결 패턴 Top3 · 환불요청(8) · 배송지연(3) · 재고문의(2)</div></div>'
+    +'<div class="apanel"><h4>알림 발송 현황</h4>'
+    +'<div class="sess">✅ <b>주문 확인</b> Confirmed · 자동·Shopify Webhook</div>'
+    +'<div class="sess">🔄 <b>배송 상태</b> In Transit · 자동·Fulfillment</div>'
+    +'<div class="sess">⭐ <b>리뷰 요청</b> · 자동 · N일 후 트리거</div>'
+    +'<div class="sess">⚡ <b>이벤트</b> Mad Shade · 수동·타겟 세그먼트</div></div></div>';}
+  if(a==='live'){h='<div class="apanel"><h4>실시간 채팅 · AI 상황 브리핑 (SCR-102)</h4><div class="agrid">'
+    +'<div><div class="sess"><div class="av">HK</div><div><b>Hyein Kim</b><div class="k">배송 언제 오나요? · 상담사 연결</div></div></div>'
+    +'<div class="sess"><div class="av">JS</div><div><b>Jane S.</b><div class="k">return policy? · AI 응답 중</div></div></div>'
+    +'<div class="sess"><div class="av">MR</div><div><b>Mike R.</b><div class="k">become an affiliate? · AI 응답 중</div></div></div></div>'
+    +'<div class="apanel" style="margin:0;background:#f6f7f9"><h4>AI 상황 브리핑</h4><div class="k">대화 요약 · 고객정보(총주문 7·이전문의 2) · 의도: 배송지연/환불 · 감정온도 ●●●○○ · 추천액션: 환불 처리 안내</div></div></div>'
+    +'<div class="k" style="margin-top:8px">개입 중 · 종료</div></div>';}
+  if(a==='noti'){h='<div class="apanel"><h4>알림 발송 / Event Setting / Campaign Recipes (SCR-103)</h4>'
+    +'<div class="chips"><span class="chip sel">Recommended</span><span class="chip">Popular by industry</span></div>'
+    +'<div class="agrid"><div style="height:90px;border-radius:10px;background:linear-gradient(135deg,#6d5efc,#8b5cf6)"></div><div style="height:90px;border-radius:10px;background:linear-gradient(135deg,#ff7eb3,#ff758c)"></div></div>'
+    +'<div class="k" style="margin-top:10px">세그먼트 선택(Klaviyo) → 발송(수동, opt-out 필터)</div></div>';}
+  if(a==='hist'){h='<div class="apanel"><h4>상담 이력 (SCR-104)</h4><div class="chips"><span class="chip">날짜</span><span class="chip">고객</span><span class="chip">의도</span><span class="chip">상태</span></div>'
+    +'<div class="sess">IVY-39891 · 배송 문의 · 해결</div><div class="sess">IVY-39641 · 환불 요청 · 인계</div><div class="k" style="margin-top:8px">검색·열람·내보내기(큐레이션)</div></div>';}
+  if(a==='ai'){h='<div class="apanel"><h4>AI Setting / AI Chat Setting (SCR-105)</h4><div class="chips"><span class="chip sel">Bot 페르소나</span><span class="chip">Rules</span><span class="chip">Knowledge</span><span class="chip">시나리오 버튼</span></div>'
+    +'<div style="height:140px;border:1px dashed #d7dbe0;border-radius:10px;margin-top:8px"></div><div class="k" style="margin-top:8px">KB 편집 → 재임베딩 · 시나리오 변경 → 위젯 반영</div></div>';}
+  c.innerHTML=h;
+}
+syncAuth();showView('noti');
+</script>
+</body>
+</html>
