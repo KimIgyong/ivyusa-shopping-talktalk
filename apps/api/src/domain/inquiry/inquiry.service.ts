@@ -47,10 +47,11 @@ export class InquiryService {
     return new Paginated(InquiryMapper.toViewList(items), buildPagination(p, s, total));
   }
 
-  /** Admin: list inquiries (paginated). */
-  async listAll(page?: string, size?: string) {
+  /** Admin: list the tenant's inquiries (paginated). */
+  async listAll(tenantId: number, page?: string, size?: string) {
     const { page: p, size: s } = normalizePage(page, size);
     const [items, total] = await this.inquiryRepo.findAndCount({
+      where: { tenantId },
       order: { createdAt: 'DESC' },
       skip: (p - 1) * s,
       take: s,
@@ -58,9 +59,9 @@ export class InquiryService {
     return new Paginated(InquiryMapper.toAdminViewList(items), buildPagination(p, s, total));
   }
 
-  /** Admin: mark an inquiry answered. */
-  async markAnswered(id: number) {
-    const inquiry = await this.inquiryRepo.findOne({ where: { id } });
+  /** Admin: mark an inquiry answered (tenant-scoped). */
+  async markAnswered(tenantId: number, id: number) {
+    const inquiry = await this.inquiryRepo.findOne({ where: { id, tenantId } });
     if (!inquiry) throw new BusinessException(ERROR_CODE.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND);
     inquiry.status = 'answered';
     await this.inquiryRepo.save(inquiry);

@@ -7,6 +7,10 @@ export class CjmEvent {
   @PrimaryGeneratedColumn({ type: 'bigint' })
   id: number;
 
+  @Column({ name: 'tenant_id', type: 'bigint', nullable: true, transformer: bigintTransformer })
+  @Index('idx_cjm_tenant')
+  tenantId: number | null;
+
   @Column({ name: 'session_id', type: 'bigint', nullable: true, transformer: bigintTransformer })
   @Index('idx_cjm_session')
   sessionId: number | null;

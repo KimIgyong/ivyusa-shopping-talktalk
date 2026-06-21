@@ -25,6 +25,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/); follows Amoeba 
   - **Privacy/GDPR** (`domain/privacy`): Shopify compliance webhooks (`customers/data_request`, `customers/redact`, `shop/redact`, HMAC-verified) + DSAR endpoints (export/portability, delete/anonymize) + CCPA "Do Not Sell or Share" opt-out toggle. Privileged actions audited.
   - **Tenant threading**: `sessions.tenant_id` added and used by chat (removed the "first tenant" lookup; safe fallback retained).
   - **bcrypt** cost raised 10→12 via shared `BCRYPT_ROUNDS` constant.
+  - **Full multi-tenancy**: `tenant_id` added to all 14 remaining customer/tenant-scoped tables; AsyncLocalStorage `TenantContext` + global `TenantContextInterceptor` + TypeORM `TenantSubscriber` (auto-stamp on insert); admin reads filtered by `user.tenantId`. Verified 0 null tenant_id on new rows + tenant-filtered admin lists. Seed now self-heals bootstrap credentials + backfills tenant_id.
 
 ### Verified (2026-06-18 / 2026-06-19)
 - Full `turbo run build` green (5/5 workspaces).

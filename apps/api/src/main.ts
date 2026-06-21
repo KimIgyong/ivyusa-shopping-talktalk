@@ -3,9 +3,11 @@ import { NestFactory, Reflector } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { DataSource } from 'typeorm';
 import { AppModule } from './app.module';
 import { AllExceptionFilter } from './global/filter/all-exception.filter';
 import { TransformInterceptor } from './global/interceptor/transform.interceptor';
+import { TenantContextInterceptor } from './global/interceptor/tenant-context.interceptor';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule, { cors: true });
@@ -17,7 +19,11 @@ async function bootstrap(): Promise<void> {
     new ValidationPipe({ whitelist: true, transform: true, forbidNonWhitelisted: false }),
   );
   app.useGlobalFilters(new AllExceptionFilter());
-  app.useGlobalInterceptors(new TransformInterceptor());
+  // Tenant context (outer) wraps the handler in AsyncLocalStorage; Transform (inner) wraps the response.
+  app.useGlobalInterceptors(
+    new TenantContextInterceptor(app.get(DataSource)),
+    new TransformInterceptor(),
+  );
 
   const swagger = new DocumentBuilder()
     .setTitle('IVY USA Chat & Support Widget API')

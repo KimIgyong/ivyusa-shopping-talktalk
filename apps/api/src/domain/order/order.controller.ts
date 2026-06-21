@@ -1,10 +1,13 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, HttpStatus, Param, ParseIntPipe, Post, Query } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { CAPABILITY } from '@ivy/types';
+import { CAPABILITY, Principal } from '@ivy/types';
 import { OrderService } from './order.service';
 import { GuestLookupRequest, OrderListQuery, SessionTokenQuery } from './dto/order.dto';
 import { Public } from '../../global/decorator/public.decorator';
 import { RequireCapability } from '../../global/decorator/auth.decorator';
+import { CurrentUser } from '../../global/decorator/current-user.decorator';
+import { BusinessException } from '../../global/exception/business.exception';
+import { ERROR_CODE } from '../../global/constant/error-code.constant';
 
 /** Widget + admin order endpoints (FR-019/020/021). */
 @ApiTags('Orders')
@@ -50,7 +53,18 @@ export class AdminOrderController {
   @Get()
   @RequireCapability(CAPABILITY.MODULE_OPERATIONS)
   @ApiOperation({ summary: 'List all orders (admin)' })
-  async list(@Query('page') page?: string, @Query('size') size?: string) {
-    return this.orderService.listAll(page, size);
+  async list(
+    @CurrentUser() user: Principal,
+    @Query('page') page?: string,
+    @Query('size') size?: string,
+  ) {
+    return this.orderService.listAll(this.tenantId(user), page, size);
+  }
+
+  private tenantId(user: Principal): number {
+    if (user.actorType !== 'user') {
+      throw new BusinessException(ERROR_CODE.FORBIDDEN, HttpStatus.FORBIDDEN);
+    }
+    return user.tenantId;
   }
 }

@@ -8,6 +8,10 @@ export class Affiliate {
   @PrimaryGeneratedColumn({ type: 'bigint' })
   id: number;
 
+  @Column({ name: 'tenant_id', type: 'bigint', nullable: true, transformer: bigintTransformer })
+  @Index('idx_aff_tenant')
+  tenantId: number | null;
+
   @Column({ name: 'customer_id', type: 'bigint', nullable: false, transformer: bigintTransformer })
   @Index('idx_aff_customer')
   customerId: number;

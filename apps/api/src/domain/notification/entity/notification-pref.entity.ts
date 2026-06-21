@@ -1,4 +1,4 @@
-import { Column, Entity, PrimaryGeneratedColumn, Unique } from 'typeorm';
+import { Column, Entity, Index, PrimaryGeneratedColumn, Unique } from 'typeorm';
 import { bigintTransformer } from '../../../global/util/transformers';
 
 /** notification_prefs — per-customer channel/category opt-in (FR-031). */
@@ -7,6 +7,10 @@ import { bigintTransformer } from '../../../global/util/transformers';
 export class NotificationPref {
   @PrimaryGeneratedColumn({ type: 'bigint' })
   id: number;
+
+  @Column({ name: 'tenant_id', type: 'bigint', nullable: true, transformer: bigintTransformer })
+  @Index('idx_npref_tenant')
+  tenantId: number | null;
 
   @Column({ name: 'customer_id', type: 'bigint', nullable: false, transformer: bigintTransformer })
   customerId: number;

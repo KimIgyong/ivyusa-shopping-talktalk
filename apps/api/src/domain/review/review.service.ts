@@ -73,8 +73,9 @@ export class ReviewService {
     });
   }
 
-  async listAll(page: number, size: number): Promise<[Review[], number]> {
+  async listAll(tenantId: number, page: number, size: number): Promise<[Review[], number]> {
     return this.reviewRepo.findAndCount({
+      where: { tenantId },
       order: { id: 'DESC' },
       skip: (page - 1) * size,
       take: size,

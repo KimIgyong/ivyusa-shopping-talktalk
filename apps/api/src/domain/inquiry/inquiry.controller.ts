@@ -1,10 +1,23 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Patch, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpStatus,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { CAPABILITY } from '@ivy/types';
+import { CAPABILITY, Principal } from '@ivy/types';
 import { InquiryService } from './inquiry.service';
 import { CreateInquiryRequest, InquiryListQuery } from './dto/inquiry.dto';
 import { Public } from '../../global/decorator/public.decorator';
 import { RequireCapability } from '../../global/decorator/auth.decorator';
+import { CurrentUser } from '../../global/decorator/current-user.decorator';
+import { BusinessException } from '../../global/exception/business.exception';
+import { ERROR_CODE } from '../../global/constant/error-code.constant';
 
 /** Widget inquiry endpoints (FR-044). */
 @ApiTags('Inquiries')
@@ -36,14 +49,25 @@ export class AdminInquiryController {
   @Get()
   @RequireCapability(CAPABILITY.MODULE_CONSULT)
   @ApiOperation({ summary: 'List inquiries (admin)' })
-  async list(@Query('page') page?: string, @Query('size') size?: string) {
-    return this.inquiryService.listAll(page, size);
+  async list(
+    @CurrentUser() user: Principal,
+    @Query('page') page?: string,
+    @Query('size') size?: string,
+  ) {
+    return this.inquiryService.listAll(this.tenantId(user), page, size);
   }
 
   @Patch(':id')
   @RequireCapability(CAPABILITY.MODULE_CONSULT)
   @ApiOperation({ summary: 'Mark an inquiry answered' })
-  async answer(@Param('id', ParseIntPipe) id: number) {
-    return this.inquiryService.markAnswered(id);
+  async answer(@CurrentUser() user: Principal, @Param('id', ParseIntPipe) id: number) {
+    return this.inquiryService.markAnswered(this.tenantId(user), id);
+  }
+
+  private tenantId(user: Principal): number {
+    if (user.actorType !== 'user') {
+      throw new BusinessException(ERROR_CODE.FORBIDDEN, HttpStatus.FORBIDDEN);
+    }
+    return user.tenantId;
   }
 }

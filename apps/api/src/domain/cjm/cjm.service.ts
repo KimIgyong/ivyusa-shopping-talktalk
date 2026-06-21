@@ -4,7 +4,7 @@ import { Repository } from 'typeorm';
 import { CjmEvent } from './entity/cjm-event.entity';
 import { EventBusService, EVENTS } from '../../infrastructure/infrastructure.module';
 
-/** Payload accepted on EVENTS.CJM (tenantId is carried for routing but not stored). */
+/** Payload accepted on EVENTS.CJM (tenantId is persisted for tenant scoping). */
 interface CjmEventInput {
   tenantId?: number | null;
   sessionId?: number | null;
@@ -32,6 +32,7 @@ export class CjmService implements OnModuleInit {
   async record(input: CjmEventInput): Promise<CjmEvent> {
     return this.cjmRepo.save(
       this.cjmRepo.create({
+        tenantId: input.tenantId ?? null,
         sessionId: input.sessionId ?? null,
         customerId: input.customerId ?? null,
         stage: input.stage,
@@ -42,12 +43,13 @@ export class CjmService implements OnModuleInit {
   }
 
   async list(
+    tenantId: number,
     stage: string | undefined,
     customerId: number | undefined,
     page: number,
     size: number,
   ): Promise<[CjmEvent[], number]> {
-    const where: Record<string, unknown> = {};
+    const where: Record<string, unknown> = { tenantId };
     if (stage) where.stage = stage;
     if (customerId !== undefined) where.customerId = customerId;
     return this.cjmRepo.findAndCount({

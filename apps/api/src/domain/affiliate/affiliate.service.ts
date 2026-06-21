@@ -40,16 +40,17 @@ export class AffiliateService {
     return this.affiliateRepo.findOne({ where: { customerId } });
   }
 
-  async listAll(page: number, size: number): Promise<[Affiliate[], number]> {
+  async listAll(tenantId: number, page: number, size: number): Promise<[Affiliate[], number]> {
     return this.affiliateRepo.findAndCount({
+      where: { tenantId },
       order: { id: 'DESC' },
       skip: (page - 1) * size,
       take: size,
     });
   }
 
-  async review(id: number, decision: 'approve' | 'reject'): Promise<Affiliate> {
-    const affiliate = await this.affiliateRepo.findOne({ where: { id } });
+  async review(tenantId: number, id: number, decision: 'approve' | 'reject'): Promise<Affiliate> {
+    const affiliate = await this.affiliateRepo.findOne({ where: { id, tenantId } });
     if (!affiliate) {
       throw new BusinessException(ERROR_CODE.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND);
     }

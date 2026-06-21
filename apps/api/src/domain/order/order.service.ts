@@ -113,10 +113,11 @@ export class OrderService {
     };
   }
 
-  /** Admin view: all orders (paginated). */
-  async listAll(page?: string, size?: string) {
+  /** Admin view: all orders for the tenant (paginated). */
+  async listAll(tenantId: number, page?: string, size?: string) {
     const { page: p, size: s } = normalizePage(page, size);
     const [orders, total] = await this.orderRepo.findAndCount({
+      where: { tenantId },
       order: { createdAt: 'DESC' },
       skip: (p - 1) * s,
       take: s,

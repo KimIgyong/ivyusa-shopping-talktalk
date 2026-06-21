@@ -7,6 +7,10 @@ export class Inquiry {
   @PrimaryGeneratedColumn({ type: 'bigint' })
   id: number;
 
+  @Column({ name: 'tenant_id', type: 'bigint', nullable: true, transformer: bigintTransformer })
+  @Index('idx_inq_tenant')
+  tenantId: number | null;
+
   @Column({ name: 'conversation_id', type: 'bigint', nullable: true, transformer: bigintTransformer })
   conversationId: number | null;
 

@@ -1,4 +1,4 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Controller, Get, HttpStatus, Query } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CAPABILITY, Principal } from '@ivy/types';
 import { buildPagination, normalizePage } from '@ivy/common';
@@ -7,6 +7,8 @@ import { CjmService } from './cjm.service';
 import { RequireCapability } from '../../global/decorator/auth.decorator';
 import { CurrentUser } from '../../global/decorator/current-user.decorator';
 import { Paginated } from '../../global/interceptor/transform.interceptor';
+import { BusinessException } from '../../global/exception/business.exception';
+import { ERROR_CODE } from '../../global/constant/error-code.constant';
 
 function toResponse(e: CjmEvent) {
   return {
@@ -30,7 +32,7 @@ export class CjmController {
   @RequireCapability(CAPABILITY.ANALYTICS_READ)
   @ApiOperation({ summary: 'List customer journey events (filter by stage / customer)' })
   async list(
-    @CurrentUser() _user: Principal,
+    @CurrentUser() user: Principal,
     @Query('stage') stage?: string,
     @Query('customer_id') customerId?: string,
     @Query('page') page?: string,
@@ -38,7 +40,14 @@ export class CjmController {
   ) {
     const { page: p, size: s } = normalizePage(page, size);
     const customerIdNum = customerId !== undefined ? Number(customerId) : undefined;
-    const [items, total] = await this.cjmService.list(stage, customerIdNum, p, s);
+    const [items, total] = await this.cjmService.list(this.tenantId(user), stage, customerIdNum, p, s);
     return new Paginated(items.map(toResponse), buildPagination(p, s, total));
+  }
+
+  private tenantId(user: Principal): number {
+    if (user.actorType !== 'user') {
+      throw new BusinessException(ERROR_CODE.FORBIDDEN, HttpStatus.FORBIDDEN);
+    }
+    return user.tenantId;
   }
 }

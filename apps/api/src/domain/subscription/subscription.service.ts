@@ -39,8 +39,9 @@ export class SubscriptionService {
     return this.subRepo.save(sub);
   }
 
-  async listAll(page: number, size: number): Promise<[Subscription[], number]> {
+  async listAll(tenantId: number, page: number, size: number): Promise<[Subscription[], number]> {
     return this.subRepo.findAndCount({
+      where: { tenantId },
       order: { id: 'DESC' },
       skip: (page - 1) * size,
       take: size,

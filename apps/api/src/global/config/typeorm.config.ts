@@ -1,5 +1,6 @@
 import { ConfigService } from '@nestjs/config';
 import { TypeOrmModuleOptions } from '@nestjs/typeorm';
+import { TenantSubscriber } from '../../infrastructure/tenant/tenant.subscriber';
 
 /**
  * MySQL (utf8mb4 / InnoDB) — matches design/chat-widget-schema.sql.
@@ -16,6 +17,7 @@ export function buildTypeOrmOptions(config: ConfigService): TypeOrmModuleOptions
     charset: 'utf8mb4',
     timezone: 'Z',
     autoLoadEntities: true,
+    subscribers: [TenantSubscriber],
     synchronize: config.get<string>('DB_SYNCHRONIZE') === 'true',
     logging: config.get<string>('DB_LOGGING') === 'true',
     // Tolerate slow/flaky DB availability on local dev (e.g. Docker Desktop warm-up).

@@ -7,6 +7,10 @@ export class Fulfillment {
   @PrimaryGeneratedColumn({ type: 'bigint' })
   id: number;
 
+  @Column({ name: 'tenant_id', type: 'bigint', nullable: true, transformer: bigintTransformer })
+  @Index('idx_ful_tenant')
+  tenantId: number | null;
+
   @Column({ name: 'order_id', type: 'bigint', nullable: false, transformer: bigintTransformer })
   @Index('idx_fulfill_order')
   orderId: number;

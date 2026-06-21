@@ -35,20 +35,23 @@ async function run(): Promise<void> {
     );
   }
 
-  // System admin (super) + tenant master
+  // System admin (super) + tenant master. Bootstrap credentials are (re)asserted
+  // on every seed run so local logins are always the documented values.
   const adminRepo = AppDataSource.getRepository(AdminUser);
-  if (!(await adminRepo.findOne({ where: { email: 'admin@amoeba.group' } }))) {
-    await adminRepo.save(
-      adminRepo.create({ email: 'admin@amoeba.group', passwordHash: hash, level: 'super_admin', status: 'active', mustChangePassword: 1 }),
-    );
-  }
+  const admin =
+    (await adminRepo.findOne({ where: { email: 'admin@amoeba.group' } })) ??
+    adminRepo.create({ email: 'admin@amoeba.group', level: 'super_admin', status: 'active' });
+  admin.passwordHash = hash;
+  admin.mustChangePassword = 1;
+  await adminRepo.save(admin);
+
   const userRepo = AppDataSource.getRepository(User);
-  let master = await userRepo.findOne({ where: { tenantId: tenant.id, email: 'dev@amoeba.group' } });
-  if (!master) {
-    master = await userRepo.save(
-      userRepo.create({ tenantId: tenant.id, email: 'dev@amoeba.group', passwordHash: hash, name: 'Master Owner', rank: 'master', status: 'active', mustChangePassword: 1 }),
-    );
-  }
+  const master =
+    (await userRepo.findOne({ where: { tenantId: tenant.id, email: 'dev@amoeba.group' } })) ??
+    userRepo.create({ tenantId: tenant.id, email: 'dev@amoeba.group', name: 'Master Owner', rank: 'master', status: 'active' });
+  master.passwordHash = hash;
+  master.mustChangePassword = 1;
+  await userRepo.save(master);
 
   // Job labels + assign all to master
   const labelRepo = AppDataSource.getRepository(JobLabel);
@@ -147,6 +150,17 @@ async function run(): Promise<void> {
     if (!(await intRepo.findOne({ where: { name } }))) {
       await intRepo.save(intRepo.create({ name, status: 'connected', detail: 'Seeded (mock)' }));
     }
+  }
+
+  // Backfill tenant_id on tenant-scoped tables (legacy rows + demo data created
+  // outside a request context). Single tenant in dev → all rows belong to ivyusa.
+  const tenantScopedTables = [
+    'sessions', 'conversations', 'messages', 'orders_cache', 'order_items',
+    'fulfillments', 'notifications', 'notification_prefs', 'reviews', 'affiliates',
+    'subscriptions', 'restock_subscriptions', 'inquiries', 'cjm_events', 'campaigns',
+  ];
+  for (const table of tenantScopedTables) {
+    await AppDataSource.query(`UPDATE ${table} SET tenant_id = ? WHERE tenant_id IS NULL`, [tenant.id]);
   }
 
   console.log('✅ Seed complete.');

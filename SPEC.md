@@ -316,9 +316,10 @@ Full evidence: `docs/report/RPT-Standards-Compliance-Audit-20260619.md`.
 - ✅ DSAR/consumer-rights APIs (export/portability, delete/anonymize) + real CCPA "Do Not Sell or Share" opt-out — `domain/privacy`.
 - ✅ `sessions.tenant_id` added + threaded into chat (removed "first tenant" shortcut).
 - ✅ bcrypt cost 10→12 (shared `BCRYPT_ROUNDS`). ✅ i18n no-hardcoding (en/es/ko) across both frontends + backend chat strings.
+- ✅ **Full `tenant_id` coverage** — added to all 14 remaining customer/tenant-scoped tables (conversations, messages, orders_cache, order_items, fulfillments, notifications, notification_prefs, reviews, affiliates, subscriptions, restock_subscriptions, inquiries, cjm_events, campaigns).
+- ✅ **Global tenant-scope** — AsyncLocalStorage `TenantContext` + `TenantContextInterceptor` (resolves tenant from JWT principal / widget session / default) + TypeORM `TenantSubscriber` auto-stamping `tenant_id` on insert (≈ `OwnEntityGuard`). Admin reads filter by `user.tenantId`. Verified: new rows = 0 nulls; admin lists tenant-filtered.
 
-**Remaining — High** — extend `tenant_id` to the rest of the customer-scoped legacy tables (orders/reviews/conversations/messages…) + a global tenant-scope guard/interceptor (`OwnEntityGuard` equivalent); full tenant purge in `shop/redact`.
-**Medium** — PII masking in logs + PII-access audit; retention/disposal policy; normalize DTO folders + add missing mappers; tenantId in React Query keys; staging/prod Docker + deploy scripts; modal/chat a11y.
+**Remaining — Medium** — full tenant purge in `shop/redact`; PII masking in logs + PII-access audit; retention/disposal policy; normalize DTO folders + add missing mappers; tenantId in React Query keys; staging/prod Docker + deploy scripts; modal/chat a11y.
 **Low** — tests (currently 0); complete analysis/plan/test doc chain; soft-delete columns; full primary 50–900 ramp; `@MasterOrAdmin` alias.
 
 ## 15. Reference (참조)

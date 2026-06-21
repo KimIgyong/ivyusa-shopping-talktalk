@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, HttpStatus, Post, Query } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { IsOptional, IsString } from 'class-validator';
 import { CAPABILITY, Principal } from '@ivy/types';
@@ -8,6 +8,8 @@ import { Public } from '../../global/decorator/public.decorator';
 import { RequireCapability } from '../../global/decorator/auth.decorator';
 import { CurrentUser } from '../../global/decorator/current-user.decorator';
 import { Paginated } from '../../global/interceptor/transform.interceptor';
+import { BusinessException } from '../../global/exception/business.exception';
+import { ERROR_CODE } from '../../global/constant/error-code.constant';
 
 class SubscribeRequest {
   @IsOptional() @IsString() session_token?: string;
@@ -47,12 +49,19 @@ export class RestockController {
   @RequireCapability(CAPABILITY.MODULE_OPERATIONS)
   @ApiOperation({ summary: 'List restock subscriptions (tenant admin)' })
   async adminList(
-    @CurrentUser() _user: Principal,
+    @CurrentUser() user: Principal,
     @Query('page') page?: string,
     @Query('size') size?: string,
   ) {
     const { page: p, size: s } = normalizePage(page, size);
-    const [items, total] = await this.restockService.listAll(p, s);
+    const [items, total] = await this.restockService.listAll(this.tenantId(user), p, s);
     return new Paginated(items, buildPagination(p, s, total));
+  }
+
+  private tenantId(user: Principal): number {
+    if (user.actorType !== 'user') {
+      throw new BusinessException(ERROR_CODE.FORBIDDEN, HttpStatus.FORBIDDEN);
+    }
+    return user.tenantId;
   }
 }

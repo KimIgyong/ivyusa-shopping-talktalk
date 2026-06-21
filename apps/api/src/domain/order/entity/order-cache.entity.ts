@@ -8,6 +8,10 @@ export class OrderCache {
   @PrimaryGeneratedColumn({ type: 'bigint' })
   id: number;
 
+  @Column({ name: 'tenant_id', type: 'bigint', nullable: true, transformer: bigintTransformer })
+  @Index('idx_ordc_tenant')
+  tenantId: number | null;
+
   @Column({ name: 'shopify_order_id', type: 'varchar', length: 64 })
   shopifyOrderId: string;
 

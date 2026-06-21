@@ -7,6 +7,10 @@ export class RestockSubscription {
   @PrimaryGeneratedColumn({ type: 'bigint' })
   id: number;
 
+  @Column({ name: 'tenant_id', type: 'bigint', nullable: true, transformer: bigintTransformer })
+  @Index('idx_rsk_tenant')
+  tenantId: number | null;
+
   @Column({ name: 'customer_id', type: 'bigint', nullable: true, transformer: bigintTransformer })
   @Index('idx_restock_customer')
   customerId: number | null;

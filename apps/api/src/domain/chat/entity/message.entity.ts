@@ -7,6 +7,10 @@ export class Message {
   @PrimaryGeneratedColumn({ type: 'bigint' })
   id: number;
 
+  @Column({ name: 'tenant_id', type: 'bigint', nullable: true, transformer: bigintTransformer })
+  @Index('idx_msg_tenant')
+  tenantId: number | null;
+
   @Column({ name: 'conversation_id', type: 'bigint', nullable: false, transformer: bigintTransformer })
   @Index('idx_msg_conv')
   conversationId: number;

@@ -7,6 +7,10 @@ export class OrderItem {
   @PrimaryGeneratedColumn({ type: 'bigint' })
   id: number;
 
+  @Column({ name: 'tenant_id', type: 'bigint', nullable: true, transformer: bigintTransformer })
+  @Index('idx_ordi_tenant')
+  tenantId: number | null;
+
   @Column({ name: 'order_id', type: 'bigint', nullable: false, transformer: bigintTransformer })
   @Index('idx_items_order')
   orderId: number;

@@ -63,20 +63,31 @@ export class AffiliateController {
   @RequireCapability(CAPABILITY.MODULE_ACCOUNTING)
   @ApiOperation({ summary: 'List affiliate applications (tenant admin)' })
   async adminList(
-    @CurrentUser() _user: Principal,
+    @CurrentUser() user: Principal,
     @Query('page') page?: string,
     @Query('size') size?: string,
   ) {
     const { page: p, size: s } = normalizePage(page, size);
-    const [items, total] = await this.affiliateService.listAll(p, s);
+    const [items, total] = await this.affiliateService.listAll(this.tenantId(user), p, s);
     return new Paginated(items.map(toResponse), buildPagination(p, s, total));
   }
 
   @Patch('admin/affiliates/:id/review')
   @RequireCapability(CAPABILITY.MODULE_ACCOUNTING)
   @ApiOperation({ summary: 'Approve or reject an affiliate application' })
-  async review(@Param('id', ParseIntPipe) id: number, @Body() body: ReviewRequest) {
-    const affiliate = await this.affiliateService.review(id, body.decision);
+  async review(
+    @CurrentUser() user: Principal,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: ReviewRequest,
+  ) {
+    const affiliate = await this.affiliateService.review(this.tenantId(user), id, body.decision);
     return toResponse(affiliate);
+  }
+
+  private tenantId(user: Principal): number {
+    if (user.actorType !== 'user') {
+      throw new BusinessException(ERROR_CODE.FORBIDDEN, HttpStatus.FORBIDDEN);
+    }
+    return user.tenantId;
   }
 }

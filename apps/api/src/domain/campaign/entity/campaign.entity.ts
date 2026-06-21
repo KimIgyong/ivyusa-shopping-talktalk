@@ -7,6 +7,10 @@ export class Campaign {
   @PrimaryGeneratedColumn({ type: 'bigint' })
   id: number;
 
+  @Column({ name: 'tenant_id', type: 'bigint', nullable: true, transformer: bigintTransformer })
+  @Index('idx_cmp_tenant')
+  tenantId: number | null;
+
   @Column({ type: 'varchar', length: 255 })
   name: string;
 

@@ -68,8 +68,13 @@ export class RestockService {
     return subs.length;
   }
 
-  async listAll(page: number, size: number): Promise<[RestockSubscription[], number]> {
+  async listAll(
+    tenantId: number,
+    page: number,
+    size: number,
+  ): Promise<[RestockSubscription[], number]> {
     return this.restockRepo.findAndCount({
+      where: { tenantId },
       order: { id: 'DESC' },
       skip: (page - 1) * size,
       take: size,

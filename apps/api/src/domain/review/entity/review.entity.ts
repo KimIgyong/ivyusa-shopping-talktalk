@@ -7,6 +7,10 @@ export class Review {
   @PrimaryGeneratedColumn({ type: 'bigint' })
   id: number;
 
+  @Column({ name: 'tenant_id', type: 'bigint', nullable: true, transformer: bigintTransformer })
+  @Index('idx_rev_tenant')
+  tenantId: number | null;
+
   @Column({ name: 'order_item_id', type: 'bigint', nullable: false, transformer: bigintTransformer })
   @Index('idx_review_item')
   orderItemId: number;
