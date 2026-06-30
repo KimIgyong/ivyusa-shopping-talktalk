@@ -37,8 +37,24 @@ export interface AiConfig {
   scenarioButtons: ScenarioButton[];
 }
 
+// Backend returns { settings: [{function, engineId, engineName, params}], availableEngines: [...] }.
+interface AiSettingsResponse {
+  settings: { function: AiFunction; engineId: number | string | null; params?: Record<string, unknown> }[];
+  availableEngines: AiEngineOption[];
+}
+
 export const aiSettingsService = {
-  list: () => apiGet<AiFunctionSetting[]>('/ai-settings'),
+  // Adapt the {settings, availableEngines} payload to a flat per-function array,
+  // normalizing engineId to a string so it matches AiEngineOption.id in the Select.
+  list: async (): Promise<AiFunctionSetting[]> => {
+    const d = await apiGet<AiSettingsResponse>('/ai-settings');
+    return (d.settings ?? []).map((s) => ({
+      function: s.function,
+      engineId: s.engineId == null ? null : String(s.engineId),
+      params: s.params,
+      availableEngines: d.availableEngines ?? [],
+    }));
+  },
   update: (fn: AiFunction, body: { engine_id: string; params?: Record<string, unknown> }) =>
     apiPut<AiFunctionSetting>(`/ai-settings/${fn}`, body),
   getConfig: () => apiGet<AiConfig>('/ai-config'),
