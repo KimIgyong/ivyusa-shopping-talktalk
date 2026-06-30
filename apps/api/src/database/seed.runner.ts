@@ -9,6 +9,8 @@ import { JobLabel } from '../domain/user/entity/job-label.entity';
 import { UserJobLabel } from '../domain/user/entity/user-job-label.entity';
 import { AiEngine } from '../domain/ai-engine/entity/ai-engine.entity';
 import { TenantAiSetting } from '../domain/ai-engine/entity/tenant-ai-setting.entity';
+import { TenantAiConfig } from '../domain/ai-engine/entity/tenant-ai-config.entity';
+import { DEFAULT_PERSONA, DEFAULT_SCENARIO_BUTTONS } from '../domain/ai-engine/ai-config.service';
 import { ContentFilterRule } from '../domain/moderation/entity/content-filter-rule.entity';
 import { KnowledgeSource } from '../domain/knowledge/entity/knowledge-source.entity';
 import { KbDocument } from '../domain/knowledge/entity/kb-document.entity';
@@ -121,6 +123,23 @@ export async function runSeed(ds: DataSource, opts: SeedOptions = {}): Promise<v
       doc.embeddingRef = `emb_${doc.id}`;
       await kbRepo.save(doc);
     }
+  }
+
+  // Tenant AI config: persona, response rules, scenario buttons (FR-047/FN-040)
+  const aiConfigRepo = ds.getRepository(TenantAiConfig);
+  if (!(await aiConfigRepo.findOne({ where: { tenantId: tenant.id } }))) {
+    await aiConfigRepo.save(
+      aiConfigRepo.create({
+        tenantId: tenant.id,
+        persona: DEFAULT_PERSONA,
+        rules: [
+          'Be concise, friendly, and professional.',
+          'Answer only from the knowledge base; never invent policies.',
+          'Offer to connect a human agent when unsure or out of scope.',
+        ],
+        scenarioButtons: DEFAULT_SCENARIO_BUTTONS,
+      }),
+    );
   }
 
   const intRepo = ds.getRepository(IntegrationStatusEntity);

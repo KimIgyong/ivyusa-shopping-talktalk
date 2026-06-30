@@ -4,6 +4,7 @@ import { Brackets, Repository } from 'typeorm';
 import { AI_FUNCTION } from '@ivy/types';
 import { KbDocument } from '../knowledge/entity/kb-document.entity';
 import { AiGatewayService } from '../../infrastructure/external/ai/ai-gateway.service';
+import { AiConfigService } from '../ai-engine/ai-config.service';
 
 export interface RetrievedChunk {
   id: number;
@@ -32,6 +33,7 @@ export class RagService {
   constructor(
     @InjectRepository(KbDocument) private readonly kbRepo: Repository<KbDocument>,
     private readonly ai: AiGatewayService,
+    private readonly aiConfig: AiConfigService,
   ) {}
 
   async retrieve(tenantId: number, query: string, limit = 4): Promise<RetrievedChunk[]> {
@@ -78,12 +80,17 @@ export class RagService {
     const context = chunks.map((c) => `- [${c.category ?? 'general'}] ${c.title}: ${c.snippet}`).join('\n');
     const confidence = chunks.length ? Math.min(0.95, 0.5 + chunks.length * 0.12) : 0.2;
 
+    // Persona + response rules from the tenant's AI config (FR-047 / FN-040).
+    const { persona, rules } = await this.aiConfig.getPersonaRules(tenantId);
+    const rulesBlock = rules.length ? `\nResponse rules:\n${rules.map((r) => `- ${r}`).join('\n')}` : '';
+
     const res = await this.ai.complete({
       tenantId,
       function: AI_FUNCTION.RAG,
       system:
-        `You are IVY USA's support assistant. Answer ONLY from the context. If the context ` +
-        `is insufficient, say you'll connect a human agent. Reply in language code: ${language}.\n` +
+        `${persona}${rulesBlock}\n` +
+        `Answer ONLY from the context. If the context is insufficient, say you'll connect a ` +
+        `human agent. Reply in language code: ${language}.\n` +
         `CONTEXT_START\n${context || '(no relevant documents found)'}\nCONTEXT_END`,
       messages: [{ role: 'user', content: query }],
     });

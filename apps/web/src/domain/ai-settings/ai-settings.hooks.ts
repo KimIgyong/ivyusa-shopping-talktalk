@@ -12,11 +12,36 @@ export function useUpdateAiSetting() {
   const qc = useQueryClient();
   const tenantKey = useTenantKey();
   return useMutation({
-    mutationFn: ({ fn, engineId }: { fn: AiFunction; engineId: string }) =>
-      aiSettingsService.update(fn, { engine_id: engineId }),
+    mutationFn: ({
+      fn,
+      engineId,
+      params,
+    }: {
+      fn: AiFunction;
+      engineId: string;
+      params?: Record<string, unknown>;
+    }) => aiSettingsService.update(fn, { engine_id: engineId, params }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['ai-settings', tenantKey] });
       toast.success('AI setting updated.');
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+}
+
+export const useAiConfig = () => {
+  const tenantKey = useTenantKey();
+  return useQuery({ queryKey: ['ai-config', tenantKey], queryFn: aiSettingsService.getConfig });
+};
+
+export function useUpdateAiConfig() {
+  const qc = useQueryClient();
+  const tenantKey = useTenantKey();
+  return useMutation({
+    mutationFn: aiSettingsService.updateConfig,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['ai-config', tenantKey] });
+      toast.success('AI configuration saved.');
     },
     onError: (e: Error) => toast.error(e.message),
   });

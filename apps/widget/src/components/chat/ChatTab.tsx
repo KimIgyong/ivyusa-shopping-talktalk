@@ -3,10 +3,12 @@ import { Send, Sparkles, Headphones } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useWidgetStore } from '../../store/widgetStore';
 import { useChat } from '../../hooks/useChat';
+import { useScenario } from '../../hooks/useScenario';
 import { setConsent } from '../../services/sessionService';
+import type { ScenarioButton } from '../../lib/types';
 import { MessageBubble } from './MessageBubble';
 import { ConsentBanner } from './ConsentBanner';
-import { ScenarioMenu, type ScenarioAction } from './ScenarioMenu';
+import { ScenarioMenu, type SubAction } from './ScenarioMenu';
 import { AuthGate } from './AuthGate';
 import { ContactCard } from './ContactCard';
 import { AffiliateCard } from './AffiliateCard';
@@ -25,6 +27,7 @@ export function ChatTab() {
   const consumeChatMessage = useWidgetStore((s) => s.consumeChatMessage);
 
   const { messages, send, sending, escalate } = useChat(sessionToken);
+  const scenarioButtons = useScenario(sessionToken);
 
   const [consented, setConsented] = useState<boolean>(() => {
     try {
@@ -69,24 +72,35 @@ export function ChatTab() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingChatMessage, consented, sessionToken]);
 
-  async function handleScenario(a: ScenarioAction) {
-    switch (a) {
-      case 'delivery':
-      case 'myOrders':
+  function handleScenario(button: ScenarioButton) {
+    switch (button.action) {
+      case 'delivery_status':
+      case 'my_orders':
         if (!authenticated) {
           setInline('auth');
         } else {
           setActiveTab('orders');
         }
         return;
-      case 'contact':
+      case 'contact_support':
         setInline('contact');
         return;
       case 'affiliate':
         setInline('affiliate');
         return;
-      case 'cancelRefund':
-        return doSend(t('chat.templates.cancelRefund'));
+      case 'cancel_refund':
+        void doSend(t('chat.templates.cancelRefund'));
+        return;
+      case 'message':
+      default:
+        // Custom button: send its label as a chat message.
+        void doSend(button.label);
+        return;
+    }
+  }
+
+  function handleSubAction(a: SubAction) {
+    switch (a) {
       case 'usage':
         return doSend(t('chat.templates.usage'));
       case 'ingredients':
@@ -141,7 +155,13 @@ export function ChatTab() {
           }}
         />
 
-        {consented && <ScenarioMenu onAction={handleScenario} />}
+        {consented && (
+          <ScenarioMenu
+            buttons={scenarioButtons}
+            onScenario={handleScenario}
+            onSubAction={handleSubAction}
+          />
+        )}
 
         {messages.map((m) => (
           <MessageBubble key={m.id} message={m} />

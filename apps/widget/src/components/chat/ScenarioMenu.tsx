@@ -10,20 +10,24 @@ import {
   Sparkles,
   Leaf,
   Bell,
+  MessageSquare,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import type { ScenarioButton } from '../../lib/types';
 
-export type ScenarioAction =
-  | 'delivery'
-  | 'cancelRefund'
-  | 'productHelp'
-  | 'contact'
-  | 'affiliate'
-  | 'myOrders'
-  | 'usage'
-  | 'ingredients'
-  | 'exchange'
-  | 'restock';
+/** Product Help submenu actions (client-only, not server-driven). */
+export type SubAction = 'usage' | 'ingredients' | 'exchange' | 'restock';
+
+/** Icon per server action key, with a sensible fallback for custom buttons. */
+const ACTION_ICONS: Record<string, React.ReactNode> = {
+  delivery_status: <Truck className="h-4 w-4" />,
+  cancel_refund: <RotateCcw className="h-4 w-4" />,
+  product_help: <Sparkles className="h-4 w-4" />,
+  contact_support: <Phone className="h-4 w-4" />,
+  affiliate: <Users className="h-4 w-4" />,
+  my_orders: <Package className="h-4 w-4" />,
+  message: <MessageSquare className="h-4 w-4" />,
+};
 
 function MenuButton({
   icon,
@@ -46,9 +50,15 @@ function MenuButton({
 }
 
 export function ScenarioMenu({
-  onAction,
+  buttons,
+  onScenario,
+  onSubAction,
 }: {
-  onAction: (a: ScenarioAction) => void;
+  buttons: ScenarioButton[];
+  /** Fired for a top-level config button (Product Help is handled internally). */
+  onScenario: (button: ScenarioButton) => void;
+  /** Fired for a Product Help submenu button. */
+  onSubAction: (a: SubAction) => void;
 }) {
   const { t } = useTranslation();
   const [sub, setSub] = useState(false);
@@ -56,10 +66,10 @@ export function ScenarioMenu({
   if (sub) {
     return (
       <div className="grid grid-cols-2 gap-2">
-        <MenuButton icon={<HelpCircle className="h-4 w-4" />} label={t('chat.productHelp.usage')} onClick={() => onAction('usage')} />
-        <MenuButton icon={<Leaf className="h-4 w-4" />} label={t('chat.productHelp.ingredients')} onClick={() => onAction('ingredients')} />
-        <MenuButton icon={<RotateCcw className="h-4 w-4" />} label={t('chat.productHelp.exchange')} onClick={() => onAction('exchange')} />
-        <MenuButton icon={<Bell className="h-4 w-4" />} label={t('chat.productHelp.restock')} onClick={() => onAction('restock')} />
+        <MenuButton icon={<HelpCircle className="h-4 w-4" />} label={t('chat.productHelp.usage')} onClick={() => onSubAction('usage')} />
+        <MenuButton icon={<Leaf className="h-4 w-4" />} label={t('chat.productHelp.ingredients')} onClick={() => onSubAction('ingredients')} />
+        <MenuButton icon={<RotateCcw className="h-4 w-4" />} label={t('chat.productHelp.exchange')} onClick={() => onSubAction('exchange')} />
+        <MenuButton icon={<Bell className="h-4 w-4" />} label={t('chat.productHelp.restock')} onClick={() => onSubAction('restock')} />
         <MenuButton icon={<ArrowLeft className="h-4 w-4" />} label={t('chat.productHelp.back')} onClick={() => setSub(false)} />
       </div>
     );
@@ -67,12 +77,14 @@ export function ScenarioMenu({
 
   return (
     <div className="grid grid-cols-2 gap-2">
-      <MenuButton icon={<Truck className="h-4 w-4" />} label={t('chat.scenarios.delivery')} onClick={() => onAction('delivery')} />
-      <MenuButton icon={<RotateCcw className="h-4 w-4" />} label={t('chat.scenarios.cancelRefund')} onClick={() => onAction('cancelRefund')} />
-      <MenuButton icon={<Sparkles className="h-4 w-4" />} label={t('chat.scenarios.productHelp')} onClick={() => setSub(true)} />
-      <MenuButton icon={<Phone className="h-4 w-4" />} label={t('chat.scenarios.contact')} onClick={() => onAction('contact')} />
-      <MenuButton icon={<Users className="h-4 w-4" />} label={t('chat.scenarios.affiliate')} onClick={() => onAction('affiliate')} />
-      <MenuButton icon={<Package className="h-4 w-4" />} label={t('chat.scenarios.myOrders')} onClick={() => onAction('myOrders')} />
+      {buttons.map((b) => (
+        <MenuButton
+          key={b.id}
+          icon={ACTION_ICONS[b.action] ?? ACTION_ICONS.message}
+          label={b.label}
+          onClick={() => (b.action === 'product_help' ? setSub(true) : onScenario(b))}
+        />
+      ))}
     </div>
   );
 }

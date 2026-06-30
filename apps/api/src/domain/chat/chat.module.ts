@@ -10,12 +10,14 @@ import { RagService } from './rag.service';
 import { ChatController } from './chat.controller';
 import { SessionModule } from '../session/session.module';
 import { ModerationModule } from '../moderation/moderation.module';
+import { AiEngineModule } from '../ai-engine/ai-engine.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Conversation, Message, Session, Tenant, KbDocument]),
     SessionModule,
     ModerationModule,
+    AiEngineModule,
   ],
   controllers: [ChatController],
   providers: [ChatService, RagService],

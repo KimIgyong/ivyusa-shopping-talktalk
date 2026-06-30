@@ -104,3 +104,20 @@ export interface AffiliateStatus {
   status: 'none' | 'pending' | 'approved' | 'rejected' | string;
   commissionRate?: number;
 }
+
+/** Server-driven scenario action keys (admin-configured). */
+export type ScenarioActionKey =
+  | 'delivery_status'
+  | 'cancel_refund'
+  | 'product_help'
+  | 'contact_support'
+  | 'affiliate'
+  | 'my_orders'
+  | 'message';
+
+export interface ScenarioButton {
+  id: string;
+  label: string;
+  action: ScenarioActionKey | string;
+  enabled: boolean;
+}

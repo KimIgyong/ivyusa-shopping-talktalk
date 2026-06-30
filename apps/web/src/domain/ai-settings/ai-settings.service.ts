@@ -24,10 +24,26 @@ export interface ModerationRule {
   createdAt?: string;
 }
 
+export interface ScenarioButton {
+  id: string;
+  label: string;
+  action: string;
+  enabled: boolean;
+}
+
+export interface AiConfig {
+  persona: string;
+  rules: string[];
+  scenarioButtons: ScenarioButton[];
+}
+
 export const aiSettingsService = {
   list: () => apiGet<AiFunctionSetting[]>('/ai-settings'),
   update: (fn: AiFunction, body: { engine_id: string; params?: Record<string, unknown> }) =>
     apiPut<AiFunctionSetting>(`/ai-settings/${fn}`, body),
+  getConfig: () => apiGet<AiConfig>('/ai-config'),
+  updateConfig: (body: { persona?: string; rules?: string[]; scenario_buttons?: ScenarioButton[] }) =>
+    apiPut<AiConfig>('/ai-config', body),
   rules: () => apiGet<ModerationRule[]>('/moderation/rules'),
   createRule: (body: { pattern: string; action: string; description?: string }) =>
     apiPost<ModerationRule>('/moderation/rules', body),
