@@ -29,11 +29,14 @@ export function ChatTab() {
   const { messages, send, sending, escalate } = useChat(sessionToken);
   const scenarioButtons = useScenario(sessionToken);
 
-  const [consented, setConsented] = useState<boolean>(() => {
+  // CCPA notice choice. Guests may chat (non-personal product/FAQ) regardless of
+  // the choice (FN-008); the banner just shows until a choice is recorded.
+  const [consentChoice, setConsentChoice] = useState<'granted' | 'denied' | null>(() => {
     try {
-      return localStorage.getItem(CONSENT_KEY) === 'granted';
+      const v = localStorage.getItem(CONSENT_KEY);
+      return v === 'granted' ? 'granted' : v === 'denied' ? 'denied' : null;
     } catch {
-      return false;
+      return null;
     }
   });
   const [input, setInput] = useState('');
@@ -54,7 +57,7 @@ export function ChatTab() {
     } catch {
       /* ignore */
     }
-    setConsented(granted);
+    setConsentChoice(granted ? 'granted' : 'denied');
     if (sessionToken) setConsent(sessionToken, granted).catch(() => {});
   }
 
@@ -66,11 +69,11 @@ export function ChatTab() {
 
   // Auto-send a message queued from another tab (e.g. "Ask about this order").
   useEffect(() => {
-    if (!pendingChatMessage || !consented || !sessionToken) return;
+    if (!pendingChatMessage || !sessionToken) return;
     const msg = consumeChatMessage();
     if (msg) void doSend(msg);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pendingChatMessage, consented, sessionToken]);
+  }, [pendingChatMessage, sessionToken]);
 
   function handleScenario(button: ScenarioButton) {
     switch (button.action) {
@@ -138,7 +141,7 @@ export function ChatTab() {
         aria-label={t('a11y.messageThread')}
         className="scroll-thin flex-1 space-y-3 overflow-y-auto p-3"
       >
-        {!consented && (
+        {consentChoice === null && (
           <ConsentBanner
             onAccept={() => recordConsent(true)}
             onDecline={() => recordConsent(false)}
@@ -155,13 +158,11 @@ export function ChatTab() {
           }}
         />
 
-        {consented && (
-          <ScenarioMenu
-            buttons={scenarioButtons}
-            onScenario={handleScenario}
-            onSubAction={handleSubAction}
-          />
-        )}
+        <ScenarioMenu
+          buttons={scenarioButtons}
+          onScenario={handleScenario}
+          onSubAction={handleSubAction}
+        />
 
         {messages.map((m) => (
           <MessageBubble key={m.id} message={m} />
@@ -213,12 +214,11 @@ export function ChatTab() {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder={t('chat.inputPlaceholder')}
-          disabled={!consented}
           className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:bg-gray-50"
         />
         <button
           type="submit"
-          disabled={!consented || sending || !input.trim()}
+          disabled={sending || !input.trim()}
           aria-label={t('chat.send')}
           className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-primary-500 text-white hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-40"
         >
