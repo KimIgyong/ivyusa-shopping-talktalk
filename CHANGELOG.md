@@ -31,6 +31,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com/); follows Amoeba 
 - **Privacy/retention**: full tenant purge in Shopify `shop/redact`; `LoggingInterceptor` (no PII in logs) + `maskPii` util; DSAR-export audit; `RetentionService` + `POST /privacy/retention/purge` (POL-003, `CONVERSATION_LOG_RETENTION_DAYS`).
 - **Deployment**: `docker/{staging,production}` Dockerfiles (api/web), env-separated compose (validated), nginx reverse proxy, `deploy-{dev,staging,production}.sh` (Structure §5.1).
 - **Frontend**: tenantId in React Query keys (admin, `useTenantKey()`); WCAG a11y — modals (`role=dialog`/`aria-modal`/Esc/focus-restore), chat logs (`role=log`/`aria-live`), icon-button `aria-label`s, focus rings — in admin + widget (aria text via i18n en/es/ko).
+- **Tests**: Jest + ts-jest; 40 passing unit tests (`npm test`) — permission-matrix (rank×label), order status-map, moderation fail-safe (NFR-013), authorization guard. `*.spec.ts` excluded from builds.
+- **Convention polish**: chat/session inline DTOs → `dto/request/` + `ChatMapper`/`SessionMapper`; `@MasterOrAdmin()` decorator alias (guard-enforced); full primary 50–900 Tailwind ramp (both apps).
 
 ### Verified (2026-06-18 / 2026-06-19)
 - Full `turbo run build` green (5/5 workspaces).

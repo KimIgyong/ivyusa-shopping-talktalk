@@ -325,9 +325,10 @@ Full evidence: `docs/report/RPT-Standards-Compliance-Audit-20260619.md`.
 - ✅ Retention/disposal (POL-003) — `RetentionService.purgeExpired()` + `POST /privacy/retention/purge` (admin); `CONVERSATION_LOG_RETENTION_DAYS` (default 365).
 - ✅ Staging/production Docker — `docker/{staging,production}` Dockerfiles (api/web), compose (validated), nginx, `deploy-*.sh` (Structure §5.1).
 - ✅ tenantId in React Query keys (admin app, `useTenantKey()`); modal/chat a11y (role=dialog/Esc/focus, `aria-live` chat logs, icon-button aria-labels, focus rings) in both frontends.
+- ✅ **Tests** — Jest + ts-jest; 40 passing unit tests (`npm test`/turbo): permission-matrix (rank×label), status-map, moderation fail-safe (NFR-013), authorization guard.
+- ✅ Chat/session inline DTOs extracted to `dto/request/` + `ChatMapper`/`SessionMapper` added; `@MasterOrAdmin()` decorator alias (guard-enforced); full primary 50–900 color ramp (both apps).
 
-**Remaining — Medium** — normalize DTO folders (`dto/request` + `dto/response`) + add missing mappers (chat/session/order-webhook) across modules.
-**Low** — tests (currently 0); complete analysis/plan/test doc chain; soft-delete columns; full primary 50–900 ramp; `@MasterOrAdmin` alias.
+**Remaining — Low (optional)** — full DTO `dto/request`+`dto/response` folder reorg for the remaining flat-`{domain}.dto.ts` modules (cosmetic); soft-delete columns; broaden test coverage + analysis/plan/test doc chain.
 
 ## 15. Reference (참조)
 `reference/amoeba_*` (standards) · `design/` (artifacts; `README.md` index) ·

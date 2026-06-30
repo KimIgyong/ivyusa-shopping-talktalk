@@ -4,10 +4,12 @@ import { AdminLevel, UserRank, Capability, Principal } from '@ivy/types';
 import { adminCan, userCan } from '@ivy/common';
 import {
   ALLOWED_ACTOR_KEY,
+  MASTER_OR_ADMIN_KEY,
   REQUIRE_ADMIN_LEVEL_KEY,
   REQUIRE_CAPABILITY_KEY,
   REQUIRE_RANK_KEY,
 } from '../decorator/auth.decorator';
+import { USER_RANK } from '@ivy/types';
 import { BusinessException } from '../exception/business.exception';
 import { ERROR_CODE } from '../constant/error-code.constant';
 
@@ -33,6 +35,13 @@ export class AuthorizationGuard implements CanActivate {
     const allowedActors = get<string[]>(ALLOWED_ACTOR_KEY);
     if (allowedActors && !allowedActors.includes(user.actorType)) {
       throw new BusinessException(ERROR_CODE.FORBIDDEN, HttpStatus.FORBIDDEN);
+    }
+
+    // @MasterOrAdmin(): any system admin OR a tenant Master.
+    if (get<boolean>(MASTER_OR_ADMIN_KEY)) {
+      const ok = user.actorType === 'admin' || (user.actorType === 'user' && user.rank === USER_RANK.MASTER);
+      if (!ok) throw new BusinessException(ERROR_CODE.FORBIDDEN, HttpStatus.FORBIDDEN);
+      return true;
     }
 
     if (user.actorType === 'admin') {

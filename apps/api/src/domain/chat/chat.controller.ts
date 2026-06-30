@@ -1,17 +1,10 @@
 import { Body, Controller, Get, Param, Post } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { IsInt, IsString, MinLength } from 'class-validator';
 import { ChatService } from './chat.service';
+import { ChatMapper } from './chat.mapper';
+import { SendMessageRequest, EscalateRequest } from './dto/request/chat.request';
 import { SessionService } from '../session/session.service';
 import { Public } from '../../global/decorator/public.decorator';
-
-class SendMessageRequest {
-  @IsString() session_token: string;
-  @IsString() @MinLength(1) message: string;
-}
-class EscalateRequest {
-  @IsInt() conversation_id: number;
-}
 
 /** Widget-facing chat endpoints (public; session-token identified). */
 @ApiTags('Chat')
@@ -37,16 +30,7 @@ export class ChatController {
     const session = await this.sessionService.findByToken(token);
     const conversation = await this.chatService.getOrCreateConversation(session.id);
     const messages = await this.chatService.listMessages(conversation.id);
-    return {
-      conversationId: conversation.id,
-      status: conversation.status,
-      messages: messages.map((m) => ({
-        id: m.id,
-        senderType: m.senderType,
-        body: m.body,
-        createdAt: m.createdAt,
-      })),
-    };
+    return ChatMapper.toConversationResponse(conversation, messages);
   }
 
   @Post('escalate')

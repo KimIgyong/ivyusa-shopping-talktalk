@@ -8,6 +8,7 @@ export const REQUIRE_CAPABILITY_KEY = 'requireCapability';
 export const ALLOWED_ACTOR_KEY = 'allowedActor';
 export const REQUIRE_RANK_KEY = 'requireRank';
 export const REQUIRE_ADMIN_LEVEL_KEY = 'requireAdminLevel';
+export const MASTER_OR_ADMIN_KEY = 'masterOrAdmin';
 
 /** Base authenticated route: JWT + authorization guard. */
 export function Auth() {
@@ -28,6 +29,15 @@ export function AdminOnly(...levels: AdminLevel[]) {
   return applyDecorators(
     SetMetadata(ALLOWED_ACTOR_KEY, ['admin']),
     SetMetadata(REQUIRE_ADMIN_LEVEL_KEY, levels),
+    UseGuards(JwtAuthGuard, AuthorizationGuard),
+    ApiBearerAuth(),
+  );
+}
+
+/** System admin (any level) OR tenant Master — standard parity alias. */
+export function MasterOrAdmin() {
+  return applyDecorators(
+    SetMetadata(MASTER_OR_ADMIN_KEY, true),
     UseGuards(JwtAuthGuard, AuthorizationGuard),
     ApiBearerAuth(),
   );
