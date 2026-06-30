@@ -89,7 +89,7 @@ export function AiEnginesPage() {
       header: t('status'),
       render: (r) => <StatusBadge status={r.enabled ? 'enabled' : 'disabled'} />,
     },
-    { key: 'maskedApiKey', header: t('apiKey'), render: (r) => r.maskedApiKey ?? '••••' },
+    { key: 'apiKey', header: t('apiKey'), render: (r) => (r.hasKey ? '••••••••' : '—') },
     { key: 'createdAt', header: t('created'), render: (r) => r.createdAt ?? '—' },
     {
       key: 'actions',

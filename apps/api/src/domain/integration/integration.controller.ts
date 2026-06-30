@@ -1,9 +1,8 @@
 import { Body, Controller, Get, Param, Patch } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { CAPABILITY } from '@ivy/types';
 import { IntegrationService } from './integration.service';
 import { UpsertIntegrationStatusRequest } from './dto/request/integration.request';
-import { AdminOnly, RequireCapability } from '../../global/decorator/auth.decorator';
+import { AdminOnly, Auth } from '../../global/decorator/auth.decorator';
 
 @ApiTags('Integration')
 @Controller('integrations')
@@ -11,8 +10,8 @@ export class IntegrationController {
   constructor(private readonly integrationService: IntegrationService) {}
 
   @Get('status')
-  @RequireCapability(CAPABILITY.ANALYTICS_READ)
-  @ApiOperation({ summary: 'List integration connection statuses' })
+  @Auth()
+  @ApiOperation({ summary: 'List integration connection statuses (any authenticated actor)' })
   async listStatus() {
     return this.integrationService.listStatus();
   }
