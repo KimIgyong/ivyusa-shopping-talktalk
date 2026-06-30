@@ -1,0 +1,33 @@
+# syntax=docker/dockerfile:1
+# IVY TalkTalk — customer Widget (Vite static) image, staging. Served under /widget/.
+# Build context MUST be the repo root.
+
+# ---- Build stage ----------------------------------------------------------
+FROM node:20-alpine AS build
+WORKDIR /app
+
+# VITE_* vars are baked at build time. VITE_BASE makes assets resolve under /widget/.
+ARG VITE_API_BASE_URL
+ARG VITE_BASE=/widget/
+ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
+ENV VITE_BASE=${VITE_BASE}
+
+COPY package.json package-lock.json turbo.json tsconfig.json ./
+COPY apps/api/package.json apps/api/
+COPY apps/web/package.json apps/web/
+COPY apps/widget/package.json apps/widget/
+COPY packages/types/package.json packages/types/
+COPY packages/common/package.json packages/common/
+
+RUN npm install
+
+COPY . .
+
+RUN npx turbo run build --filter=@ivy/widget...
+
+# ---- Runtime stage (nginx static, served under /widget/) -------------------
+FROM nginx:alpine AS runtime
+COPY docker/staging/nginx.widget.conf /etc/nginx/conf.d/default.conf
+COPY --from=build /app/apps/widget/dist /usr/share/nginx/html
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]

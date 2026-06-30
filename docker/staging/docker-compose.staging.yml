@@ -38,6 +38,18 @@ services:
     expose:
       - '80'
 
+  widget:
+    build:
+      context: ../..
+      dockerfile: docker/staging/Dockerfile.widget
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL}
+        VITE_BASE: /widget/
+    container_name: ivy_widget_staging
+    restart: unless-stopped
+    expose:
+      - '80'
+
   mysql:
     image: mysql:8.0
     container_name: ivy_mysql_staging
@@ -87,6 +99,7 @@ services:
     depends_on:
       - api
       - web
+      - widget
     ports:
       - '8080:80'
 
