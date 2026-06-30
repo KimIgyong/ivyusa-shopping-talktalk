@@ -21,5 +21,11 @@ fi
 echo "==> Building and starting staging stack..."
 docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d --build
 
+# Recreated app containers get new IPs; reload the edge nginx so it re-reads its
+# config and re-resolves upstreams (avoids stale-IP 404/502 after a redeploy).
+echo "==> Reloading edge nginx..."
+docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" exec -T nginx nginx -s reload \
+  || docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d --force-recreate nginx
+
 echo "==> Status:"
 docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" ps
