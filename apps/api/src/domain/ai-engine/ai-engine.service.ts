@@ -2,7 +2,7 @@ import { HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AiEngine } from './entity/ai-engine.entity';
-import { CreateEngineRequest, UpdateEngineRequest } from './ai-engine.dto';
+import { CreateEngineRequest, UpdateEngineRequest } from './dto/request/ai-engine.request';
 import { encryptSecret } from '../../global/util/crypto.util';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';

@@ -1,18 +1,11 @@
 import { Controller, Get, Query } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { IsOptional, IsString } from 'class-validator';
 import { CAPABILITY } from '@ivy/types';
 import { normalizePage, buildPagination } from '@ivy/common';
 import { AnalyticsService } from './analytics.service';
 import { RequireCapability } from '../../global/decorator/auth.decorator';
 import { Paginated } from '../../global/interceptor/transform.interceptor';
-
-class ConversationSearchQuery {
-  @IsOptional() @IsString() status?: string;
-  @IsOptional() @IsString() escalated?: string;
-  @IsOptional() @IsString() page?: string;
-  @IsOptional() @IsString() size?: string;
-}
+import { ConversationSearchQuery } from './dto/request/analytics.request';
 
 /** Analytics dashboards & conversation history (FN-038/039, SCR-104). */
 @ApiTags('Analytics')

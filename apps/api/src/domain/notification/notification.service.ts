@@ -4,7 +4,7 @@ import { IsNull, Repository } from 'typeorm';
 import { Notification } from './entity/notification.entity';
 import { NotificationPref } from './entity/notification-pref.entity';
 import { Session } from '../session/entity/session.entity';
-import { NotifyInput } from './notification.dto';
+import { NotifyInput } from './dto/response/notification.response';
 import { EventBusService, EVENTS } from '../../infrastructure/infrastructure.module';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';

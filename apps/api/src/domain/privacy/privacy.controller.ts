@@ -9,7 +9,7 @@ import {
   DsarDeleteRequest,
   OptOutRequest,
   ShopRedactRequest,
-} from './dto/privacy.dto';
+} from './dto/request/privacy.request';
 import { Public } from '../../global/decorator/public.decorator';
 import { AdminOnly } from '../../global/decorator/auth.decorator';
 import { BusinessException } from '../../global/exception/business.exception';

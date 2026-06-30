@@ -4,7 +4,7 @@ import { CAPABILITY } from '@ivy/types';
 import { AdminOnly, RequireCapability } from '../../global/decorator/auth.decorator';
 import { AiEngineService } from './ai-engine.service';
 import { AiEngineMapper } from './ai-engine.mapper';
-import { CreateEngineRequest, UpdateEngineRequest } from './ai-engine.dto';
+import { CreateEngineRequest, UpdateEngineRequest } from './dto/request/ai-engine.request';
 
 /** Platform AI engine catalog (FR-070). Admin-only, AI_ENGINE_MANAGE. */
 @ApiTags('AI Engines')

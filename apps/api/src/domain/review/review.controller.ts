@@ -1,6 +1,5 @@
 import { Body, Controller, Get, HttpStatus, Post, Query } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 import { CAPABILITY, Principal } from '@ivy/types';
 import { buildPagination, normalizePage } from '@ivy/common';
 import { ReviewService } from './review.service';
@@ -11,13 +10,7 @@ import { CurrentUser } from '../../global/decorator/current-user.decorator';
 import { Paginated } from '../../global/interceptor/transform.interceptor';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
-
-class CreateReviewRequest {
-  @IsString() session_token: string;
-  @IsInt() order_item_id: number;
-  @IsInt() @Min(1) @Max(5) rating: number;
-  @IsOptional() @IsString() body?: string;
-}
+import { CreateReviewRequest } from './dto/request/review.request';
 
 function toResponse(r: Review) {
   return {

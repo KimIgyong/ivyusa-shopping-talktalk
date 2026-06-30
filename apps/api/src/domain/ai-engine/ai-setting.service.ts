@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { AiEngine } from './entity/ai-engine.entity';
 import { TenantAiSetting } from './entity/tenant-ai-setting.entity';
-import { UpsertAiSettingRequest } from './ai-engine.dto';
+import { UpsertAiSettingRequest } from './dto/request/ai-engine.request';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
 

@@ -33,6 +33,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com/); follows Amoeba 
 - **Frontend**: tenantId in React Query keys (admin, `useTenantKey()`); WCAG a11y — modals (`role=dialog`/`aria-modal`/Esc/focus-restore), chat logs (`role=log`/`aria-live`), icon-button `aria-label`s, focus rings — in admin + widget (aria text via i18n en/es/ko).
 - **Tests**: Jest + ts-jest; 40 passing unit tests (`npm test`) — permission-matrix (rank×label), order status-map, moderation fail-safe (NFR-013), authorization guard. `*.spec.ts` excluded from builds.
 - **Convention polish**: chat/session inline DTOs → `dto/request/` + `ChatMapper`/`SessionMapper`; `@MasterOrAdmin()` decorator alias (guard-enforced); full primary 50–900 Tailwind ramp (both apps).
+- **DTO normalization**: all 15 remaining flat/inline DTO modules moved to `dto/request/*.request.ts` (+ `dto/response` where applicable); no inline DTO classes left in controllers.
+- **SDLC doc chain**: `docs/analysis/REQ-…`, `docs/plan/PLAN-…`, `docs/test/TC-…` (Structure §8.2). Tests broadened to 46 (TenantSubscriber auto-stamp, RAG intent fallback). Soft-delete intentionally omitted (hard-delete + anonymize disposal model).
 
 ### Verified (2026-06-18 / 2026-06-19)
 - Full `turbo run build` green (5/5 workspaces).

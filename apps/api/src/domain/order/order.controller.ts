@@ -2,7 +2,7 @@ import { Body, Controller, Get, HttpStatus, Param, ParseIntPipe, Post, Query } f
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CAPABILITY, Principal } from '@ivy/types';
 import { OrderService } from './order.service';
-import { GuestLookupRequest, OrderListQuery, SessionTokenQuery } from './dto/order.dto';
+import { GuestLookupRequest, OrderListQuery, SessionTokenQuery } from './dto/request/order.request';
 import { Public } from '../../global/decorator/public.decorator';
 import { RequireCapability } from '../../global/decorator/auth.decorator';
 import { CurrentUser } from '../../global/decorator/current-user.decorator';

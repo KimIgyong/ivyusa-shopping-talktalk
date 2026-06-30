@@ -11,7 +11,7 @@ import {
   ListSessionsQuery,
   ListStatsQuery,
   UpsertProfileRequest,
-} from './agent.dto';
+} from './dto/request/agent.request';
 import {
   toMessageResponse,
   toProfileResponse,

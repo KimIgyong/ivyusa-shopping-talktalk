@@ -327,8 +327,10 @@ Full evidence: `docs/report/RPT-Standards-Compliance-Audit-20260619.md`.
 - ✅ tenantId in React Query keys (admin app, `useTenantKey()`); modal/chat a11y (role=dialog/Esc/focus, `aria-live` chat logs, icon-button aria-labels, focus rings) in both frontends.
 - ✅ **Tests** — Jest + ts-jest; 40 passing unit tests (`npm test`/turbo): permission-matrix (rank×label), status-map, moderation fail-safe (NFR-013), authorization guard.
 - ✅ Chat/session inline DTOs extracted to `dto/request/` + `ChatMapper`/`SessionMapper` added; `@MasterOrAdmin()` decorator alias (guard-enforced); full primary 50–900 color ramp (both apps).
+- ✅ **DTO normalization** — all 15 remaining flat/inline DTO modules moved to `dto/request/*.request.ts` (+ `dto/response` where applicable); no inline DTO classes remain in controllers.
+- ✅ **SDLC doc chain** — `docs/analysis/REQ-…`, `docs/plan/PLAN-…`, `docs/test/TC-…` added (Structure §8.2: analysis→plan→impl→test→report). Tests broadened to **46** (added TenantSubscriber auto-stamp + RAG intent fallback).
 
-**Remaining — Low (optional)** — full DTO `dto/request`+`dto/response` folder reorg for the remaining flat-`{domain}.dto.ts` modules (cosmetic); soft-delete columns; broaden test coverage + analysis/plan/test doc chain.
+**Remaining — Low (optional)** — e2e HTTP tests (supertest + test DB) and broader service-level coverage. **Soft-delete columns: intentionally not added** — the disposal model is hard-delete + anonymization (GDPR `redact`/DSAR `delete` + retention purge), which satisfies POL-003/privacy without an unused `deleted_at` column. Audit roadmap (High/Medium) is otherwise fully closed.
 
 ## 15. Reference (참조)
 `reference/amoeba_*` (standards) · `design/` (artifacts; `README.md` index) ·

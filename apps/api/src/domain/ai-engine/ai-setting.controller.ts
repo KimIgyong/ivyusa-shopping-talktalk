@@ -8,7 +8,7 @@ import { ERROR_CODE } from '../../global/constant/error-code.constant';
 import { AiSettingService } from './ai-setting.service';
 import { AiEngineService } from './ai-engine.service';
 import { AiEngineMapper } from './ai-engine.mapper';
-import { FunctionParam, UpsertAiSettingRequest } from './ai-engine.dto';
+import { FunctionParam, UpsertAiSettingRequest } from './dto/request/ai-engine.request';
 
 /** Tenant AI settings: per-function engine selection (FR-070). AI_SETTINGS_MANAGE. */
 @ApiTags('AI Settings')

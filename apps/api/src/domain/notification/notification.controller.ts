@@ -2,7 +2,7 @@ import { Body, Controller, Get, Param, ParseIntPipe, Post, Put, Query } from '@n
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { buildPagination, normalizePage } from '@ivy/common';
 import { NotificationService } from './notification.service';
-import { ReadNotificationRequest, UpdatePrefRequest } from './notification.dto';
+import { ReadNotificationRequest, UpdatePrefRequest } from './dto/request/notification.request';
 import { toNotificationResponse, toPrefResponse } from './notification.mapper';
 import { Public } from '../../global/decorator/public.decorator';
 import { Paginated } from '../../global/interceptor/transform.interceptor';

@@ -2,7 +2,7 @@ import { HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Campaign } from './entity/campaign.entity';
-import { CreateCampaignRequest, UpdateCampaignRequest } from './campaign.dto';
+import { CreateCampaignRequest, UpdateCampaignRequest } from './dto/request/campaign.request';
 import { EventBusService, EVENTS } from '../../infrastructure/infrastructure.module';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';

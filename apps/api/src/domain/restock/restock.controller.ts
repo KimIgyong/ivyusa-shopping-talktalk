@@ -1,6 +1,5 @@
 import { Body, Controller, Get, HttpStatus, Post, Query } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { IsOptional, IsString } from 'class-validator';
 import { CAPABILITY, Principal } from '@ivy/types';
 import { buildPagination, normalizePage } from '@ivy/common';
 import { RestockService } from './restock.service';
@@ -10,12 +9,7 @@ import { CurrentUser } from '../../global/decorator/current-user.decorator';
 import { Paginated } from '../../global/interceptor/transform.interceptor';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
-
-class SubscribeRequest {
-  @IsOptional() @IsString() session_token?: string;
-  @IsString() product_id: string;
-  @IsOptional() @IsString() channel?: string;
-}
+import { SubscribeRequest } from './dto/request/restock.request';
 
 /** Back-in-stock notifications (FR-042) — widget subscribe + tenant admin list. */
 @ApiTags('Restock')

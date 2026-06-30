@@ -13,7 +13,7 @@ import {
   ListDocumentsQuery,
   UpdateDocumentRequest,
   UpdateSourceRequest,
-} from './knowledge.dto';
+} from './dto/request/knowledge.request';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
 

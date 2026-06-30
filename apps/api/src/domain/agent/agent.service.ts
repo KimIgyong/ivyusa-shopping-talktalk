@@ -16,7 +16,7 @@ import { ModerationService } from '../moderation/moderation.service';
 import { AiGatewayService } from '../../infrastructure/external/ai/ai-gateway.service';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
-import { UpsertProfileRequest } from './agent.dto';
+import { UpsertProfileRequest } from './dto/request/agent.request';
 
 /**
  * Agent console orchestration (FR-066/067, FR-045). Manages the human-agent

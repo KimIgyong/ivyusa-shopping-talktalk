@@ -12,7 +12,7 @@ import {
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CAPABILITY, Principal } from '@ivy/types';
 import { InquiryService } from './inquiry.service';
-import { CreateInquiryRequest, InquiryListQuery } from './dto/inquiry.dto';
+import { CreateInquiryRequest, InquiryListQuery } from './dto/request/inquiry.request';
 import { Public } from '../../global/decorator/public.decorator';
 import { RequireCapability } from '../../global/decorator/auth.decorator';
 import { CurrentUser } from '../../global/decorator/current-user.decorator';

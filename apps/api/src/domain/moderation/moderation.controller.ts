@@ -1,21 +1,12 @@
 import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { IsInt, IsOptional, IsString } from 'class-validator';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CAPABILITY, Principal } from '@ivy/types';
 import { ContentFilterRule } from './entity/content-filter-rule.entity';
 import { RequireCapability } from '../../global/decorator/auth.decorator';
 import { CurrentUser } from '../../global/decorator/current-user.decorator';
-
-class CreateRuleRequest {
-  @IsString() scope: string; // agent/ai/both
-  @IsString() type: string; // word/phrase/regex/context
-  @IsString() pattern_or_prompt: string;
-  @IsOptional() @IsString() lang?: string;
-  @IsOptional() @IsString() severity?: string;
-  @IsOptional() @IsString() action?: string;
-}
+import { CreateRuleRequest } from './dto/request/moderation.request';
 
 /** Content filter rule management (FR-069). Master/Director via AI_SETTINGS_MANAGE. */
 @ApiTags('Moderation')

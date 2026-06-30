@@ -13,7 +13,7 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CAPABILITY, Principal } from '@ivy/types';
 import { buildPagination, normalizePage } from '@ivy/common';
 import { CampaignService } from './campaign.service';
-import { CreateCampaignRequest, UpdateCampaignRequest } from './campaign.dto';
+import { CreateCampaignRequest, UpdateCampaignRequest } from './dto/request/campaign.request';
 import { toCampaignResponse } from './campaign.mapper';
 import { RequireCapability } from '../../global/decorator/auth.decorator';
 import { CurrentUser } from '../../global/decorator/current-user.decorator';

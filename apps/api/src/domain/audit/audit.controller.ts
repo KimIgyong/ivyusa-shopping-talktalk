@@ -1,19 +1,12 @@
 import { Controller, Get, Query } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { IsOptional, IsString } from 'class-validator';
 import { CAPABILITY, Principal } from '@ivy/types';
 import { normalizePage, buildPagination } from '@ivy/common';
 import { AuditService } from './audit.service';
 import { RequireCapability } from '../../global/decorator/auth.decorator';
 import { CurrentUser } from '../../global/decorator/current-user.decorator';
 import { Paginated } from '../../global/interceptor/transform.interceptor';
-
-class ListAuditQuery {
-  @IsOptional() @IsString() action?: string;
-  @IsOptional() @IsString() actor_type?: string;
-  @IsOptional() @IsString() page?: string;
-  @IsOptional() @IsString() size?: string;
-}
+import { ListAuditQuery } from './dto/request/audit.request';
 
 /** Audit log read access (FR-061). Tenant-scoped for tenant users. */
 @ApiTags('Audit')

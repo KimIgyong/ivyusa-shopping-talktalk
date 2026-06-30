@@ -1,6 +1,5 @@
 import { Body, Controller, Get, HttpStatus, Param, ParseIntPipe, Patch, Post, Query } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { IsIn, IsString } from 'class-validator';
 import { CAPABILITY, Principal } from '@ivy/types';
 import { buildPagination, normalizePage } from '@ivy/common';
 import { AffiliateService } from './affiliate.service';
@@ -11,13 +10,7 @@ import { CurrentUser } from '../../global/decorator/current-user.decorator';
 import { Paginated } from '../../global/interceptor/transform.interceptor';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
-
-class ApplyRequest {
-  @IsString() session_token: string;
-}
-class ReviewRequest {
-  @IsIn(['approve', 'reject']) decision: 'approve' | 'reject';
-}
+import { ApplyRequest, ReviewRequest } from './dto/request/affiliate.request';
 
 function toResponse(a: Affiliate) {
   return {

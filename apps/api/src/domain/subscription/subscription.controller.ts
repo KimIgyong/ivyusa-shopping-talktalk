@@ -9,7 +9,6 @@ import {
   Query,
 } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { IsString } from 'class-validator';
 import { CAPABILITY, Principal } from '@ivy/types';
 import { buildPagination, normalizePage } from '@ivy/common';
 import { SubscriptionService } from './subscription.service';
@@ -20,10 +19,7 @@ import { CurrentUser } from '../../global/decorator/current-user.decorator';
 import { Paginated } from '../../global/interceptor/transform.interceptor';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
-
-class CancelRequest {
-  @IsString() session_token: string;
-}
+import { CancelRequest } from './dto/request/subscription.request';
 
 /** Customer subscriptions (FR-043) — widget views + tenant admin list. */
 function toResponse(s: Subscription) {

@@ -27,7 +27,7 @@ import {
   ListDocumentsQuery,
   UpdateDocumentRequest,
   UpdateSourceRequest,
-} from './knowledge.dto';
+} from './dto/request/knowledge.request';
 
 /** Knowledge source & RAG corpus management (FR-064, FR-065). Tenant-scoped. */
 @ApiTags('Knowledge')

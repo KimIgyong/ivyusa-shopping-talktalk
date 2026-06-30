@@ -1,7 +1,7 @@
 import { Body, Controller, Post } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { OrderService } from './order.service';
-import { FulfillmentWebhookRequest } from './dto/order.dto';
+import { FulfillmentWebhookRequest } from './dto/request/order.request';
 import { Public } from '../../global/decorator/public.decorator';
 
 /** External webhook intake (FR-021). Public; verified out-of-band by signature/middleware. */
