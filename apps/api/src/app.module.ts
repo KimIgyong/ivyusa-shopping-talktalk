@@ -32,6 +32,7 @@ import { AiEngineModule } from './domain/ai-engine/ai-engine.module';
 import { AnalyticsModule } from './domain/analytics/analytics.module';
 import { CustomerModule } from './domain/customer/customer.module';
 import { PrivacyModule } from './domain/privacy/privacy.module';
+import { HealthModule } from './domain/health/health.module';
 
 @Module({
   imports: [
@@ -70,6 +71,7 @@ import { PrivacyModule } from './domain/privacy/privacy.module';
     AiEngineModule,
     AnalyticsModule,
     PrivacyModule,
+    HealthModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: JwtAuthGuard }],
 })

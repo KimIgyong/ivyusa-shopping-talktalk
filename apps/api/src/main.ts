@@ -9,6 +9,7 @@ import { AllExceptionFilter } from './global/filter/all-exception.filter';
 import { TransformInterceptor } from './global/interceptor/transform.interceptor';
 import { TenantContextInterceptor } from './global/interceptor/tenant-context.interceptor';
 import { LoggingInterceptor } from './global/interceptor/logging.interceptor';
+import { runSeed } from './database/seed.runner';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule, { cors: true });
@@ -35,6 +36,16 @@ async function bootstrap(): Promise<void> {
     .addBearerAuth()
     .build();
   SwaggerModule.setup(`${prefix}/docs`, app, SwaggerModule.createDocument(app, swagger));
+
+  // Optional self-bootstrap for staging/managed envs (no ts-node in the image).
+  if (config.get<string>('SEED_ON_BOOT') === 'true') {
+    try {
+      await runSeed(app.get(DataSource));
+      new Logger('Bootstrap').log('SEED_ON_BOOT: seed applied.');
+    } catch (e) {
+      new Logger('Bootstrap').error(`SEED_ON_BOOT failed: ${(e as Error).message}`);
+    }
+  }
 
   const port = config.get<number>('PORT', 3000);
   await app.listen(port);

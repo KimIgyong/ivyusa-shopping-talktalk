@@ -36,7 +36,16 @@ Format based on [Keep a Changelog](https://keepachangelog.com/); follows Amoeba 
 - **DTO normalization**: all 15 remaining flat/inline DTO modules moved to `dto/request/*.request.ts` (+ `dto/response` where applicable); no inline DTO classes left in controllers.
 - **SDLC doc chain**: `docs/analysis/REQ-…`, `docs/plan/PLAN-…`, `docs/test/TC-…` (Structure §8.2). Tests broadened to 46 (TenantSubscriber auto-stamp, RAG intent fallback). Soft-delete intentionally omitted (hard-delete + anonymize disposal model).
 
-### Verified (2026-06-18 / 2026-06-19)
+### Added — Staging deployment prep (2026-06-30)
+- **Health endpoint** `GET /api/v1/health` (liveness + DB readiness) + api `healthcheck` in staging/production compose.
+- **Self-bootstrap**: `runSeed(dataSource)` runner extracted; `SEED_ON_BOOT=true` seeds at API startup (no ts-node in image). `SEED_DEMO_DATA`/`SEED_PASSWORD` knobs.
+- **init-sql fixed**: `docker/init-sql/01-schema.sql` regenerated as valid schema-only DDL (backticked `rank`/`function`, seed INSERTs stripped). Staging drops the init-sql mount (uses `synchronize` + `SEED_ON_BOOT`); production keeps it (`synchronize=false`).
+- **Root `.dockerignore`** added (build context = repo root) so host `node_modules`/`dist` aren't copied into images.
+- `.env.staging`/`.env.production.example` extended (SEED_*, SHOPIFY_WEBHOOK_SECRET); real `.env.staging` generated with strong secrets (gitignored).
+- **Deploy runbook** `docs/guide/STAGING-DEPLOY.md` (checklist, deploy, verify, rollback).
+- **Validated**: staging `Dockerfile.api` builds; the image boots, connects to MySQL (`/health` db: up), and authenticates — verified end-to-end.
+
+### Verified (2026-06-18 / 2026-06-19 / 2026-06-30)
 - Full `turbo run build` green (5/5 workspaces).
 - Infra up, seed builds 37 tables + data, API boots with all routes, RabbitMQ connected.
 - E2E smoke tests pass: auth, RBAC allow/deny, widget RAG chat with KB citations through the moderation gate, auth gate, guest order lookup.

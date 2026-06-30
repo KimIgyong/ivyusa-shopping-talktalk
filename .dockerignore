@@ -1,0 +1,19 @@
+# Docker build context = repo root (compose `context: ../..`). Docker reads THIS file.
+# Keep in sync with .gitignore. Prevents copying host node_modules/dist into images.
+**/node_modules
+**/dist
+**/build
+**/.next
+.turbo
+**/.turbo
+.git
+.gitignore
+.github
+docs/log
+secrets
+**/.env
+**/.env.*
+!**/.env.*.example
+*.log
+.DS_Store
+apps/api/storage

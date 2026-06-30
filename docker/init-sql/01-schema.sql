@@ -319,7 +319,7 @@ CREATE TABLE users (
   tenant_id  BIGINT       NOT NULL,
   email      VARCHAR(255) NOT NULL,
   name       VARCHAR(255) NULL,
-  rank       VARCHAR(16)  NOT NULL DEFAULT 'staff', -- master/director/manager/staff
+  `rank`     VARCHAR(16)  NOT NULL DEFAULT 'staff', -- master/director/manager/staff
   status     VARCHAR(16)  NOT NULL DEFAULT 'active',
   created_at DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
@@ -352,12 +352,12 @@ CREATE TABLE user_job_labels (
 CREATE TABLE roles_permissions (
   id         BIGINT      NOT NULL AUTO_INCREMENT,
   scope      VARCHAR(16) NOT NULL,  -- system/tenant
-  rank       VARCHAR(16) NULL,      -- super_admin/admin/master/director/manager/staff
+  `rank`     VARCHAR(16) NULL,      -- super_admin/admin/master/director/manager/staff
   label      VARCHAR(24) NULL,      -- consult/accounting/operations or NULL
   capability VARCHAR(64) NOT NULL,
   allow      TINYINT(1)  NOT NULL DEFAULT 1,
   PRIMARY KEY (id),
-  KEY idx_rp_lookup (scope, rank, label, capability)
+  KEY idx_rp_lookup (scope, `rank`, label, capability)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ---------- integration_credentials (per-tenant, encrypted) ----------
@@ -411,7 +411,7 @@ CREATE TABLE invitations (
   id                 BIGINT       NOT NULL AUTO_INCREMENT,
   tenant_id          BIGINT       NOT NULL,
   email              VARCHAR(255) NOT NULL,
-  rank               VARCHAR(16)  NOT NULL DEFAULT 'staff',
+  `rank`             VARCHAR(16)  NOT NULL DEFAULT 'staff',
   token              VARCHAR(128) NOT NULL,
   temp_password_hash VARCHAR(255) NOT NULL,
   status             VARCHAR(16)  NOT NULL DEFAULT 'pending', -- pending/accepted/expired
@@ -484,21 +484,10 @@ ALTER TABLE kb_documents
 --   admin@amoeba.group / amb2026!@   (System Admin)
 --   dev@amoeba.group   / amb2026!@   (Tenant Master, owner of 'ivyusa')
 -- =====================================================================
-INSERT INTO tenants (shop_domain, name, status, plan)
-  VALUES ('ivyusa.myshopify.com', 'ivyusa', 'active', 'custom');
 
-INSERT INTO admin_users (email, password_hash, level, status, must_change_password)
-  VALUES ('admin@amoeba.group', '<BCRYPT(amb2026!@)>', 'admin', 'active', 1);
 
-INSERT INTO users (tenant_id, email, password_hash, name, rank, status, must_change_password)
-  VALUES ((SELECT id FROM tenants WHERE name='ivyusa'),
-          'dev@amoeba.group', '<BCRYPT(amb2026!@)>', 'Master Owner', 'master', 'active', 1);
 
 -- default job labels for tenant ivyusa
-INSERT INTO job_labels (tenant_id, code, name) VALUES
-  ((SELECT id FROM tenants WHERE name='ivyusa'), 'consult', '상담'),
-  ((SELECT id FROM tenants WHERE name='ivyusa'), 'accounting', '회계'),
-  ((SELECT id FROM tenants WHERE name='ivyusa'), 'operations', '운영');
 
 -- =====================================================================
 -- Agent Management & Response Moderation (FR-066~069, NFR-013)
@@ -609,11 +598,11 @@ CREATE TABLE ai_engines (
 CREATE TABLE tenant_ai_settings (
   id          BIGINT      NOT NULL AUTO_INCREMENT,
   tenant_id   BIGINT      NOT NULL,
-  function    VARCHAR(16) NOT NULL,  -- chat/rag/summary/assist/moderation
+  `function`  VARCHAR(16) NOT NULL,  -- chat/rag/summary/assist/moderation
   engine_id   BIGINT      NOT NULL,
   params_json JSON        NULL,      -- temperature, max_tokens, etc.
   PRIMARY KEY (id),
-  UNIQUE KEY uk_tenant_function (tenant_id, function),
+  UNIQUE KEY uk_tenant_function (tenant_id, `function`),
   KEY idx_tas_engine (engine_id),
   CONSTRAINT fk_tas_tenant FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
   CONSTRAINT fk_tas_engine FOREIGN KEY (engine_id) REFERENCES ai_engines(id) ON DELETE RESTRICT
