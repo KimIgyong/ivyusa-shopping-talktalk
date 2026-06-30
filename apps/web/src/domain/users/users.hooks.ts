@@ -35,6 +35,15 @@ export function useInviteUser() {
   });
 }
 
+export function useIssueTempPassword() {
+  return useMutation({
+    mutationFn: (id: string) => usersService.issueTempPassword(id),
+    onError: (e: Error) => {
+      toast.error(e.message || 'Failed to issue temporary password.');
+    },
+  });
+}
+
 export function useUpdateUser() {
   const qc = useQueryClient();
   const tenantKey = useTenantKey();

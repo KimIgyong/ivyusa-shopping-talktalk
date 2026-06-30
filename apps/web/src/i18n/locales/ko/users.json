@@ -12,5 +12,13 @@
   "editUser": "사용자 편집",
   "sendInvite": "초대 보내기",
   "noJobLabels": "사용 가능한 직무 라벨이 없습니다.",
-  "empty": "아직 사용자가 없습니다."
+  "empty": "아직 사용자가 없습니다.",
+  "tempPassword": "임시 비밀번호",
+  "issueTempPassword": "임시 비밀번호 발급",
+  "tempPwTitle": "임시 비밀번호",
+  "tempPwFor": "임시 비밀번호 대상",
+  "tempPwDesc": "안전한 경로로 사용자에게 전달하세요. 최초 로그인 시 반드시 변경해야 합니다. 이 값은 한 번만 표시됩니다.",
+  "tempPwIssued": "임시 비밀번호가 발급되었습니다.",
+  "copy": "복사",
+  "copied": "복사됨"
 }

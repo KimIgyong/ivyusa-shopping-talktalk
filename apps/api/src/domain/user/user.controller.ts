@@ -65,6 +65,13 @@ export class UserController {
     return this.userService.acceptInvite(body.token, body.new_password);
   }
 
+  @Post(':id/temp-password')
+  @RequireCapability(CAPABILITY.USER_INVITE)
+  @ApiOperation({ summary: 'Issue a temporary password for a user (admin hands it off manually)' })
+  issueTempPassword(@CurrentUser() user: Principal, @Param('id', ParseIntPipe) id: number) {
+    return this.userService.issueTempPassword(asTenantUser(user).tenantId, id);
+  }
+
   @Patch(':id/rank')
   @RequireCapability(CAPABILITY.USER_RANK_ADJUST)
   @ApiOperation({ summary: 'Adjust a user rank' })

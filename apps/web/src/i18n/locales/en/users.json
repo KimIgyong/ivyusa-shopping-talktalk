@@ -12,5 +12,13 @@
   "editUser": "Edit user",
   "sendInvite": "Send invite",
   "noJobLabels": "No job labels available.",
-  "empty": "No users yet."
+  "empty": "No users yet.",
+  "tempPassword": "Temp password",
+  "issueTempPassword": "Issue temporary password",
+  "tempPwTitle": "Temporary password",
+  "tempPwFor": "Temporary password for",
+  "tempPwDesc": "Share this with the user through a secure channel. They must change it on first login. It is shown only once.",
+  "tempPwIssued": "Temporary password issued.",
+  "copy": "Copy",
+  "copied": "Copied"
 }

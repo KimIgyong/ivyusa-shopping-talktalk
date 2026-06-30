@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { UserPlus } from 'lucide-react';
+import { UserPlus, KeyRound, Copy, Check } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { PageHeader } from '@/components/PageHeader';
 import { Card } from '@/components/Card';
@@ -10,7 +10,14 @@ import { Table } from '@/components/Table';
 import type { Column } from '@/components/Table';
 import { Modal } from '@/components/Modal';
 import { FormRow, Input, Select } from '@/components/Field';
-import { useUsers, useJobLabels, useInviteUser, useUpdateUser } from './users.hooks';
+import { toast } from '@/store/toast-store';
+import {
+  useUsers,
+  useJobLabels,
+  useInviteUser,
+  useUpdateUser,
+  useIssueTempPassword,
+} from './users.hooks';
 import type { JobLabel, TenantUser } from './users.service';
 
 const RANKS = ['master', 'director', 'manager', 'staff'] as const;
@@ -59,6 +66,21 @@ export function UsersPage() {
   const { data: jobLabels } = useJobLabels();
   const inviteUser = useInviteUser();
   const updateUser = useUpdateUser();
+  const issueTempPw = useIssueTempPassword();
+
+  // Result of a temp-password issuance / invite — shown once for manual hand-off.
+  const [tempResult, setTempResult] = useState<{ email: string; tempPassword: string } | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  const copyTempPw = async () => {
+    if (!tempResult) return;
+    try {
+      await navigator.clipboard.writeText(tempResult.tempPassword);
+      setCopied(true);
+    } catch {
+      setCopied(false);
+    }
+  };
 
   const labels = useMemo<JobLabel[]>(() => jobLabels ?? [], [jobLabels]);
   const labelNameByCode = useMemo(() => {
@@ -88,8 +110,18 @@ export function UsersPage() {
   };
 
   const onInvite = async () => {
-    await inviteUser.mutateAsync({ email, rank: inviteRank, label_codes: inviteCodes });
+    const res = await inviteUser.mutateAsync({ email, rank: inviteRank, label_codes: inviteCodes });
     setInviteOpen(false);
+    // Show the generated temp password so the admin can relay it (besides email).
+    setCopied(false);
+    setTempResult({ email, tempPassword: res.tempPassword });
+  };
+
+  const onIssueTempPw = async (u: TenantUser) => {
+    const res = await issueTempPw.mutateAsync(u.id);
+    setCopied(false);
+    setTempResult({ email: res.email ?? u.email, tempPassword: res.tempPassword });
+    toast.success(t('tempPwIssued'));
   };
 
   const openEdit = (u: TenantUser) => {
@@ -132,9 +164,21 @@ export function UsersPage() {
       key: 'action',
       header: '',
       render: (u) => (
-        <Button variant="secondary" size="sm" onClick={() => openEdit(u)}>
-          {tc('edit')}
-        </Button>
+        <div className="flex justify-end gap-2">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => onIssueTempPw(u)}
+            disabled={issueTempPw.isPending}
+            title={t('issueTempPassword')}
+          >
+            <KeyRound className="mr-1 h-3.5 w-3.5" />
+            {t('tempPassword')}
+          </Button>
+          <Button variant="secondary" size="sm" onClick={() => openEdit(u)}>
+            {tc('edit')}
+          </Button>
+        </div>
       ),
     },
   ];
@@ -244,6 +288,35 @@ export function UsersPage() {
             ))}
           </Select>
         </FormRow>
+      </Modal>
+
+      <Modal
+        open={tempResult !== null}
+        onClose={() => setTempResult(null)}
+        title={t('tempPwTitle')}
+        footer={
+          <Button onClick={() => setTempResult(null)}>{tc('close')}</Button>
+        }
+      >
+        {tempResult && (
+          <div className="space-y-3">
+            <p className="text-sm text-gray-600">
+              {t('tempPwFor')} <span className="font-medium text-gray-900">{tempResult.email}</span>
+            </p>
+            <div className="flex items-center gap-2">
+              <code className="flex-1 select-all rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 font-mono text-base text-gray-900">
+                {tempResult.tempPassword}
+              </code>
+              <Button variant="secondary" size="sm" onClick={copyTempPw} aria-label={t('copy')}>
+                {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                <span className="ml-1">{copied ? t('copied') : t('copy')}</span>
+              </Button>
+            </div>
+            <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+              {t('tempPwDesc')}
+            </p>
+          </div>
+        )}
       </Modal>
     </div>
   );

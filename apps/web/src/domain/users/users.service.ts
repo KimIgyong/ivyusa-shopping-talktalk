@@ -26,9 +26,24 @@ export interface UpdateUserBody {
   status?: string;
 }
 
+export interface InviteResult {
+  invitationToken: string;
+  tempPassword: string;
+  userId: string;
+}
+
+export interface TempPasswordResult {
+  userId: string;
+  email: string;
+  tempPassword: string;
+}
+
 export const usersService = {
   list: () => apiGet<TenantUser[]>('/users'),
   jobLabels: () => apiGet<JobLabel[]>('/job-labels'),
-  invite: (body: InviteUserBody) => apiPost<TenantUser>('/users/invite', body),
+  invite: (body: InviteUserBody) => apiPost<InviteResult>('/users/invite', body),
   update: (id: string, body: UpdateUserBody) => apiPatch<TenantUser>(`/users/${id}`, body),
+  // Issue a fresh temporary password for an existing user (admin relays it manually).
+  issueTempPassword: (id: string) =>
+    apiPost<TempPasswordResult>(`/users/${id}/temp-password`, {}),
 };

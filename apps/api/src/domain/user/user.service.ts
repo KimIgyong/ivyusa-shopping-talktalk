@@ -2,7 +2,7 @@ import { HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
-import { generateToken } from '@ivy/common';
+import { generateToken, generateCode } from '@ivy/common';
 import { User } from './entity/user.entity';
 import { JobLabel } from './entity/job-label.entity';
 import { UserJobLabel } from './entity/user-job-label.entity';
@@ -17,7 +17,6 @@ import {
   UserResponse,
 } from './dto/response/user.response';
 
-const TEMP_PASSWORD = 'amb2026!@';
 import { BCRYPT_ROUNDS } from '../../global/constant/security.constant';
 const INVITE_TTL_MS = 72 * 60 * 60 * 1000;
 
@@ -66,7 +65,8 @@ export class UserService {
     }
 
     const now = new Date();
-    const tempPasswordHash = await bcrypt.hash(TEMP_PASSWORD, BCRYPT_ROUNDS);
+    const tempPassword = this.genTempPassword();
+    const tempPasswordHash = await bcrypt.hash(tempPassword, BCRYPT_ROUNDS);
 
     const user = await this.userRepo.save(
       this.userRepo.create({
@@ -96,7 +96,25 @@ export class UserService {
 
     await this.assignLabels(tenantId, user.id, labelCodes);
 
-    return { invitationToken: token, tempPassword: TEMP_PASSWORD, userId: user.id };
+    return { invitationToken: token, tempPassword, userId: user.id };
+  }
+
+  /**
+   * Issue a fresh temporary password for an existing user (FR-063 / POL-018).
+   * Besides the email-invitation flow, this lets an admin generate a temp password
+   * and hand it to the user out-of-band. The user must change it on first login.
+   * Returns the plaintext ONCE so the admin can relay it manually.
+   */
+  async issueTempPassword(
+    tenantId: number,
+    userId: number,
+  ): Promise<{ userId: number; email: string; tempPassword: string }> {
+    const user = await this.getTenantUser(tenantId, userId);
+    const tempPassword = this.genTempPassword();
+    user.passwordHash = await bcrypt.hash(tempPassword, BCRYPT_ROUNDS);
+    user.mustChangePassword = 1;
+    await this.userRepo.save(user);
+    return { userId: user.id, email: user.email, tempPassword };
   }
 
   async acceptInvite(token: string, newPassword: string): Promise<{ accepted: true }> {
@@ -180,6 +198,11 @@ export class UserService {
   }
 
   // ---- helpers ----
+
+  /** Readable, reasonably strong one-time temp password (e.g. "Ivy7KQ2MA3B!"). */
+  private genTempPassword(): string {
+    return `Ivy${generateCode(8)}!`;
+  }
 
   private async getTenantUser(tenantId: number, userId: number): Promise<User> {
     const user = await this.userRepo.findOne({ where: { id: userId } });

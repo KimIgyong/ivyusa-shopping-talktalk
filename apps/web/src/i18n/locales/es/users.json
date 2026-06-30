@@ -12,5 +12,13 @@
   "editUser": "Editar usuario",
   "sendInvite": "Enviar invitación",
   "noJobLabels": "No hay etiquetas de puesto disponibles.",
-  "empty": "Aún no hay usuarios."
+  "empty": "Aún no hay usuarios.",
+  "tempPassword": "Contraseña temporal",
+  "issueTempPassword": "Emitir contraseña temporal",
+  "tempPwTitle": "Contraseña temporal",
+  "tempPwFor": "Contraseña temporal para",
+  "tempPwDesc": "Compártela con el usuario por un canal seguro. Deberá cambiarla en el primer inicio de sesión. Se muestra una sola vez.",
+  "tempPwIssued": "Contraseña temporal emitida.",
+  "copy": "Copiar",
+  "copied": "Copiado"
 }
