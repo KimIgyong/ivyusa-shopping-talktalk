@@ -63,7 +63,8 @@ export function ReviewForm({
             onMouseEnter={() => setHover(v)}
             onMouseLeave={() => setHover(0)}
             onClick={() => setRating(v)}
-            aria-label={`${v} stars`}
+            aria-label={t('review.stars', { count: v })}
+            className="rounded focus:outline-none focus:ring-2 focus:ring-primary-500"
           >
             <Star
               className={`h-6 w-6 ${
@@ -80,7 +81,7 @@ export function ReviewForm({
         onChange={(e) => setBody(e.target.value)}
         placeholder={t('review.placeholder')}
         rows={3}
-        className="mb-2 w-full resize-none rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-primary-400 focus:outline-none"
+        className="mb-2 w-full resize-none rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
       />
       <div className="flex gap-2">
         <button

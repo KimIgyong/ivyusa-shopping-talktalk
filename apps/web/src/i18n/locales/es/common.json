@@ -27,6 +27,8 @@
   "disabled": "Desactivado",
   "connected": "Conectado",
   "notSet": "Sin configurar",
+  "close": "Cerrar",
+  "dialog": "Diálogo",
   "pagination": {
     "range": "{{from}}–{{to}} de {{total}}",
     "pageOf": "{{page}} / {{totalPages}}"

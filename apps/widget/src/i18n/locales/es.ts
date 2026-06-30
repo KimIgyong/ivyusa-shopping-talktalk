@@ -112,6 +112,8 @@ export const es: Translation = {
     placeholder: 'Comparte tu experiencia…',
     submit: 'Enviar reseña',
     thanks: '¡Gracias por tu reseña!',
+    stars_one: '{{count}} estrella',
+    stars_other: '{{count}} estrellas',
   },
 
   prefs: {
@@ -136,5 +138,15 @@ export const es: Translation = {
     loading: 'Cargando…',
     error: 'Algo salió mal.',
     retry: 'Reintentar',
+  },
+
+  a11y: {
+    supportWidget: 'Widget de soporte',
+    openSupport: 'Abrir soporte',
+    closeSupport: 'Cerrar soporte',
+    close: 'Cerrar',
+    messageThread: 'Hilo de mensajes',
+    verifyIdentity: 'Verifica tu identidad',
+    privacyNotice: 'Aviso de privacidad',
   },
 };

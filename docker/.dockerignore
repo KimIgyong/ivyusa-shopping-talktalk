@@ -1,0 +1,46 @@
+# Build context exclusions for all IVY TalkTalk images.
+# NOTE: docker build with -f docker/<env>/Dockerfile.* uses the repo root as
+# context, so place ignores relative to the root. Keep this in sync with .gitignore.
+
+# dependencies (reinstalled in-image)
+**/node_modules
+
+# builds (rebuilt in-image)
+**/dist
+**/build
+**/.next
+**/out
+*.tsbuildinfo
+
+# turbo cache
+.turbo
+**/.turbo
+
+# vcs / ci
+.git
+.gitignore
+.github
+
+# env / secrets (passed at runtime via env_file, never baked in)
+.env
+.env.*
+**/.env
+**/.env.*
+
+# docs / design / misc not needed for builds
+docs
+design
+reference
+standards
+*.md
+*.docx
+
+# os / editor
+.DS_Store
+**/.DS_Store
+.idea
+.vscode
+*.swp
+
+# local dev uploads
+apps/api/storage

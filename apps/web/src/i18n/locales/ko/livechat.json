@@ -21,5 +21,7 @@
   "noCustomerContext": "고객 정보가 없습니다.",
   "recentOrders": "최근 주문",
   "messageBlocked": "모더레이션에 의해 메시지가 차단되었습니다.",
-  "sendFailed": "전송에 실패했습니다."
+  "sendFailed": "전송에 실패했습니다.",
+  "send": "전송",
+  "messageThread": "메시지 목록"
 }

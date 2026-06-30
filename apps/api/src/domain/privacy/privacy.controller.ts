@@ -11,8 +11,10 @@ import {
   ShopRedactRequest,
 } from './dto/privacy.dto';
 import { Public } from '../../global/decorator/public.decorator';
+import { AdminOnly } from '../../global/decorator/auth.decorator';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
+import { RetentionService } from './retention.service';
 
 /**
  * Shopify mandatory GDPR/compliance webhooks (audit High-2). Public; HMAC-verified.
@@ -72,11 +74,10 @@ export class ShopifyComplianceController {
 
   @Post('shop/redact')
   @Public()
-  @ApiOperation({ summary: 'Shopify GDPR: redact shop (audit High-2)' })
+  @ApiOperation({ summary: 'Shopify GDPR: redact shop — full tenant purge (audit High-2)' })
   async shopRedact(@Body() body: ShopRedactRequest, @Req() req: Request) {
     this.verifyShopifyHmac(body, this.hmacOf(req));
-    await this.privacyService.handleShopRedact(body.shop_domain ?? null);
-    return { received: true };
+    return this.privacyService.handleShopRedact(body.shop_domain ?? null);
   }
 }
 
@@ -87,7 +88,19 @@ export class ShopifyComplianceController {
 @ApiTags('Privacy')
 @Controller('privacy')
 export class PrivacyController {
-  constructor(private readonly privacyService: PrivacyService) {}
+  constructor(
+    private readonly privacyService: PrivacyService,
+    private readonly retentionService: RetentionService,
+  ) {}
+
+  // NOTE: schedule via @nestjs/schedule in production — this manual endpoint
+  // lets an admin trigger/verify disposal of expired conversation logs (POL-003).
+  @Post('retention/purge')
+  @AdminOnly()
+  @ApiOperation({ summary: 'Retention/disposal: purge expired conversation logs (POL-003)' })
+  async retentionPurge() {
+    return this.retentionService.purgeExpired();
+  }
 
   @Get('export')
   @Public()

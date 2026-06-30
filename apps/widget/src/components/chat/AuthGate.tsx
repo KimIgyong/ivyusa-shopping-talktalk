@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { LogIn, Search } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { guestLookup } from '../../services/orderService';
@@ -18,6 +18,18 @@ export function AuthGate({
   const [email, setEmail] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const titleId = useId();
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Esc cancels; focus the dialog on open.
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onCancel();
+    };
+    document.addEventListener('keydown', onKeyDown);
+    containerRef.current?.focus();
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [onCancel]);
 
   async function submit() {
     if (!sessionToken) return;
@@ -34,8 +46,15 @@ export function AuthGate({
   }
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-3">
-      <div className="mb-1 text-sm font-semibold text-gray-800">
+    <div
+      ref={containerRef}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby={titleId}
+      tabIndex={-1}
+      className="rounded-lg border border-gray-200 bg-white p-3 focus:outline-none"
+    >
+      <div id={titleId} className="mb-1 text-sm font-semibold text-gray-800">
         {t('auth.title')}
       </div>
       <p className="mb-3 text-xs text-gray-600">{t('auth.body')}</p>
@@ -69,14 +88,14 @@ export function AuthGate({
             value={orderNumber}
             onChange={(e) => setOrderNumber(e.target.value)}
             placeholder={t('auth.orderNumber')}
-            className="rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-primary-400 focus:outline-none"
+            className="rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
           />
           <input
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder={t('auth.email')}
             type="email"
-            className="rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-primary-400 focus:outline-none"
+            className="rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
           />
           {error && <p className="text-xs text-error">{error}</p>}
           <button

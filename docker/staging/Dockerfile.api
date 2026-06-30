@@ -1,0 +1,41 @@
+# syntax=docker/dockerfile:1
+# IVY TalkTalk — API (NestJS) image, staging. Amoeba Structure v2 §5.1.
+# Build context MUST be the repo root: docker build -f docker/staging/Dockerfile.api .
+
+# ---- Build stage ----------------------------------------------------------
+FROM node:20-alpine AS build
+WORKDIR /app
+
+# Workspace manifests first (better layer caching for npm install).
+COPY package.json package-lock.json turbo.json tsconfig.json ./
+COPY apps/api/package.json apps/api/
+COPY apps/web/package.json apps/web/
+COPY apps/widget/package.json apps/widget/
+COPY packages/types/package.json packages/types/
+COPY packages/common/package.json packages/common/
+
+RUN npm install
+
+# Source.
+COPY . .
+
+# Build @ivy/api and its workspace deps (^build → packages/types, packages/common).
+RUN npx turbo run build --filter=@ivy/api...
+
+# ---- Runtime stage --------------------------------------------------------
+FROM node:20-alpine AS runtime
+WORKDIR /app
+ENV NODE_ENV=staging
+
+# Built app + workspace package dists + installed deps.
+COPY --from=build /app/package.json /app/package-lock.json ./
+COPY --from=build /app/node_modules ./node_modules
+COPY --from=build /app/apps/api/package.json ./apps/api/package.json
+COPY --from=build /app/apps/api/dist ./apps/api/dist
+COPY --from=build /app/packages/types/package.json ./packages/types/package.json
+COPY --from=build /app/packages/types/dist ./packages/types/dist
+COPY --from=build /app/packages/common/package.json ./packages/common/package.json
+COPY --from=build /app/packages/common/dist ./packages/common/dist
+
+EXPOSE 3000
+CMD ["node", "apps/api/dist/main.js"]

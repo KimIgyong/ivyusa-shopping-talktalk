@@ -27,6 +27,8 @@
   "disabled": "비활성화됨",
   "connected": "연결됨",
   "notSet": "미설정",
+  "close": "닫기",
+  "dialog": "대화상자",
   "pagination": {
     "range": "{{total}}개 중 {{from}}–{{to}}",
     "pageOf": "{{page}} / {{totalPages}}"

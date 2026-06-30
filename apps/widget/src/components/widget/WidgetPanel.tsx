@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Settings, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useWidgetStore } from '../../store/widgetStore';
@@ -14,17 +14,31 @@ export function WidgetPanel() {
   const activeTab = useWidgetStore((s) => s.activeTab);
   const setPanelOpen = useWidgetStore((s) => s.setPanelOpen);
   const [showSettings, setShowSettings] = useState(false);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  // Esc closes the panel; focus the panel on open.
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setPanelOpen(false);
+    };
+    document.addEventListener('keydown', onKeyDown);
+    panelRef.current?.focus();
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [setPanelOpen]);
 
   return (
     <div
+      ref={panelRef}
       className={[
-        'flex flex-col overflow-hidden bg-white shadow-lg',
+        'flex flex-col overflow-hidden bg-white shadow-lg focus:outline-none',
         // mobile: full-width bottom sheet; desktop: floating card
         'fixed inset-x-0 bottom-0 top-0 rounded-none',
         'sm:inset-auto sm:bottom-24 sm:right-5 sm:top-auto sm:h-[600px] sm:w-[380px] sm:rounded-xl',
       ].join(' ')}
       role="dialog"
-      aria-label="Support widget"
+      aria-modal="true"
+      aria-label={t('a11y.supportWidget')}
+      tabIndex={-1}
     >
       {/* Header */}
       <header className="flex items-center justify-between bg-primary-500 px-4 py-3 text-white">
@@ -36,7 +50,7 @@ export function WidgetPanel() {
           <button
             onClick={() => setShowSettings((v) => !v)}
             aria-label={t('settings')}
-            className={`rounded-lg p-1.5 hover:bg-white/20 ${
+            className={`rounded-lg p-1.5 hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/70 ${
               showSettings ? 'bg-white/20' : ''
             }`}
           >
@@ -44,8 +58,8 @@ export function WidgetPanel() {
           </button>
           <button
             onClick={() => setPanelOpen(false)}
-            aria-label="Close"
-            className="rounded-lg p-1.5 hover:bg-white/20"
+            aria-label={t('a11y.close')}
+            className="rounded-lg p-1.5 hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/70"
           >
             <X className="h-4 w-4" />
           </button>

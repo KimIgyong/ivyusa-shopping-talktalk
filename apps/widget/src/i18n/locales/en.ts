@@ -110,6 +110,8 @@ export const en = {
     placeholder: 'Share your experience…',
     submit: 'Submit review',
     thanks: 'Thanks for your review!',
+    stars_one: '{{count}} star',
+    stars_other: '{{count}} stars',
   },
 
   prefs: {
@@ -134,6 +136,16 @@ export const en = {
     loading: 'Loading…',
     error: 'Something went wrong.',
     retry: 'Retry',
+  },
+
+  a11y: {
+    supportWidget: 'Support widget',
+    openSupport: 'Open support',
+    closeSupport: 'Close support',
+    close: 'Close',
+    messageThread: 'Message thread',
+    verifyIdentity: 'Verify your identity',
+    privacyNotice: 'Privacy notice',
   },
 };
 

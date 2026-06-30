@@ -21,5 +21,7 @@
   "noCustomerContext": "Sin contexto del cliente.",
   "recentOrders": "Pedidos recientes",
   "messageBlocked": "Mensaje bloqueado por moderación.",
-  "sendFailed": "Error al enviar."
+  "sendFailed": "Error al enviar.",
+  "send": "Enviar",
+  "messageThread": "Hilo de mensajes"
 }

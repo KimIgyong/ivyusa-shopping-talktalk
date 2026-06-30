@@ -117,6 +117,11 @@ export function ChatTab() {
       {/* Thread */}
       <div
         ref={scrollRef}
+        role="log"
+        aria-live="polite"
+        aria-relevant="additions"
+        aria-busy={sending}
+        aria-label={t('a11y.messageThread')}
         className="scroll-thin flex-1 space-y-3 overflow-y-auto p-3"
       >
         {!consented && (
@@ -189,13 +194,13 @@ export function ChatTab() {
           onChange={(e) => setInput(e.target.value)}
           placeholder={t('chat.inputPlaceholder')}
           disabled={!consented}
-          className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-primary-400 focus:outline-none disabled:bg-gray-50"
+          className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:bg-gray-50"
         />
         <button
           type="submit"
           disabled={!consented || sending || !input.trim()}
           aria-label={t('chat.send')}
-          className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-primary-500 text-white hover:bg-primary-600 disabled:opacity-40"
+          className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-primary-500 text-white hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-40"
         >
           <Send className="h-4 w-4" />
         </button>

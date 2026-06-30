@@ -27,6 +27,8 @@
   "disabled": "Disabled",
   "connected": "Connected",
   "notSet": "Not set",
+  "close": "Close",
+  "dialog": "Dialog",
   "pagination": {
     "range": "{{from}}–{{to}} of {{total}}",
     "pageOf": "{{page}} / {{totalPages}}"

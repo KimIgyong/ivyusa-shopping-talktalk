@@ -27,6 +27,11 @@ Format based on [Keep a Changelog](https://keepachangelog.com/); follows Amoeba 
   - **bcrypt** cost raised 10→12 via shared `BCRYPT_ROUNDS` constant.
   - **Full multi-tenancy**: `tenant_id` added to all 14 remaining customer/tenant-scoped tables; AsyncLocalStorage `TenantContext` + global `TenantContextInterceptor` + TypeORM `TenantSubscriber` (auto-stamp on insert); admin reads filtered by `user.tenantId`. Verified 0 null tenant_id on new rows + tenant-filtered admin lists. Seed now self-heals bootstrap credentials + backfills tenant_id.
 
+### Added — Medium gap fixes (2026-06-30)
+- **Privacy/retention**: full tenant purge in Shopify `shop/redact`; `LoggingInterceptor` (no PII in logs) + `maskPii` util; DSAR-export audit; `RetentionService` + `POST /privacy/retention/purge` (POL-003, `CONVERSATION_LOG_RETENTION_DAYS`).
+- **Deployment**: `docker/{staging,production}` Dockerfiles (api/web), env-separated compose (validated), nginx reverse proxy, `deploy-{dev,staging,production}.sh` (Structure §5.1).
+- **Frontend**: tenantId in React Query keys (admin, `useTenantKey()`); WCAG a11y — modals (`role=dialog`/`aria-modal`/Esc/focus-restore), chat logs (`role=log`/`aria-live`), icon-button `aria-label`s, focus rings — in admin + widget (aria text via i18n en/es/ko).
+
 ### Verified (2026-06-18 / 2026-06-19)
 - Full `turbo run build` green (5/5 workspaces).
 - Infra up, seed builds 37 tables + data, API boots with all routes, RabbitMQ connected.

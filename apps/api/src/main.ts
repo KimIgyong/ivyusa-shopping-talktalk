@@ -8,6 +8,7 @@ import { AppModule } from './app.module';
 import { AllExceptionFilter } from './global/filter/all-exception.filter';
 import { TransformInterceptor } from './global/interceptor/transform.interceptor';
 import { TenantContextInterceptor } from './global/interceptor/tenant-context.interceptor';
+import { LoggingInterceptor } from './global/interceptor/logging.interceptor';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule, { cors: true });
@@ -19,10 +20,12 @@ async function bootstrap(): Promise<void> {
     new ValidationPipe({ whitelist: true, transform: true, forbidNonWhitelisted: false }),
   );
   app.useGlobalFilters(new AllExceptionFilter());
-  // Tenant context (outer) wraps the handler in AsyncLocalStorage; Transform (inner) wraps the response.
+  // Tenant context (outer) wraps the handler in AsyncLocalStorage; Transform wraps the
+  // response; Logging (inner-most) records method/path/status/duration with no PII.
   app.useGlobalInterceptors(
     new TenantContextInterceptor(app.get(DataSource)),
     new TransformInterceptor(),
+    new LoggingInterceptor(),
   );
 
   const swagger = new DocumentBuilder()

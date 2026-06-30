@@ -319,7 +319,14 @@ Full evidence: `docs/report/RPT-Standards-Compliance-Audit-20260619.md`.
 - ✅ **Full `tenant_id` coverage** — added to all 14 remaining customer/tenant-scoped tables (conversations, messages, orders_cache, order_items, fulfillments, notifications, notification_prefs, reviews, affiliates, subscriptions, restock_subscriptions, inquiries, cjm_events, campaigns).
 - ✅ **Global tenant-scope** — AsyncLocalStorage `TenantContext` + `TenantContextInterceptor` (resolves tenant from JWT principal / widget session / default) + TypeORM `TenantSubscriber` auto-stamping `tenant_id` on insert (≈ `OwnEntityGuard`). Admin reads filter by `user.tenantId`. Verified: new rows = 0 nulls; admin lists tenant-filtered.
 
-**Remaining — Medium** — full tenant purge in `shop/redact`; PII masking in logs + PII-access audit; retention/disposal policy; normalize DTO folders + add missing mappers; tenantId in React Query keys; staging/prod Docker + deploy scripts; modal/chat a11y.
+**Resolved (2026-06-30)**
+- ✅ Full tenant purge in `shop/redact` (anonymize customers + delete all tenant-scoped rows in a transaction).
+- ✅ PII masking — `LoggingInterceptor` logs method/path/status/duration only (no bodies/PII); `maskPii` util; DSAR export writes a `dsar.export` audit (masked email).
+- ✅ Retention/disposal (POL-003) — `RetentionService.purgeExpired()` + `POST /privacy/retention/purge` (admin); `CONVERSATION_LOG_RETENTION_DAYS` (default 365).
+- ✅ Staging/production Docker — `docker/{staging,production}` Dockerfiles (api/web), compose (validated), nginx, `deploy-*.sh` (Structure §5.1).
+- ✅ tenantId in React Query keys (admin app, `useTenantKey()`); modal/chat a11y (role=dialog/Esc/focus, `aria-live` chat logs, icon-button aria-labels, focus rings) in both frontends.
+
+**Remaining — Medium** — normalize DTO folders (`dto/request` + `dto/response`) + add missing mappers (chat/session/order-webhook) across modules.
 **Low** — tests (currently 0); complete analysis/plan/test doc chain; soft-delete columns; full primary 50–900 ramp; `@MasterOrAdmin` alias.
 
 ## 15. Reference (참조)

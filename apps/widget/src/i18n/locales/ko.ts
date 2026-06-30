@@ -112,6 +112,8 @@ export const ko: Translation = {
     placeholder: '이용 경험을 들려주세요…',
     submit: '리뷰 등록',
     thanks: '리뷰를 남겨 주셔서 감사합니다!',
+    stars_one: '별 {{count}}개',
+    stars_other: '별 {{count}}개',
   },
 
   prefs: {
@@ -136,5 +138,15 @@ export const ko: Translation = {
     loading: '불러오는 중…',
     error: '문제가 발생했습니다.',
     retry: '다시 시도',
+  },
+
+  a11y: {
+    supportWidget: '고객 지원 위젯',
+    openSupport: '고객 지원 열기',
+    closeSupport: '고객 지원 닫기',
+    close: '닫기',
+    messageThread: '메시지 목록',
+    verifyIdentity: '본인 인증',
+    privacyNotice: '개인정보 처리 안내',
   },
 };

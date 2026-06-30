@@ -1,9 +1,11 @@
-import { HttpStatus, Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { Customer } from '../customer/entity/customer.entity';
 import { Session } from '../session/entity/session.entity';
 import { OrderCache } from '../order/entity/order-cache.entity';
+import { OrderItem } from '../order/entity/order-item.entity';
+import { Fulfillment } from '../order/entity/fulfillment.entity';
 import { Conversation } from '../chat/entity/conversation.entity';
 import { Message } from '../chat/entity/message.entity';
 import { Notification } from '../notification/entity/notification.entity';
@@ -11,9 +13,15 @@ import { NotificationPref } from '../notification/entity/notification-pref.entit
 import { Review } from '../review/entity/review.entity';
 import { Inquiry } from '../inquiry/entity/inquiry.entity';
 import { CjmEvent } from '../cjm/entity/cjm-event.entity';
+import { Affiliate } from '../affiliate/entity/affiliate.entity';
+import { Subscription } from '../subscription/entity/subscription.entity';
+import { RestockSubscription } from '../restock/entity/restock-subscription.entity';
+import { Campaign } from '../campaign/entity/campaign.entity';
+import { Tenant } from '../tenant/entity/tenant.entity';
 import { AuditService } from '../audit/audit.service';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
+import { maskPii } from '../../global/util/pii.util';
 
 const REDACTED = '[redacted]';
 const EXTERNAL_CHANNELS = ['email', 'sms', 'web_push'];
@@ -26,10 +34,14 @@ const PREF_CATEGORIES = ['payment', 'shipping', 'event', 'review'];
  */
 @Injectable()
 export class PrivacyService {
+  private readonly logger = new Logger(PrivacyService.name);
+
   constructor(
     @InjectRepository(Customer) private readonly customerRepo: Repository<Customer>,
     @InjectRepository(Session) private readonly sessionRepo: Repository<Session>,
     @InjectRepository(OrderCache) private readonly orderRepo: Repository<OrderCache>,
+    @InjectRepository(OrderItem) private readonly orderItemRepo: Repository<OrderItem>,
+    @InjectRepository(Fulfillment) private readonly fulfillmentRepo: Repository<Fulfillment>,
     @InjectRepository(Conversation) private readonly conversationRepo: Repository<Conversation>,
     @InjectRepository(Message) private readonly messageRepo: Repository<Message>,
     @InjectRepository(Notification) private readonly notificationRepo: Repository<Notification>,
@@ -37,6 +49,12 @@ export class PrivacyService {
     @InjectRepository(Review) private readonly reviewRepo: Repository<Review>,
     @InjectRepository(Inquiry) private readonly inquiryRepo: Repository<Inquiry>,
     @InjectRepository(CjmEvent) private readonly cjmRepo: Repository<CjmEvent>,
+    @InjectRepository(Affiliate) private readonly affiliateRepo: Repository<Affiliate>,
+    @InjectRepository(Subscription) private readonly subscriptionRepo: Repository<Subscription>,
+    @InjectRepository(RestockSubscription)
+    private readonly restockRepo: Repository<RestockSubscription>,
+    @InjectRepository(Campaign) private readonly campaignRepo: Repository<Campaign>,
+    @InjectRepository(Tenant) private readonly tenantRepo: Repository<Tenant>,
     private readonly audit: AuditService,
   ) {}
 
@@ -81,18 +99,70 @@ export class PrivacyService {
   }
 
   /**
-   * GDPR "redact shop" — full tenant purge is a roadmap item. Anonymize the
-   * tenant's customers when the shop domain resolves to a tenant; otherwise audit.
+   * GDPR "redact shop" — full tenant purge. Resolve the tenant from shop_domain,
+   * anonymize its customers, and delete all tenant-scoped rows by tenant_id.
+   * Returns { purged: false } (without 500) when the shop does not resolve.
    */
-  async handleShopRedact(shopDomain: string | null): Promise<void> {
+  async handleShopRedact(shopDomain: string | null): Promise<{ purged: boolean; tenantId?: number }> {
+    const tenant = shopDomain
+      ? await this.tenantRepo.findOne({ where: { shopDomain } })
+      : null;
+
+    if (!tenant) {
+      await this.audit.write({
+        tenantId: null,
+        actorType: 'admin',
+        actorId: 0,
+        action: 'gdpr.shop_redact',
+        target: shopDomain ?? undefined,
+      });
+      return { purged: false };
+    }
+
+    const tenantId = tenant.id;
+    await this.purgeTenant(tenantId);
+
     await this.audit.write({
-      tenantId: null,
+      tenantId,
       actorType: 'admin',
       actorId: 0,
       action: 'gdpr.shop_redact',
-      target: shopDomain ?? undefined,
+      target: shopDomain ?? String(tenantId),
     });
-    // NOTE: tenant resolution from shop_domain + full purge is a roadmap item.
+
+    return { purged: true, tenantId };
+  }
+
+  /**
+   * Anonymize the tenant's customers and delete all tenant-scoped rows. Wrapped in
+   * a transaction so a partial failure rolls back. Order items/fulfillments are
+   * deleted by tenant_id (they also carry tenant_id), alongside the order cache.
+   */
+  private async purgeTenant(tenantId: number): Promise<void> {
+    await this.customerRepo.manager.transaction(async (mgr) => {
+      // Anonymize customers (keep rows; scrub PII).
+      await mgr.getRepository(Customer).update(
+        { tenantId },
+        { email: null, name: REDACTED, shopifyCustomerId: null, tier: 'guest' },
+      );
+
+      // Delete tenant-scoped rows. Children before parents where applicable.
+      await mgr.getRepository(Message).delete({ tenantId });
+      await mgr.getRepository(Conversation).delete({ tenantId });
+      await mgr.getRepository(Notification).delete({ tenantId });
+      await mgr.getRepository(NotificationPref).delete({ tenantId });
+      await mgr.getRepository(Review).delete({ tenantId });
+      await mgr.getRepository(Affiliate).delete({ tenantId });
+      await mgr.getRepository(Subscription).delete({ tenantId });
+      await mgr.getRepository(RestockSubscription).delete({ tenantId });
+      await mgr.getRepository(Inquiry).delete({ tenantId });
+      await mgr.getRepository(CjmEvent).delete({ tenantId });
+      await mgr.getRepository(Campaign).delete({ tenantId });
+      await mgr.getRepository(Fulfillment).delete({ tenantId });
+      await mgr.getRepository(OrderItem).delete({ tenantId });
+      await mgr.getRepository(OrderCache).delete({ tenantId });
+      await mgr.getRepository(Session).delete({ tenantId });
+    });
   }
 
   // ---- DSAR access / portability ----
@@ -106,6 +176,19 @@ export class PrivacyService {
     const notifications = await this.notificationRepo.find({ where: { customerId } });
     const reviews = await this.reviewRepo.find({ where: { customerId } });
     const inquiries = await this.inquiryRepo.find({ where: { customerId } });
+
+    // PII-access audit (best-effort; never fail the export on audit error).
+    try {
+      await this.audit.write({
+        tenantId: customer?.tenantId ?? null,
+        actorType: 'user',
+        actorId: 0,
+        action: 'dsar.export',
+        target: maskPii(customer?.email ?? null),
+      });
+    } catch (err) {
+      this.logger.warn(`dsar.export audit write failed: ${String(err)}`);
+    }
 
     return {
       exportedAt: new Date().toISOString(),

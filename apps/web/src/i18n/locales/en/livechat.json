@@ -21,5 +21,7 @@
   "noCustomerContext": "No customer context.",
   "recentOrders": "Recent orders",
   "messageBlocked": "Message blocked by moderation.",
-  "sendFailed": "Failed to send."
+  "sendFailed": "Failed to send.",
+  "send": "Send",
+  "messageThread": "Message thread"
 }

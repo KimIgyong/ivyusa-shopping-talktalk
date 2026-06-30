@@ -1,10 +1,12 @@
 import { MessageCircle, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useWidgetStore } from '../../store/widgetStore';
 import { useEnsureSession } from '../../hooks/useSession';
 import { useUnreadCount } from '../../hooks/useNotifications';
 import { WidgetPanel } from './WidgetPanel';
 
 export function Widget() {
+  const { t } = useTranslation();
   useEnsureSession();
   const panelOpen = useWidgetStore((s) => s.panelOpen);
   const togglePanel = useWidgetStore((s) => s.togglePanel);
@@ -19,8 +21,9 @@ export function Widget() {
       {/* Floating launcher */}
       <button
         onClick={togglePanel}
-        aria-label={panelOpen ? 'Close support' : 'Open support'}
-        className="fixed bottom-5 right-5 z-10 flex h-14 w-14 items-center justify-center rounded-full bg-primary-500 text-white shadow-lg transition-transform hover:scale-105 hover:bg-primary-600 active:scale-95"
+        aria-label={panelOpen ? t('a11y.closeSupport') : t('a11y.openSupport')}
+        aria-expanded={panelOpen}
+        className="fixed bottom-5 right-5 z-10 flex h-14 w-14 items-center justify-center rounded-full bg-primary-500 text-white shadow-lg transition-transform hover:scale-105 hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 active:scale-95"
       >
         {panelOpen ? (
           <X className="h-6 w-6" />

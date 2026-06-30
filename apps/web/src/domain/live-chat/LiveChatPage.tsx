@@ -110,7 +110,14 @@ export function LiveChatPage() {
                 </div>
               </div>
 
-              <div className="flex-1 space-y-3 overflow-y-auto p-4">
+              <div
+                role="log"
+                aria-live="polite"
+                aria-relevant="additions"
+                aria-busy={convoLoading}
+                aria-label={t('messageThread')}
+                className="flex-1 space-y-3 overflow-y-auto p-4"
+              >
                 {convoLoading && (
                   <Loader2 className="mx-auto h-5 w-5 animate-spin text-gray-400" />
                 )}
@@ -154,9 +161,13 @@ export function LiveChatPage() {
                   onChange={(e) => setDraft(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && onSend()}
                   placeholder={t('replyPlaceholder')}
-                  className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-primary-500"
+                  className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
-                <Button onClick={onSend} disabled={send.isPending || !draft.trim()}>
+                <Button
+                  onClick={onSend}
+                  disabled={send.isPending || !draft.trim()}
+                  aria-label={t('send')}
+                >
                   <Send className="h-4 w-4" />
                 </Button>
               </div>
