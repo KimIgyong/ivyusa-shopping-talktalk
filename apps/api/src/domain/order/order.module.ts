@@ -13,6 +13,7 @@ import { ShopifySyncService } from './shopify-sync.service';
 import { ShopifySyncController } from './shopify-sync.controller';
 import { ShopifyWebhookService } from './shopify-webhook.service';
 import { ShopifyOrderWebhookController } from './shopify-order-webhook.controller';
+import { ScheduledShopifySyncService } from './scheduled-shopify-sync.service';
 import { TenantModule } from '../tenant/tenant.module';
 import { CustomerModule } from '../customer/customer.module';
 import { IntegrationModule } from '../integration/integration.module';
@@ -31,7 +32,13 @@ import { IntegrationModule } from '../integration/integration.module';
     ShopifySyncController,
     ShopifyOrderWebhookController,
   ],
-  providers: [OrderService, ShopifyAdminClient, ShopifySyncService, ShopifyWebhookService],
+  providers: [
+    OrderService,
+    ShopifyAdminClient,
+    ShopifySyncService,
+    ShopifyWebhookService,
+    ScheduledShopifySyncService,
+  ],
   exports: [OrderService],
 })
 export class OrderModule {}

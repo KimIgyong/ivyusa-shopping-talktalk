@@ -26,7 +26,7 @@ The Shopify integration has the **webhook / credential / integration-status / se
 | Session / shop parameter | ✅ | `POST /api/v1/session/ensure { shop_domain? }` — given shop must exist (else reject); auto-binds only when a single tenant exists |
 | Guest order lookup | ✅ (local cache) | `POST /api/v1/orders/guest-lookup` — reads local `order_cache` |
 | Tenant = shop mapping | ✅ | `tenants.shop_domain` **UNIQUE** — `tenant.entity.ts` |
-| Shopify Admin API client | ✅ (on-demand) | `POST /api/v1/tenants/me/shopify/sync` — pulls `orders.json` with the stored token → upserts `orders_cache`/`customers`. Scheduled auto-sync is roadmap |
+| Shopify Admin API client | ✅ (on-demand + scheduled) | `POST /api/v1/tenants/me/shopify/sync` — pulls `orders.json` with the stored token → upserts `orders_cache`/`customers`. Periodic auto-sync via `SHOPIFY_SYNC_INTERVAL_MIN` (opt-in) |
 | Shopify settings UI | ✅ | Console Settings "Shopify connection" card (domain, token, test, sync) |
 | OAuth (public app install) | ⛔ | No `/auth/shopify` |
 | ScriptTag / Theme App Extension | ⛔ | None |
@@ -288,7 +288,7 @@ curl -X POST http://localhost:3000/api/v1/webhooks/shopify/shop/redact \
 **Backend (dev):**
 - [x] Raw-body HMAC hardening (§4.3) — applied
 - [x] Remove session first-tenant fallback → safe resolution (§7.2) — applied
-- [x] Shopify Admin API client (on-demand customer/order sync) — applied. Scheduled auto-sync is roadmap
+- [x] Shopify Admin API client (customer/order sync) — on-demand + scheduled (`SHOPIFY_SYNC_INTERVAL_MIN`) applied
 - [x] Shopify-native order/fulfillment webhooks (orders·fulfillments, HMAC) → `order_cache` (§5.1) — applied
 - [ ] (Path B) `/auth/shopify` OAuth + webhook/ScriptTag registration on install (§8)
 

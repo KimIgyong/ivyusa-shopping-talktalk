@@ -57,6 +57,12 @@ export class TenantService {
     return this.tenantRepo.findOne({ where: { shopDomain } });
   }
 
+  /** Tenant ids that have a stored Shopify credential (for scheduled sync). */
+  async listShopifyTenantIds(): Promise<number[]> {
+    const creds = await this.credRepo.find({ where: { provider: SHOPIFY } });
+    return creds.map((c) => c.tenantId).filter((id): id is number => id != null);
+  }
+
   async create(shopDomain: string, name: string, plan: string): Promise<Tenant> {
     const existing = await this.tenantRepo.findOne({ where: { shopDomain } });
     if (existing) {
