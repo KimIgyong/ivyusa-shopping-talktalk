@@ -1,0 +1,307 @@
+# Shopify App Setup & Integration Development Guide (practical)
+
+| | |
+|---|---|
+| Doc ID | CHATWIDGET-GUIDE-SHOPIFY-SETUP-1.0.0 |
+| Audience | Operators (app setup) · Backend/Frontend developers |
+| Nature | **Practical setup & dev guide** (create the Shopify app → wire it to this codebase → remaining dev work) |
+| Companion | `쇼피파이연동가이드_Shopify-Integration.en.md` (concept & design). See it for embed architecture & design rationale |
+| Baseline | 2026-07-06 · marked honestly against the actual code (HEAD) |
+| Legend | ✅ Implemented · 🟡 Partial / needs hardening · ⛔ Not present (to build) |
+
+> This document covers **what actually works in the code today** and **what to click on the Shopify side**, step by step. For the *why* of the architecture (iframe isolation, the 3 embed methods), read the companion (concept/design) guide.
+
+---
+
+## 1. Current baseline (what the code supports today)
+
+The Shopify integration has the **webhook / credential / integration-status / session skeleton** built; **OAuth, real Admin API sync, and widget embedding** are not yet.
+
+| Area | Status | Actual endpoint / location |
+|---|---|---|
+| GDPR compliance webhooks | ✅ (1 prod hardening) | `POST /webhooks/shopify/customers/data_request` · `/customers/redact` · `/shop/redact` — `privacy.controller.ts` |
+| Fulfillment webhook | ✅ | `POST /webhooks/fulfillment` → updates `order_cache` — `order/webhook.controller.ts` |
+| Credential storage (encrypted) | ✅ | `GET /api/v1/tenants/me/credentials` · `PUT /api/v1/tenants/me/credentials/:provider` — AES-256-GCM |
+| Integration status tracking | ✅ | `GET /api/v1/integrations/status` · `PATCH /api/v1/integrations/status/:name` |
+| Session / shop parameter | 🟡 | `POST /api/v1/session/ensure { shop_domain? }` — **falls back to first tenant** if omitted |
+| Guest order lookup | ✅ (local cache) | `POST /api/v1/orders/guest-lookup` — reads local `order_cache` |
+| Tenant = shop mapping | ✅ | `tenants.shop_domain` **UNIQUE** — `tenant.entity.ts` |
+| Shopify Admin API client | ⛔ | No real `myshopify.com` calls. Customers/orders are **seed/cache** only |
+| OAuth (public app install) | ⛔ | No `/auth/shopify` |
+| ScriptTag / Theme App Extension | ⛔ | None |
+| `embed.js` loader / widget shop passing | ⛔ | Widget neither reads `?shop` nor sends `shop_domain` |
+
+> **API prefix**: normal API is `/api/v1` (`API_PREFIX`). **Webhooks are served at the root** (`/webhooks/...`) with no prefix and are `@Public()` (bypass auth).
+
+---
+
+## 2. Prerequisites
+
+- **Shopify store**: admin access to `ivyusa.myshopify.com`.
+- **Choose an app type** (two paths):
+  - **Path A — Custom app (single store, recommended first)**: mint an Admin API token in the store admin and connect directly. No OAuth; best fit for the code today.
+  - **Path B — Public/distributed app (OAuth, many tenants)**: create the app in the Partner Dashboard. The OAuth/install flow **must be built** (§8).
+- **Run locally**: `npm run db:up` → `npm run db:seed` → `npm run dev` (API `:3000`, web `:5173`, widget `:5174`).
+- **Required secret env vars** (`env/backend/.env.*`):
+  - `CRED_ENC_KEY` — base64 32 bytes, credential encrypt/decrypt (dev value already present).
+  - `SHOPIFY_WEBHOOK_SECRET` — webhook HMAC verification. **If unset in dev, verification is bypassed (warns)**; required in production.
+
+---
+
+## 3. Path A — Custom app setup (single store)
+
+The fastest real path. Mint the token directly in the store admin.
+
+### 3.1 Create the app & scopes
+1. Store admin → **Settings → Apps and sales channels → Develop apps** → **Create an app**.
+2. **Configure Admin API scopes** (least privilege):
+   - `read_orders`, `read_customers` (order/customer cache sync)
+   - `read_products` (optional, richer product help)
+3. **Install app** → reveal the **Admin API access token** (`shpat_…`). *Shown once — copy it immediately.*
+4. (For HMAC) note the **API secret key** (client secret) — used to verify webhook signatures.
+
+### 3.2 Bind the shop domain to a tenant
+`tenants.shop_domain` must match the store domain so a session binds to the right tenant (UNIQUE).
+- Set the seed tenant (`ivyusa`) `shop_domain` to `ivyusa.myshopify.com`, or update it for a new store.
+
+### 3.3 Save the Admin token in the console (encrypted)
+Store the token via **console Settings**; the server encrypts it with AES-256-GCM and masks it in responses (never returns plaintext).
+
+```bash
+# Requires a tenant-master JWT (INTEGRATION_CREDENTIALS_MANAGE capability)
+curl -X PUT http://localhost:3000/api/v1/tenants/me/credentials/shopify \
+  -H "Authorization: Bearer <TENANT_JWT>" \
+  -H "Content-Type: application/json" \
+  -d '{ "secret": "shpat_xxxxxxxxxxxxxxxxxxxxxxxx" }'
+```
+
+- Reads return only `{ provider, status, configured: true, updatedAt }` (no plaintext secret).
+- If you need multiple keys (access token / api key / api secret / webhook secret), serialize a JSON blob into the single `secret` field and store it encrypted whole (no schema change).
+
+### 3.4 Show integration status
+Once verified, update `integration_status` so the console badge reflects it.
+
+```bash
+curl -X PATCH http://localhost:3000/api/v1/integrations/status/shopify \
+  -H "Authorization: Bearer <ADMIN_JWT>" \
+  -H "Content-Type: application/json" \
+  -d '{ "status": "connected", "detail": "custom app token saved" }'
+```
+
+> `PATCH /integrations/status/:name` is **AdminOnly** and stamps `last_sync_at` to now. Tracked names: `shopify` · `fulfillment` · `klaviyo` · `odoo` · `google_drive`.
+
+---
+
+## 4. GDPR compliance webhooks (mandatory · ✅ implemented)
+
+If the app handles personal data, Shopify requires three mandatory compliance webhooks. **The handlers are already implemented** — just point the Shopify app config at the URLs and share the secret.
+
+### 4.1 URLs to register (root path — not `/api/v1`)
+| Topic | Endpoint |
+|---|---|
+| customers/data_request | `https://<API_HOST>/webhooks/shopify/customers/data_request` |
+| customers/redact | `https://<API_HOST>/webhooks/shopify/customers/redact` |
+| shop/redact | `https://<API_HOST>/webhooks/shopify/shop/redact` |
+
+- **Public/distributed app**: Partner Dashboard → **App setup → Compliance webhooks**, register the URLs above.
+- **Custom app**: compliance webhooks are a distributed-app (Partner) concept. A custom app registers the operational webhooks it needs via Admin API subscriptions; the code always provides the handlers above, so point the config at them at deploy time.
+
+### 4.2 HMAC verification (how it works)
+- Header `X-Shopify-Hmac-Sha256`, base64, **timing-safe** compare. Mismatch → **401** (fail-safe).
+- Secret: `SHOPIFY_WEBHOOK_SECRET` = the app's **API secret key** (webhook signing key).
+- **Dev convenience**: if `SHOPIFY_WEBHOOK_SECRET` is unset, it logs a warning and lets the webhook through. **Always set it in production** — unset equals no verification.
+
+### 4.3 ⚠️ One production hardening — raw-body verification
+Verification currently **re-stringifies** the parsed JSON to compute the HMAC. Shopify signs the **raw transmitted bytes**, so key-order/whitespace differences can 401 a valid webhook. Production hardening:
+
+```ts
+// main.ts — preserve rawBody on NestFactory
+const app = await NestFactory.create(AppModule, { rawBody: true });
+// change the webhook handler to compute HMAC over req.rawBody (Buffer)
+```
+> The same note is in the code comment (`privacy.controller.ts`). This item is a code change (dev work).
+
+---
+
+## 5. Operational webhook — order/delivery status (✅ fulfillment implemented)
+
+There is a **custom fulfillment webhook** that updates the order status cache (`order_cache`). Note it is **not** Shopify's native `orders/updated` — it's a custom shape.
+
+```bash
+# Simulate a fulfillment webhook
+curl -X POST http://localhost:3000/webhooks/fulfillment \
+  -H "Content-Type: application/json" \
+  -d '{ "order_id": "shopify-1001", "status": "shipping",
+        "tracking_number": "1Z999", "carrier": "UPS" }'
+```
+- Behavior: upsert `Fulfillment` → update `order_cache.statusInternal/statusUi` → publish notification event.
+
+**To feed it from Shopify (to build, ⛔):** either
+- (a) receive Shopify `fulfillments/create` / `orders/updated` webhooks and **transform** them into the custom shape above, or
+- (b) add a dedicated Shopify order webhook handler (with HMAC verification).
+
+---
+
+## 6. Credential & integration-status management (✅ implemented, reference)
+
+| Feature | Endpoint | Guard | Notes |
+|---|---|---|---|
+| List credentials | `GET /api/v1/tenants/me/credentials` | `@RequireCapability(INTEGRATION_CREDENTIALS_MANAGE)` | masked (`configured` flag) |
+| Save credential | `PUT /api/v1/tenants/me/credentials/:provider` | same | `secret` stored encrypted |
+| List integration status | `GET /api/v1/integrations/status` | `@Auth()` | badge display |
+| Update integration status | `PATCH /api/v1/integrations/status/:name` | `@AdminOnly()` | stamps `last_sync_at` |
+
+- Encryption: `crypto.util` AES-256-GCM, layout `[12B IV][16B tag][ciphertext]`, key `CRED_ENC_KEY`.
+- Secret changes are audited (`AuditService`) and log-masked.
+- The console Settings screen uses these endpoints.
+
+---
+
+## 7. Connecting the widget to the storefront (⛔ to build · highest priority)
+
+Today the widget is a **standalone SPA**: it neither reads `?shop` nor sends `shop_domain`, so the session **falls back to the first tenant** (multitenancy leak). Follow the companion §4–5 for architecture; the minimal concrete changes are:
+
+### 7.1 Widget: receive & pass the shop parameter
+```ts
+// apps/widget/src/services/sessionService.ts
+export function ensureSession(sessionToken: string | null, locale: string, shopDomain?: string) {
+  return apiClient.post<SessionResponse>('/session/ensure', {
+    session_token: sessionToken ?? undefined,
+    locale,
+    shop_domain: shopDomain ?? undefined,   // ★ add (backend DTO already supports it)
+  });
+}
+```
+```ts
+// apps/widget/src/hooks/useSession.ts — read shop from the URL on mount
+const shop = new URLSearchParams(location.search).get('shop') ?? undefined;
+// ... ensureSession(sessionToken, language, shop)
+```
+
+### 7.2 Backend: remove the first-tenant fallback (🟡 → ✅)
+```ts
+// apps/api/src/domain/session/session.service.ts
+// AS-IS: falls back to first tenant when shop_domain is missing
+const tenant = shopDomain
+  ? await this.tenantRepo.findOne({ where: { shopDomain } })
+  : await this.tenantRepo.findOne({ where: {}, order: { id: 'ASC' } }); // ← remove
+// TO-BE: reject (400/404) when shop_domain is missing or the shop is unknown
+```
+> This directly closes the High gap in `CLAUDE.md §6` ("remove chat first-tenant").
+
+### 7.3 The `embed.js` loader (new artifact)
+Inject a bubble + `<iframe>` into the store theme and append `?shop` / `?locale` to the iframe URL. See companion §4–5 for the exposure options (App Embed / ScriptTag / manual snippet) and the loader skeleton. Restrict the iframe origin with `Content-Security-Policy: frame-ancestors https://*.myshopify.com <custom domains>`.
+
+---
+
+## 8. Path B — Public app (OAuth) expansion (⛔ not present · roadmap)
+
+For multi-tenant SaaS. **There is no OAuth endpoint in the code today, so this is net-new development.**
+
+### 8.1 Partner Dashboard app config
+- Create the app → **App URL**, **Allowed redirection URL(s)**: `https://<API_HOST>/auth/shopify/callback`.
+- API scopes (same as §3.1), Compliance webhooks (§4.1).
+- Apply for Protected customer data access.
+
+### 8.2 Flow to build (skeleton)
+```
+GET /auth/shopify/install?shop=<shop>.myshopify.com
+   → issue state + redirect to the Shopify OAuth authorize URL
+GET /auth/shopify/callback?code&hmac&shop&state
+   → verify HMAC & state → exchange code for an access token
+   → upsert the tenant by shop_domain
+   → store the token encrypted in integration_credentials(provider=shopify)
+   → register webhooks (GDPR + operational), optionally inject ScriptTag
+   → integration_status.shopify = connected
+```
+
+---
+
+## 9. Local development & testing
+
+### 9.1 Env vars
+```bash
+# add to env/backend/.env.development
+SHOPIFY_WEBHOOK_SECRET=<app API secret key>
+# CRED_ENC_KEY already has a dev value
+```
+
+### 9.2 GDPR webhook HMAC local test
+Build the base64 HMAC the same way Shopify signs and put it in the header.
+```bash
+SECRET='<SHOPIFY_WEBHOOK_SECRET>'
+BODY='{"shop_domain":"ivyusa.myshopify.com"}'
+HMAC=$(printf '%s' "$BODY" | openssl dgst -sha256 -hmac "$SECRET" -binary | base64)
+
+curl -X POST http://localhost:3000/webhooks/shopify/shop/redact \
+  -H "Content-Type: application/json" \
+  -H "X-Shopify-Hmac-Sha256: $HMAC" \
+  -d "$BODY"
+```
+> The example sends the **same bytes** the current implementation re-stringifies, so it passes. After the §4.3 raw-body hardening it still works as long as the raw bytes match.
+
+### 9.3 Receiving real Shopify webhooks (tunnel)
+- Get a public URL with `cloudflared tunnel` or `ngrok http 3000`.
+- Point the Shopify app webhook URLs at `https://<tunnel>/webhooks/...`.
+- Trigger a test event → watch the API logs and the `integration_status` / `order_cache` change.
+
+### 9.4 Custom-app token smoke check
+- After `PUT …/credentials/shopify`, confirm the list response shows `configured:true` (no plaintext).
+- After `PATCH …/integrations/status/shopify`, confirm the console badge updates.
+
+---
+
+## 10. Security & compliance checklist
+
+- [ ] Set `SHOPIFY_WEBHOOK_SECRET` in production (never leave verification off).
+- [ ] Apply the §4.3 raw-body HMAC hardening.
+- [ ] Secrets only via AES-256-GCM, masked responses, audit on change (FR-060).
+- [ ] Resolve the tenant by `shop_domain`; **remove the first-tenant fallback** (block cross-tenant leaks).
+- [ ] iframe `frame-ancestors` restricts to allowed stores; mutually verify `postMessage` origin.
+- [ ] Least scopes (`read_orders`, `read_customers`) + protected-customer-data approval.
+- [ ] AI/agent outbound still passes `ModerationService.moderate()` (FR-069).
+
+---
+
+## 11. Development checklist (delta vs. current code)
+
+**Shopify side (ops):**
+- [ ] Create custom app + Admin API token (§3), or Partner public app (§8)
+- [ ] Register compliance webhook URLs & secret (§4)
+- [ ] Least scopes + protected-customer-data approval
+
+**Backend (dev):**
+- [ ] Raw-body HMAC hardening (§4.3)
+- [ ] Remove session first-tenant fallback (§7.2)
+- [ ] Shopify Admin API client (real customer/order sync) — currently cache/seed only (⛔)
+- [ ] Shopify order webhooks (orders/updated · fulfillments) → `order_cache` adapter (§5)
+- [ ] (Path B) `/auth/shopify` OAuth + webhook/ScriptTag registration on install (§8)
+
+**Widget/frontend (dev):**
+- [ ] Parse `?shop` → send `shop_domain` to `session/ensure` (§7.1)
+- [ ] `embed.js` loader + iframe injection + CSP `frame-ancestors` (§7.3)
+- [ ] Shopify card + install snippets in console Settings (companion §6)
+
+**Already implemented (✅):** GDPR webhook handlers · fulfillment webhook · credential encryption · integration status · session shop-parameter intake · guest order lookup (cache) · tenant shop_domain UNIQUE.
+
+---
+
+### Appendix · File paths & env vars
+
+**Code paths**
+- GDPR webhooks: `apps/api/src/domain/privacy/privacy.controller.ts`
+- Fulfillment webhook: `apps/api/src/domain/order/webhook.controller.ts`, `order.service.ts`
+- Credentials: `apps/api/src/domain/tenant/{tenant.controller.ts, entity/integration-credential.entity.ts}`, `global/util/crypto.util.ts`
+- Integration status: `apps/api/src/domain/integration/*`
+- Session: `apps/api/src/domain/session/{session.controller.ts, session.service.ts, dto/request/session.request.ts}`
+- Order/customer: `apps/api/src/domain/{order,customer}/*`
+- Widget session: `apps/widget/src/{services/sessionService.ts, hooks/useSession.ts}`
+
+**Env vars**
+| Var | Purpose |
+|---|---|
+| `API_PREFIX` | Normal API prefix (`api/v1`). Webhooks have no prefix |
+| `SHOPIFY_WEBHOOK_SECRET` | Webhook HMAC key (app API secret). Required in production |
+| `CRED_ENC_KEY` | Credential AES-256-GCM key (base64 32B) |
+
+*Companion: `쇼피파이연동가이드_Shopify-Integration.en.md` (concept/design) · `SPEC.md` (§Shopify) · `CLAUDE.md` · `docs/guide/STAGING-DEPLOY.md`*

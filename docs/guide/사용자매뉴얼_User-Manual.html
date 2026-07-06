@@ -1,0 +1,1619 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IVY USA — 사용자 매뉴얼 / User Manual</title>
+<style>
+:root {
+  --primary:#6366F1; --primary-600:#4F46E5; --primary-50:#EEF2FF;
+  --ink:#1f2430; --muted:#5b6472; --line:#e6e8ee; --bg:#ffffff; --soft:#f7f8fb;
+}
+* { box-sizing:border-box; }
+body {
+  margin:0; background:var(--soft); color:var(--ink);
+  font-family:"Pretendard","Apple SD Gothic Neo","Segoe UI",Roboto,-apple-system,sans-serif;
+  line-height:1.7; font-size:16px;
+}
+header.top {
+  position:sticky; top:0; z-index:10; background:var(--primary);
+  color:#fff; padding:14px 24px; display:flex; align-items:center; justify-content:space-between;
+  box-shadow:0 2px 10px rgba(79,70,229,.25);
+}
+header.top .brand { font-weight:700; font-size:15px; letter-spacing:.2px; }
+header.top .brand small { display:block; font-weight:400; opacity:.85; font-size:12px; }
+.langtoggle button {
+  border:1px solid rgba(255,255,255,.6); background:transparent; color:#fff;
+  padding:6px 14px; font-size:13px; font-weight:600; cursor:pointer; border-radius:999px; margin-left:6px;
+}
+.langtoggle button.active { background:#fff; color:var(--primary-600); border-color:#fff; }
+.wrap { max-width:900px; margin:28px auto; padding:0 20px 80px; }
+article { background:var(--bg); border:1px solid var(--line); border-radius:16px; padding:40px 44px; box-shadow:0 1px 3px rgba(20,24,40,.04); }
+article.hidden { display:none; }
+h1 { font-size:30px; line-height:1.3; margin:.2em 0 .4em; border-bottom:3px solid var(--primary); padding-bottom:.35em; }
+h2 { font-size:22px; margin-top:1.8em; padding-left:12px; border-left:5px solid var(--primary); }
+h3 { font-size:17px; margin-top:1.4em; color:var(--primary-600); }
+p, li { color:var(--ink); }
+blockquote {
+  margin:1em 0; padding:12px 18px; background:var(--primary-50);
+  border-left:4px solid var(--primary); border-radius:8px; color:#3b3f52;
+}
+blockquote p { margin:.3em 0; }
+table { border-collapse:collapse; width:100%; margin:1.2em 0; font-size:14.5px; }
+th, td { border:1px solid var(--line); padding:9px 12px; text-align:left; vertical-align:top; }
+th { background:var(--primary-50); color:var(--primary-600); font-weight:600; }
+tr:nth-child(even) td { background:var(--soft); }
+code { background:#eef0f6; padding:2px 6px; border-radius:5px; font-size:.88em;
+  font-family:"SFMono-Regular",Consolas,monospace; color:#3d3f52; }
+pre { background:#0f1222; color:#e6e8f5; padding:18px 20px; border-radius:12px; overflow:auto; font-size:13px; line-height:1.55; }
+pre code { background:transparent; color:inherit; padding:0; }
+a { color:var(--primary-600); }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+ul, ol { padding-left:1.4em; }
+.footnote, footer.doc { color:var(--muted); font-size:13px; margin-top:24px; text-align:center; }
+@media(max-width:640px){ article{padding:26px 20px;} h1{font-size:24px;} }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand">IVY USA · Chat & Support Widget<small>사용자 매뉴얼 · User Manual</small></div>
+  <div class="langtoggle">
+    <button id="btn-ko" class="active" onclick="setLang('ko')">한국어</button>
+    <button id="btn-en" onclick="setLang('en')">English</button>
+  </div>
+</header>
+<div class="wrap">
+  <article id="doc-ko"><h1 id="ivy-usa-채팅고객지원-위젯--사용자-매뉴얼">IVY USA 채팅·고객지원
+위젯 — 사용자 매뉴얼</h1>
+<blockquote>
+<p>버전 1.1.0 · 작성일 2026-07-01 · 개정 2026-07-06 대상: 테넌트 운영자
+· 상담원 · 플랫폼 관리자 표기 규칙: <strong>✅ 구현됨 / 🟡 연동·설계
+준비됨 또는 로드맵</strong>. 실제 코드 기준으로 정직하게 표기합니다.</p>
+</blockquote>
+<hr />
+<h2 id="목차">목차</h2>
+<ol type="1">
+<li><a href="#1-시작하기">시작하기 (로그인·역할)</a></li>
+<li><a href="#2-고객-위젯-대응-흐름">고객 위젯 대응 흐름</a></li>
+<li><a href="#3-시나리오-챗봇-설정">시나리오 챗봇 설정</a></li>
+<li><a href="#4-rag-지식기반-ai-챗봇-설정">RAG 지식기반 AI 챗봇
+설정</a></li>
+<li><a href="#5-상담원-인계에스컬레이션-조건과-시점">상담원
+인계(에스컬레이션) 조건과 시점</a></li>
+<li><a href="#6-상담원-라이브챗-콘솔">상담원 라이브챗 콘솔</a></li>
+<li><a href="#7-고객정보-연동">고객정보 연동 (Shopify · Odoo)</a></li>
+<li><a href="#8-지식베이스kb-관리">지식베이스(KB) 관리</a></li>
+<li><a href="#9-검열moderation-정책">검열(Moderation) 정책</a></li>
+<li><a href="#10-캠페인발송-관리">캠페인(발송) 관리</a></li>
+<li><a href="#11-플랫폼-관리자-콘솔">플랫폼 관리자 콘솔</a></li>
+<li><a href="#12-faq--문제-해결">자주 묻는 질문 / 문제 해결</a></li>
+</ol>
+<hr />
+<h2 id="1-시작하기">1. 시작하기</h2>
+<h3 id="11-콘솔-접속">1.1 콘솔 접속</h3>
+<ul>
+<li>운영자·관리자 콘솔(<code>apps/web</code>)은 브라우저로 접속합니다.
+개발 환경 기준 웹 <code>:5173</code>, API
+<code>:3000</code>(<code>/api/v1/docs</code>에 Swagger).</li>
+<li>로그인은 이메일 + 비밀번호(JWT 인증). 액세스 토큰 15분, 리프레시
+7일.</li>
+</ul>
+<h3 id="12-시드-계정-최초-로그인-시-비밀번호-변경-필수">1.2 시드 계정
+(최초 로그인 시 비밀번호 변경 필수)</h3>
+<table>
+<thead>
+<tr>
+<th>역할</th>
+<th>계정</th>
+<th>비밀번호</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>시스템 관리자</td>
+<td><code>admin@amoeba.group</code></td>
+<td><code>amb2026!@</code></td>
+</tr>
+<tr>
+<td>테넌트 마스터(ivyusa)</td>
+<td><code>dev@amoeba.group</code></td>
+<td><code>amb2026!@</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>두 계정 모두 <code>must_change_password=1</code> 상태이므로 첫 로그인
+후 비밀번호를 바꿔야 합니다.</p>
+</blockquote>
+<h3 id="13-역할권한-rbac">1.3 역할·권한 (RBAC)</h3>
+<p>권한은 <strong>직급 × 라벨</strong> 매트릭스로 결정됩니다.</p>
+<ul>
+<li><strong>직급(rank)</strong>: master · director · manager ·
+staff</li>
+<li><strong>라벨(label)</strong>: consult(상담) · accounting(정산) ·
+operations(운영)</li>
+<li><strong>시스템 관리자</strong>: super · admin (테넌트 교차)</li>
+</ul>
+<p>메뉴·기능 노출은 이 권한에 따라 달라지며, ACL 소유자 가시성
+정책(POL-019)이 기능 권한 위에 적용됩니다.</p>
+<h3 id="14-콘솔-메뉴-구조">1.4 콘솔 메뉴 구조</h3>
+<table>
+<thead>
+<tr>
+<th>메뉴</th>
+<th>경로</th>
+<th>용도</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>대시보드</td>
+<td><code>/</code></td>
+<td>상담 지표 개요</td>
+</tr>
+<tr>
+<td>라이브챗</td>
+<td><code>/live-chat</code></td>
+<td>실시간 상담·인계 처리</td>
+</tr>
+<tr>
+<td>상담 이력</td>
+<td><code>/history</code></td>
+<td>지난 대화 조회·필터</td>
+</tr>
+<tr>
+<td>AI 설정</td>
+<td><code>/ai-setting</code></td>
+<td>페르소나·규칙·시나리오·엔진·검열</td>
+</tr>
+<tr>
+<td>지식</td>
+<td><code>/knowledge</code></td>
+<td>KB 소스·문서 관리</td>
+</tr>
+<tr>
+<td>고객</td>
+<td><code>/customers</code></td>
+<td>고객 캐시·등급</td>
+</tr>
+<tr>
+<td>캠페인</td>
+<td><code>/campaigns</code></td>
+<td>캠페인 관리</td>
+</tr>
+<tr>
+<td>사용자</td>
+<td><code>/users</code></td>
+<td>사용자·권한</td>
+</tr>
+<tr>
+<td>환경설정</td>
+<td><code>/settings</code></td>
+<td>테넌트 설정</td>
+</tr>
+<tr>
+<td>관리자</td>
+<td><code>/admin/*</code></td>
+<td>플랫폼 관리(테넌트·AI엔진·감사)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="2-고객-위젯-대응-흐름">2. 고객 위젯 대응 흐름</h2>
+<p>고객이 Shopify 스토어프론트의 채팅 위젯에 진입하면 다음 순서로
+대응됩니다.</p>
+<h3 id="21-비로그인-진입--시나리오-챗봇">2.1 비로그인 진입 → 시나리오
+챗봇</h3>
+<p>위젯은 먼저 <strong>시나리오 버튼 메뉴</strong>를 노출합니다. 기본
+6개 액션:</p>
+<table>
+<thead>
+<tr>
+<th>버튼 액션</th>
+<th>설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>delivery_status</code></td>
+<td>배송 상태 안내</td>
+</tr>
+<tr>
+<td><code>cancel_refund</code></td>
+<td>취소 / 환불</td>
+</tr>
+<tr>
+<td><code>product_help</code></td>
+<td>상품 도움말</td>
+</tr>
+<tr>
+<td><code>contact_support</code></td>
+<td>상담원 연결</td>
+</tr>
+<tr>
+<td><code>affiliate</code></td>
+<td>제휴</td>
+</tr>
+<tr>
+<td><code>my_orders</code></td>
+<td>내 주문</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>⚠️ 여기서 "시나리오 챗봇"은 **버튼 기반 빠른 메뉴(quick-reply)**로,
+문의 의도를 각 액션으로 라우팅합니다. 다분기 대화 트리 엔진이 아니라,
+정형 문의를 빠르게 분류·안내하는 메뉴입니다. 실제 자유질문 답변은 RAG가
+담당합니다.</p>
+</blockquote>
+<h3 id="22-본인확인-게이트-개인정보가-필요한-경우">2.2 본인확인 게이트
+(개인정보가 필요한 경우)</h3>
+<p>고객이 주문·배송처럼 개인정보가 필요한 질문을 하면, 백엔드의
+<strong>의도 분류기</strong>가 <code>needsOrderData=true</code>로
+판단합니다. 이때 고객이 비로그인(customerId 없음) 상태이면 시스템이
+안내합니다:</p>
+<blockquote>
+<p>"주문을 조회하려면 본인 확인이 필요합니다. 로그인하거나 비회원 주문
+조회를 이용해 주세요." (세션 언어에 따라 en/es/ko)</p>
+</blockquote>
+<ul>
+<li>비회원 주문 조회는 <strong>15분당 최대 5회</strong>로
+제한됩니다(Redis 레이트리밋).</li>
+</ul>
+<h3 id="23-정형-답변으로-불충분--rag-ai-챗봇">2.3 정형 답변으로 불충분 →
+RAG AI 챗봇</h3>
+<p>자유 질문이거나 시나리오로 해결되지 않으면 <strong>RAG 지식기반 AI
+챗봇</strong>이 응답합니다.</p>
+<ol type="1">
+<li>테넌트 KB에서 관련 문서 검색(활성 + 테넌트 스코프)</li>
+<li>검색 근거로만 답변 생성, <strong>출처(citation) 첨부</strong></li>
+<li><strong>신뢰도(confidence)</strong> 산정</li>
+<li><strong>검열 게이트</strong> 통과 후 고객에게 전달</li>
+</ol>
+<h3 id="24-지식-범위-밖--상담원-인계">2.4 지식 범위 밖 → 상담원
+인계</h3>
+<p>신뢰도가 낮거나(&lt; 0.45) 검열에 차단되면 상담원에게 넘깁니다. 상세
+조건은 <a href="#5-상담원-인계에스컬레이션-조건과-시점">5장</a>
+참조.</p>
+<h3 id="25-대화-상태-전이">2.5 대화 상태 전이</h3>
+<pre><code>ai_active  ──(에스컬레이션)──▶  waiting  ──(상담원 인수)──▶  agent  ──(종료)──▶  ended</code></pre>
+<h3 id="26-위젯-화면-구성-하단-탭">2.6 위젯 화면 구성 (하단 탭)</h3>
+<p>고객 위젯은 채팅만이 아니라 하단 탭으로 세 개의 화면을
+제공합니다.</p>
+<table>
+<thead>
+<tr>
+<th>탭</th>
+<th>아이콘</th>
+<th>용도</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>알림 (Notifications)</td>
+<td>🔔</td>
+<td>결제/배송/이벤트/리뷰 알림 확인, 안읽음 배지·읽음 처리</td>
+</tr>
+<tr>
+<td>채팅 (Chat)</td>
+<td>💬</td>
+<td>시나리오 버튼 + RAG AI + 상담원 (본 장 앞부분 내용)</td>
+</tr>
+<tr>
+<td>주문 (Orders)</td>
+<td>📦</td>
+<td>결제/배송/문의 하위탭, 주문 상세·배송 추적, 리뷰 작성</td>
+</tr>
+</tbody>
+</table>
+<h3 id="27-주문orders-탭">2.7 주문(Orders) 탭</h3>
+<ul>
+<li><strong>하위탭</strong>: 결제(payments = 전체 결제 주문) ·
+배송(shipping) · 문의(inquiries = 취소·환불·반품 관련).</li>
+<li><strong>본인확인 게이트</strong>: 비로그인 상태에서는 로그인/비회원
+조회를 요구하는 인증 게이트(AuthGate)가 표시됩니다. 인증 후 주문
+목록·상세를 조회합니다.</li>
+<li><strong>주문 상세</strong>: 배송 단계 추적 표시(Confirmed → In
+Transit → Delivered → Review, POL-014 상태 매핑). "이 주문 문의하기"를
+누르면 해당 주문번호로 채팅이 연계됩니다.</li>
+</ul>
+<h3 id="28-리뷰-작성">2.8 리뷰 작성</h3>
+<ul>
+<li>배송이 완료(Delivered → Review 단계)된 주문 항목에 대해
+<strong>별점(1–5) + 후기 텍스트</strong>를 남길 수 있습니다.</li>
+<li>세션 토큰 기반으로 저장되며, 제출 후 감사 메시지를 표시합니다.</li>
+</ul>
+<h3 id="29-알림notifications-탭--수신-환경설정">2.9 알림(Notifications)
+탭 &amp; 수신 환경설정</h3>
+<ul>
+<li><strong>필터</strong>: 전체 / 결제(payment) / 배송(shipping) /
+이벤트(event) / 리뷰(review). 안읽음 항목은 점으로 표시되고, 클릭하면
+읽음 처리됩니다. 하단 탭의 알림 아이콘에는 <strong>안읽음 개수
+배지</strong>가 표시됩니다(99+ 상한).</li>
+<li><strong>수신 환경설정(PreferencesPanel)</strong>: 채널 × 카테고리
+매트릭스로 알림 수신 여부를 토글합니다.
+<ul>
+<li>채널: <code>in_app</code>(항상 켜짐·끌 수 없음) · <code>email</code>
+· <code>sms</code> · <code>web_push</code></li>
+<li>카테고리: <code>payment</code> · <code>shipping</code> ·
+<code>event</code> · <code>review</code></li>
+<li><strong>CCPA 옵트아웃</strong> 링크: <code>in_app</code>을 제외한
+모든 채널·카테고리 수신을 한 번에 끕니다.</li>
+</ul></li>
+<li><strong>재입고 알림(back-in-stock)</strong>: 품절 상품에 대해
+<strong>게스트도 구독
+가능</strong>합니다(<code>POST /restock/subscribe</code>, 채널 지정).
+재입고 시 알림이 발송됩니다.</li>
+</ul>
+<h3 id="210-개인정보-동의-consent">2.10 개인정보 동의 (Consent)</h3>
+<ul>
+<li>위젯 진입 시 동의 배너(ConsentBanner)로 CCPA/GDPR 고지·동의를
+받습니다. 개인정보가 필요한 기능(주문 조회 등)은 동의·본인확인 이후
+이용됩니다.</li>
+</ul>
+<hr />
+<h2 id="3-시나리오-챗봇-설정">3. 시나리오 챗봇 설정</h2>
+<p><strong>위치</strong>: AI 설정(<code>/ai-setting</code>) → "시나리오
+버튼" 섹션 · <strong>권장 권한</strong>: 마스터/디렉터 (consult)</p>
+<h3 id="31-버튼-편집">3.1 버튼 편집</h3>
+<p>각 버튼은 다음 필드를 가집니다.</p>
+<table>
+<thead>
+<tr>
+<th>필드</th>
+<th>설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td>버튼 식별자 (미지정 시 <code>btn_N</code> 자동 부여)</td>
+</tr>
+<tr>
+<td><code>label</code></td>
+<td>화면 표시 문구 (최대 60자)</td>
+</tr>
+<tr>
+<td><code>action</code></td>
+<td>라우팅 액션 (아래 목록 중 선택)</td>
+</tr>
+<tr>
+<td><code>enabled</code></td>
+<td>노출 여부 (false면 위젯에 표시 안 됨)</td>
+</tr>
+</tbody>
+</table>
+<p>선택 가능한 <code>action</code>: <code>delivery_status</code>,
+<code>cancel_refund</code>, <code>product_help</code>,
+<code>contact_support</code>, <code>affiliate</code>,
+<code>my_orders</code>, <code>message</code>.</p>
+<h3 id="32-동작-방식">3.2 동작 방식</h3>
+<ul>
+<li>관리자가 저장한 버튼 집합은 위젯이 공개 엔드포인트
+<code>GET /ai-config/scenario</code>로 조회하며, <strong>enabled=true인
+버튼만</strong> 내려갑니다.</li>
+<li>저장된 설정이 없으면 시스템 기본 6버튼이 사용됩니다.</li>
+<li>위젯은 조회 실패 시에도 하드코딩된 기본 버튼을 표시해 <strong>항상
+메뉴가 보이도록</strong> 폴백합니다.</li>
+<li>라벨은 위젯 다국어(en/es/ko)로도 폴백 번역됩니다.</li>
+</ul>
+<h3 id="33-설정-팁">3.3 설정 팁</h3>
+<ul>
+<li>자주 들어오는 정형 문의 순서로 버튼을 정렬하세요(위/아래 이동
+지원).</li>
+<li>불필요한 버튼은 삭제보다 <code>enabled=false</code>로 숨기면
+재활성화가 쉽습니다.</li>
+<li><code>contact_support</code>는 항상 활성 상태로 두어 고객이 즉시
+상담원을 요청할 수 있게 하는 것을 권장합니다.</li>
+</ul>
+<hr />
+<h2 id="4-rag-지식기반-ai-챗봇-설정">4. RAG 지식기반 AI 챗봇 설정</h2>
+<p><strong>위치</strong>: AI 설정(<code>/ai-setting</code>) ·
+<strong>권장 권한</strong>: 마스터/디렉터</p>
+<p>RAG 챗봇의 응답 품질은 세 가지 설정 + 지식베이스로 결정됩니다.</p>
+<h3 id="41-봇-페르소나-persona">4.1 봇 페르소나 (Persona)</h3>
+<ul>
+<li>"봇 페르소나" 섹션의 텍스트 영역에 봇의 말투·태도·원칙을
+서술합니다.</li>
+<li>이 텍스트는 RAG 시스템 프롬프트의 앞부분에 주입됩니다.</li>
+<li>기본값: <em>"You are IVY USA's friendly, concise customer-support
+assistant. Be helpful and accurate, and only answer from the provided
+knowledge."</em></li>
+</ul>
+<h3 id="42-응답-규칙-response-rules">4.2 응답 규칙 (Response Rules)</h3>
+<ul>
+<li>여러 줄의 규칙을 추가/삭제할 수 있습니다(예: "가격은 단정하지 말
+것", "환불은 정책 문서를 인용할 것").</li>
+<li>저장 시 공백 규칙은 자동 제거됩니다.</li>
+<li>규칙은 페르소나 다음에 목록 형태로 프롬프트에 주입됩니다.</li>
+</ul>
+<h3 id="43-기능별-ai-엔진-ai-functions">4.3 기능별 AI 엔진 (AI
+Functions)</h3>
+<p>기능별로 사용할 AI 엔진을 지정합니다. 기능 키: <code>chat</code>,
+<code>rag</code>, <code>summary</code>, <code>assist</code>,
+<code>moderation</code>.</p>
+<ul>
+<li><code>AiGatewayService</code>가 <code>(테넌트, 기능)</code> →
+<code>tenant_ai_settings → ai_engines</code>로 엔진을 해석합니다.</li>
+<li>어댑터: <strong>스텁</strong>(키 없이 동작, 개발/폴백) ·
+<strong>Anthropic</strong>(키 설정 시).</li>
+<li>엔진 장애 시 자동으로 스텁으로 강등되어 응답이 끊기지 않습니다.</li>
+</ul>
+<h3 id="44-rag-검색답변-로직-참고">4.4 RAG 검색·답변 로직 (참고)</h3>
+<ul>
+<li>검색은 활성(<code>active=1</code>) + 테넌트
+스코프(<code>tenant_id</code> 일치 또는 NULL) 문서를 대상으로
+합니다.</li>
+<li><strong>Knowledge Store 소스가 Google Drive 소스보다 우선</strong>
+정렬됩니다(POL-013).</li>
+<li>신뢰도는 검색된 문서 수에 따라 산정됩니다. 실제 공식: 문서가 없으면
+<code>0.2</code>, 있으면 <code>min(0.95, 0.5 + 문서수 × 0.12)</code>
+(예: 1건 0.62, 4건 이상 최대 0.95).</li>
+<li>답변은 "컨텍스트에서만 답하고, 부족하면 상담원 연결" 원칙으로
+생성되며 출처를 함께 반환합니다.</li>
+</ul>
+<blockquote>
+<p>🟡 현재 검색기는 <strong>키워드 기반</strong>으로, 벡터 임베딩 검색은
+로드맵입니다. 따라서 <strong>KB 문서의 제목·본문에 고객이 쓸 법한
+키워드를 충분히 포함</strong>시키면 검색 적중률이 올라갑니다.</p>
+</blockquote>
+<h3 id="45-설정-체크리스트">4.5 설정 체크리스트</h3>
+<ul class="task-list">
+<li><label><input type="checkbox" />페르소나에 브랜드 톤·금지사항
+명시</label></li>
+<li><label><input type="checkbox" />핵심 정책(배송/취소/환불)마다 KB
+문서 등록 + 활성화</label></li>
+<li><label><input type="checkbox" />응답 규칙에 "근거 없으면 단정 금지"
+포함</label></li>
+<li><label><input type="checkbox" /><code>rag</code> 기능 엔진이 원하는
+프로바이더로 지정됐는지 확인</label></li>
+</ul>
+<hr />
+<h2 id="5-상담원-인계에스컬레이션-조건과-시점">5. 상담원
+인계(에스컬레이션) 조건과 시점</h2>
+<p>RAG 답변 후, 시스템은 다음 로직으로 인계 여부를 판단합니다.</p>
+<h3 id="51-자동-인계-트리거">5.1 자동 인계 트리거</h3>
+<table>
+<thead>
+<tr>
+<th>조건</th>
+<th>동작</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>신뢰도 &lt; 0.45</strong>
+(<code>ESCALATION_CONFIDENCE</code>)</td>
+<td>답변에 "상담원 연결을 도와드릴까요?" 문구를 덧붙이고 대화를
+<code>waiting</code>으로 표시</td>
+</tr>
+<tr>
+<td><strong>검열 게이트 차단</strong>(BLOCKED)</td>
+<td>답변을 노출하지 않고 "상담원에게 연결해 드리겠습니다" 안내 후
+<code>waiting</code> 처리</td>
+</tr>
+<tr>
+<td><strong>고객이 상담원 요청</strong></td>
+<td>위젯의 상담원 연결(<code>contact_support</code>) 또는 명시적
+에스컬레이션으로 <code>waiting</code> 처리</td>
+</tr>
+</tbody>
+</table>
+<h3 id="52-처리-순서-내부-동작">5.2 처리 순서 (내부 동작)</h3>
+<ol type="1">
+<li>사용자 메시지 저장 · 대화 로그/CJM 이벤트 발행</li>
+<li>의도 분류 — 주문 데이터 필요 시 본인확인 게이트</li>
+<li>RAG 답변 생성 (검색 → 생성 → 신뢰도)</li>
+<li><strong>검열 게이트</strong>(필수, fail-safe 차단)</li>
+<li><code>신뢰도 &lt; 0.45</code> <strong>또는</strong>
+<code>검열 차단</code> → 에스컬레이션</li>
+<li>대화 상태 <code>waiting</code>으로 변경 → 상담원 대기열에 노출</li>
+</ol>
+<h3 id="53-임계값-조정">5.3 임계값 조정</h3>
+<ul>
+<li>현재 인계 신뢰도 임계값은 코드
+상수(<code>ESCALATION_CONFIDENCE = 0.45</code>)로 정의되어
+있습니다.</li>
+<li>🟡 화면에서 직접 조정하는 UI는 아직 없습니다. 값 변경이 필요하면
+개발팀에 요청하세요(로드맵: 관리자 설정화).</li>
+</ul>
+<h3 id="54-인계-시-고객-안내-문구-다국어">5.4 인계 시 고객 안내 문구
+(다국어)</h3>
+<p>세션 언어에 따라 자동 현지화됩니다.</p>
+<ul>
+<li>한국어: "이 문제를 도와드릴 상담원에게 연결해 드리겠습니다." /
+"상담원에게 연결해 드릴까요?"</li>
+<li>영어/스페인어도 동일 의미로 제공.</li>
+</ul>
+<hr />
+<h2 id="6-상담원-라이브챗-콘솔">6. 상담원 라이브챗 콘솔</h2>
+<p><strong>위치</strong>: 라이브챗(<code>/live-chat</code>) ·
+<strong>권장 권한</strong>: consult 라벨 보유자</p>
+<h3 id="61-세션-대기열">6.1 세션 대기열</h3>
+<ul>
+<li><code>waiting</code>(대기) · <code>agent</code>(상담 중) 상태의
+대화가 목록에 표시되며, 각 항목에 마지막 메시지가 함께 보입니다.</li>
+<li>페이지네이션으로 조회합니다.</li>
+</ul>
+<h3 id="62-대화-인수-accept">6.2 대화 인수 (Accept)</h3>
+<ul>
+<li>대기 중 대화를 <strong>인수</strong>하면 배정(assignment)이 생성되고
+대화 상태가 <code>agent</code>로 바뀌며 담당 상담원이 지정됩니다.</li>
+</ul>
+<h3 id="63-ai-브리핑-briefing">6.3 AI 브리핑 (Briefing)</h3>
+<ul>
+<li>대화를 이어받을 때 AI가 지금까지 대화를 <strong>요약·의도·감정·권장
+조치</strong>로 브리핑합니다(<code>assist</code> 기능).</li>
+<li>브리핑 생성 실패 시 빈 값으로 처리되어 상담에는 지장이
+없습니다.</li>
+</ul>
+<h3 id="64-답변-전송-검열-필수">6.4 답변 전송 (검열 필수)</h3>
+<ul>
+<li>상담원이 보내는 메시지도 <strong>검열 게이트를 통과</strong>해야
+합니다.</li>
+<li>검열에 차단되면 전송이 거부됩니다(오류 코드
+<code>MODERATION_BLOCKED</code>). 표현을 수정해 다시 시도하세요.</li>
+</ul>
+<h3 id="65-대화-종료-end">6.5 대화 종료 (End)</h3>
+<ul>
+<li>종료하면 대화 상태가 <code>ended</code>가 되고 활성 배정이
+해제됩니다.</li>
+</ul>
+<h3 id="66-상담원-프로필통계">6.6 상담원 프로필·통계</h3>
+<ul>
+<li>프로필: 사용 언어, 스킬, 동시 상담 최대
+수(<code>max_concurrent</code>, 기본 3), 상태(online/offline 등).</li>
+<li>일별 통계(<code>agent_daily_stats</code>)를 테넌트 스코프로 조회할
+수 있습니다.</li>
+</ul>
+<hr />
+<h2 id="7-고객정보-연동">7. 고객정보 연동</h2>
+<p><strong>위치</strong>: 고객(<code>/customers</code>)</p>
+<h3 id="71-상담원이-확인할-수-있는-정보">7.1 상담원이 확인할 수 있는
+정보</h3>
+<p>고객 목록·상세에서 다음 필드를 확인합니다.</p>
+<table>
+<thead>
+<tr>
+<th>필드</th>
+<th>출처</th>
+<th>설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>email</code>, <code>name</code></td>
+<td>Shopify / 세션</td>
+<td>고객 식별</td>
+</tr>
+<tr>
+<td><code>shopifyCustomerId</code></td>
+<td>Shopify</td>
+<td>Shopify 고객 ID</td>
+</tr>
+<tr>
+<td><code>tier</code></td>
+<td>내부</td>
+<td>guest / subscriber / regular</td>
+</tr>
+<tr>
+<td><code>shopifyTier</code></td>
+<td>Shopify</td>
+<td>Shopify 기준 등급</td>
+</tr>
+<tr>
+<td>주문 캐시</td>
+<td>Shopify/Odoo</td>
+<td>주문·배송 상태(내부 상태: paid/preparing/shipping/delivered)</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>이메일로 검색할 수 있고, 목록은 테넌트 스코프로 필터링됩니다.</li>
+<li>고객은 이메일 기준으로 조회-또는-생성되며, Shopify 고객 ID가 함께
+캐시됩니다.</li>
+</ul>
+<h3 id="72-연동-상태-정직한-표기">7.2 연동 상태 (정직한 표기)</h3>
+<table>
+<thead>
+<tr>
+<th>연동</th>
+<th>상태</th>
+<th>설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Shopify 고객·주문 캐시</strong></td>
+<td>✅ 구현됨</td>
+<td>고객/주문 도메인에서 캐시·조회</td>
+</tr>
+<tr>
+<td>배송 조회 · Fulfillment 웹훅</td>
+<td>✅ 구현됨</td>
+<td>주문 상태 매핑(POL-014)</td>
+</tr>
+<tr>
+<td><strong>Odoo 고객/주문 연동</strong></td>
+<td>🟡 연동 상태 추적만</td>
+<td><code>integration_status</code>(shopify/fulfillment/klaviyo/odoo/google_drive)와
+테넌트별 자격증명(AES-256-GCM) 스키마는 준비됨. <strong>실시간 동기화
+로직은 로드맵</strong>이며, 현재 주문 캐시 테이블은 Shopify/Odoo 양쪽
+소스를 담도록 설계됨</td>
+</tr>
+<tr>
+<td>Klaviyo · Google Drive</td>
+<td>🟡 상태 추적</td>
+<td>연동 상태 관리 대상</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>연동 상태는 관리자에서 <code>integrations/status</code>로
+이름·상태·마지막 동기화 시각을 확인/갱신합니다.</li>
+</ul>
+<blockquote>
+<p>요약: 현재 상담원이 콘솔에서 보는 고객정보는 <strong>Shopify 소스가
+실동작</strong>하며, <strong>Odoo는 스키마·자격증명·상태추적이 준비된
+단계</strong>입니다. Odoo 실데이터 동기화는 다음 단계 과제입니다.</p>
+</blockquote>
+<hr />
+<h2 id="8-지식베이스kb-관리">8. 지식베이스(KB) 관리</h2>
+<p><strong>위치</strong>: 지식(<code>/knowledge</code>)</p>
+<ul>
+<li>지식 소스(<code>knowledge_sources</code>)와
+문서(<code>kb_documents</code>), 게시글(<code>kb_board_posts</code>),
+파일(<code>kb_files</code>)을 관리합니다.</li>
+<li>문서는 <code>active</code> 플래그로 RAG 검색 포함 여부를 제어합니다.
+<strong>비활성 문서는 답변 근거로 쓰이지 않습니다.</strong></li>
+<li>소스 우선순위: <strong>Knowledge Store &gt; Google
+Drive</strong>.</li>
+<li>검색 적중률을 위해 제목·본문에 고객이 실제 사용하는 키워드를
+포함하세요(현재 키워드 검색 기반).</li>
+</ul>
+<p><strong>운영 팁</strong></p>
+<ul>
+<li>정책 변경 시 관련 문서를 갱신하고, 구버전은
+<code>active=0</code>으로 내려 혼선을 방지하세요.</li>
+<li>카테고리를 활용해 배송/환불/상품 등으로 문서를 분류하면 답변
+컨텍스트가 깔끔해집니다.</li>
+</ul>
+<hr />
+<h2 id="9-검열moderation-정책">9. 검열(Moderation) 정책</h2>
+<ul>
+<li><strong>모든 AI·상담원 발신 메시지</strong>는
+<code>ModerationService.moderate()</code>를 반드시 통과합니다(우회 불가,
+FR-069/POL-020).</li>
+<li>오류 발생 시 기본값은 **차단(fail-safe = block)**입니다.</li>
+<li>결정값: 허용 / 차단(BLOCKED). 차단 시 AI 답변은 노출되지 않고 상담원
+인계로 전환되며, 상담원 메시지는 전송이 거부됩니다.</li>
+<li>검열 규칙은 AI 설정 화면의 "검열 규칙" 섹션에서 관리합니다(콘텐츠
+필터 규칙 추가/삭제).</li>
+<li>모든 검열 결정은 <code>moderation_logs</code>에 기록됩니다.</li>
+</ul>
+<hr />
+<h2 id="10-캠페인발송-관리">10. 캠페인(발송) 관리</h2>
+<p><strong>위치</strong>: 캠페인(<code>/campaigns</code>) · <strong>권장
+권한</strong>: 마스터/디렉터 (operations)</p>
+<p>대상 고객군에게 메시지를 발송하는 <strong>아웃바운드
+캠페인</strong>을 만들고 발송합니다.</p>
+<table>
+<thead>
+<tr>
+<th>필드</th>
+<th>설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>name</code></td>
+<td>캠페인 이름</td>
+</tr>
+<tr>
+<td><code>channel</code></td>
+<td>발송 채널 (기본 <code>email</code>)</td>
+</tr>
+<tr>
+<td><code>message</code></td>
+<td>발송 메시지 본문</td>
+</tr>
+<tr>
+<td><code>status</code></td>
+<td><code>draft</code>(초안) → <code>scheduled</code>(예약) →
+<code>sent</code>(발송됨)</td>
+</tr>
+<tr>
+<td><code>audienceSize</code></td>
+<td>대상 고객 수</td>
+</tr>
+<tr>
+<td><code>sentCount</code></td>
+<td>발송 건수</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>새 캠페인은 <code>draft</code> 상태로 생성되며, 목록에서
+<strong>발송</strong>을 실행하면 상태가 <code>sent</code>로
+바뀝니다.</li>
+<li>캠페인 목록·발송은 테넌트 스코프로 관리됩니다.</li>
+</ul>
+<blockquote>
+<p>🟡 세분화된 오디언스 타게팅·예약(scheduled) 자동 발송 UI는 확장
+로드맵입니다. 현재는 생성 → 즉시 발송 흐름이 기본입니다.</p>
+</blockquote>
+<hr />
+<h2 id="11-플랫폼-관리자-콘솔">11. 플랫폼 관리자 콘솔</h2>
+<p><strong>위치</strong>: <code>/admin/*</code> · <strong>권한</strong>:
+시스템 관리자(super/admin)</p>
+<table>
+<thead>
+<tr>
+<th>화면</th>
+<th>경로</th>
+<th>용도</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>개요</td>
+<td><code>/admin</code></td>
+<td>플랫폼 전체 현황</td>
+</tr>
+<tr>
+<td>테넌트</td>
+<td><code>/admin/tenants</code></td>
+<td>테넌트 생성·관리</td>
+</tr>
+<tr>
+<td>AI 엔진</td>
+<td><code>/admin/ai-engines</code></td>
+<td>사용 가능한 AI 엔진 등록·관리</td>
+</tr>
+<tr>
+<td>감사 로그</td>
+<td><code>/admin/audit</code></td>
+<td>권한 있는 작업 감사 추적</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>감사 로그에는 비밀번호 변경 강제 계정, 권한 변경 등 특권 작업이
+기록됩니다.</li>
+<li>AI 엔진 관리에서 등록한 엔진을 테넌트가 기능별로 선택합니다.</li>
+</ul>
+<hr />
+<h2 id="12-faq--문제-해결">12. FAQ / 문제 해결</h2>
+<p><strong>Q. 봇이 계속 상담원에게 넘깁니다.</strong> KB에 관련 문서가
+없거나 비활성이라 신뢰도가 낮은 경우가 많습니다. 해당 주제의 KB 문서를
+등록·활성화하고, 고객이 쓰는 키워드를 본문에 포함하세요.</p>
+<p><strong>Q. 위젯에 시나리오 버튼이 안 보입니다.</strong> 저장된 버튼이
+모두 <code>enabled=false</code>이거나 조회가 실패하면 기본 6버튼으로
+폴백됩니다. AI 설정에서 최소 하나 이상 활성화됐는지 확인하세요.</p>
+<p><strong>Q. 상담원 답변이 전송되지 않습니다.</strong> 검열 게이트에
+차단됐을 수 있습니다(<code>MODERATION_BLOCKED</code>). 표현을 완곡하게
+바꿔 다시 시도하세요.</p>
+<p><strong>Q. 인계 임계값(0.45)을 바꾸고 싶습니다.</strong> 현재는 코드
+상수입니다. 화면 설정은 로드맵이며, 변경은 개발팀에 요청하세요.</p>
+<p><strong>Q. Odoo 고객정보가 안 보입니다.</strong> Odoo 실시간 동기화는
+아직 로드맵 단계입니다. 현재 콘솔의 고객정보는 Shopify 소스 기준으로
+표시됩니다.</p>
+<p><strong>Q. AI 키가 없는데 동작합니다.</strong> 스텁 어댑터가 키 없이
+응답을 생성합니다(개발/폴백용). 실서비스 품질을 위해 Anthropic 등 실엔진
+키를 설정하세요.</p>
+<p><strong>Q. 고객이 알림을 안 받는다고 합니다.</strong>
+<code>in_app</code>은 항상 켜져 있지만
+<code>email</code>/<code>sms</code>/<code>web_push</code>는 고객이
+환경설정에서 카테고리별로 꺼둘 수 있습니다. CCPA 옵트아웃을 누르면
+in_app 외 전 채널이 꺼집니다. 고객의 수신 환경설정을 확인하세요.</p>
+<p><strong>Q. 재입고 알림은 로그인해야 하나요?</strong> 아니요. 품절
+상품 재입고 알림은 게스트도 구독할 수
+있습니다(<code>POST /restock/subscribe</code>).</p>
+<p><strong>Q. 캠페인을 예약 발송하고 싶습니다.</strong> 현재는 생성 후
+즉시 발송이 기본입니다. <code>scheduled</code> 상태·자동 예약 발송 UI는
+로드맵입니다.</p>
+<hr />
+<p><em>관련 문서: 서비스 소개서(Service Introduction), SPEC.md,
+<code>.claude/skills/ivy-talktalk-dev/SKILL.md</code></em></p></article>
+  <article id="doc-en" class="hidden"><h1 id="ivy-usa-chat--support-widget--user-manual">IVY USA Chat &amp;
+Support Widget — User Manual</h1>
+<blockquote>
+<p>Version 1.1.0 · 2026-07-01 · Revised 2026-07-06 Audience: Tenant
+operators · Agents · Platform admins Legend: <strong>✅ Implemented / 🟡
+Wired-and-designed or Roadmap</strong>. Marked honestly against the
+actual code.</p>
+</blockquote>
+<hr />
+<h2 id="table-of-contents">Table of contents</h2>
+<ol type="1">
+<li><a href="#1-getting-started">Getting started (login &amp;
+roles)</a></li>
+<li><a href="#2-customer-widget-flow">Customer widget flow</a></li>
+<li><a href="#3-scenario-chatbot-configuration">Scenario chatbot
+configuration</a></li>
+<li><a href="#4-rag-knowledge-based-ai-chatbot-configuration">RAG
+knowledge-based AI chatbot configuration</a></li>
+<li><a href="#5-agent-handoff-escalation-conditions--timing">Agent
+handoff (escalation) conditions &amp; timing</a></li>
+<li><a href="#6-agent-live-chat-console">Agent live-chat
+console</a></li>
+<li><a href="#7-customer-info-integration">Customer-info integration
+(Shopify · Odoo)</a></li>
+<li><a href="#8-knowledge-base-kb-management">Knowledge base (KB)
+management</a></li>
+<li><a href="#9-moderation-policy">Moderation policy</a></li>
+<li><a href="#10-campaign-outbound-management">Campaign (outbound)
+management</a></li>
+<li><a href="#11-platform-admin-console">Platform-admin console</a></li>
+<li><a href="#12-faq--troubleshooting">FAQ / troubleshooting</a></li>
+</ol>
+<hr />
+<h2 id="1-getting-started">1. Getting started</h2>
+<h3 id="11-console-access">1.1 Console access</h3>
+<ul>
+<li>The operator/admin console (<code>apps/web</code>) opens in a
+browser. In dev: web <code>:5173</code>, API <code>:3000</code> (Swagger
+at <code>/api/v1/docs</code>).</li>
+<li>Sign in with email + password (JWT). Access token 15 min, refresh 7
+days.</li>
+</ul>
+<h3 id="12-seed-accounts-must-change-password-on-first-login">1.2 Seed
+accounts (must change password on first login)</h3>
+<table>
+<thead>
+<tr>
+<th>Role</th>
+<th>Account</th>
+<th>Password</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>System Admin</td>
+<td><code>admin@amoeba.group</code></td>
+<td><code>amb2026!@</code></td>
+</tr>
+<tr>
+<td>Tenant Master (ivyusa)</td>
+<td><code>dev@amoeba.group</code></td>
+<td><code>amb2026!@</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>Both are <code>must_change_password=1</code>, so change the password
+right after the first login.</p>
+</blockquote>
+<h3 id="13-roles--permissions-rbac">1.3 Roles &amp; permissions
+(RBAC)</h3>
+<p>Permissions come from a <strong>rank × label</strong> matrix.</p>
+<ul>
+<li><strong>Rank</strong>: master · director · manager · staff</li>
+<li><strong>Label</strong>: consult · accounting · operations</li>
+<li><strong>System admin</strong>: super · admin (cross-tenant)</li>
+</ul>
+<p>Menus and features are shown per permission, with the ACL
+owner-visibility policy (POL-019) layered above functional RBAC.</p>
+<h3 id="14-console-menu-map">1.4 Console menu map</h3>
+<table>
+<thead>
+<tr>
+<th>Menu</th>
+<th>Path</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Dashboard</td>
+<td><code>/</code></td>
+<td>Support metrics overview</td>
+</tr>
+<tr>
+<td>Live chat</td>
+<td><code>/live-chat</code></td>
+<td>Real-time chat &amp; handoff</td>
+</tr>
+<tr>
+<td>History</td>
+<td><code>/history</code></td>
+<td>Past conversations &amp; filters</td>
+</tr>
+<tr>
+<td>AI settings</td>
+<td><code>/ai-setting</code></td>
+<td>Persona, rules, scenario, engine, moderation</td>
+</tr>
+<tr>
+<td>Knowledge</td>
+<td><code>/knowledge</code></td>
+<td>KB sources &amp; documents</td>
+</tr>
+<tr>
+<td>Customers</td>
+<td><code>/customers</code></td>
+<td>Customer cache &amp; tier</td>
+</tr>
+<tr>
+<td>Campaigns</td>
+<td><code>/campaigns</code></td>
+<td>Campaign management</td>
+</tr>
+<tr>
+<td>Users</td>
+<td><code>/users</code></td>
+<td>Users &amp; permissions</td>
+</tr>
+<tr>
+<td>Settings</td>
+<td><code>/settings</code></td>
+<td>Tenant settings</td>
+</tr>
+<tr>
+<td>Admin</td>
+<td><code>/admin/*</code></td>
+<td>Platform admin (tenants, AI engines, audit)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="2-customer-widget-flow">2. Customer widget flow</h2>
+<p>When a customer opens the chat widget on the Shopify storefront, they
+are handled in this order.</p>
+<h3 id="21-anonymous-entry--scenario-chatbot">2.1 Anonymous entry →
+scenario chatbot</h3>
+<p>The widget first shows a <strong>scenario button menu</strong>. The 6
+default actions:</p>
+<table>
+<thead>
+<tr>
+<th>Button action</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>delivery_status</code></td>
+<td>Delivery status</td>
+</tr>
+<tr>
+<td><code>cancel_refund</code></td>
+<td>Cancel / Refund</td>
+</tr>
+<tr>
+<td><code>product_help</code></td>
+<td>Product help</td>
+</tr>
+<tr>
+<td><code>contact_support</code></td>
+<td>Contact an agent</td>
+</tr>
+<tr>
+<td><code>affiliate</code></td>
+<td>Affiliate</td>
+</tr>
+<tr>
+<td><code>my_orders</code></td>
+<td>My orders</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>⚠️ Here the "scenario chatbot" is a <strong>button-based quick-reply
+menu</strong> that routes intent to each action. It is not a
+multi-branch dialog-tree engine — it's a menu that quickly classifies
+and guides routine inquiries. Free-form questions are answered by
+RAG.</p>
+</blockquote>
+<h3 id="22-identity-gate-when-personal-data-is-needed">2.2 Identity gate
+(when personal data is needed)</h3>
+<p>If the customer asks something requiring personal data (orders,
+delivery), the backend <strong>intent classifier</strong> flags
+<code>needsOrderData=true</code>. If the customer is anonymous (no
+customerId), the system responds:</p>
+<blockquote>
+<p>"To look up your order I need to verify your identity. Please sign in
+or use guest order lookup." (localized en/es/ko by session language)</p>
+</blockquote>
+<ul>
+<li>Guest order lookup is limited to <strong>5 attempts per 15
+minutes</strong> (Redis rate-limited).</li>
+</ul>
+<h3 id="23-routine-answer-insufficient--rag-ai-chatbot">2.3 Routine
+answer insufficient → RAG AI chatbot</h3>
+<p>For free-form questions or anything the scenario menu can't resolve,
+the <strong>RAG knowledge-based AI chatbot</strong> answers:</p>
+<ol type="1">
+<li>Retrieve relevant docs from the tenant KB (active +
+tenant-scoped)</li>
+<li>Generate an answer grounded only in the retrieval, <strong>with
+citations</strong></li>
+<li>Compute a <strong>confidence</strong> score</li>
+<li>Pass the <strong>moderation gate</strong>, then deliver to the
+customer</li>
+</ol>
+<h3 id="24-outside-knowledge-scope--agent-handoff">2.4 Outside knowledge
+scope → agent handoff</h3>
+<p>If confidence is low (&lt; 0.45) or moderation blocks, it hands off
+to an agent. See <a
+href="#5-agent-handoff-escalation-conditions--timing">Section 5</a>.</p>
+<h3 id="25-conversation-state-transitions">2.5 Conversation state
+transitions</h3>
+<pre><code>ai_active  ──(escalate)──▶  waiting  ──(agent accepts)──▶  agent  ──(end)──▶  ended</code></pre>
+<h3 id="26-widget-layout-bottom-tabs">2.6 Widget layout (bottom
+tabs)</h3>
+<p>The customer widget is more than chat — a bottom tab bar exposes
+three screens.</p>
+<table>
+<thead>
+<tr>
+<th>Tab</th>
+<th>Icon</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Notifications</td>
+<td>🔔</td>
+<td>Payment/shipping/event/review alerts, unread badge &amp;
+mark-as-read</td>
+</tr>
+<tr>
+<td>Chat</td>
+<td>💬</td>
+<td>Scenario buttons + RAG AI + agent (the earlier part of this
+section)</td>
+</tr>
+<tr>
+<td>Orders</td>
+<td>📦</td>
+<td>Payments/shipping/inquiries sub-tabs, order detail &amp; delivery
+tracking, review</td>
+</tr>
+</tbody>
+</table>
+<h3 id="27-orders-tab">2.7 Orders tab</h3>
+<ul>
+<li><strong>Sub-tabs</strong>: Payments (all paid orders) · Shipping ·
+Inquiries (cancel/refund/return-related).</li>
+<li><strong>Identity gate</strong>: while anonymous, an auth gate
+(AuthGate) asks the customer to sign in or use guest lookup. Once
+verified, order list/detail load.</li>
+<li><strong>Order detail</strong>: a delivery-step tracker (Confirmed →
+In Transit → Delivered → Review, POL-014 status mapping). "Ask about
+this order" links the order number into chat.</li>
+</ul>
+<h3 id="28-writing-a-review">2.8 Writing a review</h3>
+<ul>
+<li>For a delivered order item (Delivered → Review step), the customer
+can leave a <strong>star rating (1–5) + review text</strong>.</li>
+<li>Saved by session token; a thank-you message shows after
+submission.</li>
+</ul>
+<h3 id="29-notifications-tab--delivery-preferences">2.9 Notifications
+tab &amp; delivery preferences</h3>
+<ul>
+<li><strong>Filters</strong>: All / Payment / Shipping / Event / Review.
+Unread items show a dot and are marked read on click. The tab's bell
+icon carries an <strong>unread-count badge</strong> (capped at
+99+).</li>
+<li><strong>Delivery preferences (PreferencesPanel)</strong>: a channel
+× category matrix toggles which alerts are received.
+<ul>
+<li>Channels: <code>in_app</code> (always on — cannot be turned off) ·
+<code>email</code> · <code>sms</code> · <code>web_push</code></li>
+<li>Categories: <code>payment</code> · <code>shipping</code> ·
+<code>event</code> · <code>review</code></li>
+<li><strong>CCPA opt-out</strong> link: turns off every channel/category
+except <code>in_app</code> at once.</li>
+</ul></li>
+<li><strong>Back-in-stock alerts</strong>: for out-of-stock products,
+<strong>guests can subscribe too</strong>
+(<code>POST /restock/subscribe</code>, with a channel). A notification
+is sent on restock.</li>
+</ul>
+<h3 id="210-consent">2.10 Consent</h3>
+<ul>
+<li>On entry the widget shows a consent banner (ConsentBanner) for
+CCPA/GDPR notice &amp; consent. Features needing personal data (order
+lookup, etc.) are used after consent and identity verification.</li>
+</ul>
+<hr />
+<h2 id="3-scenario-chatbot-configuration">3. Scenario chatbot
+configuration</h2>
+<p><strong>Where</strong>: AI settings (<code>/ai-setting</code>) →
+"Scenario buttons" section · <strong>Suggested role</strong>:
+master/director (consult)</p>
+<h3 id="31-editing-buttons">3.1 Editing buttons</h3>
+<p>Each button has these fields.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td>Button identifier (auto <code>btn_N</code> if omitted)</td>
+</tr>
+<tr>
+<td><code>label</code></td>
+<td>Display text (max 60 chars)</td>
+</tr>
+<tr>
+<td><code>action</code></td>
+<td>Routing action (from the list below)</td>
+</tr>
+<tr>
+<td><code>enabled</code></td>
+<td>Visibility (hidden in widget if false)</td>
+</tr>
+</tbody>
+</table>
+<p>Selectable <code>action</code>: <code>delivery_status</code>,
+<code>cancel_refund</code>, <code>product_help</code>,
+<code>contact_support</code>, <code>affiliate</code>,
+<code>my_orders</code>, <code>message</code>.</p>
+<h3 id="32-how-it-works">3.2 How it works</h3>
+<ul>
+<li>The widget fetches the saved button set via the public endpoint
+<code>GET /ai-config/scenario</code>, and <strong>only enabled
+buttons</strong> are returned.</li>
+<li>If nothing is saved, the system's 6 default buttons are used.</li>
+<li>Even on a fetch failure the widget falls back to hardcoded defaults
+so <strong>a menu is always visible</strong>.</li>
+<li>Labels also fall back to widget i18n (en/es/ko) translations.</li>
+</ul>
+<h3 id="33-configuration-tips">3.3 Configuration tips</h3>
+<ul>
+<li>Order buttons by how often each routine inquiry arrives (move
+up/down supported).</li>
+<li>Prefer <code>enabled=false</code> over deleting a button so it's
+easy to re-enable.</li>
+<li>Keep <code>contact_support</code> enabled so customers can reach an
+agent immediately.</li>
+</ul>
+<hr />
+<h2 id="4-rag-knowledge-based-ai-chatbot-configuration">4. RAG
+knowledge-based AI chatbot configuration</h2>
+<p><strong>Where</strong>: AI settings (<code>/ai-setting</code>) ·
+<strong>Suggested role</strong>: master/director</p>
+<p>RAG answer quality comes from three settings plus the knowledge
+base.</p>
+<h3 id="41-bot-persona">4.1 Bot persona</h3>
+<ul>
+<li>Describe the bot's tone, stance, and principles in the "Bot persona"
+text area.</li>
+<li>This text is injected at the start of the RAG system prompt.</li>
+<li>Default: <em>"You are IVY USA's friendly, concise customer-support
+assistant. Be helpful and accurate, and only answer from the provided
+knowledge."</em></li>
+</ul>
+<h3 id="42-response-rules">4.2 Response rules</h3>
+<ul>
+<li>Add/remove multiple rule lines (e.g., "Never state prices as
+definitive", "Cite the policy doc for refunds").</li>
+<li>Blank rules are stripped on save.</li>
+<li>Rules are injected as a list right after the persona.</li>
+</ul>
+<h3 id="43-per-function-ai-engine">4.3 Per-function AI engine</h3>
+<p>Assign the AI engine per function. Function keys: <code>chat</code>,
+<code>rag</code>, <code>summary</code>, <code>assist</code>,
+<code>moderation</code>.</p>
+<ul>
+<li><code>AiGatewayService</code> resolves the engine via
+<code>(tenant, function)</code> →
+<code>tenant_ai_settings → ai_engines</code>.</li>
+<li>Adapters: <strong>stub</strong> (runs with no key — dev/fallback) ·
+<strong>Anthropic</strong> (when a key is set).</li>
+<li>On engine failure it auto-degrades to the stub so responses don't
+stop.</li>
+</ul>
+<h3 id="44-rag-retrievalanswer-logic-reference">4.4 RAG retrieval/answer
+logic (reference)</h3>
+<ul>
+<li>Retrieval targets active (<code>active=1</code>) + tenant-scoped
+documents (<code>tenant_id</code> match or NULL).</li>
+<li><strong>Knowledge Store sources rank above Google Drive</strong>
+(POL-013).</li>
+<li>Confidence is derived from the number of retrieved docs. Actual
+formula: <code>0.2</code> if none, else
+<code>min(0.95, 0.5 + docCount × 0.12)</code> (e.g. 1 doc = 0.62, ≥4
+docs = 0.95 max).</li>
+<li>Answers are generated with an "answer only from context, hand off if
+insufficient" rule and returned with citations.</li>
+</ul>
+<blockquote>
+<p>🟡 The retriever is currently <strong>keyword-based</strong>;
+vector-embedding search is on the roadmap. So <strong>include the
+keywords customers actually use in the title and body of KB
+docs</strong> to raise retrieval hit rate.</p>
+</blockquote>
+<h3 id="45-setup-checklist">4.5 Setup checklist</h3>
+<ul class="task-list">
+<li><label><input type="checkbox" />Persona states brand tone and
+prohibitions</label></li>
+<li><label><input type="checkbox" />A KB doc exists and is active for
+each key policy (delivery/cancel/refund)</label></li>
+<li><label><input type="checkbox" />Response rules include "don't assert
+without evidence"</label></li>
+<li><label><input type="checkbox" />The <code>rag</code> function engine
+points to the desired provider</label></li>
+</ul>
+<hr />
+<h2 id="5-agent-handoff-escalation-conditions--timing">5. Agent handoff
+(escalation) conditions &amp; timing</h2>
+<p>After a RAG answer, the system decides handoff with this logic.</p>
+<h3 id="51-automatic-handoff-triggers">5.1 Automatic handoff
+triggers</h3>
+<table>
+<thead>
+<tr>
+<th>Condition</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Confidence &lt; 0.45</strong>
+(<code>ESCALATION_CONFIDENCE</code>)</td>
+<td>Append "Would you like me to connect you with a support agent?" and
+mark the conversation <code>waiting</code></td>
+</tr>
+<tr>
+<td><strong>Moderation gate BLOCKED</strong></td>
+<td>Don't show the answer; say "I'm connecting you with a support
+agent…" and set <code>waiting</code></td>
+</tr>
+<tr>
+<td><strong>Customer requests an agent</strong></td>
+<td>The widget's contact action (<code>contact_support</code>) or an
+explicit escalation sets <code>waiting</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="52-processing-order-internal">5.2 Processing order
+(internal)</h3>
+<ol type="1">
+<li>Persist user message · publish conversation-log/CJM events</li>
+<li>Intent classification — identity gate if order data is needed</li>
+<li>RAG answer generation (retrieve → generate → confidence)</li>
+<li><strong>Moderation gate</strong> (mandatory, fail-safe block)</li>
+<li><code>confidence &lt; 0.45</code> <strong>OR</strong>
+<code>blocked</code> → escalate</li>
+<li>Set conversation to <code>waiting</code> → appears in the agent
+queue</li>
+</ol>
+<h3 id="53-adjusting-the-threshold">5.3 Adjusting the threshold</h3>
+<ul>
+<li>The handoff confidence threshold is a code constant
+(<code>ESCALATION_CONFIDENCE = 0.45</code>).</li>
+<li>🟡 There is no in-console UI to change it yet. Ask the dev team if
+you need a different value (roadmap: make it an admin setting).</li>
+</ul>
+<h3 id="54-handoff-messages-to-the-customer-multilingual">5.4 Handoff
+messages to the customer (multilingual)</h3>
+<p>Auto-localized by session language.</p>
+<ul>
+<li>English: "I'm connecting you with a support agent who can help with
+this." / "Would you like me to connect you with a support agent?"</li>
+<li>Korean and Spanish provided with the same meaning.</li>
+</ul>
+<hr />
+<h2 id="6-agent-live-chat-console">6. Agent live-chat console</h2>
+<p><strong>Where</strong>: Live chat (<code>/live-chat</code>) ·
+<strong>Suggested role</strong>: holders of the consult label</p>
+<h3 id="61-session-queue">6.1 Session queue</h3>
+<ul>
+<li>Conversations in <code>waiting</code> and <code>agent</code> status
+appear in the list, each with its last message.</li>
+<li>Browsed with pagination.</li>
+</ul>
+<h3 id="62-accept-a-conversation">6.2 Accept a conversation</h3>
+<ul>
+<li><strong>Accepting</strong> a waiting conversation creates an
+assignment, sets the status to <code>agent</code>, and assigns the
+agent.</li>
+</ul>
+<h3 id="63-ai-briefing">6.3 AI briefing</h3>
+<ul>
+<li>When taking over, the AI briefs the conversation so far as
+<strong>summary, intent, sentiment, recommended action</strong>
+(<code>assist</code> function).</li>
+<li>If briefing generation fails it returns empty, without disrupting
+the chat.</li>
+</ul>
+<h3 id="64-sending-a-reply-moderation-required">6.4 Sending a reply
+(moderation required)</h3>
+<ul>
+<li>Agent messages also <strong>pass the moderation gate</strong>.</li>
+<li>If blocked, sending is refused (error
+<code>MODERATION_BLOCKED</code>). Revise the wording and retry.</li>
+</ul>
+<h3 id="65-end-a-conversation">6.5 End a conversation</h3>
+<ul>
+<li>Ending sets the status to <code>ended</code> and releases the active
+assignment.</li>
+</ul>
+<h3 id="66-agent-profile--stats">6.6 Agent profile &amp; stats</h3>
+<ul>
+<li>Profile: languages, skills, max concurrent chats
+(<code>max_concurrent</code>, default 3), status (online/offline,
+etc.).</li>
+<li>Daily stats (<code>agent_daily_stats</code>) are viewable,
+tenant-scoped.</li>
+</ul>
+<hr />
+<h2 id="7-customer-info-integration">7. Customer-info integration</h2>
+<p><strong>Where</strong>: Customers (<code>/customers</code>)</p>
+<h3 id="71-what-the-agent-can-see">7.1 What the agent can see</h3>
+<p>The customer list/detail shows these fields.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Source</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>email</code>, <code>name</code></td>
+<td>Shopify / session</td>
+<td>Customer identity</td>
+</tr>
+<tr>
+<td><code>shopifyCustomerId</code></td>
+<td>Shopify</td>
+<td>Shopify customer ID</td>
+</tr>
+<tr>
+<td><code>tier</code></td>
+<td>Internal</td>
+<td>guest / subscriber / regular</td>
+</tr>
+<tr>
+<td><code>shopifyTier</code></td>
+<td>Shopify</td>
+<td>Tier per Shopify</td>
+</tr>
+<tr>
+<td>Order cache</td>
+<td>Shopify/Odoo</td>
+<td>Order &amp; delivery status (internal:
+paid/preparing/shipping/delivered)</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>Searchable by email; the list is tenant-scoped.</li>
+<li>Customers are looked-up-or-created by email, caching the Shopify
+customer ID alongside.</li>
+</ul>
+<h3 id="72-integration-status-honest-labeling">7.2 Integration status
+(honest labeling)</h3>
+<table>
+<thead>
+<tr>
+<th>Integration</th>
+<th>Status</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Shopify customer &amp; order cache</strong></td>
+<td>✅ Implemented</td>
+<td>Cached and queried in Customer/Order domains</td>
+</tr>
+<tr>
+<td>Delivery lookup · Fulfillment webhook</td>
+<td>✅ Implemented</td>
+<td>Order-status mapping (POL-014)</td>
+</tr>
+<tr>
+<td><strong>Odoo customer/order sync</strong></td>
+<td>🟡 Status-tracked only</td>
+<td><code>integration_status</code>
+(shopify/fulfillment/klaviyo/odoo/google_drive) and per-tenant
+credentials (AES-256-GCM) schema are ready. <strong>Live sync logic is
+roadmap</strong>; the order-cache table is designed to hold both Shopify
+and Odoo sources</td>
+</tr>
+<tr>
+<td>Klaviyo · Google Drive</td>
+<td>🟡 Status-tracked</td>
+<td>Managed as integration states</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>Integration state (name, status, last sync time) is viewed/updated
+in admin via <code>integrations/status</code>.</li>
+</ul>
+<blockquote>
+<p>Summary: The customer info an agent sees in the console is
+<strong>live from the Shopify source</strong>; <strong>Odoo is at the
+schema/credentials/status-tracking stage</strong>. Live Odoo data sync
+is a next-phase task.</p>
+</blockquote>
+<hr />
+<h2 id="8-knowledge-base-kb-management">8. Knowledge base (KB)
+management</h2>
+<p><strong>Where</strong>: Knowledge (<code>/knowledge</code>)</p>
+<ul>
+<li>Manages knowledge sources (<code>knowledge_sources</code>) and
+documents (<code>kb_documents</code>), board posts
+(<code>kb_board_posts</code>), files (<code>kb_files</code>).</li>
+<li>Documents control RAG inclusion via the <code>active</code> flag.
+<strong>Inactive docs are not used as answer evidence.</strong></li>
+<li>Source priority: <strong>Knowledge Store &gt; Google
+Drive</strong>.</li>
+<li>For hit rate, include the keywords customers actually use in titles
+and bodies (retrieval is keyword-based today).</li>
+</ul>
+<p><strong>Operational tips</strong></p>
+<ul>
+<li>On a policy change, update the related doc and set the old version
+<code>active=0</code> to avoid confusion.</li>
+<li>Use categories (delivery/refund/product, etc.) to keep the answer
+context clean.</li>
+</ul>
+<hr />
+<h2 id="9-moderation-policy">9. Moderation policy</h2>
+<ul>
+<li><strong>Every AI and agent outbound message</strong> must pass
+<code>ModerationService.moderate()</code> (non-bypassable,
+FR-069/POL-020).</li>
+<li>On error the default is <strong>block (fail-safe)</strong>.</li>
+<li>Decisions: allow / BLOCKED. When blocked, the AI answer is not shown
+and the flow escalates to an agent; agent messages are refused.</li>
+<li>Moderation rules are managed in the "Moderation rules" section of AI
+settings (add/remove content-filter rules).</li>
+<li>Every decision is recorded in <code>moderation_logs</code>.</li>
+</ul>
+<hr />
+<h2 id="10-campaign-outbound-management">10. Campaign (outbound)
+management</h2>
+<p><strong>Where</strong>: Campaigns (<code>/campaigns</code>) ·
+<strong>Suggested role</strong>: master/director (operations)</p>
+<p>Create and send <strong>outbound campaigns</strong> that deliver a
+message to a customer audience.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>name</code></td>
+<td>Campaign name</td>
+</tr>
+<tr>
+<td><code>channel</code></td>
+<td>Delivery channel (default <code>email</code>)</td>
+</tr>
+<tr>
+<td><code>message</code></td>
+<td>Message body</td>
+</tr>
+<tr>
+<td><code>status</code></td>
+<td><code>draft</code> → <code>scheduled</code> → <code>sent</code></td>
+</tr>
+<tr>
+<td><code>audienceSize</code></td>
+<td>Number of targeted customers</td>
+</tr>
+<tr>
+<td><code>sentCount</code></td>
+<td>Number sent</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>A new campaign is created as <code>draft</code>; running
+<strong>Send</strong> from the list flips its status to
+<code>sent</code>.</li>
+<li>Campaign list and sending are tenant-scoped.</li>
+</ul>
+<blockquote>
+<p>🟡 Fine-grained audience targeting and scheduled
+(auto-<code>scheduled</code>) sending UI are on the roadmap. Today the
+default flow is create → send now.</p>
+</blockquote>
+<hr />
+<h2 id="11-platform-admin-console">11. Platform-admin console</h2>
+<p><strong>Where</strong>: <code>/admin/*</code> ·
+<strong>Permission</strong>: system admin (super/admin)</p>
+<table>
+<thead>
+<tr>
+<th>Screen</th>
+<th>Path</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Overview</td>
+<td><code>/admin</code></td>
+<td>Platform-wide status</td>
+</tr>
+<tr>
+<td>Tenants</td>
+<td><code>/admin/tenants</code></td>
+<td>Create/manage tenants</td>
+</tr>
+<tr>
+<td>AI engines</td>
+<td><code>/admin/ai-engines</code></td>
+<td>Register/manage available AI engines</td>
+</tr>
+<tr>
+<td>Audit log</td>
+<td><code>/admin/audit</code></td>
+<td>Audit trail of privileged actions</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>The audit log records privileged actions such as forced password
+changes and permission changes.</li>
+<li>Tenants select the engines registered here, per function.</li>
+</ul>
+<hr />
+<h2 id="12-faq--troubleshooting">12. FAQ / troubleshooting</h2>
+<p><strong>Q. The bot keeps handing off to an agent.</strong> Usually
+there's no active KB doc for the topic, so confidence is low. Add and
+activate a KB doc for that topic and include the customer's keywords in
+the body.</p>
+<p><strong>Q. No scenario buttons show in the widget.</strong> If all
+saved buttons are <code>enabled=false</code> or the fetch fails, it
+falls back to the 6 defaults. Confirm at least one is enabled in AI
+settings.</p>
+<p><strong>Q. My agent reply won't send.</strong> It may be blocked by
+the moderation gate (<code>MODERATION_BLOCKED</code>). Soften the
+wording and retry.</p>
+<p><strong>Q. I want to change the handoff threshold (0.45).</strong>
+It's a code constant today. In-console setting is on the roadmap; ask
+the dev team to change it.</p>
+<p><strong>Q. Odoo customer info isn't showing.</strong> Live Odoo sync
+is still on the roadmap. Console customer info is currently shown from
+the Shopify source.</p>
+<p><strong>Q. It works without an AI key.</strong> The stub adapter
+generates responses with no key (for dev/fallback). Set a real engine
+key (e.g., Anthropic) for production quality.</p>
+<p><strong>Q. A customer says they aren't getting
+notifications.</strong> <code>in_app</code> is always on, but the
+customer can turn off
+<code>email</code>/<code>sms</code>/<code>web_push</code> per category
+in preferences. Hitting CCPA opt-out disables every channel except
+in_app. Check the customer's delivery preferences.</p>
+<p><strong>Q. Does a back-in-stock alert require login?</strong> No.
+Restock alerts for out-of-stock products can be subscribed to by guests
+(<code>POST /restock/subscribe</code>).</p>
+<p><strong>Q. I want to schedule a campaign.</strong> Today the default
+is create-then-send-now. A <code>scheduled</code> status with automatic
+scheduled sending is on the roadmap.</p>
+<hr />
+<p><em>Related docs: Service Introduction, SPEC.md,
+<code>.claude/skills/ivy-talktalk-dev/SKILL.md</code></em></p></article>
+  <footer class="doc">IVY USA Chat &amp; Support Widget · v1.1.0 · 2026-07-06</footer>
+</div>
+<script>
+function setLang(l){
+  document.getElementById('doc-ko').classList.toggle('hidden', l!=='ko');
+  document.getElementById('doc-en').classList.toggle('hidden', l!=='en');
+  document.getElementById('btn-ko').classList.toggle('active', l==='ko');
+  document.getElementById('btn-en').classList.toggle('active', l==='en');
+  document.documentElement.lang = l;
+}
+</script>
+</body>
+</html>
