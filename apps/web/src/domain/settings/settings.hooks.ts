@@ -66,3 +66,19 @@ export function useTestShopify() {
     },
   });
 }
+
+export function useSyncShopify() {
+  const qc = useQueryClient();
+  const tenantKey = useTenantKey();
+  return useMutation({
+    mutationFn: () => settingsService.syncShopify(),
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: ['shopify-settings', tenantKey] });
+      if (res.ok) toast.success(res.detail);
+      else toast.error(res.detail);
+    },
+    onError: (e: Error) => {
+      toast.error(e.message || 'Shopify sync failed.');
+    },
+  });
+}

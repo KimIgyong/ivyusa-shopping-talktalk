@@ -34,6 +34,12 @@ export interface ShopifyTestResult {
   detail: string;
 }
 
+export interface ShopifySyncResult {
+  ok: boolean;
+  synced: number;
+  detail: string;
+}
+
 export const settingsService = {
   credentials: () => apiGet<CredentialStatus[]>('/tenants/me/credentials'),
   updateCredential: (provider: string, body: UpdateCredentialBody) =>
@@ -41,4 +47,5 @@ export const settingsService = {
   shopify: () => apiGet<ShopifySettings>('/tenants/me/shopify'),
   saveShopify: (body: SaveShopifyBody) => apiPut<ShopifySettings>('/tenants/me/shopify', body),
   testShopify: () => apiPost<ShopifyTestResult>('/tenants/me/shopify/test'),
+  syncShopify: () => apiPost<ShopifySyncResult>('/tenants/me/shopify/sync'),
 };

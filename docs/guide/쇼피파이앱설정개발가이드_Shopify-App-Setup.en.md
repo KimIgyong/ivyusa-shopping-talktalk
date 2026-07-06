@@ -26,7 +26,8 @@ The Shopify integration has the **webhook / credential / integration-status / se
 | Session / shop parameter | ✅ | `POST /api/v1/session/ensure { shop_domain? }` — given shop must exist (else reject); auto-binds only when a single tenant exists |
 | Guest order lookup | ✅ (local cache) | `POST /api/v1/orders/guest-lookup` — reads local `order_cache` |
 | Tenant = shop mapping | ✅ | `tenants.shop_domain` **UNIQUE** — `tenant.entity.ts` |
-| Shopify Admin API client | ⛔ | No real `myshopify.com` calls. Customers/orders are **seed/cache** only |
+| Shopify Admin API client | ✅ (on-demand) | `POST /api/v1/tenants/me/shopify/sync` — pulls `orders.json` with the stored token → upserts `orders_cache`/`customers`. Scheduled auto-sync is roadmap |
+| Shopify settings UI | ✅ | Console Settings "Shopify connection" card (domain, token, test, sync) |
 | OAuth (public app install) | ⛔ | No `/auth/shopify` |
 | ScriptTag / Theme App Extension | ⛔ | None |
 | Widget shop passing | ✅ | Widget reads `?shop` and sends `shop_domain` to `session/ensure` |
@@ -268,7 +269,7 @@ curl -X POST http://localhost:3000/api/v1/webhooks/shopify/shop/redact \
 **Backend (dev):**
 - [x] Raw-body HMAC hardening (§4.3) — applied
 - [x] Remove session first-tenant fallback → safe resolution (§7.2) — applied
-- [ ] Shopify Admin API client (real customer/order sync) — currently cache/seed only (⛔)
+- [x] Shopify Admin API client (on-demand customer/order sync) — applied. Scheduled auto-sync is roadmap
 - [ ] Shopify order webhooks (orders/updated · fulfillments) → `order_cache` adapter (§5)
 - [ ] (Path B) `/auth/shopify` OAuth + webhook/ScriptTag registration on install (§8)
 

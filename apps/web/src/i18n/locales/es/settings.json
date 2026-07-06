@@ -29,6 +29,8 @@
     "apiSecretPlaceholder": "Para OAuth (app pública)",
     "testConnection": "Probar conexión",
     "testing": "Probando…",
+    "syncNow": "Sincronizar ahora",
+    "syncing": "Sincronizando…",
     "connectionStatus": "Estado de conexión",
     "credential": "Credencial",
     "lastTested": "Última prueba",

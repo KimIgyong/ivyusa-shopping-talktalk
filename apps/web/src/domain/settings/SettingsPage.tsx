@@ -12,6 +12,7 @@ import {
   useCredentials,
   useSaveShopify,
   useShopifySettings,
+  useSyncShopify,
   useTestShopify,
   useUpdateCredential,
 } from './settings.hooks';
@@ -29,6 +30,7 @@ function ShopifyCard() {
   const { data, isLoading } = useShopifySettings();
   const save = useSaveShopify();
   const test = useTestShopify();
+  const sync = useSyncShopify();
 
   const [shopDomain, setShopDomain] = useState('');
   const [accessToken, setAccessToken] = useState('');
@@ -114,6 +116,13 @@ function ShopifyCard() {
           disabled={test.isPending || !data?.credential.configured}
         >
           {test.isPending ? t('shopify.testing') : t('shopify.testConnection')}
+        </Button>
+        <Button
+          variant="secondary"
+          onClick={() => sync.mutate()}
+          disabled={sync.isPending || !data?.credential.configured}
+        >
+          {sync.isPending ? t('shopify.syncing') : t('shopify.syncNow')}
         </Button>
       </div>
 

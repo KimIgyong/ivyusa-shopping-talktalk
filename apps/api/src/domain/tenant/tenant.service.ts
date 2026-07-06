@@ -143,27 +143,37 @@ export class TenantService {
   }
 
   /**
+   * Resolve the shop domain + decrypted Admin API token for a tenant, or null if
+   * either is missing. Shared by the connectivity test and the order/customer sync.
+   */
+  async getShopifyConnection(
+    tenantId: number,
+  ): Promise<{ shopDomain: string; token: string } | null> {
+    const tenant = await this.findById(tenantId);
+    const shopDomain = tenant.shopDomain?.trim();
+    const cred = await this.credRepo.findOne({ where: { tenantId, provider: SHOPIFY } });
+    if (!shopDomain || !cred?.secretEnc) return null;
+    const token = this.extractAccessToken(decryptSecret(cred.secretEnc));
+    if (!token) return null;
+    return { shopDomain, token };
+  }
+
+  /**
    * Live connectivity test: pings the Shopify Admin API with the stored token and
    * records the result in integration_status. Fail-safe: any error → 'error'.
    */
   async testShopify(tenantId: number): Promise<ShopifyTestResponse> {
-    const tenant = await this.findById(tenantId);
-    const shop = tenant.shopDomain?.trim();
-    const cred = await this.credRepo.findOne({ where: { tenantId, provider: SHOPIFY } });
-    if (!shop || !cred?.secretEnc) {
+    const conn = await this.getShopifyConnection(tenantId);
+    if (!conn) {
       return this.recordShopifyTest(false, 'Missing shop domain or Shopify credential');
-    }
-    const token = this.extractAccessToken(decryptSecret(cred.secretEnc));
-    if (!token) {
-      return this.recordShopifyTest(false, 'Stored Shopify credential has no access token');
     }
     try {
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), 5000);
-      const res = await fetch(`https://${shop}/admin/api/${SHOPIFY_API_VERSION}/shop.json`, {
-        headers: { 'X-Shopify-Access-Token': token },
-        signal: controller.signal,
-      });
+      const res = await fetch(
+        `https://${conn.shopDomain}/admin/api/${SHOPIFY_API_VERSION}/shop.json`,
+        { headers: { 'X-Shopify-Access-Token': conn.token }, signal: controller.signal },
+      );
       clearTimeout(timer);
       if (!res.ok) {
         return this.recordShopifyTest(false, `Admin API returned ${res.status}`);
