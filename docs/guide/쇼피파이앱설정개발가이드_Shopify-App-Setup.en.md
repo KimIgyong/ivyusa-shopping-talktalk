@@ -19,19 +19,20 @@ The Shopify integration has the **webhook / credential / integration-status / se
 
 | Area | Status | Actual endpoint / location |
 |---|---|---|
-| GDPR compliance webhooks | ✅ (1 prod hardening) | `POST /webhooks/shopify/customers/data_request` · `/customers/redact` · `/shop/redact` — `privacy.controller.ts` |
-| Fulfillment webhook | ✅ | `POST /webhooks/fulfillment` → updates `order_cache` — `order/webhook.controller.ts` |
+| GDPR compliance webhooks | ✅ (raw-body HMAC applied) | `POST /api/v1/webhooks/shopify/customers/data_request` · `/customers/redact` · `/shop/redact` — `privacy.controller.ts` |
+| Fulfillment webhook | ✅ | `POST /api/v1/webhooks/fulfillment` → updates `order_cache` — `order/webhook.controller.ts` |
 | Credential storage (encrypted) | ✅ | `GET /api/v1/tenants/me/credentials` · `PUT /api/v1/tenants/me/credentials/:provider` — AES-256-GCM |
 | Integration status tracking | ✅ | `GET /api/v1/integrations/status` · `PATCH /api/v1/integrations/status/:name` |
-| Session / shop parameter | 🟡 | `POST /api/v1/session/ensure { shop_domain? }` — **falls back to first tenant** if omitted |
+| Session / shop parameter | ✅ | `POST /api/v1/session/ensure { shop_domain? }` — given shop must exist (else reject); auto-binds only when a single tenant exists |
 | Guest order lookup | ✅ (local cache) | `POST /api/v1/orders/guest-lookup` — reads local `order_cache` |
 | Tenant = shop mapping | ✅ | `tenants.shop_domain` **UNIQUE** — `tenant.entity.ts` |
 | Shopify Admin API client | ⛔ | No real `myshopify.com` calls. Customers/orders are **seed/cache** only |
 | OAuth (public app install) | ⛔ | No `/auth/shopify` |
 | ScriptTag / Theme App Extension | ⛔ | None |
-| `embed.js` loader / widget shop passing | ⛔ | Widget neither reads `?shop` nor sends `shop_domain` |
+| Widget shop passing | ✅ | Widget reads `?shop` and sends `shop_domain` to `session/ensure` |
+| `embed.js` loader / iframe embed | ⛔ | Store-injection loader & iframe still to build |
 
-> **API prefix**: normal API is `/api/v1` (`API_PREFIX`). **Webhooks are served at the root** (`/webhooks/...`) with no prefix and are `@Public()` (bypass auth).
+> **API prefix**: every route lives under `/api/v1` (`API_PREFIX`), **webhooks included** (`/api/v1/webhooks/...`). `@Public()` only skips auth, not the prefix.
 
 ---
 
@@ -96,12 +97,12 @@ curl -X PATCH http://localhost:3000/api/v1/integrations/status/shopify \
 
 If the app handles personal data, Shopify requires three mandatory compliance webhooks. **The handlers are already implemented** — just point the Shopify app config at the URLs and share the secret.
 
-### 4.1 URLs to register (root path — not `/api/v1`)
+### 4.1 URLs to register (under the `/api/v1` prefix)
 | Topic | Endpoint |
 |---|---|
-| customers/data_request | `https://<API_HOST>/webhooks/shopify/customers/data_request` |
-| customers/redact | `https://<API_HOST>/webhooks/shopify/customers/redact` |
-| shop/redact | `https://<API_HOST>/webhooks/shopify/shop/redact` |
+| customers/data_request | `https://<API_HOST>/api/v1/webhooks/shopify/customers/data_request` |
+| customers/redact | `https://<API_HOST>/api/v1/webhooks/shopify/customers/redact` |
+| shop/redact | `https://<API_HOST>/api/v1/webhooks/shopify/shop/redact` |
 
 - **Public/distributed app**: Partner Dashboard → **App setup → Compliance webhooks**, register the URLs above.
 - **Custom app**: compliance webhooks are a distributed-app (Partner) concept. A custom app registers the operational webhooks it needs via Admin API subscriptions; the code always provides the handlers above, so point the config at them at deploy time.
@@ -111,15 +112,15 @@ If the app handles personal data, Shopify requires three mandatory compliance we
 - Secret: `SHOPIFY_WEBHOOK_SECRET` = the app's **API secret key** (webhook signing key).
 - **Dev convenience**: if `SHOPIFY_WEBHOOK_SECRET` is unset, it logs a warning and lets the webhook through. **Always set it in production** — unset equals no verification.
 
-### 4.3 ⚠️ One production hardening — raw-body verification
-Verification currently **re-stringifies** the parsed JSON to compute the HMAC. Shopify signs the **raw transmitted bytes**, so key-order/whitespace differences can 401 a valid webhook. Production hardening:
+### 4.3 ✅ Raw-body verification — applied (2026-07-06)
+Shopify signs the **raw transmitted bytes**, so verifying a re-stringified copy of the parsed JSON can 401 a valid webhook over key-order/whitespace differences. Raw-body verification is now applied.
 
 ```ts
 // main.ts — preserve rawBody on NestFactory
-const app = await NestFactory.create(AppModule, { rawBody: true });
-// change the webhook handler to compute HMAC over req.rawBody (Buffer)
+const app = await NestFactory.create(AppModule, { cors: true, rawBody: true });
+// privacy.controller.ts — compute HMAC over req.rawBody (Buffer); falls back to re-stringify if absent
 ```
-> The same note is in the code comment (`privacy.controller.ts`). This item is a code change (dev work).
+> Verified: a correct signature over a body with non-canonical whitespace passes; a wrong signature 401s.
 
 ---
 
@@ -129,7 +130,7 @@ There is a **custom fulfillment webhook** that updates the order status cache (`
 
 ```bash
 # Simulate a fulfillment webhook
-curl -X POST http://localhost:3000/webhooks/fulfillment \
+curl -X POST http://localhost:3000/api/v1/webhooks/fulfillment \
   -H "Content-Type: application/json" \
   -d '{ "order_id": "shopify-1001", "status": "shipping",
         "tracking_number": "1Z999", "carrier": "UPS" }'
@@ -157,39 +158,33 @@ curl -X POST http://localhost:3000/webhooks/fulfillment \
 
 ---
 
-## 7. Connecting the widget to the storefront (⛔ to build · highest priority)
+## 7. Connecting the widget to the storefront
 
-Today the widget is a **standalone SPA**: it neither reads `?shop` nor sends `shop_domain`, so the session **falls back to the first tenant** (multitenancy leak). Follow the companion §4–5 for architecture; the minimal concrete changes are:
+**Shop-aware sessions are done (✅); the embed loader remains (⛔).**
 
-### 7.1 Widget: receive & pass the shop parameter
+### 7.1 Widget: receive & pass the shop parameter (✅ applied)
+The widget reads `?shop` from the iframe URL and sends it as `shop_domain` to `session/ensure`.
 ```ts
-// apps/widget/src/services/sessionService.ts
+// apps/widget/src/services/sessionService.ts — added shopDomain arg
 export function ensureSession(sessionToken: string | null, locale: string, shopDomain?: string) {
   return apiClient.post<SessionResponse>('/session/ensure', {
     session_token: sessionToken ?? undefined,
     locale,
-    shop_domain: shopDomain ?? undefined,   // ★ add (backend DTO already supports it)
+    shop_domain: shopDomain ?? undefined,
   });
 }
-```
-```ts
-// apps/widget/src/hooks/useSession.ts — read shop from the URL on mount
-const shop = new URLSearchParams(location.search).get('shop') ?? undefined;
-// ... ensureSession(sessionToken, language, shop)
+// apps/widget/src/hooks/useSession.ts — reads shop from the URL on mount and passes it
 ```
 
-### 7.2 Backend: remove the first-tenant fallback (🟡 → ✅)
+### 7.2 Backend: safe tenant resolution (✅ applied)
+The unconditional first-tenant fallback was removed and replaced with a safe rule (`resolveTenant` in `session.service.ts`).
 ```ts
-// apps/api/src/domain/session/session.service.ts
-// AS-IS: falls back to first tenant when shop_domain is missing
-const tenant = shopDomain
-  ? await this.tenantRepo.findOne({ where: { shopDomain } })
-  : await this.tenantRepo.findOne({ where: {}, order: { id: 'ASC' } }); // ← remove
-// TO-BE: reject (400/404) when shop_domain is missing or the shop is unknown
+// shop_domain given  → reject if unknown (404 E5005 TENANT_NOT_FOUND)
+// shop_domain absent  → auto-bind only when exactly one tenant exists, else reject (400)
 ```
-> This directly closes the High gap in `CLAUDE.md §6` ("remove chat first-tenant").
+> This closes the High gap in `CLAUDE.md §6` ("remove chat first-tenant"). Verified: unknown shop → 404, single tenant → 201, known shop → 201.
 
-### 7.3 The `embed.js` loader (new artifact)
+### 7.3 The `embed.js` loader (new artifact · ⛔ remaining)
 Inject a bubble + `<iframe>` into the store theme and append `?shop` / `?locale` to the iframe URL. See companion §4–5 for the exposure options (App Embed / ScriptTag / manual snippet) and the loader skeleton. Restrict the iframe origin with `Content-Security-Policy: frame-ancestors https://*.myshopify.com <custom domains>`.
 
 ---
@@ -233,7 +228,7 @@ SECRET='<SHOPIFY_WEBHOOK_SECRET>'
 BODY='{"shop_domain":"ivyusa.myshopify.com"}'
 HMAC=$(printf '%s' "$BODY" | openssl dgst -sha256 -hmac "$SECRET" -binary | base64)
 
-curl -X POST http://localhost:3000/webhooks/shopify/shop/redact \
+curl -X POST http://localhost:3000/api/v1/webhooks/shopify/shop/redact \
   -H "Content-Type: application/json" \
   -H "X-Shopify-Hmac-Sha256: $HMAC" \
   -d "$BODY"
@@ -242,7 +237,7 @@ curl -X POST http://localhost:3000/webhooks/shopify/shop/redact \
 
 ### 9.3 Receiving real Shopify webhooks (tunnel)
 - Get a public URL with `cloudflared tunnel` or `ngrok http 3000`.
-- Point the Shopify app webhook URLs at `https://<tunnel>/webhooks/...`.
+- Point the Shopify app webhook URLs at `https://<tunnel>/api/v1/webhooks/...`.
 - Trigger a test event → watch the API logs and the `integration_status` / `order_cache` change.
 
 ### 9.4 Custom-app token smoke check
@@ -271,18 +266,18 @@ curl -X POST http://localhost:3000/webhooks/shopify/shop/redact \
 - [ ] Least scopes + protected-customer-data approval
 
 **Backend (dev):**
-- [ ] Raw-body HMAC hardening (§4.3)
-- [ ] Remove session first-tenant fallback (§7.2)
+- [x] Raw-body HMAC hardening (§4.3) — applied
+- [x] Remove session first-tenant fallback → safe resolution (§7.2) — applied
 - [ ] Shopify Admin API client (real customer/order sync) — currently cache/seed only (⛔)
 - [ ] Shopify order webhooks (orders/updated · fulfillments) → `order_cache` adapter (§5)
 - [ ] (Path B) `/auth/shopify` OAuth + webhook/ScriptTag registration on install (§8)
 
 **Widget/frontend (dev):**
-- [ ] Parse `?shop` → send `shop_domain` to `session/ensure` (§7.1)
+- [x] Parse `?shop` → send `shop_domain` to `session/ensure` (§7.1) — applied
 - [ ] `embed.js` loader + iframe injection + CSP `frame-ancestors` (§7.3)
 - [ ] Shopify card + install snippets in console Settings (companion §6)
 
-**Already implemented (✅):** GDPR webhook handlers · fulfillment webhook · credential encryption · integration status · session shop-parameter intake · guest order lookup (cache) · tenant shop_domain UNIQUE.
+**Already implemented (✅):** GDPR webhooks (raw-body HMAC) · fulfillment webhook · credential encryption · integration status · shop-aware sessions (safe tenant resolution) · widget shop passing · guest order lookup (cache) · tenant shop_domain UNIQUE.
 
 ---
 
@@ -300,7 +295,7 @@ curl -X POST http://localhost:3000/webhooks/shopify/shop/redact \
 **Env vars**
 | Var | Purpose |
 |---|---|
-| `API_PREFIX` | Normal API prefix (`api/v1`). Webhooks have no prefix |
+| `API_PREFIX` | Prefix for all routes (`api/v1`). Webhooks use it too |
 | `SHOPIFY_WEBHOOK_SECRET` | Webhook HMAC key (app API secret). Required in production |
 | `CRED_ENC_KEY` | Credential AES-256-GCM key (base64 32B) |
 

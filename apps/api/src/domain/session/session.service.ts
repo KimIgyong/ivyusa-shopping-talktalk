@@ -26,27 +26,42 @@ export class SessionService {
       const existing = await this.sessionRepo.findOne({ where: { sessionToken: token } });
       if (existing) return existing;
     }
-    const tenant = shopDomain
-      ? await this.tenantRepo.findOne({ where: { shopDomain } })
-      : await this.tenantRepo.findOne({ where: {}, order: { id: 'ASC' } });
+    const tenant = await this.resolveTenant(shopDomain);
 
     const session = await this.sessionRepo.save(
       this.sessionRepo.create({
         sessionToken: generateToken(),
-        tenantId: tenant?.id ?? null,
+        tenantId: tenant.id,
         language: this.resolveLanguage(locale),
         consentState: CONSENT_STATE.PENDING,
         customerId: null,
       }),
     );
     await this.bus.publish(EVENTS.CJM, {
-      tenantId: tenant?.id ?? null,
+      tenantId: tenant.id,
       sessionId: session.id,
       customerId: null,
       stage: CJM_STAGE.AWARENESS,
       eventType: 'session_start',
     });
     return session;
+  }
+
+  /**
+   * Resolve the tenant a new session binds to (multitenancy — POL, CLAUDE.md §6).
+   * - `shop_domain` given  → must match a tenant, else reject (no silent binding).
+   * - `shop_domain` absent → only default when exactly one tenant exists (single
+   *   store / dev). With multiple tenants we refuse to guess to avoid cross-tenant leak.
+   */
+  private async resolveTenant(shopDomain?: string): Promise<Tenant> {
+    if (shopDomain) {
+      const tenant = await this.tenantRepo.findOne({ where: { shopDomain } });
+      if (!tenant) throw new BusinessException(ERROR_CODE.TENANT_NOT_FOUND, HttpStatus.NOT_FOUND);
+      return tenant;
+    }
+    const [tenants, count] = await this.tenantRepo.findAndCount({ order: { id: 'ASC' }, take: 1 });
+    if (count === 1) return tenants[0];
+    throw new BusinessException(ERROR_CODE.TENANT_NOT_FOUND, HttpStatus.BAD_REQUEST);
   }
 
   async findByToken(token: string): Promise<Session> {

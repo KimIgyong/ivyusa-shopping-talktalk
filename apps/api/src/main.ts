@@ -12,7 +12,9 @@ import { LoggingInterceptor } from './global/interceptor/logging.interceptor';
 import { runSeed } from './database/seed.runner';
 
 async function bootstrap(): Promise<void> {
-  const app = await NestFactory.create(AppModule, { cors: true });
+  // rawBody: preserve the exact request bytes so webhook HMAC (Shopify) can be
+  // verified against the raw payload, not a re-stringified JSON copy.
+  const app = await NestFactory.create(AppModule, { cors: true, rawBody: true });
   const config = app.get(ConfigService);
   const prefix = config.get<string>('API_PREFIX', 'api/v1');
 

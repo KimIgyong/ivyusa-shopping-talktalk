@@ -1,4 +1,14 @@
-import { Body, Controller, Get, HttpStatus, Logger, Post, Query, Req } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpStatus,
+  Logger,
+  Post,
+  Query,
+  RawBodyRequest,
+  Req,
+} from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import * as crypto from 'crypto';
 import type { Request } from 'express';
@@ -29,17 +39,20 @@ export class ShopifyComplianceController {
   /**
    * Verify the Shopify webhook HMAC (base64 of HMAC-SHA256 over the payload).
    * In dev (no secret) we log a warning and allow; otherwise mismatches are rejected.
-   * NOTE: production should verify against the raw request body, not the re-stringified JSON.
+   * Verifies against the raw request bytes (`req.rawBody`, enabled in main.ts) —
+   * falling back to a re-stringified copy only if the raw body is unavailable.
    */
-  private verifyShopifyHmac(payload: unknown, hmacHeader: string | undefined): void {
+  private verifyShopifyHmac(req: RawBodyRequest<Request>, payload: unknown): void {
     const secret = process.env.SHOPIFY_WEBHOOK_SECRET;
     if (!secret) {
       this.logger.warn('SHOPIFY_WEBHOOK_SECRET not set — allowing webhook unverified (dev only)');
       return;
     }
-    const body = typeof payload === 'string' ? payload : JSON.stringify(payload);
-    const digest = crypto.createHmac('sha256', secret).update(body, 'utf8').digest('base64');
-    const provided = hmacHeader ?? '';
+    const body =
+      req.rawBody ??
+      Buffer.from(typeof payload === 'string' ? payload : JSON.stringify(payload), 'utf8');
+    const digest = crypto.createHmac('sha256', secret).update(body).digest('base64');
+    const provided = req.header('X-Shopify-Hmac-Sha256') ?? '';
     const a = Buffer.from(digest);
     const b = Buffer.from(provided);
     if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
@@ -47,15 +60,11 @@ export class ShopifyComplianceController {
     }
   }
 
-  private hmacOf(req: Request): string | undefined {
-    return req.header('X-Shopify-Hmac-Sha256') ?? undefined;
-  }
-
   @Post('customers/data_request')
   @Public()
   @ApiOperation({ summary: 'Shopify GDPR: request customer data (audit High-2)' })
-  async customersDataRequest(@Body() body: CustomersDataRequest, @Req() req: Request) {
-    this.verifyShopifyHmac(body, this.hmacOf(req));
+  async customersDataRequest(@Body() body: CustomersDataRequest, @Req() req: RawBodyRequest<Request>) {
+    this.verifyShopifyHmac(req, body);
     const email = body.customer?.email ?? null;
     await this.privacyService.handleCustomerDataRequest(email);
     return { received: true };
@@ -64,8 +73,8 @@ export class ShopifyComplianceController {
   @Post('customers/redact')
   @Public()
   @ApiOperation({ summary: 'Shopify GDPR: redact customer (audit High-2)' })
-  async customersRedact(@Body() body: CustomersRedactRequest, @Req() req: Request) {
-    this.verifyShopifyHmac(body, this.hmacOf(req));
+  async customersRedact(@Body() body: CustomersRedactRequest, @Req() req: RawBodyRequest<Request>) {
+    this.verifyShopifyHmac(req, body);
     const email = body.customer?.email ?? null;
     const shopifyId = body.customer?.id != null ? String(body.customer.id) : null;
     await this.privacyService.handleCustomerRedact(email, shopifyId);
@@ -75,8 +84,8 @@ export class ShopifyComplianceController {
   @Post('shop/redact')
   @Public()
   @ApiOperation({ summary: 'Shopify GDPR: redact shop — full tenant purge (audit High-2)' })
-  async shopRedact(@Body() body: ShopRedactRequest, @Req() req: Request) {
-    this.verifyShopifyHmac(body, this.hmacOf(req));
+  async shopRedact(@Body() body: ShopRedactRequest, @Req() req: RawBodyRequest<Request>) {
+    this.verifyShopifyHmac(req, body);
     return this.privacyService.handleShopRedact(body.shop_domain ?? null);
   }
 }

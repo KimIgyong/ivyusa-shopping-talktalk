@@ -4,10 +4,12 @@ import type { SessionResponse } from '../lib/types';
 export function ensureSession(
   sessionToken: string | null,
   locale: string,
+  shopDomain?: string,
 ): Promise<SessionResponse> {
   return apiClient.post<SessionResponse>('/session/ensure', {
     session_token: sessionToken ?? undefined,
     locale,
+    shop_domain: shopDomain ?? undefined,
   });
 }
 

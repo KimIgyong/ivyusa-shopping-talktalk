@@ -16,6 +16,18 @@ function hasManualLanguageOverride(): boolean {
 }
 
 /**
+ * The Shopify shop domain the embed loader passes in the iframe URL (`?shop=`).
+ * Binds the session to the right tenant; absent in local/standalone dev.
+ */
+function getShopDomain(): string | undefined {
+  try {
+    return new URLSearchParams(window.location.search).get('shop') ?? undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
  * Ensures a session token exists once the widget mounts.
  * Stores token + authenticated flag in the Zustand store.
  */
@@ -28,7 +40,7 @@ export function useEnsureSession() {
 
   useEffect(() => {
     let cancelled = false;
-    ensureSession(sessionToken, language)
+    ensureSession(sessionToken, language, getShopDomain())
       .then((res) => {
         if (cancelled) return;
         if (res.sessionToken && res.sessionToken !== sessionToken) {
