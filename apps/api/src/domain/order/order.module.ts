@@ -11,6 +11,8 @@ import { WebhookController } from './webhook.controller';
 import { ShopifyAdminClient } from './shopify-admin.client';
 import { ShopifySyncService } from './shopify-sync.service';
 import { ShopifySyncController } from './shopify-sync.controller';
+import { ShopifyWebhookService } from './shopify-webhook.service';
+import { ShopifyOrderWebhookController } from './shopify-order-webhook.controller';
 import { TenantModule } from '../tenant/tenant.module';
 import { CustomerModule } from '../customer/customer.module';
 import { IntegrationModule } from '../integration/integration.module';
@@ -22,8 +24,14 @@ import { IntegrationModule } from '../integration/integration.module';
     CustomerModule,
     IntegrationModule,
   ],
-  controllers: [OrderController, AdminOrderController, WebhookController, ShopifySyncController],
-  providers: [OrderService, ShopifyAdminClient, ShopifySyncService],
+  controllers: [
+    OrderController,
+    AdminOrderController,
+    WebhookController,
+    ShopifySyncController,
+    ShopifyOrderWebhookController,
+  ],
+  providers: [OrderService, ShopifyAdminClient, ShopifySyncService, ShopifyWebhookService],
   exports: [OrderService],
 })
 export class OrderModule {}

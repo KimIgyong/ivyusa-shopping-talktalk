@@ -138,9 +138,18 @@ curl -X POST http://localhost:3000/api/v1/webhooks/fulfillment \
 ```
 - 동작: `Fulfillment` upsert → `order_cache.statusInternal/statusUi` 갱신 → 알림 이벤트 발행.
 
-**Shopify와 연결하려면(개발 필요, ⛔):** 다음 중 하나.
-- (a) Shopify `fulfillments/create`·`orders/updated` 웹훅을 받아 위 커스텀 형식으로 **변환**해 넘기는 어댑터를 둔다.
-- (b) 전용 Shopify 주문 웹훅 핸들러를 신설한다(HMAC 검증 포함).
+### 5.1 Shopify 네이티브 주문/배송 웹훅 (✅ 구현됨)
+네이티브 Shopify 웹훅 핸들러가 추가됐습니다(모두 HMAC 검증, 접두어 포함, `@Public()`). 테넌트는 `X-Shopify-Shop-Domain` 헤더로 해석하며, 미등록 shop·미캐시 주문은 200으로 무시(로깅)합니다.
+
+| 토픽 | 엔드포인트 | 동작 |
+|---|---|---|
+| orders/create · orders/updated | `POST /api/v1/webhooks/shopify/orders/{create,updated}` | 주문을 `orders_cache`에 upsert(+고객 연결) |
+| fulfillments/create · fulfillments/update | `POST /api/v1/webhooks/shopify/fulfillments/{create,update}` | `shipment_status`→내부 상태 매핑, 주문 상태 전진 + 알림 |
+
+- 배송 상태 매핑: `delivered`→delivered, `in_transit`/`out_for_delivery`/`attempted_delivery`→in_transit, 그 외→shipped.
+- Shopify 앱에서 위 토픽을 이 URL로 구독하면 온디맨드 동기화(§1)와 함께 실시간 반영됩니다.
+
+> 참고: 기존 `POST /api/v1/webhooks/fulfillment`(커스텀 형식)도 그대로 유지됩니다(내부 연동/테스트용).
 
 ---
 
@@ -280,7 +289,7 @@ curl -X POST http://localhost:3000/api/v1/webhooks/shopify/shop/redact \
 - [x] raw-body HMAC 하드닝(§4.3) — 적용됨
 - [x] 세션 첫 테넌트 폴백 제거 → 안전 해석(§7.2) — 적용됨
 - [x] Shopify Admin API 클라이언트(고객/주문 온디맨드 동기화) — 적용됨. 스케줄 자동화는 로드맵
-- [ ] Shopify 주문 웹훅(orders/updated·fulfillments) → `order_cache` 어댑터(§5)
+- [x] Shopify 네이티브 주문/배송 웹훅(orders·fulfillments, HMAC) → `order_cache`(§5.1) — 적용됨
 - [ ] (경로 B) `/auth/shopify` OAuth + 설치 시 웹훅/ScriptTag 등록(§8)
 
 **위젯/프론트(개발):**

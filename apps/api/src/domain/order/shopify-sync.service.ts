@@ -58,7 +58,8 @@ export class ShopifySyncService {
     return this.record(true, synced, `Synced ${synced} order(s)`);
   }
 
-  private async upsertOrder(tenantId: number, o: ShopifyOrderDto): Promise<void> {
+  /** Map a Shopify order → orders_cache (+ linked customer). Public: reused by webhooks. */
+  async upsertOrder(tenantId: number, o: ShopifyOrderDto): Promise<OrderCache> {
     let customerId: number | null = null;
     const email = o.customer?.email ?? o.email ?? null;
     if (email) {
@@ -93,7 +94,7 @@ export class ShopifySyncService {
     row.statusUi = internalToUiStatus(internal);
     row.total = total;
     row.currency = o.currency ?? row.currency ?? 'USD';
-    await this.orderRepo.save(row);
+    return this.orderRepo.save(row);
   }
 
   /** Coarse Shopify → internal status mapping (POL-014 progression). */

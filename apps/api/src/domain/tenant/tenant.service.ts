@@ -52,6 +52,11 @@ export class TenantService {
     return tenant;
   }
 
+  /** Resolve a tenant by its Shopify shop domain (e.g. from a webhook header). */
+  async findByShopDomain(shopDomain: string): Promise<Tenant | null> {
+    return this.tenantRepo.findOne({ where: { shopDomain } });
+  }
+
   async create(shopDomain: string, name: string, plan: string): Promise<Tenant> {
     const existing = await this.tenantRepo.findOne({ where: { shopDomain } });
     if (existing) {

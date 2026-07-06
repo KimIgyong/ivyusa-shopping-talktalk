@@ -138,9 +138,18 @@ curl -X POST http://localhost:3000/api/v1/webhooks/fulfillment \
 ```
 - Behavior: upsert `Fulfillment` → update `order_cache.statusInternal/statusUi` → publish notification event.
 
-**To feed it from Shopify (to build, ⛔):** either
-- (a) receive Shopify `fulfillments/create` / `orders/updated` webhooks and **transform** them into the custom shape above, or
-- (b) add a dedicated Shopify order webhook handler (with HMAC verification).
+### 5.1 Shopify-native order/fulfillment webhooks (✅ implemented)
+Native Shopify webhook handlers are in place (all HMAC-verified, prefixed, `@Public()`). The tenant is resolved from the `X-Shopify-Shop-Domain` header; unknown shops and uncached orders are ignored (logged) and still return 200.
+
+| Topic | Endpoint | Behavior |
+|---|---|---|
+| orders/create · orders/updated | `POST /api/v1/webhooks/shopify/orders/{create,updated}` | upsert the order into `orders_cache` (+ link customer) |
+| fulfillments/create · fulfillments/update | `POST /api/v1/webhooks/shopify/fulfillments/{create,update}` | map `shipment_status` → internal, advance order status + notify |
+
+- Shipment mapping: `delivered`→delivered, `in_transit`/`out_for_delivery`/`attempted_delivery`→in_transit, else→shipped.
+- Subscribe those topics to these URLs in the Shopify app for real-time updates alongside the on-demand sync (§1).
+
+> Note: the existing `POST /api/v1/webhooks/fulfillment` (custom shape) is still available for internal integrations/testing.
 
 ---
 
@@ -280,7 +289,7 @@ curl -X POST http://localhost:3000/api/v1/webhooks/shopify/shop/redact \
 - [x] Raw-body HMAC hardening (§4.3) — applied
 - [x] Remove session first-tenant fallback → safe resolution (§7.2) — applied
 - [x] Shopify Admin API client (on-demand customer/order sync) — applied. Scheduled auto-sync is roadmap
-- [ ] Shopify order webhooks (orders/updated · fulfillments) → `order_cache` adapter (§5)
+- [x] Shopify-native order/fulfillment webhooks (orders·fulfillments, HMAC) → `order_cache` (§5.1) — applied
 - [ ] (Path B) `/auth/shopify` OAuth + webhook/ScriptTag registration on install (§8)
 
 **Widget/frontend (dev):**

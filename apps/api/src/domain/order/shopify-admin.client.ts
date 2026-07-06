@@ -21,6 +21,15 @@ export interface ShopifyOrderDto {
   } | null;
 }
 
+/** Subset of a Shopify fulfillment webhook payload we act on. */
+export interface ShopifyFulfillmentDto {
+  order_id?: number;
+  status?: string | null;
+  shipment_status?: string | null;
+  tracking_number?: string | null;
+  tracking_company?: string | null;
+}
+
 /** Thin Shopify Admin API client (read-only). Callers pass the per-tenant token. */
 @Injectable()
 export class ShopifyAdminClient {
