@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { settingsService } from './settings.service';
-import type { UpdateCredentialBody } from './settings.service';
+import type { SaveShopifyBody, UpdateCredentialBody } from './settings.service';
 import { toast } from '@/store/toast-store';
 import { useTenantKey } from '@/lib/use-tenant-key';
 
@@ -24,6 +24,45 @@ export function useUpdateCredential() {
     },
     onError: (e: Error) => {
       toast.error(e.message || 'Failed to update credential.');
+    },
+  });
+}
+
+export const useShopifySettings = () => {
+  const tenantKey = useTenantKey();
+  return useQuery({
+    queryKey: ['shopify-settings', tenantKey],
+    queryFn: () => settingsService.shopify(),
+  });
+};
+
+export function useSaveShopify() {
+  const qc = useQueryClient();
+  const tenantKey = useTenantKey();
+  return useMutation({
+    mutationFn: (body: SaveShopifyBody) => settingsService.saveShopify(body),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['shopify-settings', tenantKey] });
+      toast.success('Shopify settings saved.');
+    },
+    onError: (e: Error) => {
+      toast.error(e.message || 'Failed to save Shopify settings.');
+    },
+  });
+}
+
+export function useTestShopify() {
+  const qc = useQueryClient();
+  const tenantKey = useTenantKey();
+  return useMutation({
+    mutationFn: () => settingsService.testShopify(),
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: ['shopify-settings', tenantKey] });
+      if (res.ok) toast.success(res.detail);
+      else toast.error(res.detail);
+    },
+    onError: (e: Error) => {
+      toast.error(e.message || 'Shopify test failed.');
     },
   });
 }

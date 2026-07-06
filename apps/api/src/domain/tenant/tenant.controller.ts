@@ -8,6 +8,7 @@ import { TenantMapper } from './tenant.mapper';
 import {
   CreateTenantRequest,
   ListTenantsQuery,
+  UpdateShopifySettingsRequest,
   UpdateTenantStatusRequest,
   UpsertCredentialRequest,
 } from './dto/request/tenant.request';
@@ -78,6 +79,32 @@ export class TenantController {
     const tenantId = this.tenantId(user);
     const cred = await this.tenantService.upsertCredential(tenantId, provider, body.secret);
     return TenantMapper.toCredential(cred);
+  }
+
+  @Get('me/shopify')
+  @RequireCapability(CAPABILITY.INTEGRATION_CREDENTIALS_MANAGE)
+  @ApiOperation({ summary: 'Get this tenant Shopify connection settings' })
+  async getShopify(@CurrentUser() user: Principal) {
+    const { tenant, cred, status } = await this.tenantService.getShopifyView(this.tenantId(user));
+    return TenantMapper.toShopifySettings(tenant, cred, status);
+  }
+
+  @Put('me/shopify')
+  @RequireCapability(CAPABILITY.INTEGRATION_CREDENTIALS_MANAGE)
+  @ApiOperation({ summary: 'Save this tenant Shopify shop domain and credentials' })
+  async saveShopify(
+    @CurrentUser() user: Principal,
+    @Body() body: UpdateShopifySettingsRequest,
+  ) {
+    const { tenant, cred, status } = await this.tenantService.saveShopify(this.tenantId(user), body);
+    return TenantMapper.toShopifySettings(tenant, cred, status);
+  }
+
+  @Post('me/shopify/test')
+  @RequireCapability(CAPABILITY.INTEGRATION_CREDENTIALS_MANAGE)
+  @ApiOperation({ summary: 'Test Shopify Admin API connectivity and record status' })
+  async testShopify(@CurrentUser() user: Principal) {
+    return this.tenantService.testShopify(this.tenantId(user));
   }
 
   private tenantId(user: Principal): number {

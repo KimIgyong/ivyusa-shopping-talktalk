@@ -39,3 +39,30 @@ export class UpsertCredentialRequest {
   @MinLength(1)
   secret: string;
 }
+
+/**
+ * Shopify connection settings for the current tenant. `shop_domain` is the shop
+ * address; credential fields (optional) are packed into the encrypted `shopify`
+ * credential. Sending no credential fields leaves the stored credential untouched.
+ */
+export class UpdateShopifySettingsRequest {
+  @IsString()
+  @MinLength(3)
+  shop_domain: string;
+
+  @IsOptional()
+  @IsString()
+  name?: string;
+
+  @IsOptional()
+  @IsString()
+  access_token?: string;
+
+  @IsOptional()
+  @IsString()
+  api_key?: string;
+
+  @IsOptional()
+  @IsString()
+  api_secret?: string;
+}

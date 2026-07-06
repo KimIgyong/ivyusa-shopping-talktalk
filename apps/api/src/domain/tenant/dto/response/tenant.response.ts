@@ -16,3 +16,25 @@ export interface CredentialResponse {
   configured: boolean;
   updatedAt: Date | null;
 }
+
+/** Shopify connection settings view — secrets are never exposed (only flags). */
+export interface ShopifySettingsResponse {
+  shopDomain: string;
+  name: string | null;
+  status: string;
+  credential: {
+    configured: boolean;
+    updatedAt: Date | null;
+  };
+  integration: {
+    status: string | null;
+    lastSyncAt: Date | null;
+    detail: string | null;
+  };
+}
+
+/** Result of a Shopify Admin API connectivity test. */
+export interface ShopifyTestResponse {
+  ok: boolean;
+  detail: string;
+}

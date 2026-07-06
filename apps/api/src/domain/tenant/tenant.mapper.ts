@@ -1,6 +1,11 @@
 import { Tenant } from './entity/tenant.entity';
 import { IntegrationCredential } from './entity/integration-credential.entity';
-import { CredentialResponse, TenantResponse } from './dto/response/tenant.response';
+import { IntegrationStatusEntity } from '../integration/entity/integration-status.entity';
+import {
+  CredentialResponse,
+  ShopifySettingsResponse,
+  TenantResponse,
+} from './dto/response/tenant.response';
 
 /** Entity -> response mapping. Keeps secrets out of API payloads. */
 export class TenantMapper {
@@ -31,5 +36,26 @@ export class TenantMapper {
 
   static toCredentialList(creds: IntegrationCredential[]): CredentialResponse[] {
     return creds.map((c) => this.toCredential(c));
+  }
+
+  static toShopifySettings(
+    tenant: Tenant,
+    cred: IntegrationCredential | null,
+    status: IntegrationStatusEntity | null,
+  ): ShopifySettingsResponse {
+    return {
+      shopDomain: tenant.shopDomain,
+      name: tenant.name,
+      status: tenant.status,
+      credential: {
+        configured: cred?.secretEnc != null,
+        updatedAt: cred?.updatedAt ?? null,
+      },
+      integration: {
+        status: status?.status ?? null,
+        lastSyncAt: status?.lastSyncAt ?? null,
+        detail: status?.detail ?? null,
+      },
+    };
   }
 }

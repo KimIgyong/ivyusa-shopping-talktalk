@@ -4,9 +4,10 @@ import { Tenant } from './entity/tenant.entity';
 import { IntegrationCredential } from './entity/integration-credential.entity';
 import { TenantService } from './tenant.service';
 import { TenantController } from './tenant.controller';
+import { IntegrationModule } from '../integration/integration.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Tenant, IntegrationCredential])],
+  imports: [TypeOrmModule.forFeature([Tenant, IntegrationCredential]), IntegrationModule],
   controllers: [TenantController],
   providers: [TenantService],
   exports: [TenantService],

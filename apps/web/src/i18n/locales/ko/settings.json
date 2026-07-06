@@ -14,5 +14,24 @@
   "apiKeyPlaceholder": "API 키를 입력하세요",
   "secretOptional": "시크릿 (선택)",
   "secretPlaceholder": "시크릿을 입력하세요",
-  "empty": "사용 가능한 연동이 없습니다."
+  "empty": "사용 가능한 연동이 없습니다.",
+  "shopify": {
+    "title": "Shopify 연동",
+    "subtitle": "이 위젯을 Shopify 상점에 연결하는 쇼핑몰 주소와 API 토큰입니다.",
+    "shopDomain": "쇼핑몰 주소",
+    "shopDomainPlaceholder": "your-store.myshopify.com",
+    "accessToken": "Admin API 액세스 토큰",
+    "accessTokenPlaceholder": "shpat_…",
+    "accessTokenConfigured": "저장됨 — 교체하려면 새 토큰을 입력",
+    "apiKeyOptional": "API 키 (선택)",
+    "apiKeyPlaceholder": "OAuth(공개 앱)용",
+    "apiSecretOptional": "API 시크릿 (선택)",
+    "apiSecretPlaceholder": "OAuth(공개 앱)용",
+    "testConnection": "연결 테스트",
+    "testing": "테스트 중…",
+    "connectionStatus": "연결 상태",
+    "credential": "자격 증명",
+    "lastTested": "마지막 테스트",
+    "state": { "connected": "연결됨", "error": "오류", "unknown": "미테스트" }
+  }
 }

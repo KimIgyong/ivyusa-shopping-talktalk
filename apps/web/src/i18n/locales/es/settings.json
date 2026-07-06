@@ -14,5 +14,24 @@
   "apiKeyPlaceholder": "Introduzca la clave de API",
   "secretOptional": "Secreto (opcional)",
   "secretPlaceholder": "Introduzca el secreto",
-  "empty": "No hay integraciones disponibles."
+  "empty": "No hay integraciones disponibles.",
+  "shopify": {
+    "title": "Conexión de Shopify",
+    "subtitle": "La dirección de la tienda y el token de API que vinculan este widget con su tienda Shopify.",
+    "shopDomain": "Dominio de la tienda",
+    "shopDomainPlaceholder": "su-tienda.myshopify.com",
+    "accessToken": "Token de acceso de la Admin API",
+    "accessTokenPlaceholder": "shpat_…",
+    "accessTokenConfigured": "Guardado — introduzca un nuevo token para reemplazarlo",
+    "apiKeyOptional": "Clave de API (opcional)",
+    "apiKeyPlaceholder": "Para OAuth (app pública)",
+    "apiSecretOptional": "Secreto de API (opcional)",
+    "apiSecretPlaceholder": "Para OAuth (app pública)",
+    "testConnection": "Probar conexión",
+    "testing": "Probando…",
+    "connectionStatus": "Estado de conexión",
+    "credential": "Credencial",
+    "lastTested": "Última prueba",
+    "state": { "connected": "Conectado", "error": "Error", "unknown": "Sin probar" }
+  }
 }
