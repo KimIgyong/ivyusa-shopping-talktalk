@@ -28,7 +28,7 @@ The Shopify integration has the **webhook / credential / integration-status / se
 | Tenant = shop mapping | ✅ | `tenants.shop_domain` **UNIQUE** — `tenant.entity.ts` |
 | Shopify Admin API client | ✅ (on-demand + scheduled) | `POST /api/v1/tenants/me/shopify/sync` — pulls `orders.json` with the stored token → upserts `orders_cache`/`customers`. Periodic auto-sync via `SHOPIFY_SYNC_INTERVAL_MIN` (opt-in) |
 | Shopify settings UI | ✅ | Console Settings "Shopify connection" card (domain, token, test, sync) |
-| OAuth (public app install) | ⛔ | No `/auth/shopify` |
+| OAuth (public app install) | ✅ (keys required) | `GET /api/v1/auth/shopify/{install,callback}` — authorize redirect, query HMAC, state, code exchange, tenant upsert. Needs `SHOPIFY_API_KEY/SECRET/APP_URL` (§8) |
 | ScriptTag / Theme App Extension | ⛔ | None |
 | Widget shop passing | ✅ | Widget reads `?shop` and sends `shop_domain` to `session/ensure` |
 | `embed.js` loader / iframe embed | ✅ | `apps/widget/public/embed.js` — injects bubble+iframe, `?embed=1&shop=&locale=`, `ivy:resize` postMessage (origin-checked). CSP `frame-ancestors` is a deploy setting |
@@ -209,25 +209,34 @@ Install snippet (App Embed example):
 
 ---
 
-## 8. Path B — Public app (OAuth) expansion (⛔ not present · roadmap)
+## 8. Path B — Public app (OAuth) expansion (✅ implemented · keys required)
 
-For multi-tenant SaaS. **There is no OAuth endpoint in the code today, so this is net-new development.**
+The multi-tenant OAuth install flow is implemented. It activates when `SHOPIFY_API_KEY`/`SHOPIFY_API_SECRET`/`SHOPIFY_APP_URL` are set; otherwise the endpoints return 501.
 
 ### 8.1 Partner Dashboard app config
-- Create the app → **App URL**, **Allowed redirection URL(s)**: `https://<API_HOST>/auth/shopify/callback`.
+- Create the app → **App URL**, **Allowed redirection URL(s)**: `<SHOPIFY_APP_URL>/api/v1/auth/shopify/callback`.
 - API scopes (same as §3.1), Compliance webhooks (§4.1).
 - Apply for Protected customer data access.
 
-### 8.2 Flow to build (skeleton)
+### 8.2 Endpoints (implemented)
 ```
-GET /auth/shopify/install?shop=<shop>.myshopify.com
-   → issue state + redirect to the Shopify OAuth authorize URL
-GET /auth/shopify/callback?code&hmac&shop&state
-   → verify HMAC & state → exchange code for an access token
+GET /api/v1/auth/shopify/install?shop=<shop>.myshopify.com   (@Public)
+   → issue a state nonce (Redis, 10 min) → 302 to the Shopify authorize URL
+GET /api/v1/auth/shopify/callback?code&hmac&shop&state        (@Public)
+   → verify the query HMAC (hex) + state nonce (mismatch → 401)
+   → exchange code for a token via POST /admin/oauth/access_token
    → upsert the tenant by shop_domain
    → store the token encrypted in integration_credentials(provider=shopify)
-   → register webhooks (GDPR + operational), optionally inject ScriptTag
-   → integration_status.shopify = connected
+   → redirect to the app (?shopify_connected=<shop>)
+```
+> 🟡 Roadmap: auto-register webhooks (GDPR + operational) and optionally inject a ScriptTag on install. (For now, register the §4/§5 webhook URLs in the app manually.)
+
+Env vars:
+```bash
+SHOPIFY_API_KEY=<Partner app client id>
+SHOPIFY_API_SECRET=<Partner app client secret>
+SHOPIFY_SCOPES=read_orders,read_customers
+SHOPIFY_APP_URL=https://<API_HOST>
 ```
 
 ---
@@ -290,7 +299,7 @@ curl -X POST http://localhost:3000/api/v1/webhooks/shopify/shop/redact \
 - [x] Remove session first-tenant fallback → safe resolution (§7.2) — applied
 - [x] Shopify Admin API client (customer/order sync) — on-demand + scheduled (`SHOPIFY_SYNC_INTERVAL_MIN`) applied
 - [x] Shopify-native order/fulfillment webhooks (orders·fulfillments, HMAC) → `order_cache` (§5.1) — applied
-- [ ] (Path B) `/auth/shopify` OAuth + webhook/ScriptTag registration on install (§8)
+- [x] (Path B) `/auth/shopify` OAuth (install·callback) — applied (keys required). Auto webhook/ScriptTag registration on install is roadmap
 
 **Widget/frontend (dev):**
 - [x] Parse `?shop` → send `shop_domain` to `session/ensure` (§7.1) — applied

@@ -77,6 +77,15 @@ export class TenantService {
     return this.tenantRepo.save(tenant);
   }
 
+  /** Find-or-create a tenant by shop domain (used by the Shopify OAuth callback). */
+  async upsertByShopDomain(shopDomain: string, name?: string): Promise<Tenant> {
+    const existing = await this.tenantRepo.findOne({ where: { shopDomain } });
+    if (existing) return existing;
+    return this.tenantRepo.save(
+      this.tenantRepo.create({ shopDomain, name: name ?? shopDomain, status: 'active' }),
+    );
+  }
+
   async updateStatus(id: number, status: string): Promise<Tenant> {
     const tenant = await this.findById(id);
     tenant.status = status;

@@ -33,6 +33,7 @@ import { AnalyticsModule } from './domain/analytics/analytics.module';
 import { CustomerModule } from './domain/customer/customer.module';
 import { PrivacyModule } from './domain/privacy/privacy.module';
 import { HealthModule } from './domain/health/health.module';
+import { ShopifyOAuthModule } from './domain/shopify-oauth/shopify-oauth.module';
 
 @Module({
   imports: [
@@ -56,6 +57,7 @@ import { HealthModule } from './domain/health/health.module';
     UserModule,
     CustomerModule,
     OrderModule,
+    ShopifyOAuthModule,
     NotificationModule,
     ReviewModule,
     AffiliateModule,

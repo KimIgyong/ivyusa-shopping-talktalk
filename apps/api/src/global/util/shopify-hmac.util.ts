@@ -30,3 +30,24 @@ export function verifyShopifyHmac(
     throw new BusinessException(ERROR_CODE.FORBIDDEN, HttpStatus.UNAUTHORIZED);
   }
 }
+
+/**
+ * Verify a Shopify OAuth *query* HMAC (hex HMAC-SHA256 over the sorted query
+ * string, excluding `hmac`/`signature`). Used on the OAuth install callback.
+ */
+export function verifyShopifyQueryHmac(
+  query: Record<string, unknown>,
+  secret: string,
+): boolean {
+  const provided = query.hmac;
+  if (typeof provided !== 'string' || !provided) return false;
+  const message = Object.keys(query)
+    .filter((k) => k !== 'hmac' && k !== 'signature')
+    .sort()
+    .map((k) => `${k}=${String(query[k])}`)
+    .join('&');
+  const digest = crypto.createHmac('sha256', secret).update(message).digest('hex');
+  const a = Buffer.from(digest);
+  const b = Buffer.from(provided);
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
