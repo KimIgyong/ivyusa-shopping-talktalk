@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { MessageCircle, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useWidgetStore } from '../../store/widgetStore';
@@ -13,6 +14,15 @@ export function Widget() {
   const sessionToken = useWidgetStore((s) => s.sessionToken);
   const { data } = useUnreadCount(sessionToken);
   const unread = data?.count ?? 0;
+
+  // When embedded in a storefront iframe, tell the embed.js loader to grow/shrink
+  // the frame as the panel opens/closes. targetOrigin '*' is safe here — the payload
+  // is a non-sensitive open flag and the loader validates the message origin.
+  useEffect(() => {
+    if (window.parent !== window) {
+      window.parent.postMessage({ type: 'ivy:resize', open: panelOpen }, '*');
+    }
+  }, [panelOpen]);
 
   return (
     <>

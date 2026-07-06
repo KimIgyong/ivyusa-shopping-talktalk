@@ -31,7 +31,7 @@ The Shopify integration has the **webhook / credential / integration-status / se
 | OAuth (public app install) | ⛔ | No `/auth/shopify` |
 | ScriptTag / Theme App Extension | ⛔ | None |
 | Widget shop passing | ✅ | Widget reads `?shop` and sends `shop_domain` to `session/ensure` |
-| `embed.js` loader / iframe embed | ⛔ | Store-injection loader & iframe still to build |
+| `embed.js` loader / iframe embed | ✅ | `apps/widget/public/embed.js` — injects bubble+iframe, `?embed=1&shop=&locale=`, `ivy:resize` postMessage (origin-checked). CSP `frame-ancestors` is a deploy setting |
 
 > **API prefix**: every route lives under `/api/v1` (`API_PREFIX`), **webhooks included** (`/api/v1/webhooks/...`). `@Public()` only skips auth, not the prefix.
 
@@ -185,8 +185,18 @@ The unconditional first-tenant fallback was removed and replaced with a safe rul
 ```
 > This closes the High gap in `CLAUDE.md §6` ("remove chat first-tenant"). Verified: unknown shop → 404, single tenant → 201, known shop → 201.
 
-### 7.3 The `embed.js` loader (new artifact · ⛔ remaining)
-Inject a bubble + `<iframe>` into the store theme and append `?shop` / `?locale` to the iframe URL. See companion §4–5 for the exposure options (App Embed / ScriptTag / manual snippet) and the loader skeleton. Restrict the iframe origin with `Content-Security-Policy: frame-ancestors https://*.myshopify.com <custom domains>`.
+### 7.3 The `embed.js` loader (✅ applied)
+`apps/widget/public/embed.js` injects a bubble + `<iframe>` into the store and appends `?embed=1&shop=&locale=` to the iframe URL. In embed mode (`?embed=1`) the widget renders only itself (no mock storefront) and posts `ivy:resize` to the parent on open/close so the loader resizes the frame (the loader validates the message origin). See companion §4–5 for the exposure options (App Embed / ScriptTag / manual snippet).
+
+Install snippet (App Embed example):
+```html
+<script>window.IVY_WIDGET_CONFIG = {
+  shop: "{{ shop.permanent_domain }}", locale: "{{ request.locale.iso_code }}",
+  widgetUrl: "https://widget.ivyusa.app" };</script>
+<script src="https://widget.ivyusa.app/embed.js" defer></script>
+```
+
+> 🟡 Remaining deploy setting: restrict the widget hosting origin with `Content-Security-Policy: frame-ancestors https://*.myshopify.com <custom domains>`.
 
 ---
 
@@ -275,7 +285,7 @@ curl -X POST http://localhost:3000/api/v1/webhooks/shopify/shop/redact \
 
 **Widget/frontend (dev):**
 - [x] Parse `?shop` → send `shop_domain` to `session/ensure` (§7.1) — applied
-- [ ] `embed.js` loader + iframe injection + CSP `frame-ancestors` (§7.3)
+- [x] `embed.js` loader + iframe injection + widget embed mode (§7.3) — applied. CSP `frame-ancestors` remains a deploy setting
 - [ ] Shopify card + install snippets in console Settings (companion §6)
 
 **Already implemented (✅):** GDPR webhooks (raw-body HMAC) · fulfillment webhook · credential encryption · integration status · shop-aware sessions (safe tenant resolution) · widget shop passing · guest order lookup (cache) · tenant shop_domain UNIQUE.
