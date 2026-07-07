@@ -10,9 +10,25 @@ import { IntegrationService } from '../integration/integration.service';
 
 const SHOPIFY = 'shopify';
 
+/** Shopify topic → our webhook path (under /api/v1/webhooks/shopify/). */
+const WEBHOOK_TOPICS: Array<{ topic: string; path: string }> = [
+  { topic: 'orders/create', path: 'orders/create' },
+  { topic: 'orders/updated', path: 'orders/updated' },
+  { topic: 'fulfillments/create', path: 'fulfillments/create' },
+  { topic: 'fulfillments/update', path: 'fulfillments/update' },
+];
+
 export interface ShopifySyncResult {
   ok: boolean;
   synced: number;
+  detail: string;
+}
+
+export interface ShopifyWebhookRegisterResult {
+  ok: boolean;
+  registered: number;
+  existing: number;
+  failed: number;
   detail: string;
 }
 
@@ -62,6 +78,56 @@ export class ShopifySyncService {
     return this.record(true, synced, `Synced ${synced} order(s)`);
   }
 
+  /**
+   * Subscribe the store to our order/fulfillment webhooks (uses the stored token).
+   * Idempotent — a topic already subscribed counts as 'existing', not a failure.
+   * Note: HMAC verification needs SHOPIFY_WEBHOOK_SECRET = the app's API secret key.
+   */
+  async registerWebhooks(tenantId: number): Promise<ShopifyWebhookRegisterResult> {
+    const conn = await this.tenantService.getShopifyConnection(tenantId);
+    if (!conn) {
+      return {
+        ok: false,
+        registered: 0,
+        existing: 0,
+        failed: 0,
+        detail: 'Shopify credential missing or invalid — reconnect the store',
+      };
+    }
+    const base = (process.env.SHOPIFY_APP_URL ?? '').replace(/\/+$/, '');
+    if (!base) {
+      return {
+        ok: false,
+        registered: 0,
+        existing: 0,
+        failed: 0,
+        detail: 'SHOPIFY_APP_URL is not set (needed for the webhook address)',
+      };
+    }
+
+    let registered = 0;
+    let existing = 0;
+    let failed = 0;
+    for (const { topic, path } of WEBHOOK_TOPICS) {
+      const address = `${base}/api/v1/webhooks/shopify/${path}`;
+      try {
+        const r = await this.client.createWebhook(conn.shopDomain, conn.token, topic, address);
+        if (r === 'created') registered++;
+        else existing++;
+      } catch (e) {
+        failed++;
+        this.logger.warn(`Register webhook ${topic} failed: ${(e as Error).message}`);
+      }
+    }
+    return {
+      ok: failed === 0,
+      registered,
+      existing,
+      failed,
+      detail: `Registered ${registered}, already present ${existing}, failed ${failed}`,
+    };
+  }
+
   /** Map a Shopify order → orders_cache (+ linked customer). Public: reused by webhooks. */
   async upsertOrder(tenantId: number, o: ShopifyOrderDto): Promise<OrderCache> {
     let customerId: number | null = null;
@@ -101,10 +167,15 @@ export class ShopifySyncService {
     return this.orderRepo.save(row);
   }
 
-  /** Coarse Shopify → internal status mapping (POL-014 progression). */
-  private mapStatus(financial?: string | null, fulfillment?: string | null): string {
+  /**
+   * Shopify order rollup → internal status (POL-014 progression).
+   * fulfilled → shipping (In Transit); partially fulfilled → preparing;
+   * otherwise (paid/unfulfilled or pending) → paid (Confirmed). Delivered is only
+   * reached via fulfillment webhooks (shipment_status=delivered).
+   */
+  private mapStatus(_financial?: string | null, fulfillment?: string | null): string {
     if (fulfillment === 'fulfilled') return ORDER_STATUS_INTERNAL.SHIPPING;
-    if (financial === 'paid') return ORDER_STATUS_INTERNAL.PREPARING;
+    if (fulfillment === 'partial') return ORDER_STATUS_INTERNAL.PREPARING;
     return ORDER_STATUS_INTERNAL.PAID;
   }
 

@@ -40,6 +40,14 @@ export interface ShopifySyncResult {
   detail: string;
 }
 
+export interface ShopifyWebhookRegisterResult {
+  ok: boolean;
+  registered: number;
+  existing: number;
+  failed: number;
+  detail: string;
+}
+
 export const settingsService = {
   credentials: () => apiGet<CredentialStatus[]>('/tenants/me/credentials'),
   updateCredential: (provider: string, body: UpdateCredentialBody) =>
@@ -48,4 +56,6 @@ export const settingsService = {
   saveShopify: (body: SaveShopifyBody) => apiPut<ShopifySettings>('/tenants/me/shopify', body),
   testShopify: () => apiPost<ShopifyTestResult>('/tenants/me/shopify/test'),
   syncShopify: () => apiPost<ShopifySyncResult>('/tenants/me/shopify/sync'),
+  registerShopifyWebhooks: () =>
+    apiPost<ShopifyWebhookRegisterResult>('/tenants/me/shopify/register-webhooks'),
 };

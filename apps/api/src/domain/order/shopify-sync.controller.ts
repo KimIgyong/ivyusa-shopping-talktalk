@@ -22,4 +22,14 @@ export class ShopifySyncController {
     }
     return this.syncService.syncOrders(user.tenantId);
   }
+
+  @Post('register-webhooks')
+  @RequireCapability(CAPABILITY.INTEGRATION_CREDENTIALS_MANAGE)
+  @ApiOperation({ summary: 'Subscribe the store to order/fulfillment webhooks' })
+  async registerWebhooks(@CurrentUser() user: Principal) {
+    if (user.actorType !== 'user') {
+      throw new BusinessException(ERROR_CODE.FORBIDDEN, HttpStatus.FORBIDDEN);
+    }
+    return this.syncService.registerWebhooks(user.tenantId);
+  }
 }

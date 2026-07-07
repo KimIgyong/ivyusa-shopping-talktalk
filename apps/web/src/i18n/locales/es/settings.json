@@ -31,6 +31,8 @@
     "testing": "Probando…",
     "syncNow": "Sincronizar ahora",
     "syncing": "Sincronizando…",
+    "registerWebhooks": "Registrar webhooks",
+    "registering": "Registrando…",
     "connectionStatus": "Estado de conexión",
     "credential": "Credencial",
     "lastTested": "Última prueba",

@@ -82,3 +82,19 @@ export function useSyncShopify() {
     },
   });
 }
+
+export function useRegisterShopifyWebhooks() {
+  const qc = useQueryClient();
+  const tenantKey = useTenantKey();
+  return useMutation({
+    mutationFn: () => settingsService.registerShopifyWebhooks(),
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: ['shopify-settings', tenantKey] });
+      if (res.ok) toast.success(res.detail);
+      else toast.error(res.detail);
+    },
+    onError: (e: Error) => {
+      toast.error(e.message || 'Webhook registration failed.');
+    },
+  });
+}

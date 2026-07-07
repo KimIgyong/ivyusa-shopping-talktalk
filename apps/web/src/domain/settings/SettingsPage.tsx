@@ -10,6 +10,7 @@ import { Modal } from '@/components/Modal';
 import { FormRow, Input } from '@/components/Field';
 import {
   useCredentials,
+  useRegisterShopifyWebhooks,
   useSaveShopify,
   useShopifySettings,
   useSyncShopify,
@@ -31,6 +32,7 @@ function ShopifyCard() {
   const save = useSaveShopify();
   const test = useTestShopify();
   const sync = useSyncShopify();
+  const registerWebhooks = useRegisterShopifyWebhooks();
 
   const [shopDomain, setShopDomain] = useState('');
   const [accessToken, setAccessToken] = useState('');
@@ -123,6 +125,13 @@ function ShopifyCard() {
           disabled={sync.isPending || !data?.credential.configured}
         >
           {sync.isPending ? t('shopify.syncing') : t('shopify.syncNow')}
+        </Button>
+        <Button
+          variant="secondary"
+          onClick={() => registerWebhooks.mutate()}
+          disabled={registerWebhooks.isPending || !data?.credential.configured}
+        >
+          {registerWebhooks.isPending ? t('shopify.registering') : t('shopify.registerWebhooks')}
         </Button>
       </div>
 

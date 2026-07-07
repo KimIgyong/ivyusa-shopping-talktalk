@@ -31,6 +31,8 @@
     "testing": "테스트 중…",
     "syncNow": "지금 동기화",
     "syncing": "동기화 중…",
+    "registerWebhooks": "웹훅 등록",
+    "registering": "등록 중…",
     "connectionStatus": "연결 상태",
     "credential": "자격 증명",
     "lastTested": "마지막 테스트",

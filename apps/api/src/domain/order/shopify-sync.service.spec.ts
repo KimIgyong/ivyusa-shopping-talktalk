@@ -75,9 +75,17 @@ describe('ShopifySyncService.syncOrders', () => {
     expect(integrationService.upsert).toHaveBeenCalledWith('shopify', 'connected', 'Synced 2 order(s)');
   });
 
-  it('maps a paid, unfulfilled order to "preparing"', async () => {
+  it('maps a paid, unfulfilled order to "paid" (Confirmed)', async () => {
     const { svc, saved } = build([
       { id: 1, order_number: 1, financial_status: 'paid', fulfillment_status: null },
+    ]);
+    await svc.syncOrders(1);
+    expect(saved[0].statusInternal).toBe('paid');
+  });
+
+  it('maps a partially fulfilled order to "preparing"', async () => {
+    const { svc, saved } = build([
+      { id: 2, order_number: 2, financial_status: 'paid', fulfillment_status: 'partial' },
     ]);
     await svc.syncOrders(1);
     expect(saved[0].statusInternal).toBe('preparing');

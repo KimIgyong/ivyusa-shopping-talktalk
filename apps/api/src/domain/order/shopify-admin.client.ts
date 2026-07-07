@@ -50,4 +50,32 @@ export class ShopifyAdminClient {
       clearTimeout(timer);
     }
   }
+
+  /**
+   * Create a webhook subscription. Returns 'created', 'exists' (422 duplicate), or
+   * throws on other failures. Shopify signs these with the app's API secret key.
+   */
+  async createWebhook(
+    shopDomain: string,
+    token: string,
+    topic: string,
+    address: string,
+  ): Promise<'created' | 'exists'> {
+    const url = `https://${shopDomain}/admin/api/${API_VERSION}/webhooks.json`;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'X-Shopify-Access-Token': token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ webhook: { topic, address, format: 'json' } }),
+        signal: controller.signal,
+      });
+      if (res.status === 201) return 'created';
+      if (res.status === 422) return 'exists'; // already subscribed to this topic+address
+      throw new Error(`Admin API returned ${res.status}`);
+    } finally {
+      clearTimeout(timer);
+    }
+  }
 }
