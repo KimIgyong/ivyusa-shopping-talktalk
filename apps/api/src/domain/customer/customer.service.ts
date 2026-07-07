@@ -2,6 +2,8 @@ import { HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { FindOptionsWhere, Like, Repository } from 'typeorm';
 import { Customer } from './entity/customer.entity';
+import { OrderCache } from '../order/entity/order-cache.entity';
+import { CustomerOrderStats } from './customer.mapper';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
 
@@ -10,6 +12,7 @@ import { ERROR_CODE } from '../../global/constant/error-code.constant';
 export class CustomerService {
   constructor(
     @InjectRepository(Customer) private readonly customerRepo: Repository<Customer>,
+    @InjectRepository(OrderCache) private readonly orderRepo: Repository<OrderCache>,
   ) {}
 
   async list(
@@ -17,7 +20,7 @@ export class CustomerService {
     page: number,
     size: number,
     email?: string,
-  ): Promise<{ items: Customer[]; total: number }> {
+  ): Promise<{ items: Customer[]; total: number; stats: Map<number, CustomerOrderStats> }> {
     const where: FindOptionsWhere<Customer> = { tenantId };
     if (email) where.email = Like(`%${email}%`);
     const [items, total] = await this.customerRepo.findAndCount({
@@ -26,7 +29,36 @@ export class CustomerService {
       skip: (page - 1) * size,
       take: size,
     });
-    return { items, total };
+    const stats = await this.orderStats(
+      tenantId,
+      items.map((c) => c.id),
+    );
+    return { items, total, stats };
+  }
+
+  /** Aggregate order count + total spent per customer from orders_cache. */
+  private async orderStats(
+    tenantId: number,
+    customerIds: number[],
+  ): Promise<Map<number, CustomerOrderStats>> {
+    const map = new Map<number, CustomerOrderStats>();
+    if (customerIds.length === 0) return map;
+    const rows = await this.orderRepo
+      .createQueryBuilder('o')
+      .select('o.customerId', 'customerId')
+      .addSelect('COUNT(*)', 'orders')
+      .addSelect('COALESCE(SUM(o.total), 0)', 'totalSpent')
+      .where('o.tenantId = :tenantId', { tenantId })
+      .andWhere('o.customerId IN (:...customerIds)', { customerIds })
+      .groupBy('o.customerId')
+      .getRawMany<{ customerId: string | number; orders: string; totalSpent: string }>();
+    for (const r of rows) {
+      map.set(Number(r.customerId), {
+        orders: Number(r.orders) || 0,
+        totalSpent: Number(r.totalSpent) || 0,
+      });
+    }
+    return map;
   }
 
   async findById(tenantId: number, id: number): Promise<Customer> {
@@ -73,6 +105,29 @@ export class CustomerService {
       email,
       name: name ?? null,
       shopifyCustomerId: shopifyCustomerId ?? null,
+      tier: 'guest',
+    });
+    return this.customerRepo.save(customer);
+  }
+
+  /**
+   * Lookup-or-create by Shopify customer id within a tenant. Used when a logged-in
+   * storefront customer is resolved via the app proxy (we have the numeric Shopify
+   * id but not necessarily an email). Reuses the row synced from orders, if any.
+   */
+  async findOrCreateByShopifyId(
+    tenantId: number,
+    shopifyCustomerId: string,
+  ): Promise<Customer> {
+    const existing = await this.customerRepo.findOne({
+      where: { tenantId, shopifyCustomerId },
+    });
+    if (existing) return existing;
+    const customer = this.customerRepo.create({
+      tenantId,
+      email: null,
+      name: null,
+      shopifyCustomerId,
       tier: 'guest',
     });
     return this.customerRepo.save(customer);

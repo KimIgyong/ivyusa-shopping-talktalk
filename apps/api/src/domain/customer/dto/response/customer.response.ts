@@ -7,6 +7,8 @@ export interface CustomerResponse {
   name: string | null;
   tier: string;
   shopifyTier: string | null;
+  orders: number;
+  totalSpent: number;
   createdAt: Date;
   updatedAt: Date;
 }
