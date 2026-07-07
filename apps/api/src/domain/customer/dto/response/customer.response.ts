@@ -9,6 +9,7 @@ export interface CustomerResponse {
   shopifyTier: string | null;
   orders: number;
   totalSpent: number;
+  currency: string | null;
   createdAt: Date;
   updatedAt: Date;
 }

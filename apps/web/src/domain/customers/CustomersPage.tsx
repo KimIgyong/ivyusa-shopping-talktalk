@@ -14,8 +14,17 @@ import type { Customer } from './customers.service';
 const PAGE_SIZE = 20;
 const TIERS = ['bronze', 'silver', 'gold', 'vip'] as const;
 
-function fmtMoney(value?: number): string {
-  return typeof value === 'number' ? `$${value.toLocaleString()}` : '—';
+function fmtMoney(value?: number, currency?: string | null): string {
+  if (typeof value !== 'number') return '—';
+  if (currency) {
+    try {
+      return new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(value);
+    } catch {
+      /* unknown currency code — fall back to a plain amount + code */
+      return `${value.toLocaleString()} ${currency}`;
+    }
+  }
+  return value.toLocaleString();
 }
 
 function fmtDate(value?: string): string {
@@ -54,7 +63,7 @@ export function CustomersPage() {
       render: (c) => (c.tier ? <Badge tone="primary">{c.tier}</Badge> : '—'),
     },
     { key: 'orders', header: t('orders'), render: (c) => c.orders ?? 0 },
-    { key: 'totalSpent', header: t('totalSpent'), render: (c) => fmtMoney(c.totalSpent) },
+    { key: 'totalSpent', header: t('totalSpent'), render: (c) => fmtMoney(c.totalSpent, c.currency) },
     { key: 'createdAt', header: t('created'), render: (c) => fmtDate(c.createdAt) },
     {
       key: 'actions',

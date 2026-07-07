@@ -9,6 +9,7 @@ export interface Customer {
   tier?: string;
   orders?: number;
   totalSpent?: number;
+  currency?: string | null;
   createdAt?: string;
 }
 

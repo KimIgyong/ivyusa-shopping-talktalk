@@ -48,15 +48,23 @@ export class CustomerService {
       .select('o.customerId', 'customerId')
       .addSelect('COUNT(*)', 'orders')
       .addSelect('COALESCE(SUM(o.total), 0)', 'totalSpent')
+      // A representative currency for the total (customers are typically single-currency).
+      .addSelect('MAX(o.currency)', 'currency')
       .where('o.tenantId = :tenantId', { tenantId })
       .andWhere('o.customerId IN (:...customerIds)', { customerIds })
       .groupBy('o.customerId')
-      .getRawMany<{ customerId: string | number; orders: string; totalSpent: string }>();
+      .getRawMany<{
+        customerId: string | number;
+        orders: string;
+        totalSpent: string;
+        currency: string | null;
+      }>();
     for (const r of rows) {
       // bigint ids arrive as strings; key by String to match the entity's id.
       map.set(String(r.customerId), {
         orders: Number(r.orders) || 0,
         totalSpent: Number(r.totalSpent) || 0,
+        currency: r.currency ?? null,
       });
     }
     return map;

@@ -5,6 +5,7 @@ import { CustomerResponse } from './dto/response/customer.response';
 export interface CustomerOrderStats {
   orders: number;
   totalSpent: number;
+  currency: string | null;
 }
 
 /** Entity -> response mapping. */
@@ -20,6 +21,7 @@ export class CustomerMapper {
       shopifyTier: c.shopifyTier,
       orders: stats?.orders ?? 0,
       totalSpent: stats?.totalSpent ?? 0,
+      currency: stats?.currency ?? null,
       createdAt: c.createdAt,
       updatedAt: c.updatedAt,
     };
