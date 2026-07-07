@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import {
   CJM_STAGE,
   CONVERSATION_STATUS,
@@ -38,6 +38,11 @@ const SYSTEM_MESSAGES = {
     ES: '¿Quieres que te conecte con un agente de soporte?',
     KO: '상담원에게 연결해 드릴까요?',
   },
+  handoff: {
+    EN: "I couldn't find a confident answer in our help content, so I'm forwarding this to our support team to continue the conversation. An agent will reply here shortly.",
+    ES: 'No encontré una respuesta segura en nuestro contenido de ayuda, así que lo estoy remitiendo a nuestro equipo de soporte para continuar la conversación. Un agente responderá aquí en breve.',
+    KO: '관리자에게 전달하여 상담을 이어가겠습니다. 잠시만 기다려 주시면 상담사가 이 대화창에서 답변드릴게요.',
+  },
 } as const;
 
 function sysMsg(key: keyof typeof SYSTEM_MESSAGES, lang: string): string {
@@ -47,9 +52,21 @@ function sysMsg(key: keyof typeof SYSTEM_MESSAGES, lang: string): string {
 
 export interface ChatTurnResult {
   conversationId: number;
-  reply: { senderType: string; body: string; citations?: unknown };
+  /** Null when the conversation is in agent mode (no bot reply; agent answers). */
+  reply: { senderType: string; body: string; citations?: unknown } | null;
   escalate: boolean;
   needsAuth: boolean;
+}
+
+export type EscalationReason = 'low_confidence' | 'moderation_blocked' | 'user_request';
+
+/** Payload published on EVENTS.ESCALATION (consumed by AgentAlertService). */
+export interface EscalationEvent {
+  tenantId: number;
+  conversationId: number;
+  sessionId: number | null;
+  reason: EscalationReason;
+  preview: string;
 }
 
 /**
@@ -70,8 +87,17 @@ export class ChatService {
   ) {}
 
   async getOrCreateConversation(sessionId: number): Promise<Conversation> {
+    // Reuse waiting/agent conversations too — a customer replying during or
+    // after a handoff must stay in the same thread (FR-S4), not fork a new one.
     const open = await this.convRepo.findOne({
-      where: { sessionId, status: CONVERSATION_STATUS.AI_ACTIVE },
+      where: {
+        sessionId,
+        status: In([
+          CONVERSATION_STATUS.AI_ACTIVE,
+          CONVERSATION_STATUS.WAITING,
+          CONVERSATION_STATUS.AGENT,
+        ]),
+      },
       order: { id: 'DESC' },
     });
     if (open) return open;
@@ -104,6 +130,16 @@ export class ChatService {
       eventType: 'chat_message',
     });
 
+    // Agent mode (FR-S4): once the thread is waiting for / handled by a human,
+    // the bot stays silent — the message is persisted for the agent console and
+    // the customer receives agent replies via conversation polling.
+    if (
+      conversation.status === CONVERSATION_STATUS.WAITING ||
+      conversation.status === CONVERSATION_STATUS.AGENT
+    ) {
+      return { conversationId: conversation.id, reply: null, escalate: false, needsAuth: false };
+    }
+
     // Intent + scope check (FN-015): order data requires authentication first.
     const intent = await this.rag.classifyIntent(tenantId, text);
     if (intent.needsOrderData && session.customerId == null) {
@@ -124,39 +160,77 @@ export class ChatService {
       text: answer.text,
     });
 
-    const escalate =
-      answer.confidence < ESCALATION_CONFIDENCE || moderated.decision === MODERATION_DECISION.BLOCKED;
-
     if (moderated.decision === MODERATION_DECISION.BLOCKED) {
-      const body = sysMsg('connectingAgent', session.language);
-      await this.persist(conversation.id, SENDER_TYPE.SYSTEM, body, session.language);
-      await this.markWaiting(conversation.id);
+      const body = await this.handoff(conversation.id, session, tenantId, 'moderation_blocked', text);
       return { conversationId: conversation.id, reply: { senderType: 'system', body }, escalate: true, needsAuth: false };
     }
 
-    const finalText = escalate
-      ? `${moderated.text}\n\n${sysMsg('offerAgent', session.language)}`
-      : moderated.text;
+    // RAG fallback (FR-S3): no confident answer within the knowledge base →
+    // hand off to a human instead of replying, and alert the agents.
+    if (answer.confidence < ESCALATION_CONFIDENCE) {
+      const body = await this.handoff(conversation.id, session, tenantId, 'low_confidence', text);
+      return { conversationId: conversation.id, reply: { senderType: 'system', body }, escalate: true, needsAuth: false };
+    }
 
-    await this.persist(conversation.id, SENDER_TYPE.AI, finalText, session.language, {
+    await this.persist(conversation.id, SENDER_TYPE.AI, moderated.text, session.language, {
       citations: answer.citations,
       confidence: answer.confidence,
     });
     await this.bus.publish(EVENTS.CONVERSATION_LOG, { conversationId: conversation.id, senderType: 'ai' });
 
-    if (escalate) await this.markWaiting(conversation.id);
-
     return {
       conversationId: conversation.id,
-      reply: { senderType: 'ai', body: finalText, citations: answer.citations },
-      escalate,
+      reply: { senderType: 'ai', body: moderated.text, citations: answer.citations },
+      escalate: false,
       needsAuth: false,
     };
   }
 
-  async escalate(conversationId: number): Promise<void> {
+  /**
+   * Hand the conversation to humans (FR-S3/S4): persist the localized handoff
+   * notice, mark the thread waiting, and publish the escalation event that
+   * fans out to console modal / email / Slack alerts.
+   */
+  async handoff(
+    conversationId: number,
+    session: Session,
+    tenantId: number,
+    reason: EscalationReason,
+    preview: string,
+  ): Promise<string> {
+    const body = sysMsg('handoff', session.language);
+    await this.persist(conversationId, SENDER_TYPE.SYSTEM, body, session.language, { reason });
     await this.markWaiting(conversationId);
-    await this.bus.publish(EVENTS.ESCALATION, { conversationId });
+    const event: EscalationEvent = {
+      tenantId,
+      conversationId,
+      sessionId: session.id,
+      reason,
+      preview: preview.slice(0, 300),
+    };
+    await this.bus.publish(EVENTS.ESCALATION, event);
+    return body;
+  }
+
+  /** Explicit "talk to an agent" request from the widget (FR-015). */
+  async escalate(conversationId: number): Promise<void> {
+    const conversation = await this.convRepo.findOne({ where: { id: conversationId } });
+    const session = conversation
+      ? await this.sessionRepo.findOne({ where: { id: conversation.sessionId } })
+      : null;
+    const lastUser = await this.msgRepo.findOne({
+      where: { conversationId, senderType: SENDER_TYPE.USER },
+      order: { id: 'DESC' },
+    });
+    await this.markWaiting(conversationId);
+    const event: EscalationEvent = {
+      tenantId: session?.tenantId ?? conversation?.tenantId ?? 0,
+      conversationId,
+      sessionId: session?.id ?? null,
+      reason: 'user_request',
+      preview: (lastUser?.body ?? '').slice(0, 300),
+    };
+    await this.bus.publish(EVENTS.ESCALATION, event);
   }
 
   // ---- helpers ----

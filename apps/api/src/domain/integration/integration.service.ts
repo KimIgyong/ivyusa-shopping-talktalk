@@ -15,6 +15,10 @@ export class IntegrationService {
     return this.statusRepo.find({ order: { name: 'ASC' } });
   }
 
+  async findByName(name: string): Promise<IntegrationStatusEntity | null> {
+    return this.statusRepo.findOne({ where: { name } });
+  }
+
   /** Upsert an integration's status by name and stamp last_sync_at. */
   async upsert(
     name: string,

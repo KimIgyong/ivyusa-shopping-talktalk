@@ -7,6 +7,7 @@ import { Tenant } from '../tenant/entity/tenant.entity';
 import { KbDocument } from '../knowledge/entity/kb-document.entity';
 import { ChatService } from './chat.service';
 import { RagService } from './rag.service';
+import { ScenarioService } from './scenario.service';
 import { ChatController } from './chat.controller';
 import { SessionModule } from '../session/session.module';
 import { ModerationModule } from '../moderation/moderation.module';
@@ -20,7 +21,7 @@ import { AiEngineModule } from '../ai-engine/ai-engine.module';
     AiEngineModule,
   ],
   controllers: [ChatController],
-  providers: [ChatService, RagService],
-  exports: [ChatService, RagService],
+  providers: [ChatService, RagService, ScenarioService],
+  exports: [ChatService, RagService, ScenarioService],
 })
 export class ChatModule {}

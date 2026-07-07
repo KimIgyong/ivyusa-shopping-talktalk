@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IVY USA — 서비스 소개서 / Service Introduction</title>
+<style>
+:root {
+  --primary:#6366F1; --primary-600:#4F46E5; --primary-50:#EEF2FF;
+  --ink:#1f2430; --muted:#5b6472; --line:#e6e8ee; --bg:#ffffff; --soft:#f7f8fb;
+}
+* { box-sizing:border-box; }
+body {
+  margin:0; background:var(--soft); color:var(--ink);
+  font-family:"Pretendard","Apple SD Gothic Neo","Segoe UI",Roboto,-apple-system,sans-serif;
+  line-height:1.7; font-size:16px;
+}
+header.top {
+  position:sticky; top:0; z-index:10; background:var(--primary);
+  color:#fff; padding:14px 24px; display:flex; align-items:center; justify-content:space-between;
+  box-shadow:0 2px 10px rgba(79,70,229,.25);
+}
+header.top .brand { font-weight:700; font-size:15px; letter-spacing:.2px; }
+header.top .brand small { display:block; font-weight:400; opacity:.85; font-size:12px; }
+.langtoggle button {
+  border:1px solid rgba(255,255,255,.6); background:transparent; color:#fff;
+  padding:6px 14px; font-size:13px; font-weight:600; cursor:pointer; border-radius:999px; margin-left:6px;
+}
+.langtoggle button.active { background:#fff; color:var(--primary-600); border-color:#fff; }
+.wrap { max-width:900px; margin:28px auto; padding:0 20px 80px; }
+article { background:var(--bg); border:1px solid var(--line); border-radius:16px; padding:40px 44px; box-shadow:0 1px 3px rgba(20,24,40,.04); }
+article.hidden { display:none; }
+h1 { font-size:30px; line-height:1.3; margin:.2em 0 .4em; border-bottom:3px solid var(--primary); padding-bottom:.35em; }
+h2 { font-size:22px; margin-top:1.8em; padding-left:12px; border-left:5px solid var(--primary); }
+h3 { font-size:17px; margin-top:1.4em; color:var(--primary-600); }
+p, li { color:var(--ink); }
+blockquote {
+  margin:1em 0; padding:12px 18px; background:var(--primary-50);
+  border-left:4px solid var(--primary); border-radius:8px; color:#3b3f52;
+}
+blockquote p { margin:.3em 0; }
+table { border-collapse:collapse; width:100%; margin:1.2em 0; font-size:14.5px; }
+th, td { border:1px solid var(--line); padding:9px 12px; text-align:left; vertical-align:top; }
+th { background:var(--primary-50); color:var(--primary-600); font-weight:600; }
+tr:nth-child(even) td { background:var(--soft); }
+code { background:#eef0f6; padding:2px 6px; border-radius:5px; font-size:.88em;
+  font-family:"SFMono-Regular",Consolas,monospace; color:#3d3f52; }
+pre { background:#0f1222; color:#e6e8f5; padding:18px 20px; border-radius:12px; overflow:auto; font-size:13px; line-height:1.55; }
+pre code { background:transparent; color:inherit; padding:0; }
+a { color:var(--primary-600); }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+ul, ol { padding-left:1.4em; }
+.footnote, footer.doc { color:var(--muted); font-size:13px; margin-top:24px; text-align:center; }
+@media(max-width:640px){ article{padding:26px 20px;} h1{font-size:24px;} }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand">IVY USA · Chat & Support Widget<small>서비스 소개서 · Service Introduction</small></div>
+  <div class="langtoggle">
+    <button id="btn-ko" class="active" onclick="setLang('ko')">한국어</button>
+    <button id="btn-en" onclick="setLang('en')">English</button>
+  </div>
+</header>
+<div class="wrap">
+  <article id="doc-ko"><h1 id="ivy-usa">IVY USA 채팅·고객지원 위젯 — 서비스 소개서</h1>
+<blockquote>
+<p>버전 1.0.0 · 작성일 2026-07-01 · 대상: 경영진 · 도입 검토자 · 파트너
+문서 성격: 서비스 개요와 설계 개념 소개 (실제 구현 상태 기준)</p>
+</blockquote>
+<hr />
+<h2 id="1">1. 한눈에 보는 서비스</h2>
+<p>IVY USA 채팅·고객지원 위젯은 <strong>Shopify 스토어프론트에 탑재되는 멀티테넌트 AI 상담 위젯</strong>입니다. 네이버 톡톡과 유사한 사용자 경험을 제공하며, 고객 문의를 3단계로 자동·수동 응대합니다.</p>
+<ol>
+<li><strong>시나리오 챗봇</strong> — 배송·취소/환불·상품·제휴 등 정형 문의를 버튼 메뉴 기반으로 즉시 안내</li>
+<li><strong>RAG 지식기반 AI 챗봇</strong> — 시나리오로 해결되지 않는 문의를 테넌트 지식베이스(KB)에 근거해 답변하고 출처를 인용</li>
+<li><strong>상담원 인계(에스컬레이션)</strong> — AI 신뢰도가 낮거나 지식 범위를 벗어나면 자동으로 사람 상담원에게 연결</li>
+</ol>
+<p>여기에 <strong>테넌트 운영자 콘솔</strong>(라이브챗·설정·지식·고객 관리)과 <strong>플랫폼 관리자 콘솔</strong>(테넌트·AI엔진·감사)이 함께 제공됩니다. 최초 테넌트는 IVY USA입니다.</p>
+<hr />
+<h2 id="2-core-values">2. 핵심 가치 (Core Values)</h2>
+<table>
+<thead>
+<tr>
+<th>가치</th>
+<th>설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>근거 기반 AI</strong></td>
+<td>RAG는 지정·활성화된 지식 소스에서만 답변하고 출처를 인용합니다. 근거가 부족하면 임의로 답하지 않고 상담원에게 넘깁니다.</td>
+</tr>
+<tr>
+<td><strong>안전 우선</strong></td>
+<td>모든 AI·상담원 발신 메시지는 우회 불가능한 검열(Moderation) 게이트를 통과합니다. 오류 시 기본값은 "차단"(fail-safe).</td>
+</tr>
+<tr>
+<td><strong>테넌트 격리</strong></td>
+<td>데이터·설정·자격증명·AI 라우팅이 테넌트별로 분리됩니다. 교차 테넌트 데이터 노출을 원천 차단합니다.</td>
+</tr>
+<tr>
+<td><strong>컴플라이언스</strong></td>
+<td>CCPA/CPRA + GDPR 대응 자세 — 동의·옵트아웃·암호화·감사 로그를 내장합니다.</td>
+</tr>
+<tr>
+<td><strong>교체형 AI</strong></td>
+<td>기능(chat/rag/summary/assist/moderation)별로 AI 엔진(Anthropic 등)을 선택할 수 있고, 장애 시 스텁으로 자동 강등됩니다.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="3">3. 대응 흐름 개념도</h2>
+<pre><code>스토어프론트 고객 (위젯)
+      │
+      ▼
+[비로그인 진입] ── 시나리오 챗봇 (버튼 메뉴)
+      │              배송 · 취소/환불 · 상품안내 · 제휴 · 내 주문 · 상담원 연결
+      │
+      ├─(주문 등 개인정보 필요)──▶ 본인확인 게이트 (로그인 / 비회원 주문조회)
+      │
+      ▼
+[정형 답변으로 불충분] ── RAG 지식기반 AI 챗봇
+      │              KB 검색 → 근거 기반 생성 → 출처 인용 → 검열 게이트
+      │
+      ├─(신뢰도 &lt; 0.45 또는 검열 차단 또는 고객 요청)
+      ▼
+[상담원 인계] ── 상담원 콘솔 (대기열 → 인수 → AI 브리핑 → 검열된 답변)
+</code></pre>
+<hr />
+<h2 id="4">4. 시스템 아키텍처 (설계 개념)</h2>
+<p><strong>모노레포(Turborepo)</strong> 구조로 3개 앱과 2개 공유 패키지로 구성됩니다.</p>
+<ul>
+<li><code>apps/widget</code> — Shopify 임베드형 고객 위젯 (React 18)</li>
+<li><code>apps/web</code> — 운영자·관리자 SPA 콘솔 (React 18 + react-router)</li>
+<li><code>apps/api</code> — 백엔드 API (NestJS 10, <code>/api/v1</code>)</li>
+<li><code>packages/types</code>, <code>packages/common</code> — 공유 enum·응답 규격·RBAC 매트릭스·유틸</li>
+</ul>
+<p><strong>기술 스택</strong></p>
+<table>
+<thead>
+<tr>
+<th>구분</th>
+<th>기술</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>프론트엔드</td>
+<td>React 18 · TypeScript · Vite · TailwindCSS · Zustand · TanStack React Query · react-i18next</td>
+</tr>
+<tr>
+<td>백엔드</td>
+<td>NestJS 10 · TypeORM · MySQL 8 · Redis 7 · RabbitMQ · JWT · AES-256-GCM</td>
+</tr>
+<tr>
+<td>AI</td>
+<td>교체형 AI 게이트웨이 (스텁 / Anthropic 어댑터)</td>
+</tr>
+<tr>
+<td>다국어</td>
+<td>영어(en, 기본) · 스페인어(es) · 한국어(ko)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>설계 원칙</strong>: Clean Architecture + DDD, 도메인 모듈형, API 우선, 4계층(Controller → Service → Entity → Repository), <code>tenant_id</code> 기반 멀티테넌시. 컨트롤러는 비즈니스 로직을 갖지 않고, 서비스가 로직과 테넌트 스코프를 담당합니다.</p>
+<pre><code>Shopify 스토어프론트 ─▶ apps/widget ─┐
+운영자/관리자        ─▶ apps/web    ─┼─▶ apps/api (NestJS)
+                                      │     ├─ MySQL 8 (TypeORM)
+                                      │     ├─ Redis 7 (캐시/세션/미확인)
+                                      │     ├─ RabbitMQ (알림/CJM/로그 이벤트)
+                                      │     ├─ AI 게이트웨이 → 스텁 | Anthropic
+                                      │     └─ 검열 게이트 (fail-safe 차단)
+외부 연동: Shopify · Fulfillment 웹훅 · Klaviyo · Odoo · Google Drive
+          (테넌트별 자격증명, AES-256-GCM 암호화)
+</code></pre>
+<hr />
+<h2 id="5">5. 주요 기능 개요</h2>
+<p><strong>고객 위젯</strong>
+채팅 위젯, 알림 센터(미확인 배지), 시나리오 버튼 메뉴, 세션·다국어, RAG 상품 Q&amp;A, 주문·배송 조회, 리뷰·제휴·재입고/구독 신청, 상담원 인계.</p>
+<p><strong>운영자 콘솔 (테넌트)</strong>
+- 대시보드 — 상담 지표 개요
+- 라이브챗 — 대기열, 대화 인수, AI 브리핑, 검열된 답변, 종료
+- 상담 이력 — 상태·에스컬레이션 필터 조회
+- AI 설정 — 봇 페르소나, 응답 규칙, 시나리오 버튼, 기능별 AI 엔진, 검열 규칙
+- 지식(KB) — 지식 소스·문서 관리 (Knowledge Store 우선, Google Drive 보완)
+- 고객 — Shopify 고객 캐시·등급 조회
+- 캠페인 · 사용자/권한 · 환경설정</p>
+<p><strong>플랫폼 관리자 콘솔</strong>
+전체 개요, 테넌트 관리, AI 엔진 관리, 감사 로그.</p>
+<p><strong>공통 기반</strong>
+RBAC(직급 master/director/manager/staff × 라벨 consult/accounting/operations), 표준 응답 래핑, 오류 코드 체계(Exxxx), 감사 로그, PII 마스킹.</p>
+<hr />
+<h2 id="6-ai">6. AI 통합 개념</h2>
+<p><code>AiGatewayService</code>가 <code>(테넌트, 기능)</code> 조합에 대해 사용할 엔진을 <code>tenant_ai_settings → ai_engines</code>로 해석하고, 프로바이더 어댑터(스텁 | Anthropic)로 위임한 뒤 결과를 정규화합니다. 장애 시 스텁으로 자동 강등되어 서비스가 중단되지 않습니다.</p>
+<p>적용 영역: RAG 답변(출처 인용), 의도 분류, 상담원 AI 브리핑, 응답 검열(LLM 컨텍스트 분류), 재작성(rephrase). <strong>모든 AI 발신은 검열 게이트를 반드시 통과합니다.</strong></p>
+<hr />
+<h2 id="7">7. 보안·컴플라이언스</h2>
+<ul>
+<li><strong>인증</strong>: 관리자·운영자는 JWT(액세스 15분/리프레시 7일). 고객 위젯은 불투명 세션 토큰 + Shopify 고객 인증/비회원 주문조회(15분당 최대 5회, Redis 레이트리밋).</li>
+<li><strong>암호화</strong>: 비밀번호 bcrypt(cost 12), 외부 자격증명 AES-256-GCM.</li>
+<li><strong>개인정보</strong>: 로그 PII 마스킹, 감사 로그, 보존/파기 정책(기본 365일), Shopify GDPR 웹훅(<code>customers/data_request</code>, <code>customers/redact</code>, <code>shop/redact</code>, HMAC 검증), DSAR 내보내기/삭제·CCPA "판매·공유 거부" 옵트아웃.</li>
+<li><strong>멀티테넌시</strong>: 전 테넌트 스코프 테이블에 <code>tenant_id</code> 적용 + AsyncLocalStorage 기반 테넌트 컨텍스트 + TypeORM 구독자 자동 스탬핑.</li>
+</ul>
+<hr />
+<h2 id="8">8. 현재 구현 상태 (정직한 스냅샷)</h2>
+<blockquote>
+<p>도입 검토에 필요한 실제 상태입니다. 표기는 <strong>구현됨 / 설계·연동 준비됨 / 로드맵</strong>으로 구분합니다.</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>영역</th>
+<th>상태</th>
+<th>비고</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>시나리오 버튼 챗봇 + 관리자 설정</td>
+<td>✅ 구현됨</td>
+<td>6개 기본 액션, 테넌트별 커스터마이즈</td>
+</tr>
+<tr>
+<td>RAG 답변 + 출처 인용 + 신뢰도 산정</td>
+<td>✅ 구현됨</td>
+<td>검색기는 <strong>키워드 기반</strong>(벡터 스토어 대체)</td>
+</tr>
+<tr>
+<td>검열 게이트 (AI·상담원 발신)</td>
+<td>✅ 구현됨</td>
+<td>fail-safe 차단, 단위테스트 포함</td>
+</tr>
+<tr>
+<td>상담원 인계·콘솔·AI 브리핑</td>
+<td>✅ 구현됨</td>
+<td>대기열/인수/종료/통계</td>
+</tr>
+<tr>
+<td>봇 페르소나·응답 규칙·기능별 엔진 설정</td>
+<td>✅ 구현됨</td>
+<td>AI 설정 화면</td>
+</tr>
+<tr>
+<td>Shopify 고객 캐시·주문 캐시·배송 조회</td>
+<td>✅ 구현됨</td>
+<td>고객/주문 도메인</td>
+</tr>
+<tr>
+<td>멀티테넌시·RBAC·감사·개인정보(GDPR/DSAR)</td>
+<td>✅ 구현됨</td>
+<td>표준 준수 감사 완료</td>
+</tr>
+<tr>
+<td>AI 엔진 어댑터</td>
+<td>✅ 스텁 / ✅ Anthropic</td>
+<td>키 없이 스텁 구동</td>
+</tr>
+<tr>
+<td><strong>RAG 벡터 검색(임베딩)</strong></td>
+<td>🟡 로드맵</td>
+<td>현재 키워드 검색이 대체</td>
+</tr>
+<tr>
+<td><strong>Odoo 커넥터 실연동</strong></td>
+<td>🟡 연동 상태 추적만</td>
+<td><code>integration_status</code>·자격증명 스키마는 준비, 실 동기화 로직 로드맵</td>
+</tr>
+<tr>
+<td><strong>AI 토큰 쿼터(E4010/E4011)</strong></td>
+<td>🟡 예약됨</td>
+<td>오류코드만 예약, 테넌트별 집계 로드맵</td>
+</tr>
+<tr>
+<td><strong>스테이징/운영 배포</strong></td>
+<td>✅ Docker 산출물</td>
+<td>도메인·운영 파이프라인 TBD</td>
+</tr>
+<tr>
+<td>테스트 커버리지</td>
+<td>🟡 부분</td>
+<td>단위테스트 46개, e2e는 로드맵</td>
+</tr>
+</tbody>
+</table>
+<p><strong>요약</strong>: 3단계 응대 흐름(시나리오 → RAG → 상담원), 관리자 설정, 검열, 멀티테넌시·컴플라이언스는 동작합니다. RAG의 벡터 검색 고도화, Odoo 실연동, 토큰 쿼터 집계, e2e 테스트가 다음 단계 과제입니다.</p>
+<hr />
+<h2 id="9">9. 도입 시 이점 요약</h2>
+<ul>
+<li>정형 문의는 봇이 즉시 처리해 <strong>상담원 업무량 감소</strong></li>
+<li>RAG가 <strong>근거 기반</strong>으로 답해 오답·환각 위험을 낮추고 출처로 신뢰 확보</li>
+<li>저신뢰·위험 답변은 자동으로 사람에게 넘겨 <strong>품질·안전 유지</strong></li>
+<li>멀티테넌트 구조로 <strong>여러 Shopify 스토어 확장</strong> 가능</li>
+<li>개인정보·검열 정책 내장으로 <strong>컴플라이언스 부담 완화</strong></li>
+</ul>
+<hr />
+<p><em>문의: IVY USA 프로젝트 팀 · 관련 문서: SPEC.md, 사용자 매뉴얼(User Manual)</em></p></article>
+  <article id="doc-en" class="hidden"><h1 id="ivy-usa-chat-customer-support-widget-service-introduction">IVY USA Chat &amp; Customer-Support Widget — Service Introduction</h1>
+<blockquote>
+<p>Version 1.0.0 · 2026-07-01 · Audience: Executives · Adoption evaluators · Partners
+Document type: Service overview and design concept (based on actual implementation status)</p>
+</blockquote>
+<hr />
+<h2 id="1-the-service-at-a-glance">1. The service at a glance</h2>
+<p>The IVY USA Chat &amp; Support Widget is a <strong>multi-tenant, AI-assisted support widget embedded in a Shopify storefront</strong>. It delivers a Naver-TalkTalk-style experience and handles customer inquiries in three tiers — automated and human combined:</p>
+<ol>
+<li><strong>Scenario chatbot</strong> — instantly guides routine inquiries (delivery, cancel/refund, product, affiliate, etc.) through a button-driven menu.</li>
+<li><strong>RAG knowledge-based AI chatbot</strong> — answers what the scenario menu can't, grounded in the tenant's knowledge base (KB), and cites its sources.</li>
+<li><strong>Agent escalation (handoff)</strong> — automatically connects to a human agent when AI confidence is low or the question is outside the knowledge scope.</li>
+</ol>
+<p>It ships with a <strong>tenant operator console</strong> (live chat, settings, knowledge, customers) and a <strong>platform-admin console</strong> (tenants, AI engines, audit). The initial tenant is IVY USA.</p>
+<hr />
+<h2 id="2-core-values">2. Core values</h2>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Grounded AI</strong></td>
+<td>RAG answers only from designated, active knowledge sources and cites them. When evidence is insufficient it hands off to an agent instead of guessing.</td>
+</tr>
+<tr>
+<td><strong>Safe by default</strong></td>
+<td>Every AI and agent outbound message passes a non-bypassable moderation gate. On error the default is "block" (fail-safe).</td>
+</tr>
+<tr>
+<td><strong>Tenant isolation</strong></td>
+<td>Data, settings, credentials, and AI routing are isolated per tenant. Cross-tenant exposure is structurally prevented.</td>
+</tr>
+<tr>
+<td><strong>Compliance</strong></td>
+<td>CCPA/CPRA + GDPR posture — consent, opt-out, encryption, and audit logging are built in.</td>
+</tr>
+<tr>
+<td><strong>Pluggable AI</strong></td>
+<td>AI engines (Anthropic, etc.) are selectable per function (chat/rag/summary/assist/moderation) and degrade to a stub on failure.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="3-response-flow-concept">3. Response-flow concept</h2>
+<pre><code>Storefront customer (widget)
+      │
+      ▼
+[Anonymous entry] ── Scenario chatbot (button menu)
+      │               Delivery · Cancel/Refund · Product help · Affiliate · My orders · Contact agent
+      │
+      ├─(needs order / personal data)──▶ Identity gate (sign-in / guest order lookup)
+      │
+      ▼
+[Routine answer insufficient] ── RAG knowledge-based AI chatbot
+      │               KB retrieval → grounded generation → source citation → moderation gate
+      │
+      ├─(confidence &lt; 0.45  OR moderation-blocked  OR customer requests)
+      ▼
+[Agent handoff] ── Agent console (queue → accept → AI briefing → moderated reply)
+</code></pre>
+<hr />
+<h2 id="4-system-architecture-design-concept">4. System architecture (design concept)</h2>
+<p>A <strong>Turborepo monorepo</strong> of three apps and two shared packages.</p>
+<ul>
+<li><code>apps/widget</code> — Shopify-embedded customer widget (React 18)</li>
+<li><code>apps/web</code> — operator/admin SPA console (React 18 + react-router)</li>
+<li><code>apps/api</code> — backend API (NestJS 10, <code>/api/v1</code>)</li>
+<li><code>packages/types</code>, <code>packages/common</code> — shared enums, response envelope, RBAC matrix, utils</li>
+</ul>
+<p><strong>Tech stack</strong></p>
+<table>
+<thead>
+<tr>
+<th>Layer</th>
+<th>Technology</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Frontend</td>
+<td>React 18 · TypeScript · Vite · TailwindCSS · Zustand · TanStack React Query · react-i18next</td>
+</tr>
+<tr>
+<td>Backend</td>
+<td>NestJS 10 · TypeORM · MySQL 8 · Redis 7 · RabbitMQ · JWT · AES-256-GCM</td>
+</tr>
+<tr>
+<td>AI</td>
+<td>Pluggable AI gateway (stub / Anthropic adapter)</td>
+</tr>
+<tr>
+<td>i18n</td>
+<td>English (en, default) · Spanish (es) · Korean (ko)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Design principles</strong>: Clean Architecture + DDD, domain-modular, API-first, 4-layer (Controller → Service → Entity → Repository), <code>tenant_id</code>-based multitenancy. Controllers hold no business logic; services own the logic and tenant scoping.</p>
+<pre><code>Shopify storefront ─▶ apps/widget ─┐
+Operators/Admins   ─▶ apps/web    ─┼─▶ apps/api (NestJS)
+                                    │     ├─ MySQL 8 (TypeORM)
+                                    │     ├─ Redis 7 (cache/session/unread)
+                                    │     ├─ RabbitMQ (notif/CJM/log events)
+                                    │     ├─ AI gateway → stub | Anthropic
+                                    │     └─ Moderation gate (fail-safe block)
+External: Shopify · Fulfillment webhook · Klaviyo · Odoo · Google Drive
+          (per-tenant credentials, AES-256-GCM encrypted)
+</code></pre>
+<hr />
+<h2 id="5-feature-overview">5. Feature overview</h2>
+<p><strong>Customer widget</strong>
+Chat widget, notification center (unread badge), scenario button menu, session &amp; i18n, RAG product Q&amp;A, order/delivery lookup, reviews/affiliate/restock/subscription requests, agent handoff.</p>
+<p><strong>Operator console (tenant)</strong>
+- Dashboard — support metrics overview
+- Live chat — queue, conversation takeover, AI briefing, moderated replies, end
+- History — filter by status / escalation
+- AI settings — bot persona, response rules, scenario buttons, per-function AI engine, moderation rules
+- Knowledge (KB) — knowledge sources &amp; documents (Knowledge Store first, Google Drive supplements)
+- Customers — Shopify customer cache &amp; tier lookup
+- Campaigns · Users/permissions · Settings</p>
+<p><strong>Platform-admin console</strong>
+Overview, tenant management, AI engine management, audit log.</p>
+<p><strong>Shared foundation</strong>
+RBAC (rank master/director/manager/staff × label consult/accounting/operations), standard response envelope, error-code system (Exxxx), audit logging, PII masking.</p>
+<hr />
+<h2 id="6-ai-integration-concept">6. AI integration concept</h2>
+<p><code>AiGatewayService</code> resolves the engine for a <code>(tenant, function)</code> pair via <code>tenant_ai_settings → ai_engines</code>, dispatches to a provider adapter (stub | Anthropic), and normalizes the result. On failure it degrades to the stub so the service stays up.</p>
+<p>Application areas: RAG answering (with citations), intent classification, agent AI briefing, response moderation (LLM context classifier), rephrase. <strong>All AI outbound must pass the moderation gate.</strong></p>
+<hr />
+<h2 id="7-security-compliance">7. Security &amp; compliance</h2>
+<ul>
+<li><strong>Authentication</strong>: admins/operators use JWT (access 15 min / refresh 7 days). The customer widget uses an opaque session token + Shopify customer auth / guest order lookup (max 5 attempts per 15 min, Redis rate-limited).</li>
+<li><strong>Encryption</strong>: passwords bcrypt (cost 12), external credentials AES-256-GCM.</li>
+<li><strong>Privacy</strong>: PII masking in logs, audit logging, retention/disposal policy (default 365 days), Shopify GDPR webhooks (<code>customers/data_request</code>, <code>customers/redact</code>, <code>shop/redact</code>, HMAC-verified), DSAR export/delete and CCPA "Do Not Sell or Share" opt-out.</li>
+<li><strong>Multitenancy</strong>: <code>tenant_id</code> on all tenant-scoped tables + AsyncLocalStorage tenant context + TypeORM subscriber auto-stamping.</li>
+</ul>
+<hr />
+<h2 id="8-current-implementation-status-honest-snapshot">8. Current implementation status (honest snapshot)</h2>
+<blockquote>
+<p>The real state you need for an adoption decision. Marked <strong>Implemented / Designed-and-wired / Roadmap</strong>.</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>Area</th>
+<th>Status</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Scenario-button chatbot + admin config</td>
+<td>✅ Implemented</td>
+<td>6 default actions, per-tenant customizable</td>
+</tr>
+<tr>
+<td>RAG answering + citations + confidence scoring</td>
+<td>✅ Implemented</td>
+<td>Retriever is <strong>keyword-based</strong> (stands in for a vector store)</td>
+</tr>
+<tr>
+<td>Moderation gate (AI &amp; agent outbound)</td>
+<td>✅ Implemented</td>
+<td>Fail-safe block, unit-tested</td>
+</tr>
+<tr>
+<td>Agent handoff · console · AI briefing</td>
+<td>✅ Implemented</td>
+<td>Queue / accept / end / stats</td>
+</tr>
+<tr>
+<td>Bot persona · response rules · per-function engine</td>
+<td>✅ Implemented</td>
+<td>AI settings screen</td>
+</tr>
+<tr>
+<td>Shopify customer cache · order cache · delivery lookup</td>
+<td>✅ Implemented</td>
+<td>Customer/Order domains</td>
+</tr>
+<tr>
+<td>Multitenancy · RBAC · audit · privacy (GDPR/DSAR)</td>
+<td>✅ Implemented</td>
+<td>Standards-compliance audit closed</td>
+</tr>
+<tr>
+<td>AI engine adapters</td>
+<td>✅ Stub / ✅ Anthropic</td>
+<td>Stub runs with no key</td>
+</tr>
+<tr>
+<td><strong>RAG vector search (embeddings)</strong></td>
+<td>🟡 Roadmap</td>
+<td>Keyword retrieval stands in today</td>
+</tr>
+<tr>
+<td><strong>Odoo connector live sync</strong></td>
+<td>🟡 Status-tracked only</td>
+<td><code>integration_status</code> and credential schema ready; sync logic is roadmap</td>
+</tr>
+<tr>
+<td><strong>AI token quota (E4010/E4011)</strong></td>
+<td>🟡 Reserved</td>
+<td>Error codes reserved; per-tenant metering is roadmap</td>
+</tr>
+<tr>
+<td><strong>Staging/production deploy</strong></td>
+<td>✅ Docker artifacts</td>
+<td>Domains &amp; ops pipeline TBD</td>
+</tr>
+<tr>
+<td>Test coverage</td>
+<td>🟡 Partial</td>
+<td>46 unit tests; e2e is roadmap</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Summary</strong>: The three-tier flow (scenario → RAG → agent), admin configuration, moderation, and multitenancy/compliance all work. Next-phase items are RAG vector-search upgrade, live Odoo sync, token-quota metering, and e2e tests.</p>
+<hr />
+<h2 id="9-adoption-benefits-in-brief">9. Adoption benefits in brief</h2>
+<ul>
+<li>Routine inquiries are resolved instantly by the bot, <strong>reducing agent workload</strong>.</li>
+<li>RAG answers <strong>from evidence</strong>, lowering wrong-answer/hallucination risk and building trust via citations.</li>
+<li>Low-confidence or risky answers are automatically handed to a human, <strong>preserving quality and safety</strong>.</li>
+<li>The multi-tenant design <strong>scales across multiple Shopify stores</strong>.</li>
+<li>Built-in privacy and moderation policies <strong>ease the compliance burden</strong>.</li>
+</ul>
+<hr />
+<p><em>Contact: IVY USA project team · Related docs: SPEC.md, User Manual</em></p></article>
+  <footer class="doc">IVY USA Chat & Support Widget · v1.0.0 · 2026-07-01</footer>
+</div>
+<script>
+function setLang(l){
+  document.getElementById('doc-ko').classList.toggle('hidden', l!=='ko');
+  document.getElementById('doc-en').classList.toggle('hidden', l!=='en');
+  document.getElementById('btn-ko').classList.toggle('active', l==='ko');
+  document.getElementById('btn-en').classList.toggle('active', l==='en');
+  document.documentElement.lang = l;
+}
+</script>
+</body>
+</html>

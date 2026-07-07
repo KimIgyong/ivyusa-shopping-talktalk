@@ -23,5 +23,12 @@
   "messageBlocked": "Mensaje bloqueado por moderación.",
   "sendFailed": "Error al enviar.",
   "send": "Enviar",
-  "messageThread": "Hilo de mensajes"
+  "messageThread": "Hilo de mensajes",
+  "alarmTitle": "Escalación de chat",
+  "alarmBody": "La conversación #{{id}} necesita un agente humano.",
+  "alarmReasonLowConfidence": "La IA no encontró una respuesta en la base de conocimiento.",
+  "alarmReasonModeration": "La respuesta de la IA fue bloqueada por moderación.",
+  "alarmReasonUserRequest": "El cliente pidió hablar con un agente.",
+  "alarmOpen": "Abrir chat",
+  "alarmDismiss": "Descartar"
 }

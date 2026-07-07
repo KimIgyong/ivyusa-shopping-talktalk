@@ -26,7 +26,7 @@ export function ChatTab() {
   const pendingChatMessage = useWidgetStore((s) => s.pendingChatMessage);
   const consumeChatMessage = useWidgetStore((s) => s.consumeChatMessage);
 
-  const { messages, send, sending, escalate } = useChat(sessionToken);
+  const { messages, send, scenario, sending, escalate } = useChat(sessionToken);
   const scenarioButtons = useScenario(sessionToken);
 
   // CCPA notice choice. Guests may chat (non-personal product/FAQ) regardless of
@@ -78,6 +78,9 @@ export function ChatTab() {
   function handleScenario(button: ScenarioButton) {
     switch (button.action) {
       case 'delivery_status':
+        // Scripted shipping scenario (FR-S1); order tracking via follow-up chip.
+        void scenario('shipping_policy', button.label);
+        return;
       case 'my_orders':
         if (!authenticated) {
           setInline('auth');
@@ -92,11 +95,11 @@ export function ChatTab() {
         setInline('affiliate');
         return;
       case 'cancel_refund':
-        void doSend(t('chat.templates.cancelRefund'));
+        void scenario('cancel_refund', button.label);
         return;
       case 'message':
       default:
-        // Custom button: send its label as a chat message.
+        // Custom button: send its label as a chat message (RAG path).
         void doSend(button.label);
         return;
     }
@@ -109,9 +112,26 @@ export function ChatTab() {
       case 'ingredients':
         return doSend(t('chat.templates.ingredients'));
       case 'exchange':
-        return doSend(t('chat.templates.exchange'));
+        return void scenario('return_exchange', t('chat.templates.exchange'));
       case 'restock':
         return doSend(t('chat.templates.restock'));
+    }
+  }
+
+  /** Scenario follow-up chip clicks: control actions or another script. */
+  function handleQuickReply(id: string, label: string) {
+    switch (id) {
+      case 'agent_connect':
+        setShowEscalate(false);
+        void escalate();
+        return;
+      case 'my_orders':
+        if (!authenticated) setInline('auth');
+        else setActiveTab('orders');
+        return;
+      default:
+        void scenario(id, label);
+        return;
     }
   }
 
@@ -164,8 +184,25 @@ export function ChatTab() {
           onSubAction={handleSubAction}
         />
 
-        {messages.map((m) => (
-          <MessageBubble key={m.id} message={m} />
+        {messages.map((m, i) => (
+          <div key={m.id} className="space-y-2">
+            <MessageBubble message={m} />
+            {/* Scenario follow-up chips on the latest message only (FR-S1). */}
+            {i === messages.length - 1 && !!m.quickReplies?.length && (
+              <div className="flex flex-wrap gap-1.5 pl-1">
+                {m.quickReplies.map((q) => (
+                  <button
+                    key={q.id}
+                    onClick={() => handleQuickReply(q.id, q.label)}
+                    disabled={sending}
+                    className="rounded-full border border-primary-300 bg-white px-3 py-1 text-xs font-medium text-primary-600 transition-colors hover:bg-primary-500/10 disabled:opacity-40"
+                  >
+                    {q.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         ))}
 
         {inline === 'auth' && (

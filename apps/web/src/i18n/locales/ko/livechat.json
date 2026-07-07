@@ -23,5 +23,12 @@
   "messageBlocked": "모더레이션에 의해 메시지가 차단되었습니다.",
   "sendFailed": "전송에 실패했습니다.",
   "send": "전송",
-  "messageThread": "메시지 목록"
+  "messageThread": "메시지 목록",
+  "alarmTitle": "상담 이관 알림",
+  "alarmBody": "대화 #{{id}} 에 상담사 응대가 필요합니다.",
+  "alarmReasonLowConfidence": "AI가 지식 베이스에서 답변을 찾지 못했습니다.",
+  "alarmReasonModeration": "AI 답변이 모더레이션에 의해 차단되었습니다.",
+  "alarmReasonUserRequest": "고객이 상담원 연결을 요청했습니다.",
+  "alarmOpen": "상담 열기",
+  "alarmDismiss": "닫기"
 }

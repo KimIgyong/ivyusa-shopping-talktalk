@@ -125,6 +125,29 @@ export async function runSeed(ds: DataSource, opts: SeedOptions = {}): Promise<v
     }
   }
 
+  // CS policy reference docs — US cosmetics industry standard (research-based draft).
+  // Source summary: docs/guide/KB-US-Cosmetics-CS-Policy-Reference-20260707.md.
+  // Idempotent per title so already-seeded databases pick these up on re-seed.
+  // NOTE: the 30-day window below intentionally follows the US industry standard and
+  // conflicts with the legacy 'Returns & Exchanges' doc (POL-005, 7 days) — see the
+  // Open Issues section of the reference doc for the pending decision.
+  const csPolicyDocs = [
+    ['policy', 'CS Policy — Returns (US Cosmetics Standard)', 'Returns are accepted within 30 days of purchase for products in new or gently used condition, with proof of purchase (order number, confirmation email, or account lookup). Refunds go to the original payment method. Return shipping is free with our prepaid label. Original shipping fees are non-refundable unless the return results from our error. Items outside the 30-day window, without proof of purchase, or in worse than gently used condition may be declined. Return activity is monitored for abuse. (US industry standard: Sephora and Ulta both use a 30-day window and accept gently used cosmetics.)'],
+    ['policy', 'CS Policy — Exchanges', 'Exchanges are accepted within 30 days for items in new or gently used condition. The fastest option is to return the original item for a refund and place a new order for the desired shade, size, or product. A direct exchange ships once the returned item is received and inspected. Items that arrive damaged, defective, or incorrect are replaced free of charge, including shipping.'],
+    ['faq', 'CS Policy — Order Cancellation', 'Orders can be canceled free of charge before they enter preparing status — typically within about 1 hour of placement. Orders cannot be modified after checkout (address, items, payment); cancel and reorder instead. Once an order ships it can no longer be canceled; please request a return after delivery. Canceled orders are refunded in full to the original payment method; card pre-authorizations drop off within 1-7 business days.'],
+    ['policy', 'CS Policy — Refunds (Method & Timeline)', 'Refunds are issued to the original payment method: card purchases back to the card, PayPal to PayPal, gift card purchases as store credit. Card refunds are typically processed within 5-10 business days after the return is received and inspected; mail-in returns can take up to 30 days end to end. Gift returns are issued as store credit to the recipient. Loyalty points earned on the purchase are removed when the refund is processed. Original shipping charges are refunded only when the return results from our error.'],
+    ['policy', 'CS Policy — Final Sale & Non-returnable Items', 'Gift cards, items marked final sale, and certain intimate or hygiene-sensitive care items cannot be returned or exchanged. Products that are more than gently used, missing original components, or unsellable for hygiene reasons are not eligible. Opened cosmetics are returnable only in gently used condition within the 30-day window. Final-sale status is shown on the product page and at checkout before purchase.'],
+    ['faq', 'CS Policy — Damaged, Defective, or Wrong Items', 'If an item arrives damaged, defective, or different from what was ordered, contact support within 7 days of delivery with the order number and a photo of the item and packaging. We arrange a free replacement or a full refund including shipping. Please keep the item and packaging until the claim is resolved. Claims for parcels delivered to a parcel-forwarding address may not be eligible.'],
+    ['policy', 'CS Policy — US Compliance Notes', 'Agent reference. California Civil Code 1723: a return policy stricter than a 7-day full refund/equal exchange must be conspicuously disclosed before purchase (online: a clear policy page link); if not disclosed, customers may return within 7 days. Exemptions include perishables, final-sale items, and goods unsellable for health reasons. FTC Mail/Internet Order Rule: if we cannot ship within the promised time (30 days if none stated), we must notify the customer and offer cancellation with a prompt full refund.'],
+  ];
+  for (const [category, title, content] of csPolicyDocs) {
+    if (!(await kbRepo.findOne({ where: { tenantId: tenant.id, title } }))) {
+      const doc = await kbRepo.save(kbRepo.create({ tenantId: tenant.id, sourceId: ks.id, source: 'knowledge_store', category, title, content, active: 1, status: 'embedded' }));
+      doc.embeddingRef = `emb_${doc.id}`;
+      await kbRepo.save(doc);
+    }
+  }
+
   // Tenant AI config: persona, response rules, scenario buttons (FR-047/FN-040)
   const aiConfigRepo = ds.getRepository(TenantAiConfig);
   if (!(await aiConfigRepo.findOne({ where: { tenantId: tenant.id } }))) {

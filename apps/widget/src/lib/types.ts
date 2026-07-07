@@ -14,6 +14,8 @@ export interface ChatMessage {
   createdAt: string;
   citations?: Citation[];
   pending?: boolean;
+  /** Scenario follow-up chips attached to a scripted reply (FR-S1). */
+  quickReplies?: ScenarioFollowUp[];
 }
 
 export interface Citation {
@@ -29,13 +31,25 @@ export interface Conversation {
 
 export interface ChatReply {
   conversationId: string;
+  /** Null when the conversation is in agent mode (agent replies via polling). */
   reply: {
     senderType: SenderType;
     body: string;
     citations?: Citation[];
-  };
+  } | null;
   escalate: boolean;
   needsAuth: boolean;
+}
+
+export interface ScenarioFollowUp {
+  id: string;
+  label: string;
+}
+
+export interface ScenarioReply {
+  conversationId: string;
+  reply: { senderType: SenderType; body: string };
+  followUps: ScenarioFollowUp[];
 }
 
 export interface OrderSummary {

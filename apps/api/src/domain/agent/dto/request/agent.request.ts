@@ -10,6 +10,10 @@ export class ListStatsQuery {
   @IsOptional() @IsString() size?: string;
 }
 
+export class ListAlertsQuery {
+  @IsOptional() @IsString() status?: string;
+}
+
 export class AgentMessageRequest {
   @IsString() @MinLength(1) body: string;
 }
