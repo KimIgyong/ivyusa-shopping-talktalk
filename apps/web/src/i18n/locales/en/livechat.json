@@ -23,5 +23,12 @@
   "messageBlocked": "Message blocked by moderation.",
   "sendFailed": "Failed to send.",
   "send": "Send",
-  "messageThread": "Message thread"
+  "messageThread": "Message thread",
+  "alarmTitle": "Chat escalation",
+  "alarmBody": "Conversation #{{id}} needs a human agent.",
+  "alarmReasonLowConfidence": "The AI could not find an answer in the knowledge base.",
+  "alarmReasonModeration": "The AI reply was blocked by moderation.",
+  "alarmReasonUserRequest": "The customer asked to talk to an agent.",
+  "alarmOpen": "Open chat",
+  "alarmDismiss": "Dismiss"
 }

@@ -20,6 +20,25 @@ export const useConversation = (id: string | null) => {
   });
 };
 
+/** New escalation alerts for the alarm modal (FR-S3) — 10s poll. */
+export const useAgentAlerts = () => {
+  const tenantKey = useTenantKey();
+  return useQuery({
+    queryKey: ['agent', tenantKey, 'alerts'],
+    queryFn: () => liveChatService.alerts('new'),
+    refetchInterval: 10000,
+  });
+};
+
+export const useAckAlert = () => {
+  const qc = useQueryClient();
+  const tenantKey = useTenantKey();
+  return useMutation({
+    mutationFn: (id: string) => liveChatService.ackAlert(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['agent', tenantKey, 'alerts'] }),
+  });
+};
+
 export function useConversationActions(id: string | null) {
   const qc = useQueryClient();
   const tenantKey = useTenantKey();

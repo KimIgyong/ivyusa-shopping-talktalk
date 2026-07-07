@@ -2,6 +2,20 @@ import { Conversation } from '../chat/entity/conversation.entity';
 import { Message } from '../chat/entity/message.entity';
 import { AgentProfile } from './entity/agent-profile.entity';
 import { AgentDailyStat } from './entity/agent-daily-stat.entity';
+import { AgentAlert } from './entity/agent-alert.entity';
+
+/** Escalation alert row for the console alarm modal (FR-S3). */
+export function toAlertResponse(a: AgentAlert) {
+  return {
+    id: a.id,
+    conversationId: a.conversationId,
+    sessionId: a.sessionId,
+    reason: a.reason,
+    preview: a.preview,
+    status: a.status,
+    createdAt: a.createdAt,
+  };
+}
 
 /** Conversation row for the agent session queue (preview + flags). */
 export function toSessionResponse(c: Conversation, lastMessage: Message | null) {

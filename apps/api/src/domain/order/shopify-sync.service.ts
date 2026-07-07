@@ -36,7 +36,11 @@ export class ShopifySyncService {
   async syncOrders(tenantId: number): Promise<ShopifySyncResult> {
     const conn = await this.tenantService.getShopifyConnection(tenantId);
     if (!conn) {
-      return this.record(false, 0, 'Missing shop domain or Shopify credential');
+      return this.record(
+        false,
+        0,
+        'Shopify shop domain or a valid access token is missing — reconnect the store',
+      );
     }
 
     let orders: ShopifyOrderDto[];

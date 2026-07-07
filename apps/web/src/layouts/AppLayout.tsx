@@ -5,6 +5,7 @@ import { Header } from './Header';
 import { useUiStore } from '@/store/ui-store';
 import { useAuthStore } from '@/store/auth-store';
 import { ChangePasswordModal } from '@/domain/auth/ChangePasswordModal';
+import { EscalationAlarm } from '@/domain/live-chat/EscalationAlarm';
 import { cn } from '@/lib/cn';
 
 export function AppLayout() {
@@ -26,6 +27,8 @@ export function AppLayout() {
         forced={mustChange}
         onClose={() => setPwOpen(false)}
       />
+      {/* Escalation alarm modal (FR-S3) — global so it fires on any page. */}
+      <EscalationAlarm />
     </div>
   );
 }

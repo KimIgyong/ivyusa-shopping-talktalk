@@ -9,3 +9,8 @@ export class SendMessageRequest {
 export class EscalateRequest {
   @IsInt() conversation_id: number;
 }
+
+export class ScenarioRequest {
+  @IsString() session_token: string;
+  @IsString() @MinLength(1) action: string;
+}

@@ -1,8 +1,9 @@
 import { Body, Controller, Get, Param, Post } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ChatService } from './chat.service';
+import { ScenarioService } from './scenario.service';
 import { ChatMapper } from './chat.mapper';
-import { SendMessageRequest, EscalateRequest } from './dto/request/chat.request';
+import { SendMessageRequest, EscalateRequest, ScenarioRequest } from './dto/request/chat.request';
 import { SessionService } from '../session/session.service';
 import { Public } from '../../global/decorator/public.decorator';
 
@@ -12,8 +13,17 @@ import { Public } from '../../global/decorator/public.decorator';
 export class ChatController {
   constructor(
     private readonly chatService: ChatService,
+    private readonly scenarioService: ScenarioService,
     private readonly sessionService: SessionService,
   ) {}
+
+  @Post('scenario')
+  @Public()
+  @ApiOperation({ summary: 'Scenario button/quick-reply → deterministic scripted reply (FR-S1)' })
+  async scenario(@Body() body: ScenarioRequest) {
+    const session = await this.sessionService.findByToken(body.session_token);
+    return this.scenarioService.handle(session, body.action);
+  }
 
   @Post('message')
   @Public()

@@ -34,6 +34,17 @@ export interface ConversationDetail {
   customer?: CustomerContext;
 }
 
+/** Escalation alert row (FR-S3) shown in the console alarm modal. */
+export interface AgentAlert {
+  id: string;
+  conversationId: string;
+  sessionId?: string | null;
+  reason: 'low_confidence' | 'moderation_blocked' | 'user_request' | string;
+  preview?: string | null;
+  status: 'new' | 'acked' | string;
+  createdAt?: string;
+}
+
 export const liveChatService = {
   sessions: () => apiGet<AgentSession[]>('/agent/sessions'),
   conversation: (id: string) => apiGet<ConversationDetail>(`/agent/conversations/${id}`),
@@ -41,4 +52,6 @@ export const liveChatService = {
   sendMessage: (id: string, body: string) =>
     apiPost<ChatMessage>(`/agent/conversations/${id}/message`, { body }),
   end: (id: string) => apiPost<ConversationDetail>(`/agent/conversations/${id}/end`),
+  alerts: (status = 'new') => apiGet<AgentAlert[]>(`/agent/alerts?status=${status}`),
+  ackAlert: (id: string) => apiPost<AgentAlert>(`/agent/alerts/${id}/ack`),
 };

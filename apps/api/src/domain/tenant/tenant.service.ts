@@ -174,7 +174,10 @@ export class TenantService {
     const cred = await this.credRepo.findOne({ where: { tenantId, provider: SHOPIFY } });
     if (!shopDomain || !cred?.secretEnc) return null;
     const token = this.extractAccessToken(decryptSecret(cred.secretEnc));
-    if (!token) return null;
+    // Shopify tokens are printable ASCII. Reject anything else (e.g. a masked/
+    // placeholder value) so it never reaches an HTTP header — which would throw a
+    // ByteString error on fetch instead of a clean "invalid token" result.
+    if (!token || !/^[\x21-\x7e]+$/.test(token)) return null;
     return { shopDomain, token };
   }
 
@@ -185,7 +188,10 @@ export class TenantService {
   async testShopify(tenantId: number): Promise<ShopifyTestResponse> {
     const conn = await this.getShopifyConnection(tenantId);
     if (!conn) {
-      return this.recordShopifyTest(false, 'Missing shop domain or Shopify credential');
+      return this.recordShopifyTest(
+        false,
+        'Shopify shop domain or a valid access token is missing — reconnect the store',
+      );
     }
     try {
       const controller = new AbortController();

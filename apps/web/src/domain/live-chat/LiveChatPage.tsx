@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Send, Sparkles, User, Loader2, CheckCircle2, XCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { PageHeader } from '@/components/PageHeader';
@@ -11,8 +12,16 @@ import { cn } from '@/lib/cn';
 
 export function LiveChatPage() {
   const { t } = useTranslation('livechat');
+  const [searchParams] = useSearchParams();
   const [selected, setSelected] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
+
+  // Deep link from the escalation alarm modal: /live-chat?c={conversationId}
+  // opens the alerted conversation so the agent continues the thread (FR-S4).
+  const deepLink = searchParams.get('c');
+  useEffect(() => {
+    if (deepLink) setSelected(deepLink);
+  }, [deepLink]);
   const { data: sessions, isLoading: sessionsLoading } = useSessions();
   const { data: convo, isLoading: convoLoading } = useConversation(selected);
   const { accept, end, send } = useConversationActions(selected);

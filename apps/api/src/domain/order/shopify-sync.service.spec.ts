@@ -86,7 +86,9 @@ describe('ShopifySyncService.syncOrders', () => {
   it('records an error and syncs nothing when the connection is missing', async () => {
     const { svc, integrationService, client } = build([], null);
     const res = await svc.syncOrders(1);
-    expect(res).toEqual({ ok: false, synced: 0, detail: 'Missing shop domain or Shopify credential' });
+    expect(res.ok).toBe(false);
+    expect(res.synced).toBe(0);
+    expect(res.detail).toMatch(/reconnect the store/);
     expect(client.fetchOrders).not.toHaveBeenCalled();
     expect(integrationService.upsert).toHaveBeenCalledWith('shopify', 'error', expect.any(String));
   });

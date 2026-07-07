@@ -3,6 +3,7 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CAPABILITY, Principal } from '@ivy/types';
 import { normalizePage, buildPagination } from '@ivy/common';
 import { AgentService } from './agent.service';
+import { AgentAlertService } from './agent-alert.service';
 import { RequireCapability } from '../../global/decorator/auth.decorator';
 import { CurrentUser } from '../../global/decorator/current-user.decorator';
 import { Paginated } from '../../global/interceptor/transform.interceptor';
@@ -13,11 +14,13 @@ import {
   UpsertProfileRequest,
 } from './dto/request/agent.request';
 import {
+  toAlertResponse,
   toMessageResponse,
   toProfileResponse,
   toSessionResponse,
   toStatResponse,
 } from './agent.mapper';
+import { ListAlertsQuery } from './dto/request/agent.request';
 
 function tenantOf(user: Principal): number {
   return user.actorType === 'user' ? user.tenantId : 0;
@@ -30,7 +33,26 @@ function actorIdOf(user: Principal): number {
 @ApiTags('Agent')
 @Controller('agent')
 export class AgentConsoleController {
-  constructor(private readonly agentService: AgentService) {}
+  constructor(
+    private readonly agentService: AgentService,
+    private readonly alertService: AgentAlertService,
+  ) {}
+
+  @Get('alerts')
+  @RequireCapability(CAPABILITY.CONVERSATION_HANDLE)
+  @ApiOperation({ summary: 'Escalation alerts for the console alarm modal (FR-S3)' })
+  async alerts(@Query() query: ListAlertsQuery) {
+    const items = await this.alertService.list(query.status ?? 'new');
+    return items.map(toAlertResponse);
+  }
+
+  @Post('alerts/:id/ack')
+  @RequireCapability(CAPABILITY.CONVERSATION_HANDLE)
+  @ApiOperation({ summary: 'Acknowledge an escalation alert' })
+  async ackAlert(@CurrentUser() user: Principal, @Param('id', ParseIntPipe) id: number) {
+    const alert = await this.alertService.ack(id, actorIdOf(user));
+    return toAlertResponse(alert);
+  }
 
   @Get('sessions')
   @RequireCapability(CAPABILITY.CONVERSATION_HANDLE)
