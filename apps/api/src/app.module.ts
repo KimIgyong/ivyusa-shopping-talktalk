@@ -34,6 +34,7 @@ import { CustomerModule } from './domain/customer/customer.module';
 import { PrivacyModule } from './domain/privacy/privacy.module';
 import { HealthModule } from './domain/health/health.module';
 import { ShopifyOAuthModule } from './domain/shopify-oauth/shopify-oauth.module';
+import { ShopifyProxyModule } from './domain/shopify-proxy/shopify-proxy.module';
 
 @Module({
   imports: [
@@ -58,6 +59,7 @@ import { ShopifyOAuthModule } from './domain/shopify-oauth/shopify-oauth.module'
     CustomerModule,
     OrderModule,
     ShopifyOAuthModule,
+    ShopifyProxyModule,
     NotificationModule,
     ReviewModule,
     AffiliateModule,

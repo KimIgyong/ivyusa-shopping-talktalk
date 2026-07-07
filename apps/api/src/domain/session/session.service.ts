@@ -64,6 +64,40 @@ export class SessionService {
     throw new BusinessException(ERROR_CODE.TENANT_NOT_FOUND, HttpStatus.BAD_REQUEST);
   }
 
+  /**
+   * Create a fresh session already bound to a customer. Used by the Shopify app
+   * proxy once a storefront customer's identity is Shopify-verified — the widget
+   * adopts this token and starts authenticated (customerId != null).
+   */
+  async createForCustomer(
+    tenantId: number,
+    customerId: number,
+    locale?: string,
+  ): Promise<Session> {
+    const session = await this.sessionRepo.save(
+      this.sessionRepo.create({
+        sessionToken: generateToken(),
+        tenantId,
+        language: this.resolveLanguage(locale),
+        consentState: CONSENT_STATE.PENDING,
+        customerId,
+      }),
+    );
+    await this.bus.publish(EVENTS.CJM, {
+      tenantId,
+      sessionId: session.id,
+      customerId,
+      stage: CJM_STAGE.AWARENESS,
+      eventType: 'session_start',
+    });
+    return session;
+  }
+
+  /** Resolve a tenant by its Shopify shop domain (null when unknown). */
+  async findTenantByShop(shopDomain: string): Promise<Tenant | null> {
+    return this.tenantRepo.findOne({ where: { shopDomain } });
+  }
+
   async findByToken(token: string): Promise<Session> {
     const session = await this.sessionRepo.findOne({ where: { sessionToken: token } });
     if (!session) throw new BusinessException(ERROR_CODE.SESSION_NOT_FOUND, HttpStatus.NOT_FOUND);

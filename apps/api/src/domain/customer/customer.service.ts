@@ -77,4 +77,27 @@ export class CustomerService {
     });
     return this.customerRepo.save(customer);
   }
+
+  /**
+   * Lookup-or-create by Shopify customer id within a tenant. Used when a logged-in
+   * storefront customer is resolved via the app proxy (we have the numeric Shopify
+   * id but not necessarily an email). Reuses the row synced from orders, if any.
+   */
+  async findOrCreateByShopifyId(
+    tenantId: number,
+    shopifyCustomerId: string,
+  ): Promise<Customer> {
+    const existing = await this.customerRepo.findOne({
+      where: { tenantId, shopifyCustomerId },
+    });
+    if (existing) return existing;
+    const customer = this.customerRepo.create({
+      tenantId,
+      email: null,
+      name: null,
+      shopifyCustomerId,
+      tier: 'guest',
+    });
+    return this.customerRepo.save(customer);
+  }
 }
