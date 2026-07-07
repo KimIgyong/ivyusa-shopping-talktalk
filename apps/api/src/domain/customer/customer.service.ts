@@ -20,7 +20,7 @@ export class CustomerService {
     page: number,
     size: number,
     email?: string,
-  ): Promise<{ items: Customer[]; total: number; stats: Map<number, CustomerOrderStats> }> {
+  ): Promise<{ items: Customer[]; total: number; stats: Map<string, CustomerOrderStats> }> {
     const where: FindOptionsWhere<Customer> = { tenantId };
     if (email) where.email = Like(`%${email}%`);
     const [items, total] = await this.customerRepo.findAndCount({
@@ -40,8 +40,8 @@ export class CustomerService {
   private async orderStats(
     tenantId: number,
     customerIds: number[],
-  ): Promise<Map<number, CustomerOrderStats>> {
-    const map = new Map<number, CustomerOrderStats>();
+  ): Promise<Map<string, CustomerOrderStats>> {
+    const map = new Map<string, CustomerOrderStats>();
     if (customerIds.length === 0) return map;
     const rows = await this.orderRepo
       .createQueryBuilder('o')
@@ -53,7 +53,8 @@ export class CustomerService {
       .groupBy('o.customerId')
       .getRawMany<{ customerId: string | number; orders: string; totalSpent: string }>();
     for (const r of rows) {
-      map.set(Number(r.customerId), {
+      // bigint ids arrive as strings; key by String to match the entity's id.
+      map.set(String(r.customerId), {
         orders: Number(r.orders) || 0,
         totalSpent: Number(r.totalSpent) || 0,
       });

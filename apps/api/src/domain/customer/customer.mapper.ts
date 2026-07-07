@@ -27,8 +27,10 @@ export class CustomerMapper {
 
   static toCustomerList(
     customers: Customer[],
-    statsById?: Map<number, CustomerOrderStats>,
+    statsById?: Map<string, CustomerOrderStats>,
   ): CustomerResponse[] {
-    return customers.map((c) => this.toCustomer(c, statsById?.get(c.id)));
+    // Keyed by String(id): bigint ids arrive as strings from the driver, so
+    // normalize on both sides to avoid a number-vs-string Map miss.
+    return customers.map((c) => this.toCustomer(c, statsById?.get(String(c.id))));
   }
 }
