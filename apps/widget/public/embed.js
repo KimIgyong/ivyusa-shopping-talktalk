@@ -17,6 +17,15 @@
   var cfg = window.IVY_WIDGET_CONFIG || {};
   var shop = cfg.shop || (window.Shopify && window.Shopify.shop) || '';
   var base = String(cfg.widgetUrl || 'https://widget.ivyusa.app').replace(/\/+$/, '');
+  // Origin only (scheme+host+port) — `base` may carry a sub-path (e.g. /widget),
+  // but postMessage e.origin never includes a path, so compare against the origin.
+  var baseOrigin = (function () {
+    try {
+      return new URL(base, window.location.href).origin;
+    } catch (_) {
+      return base;
+    }
+  })();
   var locale = String(cfg.locale || document.documentElement.lang || 'en').slice(0, 2);
 
   var CLOSED = { w: '96px', h: '96px' };
@@ -53,7 +62,7 @@
   else document.addEventListener('DOMContentLoaded', mount);
 
   window.addEventListener('message', function (e) {
-    if (e.origin !== base) return; // only trust messages from our widget origin
+    if (e.origin !== baseOrigin) return; // only trust messages from our widget origin
     var d = e.data || {};
     if (d.type === 'ivy:resize') {
       frame.style.width = d.open ? OPEN.w : CLOSED.w;

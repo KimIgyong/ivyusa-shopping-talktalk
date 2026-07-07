@@ -36,6 +36,34 @@
     "connectionStatus": "Estado de conexión",
     "credential": "Credencial",
     "lastTested": "Última prueba",
-    "state": { "connected": "Conectado", "error": "Error", "unknown": "Sin probar" }
+    "state": { "connected": "Conectado", "error": "Error", "unknown": "Sin probar" },
+    "install": {
+      "title": "Instalar en tu tienda",
+      "subtitle": "Añade el widget de chat a tu tienda Shopify. Elige el método que se adapte a tu configuración.",
+      "shopHint": "Los fragmentos están completados para tu tienda: {{shop}}",
+      "shopMissing": "Guarda primero el dominio de tu tienda arriba para que los fragmentos se completen automáticamente.",
+      "tabAppEmbed": "Inserción de app (recomendado)",
+      "tabScriptTag": "ScriptTag",
+      "tabManual": "Fragmento manual",
+      "copy": "Copiar",
+      "copied": "Copiado al portapapeles",
+      "copyFailed": "No se pudo copiar: selecciona el código y cópialo manualmente.",
+      "appEmbed": {
+        "desc": "Sin editar el código del tema y fácil de activar o desactivar. Ideal para Online Store 2.0.",
+        "step1": "En el administrador de Shopify, abre Tienda online → Temas → Personalizar.",
+        "step2": "Abre Configuración del tema → Inserciones de app.",
+        "step3": "Activa \"IVY USA TalkTalk\" y haz clic en Guardar."
+      },
+      "scriptTag": {
+        "desc": "Se carga en todas las páginas mediante la Admin API. Se registra automáticamente al instalar la app; usa la solicitud siguiente para registrarlo manualmente.",
+        "note": "Envíalo con tu token de acceso de la Admin API. No requiere editar el tema."
+      },
+      "manual": {
+        "desc": "El método más simple: pega un fragmento en tu tema. No requiere app.",
+        "step1": "Abre Tienda online → Temas → ⋯ → Editar código.",
+        "step2": "Abre layout/theme.liquid.",
+        "step3": "Pega el fragmento justo antes de la etiqueta </body> y guarda."
+      }
+    }
   }
 }

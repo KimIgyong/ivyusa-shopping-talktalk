@@ -36,6 +36,34 @@
     "connectionStatus": "Connection status",
     "credential": "Credential",
     "lastTested": "Last tested",
-    "state": { "connected": "Connected", "error": "Error", "unknown": "Not tested" }
+    "state": { "connected": "Connected", "error": "Error", "unknown": "Not tested" },
+    "install": {
+      "title": "Install on your store",
+      "subtitle": "Add the chat widget to your Shopify storefront. Pick the method that fits your setup.",
+      "shopHint": "Snippets are filled in for your shop: {{shop}}",
+      "shopMissing": "Save your shop domain above first so the snippets fill in automatically.",
+      "tabAppEmbed": "App embed (recommended)",
+      "tabScriptTag": "ScriptTag",
+      "tabManual": "Manual snippet",
+      "copy": "Copy",
+      "copied": "Copied to clipboard",
+      "copyFailed": "Could not copy — select the code and copy manually.",
+      "appEmbed": {
+        "desc": "No theme code editing, and easy to toggle on and off. Best for Online Store 2.0.",
+        "step1": "In Shopify admin, open Online Store → Themes → Customize.",
+        "step2": "Open Theme settings → App embeds.",
+        "step3": "Turn on \"IVY USA TalkTalk\" and click Save."
+      },
+      "scriptTag": {
+        "desc": "Loads on every page via the Admin API. Registered automatically when the app is installed; use the request below to register it manually.",
+        "note": "Send this with your Admin API access token. No theme edits required."
+      },
+      "manual": {
+        "desc": "The simplest method — paste one snippet into your theme. No app required.",
+        "step1": "Open Online Store → Themes → ⋯ → Edit code.",
+        "step2": "Open layout/theme.liquid.",
+        "step3": "Paste the snippet just before the </body> tag and Save."
+      }
+    }
   }
 }
