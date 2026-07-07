@@ -1,0 +1,10 @@
+{
+  "title": "Pedidos",
+  "subtitle": "Todos los pedidos de la tienda sincronizados desde Shopify",
+  "orderNumber": "Pedido",
+  "status": "Estado",
+  "amount": "Importe",
+  "items": "Artículos",
+  "date": "Fecha",
+  "empty": "No se encontraron pedidos."
+}

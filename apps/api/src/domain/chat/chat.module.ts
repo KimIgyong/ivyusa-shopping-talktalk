@@ -4,6 +4,7 @@ import { Conversation } from './entity/conversation.entity';
 import { Message } from './entity/message.entity';
 import { Session } from '../session/entity/session.entity';
 import { Tenant } from '../tenant/entity/tenant.entity';
+import { User } from '../user/entity/user.entity';
 import { KbDocument } from '../knowledge/entity/kb-document.entity';
 import { ChatService } from './chat.service';
 import { RagService } from './rag.service';
@@ -15,7 +16,7 @@ import { AiEngineModule } from '../ai-engine/ai-engine.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Conversation, Message, Session, Tenant, KbDocument]),
+    TypeOrmModule.forFeature([Conversation, Message, Session, Tenant, User, KbDocument]),
     SessionModule,
     ModerationModule,
     AiEngineModule,

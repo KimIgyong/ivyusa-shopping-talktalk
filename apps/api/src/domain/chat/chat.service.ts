@@ -11,6 +11,7 @@ import { Conversation } from './entity/conversation.entity';
 import { Message } from './entity/message.entity';
 import { Session } from '../session/entity/session.entity';
 import { Tenant } from '../tenant/entity/tenant.entity';
+import { User } from '../user/entity/user.entity';
 import { RagService } from './rag.service';
 import { ModerationService } from '../moderation/moderation.service';
 import { EventBusService, EVENTS } from '../../infrastructure/infrastructure.module';
@@ -81,6 +82,7 @@ export class ChatService {
     @InjectRepository(Message) private readonly msgRepo: Repository<Message>,
     @InjectRepository(Session) private readonly sessionRepo: Repository<Session>,
     @InjectRepository(Tenant) private readonly tenantRepo: Repository<Tenant>,
+    @InjectRepository(User) private readonly userRepo: Repository<User>,
     private readonly rag: RagService,
     private readonly moderation: ModerationService,
     private readonly bus: EventBusService,
@@ -114,6 +116,24 @@ export class ChatService {
 
   async listMessages(conversationId: number): Promise<Message[]> {
     return this.msgRepo.find({ where: { conversationId }, order: { id: 'ASC' } });
+  }
+
+  /** Agent display names for the given messages, so the widget can show who replied. */
+  async resolveSenderNames(messages: Message[]): Promise<Map<string, string>> {
+    const map = new Map<string, string>();
+    const ids = [
+      ...new Set(
+        messages
+          .filter((m) => m.senderType === SENDER_TYPE.AGENT && m.senderId != null)
+          .map((m) => m.senderId as number),
+      ),
+    ];
+    if (ids.length === 0) return map;
+    const users = await this.userRepo.find({ where: { id: In(ids) } });
+    for (const u of users) {
+      if (u.name) map.set(String(u.id), u.name);
+    }
+    return map;
   }
 
   async handleUserMessage(session: Session, text: string): Promise<ChatTurnResult> {

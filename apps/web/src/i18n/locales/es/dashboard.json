@@ -9,5 +9,13 @@
   "totalOrders": "Pedidos totales",
   "popularQuestions": "Preguntas populares",
   "integrationStatus": "Estado de integraciones",
-  "noIntegrations": "No hay integraciones configuradas."
+  "noIntegrations": "No hay integraciones configuradas.",
+  "recentOrders": "Pedidos recientes",
+  "viewCustomers": "Ver clientes",
+  "viewOrders": "Ver pedidos",
+  "noOrders": "Aún no hay pedidos.",
+  "orderNumber": "Pedido",
+  "status": "Estado",
+  "amount": "Importe",
+  "date": "Fecha"
 }

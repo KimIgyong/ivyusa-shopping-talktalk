@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { PageHeader } from '@/components/PageHeader';
 import { Badge } from '@/components/Badge';
@@ -12,10 +12,19 @@ import { useCustomers, useUpdateTier } from './customers.hooks';
 import type { Customer } from './customers.service';
 
 const PAGE_SIZE = 20;
-const TIERS = ['bronze', 'silver', 'gold', 'vip'] as const;
+const TIERS = ['guest', 'subscriber', 'regular'] as const;
 
-function fmtMoney(value?: number): string {
-  return typeof value === 'number' ? `$${value.toLocaleString()}` : '—';
+function fmtMoney(value?: number, currency?: string | null): string {
+  if (typeof value !== 'number') return '—';
+  if (currency) {
+    try {
+      return new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(value);
+    } catch {
+      /* unknown currency code — fall back to a plain amount + code */
+      return `${value.toLocaleString()} ${currency}`;
+    }
+  }
+  return value.toLocaleString();
 }
 
 function fmtDate(value?: string): string {
@@ -28,15 +37,30 @@ export function CustomersPage() {
   const { t } = useTranslation('customers');
   const { t: tc } = useTranslation('common');
   const [page, setPage] = useState(1);
+  const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [editing, setEditing] = useState<Customer | null>(null);
-  const [tier, setTier] = useState<string>('bronze');
+  const [tier, setTier] = useState<string>('guest');
 
-  const { data, isLoading, error } = useCustomers({ page, pageSize: PAGE_SIZE });
+  // Debounce the search box and reset to the first page on a new query.
+  useEffect(() => {
+    const id = setTimeout(() => {
+      setDebouncedSearch(search.trim());
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(id);
+  }, [search]);
+
+  const { data, isLoading, error } = useCustomers({
+    page,
+    pageSize: PAGE_SIZE,
+    email: debouncedSearch || undefined,
+  });
   const updateTier = useUpdateTier();
 
   const openEdit = (c: Customer) => {
     setEditing(c);
-    setTier(c.tier ?? 'bronze');
+    setTier(c.tier ?? 'guest');
   };
 
   const onSave = async () => {
@@ -54,7 +78,7 @@ export function CustomersPage() {
       render: (c) => (c.tier ? <Badge tone="primary">{c.tier}</Badge> : '—'),
     },
     { key: 'orders', header: t('orders'), render: (c) => c.orders ?? 0 },
-    { key: 'totalSpent', header: t('totalSpent'), render: (c) => fmtMoney(c.totalSpent) },
+    { key: 'totalSpent', header: t('totalSpent'), render: (c) => fmtMoney(c.totalSpent, c.currency) },
     { key: 'createdAt', header: t('created'), render: (c) => fmtDate(c.createdAt) },
     {
       key: 'actions',
@@ -79,13 +103,24 @@ export function CustomersPage() {
     <div>
       <PageHeader title={t('title')} subtitle={t('subtitle')} />
 
+      <div className="mb-4">
+        <input
+          type="search"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder={t('searchPlaceholder')}
+          aria-label={t('searchPlaceholder')}
+          className="w-full max-w-sm rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500"
+        />
+      </div>
+
       <Table
         columns={columns}
         data={data?.items}
         loading={isLoading}
         error={error ? (error as Error).message : null}
         emptyMessage={t('empty')}
-        rowKey={(c) => c.id}
+        rowKey={(c) => String(c.id)}
       />
 
       <Pagination

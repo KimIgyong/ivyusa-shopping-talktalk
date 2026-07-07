@@ -7,7 +7,8 @@ export interface DashboardData {
   unresolvedTopN: number;
   totalConversations: number;
   totalOrders: number;
-  popularQuestions: { question: string; count: number }[];
+  // Backend returns a de-duplicated list of recent question strings.
+  popularQuestions: string[];
 }
 
 export interface IntegrationStatus {
@@ -16,7 +17,19 @@ export interface IntegrationStatus {
   detail?: string;
 }
 
+export interface RecentOrder {
+  id: string;
+  orderNumber: string;
+  statusUi?: string;
+  statusInternal?: string;
+  total?: number;
+  currency?: string;
+  itemCount?: number;
+  createdAt?: string;
+}
+
 export const dashboardService = {
   dashboard: () => apiGet<DashboardData>('/analytics/dashboard'),
   integrations: () => apiGet<IntegrationStatus[]>('/integrations/status'),
+  recentOrders: () => apiGet<RecentOrder[]>('/admin/orders', { page: 1, size: 5 }),
 };

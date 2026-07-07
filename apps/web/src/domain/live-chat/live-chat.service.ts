@@ -10,28 +10,38 @@ export interface AgentSession {
   unread?: number;
 }
 
+export type MessageSenderType = 'user' | 'agent' | 'ai' | 'system';
+
 export interface ChatMessage {
   id: string;
-  role: 'customer' | 'agent' | 'ai' | 'system';
+  senderType: MessageSenderType;
+  senderName?: string | null;
   body: string;
   createdAt?: string;
 }
 
 export interface CustomerContext {
-  name?: string;
-  email?: string;
-  phone?: string;
-  tier?: string;
-  recentOrders?: { id: string; status: string; total?: number; createdAt?: string }[];
+  id?: number;
+  name?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  tier?: string | null;
+  recentOrders?: { id: number; status?: string | null; total?: number | null; createdAt?: string }[];
 }
 
 export interface ConversationDetail {
-  id: string;
+  conversationId?: number;
   status?: string;
   assignedTo?: string | null;
   briefing?: string;
   messages: ChatMessage[];
-  customer?: CustomerContext;
+  customer?: CustomerContext | null;
+}
+
+export interface CustomerLead {
+  name?: string;
+  email?: string;
+  phone?: string;
 }
 
 /** Escalation alert row (FR-S3) shown in the console alarm modal. */
@@ -54,4 +64,10 @@ export const liveChatService = {
   end: (id: string) => apiPost<ConversationDetail>(`/agent/conversations/${id}/end`),
   alerts: (status = 'new') => apiGet<AgentAlert[]>(`/agent/alerts?status=${status}`),
   ackAlert: (id: string) => apiPost<AgentAlert>(`/agent/alerts/${id}/ack`),
+  searchCustomers: (q: string) =>
+    apiGet<CustomerContext[]>(`/agent/customers/search`, { q }),
+  linkCustomer: (id: string, customerId: number) =>
+    apiPost<CustomerContext>(`/agent/conversations/${id}/link-customer`, { customer_id: customerId }),
+  createCustomer: (id: string, lead: CustomerLead) =>
+    apiPost<CustomerContext>(`/agent/conversations/${id}/create-customer`, lead),
 };

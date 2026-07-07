@@ -10,5 +10,6 @@
   "editTier": "Edit tier",
   "editTierTitle": "Edit customer tier",
   "tierFor": "Tier for {{name}}",
+  "searchPlaceholder": "Search by name or email",
   "empty": "No customers found."
 }

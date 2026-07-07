@@ -31,8 +31,16 @@ export class CustomerController {
   async list(@CurrentUser() user: Principal, @Query() query: ListCustomersQuery) {
     const tenantId = this.tenantId(user);
     const { page, size } = normalizePage(query.page, query.size);
-    const { items, total } = await this.customerService.list(tenantId, page, size, query.email);
-    return new Paginated(CustomerMapper.toCustomerList(items), buildPagination(page, size, total));
+    const { items, total, stats } = await this.customerService.list(
+      tenantId,
+      page,
+      size,
+      query.email,
+    );
+    return new Paginated(
+      CustomerMapper.toCustomerList(items, stats),
+      buildPagination(page, size, total),
+    );
   }
 
   @Get(':id')

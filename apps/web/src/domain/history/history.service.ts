@@ -1,5 +1,4 @@
-import { apiGet } from '@/lib/api-client';
-import type { Paginated } from '@/lib/types';
+import { apiGet, apiGetList } from '@/lib/api-client';
 
 export interface ConversationRow {
   id: string;
@@ -22,6 +21,11 @@ export interface HistoryListParams {
 
 export const historyService = {
   list: (params: HistoryListParams) =>
-    apiGet<Paginated<ConversationRow>>('/analytics/conversations', params),
+    apiGetList<ConversationRow>('/analytics/conversations', {
+      page: params.page,
+      size: params.pageSize,
+      status: params.status,
+      escalated: params.escalated,
+    }),
   detail: (id: string) => apiGet<ConversationRow>(`/analytics/conversations/${id}`),
 };

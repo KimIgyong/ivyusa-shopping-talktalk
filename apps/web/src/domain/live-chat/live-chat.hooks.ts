@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { liveChatService } from './live-chat.service';
+import type { CustomerLead } from './live-chat.service';
 import { useTenantKey } from '@/lib/use-tenant-key';
 
 export const useSessions = () => {
@@ -63,4 +64,26 @@ export function useConversationActions(id: string | null) {
   });
 
   return { accept, end, send };
+}
+
+/** Link an existing customer or create a new one for the current conversation. */
+export function useCustomerActions(id: string | null) {
+  const qc = useQueryClient();
+  const tenantKey = useTenantKey();
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ['agent', tenantKey, 'conversation', id] });
+    qc.invalidateQueries({ queryKey: ['agent', tenantKey, 'sessions'] });
+  };
+
+  const link = useMutation({
+    mutationFn: (customerId: number) => liveChatService.linkCustomer(id as string, customerId),
+    onSuccess: invalidate,
+  });
+
+  const create = useMutation({
+    mutationFn: (lead: CustomerLead) => liveChatService.createCustomer(id as string, lead),
+    onSuccess: invalidate,
+  });
+
+  return { link, create };
 }

@@ -5,6 +5,7 @@ import { Message } from './entity/message.entity';
 export interface MessageResponse {
   id: number;
   senderType: string;
+  senderName: string | null;
   body: string;
   createdAt: Date;
 }
@@ -16,15 +17,24 @@ export interface ConversationResponse {
 }
 
 export class ChatMapper {
-  static toMessageResponse(m: Message): MessageResponse {
-    return { id: m.id, senderType: m.senderType, body: m.body, createdAt: m.createdAt };
+  static toMessageResponse(m: Message, senderName: string | null = null): MessageResponse {
+    return { id: m.id, senderType: m.senderType, senderName, body: m.body, createdAt: m.createdAt };
   }
 
-  static toConversationResponse(conversation: Conversation, messages: Message[]): ConversationResponse {
+  static toConversationResponse(
+    conversation: Conversation,
+    messages: Message[],
+    senderNames?: Map<string, string>,
+  ): ConversationResponse {
     return {
       conversationId: conversation.id,
       status: conversation.status,
-      messages: messages.map((m) => ChatMapper.toMessageResponse(m)),
+      messages: messages.map((m) =>
+        ChatMapper.toMessageResponse(
+          m,
+          m.senderId != null ? senderNames?.get(String(m.senderId)) ?? null : null,
+        ),
+      ),
     };
   }
 }

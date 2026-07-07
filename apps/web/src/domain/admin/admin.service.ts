@@ -1,5 +1,4 @@
-import { apiGet, apiPost, apiPatch } from '@/lib/api-client';
-import type { Paginated } from '@/lib/types';
+import { apiGet, apiGetList, apiPost, apiPatch } from '@/lib/api-client';
 
 export interface Tenant {
   id: string;
@@ -45,7 +44,7 @@ export interface AuditEntry {
 
 export const adminService = {
   tenants: (params: { page: number; pageSize: number }) =>
-    apiGet<Paginated<Tenant>>('/tenants', params),
+    apiGetList<Tenant>('/tenants', { page: params.page, size: params.pageSize }),
   createTenant: (body: { name: string; slug: string; plan: string }) =>
     apiPost<Tenant>('/tenants', body),
   setTenantStatus: (id: string, status: string) =>
@@ -79,5 +78,5 @@ export const adminService = {
   setEngineEnabled: (id: string, enabled: boolean) =>
     apiPatch(`/ai-engines/${id}`, { status: enabled ? 'enabled' : 'disabled' }),
   audit: (params: { page: number; pageSize: number }) =>
-    apiGet<Paginated<AuditEntry>>('/audit', params),
+    apiGetList<AuditEntry>('/audit', { page: params.page, size: params.pageSize }),
 };

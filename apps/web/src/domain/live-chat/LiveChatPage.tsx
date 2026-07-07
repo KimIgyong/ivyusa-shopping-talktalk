@@ -1,13 +1,22 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Send, Sparkles, User, Loader2, CheckCircle2, XCircle } from 'lucide-react';
+import { Send, Sparkles, User, UserPlus, Search, Loader2, CheckCircle2, XCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { PageHeader } from '@/components/PageHeader';
 import { Button } from '@/components/Button';
 import { StatusBadge } from '@/components/StatusBadge';
 import { Badge } from '@/components/Badge';
+import { Modal } from '@/components/Modal';
+import { Input, FormRow } from '@/components/Field';
 import { toast } from '@/store/toast-store';
-import { useSessions, useConversation, useConversationActions } from './live-chat.hooks';
+import {
+  useSessions,
+  useConversation,
+  useConversationActions,
+  useCustomerActions,
+} from './live-chat.hooks';
+import { liveChatService } from './live-chat.service';
+import type { CustomerContext } from './live-chat.service';
 import { cn } from '@/lib/cn';
 
 export function LiveChatPage() {
@@ -25,6 +34,65 @@ export function LiveChatPage() {
   const { data: sessions, isLoading: sessionsLoading } = useSessions();
   const { data: convo, isLoading: convoLoading } = useConversation(selected);
   const { accept, end, send } = useConversationActions(selected);
+  const { link, create } = useCustomerActions(selected);
+
+  // Customer match / create modals (FR-057).
+  const [matchOpen, setMatchOpen] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<CustomerContext[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [lead, setLead] = useState({ name: '', email: '', phone: '' });
+
+  useEffect(() => {
+    if (!matchOpen) return;
+    const q = searchQuery.trim();
+    if (!q) {
+      setSearchResults([]);
+      return;
+    }
+    setSearching(true);
+    const timer = setTimeout(async () => {
+      try {
+        setSearchResults(await liveChatService.searchCustomers(q));
+      } catch {
+        setSearchResults([]);
+      } finally {
+        setSearching(false);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery, matchOpen]);
+
+  const onLink = async (customerId: number) => {
+    try {
+      await link.mutateAsync(customerId);
+      setMatchOpen(false);
+      setSearchQuery('');
+      toast.success(t('customerLinked'));
+    } catch (e) {
+      toast.error((e as Error).message || t('customerActionFailed'));
+    }
+  };
+
+  const onCreate = async () => {
+    if (!lead.name.trim() && !lead.email.trim()) {
+      toast.warning(t('customerNeedsInfo'));
+      return;
+    }
+    try {
+      await create.mutateAsync({
+        name: lead.name.trim() || undefined,
+        email: lead.email.trim() || undefined,
+        phone: lead.phone.trim() || undefined,
+      });
+      setCreateOpen(false);
+      setLead({ name: '', email: '', phone: '' });
+      toast.success(t('customerCreated'));
+    } catch (e) {
+      toast.error((e as Error).message || t('customerActionFailed'));
+    }
+  };
 
   const onSend = async () => {
     const body = draft.trim();
@@ -130,35 +198,37 @@ export function LiveChatPage() {
                 {convoLoading && (
                   <Loader2 className="mx-auto h-5 w-5 animate-spin text-gray-400" />
                 )}
-                {convo?.messages?.map((m) => (
-                  <div
-                    key={m.id}
-                    className={cn(
-                      'flex',
-                      m.role === 'agent' || m.role === 'ai' ? 'justify-end' : 'justify-start',
-                    )}
-                  >
-                    <div
-                      className={cn(
-                        'max-w-[75%] rounded-lg px-3 py-2 text-sm',
-                        m.role === 'agent'
-                          ? 'bg-primary-500 text-white'
-                          : m.role === 'ai'
-                            ? 'bg-primary-500/10 text-primary-700'
-                            : m.role === 'system'
-                              ? 'bg-gray-100 text-gray-500'
-                              : 'bg-gray-100 text-gray-700',
-                      )}
-                    >
-                      {m.role === 'ai' && (
-                        <span className="mb-0.5 flex items-center gap-1 text-xs font-medium">
-                          <Sparkles className="h-3 w-3" /> AI
-                        </span>
-                      )}
-                      {m.body}
+                {convo?.messages?.map((m) => {
+                  const outbound = m.senderType === 'agent' || m.senderType === 'ai';
+                  return (
+                    <div key={m.id} className={cn('flex', outbound ? 'justify-end' : 'justify-start')}>
+                      <div
+                        className={cn(
+                          'max-w-[75%] rounded-lg px-3 py-2 text-sm',
+                          m.senderType === 'agent'
+                            ? 'bg-primary-500 text-white'
+                            : m.senderType === 'ai'
+                              ? 'bg-primary-500/10 text-primary-700'
+                              : m.senderType === 'system'
+                                ? 'bg-gray-100 text-gray-500'
+                                : 'bg-gray-100 text-gray-700',
+                        )}
+                      >
+                        {m.senderType === 'ai' && (
+                          <span className="mb-0.5 flex items-center gap-1 text-xs font-medium">
+                            <Sparkles className="h-3 w-3" /> AI
+                          </span>
+                        )}
+                        {m.senderType === 'agent' && (
+                          <span className="mb-0.5 flex items-center gap-1 text-xs font-medium opacity-90">
+                            <User className="h-3 w-3" /> {m.senderName ?? t('agent')}
+                          </span>
+                        )}
+                        {m.body}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
                 {convo && convo.messages.length === 0 && !convoLoading && (
                   <p className="text-center text-sm text-gray-400">{t('noMessages')}</p>
                 )}
@@ -214,6 +284,23 @@ export function LiveChatPage() {
             ) : (
               <p className="text-sm text-gray-400">{t('noCustomerContext')}</p>
             )}
+            {selected && (
+              <div className="mt-3 flex flex-col gap-2">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => {
+                    setSearchQuery('');
+                    setMatchOpen(true);
+                  }}
+                >
+                  <Search className="h-4 w-4" /> {t('matchCustomer')}
+                </Button>
+                <Button size="sm" variant="secondary" onClick={() => setCreateOpen(true)}>
+                  <UserPlus className="h-4 w-4" /> {t('createCustomer')}
+                </Button>
+              </div>
+            )}
           </div>
 
           {convo?.customer?.recentOrders && convo.customer.recentOrders.length > 0 && (
@@ -223,7 +310,7 @@ export function LiveChatPage() {
                 {convo.customer.recentOrders.map((o) => (
                   <li key={o.id} className="flex items-center justify-between text-sm">
                     <span className="text-gray-600">#{o.id}</span>
-                    <StatusBadge status={o.status} />
+                    <StatusBadge status={o.status ?? undefined} />
                   </li>
                 ))}
               </ul>
@@ -231,11 +318,90 @@ export function LiveChatPage() {
           )}
         </div>
       </div>
+
+      {/* Match an existing customer to this chat (FR-057). */}
+      <Modal
+        open={matchOpen}
+        onClose={() => setMatchOpen(false)}
+        title={t('matchCustomerTitle')}
+        size="sm"
+      >
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+          <Input
+            autoFocus
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder={t('matchSearchPlaceholder')}
+            className="pl-9"
+          />
+        </div>
+        <div className="mt-3 max-h-64 space-y-1 overflow-y-auto">
+          {searching && <Loader2 className="mx-auto h-4 w-4 animate-spin text-gray-400" />}
+          {!searching && searchQuery.trim() && searchResults.length === 0 && (
+            <p className="py-3 text-center text-sm text-gray-400">{t('noMatches')}</p>
+          )}
+          {searchResults.map((c) => (
+            <button
+              key={c.id}
+              onClick={() => c.id != null && onLink(c.id)}
+              disabled={link.isPending}
+              className="flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm hover:bg-gray-50"
+            >
+              <span>
+                <span className="font-medium text-gray-800">{c.name ?? t('noName')}</span>
+                <span className="block text-xs text-gray-500">{c.email ?? c.phone ?? '—'}</span>
+              </span>
+              {c.tier && <Badge tone="primary">{c.tier}</Badge>}
+            </button>
+          ))}
+        </div>
+      </Modal>
+
+      {/* Save the chat contact as a new customer (FR-057). */}
+      <Modal
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        title={t('createCustomerTitle')}
+        size="sm"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setCreateOpen(false)}>
+              {t('cancel', { ns: 'common' })}
+            </Button>
+            <Button onClick={onCreate} disabled={create.isPending}>
+              {t('save', { ns: 'common' })}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-3">
+          <FormRow label={t('name')}>
+            <Input
+              value={lead.name}
+              onChange={(e) => setLead((s) => ({ ...s, name: e.target.value }))}
+            />
+          </FormRow>
+          <FormRow label={t('email')}>
+            <Input
+              type="email"
+              value={lead.email}
+              onChange={(e) => setLead((s) => ({ ...s, email: e.target.value }))}
+            />
+          </FormRow>
+          <FormRow label={t('phone')}>
+            <Input
+              value={lead.phone}
+              onChange={(e) => setLead((s) => ({ ...s, phone: e.target.value }))}
+            />
+          </FormRow>
+        </div>
+      </Modal>
     </div>
   );
 }
 
-function Row({ label, value }: { label: string; value?: string }) {
+function Row({ label, value }: { label: string; value?: string | null }) {
   return (
     <div className="flex items-center justify-between">
       <dt className="text-gray-500">{label}</dt>

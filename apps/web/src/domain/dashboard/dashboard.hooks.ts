@@ -14,3 +14,13 @@ export const useIntegrationStatus = () => {
     queryFn: dashboardService.integrations,
   });
 };
+
+export const useRecentOrders = () => {
+  const tenantKey = useTenantKey();
+  return useQuery({
+    queryKey: ['dashboard', tenantKey, 'recent-orders'],
+    queryFn: dashboardService.recentOrders,
+    // Needs the operations capability; don't retry on RBAC/errors on the dashboard.
+    retry: false,
+  });
+};

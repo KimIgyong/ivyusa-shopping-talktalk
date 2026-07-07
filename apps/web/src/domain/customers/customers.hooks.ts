@@ -17,7 +17,7 @@ export function useUpdateTier() {
   const qc = useQueryClient();
   const tenantKey = useTenantKey();
   return useMutation({
-    mutationFn: ({ id, tier }: { id: string; tier: string }) =>
+    mutationFn: ({ id, tier }: { id: number; tier: string }) =>
       customersService.updateTier(id, tier),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['customers', tenantKey] });

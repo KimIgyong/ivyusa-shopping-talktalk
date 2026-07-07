@@ -40,7 +40,8 @@ export class ChatController {
     const session = await this.sessionService.findByToken(token);
     const conversation = await this.chatService.getOrCreateConversation(session.id);
     const messages = await this.chatService.listMessages(conversation.id);
-    return ChatMapper.toConversationResponse(conversation, messages);
+    const senderNames = await this.chatService.resolveSenderNames(messages);
+    return ChatMapper.toConversationResponse(conversation, messages, senderNames);
   }
 
   @Post('escalate')
