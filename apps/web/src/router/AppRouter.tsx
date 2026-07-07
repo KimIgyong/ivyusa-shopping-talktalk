@@ -8,6 +8,7 @@ import { HistoryPage } from '@/domain/history/HistoryPage';
 import { AiSettingsPage } from '@/domain/ai-settings/AiSettingsPage';
 import { KnowledgePage } from '@/domain/knowledge/KnowledgePage';
 import { CustomersPage } from '@/domain/customers/CustomersPage';
+import { OrdersPage } from '@/domain/orders/OrdersPage';
 import { CampaignsPage } from '@/domain/campaigns/CampaignsPage';
 import { UsersPage } from '@/domain/users/UsersPage';
 import { SettingsPage } from '@/domain/settings/SettingsPage';
@@ -32,6 +33,7 @@ const router = createBrowserRouter([
       { path: 'ai-setting', element: <AiSettingsPage /> },
       { path: 'knowledge', element: <KnowledgePage /> },
       { path: 'customers', element: <CustomersPage /> },
+      { path: 'orders', element: <OrdersPage /> },
       { path: 'campaigns', element: <CampaignsPage /> },
       { path: 'users', element: <UsersPage /> },
       { path: 'settings', element: <SettingsPage /> },

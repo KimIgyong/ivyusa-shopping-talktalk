@@ -9,6 +9,8 @@ import { CurrentUser } from '../../global/decorator/current-user.decorator';
 import { Paginated } from '../../global/interceptor/transform.interceptor';
 import {
   AgentMessageRequest,
+  CreateCustomerRequest,
+  LinkCustomerRequest,
   ListSessionsQuery,
   ListStatsQuery,
   UpsertProfileRequest,
@@ -61,22 +63,63 @@ export class AgentConsoleController {
     const { page, size } = normalizePage(query.page, query.size);
     const { items, total } = await this.agentService.listSessions(page, size);
     return new Paginated(
-      items.map(({ conversation, lastMessage }) => toSessionResponse(conversation, lastMessage)),
+      items.map(({ conversation, lastMessage, customerName }) =>
+        toSessionResponse(conversation, lastMessage, customerName),
+      ),
       buildPagination(page, size, total),
     );
+  }
+
+  @Get('customers/search')
+  @RequireCapability(CAPABILITY.CONVERSATION_HANDLE)
+  @ApiOperation({ summary: 'Search existing customers to link to a chat' })
+  async searchCustomers(@CurrentUser() user: Principal, @Query('q') q?: string) {
+    return this.agentService.searchCustomers(tenantOf(user), q ?? '');
   }
 
   @Get('conversations/:id')
   @RequireCapability(CAPABILITY.CONVERSATION_HANDLE)
   @ApiOperation({ summary: 'Conversation messages + AI briefing (FR-045)' })
   async conversation(@CurrentUser() user: Principal, @Param('id', ParseIntPipe) id: number) {
+    const tenantId = tenantOf(user);
     const messages = await this.agentService.listMessages(id);
-    const briefing = await this.agentService.briefing(tenantOf(user), messages);
+    const names = await this.agentService.resolveSenderNames(messages);
+    const briefing = await this.agentService.briefing(tenantId, messages);
+    const customer = await this.agentService.customerContext(id, tenantId);
     return {
       conversationId: id,
-      messages: messages.map(toMessageResponse),
+      messages: messages.map((m) =>
+        toMessageResponse(m, m.senderId != null ? names.get(String(m.senderId)) ?? null : null),
+      ),
       briefing,
+      customer,
     };
+  }
+
+  @Post('conversations/:id/link-customer')
+  @RequireCapability(CAPABILITY.CONVERSATION_HANDLE)
+  @ApiOperation({ summary: 'Link the chat session to an existing customer' })
+  async linkCustomer(
+    @CurrentUser() user: Principal,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: LinkCustomerRequest,
+  ) {
+    return this.agentService.linkCustomer(id, tenantOf(user), body.customer_id);
+  }
+
+  @Post('conversations/:id/create-customer')
+  @RequireCapability(CAPABILITY.CONVERSATION_HANDLE)
+  @ApiOperation({ summary: 'Create a new customer from chat info and link it' })
+  async createCustomer(
+    @CurrentUser() user: Principal,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: CreateCustomerRequest,
+  ) {
+    return this.agentService.createAndLinkCustomer(id, tenantOf(user), {
+      name: body.name,
+      email: body.email,
+      phone: body.phone,
+    });
   }
 
   @Post('conversations/:id/accept')
@@ -95,8 +138,10 @@ export class AgentConsoleController {
     @Param('id', ParseIntPipe) id: number,
     @Body() body: AgentMessageRequest,
   ) {
-    const saved = await this.agentService.sendMessage(id, actorIdOf(user), tenantOf(user), body.body);
-    return toMessageResponse(saved);
+    const agentId = actorIdOf(user);
+    const saved = await this.agentService.sendMessage(id, agentId, tenantOf(user), body.body);
+    const senderName = await this.agentService.agentName(agentId);
+    return toMessageResponse(saved, senderName);
   }
 
   @Post('conversations/:id/end')

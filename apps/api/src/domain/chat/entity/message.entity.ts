@@ -18,6 +18,11 @@ export class Message {
   @Column({ name: 'sender_type', type: 'varchar', length: 16 })
   senderType: string; // user/ai/agent/system
 
+  // For agent messages, the user id of the sending agent (FR-066). Enables
+  // attributing each message to the specific logged-in agent.
+  @Column({ name: 'sender_id', type: 'bigint', nullable: true, transformer: bigintTransformer })
+  senderId: number | null;
+
   @Column({ type: 'text' })
   body: string;
 

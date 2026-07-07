@@ -11,6 +11,7 @@ import enHistory from './locales/en/history.json';
 import enAiSetting from './locales/en/aiSetting.json';
 import enKnowledge from './locales/en/knowledge.json';
 import enCustomers from './locales/en/customers.json';
+import enOrders from './locales/en/orders.json';
 import enCampaigns from './locales/en/campaigns.json';
 import enUsers from './locales/en/users.json';
 import enSettings from './locales/en/settings.json';
@@ -29,6 +30,7 @@ import esHistory from './locales/es/history.json';
 import esAiSetting from './locales/es/aiSetting.json';
 import esKnowledge from './locales/es/knowledge.json';
 import esCustomers from './locales/es/customers.json';
+import esOrders from './locales/es/orders.json';
 import esCampaigns from './locales/es/campaigns.json';
 import esUsers from './locales/es/users.json';
 import esSettings from './locales/es/settings.json';
@@ -47,6 +49,7 @@ import koHistory from './locales/ko/history.json';
 import koAiSetting from './locales/ko/aiSetting.json';
 import koKnowledge from './locales/ko/knowledge.json';
 import koCustomers from './locales/ko/customers.json';
+import koOrders from './locales/ko/orders.json';
 import koCampaigns from './locales/ko/campaigns.json';
 import koUsers from './locales/ko/users.json';
 import koSettings from './locales/ko/settings.json';
@@ -70,6 +73,7 @@ export const ns = [
   'aiSetting',
   'knowledge',
   'customers',
+  'orders',
   'campaigns',
   'users',
   'settings',
@@ -90,6 +94,7 @@ const resources = {
     aiSetting: enAiSetting,
     knowledge: enKnowledge,
     customers: enCustomers,
+    orders: enOrders,
     campaigns: enCampaigns,
     users: enUsers,
     settings: enSettings,
@@ -108,6 +113,7 @@ const resources = {
     aiSetting: esAiSetting,
     knowledge: esKnowledge,
     customers: esCustomers,
+    orders: esOrders,
     campaigns: esCampaigns,
     users: esUsers,
     settings: esSettings,
@@ -126,6 +132,7 @@ const resources = {
     aiSetting: koAiSetting,
     knowledge: koKnowledge,
     customers: koCustomers,
+    orders: koOrders,
     campaigns: koCampaigns,
     users: koUsers,
     settings: koSettings,

@@ -1,0 +1,10 @@
+{
+  "title": "주문",
+  "subtitle": "Shopify에서 동기화된 전체 매장 주문",
+  "orderNumber": "주문번호",
+  "status": "상태",
+  "amount": "금액",
+  "items": "상품 수",
+  "date": "일자",
+  "empty": "주문을 찾을 수 없습니다."
+}

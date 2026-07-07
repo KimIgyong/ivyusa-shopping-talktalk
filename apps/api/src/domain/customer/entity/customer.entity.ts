@@ -21,6 +21,9 @@ export class Customer {
   @Column({ type: 'varchar', length: 255, nullable: true })
   name: string | null;
 
+  @Column({ type: 'varchar', length: 32, nullable: true })
+  phone: string | null;
+
   @Column({ type: 'varchar', length: 16, default: 'guest' })
   tier: string; // guest/subscriber/regular
 

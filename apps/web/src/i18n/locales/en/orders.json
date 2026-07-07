@@ -1,0 +1,10 @@
+{
+  "title": "Orders",
+  "subtitle": "All store orders synced from Shopify",
+  "orderNumber": "Order",
+  "status": "Status",
+  "amount": "Amount",
+  "items": "Items",
+  "date": "Date",
+  "empty": "No orders found."
+}

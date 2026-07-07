@@ -17,6 +17,7 @@ export class CustomerMapper {
       shopifyCustomerId: c.shopifyCustomerId,
       email: c.email,
       name: c.name,
+      phone: c.phone,
       tier: c.tier,
       shopifyTier: c.shopifyTier,
       orders: stats?.orders ?? 0,

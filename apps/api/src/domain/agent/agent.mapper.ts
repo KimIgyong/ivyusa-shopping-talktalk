@@ -18,21 +18,28 @@ export function toAlertResponse(a: AgentAlert) {
 }
 
 /** Conversation row for the agent session queue (preview + flags). */
-export function toSessionResponse(c: Conversation, lastMessage: Message | null) {
+export function toSessionResponse(
+  c: Conversation,
+  lastMessage: Message | null,
+  customerName: string | null = null,
+) {
   return {
     id: c.id,
     status: c.status,
     escalated: c.escalated === 1,
+    customerName,
     lastMessagePreview: lastMessage ? lastMessage.body.slice(0, 140) : null,
     createdAt: c.createdAt,
   };
 }
 
 /** Message row in an agent conversation view. */
-export function toMessageResponse(m: Message) {
+export function toMessageResponse(m: Message, senderName: string | null = null) {
   return {
     id: m.id,
     senderType: m.senderType,
+    senderId: m.senderId,
+    senderName,
     body: m.body,
     createdAt: m.createdAt,
   };

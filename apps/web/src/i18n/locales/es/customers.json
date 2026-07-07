@@ -10,5 +10,6 @@
   "editTier": "Editar nivel",
   "editTierTitle": "Editar nivel del cliente",
   "tierFor": "Nivel para {{name}}",
+  "searchPlaceholder": "Buscar por nombre o correo",
   "empty": "No se encontraron clientes."
 }

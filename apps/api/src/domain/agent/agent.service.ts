@@ -9,10 +9,17 @@ import {
 } from '@ivy/types';
 import { Conversation } from '../chat/entity/conversation.entity';
 import { Message } from '../chat/entity/message.entity';
+import { User } from '../user/entity/user.entity';
+import { Session } from '../session/entity/session.entity';
 import { AgentProfile } from './entity/agent-profile.entity';
 import { Assignment } from './entity/assignment.entity';
 import { AgentDailyStat } from './entity/agent-daily-stat.entity';
 import { ModerationService } from '../moderation/moderation.service';
+import {
+  CustomerContext,
+  CustomerLead,
+  CustomerService,
+} from '../customer/customer.service';
 import { AiGatewayService } from '../../infrastructure/external/ai/ai-gateway.service';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
@@ -30,10 +37,13 @@ export class AgentService {
   constructor(
     @InjectRepository(Conversation) private readonly convRepo: Repository<Conversation>,
     @InjectRepository(Message) private readonly msgRepo: Repository<Message>,
+    @InjectRepository(User) private readonly userRepo: Repository<User>,
+    @InjectRepository(Session) private readonly sessionRepo: Repository<Session>,
     @InjectRepository(AgentProfile) private readonly profileRepo: Repository<AgentProfile>,
     @InjectRepository(Assignment) private readonly assignmentRepo: Repository<Assignment>,
     @InjectRepository(AgentDailyStat) private readonly statRepo: Repository<AgentDailyStat>,
     private readonly moderation: ModerationService,
+    private readonly customerService: CustomerService,
     private readonly aiGateway: AiGatewayService,
   ) {}
 
@@ -41,13 +51,21 @@ export class AgentService {
   async listSessions(
     page: number,
     size: number,
-  ): Promise<{ items: Array<{ conversation: Conversation; lastMessage: Message | null }>; total: number }> {
+  ): Promise<{
+    items: Array<{
+      conversation: Conversation;
+      lastMessage: Message | null;
+      customerName: string | null;
+    }>;
+    total: number;
+  }> {
     const [conversations, total] = await this.convRepo.findAndCount({
       where: { status: In([CONVERSATION_STATUS.WAITING, CONVERSATION_STATUS.AGENT]) },
       order: { id: 'DESC' },
       skip: (page - 1) * size,
       take: size,
     });
+    const customerNameByConv = await this.customerNamesByConversation(conversations);
     const items = await Promise.all(
       conversations.map(async (conversation) => ({
         conversation,
@@ -55,9 +73,34 @@ export class AgentService {
           where: { conversationId: conversation.id },
           order: { id: 'DESC' },
         }),
+        customerName: customerNameByConv.get(String(conversation.id)) ?? null,
       })),
     );
     return { items, total };
+  }
+
+  /** Map conversation id -> linked customer name (via session.customer_id). */
+  private async customerNamesByConversation(
+    conversations: Conversation[],
+  ): Promise<Map<string, string>> {
+    const result = new Map<string, string>();
+    if (conversations.length === 0) return result;
+    const sessions = await this.sessionRepo.find({
+      where: { id: In(conversations.map((c) => c.sessionId)) },
+    });
+    const custBySession = new Map(sessions.map((s) => [String(s.id), s.customerId]));
+    const tenantId = conversations.find((c) => c.tenantId != null)?.tenantId ?? null;
+    const customerIds = sessions
+      .map((s) => s.customerId)
+      .filter((id): id is number => id != null);
+    if (tenantId == null || customerIds.length === 0) return result;
+    const names = await this.customerService.namesByIds(tenantId, customerIds);
+    for (const c of conversations) {
+      const custId = custBySession.get(String(c.sessionId));
+      const name = custId != null ? names.get(String(custId)) : undefined;
+      if (name) result.set(String(c.id), name);
+    }
+    return result;
   }
 
   async listMessages(conversationId: number): Promise<Message[]> {
@@ -124,11 +167,89 @@ export class AgentService {
       this.msgRepo.create({
         conversationId,
         senderType: SENDER_TYPE.AGENT,
+        senderId: agentId,
         body: moderated.text,
         lang: null,
         retrievalTrace: null,
       }),
     );
+  }
+
+  /** Resolve agent display names for a set of messages (agent messages only). */
+  async resolveSenderNames(messages: Message[]): Promise<Map<string, string>> {
+    const map = new Map<string, string>();
+    const ids = [
+      ...new Set(
+        messages
+          .filter((m) => m.senderType === SENDER_TYPE.AGENT && m.senderId != null)
+          .map((m) => m.senderId as number),
+      ),
+    ];
+    if (ids.length === 0) return map;
+    const users = await this.userRepo.find({ where: { id: In(ids) } });
+    for (const u of users) {
+      if (u.name) map.set(String(u.id), u.name);
+    }
+    return map;
+  }
+
+  /** Single agent's display name (for the just-sent message response). */
+  async agentName(userId: number): Promise<string | null> {
+    const user = await this.userRepo.findOne({ where: { id: userId } });
+    return user?.name ?? null;
+  }
+
+  /** Customer context for the console panel, via conversation -> session -> customer. */
+  async customerContext(conversationId: number, tenantId: number): Promise<CustomerContext | null> {
+    const conversation = await this.convRepo.findOne({ where: { id: conversationId } });
+    if (!conversation) return null;
+    const session = await this.sessionRepo.findOne({ where: { id: conversation.sessionId } });
+    if (!session?.customerId) return null;
+    return this.customerService.getContext(tenantId, session.customerId);
+  }
+
+  /** Suggest existing customers to link to the current chat. */
+  async searchCustomers(tenantId: number, query: string): Promise<CustomerContext[]> {
+    const customers = await this.customerService.searchByEmailOrName(tenantId, query);
+    return customers.map((c) => ({
+      id: c.id,
+      name: c.name,
+      email: c.email,
+      phone: c.phone,
+      tier: c.tier,
+      recentOrders: [],
+    }));
+  }
+
+  /** Link the conversation's session to an existing customer (tenant-checked). */
+  async linkCustomer(
+    conversationId: number,
+    tenantId: number,
+    customerId: number,
+  ): Promise<CustomerContext> {
+    const conversation = await this.convRepo.findOne({ where: { id: conversationId } });
+    if (!conversation) {
+      throw new BusinessException(ERROR_CODE.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND);
+    }
+    // Verifies tenant ownership (throws if the customer is not in this tenant).
+    await this.customerService.findById(tenantId, customerId);
+    await this.sessionRepo.update({ id: conversation.sessionId }, { customerId });
+    return this.customerService.getContext(tenantId, customerId);
+  }
+
+  /** Create a new customer from chat-collected fields and link it to the session. */
+  async createAndLinkCustomer(
+    conversationId: number,
+    tenantId: number,
+    lead: CustomerLead,
+  ): Promise<CustomerContext> {
+    const conversation = await this.convRepo.findOne({ where: { id: conversationId } });
+    if (!conversation) {
+      throw new BusinessException(ERROR_CODE.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND);
+    }
+    const customer = await this.customerService.createFromLead(tenantId, lead);
+    await this.sessionRepo.update({ id: conversation.sessionId }, { customerId: customer.id });
+    return this.customerService.getContext(tenantId, customer.id);
   }
 
   /** End a conversation and release the active assignment. */

@@ -10,6 +10,8 @@ export interface SessionResponse {
 export interface ChatMessage {
   id: string;
   senderType: SenderType;
+  /** For agent messages, the display name of the replying agent (FR-066). */
+  senderName?: string | null;
   body: string;
   createdAt: string;
   citations?: Citation[];

@@ -1,4 +1,4 @@
-import { IsInt, IsOptional, IsString, Min, MinLength } from 'class-validator';
+import { IsEmail, IsInt, IsOptional, IsString, Min, MinLength } from 'class-validator';
 
 export class ListSessionsQuery {
   @IsOptional() @IsString() page?: string;
@@ -16,6 +16,16 @@ export class ListAlertsQuery {
 
 export class AgentMessageRequest {
   @IsString() @MinLength(1) body: string;
+}
+
+export class LinkCustomerRequest {
+  @IsInt() @Min(1) customer_id: number;
+}
+
+export class CreateCustomerRequest {
+  @IsOptional() @IsString() name?: string;
+  @IsOptional() @IsEmail() email?: string;
+  @IsOptional() @IsString() phone?: string;
 }
 
 export class UpsertProfileRequest {

@@ -77,7 +77,7 @@ export function DashboardPage() {
           label={t('totalOrders')}
           value={data?.totalOrders ?? (isLoading ? '…' : 0)}
           icon={ShoppingCart}
-          to="/customers"
+          to="/orders"
         />
       </div>
 
@@ -119,8 +119,8 @@ export function DashboardPage() {
         <Card
           title={t('recentOrders')}
           action={
-            <Link to="/customers" className="text-sm font-medium text-primary-600 hover:underline">
-              {t('viewCustomers')}
+            <Link to="/orders" className="text-sm font-medium text-primary-600 hover:underline">
+              {t('viewOrders')}
             </Link>
           }
         >

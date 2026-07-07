@@ -13,6 +13,7 @@ import { AgentService } from './agent.service';
 import { AgentAlertService } from './agent-alert.service';
 import { AgentConsoleController } from './agent-console.controller';
 import { ModerationModule } from '../moderation/moderation.module';
+import { CustomerModule } from '../customer/customer.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { ModerationModule } from '../moderation/moderation.module';
       Session,
     ]),
     ModerationModule,
+    CustomerModule,
   ],
   controllers: [AgentConsoleController],
   providers: [AgentService, AgentAlertService],

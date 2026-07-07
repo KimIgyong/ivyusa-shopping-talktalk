@@ -6,6 +6,9 @@ export function MessageBubble({ message }: { message: ChatMessage }) {
   return (
     <div className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
       <div className="max-w-[80%]">
+        {message.senderType === 'agent' && message.senderName && (
+          <div className="mb-0.5 text-[11px] font-medium text-gray-500">{message.senderName}</div>
+        )}
         <div
           className={[
             'whitespace-pre-wrap break-words rounded-lg px-3 py-2 text-sm',

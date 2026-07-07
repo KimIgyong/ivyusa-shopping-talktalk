@@ -5,6 +5,7 @@ export interface CustomerResponse {
   shopifyCustomerId: string | null;
   email: string | null;
   name: string | null;
+  phone: string | null;
   tier: string;
   shopifyTier: string | null;
   orders: number;
