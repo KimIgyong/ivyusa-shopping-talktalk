@@ -3,12 +3,14 @@ import { MessageCircle, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useWidgetStore } from '../../store/widgetStore';
 import { useEnsureSession } from '../../hooks/useSession';
+import { useEmbedIdentity } from '../../hooks/useEmbedIdentity';
 import { useUnreadCount } from '../../hooks/useNotifications';
 import { WidgetPanel } from './WidgetPanel';
 
 export function Widget() {
   const { t } = useTranslation();
   useEnsureSession();
+  useEmbedIdentity();
   const panelOpen = useWidgetStore((s) => s.panelOpen);
   const togglePanel = useWidgetStore((s) => s.togglePanel);
   const sessionToken = useWidgetStore((s) => s.sessionToken);

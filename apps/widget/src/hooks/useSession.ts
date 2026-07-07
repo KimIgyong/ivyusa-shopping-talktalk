@@ -43,6 +43,10 @@ export function useEnsureSession() {
     ensureSession(sessionToken, language, getShopDomain())
       .then((res) => {
         if (cancelled) return;
+        // The app-proxy handshake (useEmbedIdentity) may have adopted a
+        // customer-bound token while this anonymous ensure was in flight. Don't
+        // clobber it: re-read the live store and bail if already authenticated.
+        if (useWidgetStore.getState().authenticated) return;
         if (res.sessionToken && res.sessionToken !== sessionToken) {
           setSessionToken(res.sessionToken);
         }
