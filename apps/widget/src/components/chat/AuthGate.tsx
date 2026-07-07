@@ -21,15 +21,22 @@ export function AuthGate({
   const titleId = useId();
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Esc cancels; focus the dialog on open.
+  // Keep the latest onCancel without re-running the mount effect: the parent
+  // re-renders every few seconds (chat poll) and passes a fresh onCancel each
+  // time. If that were an effect dep, the effect would re-run and re-focus the
+  // dialog, stealing focus from the inputs mid-typing.
+  const onCancelRef = useRef(onCancel);
+  onCancelRef.current = onCancel;
+
+  // Esc cancels; focus the dialog once on open.
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onCancel();
+      if (e.key === 'Escape') onCancelRef.current();
     };
     document.addEventListener('keydown', onKeyDown);
     containerRef.current?.focus();
     return () => document.removeEventListener('keydown', onKeyDown);
-  }, [onCancel]);
+  }, []);
 
   async function submit() {
     if (!sessionToken) return;
