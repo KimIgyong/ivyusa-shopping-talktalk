@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { EcommerceProvider } from '@ivy/types';
-import { INTEGRATION_FIELDS } from './integration-providers';
+import { INTEGRATION_FIELDS, type EcommerceProvider } from './integration-providers';
 import { Card } from '@/components/Card';
 import { Badge } from '@/components/Badge';
 import { Button } from '@/components/Button';
