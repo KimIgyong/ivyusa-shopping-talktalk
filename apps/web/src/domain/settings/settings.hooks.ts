@@ -98,3 +98,45 @@ export function useRegisterShopifyWebhooks() {
     },
   });
 }
+
+// ---- Generic e-commerce integrations (cafe24 / woocommerce / odoo / haravan) ----
+
+export const useIntegration = (provider: string) => {
+  const tenantKey = useTenantKey();
+  return useQuery({
+    queryKey: ['integration', provider, tenantKey],
+    queryFn: () => settingsService.integration(provider),
+  });
+};
+
+export function useSaveIntegration(provider: string) {
+  const qc = useQueryClient();
+  const tenantKey = useTenantKey();
+  return useMutation({
+    mutationFn: (config: Record<string, string>) =>
+      settingsService.saveIntegration(provider, config),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['integration', provider, tenantKey] });
+      toast.success('Integration settings saved.');
+    },
+    onError: (e: Error) => {
+      toast.error(e.message || 'Failed to save integration settings.');
+    },
+  });
+}
+
+export function useTestIntegration(provider: string) {
+  const qc = useQueryClient();
+  const tenantKey = useTenantKey();
+  return useMutation({
+    mutationFn: () => settingsService.testIntegration(provider),
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: ['integration', provider, tenantKey] });
+      if (res.ok) toast.success(res.detail);
+      else toast.error(res.detail);
+    },
+    onError: (e: Error) => {
+      toast.error(e.message || 'Integration test failed.');
+    },
+  });
+}

@@ -65,5 +65,40 @@
         "step3": "</body> 태그 바로 앞에 스니펫을 붙여넣고 저장합니다."
       }
     }
+  },
+  "integrations": {
+    "configured": "저장됨 — 교체하려면 새 값을 입력",
+    "testConnection": "연결 테스트",
+    "testing": "테스트 중…",
+    "connectionStatus": "연결 상태",
+    "credential": "자격 증명",
+    "lastTested": "마지막 테스트",
+    "state": { "connected": "연결됨", "error": "오류", "unknown": "미테스트" },
+    "fields": {
+      "mall_id": "몰 ID",
+      "client_id": "클라이언트 ID",
+      "client_secret": "클라이언트 시크릿",
+      "access_token": "액세스 토큰",
+      "store_url": "스토어 URL",
+      "consumer_key": "Consumer key",
+      "consumer_secret": "Consumer secret",
+      "url": "서버 URL",
+      "db": "데이터베이스",
+      "username": "사용자명",
+      "api_key": "API 키",
+      "shop_domain": "쇼핑몰 주소"
+    },
+    "ph": {
+      "mall_id": "your-mall",
+      "store_url": "https://store.example.com",
+      "url": "https://my-odoo.example.com",
+      "db": "odoo-db",
+      "username": "user@example.com",
+      "shop_domain": "your-store.myharavan.com"
+    },
+    "cafe24": { "title": "Cafe24", "subtitle": "Admin API(OAuth 액세스 토큰)로 카페24 상점을 연결합니다." },
+    "woocommerce": { "title": "WooCommerce", "subtitle": "REST API consumer key로 우커머스 상점을 연결합니다." },
+    "odoo": { "title": "Odoo", "subtitle": "외부 API(URL·DB·사용자·API 키)로 Odoo를 연결합니다." },
+    "haravan": { "title": "Haravan", "subtitle": "Admin API 액세스 토큰으로 Haravan 상점을 연결합니다." }
   }
 }

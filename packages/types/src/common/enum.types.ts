@@ -142,9 +142,61 @@ export type KnowledgeSourceType = (typeof KNOWLEDGE_SOURCE_TYPE)[keyof typeof KN
 // ---- Integrations ----
 export const INTEGRATION_PROVIDER = {
   SHOPIFY: 'shopify',
+  CAFE24: 'cafe24',
+  WOOCOMMERCE: 'woocommerce',
+  ODOO: 'odoo',
+  HARAVAN: 'haravan',
   FULFILLMENT: 'fulfillment',
   KLAVIYO: 'klaviyo',
-  ODOO: 'odoo',
   GOOGLE_DRIVE: 'google_drive',
 } as const;
 export type IntegrationProvider = (typeof INTEGRATION_PROVIDER)[keyof typeof INTEGRATION_PROVIDER];
+
+/**
+ * E-commerce providers that expose a per-tenant "connection settings" card in the
+ * console (credentials + connection test). Shopify keeps its own richer card
+ * (install guide, order sync, webhooks); these four use the generic flow.
+ */
+export const ECOMMERCE_PROVIDERS = [
+  INTEGRATION_PROVIDER.CAFE24,
+  INTEGRATION_PROVIDER.WOOCOMMERCE,
+  INTEGRATION_PROVIDER.ODOO,
+  INTEGRATION_PROVIDER.HARAVAN,
+] as const;
+export type EcommerceProvider = (typeof ECOMMERCE_PROVIDERS)[number];
+
+/** One credential field of an integration. `secret` fields are write-only (masked on read). */
+export interface IntegrationFieldSpec {
+  key: string;
+  secret: boolean;
+  required: boolean;
+}
+
+/**
+ * Credential field schema per e-commerce provider — single source of truth shared
+ * by the API (which fields to store/mask/validate) and the console (which inputs to
+ * render). Field labels/placeholders are localized on the client by field `key`.
+ */
+export const INTEGRATION_FIELDS: Record<EcommerceProvider, IntegrationFieldSpec[]> = {
+  cafe24: [
+    { key: 'mall_id', secret: false, required: true },
+    { key: 'client_id', secret: true, required: false },
+    { key: 'client_secret', secret: true, required: false },
+    { key: 'access_token', secret: true, required: true },
+  ],
+  woocommerce: [
+    { key: 'store_url', secret: false, required: true },
+    { key: 'consumer_key', secret: true, required: true },
+    { key: 'consumer_secret', secret: true, required: true },
+  ],
+  odoo: [
+    { key: 'url', secret: false, required: true },
+    { key: 'db', secret: false, required: true },
+    { key: 'username', secret: false, required: true },
+    { key: 'api_key', secret: true, required: true },
+  ],
+  haravan: [
+    { key: 'shop_domain', secret: false, required: true },
+    { key: 'access_token', secret: true, required: true },
+  ],
+};

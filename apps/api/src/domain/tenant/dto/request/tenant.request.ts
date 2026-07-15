@@ -1,4 +1,4 @@
-import { IsIn, IsOptional, IsString, MinLength } from 'class-validator';
+import { IsIn, IsObject, IsOptional, IsString, MinLength } from 'class-validator';
 
 /** Request DTOs — snake_case (amoeba_code_convention). */
 export class ListTenantsQuery {
@@ -65,4 +65,14 @@ export class UpdateShopifySettingsRequest {
   @IsOptional()
   @IsString()
   api_secret?: string;
+}
+
+/**
+ * Generic e-commerce integration settings (cafe24 / woocommerce / odoo / haravan).
+ * `config` is a provider-specific bag of credential fields (snake_case keys per the
+ * shared INTEGRATION_FIELDS schema). Secret fields left empty keep the stored value.
+ */
+export class UpdateIntegrationRequest {
+  @IsObject()
+  config: Record<string, string>;
 }

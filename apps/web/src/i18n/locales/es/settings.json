@@ -65,5 +65,40 @@
         "step3": "Pega el fragmento justo antes de la etiqueta </body> y guarda."
       }
     }
+  },
+  "integrations": {
+    "configured": "Guardado — introduce un nuevo valor para reemplazar",
+    "testConnection": "Probar conexión",
+    "testing": "Probando…",
+    "connectionStatus": "Estado de conexión",
+    "credential": "Credencial",
+    "lastTested": "Última prueba",
+    "state": { "connected": "Conectado", "error": "Error", "unknown": "Sin probar" },
+    "fields": {
+      "mall_id": "ID de tienda",
+      "client_id": "Client ID",
+      "client_secret": "Client secret",
+      "access_token": "Token de acceso",
+      "store_url": "URL de la tienda",
+      "consumer_key": "Consumer key",
+      "consumer_secret": "Consumer secret",
+      "url": "URL del servidor",
+      "db": "Base de datos",
+      "username": "Usuario",
+      "api_key": "API key",
+      "shop_domain": "Dominio de la tienda"
+    },
+    "ph": {
+      "mall_id": "your-mall",
+      "store_url": "https://store.example.com",
+      "url": "https://my-odoo.example.com",
+      "db": "odoo-db",
+      "username": "user@example.com",
+      "shop_domain": "your-store.myharavan.com"
+    },
+    "cafe24": { "title": "Cafe24", "subtitle": "Conecta tu tienda Cafe24 mediante la Admin API (token OAuth)." },
+    "woocommerce": { "title": "WooCommerce", "subtitle": "Conecta tu tienda WooCommerce con claves REST API." },
+    "odoo": { "title": "Odoo", "subtitle": "Conecta Odoo mediante la API externa (URL, base de datos, usuario, API key)." },
+    "haravan": { "title": "Haravan", "subtitle": "Conecta tu tienda Haravan con un token de la Admin API." }
   }
 }

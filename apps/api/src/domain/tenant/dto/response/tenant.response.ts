@@ -38,3 +38,29 @@ export interface ShopifyTestResponse {
   ok: boolean;
   detail: string;
 }
+
+/**
+ * Generic e-commerce integration settings view. `fields` holds the non-secret
+ * credential values (echoed back); `secrets` maps each secret field key to whether
+ * it is currently stored (the value itself is never returned).
+ */
+export interface IntegrationSettingsResponse {
+  provider: string;
+  fields: Record<string, string | null>;
+  secrets: Record<string, boolean>;
+  credential: {
+    configured: boolean;
+    updatedAt: Date | null;
+  };
+  integration: {
+    status: string | null;
+    lastSyncAt: Date | null;
+    detail: string | null;
+  };
+}
+
+/** Result of a generic e-commerce integration connectivity test. */
+export interface IntegrationTestResponse {
+  ok: boolean;
+  detail: string;
+}
