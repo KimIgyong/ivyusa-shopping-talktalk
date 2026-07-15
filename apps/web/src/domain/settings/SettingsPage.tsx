@@ -18,6 +18,8 @@ import {
   useUpdateCredential,
 } from './settings.hooks';
 import type { CredentialStatus } from './settings.service';
+import { ECOMMERCE_PROVIDERS } from './integration-providers';
+import { IntegrationCard } from './IntegrationCard';
 import { toast } from '@/store/toast-store';
 
 function fmtDate(value?: string | null): string {
@@ -366,6 +368,10 @@ export function SettingsPage() {
       <ShopifyCard />
 
       <InstallGuideCard />
+
+      {ECOMMERCE_PROVIDERS.map((p) => (
+        <IntegrationCard key={p} provider={p} />
+      ))}
 
       <Card title={t('integrationCredentials')}>
         <Table<CredentialStatus>

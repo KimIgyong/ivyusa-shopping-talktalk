@@ -48,6 +48,20 @@ export interface ShopifyWebhookRegisterResult {
   detail: string;
 }
 
+/** Generic e-commerce integration settings (cafe24 / woocommerce / odoo / haravan). */
+export interface IntegrationSettings {
+  provider: string;
+  fields: Record<string, string | null>;
+  secrets: Record<string, boolean>;
+  credential: { configured: boolean; updatedAt: string | null };
+  integration: { status: string | null; lastSyncAt: string | null; detail: string | null };
+}
+
+export interface IntegrationTestResult {
+  ok: boolean;
+  detail: string;
+}
+
 export const settingsService = {
   credentials: () => apiGet<CredentialStatus[]>('/tenants/me/credentials'),
   updateCredential: (provider: string, body: UpdateCredentialBody) =>
@@ -58,4 +72,10 @@ export const settingsService = {
   syncShopify: () => apiPost<ShopifySyncResult>('/tenants/me/shopify/sync'),
   registerShopifyWebhooks: () =>
     apiPost<ShopifyWebhookRegisterResult>('/tenants/me/shopify/register-webhooks'),
+  integration: (provider: string) =>
+    apiGet<IntegrationSettings>(`/tenants/me/integrations/${provider}`),
+  saveIntegration: (provider: string, config: Record<string, string>) =>
+    apiPut<IntegrationSettings>(`/tenants/me/integrations/${provider}`, { config }),
+  testIntegration: (provider: string) =>
+    apiPost<IntegrationTestResult>(`/tenants/me/integrations/${provider}/test`),
 };

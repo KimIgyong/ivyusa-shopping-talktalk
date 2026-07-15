@@ -4,10 +4,12 @@ import { HttpStatus } from '@nestjs/common';
 import { CAPABILITY, Principal } from '@ivy/types';
 import { buildPagination, normalizePage } from '@ivy/common';
 import { TenantService } from './tenant.service';
+import { EcommerceIntegrationService } from './ecommerce-integration.service';
 import { TenantMapper } from './tenant.mapper';
 import {
   CreateTenantRequest,
   ListTenantsQuery,
+  UpdateIntegrationRequest,
   UpdateShopifySettingsRequest,
   UpdateTenantStatusRequest,
   UpsertCredentialRequest,
@@ -21,7 +23,10 @@ import { ERROR_CODE } from '../../global/constant/error-code.constant';
 @ApiTags('Tenant')
 @Controller('tenants')
 export class TenantController {
-  constructor(private readonly tenantService: TenantService) {}
+  constructor(
+    private readonly tenantService: TenantService,
+    private readonly ecommerceIntegrationService: EcommerceIntegrationService,
+  ) {}
 
   @Get()
   @AdminOnly()
@@ -105,6 +110,31 @@ export class TenantController {
   @ApiOperation({ summary: 'Test Shopify Admin API connectivity and record status' })
   async testShopify(@CurrentUser() user: Principal) {
     return this.tenantService.testShopify(this.tenantId(user));
+  }
+
+  @Get('me/integrations/:provider')
+  @RequireCapability(CAPABILITY.INTEGRATION_CREDENTIALS_MANAGE)
+  @ApiOperation({ summary: 'Get this tenant e-commerce integration settings (cafe24/woocommerce/odoo/haravan)' })
+  async getIntegration(@CurrentUser() user: Principal, @Param('provider') provider: string) {
+    return this.ecommerceIntegrationService.getSettings(this.tenantId(user), provider);
+  }
+
+  @Put('me/integrations/:provider')
+  @RequireCapability(CAPABILITY.INTEGRATION_CREDENTIALS_MANAGE)
+  @ApiOperation({ summary: 'Save this tenant e-commerce integration credentials' })
+  async saveIntegration(
+    @CurrentUser() user: Principal,
+    @Param('provider') provider: string,
+    @Body() body: UpdateIntegrationRequest,
+  ) {
+    return this.ecommerceIntegrationService.save(this.tenantId(user), provider, body.config ?? {});
+  }
+
+  @Post('me/integrations/:provider/test')
+  @RequireCapability(CAPABILITY.INTEGRATION_CREDENTIALS_MANAGE)
+  @ApiOperation({ summary: 'Test e-commerce integration connectivity and record status' })
+  async testIntegration(@CurrentUser() user: Principal, @Param('provider') provider: string) {
+    return this.ecommerceIntegrationService.test(this.tenantId(user), provider);
   }
 
   private tenantId(user: Principal): number {
