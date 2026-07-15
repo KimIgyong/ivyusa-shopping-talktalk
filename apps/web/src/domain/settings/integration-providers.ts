@@ -1,16 +1,22 @@
-import type { EcommerceProvider, IntegrationFieldSpec } from '@ivy/types';
-
 /**
  * Web-side mirror of the e-commerce provider credential schema.
  *
- * The canonical source is `INTEGRATION_FIELDS` / `ECOMMERCE_PROVIDERS` in
- * `packages/types` — but that package builds to CommonJS and, because it is a
- * symlinked workspace dep, Vite/Rollup can't read its runtime values through the
- * barrel. Types are erased so `EcommerceProvider`/`IntegrationFieldSpec` still come
- * from `@ivy/types`; only these runtime constants are re-declared here.
+ * The canonical source is `INTEGRATION_FIELDS` / `ECOMMERCE_PROVIDERS` /
+ * `EcommerceProvider` / `IntegrationFieldSpec` in `packages/types`. The web app
+ * does NOT depend on `@ivy/types` (it isn't in apps/web/package.json, so a clean
+ * build never builds that package) and it builds to CommonJS which Vite can't read
+ * runtime values from anyway — so both the types and the constants are re-declared
+ * here to keep the web build self-contained.
  *
  * KEEP IN SYNC with packages/types/src/common/enum.types.ts.
  */
+export type EcommerceProvider = 'cafe24' | 'woocommerce' | 'odoo' | 'haravan';
+
+export interface IntegrationFieldSpec {
+  key: string;
+  secret: boolean;
+  required: boolean;
+}
 export const ECOMMERCE_PROVIDERS: EcommerceProvider[] = [
   'cafe24',
   'woocommerce',
