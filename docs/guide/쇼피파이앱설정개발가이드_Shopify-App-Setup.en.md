@@ -20,7 +20,7 @@ The Shopify integration has the **webhook / credential / integration-status / se
 | Area | Status | Actual endpoint / location |
 |---|---|---|
 | GDPR compliance webhooks | ✅ (raw-body HMAC applied) | `POST /api/v1/webhooks/shopify/customers/data_request` · `/customers/redact` · `/shop/redact` — `privacy.controller.ts` |
-| Fulfillment webhook | ✅ | `POST /api/v1/webhooks/fulfillment` → updates `order_cache` — `order/webhook.controller.ts` |
+| Fulfillment webhook | ✅ (shared-secret) | `POST /api/v1/webhooks/fulfillment` (requires `X-Webhook-Secret`) → updates `order_cache` — `order/webhook.controller.ts` |
 | Credential storage (encrypted) | ✅ | `GET /api/v1/tenants/me/credentials` · `PUT /api/v1/tenants/me/credentials/:provider` — AES-256-GCM |
 | Integration status tracking | ✅ | `GET /api/v1/integrations/status` · `PATCH /api/v1/integrations/status/:name` |
 | Session / shop parameter | ✅ | `POST /api/v1/session/ensure { shop_domain? }` — given shop must exist (else reject); auto-binds only when a single tenant exists |
@@ -129,10 +129,13 @@ const app = await NestFactory.create(AppModule, { cors: true, rawBody: true });
 
 There is a **custom fulfillment webhook** that updates the order status cache (`order_cache`). Note it is **not** Shopify's native `orders/updated` — it's a custom shape.
 
+**Auth (required outside dev):** the request must carry an `X-Webhook-Secret` header equal to `FULFILLMENT_WEBHOOK_SECRET`. When that env var is unset the endpoint accepts requests **only** under `NODE_ENV=development`; in staging/production a missing/mismatched secret returns `401`. (Previously the endpoint was unauthenticated — callers MUST now send the header.)
+
 ```bash
 # Simulate a fulfillment webhook
 curl -X POST http://localhost:3000/api/v1/webhooks/fulfillment \
   -H "Content-Type: application/json" \
+  -H "X-Webhook-Secret: $FULFILLMENT_WEBHOOK_SECRET" \
   -d '{ "order_id": "shopify-1001", "status": "shipping",
         "tracking_number": "1Z999", "carrier": "UPS" }'
 ```

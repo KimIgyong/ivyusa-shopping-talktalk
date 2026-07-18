@@ -12,13 +12,11 @@ import { tenantStorage } from '../../infrastructure/tenant/tenant-context';
  * AsyncLocalStorage context. Resolution order:
  *   1) authenticated tenant user → principal.tenantId
  *   2) widget request → tenant of the `session_token`
- *   3) fallback → the (single) default tenant
+ *   3) fallback → the default tenant, ONLY when a single tenant exists
  * System admins (cross-tenant) get tenantId = null (no auto-scoping).
  */
 @Injectable()
 export class TenantContextInterceptor implements NestInterceptor {
-  private defaultTenantId: number | null | undefined;
-
   constructor(@InjectDataSource() private readonly dataSource: DataSource) {}
 
   intercept(ctx: ExecutionContext, next: CallHandler): Observable<unknown> {
@@ -63,15 +61,18 @@ export class TenantContextInterceptor implements NestInterceptor {
   }
 
   private async getDefaultTenantId(): Promise<number | null> {
-    if (this.defaultTenantId !== undefined) return this.defaultTenantId;
+    // Only default when EXACTLY ONE tenant exists (single store / dev). With
+    // multiple tenants we refuse to guess — silently binding a tokenless request
+    // to the lowest-id tenant mis-attributes widget data across tenants (SEC-L6).
+    // Not cached: the tokenless path is rare, and a cached positive id would go
+    // stale (and become unsafe) the moment a second tenant is onboarded.
     try {
       const rows: Array<{ id: number }> = await this.dataSource.query(
-        'SELECT id FROM tenants ORDER BY id ASC LIMIT 1',
+        'SELECT id FROM tenants ORDER BY id ASC LIMIT 2',
       );
-      this.defaultTenantId = rows?.[0]?.id != null ? Number(rows[0].id) : null;
+      return rows?.length === 1 ? Number(rows[0].id) : null;
     } catch {
-      this.defaultTenantId = null;
+      return null;
     }
-    return this.defaultTenantId;
   }
 }
