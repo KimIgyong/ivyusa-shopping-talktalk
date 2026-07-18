@@ -129,7 +129,7 @@ const app = await NestFactory.create(AppModule, { cors: true, rawBody: true });
 
 There is a **custom fulfillment webhook** that updates the order status cache (`order_cache`). Note it is **not** Shopify's native `orders/updated` — it's a custom shape.
 
-**Auth (required outside dev):** the request must carry an `X-Webhook-Secret` header equal to `FULFILLMENT_WEBHOOK_SECRET`. When that env var is unset the endpoint accepts requests **only** under `NODE_ENV=development`; in staging/production a missing/mismatched secret returns `401`. (Previously the endpoint was unauthenticated — callers MUST now send the header.)
+**Auth (required outside dev):** the request must carry an `X-Webhook-Secret` header. The expected value is resolved **per tenant** — a `webhook_secret` stored (encrypted) for the order's tenant in `integration_credentials` takes precedence, with the global `FULFILLMENT_WEBHOOK_SECRET` env var as the fallback. When neither is set the endpoint accepts requests **only** under `NODE_ENV=development`; in staging/production a missing/mismatched secret returns `401`. (Previously the endpoint was unauthenticated — callers MUST now send the header.)
 
 ```bash
 # Simulate a fulfillment webhook

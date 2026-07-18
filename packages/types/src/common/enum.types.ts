@@ -182,26 +182,35 @@ export interface IntegrationFieldSpec {
  * by the API (which fields to store/mask/validate) and the console (which inputs to
  * render). Field labels/placeholders are localized on the client by field `key`.
  */
+// `webhook_secret` (optional, per-tenant) is the HMAC/shared secret used to verify
+// this provider's inbound webhooks. Stored encrypted alongside the other creds so a
+// tenant can manage it from the console; the API falls back to a global env secret
+// when it is unset. (Shopify is intentionally NOT here — its webhook secret is the
+// app-level API secret shared across all shops, sourced from env.)
 export const INTEGRATION_FIELDS: Record<EcommerceProvider, IntegrationFieldSpec[]> = {
   cafe24: [
     { key: 'mall_id', secret: false, required: true },
     { key: 'client_id', secret: true, required: false },
     { key: 'client_secret', secret: true, required: false },
     { key: 'access_token', secret: true, required: true },
+    { key: 'webhook_secret', secret: true, required: false },
   ],
   woocommerce: [
     { key: 'store_url', secret: false, required: true },
     { key: 'consumer_key', secret: true, required: true },
     { key: 'consumer_secret', secret: true, required: true },
+    { key: 'webhook_secret', secret: true, required: false },
   ],
   odoo: [
     { key: 'url', secret: false, required: true },
     { key: 'db', secret: false, required: true },
     { key: 'username', secret: false, required: true },
     { key: 'api_key', secret: true, required: true },
+    { key: 'webhook_secret', secret: true, required: false },
   ],
   haravan: [
     { key: 'shop_domain', secret: false, required: true },
     { key: 'access_token', secret: true, required: true },
+    { key: 'webhook_secret', secret: true, required: false },
   ],
 };

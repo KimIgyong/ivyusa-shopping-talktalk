@@ -129,7 +129,7 @@ const app = await NestFactory.create(AppModule, { cors: true, rawBody: true });
 
 주문 상태 캐시(`order_cache`)를 갱신하는 **자체 배송 웹훅**이 있습니다. 단, 이는 Shopify 네이티브 `orders/updated`가 아니라 **커스텀 형식**입니다.
 
-**인증(dev 외 필수):** 요청에 `FULFILLMENT_WEBHOOK_SECRET`와 동일한 `X-Webhook-Secret` 헤더가 있어야 합니다. 이 환경변수가 없으면 `NODE_ENV=development`에서만 요청을 수락하며, staging/production에서는 시크릿이 없거나 불일치하면 `401`을 반환합니다. (이전에는 인증이 없던 엔드포인트이므로 호출자는 이제 헤더를 **반드시** 보내야 합니다.)
+**인증(dev 외 필수):** 요청에 `X-Webhook-Secret` 헤더가 있어야 합니다. 기대값은 **테넌트별로** 해석됩니다 — 주문의 테넌트에 대해 `integration_credentials`에 (암호화) 저장된 `webhook_secret`이 우선이며, 전역 `FULFILLMENT_WEBHOOK_SECRET` 환경변수가 폴백입니다. 둘 다 없으면 `NODE_ENV=development`에서만 수락하고, staging/production에서는 시크릿이 없거나 불일치하면 `401`을 반환합니다. (이전에는 인증이 없던 엔드포인트이므로 호출자는 이제 헤더를 **반드시** 보내야 합니다.)
 
 ```bash
 # 배송 웹훅 시뮬레이션

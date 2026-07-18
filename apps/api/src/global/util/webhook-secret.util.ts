@@ -6,22 +6,26 @@ import { ERROR_CODE } from '../constant/error-code.constant';
 const logger = new Logger('WebhookSecret');
 
 /**
- * Verify a shared-secret header on a public webhook that has no provider HMAC
- * (e.g. the generic fulfillment webhook, FR-021). The caller must present the
- * `X-Webhook-Secret` header matching `FULFILLMENT_WEBHOOK_SECRET`.
+ * Assert a caller-presented shared secret matches the expected one, for public
+ * webhooks that have no provider HMAC (e.g. the generic fulfillment webhook, and
+ * future non-Shopify commerce webhooks). The `expected` value is resolved by the
+ * caller — typically a per-tenant secret from `integration_credentials` with a
+ * global env fallback (see WebhookSecretService).
  *
- * Fails CLOSED: when the secret is unset we allow only in local development and
- * reject everywhere else (SEC-C2) — an unsigned public endpoint must never mutate
- * order state / dispatch notifications for anonymous callers in staging/production.
+ * Fails CLOSED: when `expected` is empty (no secret configured anywhere) we accept
+ * only under `NODE_ENV=development` and reject everywhere else (SEC-C2). An unsigned
+ * public endpoint must never mutate state for anonymous callers in staging/prod.
  */
-export function verifyFulfillmentWebhookSecret(provided: string | undefined): void {
-  const expected = process.env.FULFILLMENT_WEBHOOK_SECRET;
+export function assertWebhookSecret(
+  provided: string | undefined,
+  expected: string | undefined,
+): void {
   if (!expected) {
     if (process.env.NODE_ENV === 'development') {
-      logger.warn('FULFILLMENT_WEBHOOK_SECRET not set — allowing webhook unverified (development only)');
+      logger.warn('webhook secret not configured — allowing unverified (development only)');
       return;
     }
-    logger.error('FULFILLMENT_WEBHOOK_SECRET not set — rejecting webhook (fail closed)');
+    logger.error('webhook secret not configured — rejecting webhook (fail closed)');
     throw new BusinessException(ERROR_CODE.FORBIDDEN, HttpStatus.UNAUTHORIZED);
   }
   const a = Buffer.from(provided ?? '');
@@ -29,4 +33,14 @@ export function verifyFulfillmentWebhookSecret(provided: string | undefined): vo
   if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
     throw new BusinessException(ERROR_CODE.FORBIDDEN, HttpStatus.UNAUTHORIZED);
   }
+}
+
+/**
+ * Env-only convenience for callers without a tenant context: verify the generic
+ * fulfillment webhook against the global `FULFILLMENT_WEBHOOK_SECRET`. Prefer the
+ * tenant-aware path (WebhookSecretService.resolve → assertWebhookSecret) when a
+ * tenant can be resolved from the request.
+ */
+export function verifyFulfillmentWebhookSecret(provided: string | undefined): void {
+  assertWebhookSecret(provided, process.env.FULFILLMENT_WEBHOOK_SECRET);
 }

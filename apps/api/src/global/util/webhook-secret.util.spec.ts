@@ -1,4 +1,34 @@
-import { verifyFulfillmentWebhookSecret } from './webhook-secret.util';
+import { assertWebhookSecret, verifyFulfillmentWebhookSecret } from './webhook-secret.util';
+
+/** assertWebhookSecret — pure compare against a caller-resolved expected secret. */
+describe('assertWebhookSecret', () => {
+  const origEnv = process.env.NODE_ENV;
+  afterEach(() => {
+    process.env.NODE_ENV = origEnv;
+  });
+
+  it('accepts when provided matches expected', () => {
+    expect(() => assertWebhookSecret('abc', 'abc')).not.toThrow();
+  });
+
+  it('rejects when provided differs from expected', () => {
+    expect(() => assertWebhookSecret('abc', 'xyz')).toThrow();
+  });
+
+  it('rejects a missing provided value against a real expected', () => {
+    expect(() => assertWebhookSecret(undefined, 'abc')).toThrow();
+  });
+
+  it('fails CLOSED when expected is empty outside development', () => {
+    process.env.NODE_ENV = 'production';
+    expect(() => assertWebhookSecret('abc', undefined)).toThrow();
+  });
+
+  it('allows unverified only in development when expected is empty', () => {
+    process.env.NODE_ENV = 'development';
+    expect(() => assertWebhookSecret(undefined, undefined)).not.toThrow();
+  });
+});
 
 /** verifyFulfillmentWebhookSecret — shared-secret header (SEC-C2: fail closed). */
 describe('verifyFulfillmentWebhookSecret', () => {

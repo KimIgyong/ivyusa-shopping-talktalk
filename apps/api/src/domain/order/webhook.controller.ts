@@ -3,9 +3,12 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { OrderService } from './order.service';
 import { FulfillmentWebhookRequest } from './dto/request/order.request';
 import { Public } from '../../global/decorator/public.decorator';
-import { verifyFulfillmentWebhookSecret } from '../../global/util/webhook-secret.util';
 
-/** External webhook intake (FR-021). Public; authenticated by a shared-secret header. */
+/**
+ * External webhook intake (FR-021). Public; authenticated by an `X-Webhook-Secret`
+ * header. The secret is resolved per-tenant (from the order's tenant) with a global
+ * env fallback and verified inside the service — see OrderService.
+ */
 @ApiTags('Webhooks')
 @Controller('webhooks')
 export class WebhookController {
@@ -18,12 +21,12 @@ export class WebhookController {
     @Headers('x-webhook-secret') secret: string | undefined,
     @Body() body: FulfillmentWebhookRequest,
   ) {
-    verifyFulfillmentWebhookSecret(secret);
     return this.orderService.handleFulfillmentWebhook(
       Number(body.order_id),
       body.status,
       body.tracking_number,
       body.carrier,
+      secret,
     );
   }
 }
