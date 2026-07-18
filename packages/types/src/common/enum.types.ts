@@ -30,6 +30,11 @@ export type CustomerTier = (typeof CUSTOMER_TIER)[keyof typeof CUSTOMER_TIER];
 export const CONSENT_STATE = { PENDING: 'pending', GRANTED: 'granted', DECLINED: 'declined' } as const;
 export type ConsentState = (typeof CONSENT_STATE)[keyof typeof CONSENT_STATE];
 
+// Session identity assurance. VERIFIED is minted only via the Shopify App Proxy
+// (Shopify-signed customer identity); GUEST covers order-number+email lookup.
+export const SESSION_IDENTITY = { GUEST: 'guest', VERIFIED: 'verified' } as const;
+export type SessionIdentity = (typeof SESSION_IDENTITY)[keyof typeof SESSION_IDENTITY];
+
 export const SESSION_LANGUAGE = { EN: 'EN', ES: 'ES', KO: 'KO' } as const;
 export type SessionLanguage = (typeof SESSION_LANGUAGE)[keyof typeof SESSION_LANGUAGE];
 

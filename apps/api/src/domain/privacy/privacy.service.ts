@@ -1,6 +1,7 @@
 import { HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
+import { SESSION_IDENTITY } from '@ivy/types';
 import { Customer } from '../customer/entity/customer.entity';
 import { Session } from '../session/entity/session.entity';
 import { OrderCache } from '../order/entity/order-cache.entity';
@@ -66,6 +67,21 @@ export class PrivacyService {
     if (!session) throw new BusinessException(ERROR_CODE.SESSION_NOT_FOUND, HttpStatus.NOT_FOUND);
     if (session.customerId == null) {
       throw new BusinessException(ERROR_CODE.UNAUTHORIZED, HttpStatus.UNAUTHORIZED);
+    }
+    return session.customerId;
+  }
+
+  /**
+   * Resolve the bound customer but demand Shopify-verified identity (SEC-C3).
+   * Guest order-number+email lookup binds a session too, but those data points
+   * (both printed on packing slips) must not unlock a full-account export or an
+   * irreversible erasure — only the Shopify App Proxy path is strong enough.
+   */
+  async requireVerifiedCustomerId(sessionToken: string): Promise<number> {
+    const session = await this.sessionRepo.findOne({ where: { sessionToken } });
+    if (!session) throw new BusinessException(ERROR_CODE.SESSION_NOT_FOUND, HttpStatus.NOT_FOUND);
+    if (session.customerId == null || session.identityLevel !== SESSION_IDENTITY.VERIFIED) {
+      throw new BusinessException(ERROR_CODE.FORBIDDEN, HttpStatus.FORBIDDEN);
     }
     return session.customerId;
   }
@@ -169,7 +185,7 @@ export class PrivacyService {
 
   /** Assemble a machine-readable export of the customer's own data (DSAR access). */
   async exportData(sessionToken: string) {
-    const customerId = await this.requireCustomerId(sessionToken);
+    const customerId = await this.requireVerifiedCustomerId(sessionToken);
     const customer = await this.customerRepo.findOne({ where: { id: customerId } });
 
     const orders = await this.orderRepo.find({ where: { customerId } });
@@ -238,7 +254,7 @@ export class PrivacyService {
     if (!confirm) {
       throw new BusinessException(ERROR_CODE.VALIDATION_FAILED, HttpStatus.BAD_REQUEST);
     }
-    const customerId = await this.requireCustomerId(sessionToken);
+    const customerId = await this.requireVerifiedCustomerId(sessionToken);
     const customer = await this.customerRepo.findOne({ where: { id: customerId } });
     if (customer) await this.anonymizeCustomer(customer);
     await this.audit.write({

@@ -59,9 +59,9 @@ export class AgentConsoleController {
   @Get('sessions')
   @RequireCapability(CAPABILITY.CONVERSATION_HANDLE)
   @ApiOperation({ summary: 'List waiting/agent conversations (session queue)' })
-  async sessions(@Query() query: ListSessionsQuery) {
+  async sessions(@CurrentUser() user: Principal, @Query() query: ListSessionsQuery) {
     const { page, size } = normalizePage(query.page, query.size);
-    const { items, total } = await this.agentService.listSessions(page, size);
+    const { items, total } = await this.agentService.listSessions(tenantOf(user), page, size);
     return new Paginated(
       items.map(({ conversation, lastMessage, customerName }) =>
         toSessionResponse(conversation, lastMessage, customerName),
@@ -82,7 +82,7 @@ export class AgentConsoleController {
   @ApiOperation({ summary: 'Conversation messages + AI briefing (FR-045)' })
   async conversation(@CurrentUser() user: Principal, @Param('id', ParseIntPipe) id: number) {
     const tenantId = tenantOf(user);
-    const messages = await this.agentService.listMessages(id);
+    const messages = await this.agentService.listMessages(id, tenantId);
     const names = await this.agentService.resolveSenderNames(messages);
     const briefing = await this.agentService.briefing(tenantId, messages);
     const customer = await this.agentService.customerContext(id, tenantId);
@@ -147,8 +147,8 @@ export class AgentConsoleController {
   @Post('conversations/:id/end')
   @RequireCapability(CAPABILITY.CONVERSATION_HANDLE)
   @ApiOperation({ summary: 'End the conversation and release the assignment' })
-  async end(@Param('id', ParseIntPipe) id: number) {
-    const conversation = await this.agentService.end(id);
+  async end(@CurrentUser() user: Principal, @Param('id', ParseIntPipe) id: number) {
+    const conversation = await this.agentService.end(id, tenantOf(user));
     return { id: conversation.id, status: conversation.status, endedAt: conversation.endedAt };
   }
 

@@ -44,6 +44,11 @@ export class OrderService {
   /** Guest order lookup (FR-019). Rate-limited per email; binds session on success. */
   async guestLookup(sessionToken: string, orderNumber: string, email: string) {
     const session = await this.loadSession(sessionToken);
+    // The session must be bound to a tenant; otherwise a lookup could match and
+    // bind a customer from another tenant (SEC-H2). Refuse rather than guess.
+    if (session.tenantId == null) {
+      throw new BusinessException(ERROR_CODE.TENANT_NOT_FOUND, HttpStatus.BAD_REQUEST);
+    }
     await this.enforceLookupLimit(email);
 
     const order = await this.orderRepo
@@ -51,6 +56,8 @@ export class OrderService {
       .innerJoin(Customer, 'c', 'c.id = o.customer_id')
       .where('o.order_number = :orderNumber', { orderNumber })
       .andWhere('c.email = :email', { email })
+      .andWhere('o.tenant_id = :tenantId', { tenantId: session.tenantId })
+      .andWhere('c.tenant_id = :tenantId', { tenantId: session.tenantId })
       .getOne();
 
     if (!order) throw new BusinessException(ERROR_CODE.ORDER_NOT_FOUND, HttpStatus.NOT_FOUND);

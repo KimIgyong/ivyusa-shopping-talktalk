@@ -61,7 +61,9 @@ services:
       MYSQL_USER: ${DB_USER}
       MYSQL_PASSWORD: ${DB_PASSWORD}
     ports:
-      - '3317:3306'
+      # Bind to loopback only — the staging host is shared and public. Reach the
+      # DB via an SSH tunnel, never over the internet (SEC/INF-2).
+      - '127.0.0.1:3317:3306'
     volumes:
       - ivy_mysql_staging_data:/var/lib/mysql
       # Staging builds the schema via TypeORM synchronize (DB_SYNCHRONIZE=true) and
