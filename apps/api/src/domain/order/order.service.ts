@@ -9,6 +9,7 @@ import {
   internalToUiStatus,
 } from '@ivy/types';
 import { buildPagination, normalizePage } from '@ivy/common';
+import { INTEGRATION_PROVIDER } from '@ivy/types';
 import { OrderCache } from './entity/order-cache.entity';
 import { OrderItem } from './entity/order-item.entity';
 import { Fulfillment } from './entity/fulfillment.entity';
@@ -20,6 +21,8 @@ import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
 import { EventBusService, EVENTS } from '../../infrastructure/infrastructure.module';
 import { RedisService } from '../../infrastructure/cache/redis.service';
+import { WebhookSecretService } from '../tenant/webhook-secret.service';
+import { assertWebhookSecret } from '../../global/util/webhook-secret.util';
 
 const LOOKUP_MAX_ATTEMPTS = 5;
 const LOOKUP_WINDOW_SEC = 15 * 60;
@@ -39,11 +42,17 @@ export class OrderService {
     @InjectRepository(Customer) private readonly customerRepo: Repository<Customer>,
     private readonly bus: EventBusService,
     private readonly redis: RedisService,
+    private readonly webhookSecretService: WebhookSecretService,
   ) {}
 
   /** Guest order lookup (FR-019). Rate-limited per email; binds session on success. */
   async guestLookup(sessionToken: string, orderNumber: string, email: string) {
     const session = await this.loadSession(sessionToken);
+    // The session must be bound to a tenant; otherwise a lookup could match and
+    // bind a customer from another tenant (SEC-H2). Refuse rather than guess.
+    if (session.tenantId == null) {
+      throw new BusinessException(ERROR_CODE.TENANT_NOT_FOUND, HttpStatus.BAD_REQUEST);
+    }
     await this.enforceLookupLimit(email);
 
     const order = await this.orderRepo
@@ -51,6 +60,8 @@ export class OrderService {
       .innerJoin(Customer, 'c', 'c.id = o.customer_id')
       .where('o.order_number = :orderNumber', { orderNumber })
       .andWhere('c.email = :email', { email })
+      .andWhere('o.tenant_id = :tenantId', { tenantId: session.tenantId })
+      .andWhere('c.tenant_id = :tenantId', { tenantId: session.tenantId })
       .getOne();
 
     if (!order) throw new BusinessException(ERROR_CODE.ORDER_NOT_FOUND, HttpStatus.NOT_FOUND);
@@ -131,9 +142,23 @@ export class OrderService {
   }
 
   /** Fulfillment webhook (FR-021): upsert fulfillment, sync order status, notify. */
-  async handleFulfillmentWebhook(orderId: number, status: string, trackingNumber?: string, carrier?: string) {
+  async handleFulfillmentWebhook(
+    orderId: number,
+    status: string,
+    trackingNumber?: string,
+    carrier?: string,
+    providedSecret?: string,
+  ) {
     const order = await this.orderRepo.findOne({ where: { id: orderId } });
     if (!order) throw new BusinessException(ERROR_CODE.ORDER_NOT_FOUND, HttpStatus.NOT_FOUND);
+
+    // Authenticate the caller against the order's tenant secret (per-tenant if the
+    // tenant configured one, else the global env fallback), before any mutation.
+    const expected = await this.webhookSecretService.resolve(
+      INTEGRATION_PROVIDER.FULFILLMENT,
+      order.tenantId,
+    );
+    assertWebhookSecret(providedSecret, expected);
 
     let fulfillment = await this.fulfillRepo.findOne({ where: { orderId } });
     if (fulfillment) {

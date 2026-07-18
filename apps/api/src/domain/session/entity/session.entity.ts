@@ -21,6 +21,13 @@ export class Session {
   @Index('idx_sessions_customer')
   customerId: number | null;
 
+  // Identity assurance for the bound customer. 'verified' is minted only by the
+  // Shopify App Proxy (Shopify-signed customer identity); 'guest' covers the
+  // order-number+email lookup. DSAR export/erasure require 'verified' (SEC-C3) —
+  // weak guest identity must not unlock full-account access or deletion.
+  @Column({ name: 'identity_level', type: 'varchar', length: 16, default: 'guest' })
+  identityLevel: string; // guest | verified
+
   @Column({ type: 'varchar', length: 8, default: 'EN' })
   language: string; // EN/ES/KO
 

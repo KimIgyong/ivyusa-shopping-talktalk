@@ -17,8 +17,15 @@ export function verifyShopifyHmac(
 ): void {
   const secret = process.env.SHOPIFY_WEBHOOK_SECRET;
   if (!secret) {
-    logger.warn('SHOPIFY_WEBHOOK_SECRET not set — allowing webhook unverified (dev only)');
-    return;
+    // Fail CLOSED outside local development. These routes include destructive
+    // GDPR paths (shop/redact → full tenant purge); a missing secret must never
+    // silently accept unauthenticated requests in staging/production (SEC-C1).
+    if (process.env.NODE_ENV === 'development') {
+      logger.warn('SHOPIFY_WEBHOOK_SECRET not set — allowing webhook unverified (development only)');
+      return;
+    }
+    logger.error('SHOPIFY_WEBHOOK_SECRET not set — rejecting webhook (fail closed)');
+    throw new BusinessException(ERROR_CODE.FORBIDDEN, HttpStatus.UNAUTHORIZED);
   }
   const body =
     rawBody ?? Buffer.from(typeof payload === 'string' ? payload : JSON.stringify(payload), 'utf8');

@@ -1,4 +1,5 @@
 import 'reflect-metadata';
+import helmet from 'helmet';
 import { NestFactory, Reflector } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -17,6 +18,18 @@ async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule, { cors: true, rawBody: true });
   const config = app.get(ConfigService);
   const prefix = config.get<string>('API_PREFIX', 'api/v1');
+  const isProd = config.get<string>('NODE_ENV') === 'production';
+
+  // Security response headers (SEC-L2). CSP is disabled because the API serves
+  // JSON + the Swagger UI (which uses inline assets); HSTS/nosniff/frameguard/etc.
+  // still apply. CORP is set cross-origin so the storefront widget (a different
+  // origin) can consume the API — CORS still governs who may call it.
+  app.use(
+    helmet({
+      contentSecurityPolicy: false,
+      crossOriginResourcePolicy: { policy: 'cross-origin' },
+    }),
+  );
 
   app.setGlobalPrefix(prefix);
   app.useGlobalPipes(
@@ -31,13 +44,16 @@ async function bootstrap(): Promise<void> {
     new LoggingInterceptor(),
   );
 
-  const swagger = new DocumentBuilder()
-    .setTitle('IVY USA Chat & Support Widget API')
-    .setDescription('CHATWIDGET — NestJS + MySQL. Follows Amoeba standards.')
-    .setVersion('1.0.0')
-    .addBearerAuth()
-    .build();
-  SwaggerModule.setup(`${prefix}/docs`, app, SwaggerModule.createDocument(app, swagger));
+  // Swagger exposes the full API surface — keep it out of production (SEC-M4).
+  if (!isProd) {
+    const swagger = new DocumentBuilder()
+      .setTitle('IVY USA Chat & Support Widget API')
+      .setDescription('CHATWIDGET — NestJS + MySQL. Follows Amoeba standards.')
+      .setVersion('1.0.0')
+      .addBearerAuth()
+      .build();
+    SwaggerModule.setup(`${prefix}/docs`, app, SwaggerModule.createDocument(app, swagger));
+  }
 
   // Optional self-bootstrap for staging/managed envs (no ts-node in the image).
   if (config.get<string>('SEED_ON_BOOT') === 'true') {

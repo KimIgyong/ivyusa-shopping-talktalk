@@ -47,8 +47,24 @@ export class AgentService {
     private readonly aiGateway: AiGatewayService,
   ) {}
 
-  /** Session queue: conversations awaiting/handled by an agent. */
+  /**
+   * Load a conversation and assert it belongs to the caller's tenant (SEC-H1).
+   * Every agent-console action keys off a raw conversation id, so this is the
+   * single choke point that prevents cross-tenant read/takeover/end.
+   */
+  private async requireConversation(conversationId: number, tenantId: number): Promise<Conversation> {
+    const conversation = await this.convRepo.findOne({
+      where: { id: conversationId, tenantId },
+    });
+    if (!conversation) {
+      throw new BusinessException(ERROR_CODE.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND);
+    }
+    return conversation;
+  }
+
+  /** Session queue: conversations awaiting/handled by an agent (tenant-scoped). */
   async listSessions(
+    tenantId: number,
     page: number,
     size: number,
   ): Promise<{
@@ -60,7 +76,7 @@ export class AgentService {
     total: number;
   }> {
     const [conversations, total] = await this.convRepo.findAndCount({
-      where: { status: In([CONVERSATION_STATUS.WAITING, CONVERSATION_STATUS.AGENT]) },
+      where: { tenantId, status: In([CONVERSATION_STATUS.WAITING, CONVERSATION_STATUS.AGENT]) },
       order: { id: 'DESC' },
       skip: (page - 1) * size,
       take: size,
@@ -103,7 +119,8 @@ export class AgentService {
     return result;
   }
 
-  async listMessages(conversationId: number): Promise<Message[]> {
+  async listMessages(conversationId: number, tenantId: number): Promise<Message[]> {
+    await this.requireConversation(conversationId, tenantId);
     return this.msgRepo.find({ where: { conversationId }, order: { id: 'ASC' } });
   }
 
@@ -128,6 +145,7 @@ export class AgentService {
 
   /** Agent accepts/takes over a conversation. */
   async accept(conversationId: number, agentId: number, tenantId: number): Promise<Conversation> {
+    await this.requireConversation(conversationId, tenantId);
     await this.assignmentRepo.save(
       this.assignmentRepo.create({
         tenantId,
@@ -152,6 +170,7 @@ export class AgentService {
     tenantId: number,
     body: string,
   ): Promise<Message> {
+    await this.requireConversation(conversationId, tenantId);
     const moderated = await this.moderation.moderate({
       tenantId,
       scope: 'agent',
@@ -201,7 +220,7 @@ export class AgentService {
 
   /** Customer context for the console panel, via conversation -> session -> customer. */
   async customerContext(conversationId: number, tenantId: number): Promise<CustomerContext | null> {
-    const conversation = await this.convRepo.findOne({ where: { id: conversationId } });
+    const conversation = await this.convRepo.findOne({ where: { id: conversationId, tenantId } });
     if (!conversation) return null;
     const session = await this.sessionRepo.findOne({ where: { id: conversation.sessionId } });
     if (!session?.customerId) return null;
@@ -227,10 +246,7 @@ export class AgentService {
     tenantId: number,
     customerId: number,
   ): Promise<CustomerContext> {
-    const conversation = await this.convRepo.findOne({ where: { id: conversationId } });
-    if (!conversation) {
-      throw new BusinessException(ERROR_CODE.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND);
-    }
+    const conversation = await this.requireConversation(conversationId, tenantId);
     // Verifies tenant ownership (throws if the customer is not in this tenant).
     await this.customerService.findById(tenantId, customerId);
     await this.sessionRepo.update({ id: conversation.sessionId }, { customerId });
@@ -243,17 +259,15 @@ export class AgentService {
     tenantId: number,
     lead: CustomerLead,
   ): Promise<CustomerContext> {
-    const conversation = await this.convRepo.findOne({ where: { id: conversationId } });
-    if (!conversation) {
-      throw new BusinessException(ERROR_CODE.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND);
-    }
+    const conversation = await this.requireConversation(conversationId, tenantId);
     const customer = await this.customerService.createFromLead(tenantId, lead);
     await this.sessionRepo.update({ id: conversation.sessionId }, { customerId: customer.id });
     return this.customerService.getContext(tenantId, customer.id);
   }
 
   /** End a conversation and release the active assignment. */
-  async end(conversationId: number): Promise<Conversation> {
+  async end(conversationId: number, tenantId: number): Promise<Conversation> {
+    await this.requireConversation(conversationId, tenantId);
     await this.convRepo.update(
       { id: conversationId },
       { status: CONVERSATION_STATUS.ENDED, endedAt: new Date() },

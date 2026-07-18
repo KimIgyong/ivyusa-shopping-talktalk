@@ -1,7 +1,7 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { CJM_STAGE, CONSENT_STATE, SESSION_LANGUAGE } from '@ivy/types';
+import { CJM_STAGE, CONSENT_STATE, SESSION_IDENTITY, SESSION_LANGUAGE } from '@ivy/types';
 import { generateToken } from '@ivy/common';
 import { Session } from './entity/session.entity';
 import { Tenant } from '../tenant/entity/tenant.entity';
@@ -35,6 +35,7 @@ export class SessionService {
         language: this.resolveLanguage(locale),
         consentState: CONSENT_STATE.PENDING,
         customerId: null,
+        identityLevel: SESSION_IDENTITY.GUEST,
       }),
     );
     await this.bus.publish(EVENTS.CJM, {
@@ -81,6 +82,7 @@ export class SessionService {
         language: this.resolveLanguage(locale),
         consentState: CONSENT_STATE.PENDING,
         customerId,
+        identityLevel: SESSION_IDENTITY.VERIFIED,
       }),
     );
     await this.bus.publish(EVENTS.CJM, {
