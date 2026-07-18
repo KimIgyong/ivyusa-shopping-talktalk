@@ -11,9 +11,10 @@
 |---|---|
 | Project (프로젝트) | IVY USA Chat & Customer Support Widget |
 | Code (코드) | CHATWIDGET |
-| Version (버전) | 1.0.0 |
-| Date (작성일) | 2026-06-19 |
+| Version (버전) | 1.1.0 |
+| Date (작성일) | 2026-07-15 (rev; base 2026-06-19) |
 | Domain (도메인) | Shopify storefront customer support (Naver TalkTalk style) |
+| Status (상태) | Staging **LIVE** at `https://shoptalk.amoeba.site`; production templates ready (not deployed) |
 | Standards (표준) | Amoeba SPEC / Structure / Code Convention / Web Style Guide / Privacy / Skill v2 |
 
 ### 1.2 Service Introduction (서비스 소개)
@@ -58,13 +59,17 @@ react-i18next 14 · lucide-react. Two apps: `apps/web` (admin SPA + react-router
 ### 2.2 Backend
 NestJS 10 · TypeORM 0.3 · **MySQL 8** (utf8mb4/InnoDB) · Redis 7 (cache/session) ·
 RabbitMQ (async event bus) · `@nestjs/jwt` · class-validator/class-transformer ·
-bcryptjs · AES-256-GCM (credential encryption). REST `/api/v1` (+ SSE-ready).
+bcryptjs (cost 12) · AES-256-GCM (credential encryption) · nodemailer (alerts). REST
+`/api/v1` (+ SSE-ready); Swagger `/api/v1/docs`; liveness `GET /api/v1/health` (DB readiness).
 
 ### 2.3 Infrastructure (인프라)
-Docker (dev compose for MySQL/Redis/RabbitMQ) · Turborepo monorepo · Nginx (staging/prod, TBD).
+Docker Compose (dev/staging/production) · Turborepo monorepo · Nginx edge reverse proxy
+(`/`→web, `/api/`→api, `/widget`→widget). Staging LIVE (host nginx + Let's Encrypt TLS →
+docker nginx `:8080`); production stack templated. Full env/config reference: `CONFIG.md`.
 
 ### 2.4 Development Tools (개발 도구)
-TypeScript, ESLint/Prettier (config TBD), Swagger (`/api/v1/docs`), Turborepo pipeline.
+TypeScript, ESLint/Prettier, Swagger (`/api/v1/docs`), Turborepo pipeline, Jest + ts-jest
+(62 passing unit tests: types 8 · common 12 · api 42).
 
 ### 2.5 Internationalization (i18n) — en/es/ko
 react-i18next; all UI text via `t()`; namespaces registered in each app's `i18n.ts`;
@@ -89,14 +94,15 @@ data models; repositories are TypeORM repos (custom repository optional).
 
 ### 3.3 Overall System Diagram (전체 시스템 구성도)
 ```
-Shopify storefront ─▶ apps/widget (React) ─┐
+Shopify storefront ─▶ apps/widget (React) ─┐   (App Proxy identity: logged-in customer)
 Operators/Admins  ─▶ apps/web (React SPA) ─┼─▶ apps/api (NestJS /api/v1)
                                             │      ├─ MySQL 8 (TypeORM)
                                             │      ├─ Redis 7 (cache/session/unread)
                                             │      ├─ RabbitMQ (notif/cjm/log events)
                                             │      ├─ AI Gateway → stub | Anthropic | …
-                                            │      └─ Moderation gate (fail-safe block)
-External: Shopify · Fulfillment webhook · Klaviyo · Odoo · Google Drive (per-tenant creds, AES-256-GCM)
+                                            │      ├─ Moderation gate (fail-safe block)
+                                            │      └─ Shopify: OAuth · App Proxy · sync · webhooks (HMAC)
+External: Shopify (OAuth/App Proxy/webhooks) · Fulfillment webhook · Klaviyo · Odoo · Google Drive (per-tenant creds, AES-256-GCM)
 ```
 
 ---
@@ -108,25 +114,27 @@ External: Shopify · Fulfillment webhook · Klaviyo · Odoo · Google Drive (per
 ivy-talktalk/
 ├── apps/{api,web,widget}        # NestJS API · React admin · React widget
 ├── packages/{types,common}      # shared enums/response envelope/RBAC matrix/utils
-├── docker/                      # docker-compose.dev.yml (+ staging/production TBD)
+├── docker/                      # compose {dev,staging,production} + Dockerfiles + nginx + deploy-*.sh
 ├── env/{backend,frontend}/      # .env.development (committed; staging/prod gitignored)
 ├── sql/                         # 01-schema.sql (staging/prod migration reference)
 ├── docs/{analysis,plan,implementation,test,report,guide,design,log}
 ├── reference/                   # Amoeba standard docs (knowledge)
 ├── scripts/dev/                 # kill-ports.sh, start-all.sh
 ├── design/  standards/          # design artifacts & company standards (source)
-├── turbo.json  tsconfig.json  package.json  SPEC.md  CLAUDE.md  CHANGELOG.md  README.md
+├── turbo.json  tsconfig.json  package.json  SPEC.md  CONFIG.md  CLAUDE.md  CHANGELOG.md  README.md
 └── .claude/skills/ivy-talktalk-dev/SKILL.md   # project dev skill
 ```
 
 ### 4.2 Backend Structure (NestJS)
 `apps/api/src/{domain,global,infrastructure,database}`. Each domain module:
 `controller/ · service · entity/ · dto/ (request snake_case, response camelCase) ·
-mapper · {domain}.module.ts` (repository/ optional). 22 domain modules.
-`global/`: config, filter, interceptor (transform), decorator (`@Auth/@AdminOnly/
-@RequireRank/@RequireCapability/@Public/@CurrentUser`), guard (jwt-auth, authorization),
-constant (error codes), util (crypto, transformers). `infrastructure/`: cache (Redis),
-queue (RabbitMQ event bus), external/ai (gateway + adapters).
+mapper · {domain}.module.ts` (repository/ optional). **26 domain modules** (incl. privacy,
+health, shopify-oauth, shopify-proxy).
+`global/`: config, filter, interceptor (transform, tenant-context, logging), decorator
+(`@Auth/@AdminOnly/@RequireRank/@RequireCapability/@Public/@CurrentUser`), guard (jwt-auth,
+authorization), constant (error codes), util (crypto, transformers, maskPii).
+`infrastructure/`: cache (Redis), queue (RabbitMQ event bus), external/ai (gateway +
+adapters), tenant (AsyncLocalStorage TenantContext + TypeORM TenantSubscriber).
 
 ### 4.3 Frontend Structure
 `apps/{web,widget}/src/{components,hooks,services,store,i18n,lib,layouts,router}`.
@@ -157,8 +165,9 @@ crossed with job labels (Consult/Accounting/Operations). ACL owner-visibility la
 ## 6. Database Design (데이터베이스 설계)
 
 ### 6.1 Database Information
-Name `db_ivy_talktalk` · MySQL 8 · utf8mb4 / InnoDB · 37 tables. Source of truth for
-orders = Shopify/Odoo (cached locally). DDL: `sql/01-schema.sql` (= `design/chat-widget-schema.sql`).
+Name `db_ivy_talktalk` · MySQL 8 · utf8mb4 / InnoDB · 38 tables / 40 TypeORM entities.
+Source of truth for orders = Shopify/Odoo (cached locally). DDL: `sql/01-schema.sql`
+(= `design/chat-widget-schema.sql`); dev/staging build via TypeORM `synchronize`.
 
 ### 6.2 Naming Conventions (project)
 Tables: bare `snake_case` plural (`customers`, `orders_cache`, `kb_documents`). Columns:
@@ -206,18 +215,26 @@ messages English; client localizes by code.
 Request DTO **snake_case** (class-validator); Response **camelCase** (via Mapper); query params snake_case.
 
 ### 7.5 Key API Endpoints
-`auth/*`, `session/*`, `chat/*` (RAG), `orders/*` (+guest-lookup, tracking, fulfillment webhook),
-`notifications/*`, `reviews/affiliate/restock/subscriptions/inquiries`, `agent/*` (console),
-`analytics/*`, `knowledge/*`, `ai-engines`/`ai-settings`, `moderation/rules`, `tenants/*`,
-`users`/`job-labels`, `campaigns`, `cjm/events`, `audit`, `integrations/status`.
+`auth/*`, `session/*`, `chat/*` (RAG; guest + logged-in), `orders/*` (+guest-lookup, tracking,
+fulfillment webhook), `notifications/*`, `reviews/affiliate/restock/subscriptions/inquiries`,
+`agent/*` (console), `analytics/*`, `knowledge/*`, `ai-engines`/`ai-settings`,
+`moderation/rules`, `tenants/*` (+`tenants/me/shopify`), `users`/`job-labels` (+temp-password),
+`campaigns`, `cjm/events`, `audit`, `integrations/status`, `health`.
+**Shopify**: `auth/shopify/install`+`/callback` (OAuth), `shopify/proxy/identity` (App Proxy,
+signature-verified), `webhooks/shopify/*` (native orders/fulfillments, HMAC),
+`privacy/*` (DSAR export/delete, CCPA opt-out, retention purge) + GDPR compliance webhooks
+(`customers/data_request`, `customers/redact`, `shop/redact`).
 
 ---
 
 ## 8. Authentication & Authorization (인증/인가)
 
 ### 8.1 Authentication Methods
-JWT (admin + tenant user). Customer widget: opaque session token (+ Shopify customer
-auth / guest order lookup, max 5 attempts/15 min, Redis rate-limited).
+JWT (admin + tenant user). Customer widget: opaque session token. Customer identity —
+**guest mode** (product inquiry & general consultation with no login) or **logged-in
+customer** authenticated via Shopify **App Proxy** (Shopify-signed storefront request
+identifies the logged-in customer to the cross-origin widget). Guest order lookup: max 5
+attempts/15 min, Redis rate-limited.
 
 ### 8.2 Token Policy
 Access 15 min (`JWT_ACCESS_TTL`) · Refresh 7 days (`JWT_REFRESH_TTL`). Passwords bcrypt
@@ -289,11 +306,17 @@ PR + 1 approval on protected branches; squash-merge to `main`.
 ## 12. Deployment Environment (배포 환경)
 
 ### 12.1 Per-Environment Domains
-dev (local) · staging · production (domains TBD).
+dev (local) · **staging LIVE** `https://shoptalk.amoeba.site` (host `211.110.140.172`;
+admin at `/`, widget at `/widget/`) · production (host + domain TBD). Full reference: `CONFIG.md`.
 
 ### 12.2 Docker-Based Deployment
-Dev: `docker/docker-compose.dev.yml` + `npm run db:up`. Staging/production compose,
-Dockerfiles, and `deploy-*.sh` scripts are a roadmap item (§14).
+Dev: `docker/docker-compose.dev.yml` + `npm run db:up`. **Staging**: `docker/staging/*`
+(Dockerfiles api/web/widget, compose, nginx edge, `deploy-staging.sh`) — deployed and
+verified live; host nginx + Let's Encrypt terminate TLS → docker nginx `:8080`;
+`SEED_ON_BOOT=false` on server so in-app password changes persist. **Production**:
+`docker/production/*` templated (restart:always, no host DB/queue ports, `synchronize=false`
++ init-sql migrations) — **not yet deployed** (needs host + `.env.production`). Runbook:
+`docs/guide/STAGING-DEPLOY.md`.
 
 ---
 
@@ -330,8 +353,20 @@ Full evidence: `docs/report/RPT-Standards-Compliance-Audit-20260619.md`.
 - ✅ **DTO normalization** — all 15 remaining flat/inline DTO modules moved to `dto/request/*.request.ts` (+ `dto/response` where applicable); no inline DTO classes remain in controllers.
 - ✅ **SDLC doc chain** — `docs/analysis/REQ-…`, `docs/plan/PLAN-…`, `docs/test/TC-…` added (Structure §8.2: analysis→plan→impl→test→report). Tests broadened to **46** (added TenantSubscriber auto-stamp + RAG intent fallback).
 
-**Remaining — Low (optional)** — e2e HTTP tests (supertest + test DB) and broader service-level coverage. **Soft-delete columns: intentionally not added** — the disposal model is hard-delete + anonymization (GDPR `redact`/DSAR `delete` + retention purge), which satisfies POL-003/privacy without an unused `deleted_at` column. Audit roadmap (High/Medium) is otherwise fully closed.
+**Delivered (2026-07) — Shopify integration & staging go-live**
+- ✅ **Shopify OAuth** (`domain/shopify-oauth`): `auth/shopify/install`→`/callback`, per-shop access token stored on tenant (AES-256-GCM); endpoints self-disable (501) when keys unset.
+- ✅ **Shopify App Proxy identity** (`domain/shopify-proxy`): signature-verified `shopify/proxy/identity` bridges the logged-in storefront customer to the cross-origin widget (was always guest).
+- ✅ **Guest-mode chat** — product inquiry & general consultation with no login (AuthGate no longer steals input focus on poll).
+- ✅ **Order/customer sync** — on-demand + scheduled (`SHOPIFY_SYNC_INTERVAL_MIN`); native webhooks (orders/fulfillments, HMAC-verified) into `orders_cache`/`customers`; `tenants/me/shopify` shop-domain repointing.
+- ✅ **Widget install guide UI** — Settings card with 3 tabs (App embed / ScriptTag / theme.liquid) + copy buttons; `embed.js` origin fix for `/widget` sub-path deployment.
+- ✅ **Dashboard/console** — clickable KPI cards + recent-orders → `/orders` page; `apiGetList` pagination fix; agent identity in chat bubbles; live-chat customer search/link/create (`customers.phone`).
+- ✅ **Admin-issued temp password** (`POST /users/:id/temp-password`, USER_INVITE-gated).
+- ✅ **Staging LIVE** — deployed to `https://shoptalk.amoeba.site` (TLS via host nginx + Let's Encrypt); health check, self-bootstrap (`SEED_ON_BOOT`), verified end-to-end (admin login, widget RAG, Shopify sync on real order/customer).
+
+**Remaining — Low (optional)** — e2e HTTP tests (supertest + test DB) and broader service-level coverage; complete OAuth approval on the Shopify Partner side; production host + `.env.production` (deploy pending). **Soft-delete columns: intentionally not added** — the disposal model is hard-delete + anonymization (GDPR `redact`/DSAR `delete` + retention purge), which satisfies POL-003/privacy without an unused `deleted_at` column. Audit roadmap (High/Medium) is otherwise fully closed.
 
 ## 15. Reference (참조)
-`reference/amoeba_*` (standards) · `design/` (artifacts; `README.md` index) ·
-`docs/implementation/RPT-ChatWidget-Implementation-20260618.md` · `CLAUDE.md` · `.claude/skills/ivy-talktalk-dev/SKILL.md`.
+`reference/amoeba_*` (standards) · `README.md` (overview) · `CONFIG.md` (env/config) ·
+`design/` (artifacts) · `docs/PROJECT-ARTIFACT-INDEX.md` (artifact index) ·
+`docs/implementation/RPT-ChatWidget-Implementation-20260618.md` · `docs/guide/STAGING-DEPLOY.md` ·
+`CLAUDE.md` · `.claude/skills/ivy-talktalk-dev/SKILL.md`.
