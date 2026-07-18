@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post } from '@nestjs/common';
+import { Body, Controller, Get, Headers, Ip, Post } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Principal } from '@ivy/types';
 import { AuthService } from './auth.service';
@@ -6,6 +6,13 @@ import { ChangePasswordRequest, LoginRequest, RefreshRequest } from './dto/reque
 import { Public } from '../../global/decorator/public.decorator';
 import { Auth } from '../../global/decorator/auth.decorator';
 import { CurrentUser } from '../../global/decorator/current-user.decorator';
+
+/** Client IP for rate limiting: the first X-Forwarded-For hop (set by the edge
+ *  nginx) if present, else the direct socket address. */
+function clientIp(xff: string | undefined, ip: string): string {
+  const first = xff?.split(',')[0]?.trim();
+  return first || ip || 'unknown';
+}
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -15,15 +22,23 @@ export class AuthController {
   @Post('admin/login')
   @Public()
   @ApiOperation({ summary: 'System admin login (super_admin/admin)' })
-  loginAdmin(@Body() body: LoginRequest) {
-    return this.authService.loginAdmin(body.email, body.password);
+  loginAdmin(
+    @Body() body: LoginRequest,
+    @Ip() ip: string,
+    @Headers('x-forwarded-for') xff?: string,
+  ) {
+    return this.authService.loginAdmin(body.email, body.password, clientIp(xff, ip));
   }
 
   @Post('user/login')
   @Public()
   @ApiOperation({ summary: 'Tenant user login (master/director/manager/staff)' })
-  loginUser(@Body() body: LoginRequest) {
-    return this.authService.loginUser(body.email, body.password, body.shop_domain);
+  loginUser(
+    @Body() body: LoginRequest,
+    @Ip() ip: string,
+    @Headers('x-forwarded-for') xff?: string,
+  ) {
+    return this.authService.loginUser(body.email, body.password, clientIp(xff, ip), body.shop_domain);
   }
 
   @Post('refresh')

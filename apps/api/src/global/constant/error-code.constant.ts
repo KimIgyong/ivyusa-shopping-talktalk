@@ -12,6 +12,7 @@ export const ERROR_CODE = {
   MUST_CHANGE_PASSWORD: { code: 'E1005', message: 'Password change required' },
   TENANT_MISMATCH: { code: 'E1006', message: 'Cross-tenant access denied' },
   GUEST_LOOKUP_LIMIT: { code: 'E1007', message: 'Too many lookup attempts, try later' },
+  LOGIN_RATE_LIMITED: { code: 'E1008', message: 'Too many login attempts, try again later' },
 
   // E2xxx — user / invitation
   USER_NOT_FOUND: { code: 'E2001', message: 'User not found' },

@@ -14,6 +14,7 @@ import { Tenant } from '../tenant/entity/tenant.entity';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
 import { AuthTokensResponse, PrincipalResponse } from './dto/response/auth.response';
+import { LoginRateLimitService } from './login-rate-limit.service';
 
 /**
  * Authentication (SEQ-02 partial; FR-053/054, POL-018). Issues short-lived
@@ -30,13 +31,17 @@ export class AuthService {
     @InjectRepository(Tenant) private readonly tenantRepo: Repository<Tenant>,
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
+    private readonly loginLimiter: LoginRateLimitService,
   ) {}
 
-  async loginAdmin(email: string, password: string): Promise<AuthTokensResponse> {
+  async loginAdmin(email: string, password: string, clientIp: string): Promise<AuthTokensResponse> {
+    await this.loginLimiter.assertNotLocked('admin', email, clientIp);
     const admin = await this.adminRepo.findOne({ where: { email } });
     if (!admin?.passwordHash || !(await bcrypt.compare(password, admin.passwordHash))) {
+      await this.loginLimiter.recordFailure('admin', email, clientIp);
       throw new BusinessException(ERROR_CODE.INVALID_CREDENTIALS, HttpStatus.UNAUTHORIZED);
     }
+    await this.loginLimiter.recordSuccess('admin', email);
     const principal: Principal = {
       actorType: 'admin',
       adminId: admin.id,
@@ -51,16 +56,29 @@ export class AuthService {
     });
   }
 
-  async loginUser(email: string, password: string, shopDomain?: string): Promise<AuthTokensResponse> {
+  async loginUser(
+    email: string,
+    password: string,
+    clientIp: string,
+    shopDomain?: string,
+  ): Promise<AuthTokensResponse> {
+    await this.loginLimiter.assertNotLocked('user', email, clientIp);
     const tenant = shopDomain
       ? await this.tenantRepo.findOne({ where: { shopDomain } })
       : await this.tenantRepo.findOne({ where: {}, order: { id: 'ASC' } });
-    if (!tenant) throw new BusinessException(ERROR_CODE.INVALID_CREDENTIALS, HttpStatus.UNAUTHORIZED);
+    if (!tenant) {
+      await this.loginLimiter.recordFailure('user', email, clientIp);
+      throw new BusinessException(ERROR_CODE.INVALID_CREDENTIALS, HttpStatus.UNAUTHORIZED);
+    }
 
     const user = await this.userRepo.findOne({ where: { tenantId: tenant.id, email } });
     if (!user?.passwordHash || !(await bcrypt.compare(password, user.passwordHash))) {
+      await this.loginLimiter.recordFailure('user', email, clientIp);
       throw new BusinessException(ERROR_CODE.INVALID_CREDENTIALS, HttpStatus.UNAUTHORIZED);
     }
+    // Credentials are valid — clear the failure counter even if we then reject a
+    // suspended account, so a suspended user's own attempts don't cause lockout.
+    await this.loginLimiter.recordSuccess('user', email);
     if (user.status === 'suspended') {
       throw new BusinessException(ERROR_CODE.FORBIDDEN, HttpStatus.FORBIDDEN);
     }
