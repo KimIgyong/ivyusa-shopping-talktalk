@@ -1,5 +1,6 @@
 import { Body, Controller, Post } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { SkipThrottle } from '@nestjs/throttler';
 import { SessionService } from './session.service';
 import { SessionMapper } from './session.mapper';
 import {
@@ -17,6 +18,7 @@ export class SessionController {
 
   @Post('ensure')
   @Public()
+  @SkipThrottle() // runs on every storefront page load — exclude from the flood limit
   @ApiOperation({ summary: 'Create or resume a widget session (S1)' })
   async ensure(@Body() body: EnsureSessionRequest) {
     const s = await this.sessionService.ensure(body.session_token, body.locale, body.shop_domain);

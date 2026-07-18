@@ -1,5 +1,6 @@
 import { Body, Controller, Get, Param, ParseIntPipe, Post, Put, Query } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { SkipThrottle } from '@nestjs/throttler';
 import { buildPagination, normalizePage } from '@ivy/common';
 import { NotificationService } from './notification.service';
 import { ReadNotificationRequest, UpdatePrefRequest } from './dto/request/notification.request';
@@ -29,6 +30,7 @@ export class NotificationController {
 
   @Get('unread-count')
   @Public()
+  @SkipThrottle() // widget polls this on an interval — exclude from the flood limit
   @ApiOperation({ summary: 'Unread notification count' })
   async unreadCount(@Query('session_token') token: string) {
     const count = await this.notificationService.unreadCount(token);

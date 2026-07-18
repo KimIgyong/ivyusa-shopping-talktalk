@@ -1,12 +1,14 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { buildTypeOrmOptions } from './global/config/typeorm.config';
 import { GlobalModule } from './global/global.module';
 import { InfrastructureModule } from './infrastructure/infrastructure.module';
 import { AiModule } from './infrastructure/external/ai/ai.module';
 import { JwtAuthGuard } from './global/guard/jwt-auth.guard';
+import { XffThrottlerGuard } from './global/guard/xff-throttler.guard';
 
 // Domain modules
 import { AuthModule } from './domain/auth/auth.module';
@@ -46,6 +48,9 @@ import { ShopifyProxyModule } from './domain/shopify-proxy/shopify-proxy.module'
       inject: [ConfigService],
       useFactory: (config: ConfigService) => buildTypeOrmOptions(config),
     }),
+    // App-wide flood limiter: 600 requests / 60s per client IP (generous — see
+    // XffThrottlerGuard). High-frequency widget polls are @SkipThrottle'd.
+    ThrottlerModule.forRoot({ throttlers: [{ ttl: 60000, limit: 600 }] }),
     GlobalModule,
     InfrastructureModule,
     AiModule,
@@ -77,6 +82,10 @@ import { ShopifyProxyModule } from './domain/shopify-proxy/shopify-proxy.module'
     PrivacyModule,
     HealthModule,
   ],
-  providers: [{ provide: APP_GUARD, useClass: JwtAuthGuard }],
+  providers: [
+    // Throttle first (cheap, before auth work), then authenticate.
+    { provide: APP_GUARD, useClass: XffThrottlerGuard },
+    { provide: APP_GUARD, useClass: JwtAuthGuard },
+  ],
 })
 export class AppModule {}

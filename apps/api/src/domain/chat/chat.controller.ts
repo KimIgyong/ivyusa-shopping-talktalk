@@ -1,5 +1,6 @@
 import { Body, Controller, Get, Param, Post } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { SkipThrottle } from '@nestjs/throttler';
 import { ChatService } from './chat.service';
 import { ScenarioService } from './scenario.service';
 import { ChatMapper } from './chat.mapper';
@@ -35,6 +36,7 @@ export class ChatController {
 
   @Get('conversation/:token')
   @Public()
+  @SkipThrottle() // widget polls this every few seconds — must not count against the flood limit
   @ApiOperation({ summary: 'Get current conversation messages for a session' })
   async conversation(@Param('token') token: string) {
     const session = await this.sessionService.findByToken(token);
