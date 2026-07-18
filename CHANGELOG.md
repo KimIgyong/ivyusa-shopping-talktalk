@@ -45,6 +45,17 @@ Format based on [Keep a Changelog](https://keepachangelog.com/); follows Amoeba 
 - **Deploy runbook** `docs/guide/STAGING-DEPLOY.md` (checklist, deploy, verify, rollback).
 - **Validated**: staging `Dockerfile.api` builds; the image boots, connects to MySQL (`/health` db: up), and authenticates — verified end-to-end.
 
+### Added — Shopify integration & staging go-live (2026-07)
+- **Shopify OAuth** (`domain/shopify-oauth`): `auth/shopify/install` → `/callback`; per-shop access token stored on tenant (AES-256-GCM); endpoints self-disable (501) when keys unset. (#1)
+- **Shopify App Proxy identity** (`domain/shopify-proxy`): signature-verified `shopify/proxy/identity` authenticates the logged-in storefront customer to the cross-origin widget; guest mode retained for no-login product inquiry/consultation. (#3)
+- **Order/customer sync**: on-demand + scheduled (`SHOPIFY_SYNC_INTERVAL_MIN`); native HMAC-verified orders/fulfillments webhooks into `orders_cache`/`customers`; `PUT tenants/me/shopify` shop-domain repointing. (#1, #2)
+- **Widget install guide UI** in Settings (App embed / ScriptTag / theme.liquid tabs + copy buttons); `embed.js` origin fix for `/widget` sub-path deployment. (#1)
+- **Console improvements**: clickable dashboard KPI cards + recent orders → `/orders`; `apiGetList` pagination fix; agent identity in chat bubbles; live-chat customer search/link/create (`customers.phone`); admin-issued temp password (`POST /users/:id/temp-password`, USER_INVITE-gated). (#2)
+- **Multi-provider e-commerce integrations** scaffolding in Settings: cafe24 / WooCommerce / Odoo / Haravan. (#4)
+- **Staging LIVE** at `https://shoptalk.amoeba.site` — host nginx + Let's Encrypt TLS → docker nginx `:8080`; verified end-to-end (admin login, widget RAG, Shopify sync on real order/customer); `SEED_ON_BOOT=false` policy in effect.
+- **Fixed**: widget AuthGate no longer steals input focus on chat poll.
+- **Docs refresh (2026-07-16)**: `README.md` rewritten as project overview (old index → `docs/PROJECT-ARTIFACT-INDEX.md`); `SPEC.md` → 1.1.0 (staging-live status, Shopify endpoints, 26 modules / 38 tables / 40 entities); new `CONFIG.md` (env/config reference) and `docs/guide/DEPLOYMENT-STRATEGY.md` (branch→env model, promotion, rollback, production plan). Unit tests now 62 passing (types 8 · common 12 · api 42).
+
 ### Verified (2026-06-18 / 2026-06-19 / 2026-06-30)
 - Full `turbo run build` green (5/5 workspaces).
 - Infra up, seed builds 37 tables + data, API boots with all routes, RabbitMQ connected.
