@@ -27,14 +27,23 @@ export function useChat(sessionToken: string | null) {
   const [conversationId, setConversationId] = useState<string | null>(null);
   // Ref (not state) so the polling queryFn always sees the current value.
   const inFlight = useRef(false);
+  // Highest server message id seen — the ?after_id= delta cursor (PERF-1).
+  // Reset to null (full fetch) after a send, since the send's own persisted
+  // rows are newer than the cursor and must replace the optimistic bubbles.
+  const lastServerId = useRef<string | null>(null);
 
   useQuery({
     queryKey: ['conversation', sessionToken],
     queryFn: async () => {
-      const conv = await getConversation(sessionToken!);
+      const after = lastServerId.current;
+      const conv = await getConversation(sessionToken!, after);
       if (!inFlight.current) {
-        setConversationId(conv.conversationId);
-        setMessages((prev) => reconcile(prev, conv.messages ?? []));
+        if (conv.conversationId != null) setConversationId(String(conv.conversationId));
+        const serverMsgs = conv.messages ?? [];
+        trackCursor(lastServerId, serverMsgs);
+        setMessages((prev) =>
+          after ? mergeDelta(prev, serverMsgs) : reconcile(prev, serverMsgs),
+        );
       }
       return conv;
     },
@@ -88,6 +97,9 @@ export function useChat(sessionToken: string | null) {
       } finally {
         setSending(false);
         inFlight.current = false;
+        // The send persisted new rows past the cursor — next poll does a full
+        // reconcile so the optimistic bubbles are replaced by server truth.
+        lastServerId.current = null;
       }
     },
     [sessionToken, append],
@@ -125,6 +137,7 @@ export function useChat(sessionToken: string | null) {
       } finally {
         setSending(false);
         inFlight.current = false;
+        lastServerId.current = null; // scripted turn persisted rows — full reconcile next poll
       }
     },
     [sessionToken, append],
@@ -162,4 +175,29 @@ function reconcile(local: ChatMessage[], server: ChatMessage[]): ChatMessage[] {
 
 function countServerKnown(local: ChatMessage[]): number {
   return local.filter((m) => !m.id.startsWith('local-') && !m.id.startsWith('err-')).length;
+}
+
+/** Advance the ?after_id= cursor to the highest numeric server message id seen. */
+function trackCursor(
+  cursor: { current: string | null },
+  serverMsgs: ChatMessage[],
+): void {
+  for (const m of serverMsgs) {
+    const n = Number(m.id);
+    if (Number.isFinite(n) && (cursor.current == null || n > Number(cursor.current))) {
+      cursor.current = String(m.id);
+    }
+  }
+}
+
+/**
+ * Append a delta poll's new server messages (PERF-1). Deltas only ever arrive
+ * on idle polls (the cursor resets to a full reconcile after every send), so
+ * a plain id-deduped append is safe — no optimistic bubbles to replace.
+ */
+function mergeDelta(prev: ChatMessage[], delta: ChatMessage[]): ChatMessage[] {
+  if (delta.length === 0) return prev;
+  const seen = new Set(prev.map((m) => m.id));
+  const fresh = delta.filter((m) => !seen.has(m.id));
+  return fresh.length ? [...prev, ...fresh] : prev;
 }

@@ -23,5 +23,11 @@ export function buildTypeOrmOptions(config: ConfigService): TypeOrmModuleOptions
     // Tolerate slow/flaky DB availability on local dev (e.g. Docker Desktop warm-up).
     retryAttempts: 40,
     retryDelay: 3000,
+    // Pool sizing (PERF-17): mysql2 defaults to 10 connections, which starves
+    // under widget-poll load. Keep below MySQL's max_connections across all
+    // API instances.
+    extra: {
+      connectionLimit: Number(config.get<string>('DB_POOL_SIZE', '30')) || 30,
+    },
   };
 }

@@ -30,12 +30,44 @@ export interface ShopifyFulfillmentDto {
   tracking_company?: string | null;
 }
 
+export interface FetchOrdersOptions {
+  limit?: number;
+  /** Incremental cursor — only orders updated at/after this instant (PERF-5). */
+  updatedAtMin?: string;
+  /** Opaque cursor from a previous page's Link header; excludes other filters. */
+  pageInfo?: string;
+}
+
+export interface FetchOrdersPage {
+  orders: ShopifyOrderDto[];
+  /** page_info for the next page, or null when this was the last one. */
+  nextPageInfo: string | null;
+}
+
 /** Thin Shopify Admin API client (read-only). Callers pass the per-tenant token. */
 @Injectable()
 export class ShopifyAdminClient {
-  /** Fetch recent orders (status=any). Throws on non-2xx or network/timeout. */
-  async fetchOrders(shopDomain: string, token: string, limit = 50): Promise<ShopifyOrderDto[]> {
-    const url = `https://${shopDomain}/admin/api/${API_VERSION}/orders.json?status=any&limit=${limit}`;
+  /**
+   * Fetch one page of orders. Incremental (`updatedAtMin`) + cursor-paginated
+   * (`pageInfo` from the RFC-5988 Link header) so stores with >50 orders sync
+   * fully and repeat runs only pull what changed (PERF-5). Note: when pageInfo
+   * is present Shopify forbids other filter params — the original filters ride
+   * inside the cursor.
+   */
+  async fetchOrders(
+    shopDomain: string,
+    token: string,
+    opts: FetchOrdersOptions = {},
+  ): Promise<FetchOrdersPage> {
+    const limit = opts.limit ?? 50;
+    const params = new URLSearchParams({ limit: String(limit) });
+    if (opts.pageInfo) {
+      params.set('page_info', opts.pageInfo);
+    } else {
+      params.set('status', 'any');
+      if (opts.updatedAtMin) params.set('updated_at_min', opts.updatedAtMin);
+    }
+    const url = `https://${shopDomain}/admin/api/${API_VERSION}/orders.json?${params.toString()}`;
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
     try {
@@ -45,10 +77,24 @@ export class ShopifyAdminClient {
       });
       if (!res.ok) throw new Error(`Admin API returned ${res.status}`);
       const data = (await res.json()) as { orders?: ShopifyOrderDto[] };
-      return data.orders ?? [];
+      return {
+        orders: data.orders ?? [],
+        nextPageInfo: this.parseNextPageInfo(res.headers.get('link')),
+      };
     } finally {
       clearTimeout(timer);
     }
+  }
+
+  /** Extract page_info from `<...page_info=XYZ...>; rel="next"` in a Link header. */
+  private parseNextPageInfo(link: string | null): string | null {
+    if (!link) return null;
+    for (const part of link.split(',')) {
+      if (!/rel="next"/.test(part)) continue;
+      const m = part.match(/[?&]page_info=([^&>]+)/);
+      if (m) return decodeURIComponent(m[1]);
+    }
+    return null;
   }
 
   /**

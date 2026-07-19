@@ -26,7 +26,8 @@ export interface Citation {
 }
 
 export interface Conversation {
-  conversationId: string;
+  /** Null until the first message creates a conversation (read-only poll). */
+  conversationId: string | null;
   status: string;
   messages: ChatMessage[];
 }

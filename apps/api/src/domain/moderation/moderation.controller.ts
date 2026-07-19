@@ -7,6 +7,8 @@ import { ContentFilterRule } from './entity/content-filter-rule.entity';
 import { RequireCapability } from '../../global/decorator/auth.decorator';
 import { CurrentUser } from '../../global/decorator/current-user.decorator';
 import { CreateRuleRequest } from './dto/request/moderation.request';
+import { moderationRulesCacheKey } from './moderation.service';
+import { RedisService } from '../../infrastructure/cache/redis.service';
 
 /** Content filter rule management (FR-069). Master/Director via AI_SETTINGS_MANAGE. */
 @ApiTags('Moderation')
@@ -14,6 +16,7 @@ import { CreateRuleRequest } from './dto/request/moderation.request';
 export class ModerationController {
   constructor(
     @InjectRepository(ContentFilterRule) private readonly ruleRepo: Repository<ContentFilterRule>,
+    private readonly redis: RedisService,
   ) {}
 
   @Get()
@@ -39,7 +42,9 @@ export class ModerationController {
       action: body.action ?? 'block',
       isActive: 1,
     });
-    return this.ruleRepo.save(rule);
+    const saved = await this.ruleRepo.save(rule);
+    await this.redis.del(moderationRulesCacheKey(tenantId));
+    return saved;
   }
 
   @Delete(':id')
@@ -48,6 +53,7 @@ export class ModerationController {
   async remove(@CurrentUser() user: Principal, @Param('id', ParseIntPipe) id: number) {
     const tenantId = user.actorType === 'user' ? user.tenantId : 0;
     await this.ruleRepo.delete({ id, tenantId });
+    await this.redis.del(moderationRulesCacheKey(tenantId));
     return { deleted: true };
   }
 }

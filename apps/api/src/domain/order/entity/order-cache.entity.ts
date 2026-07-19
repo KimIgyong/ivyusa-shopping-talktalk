@@ -2,6 +2,8 @@ import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, Unique
 import { bigintTransformer, decimalTransformer } from '../../../global/util/transformers';
 
 /** orders_cache — Shopify/Odoo order cache (FR-020). */
+// Dashboard/list range scans per tenant (PERF-6).
+@Index('idx_ordc_tenant_created', ['tenantId', 'createdAt'])
 @Entity('orders_cache')
 @Unique('uk_orders_shopify', ['shopifyOrderId'])
 export class OrderCache {

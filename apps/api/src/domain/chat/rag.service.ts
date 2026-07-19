@@ -41,30 +41,34 @@ export class RagService {
       .toLowerCase()
       .replace(/[^\p{L}\p{N}\s]/gu, ' ')
       .split(/\s+/)
-      .filter((t) => t.length > 2)
+      .filter((t) => t.length > 1)
       .slice(0, 8);
 
-    const qb = this.kbRepo
-      .createQueryBuilder('kb')
-      .where('kb.active = 1')
-      .andWhere('(kb.tenantId = :tenantId OR kb.tenantId IS NULL)', { tenantId });
-
-    if (terms.length) {
-      qb.andWhere(
-        new Brackets((b) => {
-          terms.forEach((term, i) => {
-            b.orWhere(`LOWER(kb.title) LIKE :t${i}`, { [`t${i}`]: `%${term}%` });
-            b.orWhere(`LOWER(kb.content) LIKE :c${i}`, { [`c${i}`]: `%${term}%` });
-          });
-        }),
-      );
+    let docs: KbDocument[];
+    if (!terms.length) {
+      docs = await this.baseQuery(tenantId)
+        .orderBy("CASE WHEN kb.source = 'knowledge_store' THEN 0 ELSE 1 END", 'ASC')
+        .addOrderBy('kb.updatedAt', 'DESC')
+        .take(limit)
+        .getMany();
+    } else {
+      // FULLTEXT MATCH (PERF-2) — index-backed relevance search instead of
+      // up-to-16 leading-wildcard LIKEs over LONGTEXT. Knowledge Store still
+      // outranks Google Drive (POL-013); relevance breaks ties.
+      try {
+        docs = await this.baseQuery(tenantId)
+          .addSelect('MATCH(kb.title, kb.content) AGAINST (:ftq IN NATURAL LANGUAGE MODE)', 'relevance')
+          .andWhere('MATCH(kb.title, kb.content) AGAINST (:ftq IN NATURAL LANGUAGE MODE)')
+          .setParameter('ftq', terms.join(' '))
+          .orderBy("CASE WHEN kb.source = 'knowledge_store' THEN 0 ELSE 1 END", 'ASC')
+          .addOrderBy('relevance', 'DESC')
+          .take(limit)
+          .getMany();
+      } catch {
+        // FULLTEXT index not present yet (pre-migration DB) — legacy LIKE scan.
+        docs = await this.retrieveLike(tenantId, terms, limit);
+      }
     }
-    // Knowledge Store ranked above Google Drive (POL-013).
-    const docs = await qb
-      .orderBy("CASE WHEN kb.source = 'knowledge_store' THEN 0 ELSE 1 END", 'ASC')
-      .addOrderBy('kb.updatedAt', 'DESC')
-      .take(limit)
-      .getMany();
 
     return docs.map((d) => ({
       id: d.id,
@@ -73,6 +77,30 @@ export class RagService {
       source: d.source,
       snippet: (d.content ?? '').slice(0, 400),
     }));
+  }
+
+  private baseQuery(tenantId: number) {
+    return this.kbRepo
+      .createQueryBuilder('kb')
+      .where('kb.active = 1')
+      .andWhere('(kb.tenantId = :tenantId OR kb.tenantId IS NULL)', { tenantId });
+  }
+
+  /** Legacy keyword scan — only used when the FULLTEXT index is unavailable. */
+  private async retrieveLike(tenantId: number, terms: string[], limit: number): Promise<KbDocument[]> {
+    const qb = this.baseQuery(tenantId).andWhere(
+      new Brackets((b) => {
+        terms.forEach((term, i) => {
+          b.orWhere(`LOWER(kb.title) LIKE :t${i}`, { [`t${i}`]: `%${term}%` });
+          b.orWhere(`LOWER(kb.content) LIKE :c${i}`, { [`c${i}`]: `%${term}%` });
+        });
+      }),
+    );
+    return qb
+      .orderBy("CASE WHEN kb.source = 'knowledge_store' THEN 0 ELSE 1 END", 'ASC')
+      .addOrderBy('kb.updatedAt', 'DESC')
+      .take(limit)
+      .getMany();
   }
 
   async answer(tenantId: number, query: string, language: string): Promise<RagAnswer> {

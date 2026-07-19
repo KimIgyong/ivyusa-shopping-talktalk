@@ -120,8 +120,49 @@ export class ChatService {
     );
   }
 
-  async listMessages(conversationId: number): Promise<Message[]> {
-    return this.msgRepo.find({ where: { conversationId }, order: { id: 'ASC' } });
+  /**
+   * Read-only lookup of the session's current open conversation (PERF-1).
+   * Unlike getOrCreateConversation this NEVER inserts — the widget's 5s poll
+   * must not create rows; conversations come into being on the first message.
+   */
+  async findOpenConversation(sessionId: number): Promise<Conversation | null> {
+    return this.convRepo.findOne({
+      where: {
+        sessionId,
+        status: In([
+          CONVERSATION_STATUS.AI_ACTIVE,
+          CONVERSATION_STATUS.WAITING,
+          CONVERSATION_STATUS.AGENT,
+        ]),
+      },
+      order: { id: 'DESC' },
+    });
+  }
+
+  /**
+   * Bounded message read (PERF-1). With `afterId` only newer rows return
+   * (delta poll); without it, the LAST `limit` messages in ascending order.
+   */
+  async listMessages(
+    conversationId: number,
+    opts?: { afterId?: number; limit?: number },
+  ): Promise<Message[]> {
+    const limit = opts?.limit ?? 200;
+    if (opts?.afterId != null) {
+      return this.msgRepo
+        .createQueryBuilder('m')
+        .where('m.conversation_id = :cid', { cid: conversationId })
+        .andWhere('m.id > :after', { after: opts.afterId })
+        .orderBy('m.id', 'ASC')
+        .take(limit)
+        .getMany();
+    }
+    const latest = await this.msgRepo.find({
+      where: { conversationId },
+      order: { id: 'DESC' },
+      take: limit,
+    });
+    return latest.reverse();
   }
 
   /** Agent display names for the given messages, so the widget can show who replied. */

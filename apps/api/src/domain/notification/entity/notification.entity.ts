@@ -2,6 +2,8 @@ import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn } from 
 import { bigintTransformer } from '../../../global/util/transformers';
 
 /** notifications — customer/session notifications (FR-030). */
+// Unread-count/list per customer (PERF-6).
+@Index('idx_notif_customer_read', ['customerId', 'readAt'])
 @Entity('notifications')
 export class Notification {
   @PrimaryGeneratedColumn({ type: 'bigint' })

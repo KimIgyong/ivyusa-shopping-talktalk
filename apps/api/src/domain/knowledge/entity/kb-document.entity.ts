@@ -2,6 +2,8 @@ import { Column, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn } from 
 import { bigintTransformer } from '../../../global/util/transformers';
 
 /** kb_documents — knowledge base documents for RAG (FR-064). */
+// FULLTEXT for the RAG retriever (PERF-2); ngram parser so ko (CJK) tokenizes.
+@Index('ft_kb_title_content', ['title', 'content'], { fulltext: true, parser: 'ngram' })
 @Entity('kb_documents')
 export class KbDocument {
   @PrimaryGeneratedColumn({ type: 'bigint' })

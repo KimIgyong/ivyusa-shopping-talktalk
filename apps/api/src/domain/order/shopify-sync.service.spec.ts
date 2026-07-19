@@ -29,16 +29,22 @@ describe('ShopifySyncService.syncOrders', () => {
     const saved: OrderCache[] = [];
     const orderRepo = {
       findOne: jest.fn().mockResolvedValue(null),
+      find: jest.fn().mockResolvedValue([]),
       create: jest.fn((x: Partial<OrderCache>) => ({ ...x }) as OrderCache),
       save: jest.fn((x: OrderCache) => {
         saved.push(x);
         return Promise.resolve(x);
       }),
     };
-    const client = { fetchOrders: jest.fn().mockResolvedValue(orders) };
+    const client = {
+      fetchOrders: jest.fn().mockResolvedValue({ orders, nextPageInfo: null }),
+    };
     const tenantService = { getShopifyConnection: jest.fn().mockResolvedValue(conn) };
     const customerService = { findOrCreateByEmail: jest.fn().mockResolvedValue({ id: 42 }) };
-    const integrationService = { upsert: jest.fn().mockResolvedValue(undefined) };
+    const integrationService = {
+      upsert: jest.fn().mockResolvedValue(undefined),
+      findByName: jest.fn().mockResolvedValue(null),
+    };
     const svc = new ShopifySyncService(
       orderRepo as never,
       client as never,
@@ -53,7 +59,11 @@ describe('ShopifySyncService.syncOrders', () => {
     const { svc, saved, customerService, integrationService } = build(sampleOrders);
     const res = await svc.syncOrders(7);
 
-    expect(res).toEqual({ ok: true, synced: 2, detail: 'Synced 2 order(s)' });
+    expect(res).toEqual({
+      ok: true,
+      synced: 2,
+      detail: 'Synced 2 order(s) (initial full sync)',
+    });
     expect(saved).toHaveLength(2);
 
     // Order 1001: fulfilled → shipping; customer resolved by email with full name + shopify id.
@@ -72,7 +82,11 @@ describe('ShopifySyncService.syncOrders', () => {
     expect(saved[1]).toMatchObject({ shopifyOrderId: '1002', statusInternal: 'paid' });
     expect(customerService.findOrCreateByEmail).toHaveBeenCalledWith(7, 'c@x.com', undefined, undefined);
 
-    expect(integrationService.upsert).toHaveBeenCalledWith('shopify', 'connected', 'Synced 2 order(s)');
+    expect(integrationService.upsert).toHaveBeenCalledWith(
+      'shopify',
+      'connected',
+      'Synced 2 order(s) (initial full sync)',
+    );
   });
 
   it('maps a paid, unfulfilled order to "paid" (Confirmed)', async () => {

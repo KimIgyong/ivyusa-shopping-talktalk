@@ -14,6 +14,7 @@ import { OrderCache } from './entity/order-cache.entity';
 import { OrderItem } from './entity/order-item.entity';
 import { Fulfillment } from './entity/fulfillment.entity';
 import { Session } from '../session/entity/session.entity';
+import { sessionCacheKey } from '../session/session.service';
 import { Customer } from '../customer/entity/customer.entity';
 import { OrderMapper } from './order.mapper';
 import { Paginated } from '../../global/interceptor/transform.interceptor';
@@ -68,6 +69,8 @@ export class OrderService {
 
     session.customerId = order.customerId;
     await this.sessionRepo.save(session);
+    // Identity changed — drop the token→session cache so reads see the binding.
+    await this.redis.del(sessionCacheKey(session.sessionToken));
 
     return OrderMapper.toSummary(order);
   }

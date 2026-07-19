@@ -6,6 +6,7 @@ import { generateToken } from '@ivy/common';
 import { Session } from './entity/session.entity';
 import { Tenant } from '../tenant/entity/tenant.entity';
 import { EventBusService, EVENTS } from '../../infrastructure/infrastructure.module';
+import { RedisService } from '../../infrastructure/cache/redis.service';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
 
@@ -14,6 +15,18 @@ import { ERROR_CODE } from '../../global/constant/error-code.constant';
  * privacy-notice wording changes so recorded choices reference what was shown.
  */
 export const CONSENT_NOTICE_VERSION = '2026-07';
+
+/** TTL for the token→session Redis cache (PERF-11). */
+const SESSION_CACHE_TTL_SEC = 30;
+
+/**
+ * Redis key for the token→session cache. Exported so the few modules that
+ * mutate sessions directly (order guest-bind, agent link, privacy erasure) can
+ * invalidate without importing SessionService (avoids module cycles).
+ */
+export function sessionCacheKey(token: string): string {
+  return `sess:tok:${token}`;
+}
 
 /**
  * Session lifecycle (S1 / FN-006). Creates or resumes a widget session, tracks
@@ -25,6 +38,7 @@ export class SessionService {
     @InjectRepository(Session) private readonly sessionRepo: Repository<Session>,
     @InjectRepository(Tenant) private readonly tenantRepo: Repository<Tenant>,
     private readonly bus: EventBusService,
+    private readonly redis: RedisService,
   ) {}
 
   async ensure(token: string | undefined, locale: string | undefined, shopDomain?: string): Promise<Session> {
@@ -106,25 +120,45 @@ export class SessionService {
     return this.tenantRepo.findOne({ where: { shopDomain } });
   }
 
+  /**
+   * Token→session lookup, Redis-cached for 30s (PERF-11): the widget hits this
+   * on every poll/message. Mutation sites (consent, language, customer binding,
+   * erasure) invalidate via `sessionCacheKey`.
+   */
   async findByToken(token: string): Promise<Session> {
+    if (this.redis.available()) {
+      const hit = await this.redis.get(sessionCacheKey(token));
+      if (hit) return JSON.parse(hit) as Session;
+    }
+    const session = await this.loadByToken(token);
+    await this.redis.set(sessionCacheKey(token), JSON.stringify(session), SESSION_CACHE_TTL_SEC);
+    return session;
+  }
+
+  /** Uncached DB load — used before mutations so we never save a cached copy. */
+  private async loadByToken(token: string): Promise<Session> {
     const session = await this.sessionRepo.findOne({ where: { sessionToken: token } });
     if (!session) throw new BusinessException(ERROR_CODE.SESSION_NOT_FOUND, HttpStatus.NOT_FOUND);
     return session;
   }
 
   async setConsent(token: string, granted: boolean): Promise<Session> {
-    const session = await this.findByToken(token);
+    const session = await this.loadByToken(token);
     session.consentState = granted ? CONSENT_STATE.GRANTED : CONSENT_STATE.DECLINED;
     // Auditable proof of the choice: when + which notice version (PRV-M4).
     session.consentAt = new Date();
     session.consentVersion = CONSENT_NOTICE_VERSION;
-    return this.sessionRepo.save(session);
+    const saved = await this.sessionRepo.save(session);
+    await this.redis.del(sessionCacheKey(token));
+    return saved;
   }
 
   async setLanguage(token: string, language: string): Promise<Session> {
-    const session = await this.findByToken(token);
+    const session = await this.loadByToken(token);
     session.language = this.resolveLanguage(language);
-    return this.sessionRepo.save(session);
+    const saved = await this.sessionRepo.save(session);
+    await this.redis.del(sessionCacheKey(token));
+    return saved;
   }
 
   async bindCustomer(sessionId: number, customerId: number): Promise<void> {

@@ -2,6 +2,8 @@ import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn } from 
 import { bigintTransformer } from '../../../global/util/transformers';
 
 /** cjm_events — customer journey map events (FR-046). */
+// Analytics range scans per tenant (PERF-6).
+@Index('idx_cjm_tenant_created', ['tenantId', 'createdAt'])
 @Entity('cjm_events')
 export class CjmEvent {
   @PrimaryGeneratedColumn({ type: 'bigint' })

@@ -6,6 +6,14 @@ import { Session } from '../session/entity/session.entity';
 import { Tenant } from '../tenant/entity/tenant.entity';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
+import { RedisService } from '../../infrastructure/cache/redis.service';
+
+/** TTL for the per-tenant persona/rules cache (PERF-11) — read on every RAG turn. */
+const PERSONA_CACHE_TTL_SEC = 60;
+
+function personaCacheKey(tenantId: number): string {
+  return `aicfg:persona:${tenantId}`;
+}
 
 /** Default scenario buttons (FR-003) seeded when a tenant has no custom set. */
 export const DEFAULT_SCENARIO_BUTTONS: ScenarioButton[] = [
@@ -39,6 +47,7 @@ export class AiConfigService {
     @InjectRepository(TenantAiConfig) private readonly configRepo: Repository<TenantAiConfig>,
     @InjectRepository(Session) private readonly sessionRepo: Repository<Session>,
     @InjectRepository(Tenant) private readonly tenantRepo: Repository<Tenant>,
+    private readonly redis: RedisService,
   ) {}
 
   /** Admin read — returns stored config or defaults. */
@@ -60,13 +69,21 @@ export class AiConfigService {
     if (input.rules !== undefined) row.rules = input.rules;
     if (input.scenarioButtons !== undefined) row.scenarioButtons = this.sanitize(input.scenarioButtons);
     await this.configRepo.save(row);
+    await this.redis.del(personaCacheKey(tenantId));
     return this.getConfig(tenantId);
   }
 
   /** RAG (FN-016/017) — persona + rules to inject into the system prompt. */
   async getPersonaRules(tenantId: number): Promise<{ persona: string; rules: string[] }> {
+    const key = personaCacheKey(tenantId);
+    if (this.redis.available()) {
+      const hit = await this.redis.get(key);
+      if (hit) return JSON.parse(hit) as { persona: string; rules: string[] };
+    }
     const row = await this.configRepo.findOne({ where: { tenantId } });
-    return { persona: row?.persona ?? DEFAULT_PERSONA, rules: row?.rules ?? [] };
+    const result = { persona: row?.persona ?? DEFAULT_PERSONA, rules: row?.rules ?? [] };
+    await this.redis.set(key, JSON.stringify(result), PERSONA_CACHE_TTL_SEC);
+    return result;
   }
 
   /** Widget (public) — enabled scenario buttons for the session's tenant. */
