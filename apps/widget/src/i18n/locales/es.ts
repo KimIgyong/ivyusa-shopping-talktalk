@@ -25,7 +25,8 @@ export const es: Translation = {
   chat: {
     welcome:
       '¡Hola! Te damos la bienvenida a IVY USA. ¿En qué podemos ayudarte hoy? Elige un tema abajo o escribe tu pregunta.',
-    aiDisclosure: 'Este chat funciona con IA para brindarte una atención más rápida.',
+    aiDisclosure:
+      'Este chat funciona con IA. Los mensajes que envías son procesados por un proveedor externo de IA en Estados Unidos para generar respuestas.',
     inputPlaceholder: 'Escribe un mensaje…',
     send: 'Enviar',
     connectAgent: 'Conectar con un agente',
@@ -132,6 +133,17 @@ export const es: Translation = {
     },
     alwaysOn: 'Siempre activo',
     ccpa: 'CCPA: No vender ni compartir mi información personal',
+  },
+
+  privacy: {
+    title: 'Privacidad y tus datos',
+    optOutHint: 'Desactiva los mensajes por correo, SMS y push web de tu cuenta. Los avisos en la app siguen activos.',
+    export: 'Descargar mis datos (JSON)',
+    exporting: 'Preparando tu exportación…',
+    delete: 'Eliminar mis datos',
+    deleteConfirm: 'Haz clic de nuevo para confirmar — no se puede deshacer',
+    deleteDone: 'Tus datos personales han sido anonimizados.',
+    needVerified: 'Primero inicia sesión en tu cuenta de la tienda — esta acción requiere una identidad verificada.',
   },
 
   common: {

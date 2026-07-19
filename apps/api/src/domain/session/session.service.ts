@@ -10,6 +10,12 @@ import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
 
 /**
+ * Version tag of the consent notice text (PRV-M4). Bump when the widget's
+ * privacy-notice wording changes so recorded choices reference what was shown.
+ */
+export const CONSENT_NOTICE_VERSION = '2026-07';
+
+/**
  * Session lifecycle (S1 / FN-006). Creates or resumes a widget session, tracks
  * CCPA consent, and resolves UI language. Emits a CJM Awareness event on create.
  */
@@ -109,6 +115,9 @@ export class SessionService {
   async setConsent(token: string, granted: boolean): Promise<Session> {
     const session = await this.findByToken(token);
     session.consentState = granted ? CONSENT_STATE.GRANTED : CONSENT_STATE.DECLINED;
+    // Auditable proof of the choice: when + which notice version (PRV-M4).
+    session.consentAt = new Date();
+    session.consentVersion = CONSENT_NOTICE_VERSION;
     return this.sessionRepo.save(session);
   }
 

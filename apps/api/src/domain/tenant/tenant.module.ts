@@ -7,9 +7,10 @@ import { EcommerceIntegrationService } from './ecommerce-integration.service';
 import { WebhookSecretService } from './webhook-secret.service';
 import { TenantController } from './tenant.controller';
 import { IntegrationModule } from '../integration/integration.module';
+import { AuditModule } from '../audit/audit.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Tenant, IntegrationCredential]), IntegrationModule],
+  imports: [TypeOrmModule.forFeature([Tenant, IntegrationCredential]), IntegrationModule, AuditModule],
   controllers: [TenantController],
   providers: [TenantService, EcommerceIntegrationService, WebhookSecretService],
   exports: [TenantService, WebhookSecretService],

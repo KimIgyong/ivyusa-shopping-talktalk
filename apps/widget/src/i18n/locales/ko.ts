@@ -25,7 +25,8 @@ export const ko: Translation = {
   chat: {
     welcome:
       '안녕하세요! IVY USA에 오신 것을 환영합니다. 무엇을 도와드릴까요? 아래에서 주제를 선택하거나 궁금한 점을 입력해 주세요.',
-    aiDisclosure: '이 채팅은 더 빠른 상담을 위해 AI로 운영됩니다.',
+    aiDisclosure:
+      '이 채팅은 AI 기반으로 운영됩니다. 보내신 메시지는 응답 생성을 위해 미국에 있는 외부 AI 서비스 제공업체에서 처리됩니다.',
     inputPlaceholder: '메시지를 입력하세요…',
     send: '보내기',
     connectAgent: '상담원 연결',
@@ -132,6 +133,17 @@ export const ko: Translation = {
     },
     alwaysOn: '항상 켜짐',
     ccpa: 'CCPA: 내 개인정보를 판매하거나 공유하지 않음',
+  },
+
+  privacy: {
+    title: '개인정보 및 내 데이터',
+    optOutHint: '계정의 이메일, SMS, 웹 푸시 메시지를 끕니다. 앱 내 알림은 유지됩니다.',
+    export: '내 데이터 다운로드 (JSON)',
+    exporting: '내보내기를 준비하는 중…',
+    delete: '내 데이터 삭제',
+    deleteConfirm: '한 번 더 클릭하면 확정됩니다 — 되돌릴 수 없습니다',
+    deleteDone: '개인정보가 익명화되었습니다.',
+    needVerified: '먼저 스토어 계정으로 로그인해 주세요 — 이 작업은 본인 확인이 필요합니다.',
   },
 
   common: {

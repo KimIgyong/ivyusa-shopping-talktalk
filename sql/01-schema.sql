@@ -489,6 +489,8 @@ CREATE TABLE `sessions` (
   `customer_id` bigint DEFAULT NULL,
   `language` varchar(8) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'EN',
   `consent_state` varchar(16) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'pending',
+  `consent_at` datetime DEFAULT NULL,
+  `consent_version` varchar(32) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `created_at` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
   `updated_at` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
   `tenant_id` bigint DEFAULT NULL,

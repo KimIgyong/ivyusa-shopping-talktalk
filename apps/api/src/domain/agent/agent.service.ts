@@ -21,6 +21,8 @@ import {
   CustomerService,
 } from '../customer/customer.service';
 import { AiGatewayService } from '../../infrastructure/external/ai/ai-gateway.service';
+import { AuditService } from '../audit/audit.service';
+import { RedisService } from '../../infrastructure/cache/redis.service';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
 import { UpsertProfileRequest } from './dto/request/agent.request';
@@ -45,7 +47,33 @@ export class AgentService {
     private readonly moderation: ModerationService,
     private readonly customerService: CustomerService,
     private readonly aiGateway: AiGatewayService,
+    private readonly audit: AuditService,
+    private readonly redis: RedisService,
   ) {}
+
+  /**
+   * Audit an agent opening a conversation (transcript + customer PII — PRV-H4/
+   * PRV-040). The console re-fetches the open thread, so writes are deduped per
+   * agent+conversation for an hour via Redis; without Redis every view audits.
+   */
+  async auditConversationView(agentUserId: number, tenantId: number, conversationId: number): Promise<void> {
+    try {
+      const dedupKey = `audit:agent:${agentUserId}:conv:${conversationId}`;
+      if (this.redis.available()) {
+        if (await this.redis.get(dedupKey)) return;
+        await this.redis.set(dedupKey, '1', 3600);
+      }
+      await this.audit.write({
+        tenantId,
+        actorType: 'user',
+        actorId: agentUserId,
+        action: 'agent.conversation_viewed',
+        target: `conversation:${conversationId}`,
+      });
+    } catch (err) {
+      this.logger.warn(`conversation-view audit failed: ${String(err)}`);
+    }
+  }
 
   /**
    * Load a conversation and assert it belongs to the caller's tenant (SEC-H1).

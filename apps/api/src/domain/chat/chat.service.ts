@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import {
   CJM_STAGE,
+  CONSENT_STATE,
   CONVERSATION_STATUS,
   MODERATION_DECISION,
   SENDER_TYPE,
@@ -43,6 +44,11 @@ const SYSTEM_MESSAGES = {
     EN: "I couldn't find a confident answer in our help content, so I'm forwarding this to our support team to continue the conversation. An agent will reply here shortly.",
     ES: 'No encontré una respuesta segura en nuestro contenido de ayuda, así que lo estoy remitiendo a nuestro equipo de soporte para continuar la conversación. Un agente responderá aquí en breve.',
     KO: '관리자에게 전달하여 상담을 이어가겠습니다. 잠시만 기다려 주시면 상담사가 이 대화창에서 답변드릴게요.',
+  },
+  consentRequired: {
+    EN: 'You declined the privacy notice, so we cannot process chat messages. To use chat, please accept the privacy notice in the consent banner.',
+    ES: 'Rechazaste el aviso de privacidad, por lo que no podemos procesar mensajes de chat. Para usar el chat, acepta el aviso de privacidad en el banner de consentimiento.',
+    KO: '개인정보 처리 안내를 거부하셔서 채팅 메시지를 처리할 수 없습니다. 채팅을 이용하려면 동의 배너에서 개인정보 처리 안내에 동의해 주세요.',
   },
 } as const;
 
@@ -137,6 +143,17 @@ export class ChatService {
   }
 
   async handleUserMessage(session: Session, text: string): Promise<ChatTurnResult> {
+    // Declined consent (PRV-M4): the message is neither persisted nor sent to
+    // the AI — the customer gets a localized pointer back to the consent banner.
+    if (session.consentState === CONSENT_STATE.DECLINED) {
+      return {
+        conversationId: 0,
+        reply: { senderType: 'system', body: sysMsg('consentRequired', session.language) },
+        escalate: false,
+        needsAuth: false,
+      };
+    }
+
     const tenantId = session.tenantId ?? (await this.resolveTenantId());
     const conversation = await this.getOrCreateConversation(session.id);
 

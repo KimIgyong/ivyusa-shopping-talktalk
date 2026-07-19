@@ -72,8 +72,8 @@ export class PrivacyController {
     private readonly retentionService: RetentionService,
   ) {}
 
-  // NOTE: schedule via @nestjs/schedule in production — this manual endpoint
-  // lets an admin trigger/verify disposal of expired conversation logs (POL-003).
+  // Runs on a scheduler too (RETENTION_PURGE_INTERVAL_HOURS) — this manual
+  // endpoint lets an admin trigger/verify disposal on demand (POL-003).
   @Post('retention/purge')
   @AdminOnly()
   @ApiOperation({ summary: 'Retention/disposal: purge expired conversation logs (POL-003)' })

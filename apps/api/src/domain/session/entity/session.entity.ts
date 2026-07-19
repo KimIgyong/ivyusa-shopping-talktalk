@@ -34,6 +34,14 @@ export class Session {
   @Column({ name: 'consent_state', type: 'varchar', length: 16, default: 'pending' })
   consentState: string; // pending/granted/declined
 
+  /** When the consent choice was recorded — auditable proof (PRV-M4). */
+  @Column({ name: 'consent_at', type: 'datetime', nullable: true })
+  consentAt: Date | null;
+
+  /** Version of the consent notice the choice was made against (PRV-M4). */
+  @Column({ name: 'consent_version', type: 'varchar', length: 32, nullable: true })
+  consentVersion: string | null;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 

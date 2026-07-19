@@ -42,7 +42,10 @@ function unwrapError(err: unknown): Error {
       typeof e === 'string'
         ? e
         : e?.message || err.message || 'Request failed';
-    return new Error(msg);
+    const wrapped = new Error(msg) as Error & { status?: number; code?: string };
+    wrapped.status = err.response?.status;
+    if (e && typeof e !== 'string') wrapped.code = e.code;
+    return wrapped;
   }
   return err instanceof Error ? err : new Error('Unknown error');
 }

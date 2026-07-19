@@ -14,6 +14,7 @@ import { AgentAlertService } from './agent-alert.service';
 import { AgentConsoleController } from './agent-console.controller';
 import { ModerationModule } from '../moderation/moderation.module';
 import { CustomerModule } from '../customer/customer.module';
+import { AuditModule } from '../audit/audit.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { CustomerModule } from '../customer/customer.module';
     ]),
     ModerationModule,
     CustomerModule,
+    AuditModule,
   ],
   controllers: [AgentConsoleController],
   providers: [AgentService, AgentAlertService],
