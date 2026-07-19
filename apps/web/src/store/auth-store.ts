@@ -37,6 +37,15 @@ export const useAuthStore = create<AuthState>()(
           mustChangePassword: false,
         }),
     }),
-    { name: 'ivy_auth' },
+    {
+      name: 'ivy_auth',
+      // FE-H1: the refresh token stays in memory only — persisting it to
+      // localStorage puts a 7-day credential inside any XSS blast radius.
+      partialize: (s) => ({
+        accessToken: s.accessToken,
+        principal: s.principal,
+        mustChangePassword: s.mustChangePassword,
+      }),
+    },
   ),
 );

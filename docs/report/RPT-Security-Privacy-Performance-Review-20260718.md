@@ -28,6 +28,24 @@ All six release blockers are **fixed** in the working branch (typecheck + build 
 
 New env vars documented in `.env.development` + staging/production examples. Remaining findings below are **not yet addressed**.
 
+## 0b. Remediation status (2026-07-19, branch `fix/security-sprint1-hardening`)
+
+Sprint 1 (hardening) items fixed; the auth flow was runtime-verified end-to-end against the seeded dev stack (forced-change lockout, rotation, replay, revocation — 14/14 checks):
+
+| Ref | Fix | Files |
+|---|---|---|
+| SEC-M1 | Refresh tokens are **single-use** (`jti` registered in Redis, consumed+rotated on refresh; degrades open like the login limiter when Redis is down). `refresh()` reloads the principal from the DB (fresh rank/labels, rejects suspended). New `password_changed_at` on `users`/`admin_users` revokes all pre-change refresh tokens (DB-backed, survives Redis restart). New `POST /auth/logout` revokes the presented refresh token. | `auth/auth.service.ts`, `auth/auth.controller.ts`, entities, `sql/01-schema.sql` |
+| SEC-M2 | Must-change-password enforced **server-side**: access tokens carry `pwdPending`; `JwtAuthGuard` blocks all routes except `@AllowPendingPassword` (change-password/me/logout) with 403 E1005. `refresh()` no longer hardcodes the flag; change-password returns a fresh token pair. | `global/guard/jwt-auth.guard.ts`, `global/decorator/allow-pending-password.decorator.ts`, `auth/*` |
+| SEC-L1 | CORS: explicit `CORS_ORIGINS` allowlist; unset → dev reflects, **prod emits no CORS headers** (same-origin edge topology). | `main.ts`, env examples |
+| SEC-L4 | JWT verification pins `algorithms: ['HS256']` (access + refresh). | `jwt-auth.guard.ts`, `auth.service.ts` |
+| FE-H1 | Admin refresh token no longer persisted to localStorage (zustand `partialize`; in-memory only). Logout calls `/auth/logout` best-effort. Change-password modal adopts the rotated pair. | `web/store/auth-store.ts`, `web/domain/auth/*`, `web/layouts/Header.tsx` |
+| FE-M1 | Citation links allow only http(s) (`javascript:` → rendered as text); `rel="noopener noreferrer"`. | `widget/components/chat/MessageBubble.tsx` |
+| FE-M2 (partial) | Widget adopts `ivy:session` only once, only from an https parent origin (localhost exempt); no mid-conversation token swap. Full fix (per-tenant `frame-ancestors` allowlist) still open. | `widget/hooks/useEmbedIdentity.ts` |
+| INF-1 (partial) | `nodemailer` 6→9 (clears the direct high-severity advisory). Remaining 14 prod-path vulns all require the NestJS 10→11 major — **dependency-upgrade sprint still needed**. | `apps/api/package.json` |
+| INF-4 | `Strict-Transport-Security: max-age=31536000` added to web/widget nginx (staging + production). | `docker/*/nginx.*.conf` |
+
+Still open after Sprint 1: SEC-M3 (SSRF), SEC-M5 (committed dev secrets/boot assertions), SEC-L3/L5/L6, all PRV items (Sprint 2), all PERF items (Sprint 3), NestJS 11 upgrade (INF-1 rest).
+
 ---
 
 ## 0. Priority action list (do these first)

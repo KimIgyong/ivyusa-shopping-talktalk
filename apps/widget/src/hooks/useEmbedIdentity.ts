@@ -15,10 +15,27 @@ export function useEmbedIdentity() {
   useEffect(() => {
     if (window.parent === window) return; // not embedded — nothing to do
 
+    // FE-M2 hardening: only adopt an identity token once, from a secure parent
+    // origin. A hostile page can still embed the widget, but it cannot swap the
+    // session mid-conversation, and plain-http embedders (where the token would
+    // travel unencrypted) are refused. localhost is exempt for local dev.
+    let adopted = false;
+    function isTrustedOrigin(origin: string): boolean {
+      try {
+        const { protocol, hostname } = new URL(origin);
+        if (protocol === 'https:') return true;
+        return protocol === 'http:' && (hostname === 'localhost' || hostname === '127.0.0.1');
+      } catch {
+        return false;
+      }
+    }
+
     function onMessage(e: MessageEvent) {
       if (e.source !== window.parent) return; // only from our embedder frame
+      if (adopted || !isTrustedOrigin(e.origin)) return;
       const d = (e.data || {}) as { type?: string; token?: string };
       if (d.type === 'ivy:session' && d.token) {
+        adopted = true;
         setSessionToken(d.token);
         setAuthenticated(true);
       }

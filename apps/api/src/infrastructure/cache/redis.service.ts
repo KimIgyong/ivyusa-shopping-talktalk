@@ -27,6 +27,15 @@ export class RedisService implements OnModuleDestroy {
     }
   }
 
+  /**
+   * Whether Redis is currently connected. Lets security-sensitive callers
+   * (e.g. refresh-token rotation) distinguish "key absent = revoked" from
+   * "Redis down = cannot check" and choose their degrade behavior explicitly.
+   */
+  available(): boolean {
+    return this.client?.status === 'ready';
+  }
+
   async get(key: string): Promise<string | null> {
     try {
       return (await this.client?.get(key)) ?? null;

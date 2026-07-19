@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { PanelLeft, LogOut, KeyRound } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '@/store/auth-store';
+import { authService } from '@/domain/auth/auth.service';
 import { useUiStore } from '@/store/ui-store';
 import { Badge } from '@/components/Badge';
 import { SUPPORTED_LANGUAGES, LANGUAGE_STORAGE_KEY, type SupportedLanguage } from '@/i18n/i18n';
@@ -63,6 +64,10 @@ export function Header({ onChangePassword }: { onChangePassword: () => void }) {
   const navigate = useNavigate();
 
   const logout = () => {
+    // Best-effort server-side revocation of the (in-memory) refresh token;
+    // local state is cleared regardless.
+    const refreshToken = useAuthStore.getState().refreshToken;
+    void authService.logout(refreshToken ?? undefined).catch(() => undefined);
     clear();
     navigate('/login');
   };

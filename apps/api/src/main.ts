@@ -15,10 +15,20 @@ import { runSeed } from './database/seed.runner';
 async function bootstrap(): Promise<void> {
   // rawBody: preserve the exact request bytes so webhook HMAC (Shopify) can be
   // verified against the raw payload, not a re-stringified JSON copy.
-  const app = await NestFactory.create(AppModule, { cors: true, rawBody: true });
+  const app = await NestFactory.create(AppModule, { rawBody: true });
   const config = app.get(ConfigService);
   const prefix = config.get<string>('API_PREFIX', 'api/v1');
   const isProd = config.get<string>('NODE_ENV') === 'production';
+
+  // CORS (SEC-L1): explicit allowlist via CORS_ORIGINS (comma-separated). When
+  // unset, dev reflects any origin (local Vite ports vary) but prod sends no
+  // CORS headers at all — the edge proxy serves web/widget/api same-origin, so
+  // cross-origin browser calls are only ever needed when explicitly configured.
+  const corsOrigins = (config.get<string>('CORS_ORIGINS', '') || '')
+    .split(',')
+    .map((o) => o.trim())
+    .filter(Boolean);
+  app.enableCors({ origin: corsOrigins.length ? corsOrigins : !isProd });
 
   // Security response headers (SEC-L2). CSP is disabled because the API serves
   // JSON + the Swagger UI (which uses inline assets); HSTS/nosniff/frameguard/etc.
