@@ -169,6 +169,7 @@ CREATE TABLE `cjm_events` (
   KEY `idx_cjm_session` (`session_id`),
   KEY `idx_cjm_customer` (`customer_id`),
   KEY `idx_cjm_stage` (`stage`),
+  KEY `idx_cjm_tenant_created` (`tenant_id`,`created_at`),
   KEY `idx_cjm_tenant` (`tenant_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 DROP TABLE IF EXISTS `content_filter_rules`;
@@ -200,7 +201,8 @@ CREATE TABLE `conversations` (
   PRIMARY KEY (`id`),
   KEY `idx_conv_session` (`session_id`),
   KEY `idx_conv_agent` (`agent_id`),
-  KEY `idx_conv_tenant` (`tenant_id`)
+  KEY `idx_conv_tenant` (`tenant_id`),
+  KEY `idx_conv_status` (`status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 DROP TABLE IF EXISTS `customers`;
 CREATE TABLE `customers` (
@@ -319,7 +321,8 @@ CREATE TABLE `kb_documents` (
   PRIMARY KEY (`id`),
   KEY `idx_kb_tenant` (`tenant_id`),
   KEY `idx_kb_source` (`source_id`),
-  KEY `idx_kb_category` (`category`)
+  KEY `idx_kb_category` (`category`),
+  FULLTEXT KEY `ft_kb_title_content` (`title`,`content`) /*!50100 WITH PARSER `ngram` */
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 DROP TABLE IF EXISTS `kb_files`;
 CREATE TABLE `kb_files` (
@@ -407,6 +410,7 @@ CREATE TABLE `notifications` (
   PRIMARY KEY (`id`),
   KEY `idx_notif_customer` (`customer_id`),
   KEY `idx_notif_category` (`category`),
+  KEY `idx_notif_customer_read` (`customer_id`,`read_at`),
   KEY `idx_notif_tenant` (`tenant_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 DROP TABLE IF EXISTS `order_items`;
@@ -440,6 +444,7 @@ CREATE TABLE `orders_cache` (
   UNIQUE KEY `uk_orders_shopify` (`shopify_order_id`),
   KEY `idx_orders_customer` (`customer_id`),
   KEY `idx_orders_number` (`order_number`),
+  KEY `idx_ordc_tenant_created` (`tenant_id`,`created_at`),
   KEY `idx_ordc_tenant` (`tenant_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 DROP TABLE IF EXISTS `restock_subscriptions`;

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { SkipThrottle } from '@nestjs/throttler';
 import { ChatService } from './chat.service';
@@ -37,11 +37,19 @@ export class ChatController {
   @Get('conversation/:token')
   @Public()
   @SkipThrottle() // widget polls this every few seconds — must not count against the flood limit
-  @ApiOperation({ summary: 'Get current conversation messages for a session' })
-  async conversation(@Param('token') token: string) {
+  @ApiOperation({ summary: 'Get conversation messages for a session (delta via ?after_id=)' })
+  async conversation(@Param('token') token: string, @Query('after_id') afterId?: string) {
     const session = await this.sessionService.findByToken(token);
-    const conversation = await this.chatService.getOrCreateConversation(session.id);
-    const messages = await this.chatService.listMessages(conversation.id);
+    // Read-only + bounded (PERF-1): the poll never creates conversations and
+    // fetches only messages newer than after_id once the widget has history.
+    const conversation = await this.chatService.findOpenConversation(session.id);
+    if (!conversation) {
+      return { conversationId: null, status: 'none', messages: [] };
+    }
+    const after = afterId != null && afterId !== '' ? Number(afterId) : undefined;
+    const messages = await this.chatService.listMessages(conversation.id, {
+      afterId: Number.isFinite(after) ? after : undefined,
+    });
     const senderNames = await this.chatService.resolveSenderNames(messages);
     return ChatMapper.toConversationResponse(conversation, messages, senderNames);
   }

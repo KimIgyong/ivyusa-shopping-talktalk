@@ -63,6 +63,23 @@ Sprint 2 (compliance) items fixed; DSAR export/erasure, opt-out, campaign dispat
 
 Still open after Sprint 2: PRV-M5 rest (broader maskPii call sites), PRV-M6 (PII encryption at rest), PRV-M7/FE-M3 (session token in URL), full PERF sprint, SEC-M3/M5, NestJS 11 upgrade.
 
+## 0d. Remediation status (2026-07-20, branch `perf/performance-sprint3`)
+
+Sprint 3 (performance) items fixed; delta polling, FULLTEXT retrieval, async dispatch, and cache behavior runtime-verified against the dev stack:
+
+| Ref | Fix | Files |
+|---|---|---|
+| PERF-1 | Widget poll is **read-only + delta**: `GET /chat/conversation/:token?after_id=` returns only newer rows; without a cursor, the last 200 messages. The GET never INSERTs (conversations are created on first message). Widget tracks the cursor, resets to a full reconcile after each send. Verified: empty poll creates no rows; delta returns exactly the new message. | `chat/chat.{service,controller}.ts`, `widget/hooks/useChat.ts`, `widget/services/chatService.ts` |
+| PERF-2 | RAG retriever uses `FULLTEXT(title,content)` (**ngram** parser — ko tokenizes) with `MATCH…AGAINST` relevance ranking; knowledge_store still outranks Drive. LIKE scan kept only as a fallback for pre-migration DBs. Verified: mixed ko/en MATCH query returns ranked hits; chat turn with 4 citations in ~25ms. | `knowledge/entity/kb-document.entity.ts`, `chat/rag.service.ts`, `sql/01-schema.sql` |
+| PERF-3 | `EventBus.publish` dispatches in-process handlers **detached** (`setImmediate`, errors logged) — CJM inserts, notification fan-out, and the escalation Slack/SMTP calls no longer run inside the customer's HTTP response. Verified: chat responds immediately, CJM row lands asynchronously. | `infrastructure/queue/event-bus.service.ts` |
+| PERF-4 | gzip (level 5, json/js/css/svg) in edge + web + widget nginx, staging and production. Config-only (not runtime-driven locally). | `docker/*/nginx*.conf` |
+| PERF-5 | Shopify sync is **incremental + paginated**: `updated_at_min` from `integration_status.last_sync_at` (minus a 10-min idempotent overlap), Link-header `page_info` cursor up to 10 pages/run, per-page `IN()` prefetch of existing rows. Unit-tested; not runtime-driven (no live store). | `order/shopify-admin.client.ts`, `order/shopify-sync.service.ts` |
+| PERF-6 | New indexes: `conversations(status)`, `notifications(customer_id, read_at)`, `cjm_events(tenant_id, created_at)`, `orders_cache(tenant_id, created_at)`. Verified created via synchronize. | entities, `sql/01-schema.sql` |
+| PERF-11 | Redis caches: token→session (30s TTL, invalidated on consent/language/customer-bind/erasure), per-tenant moderation rules (60s, invalidated on rule CRUD), persona/rules (60s, invalidated on config save), unread count (20s, invalidated on notify/markRead). Verified: keys populate on traffic; consent change deletes the session key. | `session/`, `moderation/`, `ai-engine/`, `notification/` |
+| PERF-17 | mysql2 pool sized via `DB_POOL_SIZE` (default 30; was mysql2's default 10). | `global/config/typeorm.config.ts`, env examples |
+
+Still open: PERF-7/8/9/13 (N+1s, dashboard scoping/caching, KB SELECT *, admin code-splitting), SSE (only after these), PRV/SEC backlog above, NestJS 11 sprint.
+
 ---
 
 ## 0. Priority action list (do these first)

@@ -40,6 +40,12 @@ export class EventBusService implements OnModuleInit, OnModuleDestroy {
     this.handlers.set(routingKey, list);
   }
 
+  /**
+   * Publish an event. In-process handlers are dispatched DETACHED from the
+   * caller (PERF-3): a chat turn no longer pays for CJM inserts, notification
+   * fan-out, or the escalation Slack/SMTP calls inside its HTTP response.
+   * Handler errors are logged, never propagated to the publisher.
+   */
   async publish(routingKey: string, payload: unknown): Promise<void> {
     const body = Buffer.from(JSON.stringify(payload));
     try {
@@ -47,18 +53,20 @@ export class EventBusService implements OnModuleInit, OnModuleDestroy {
     } catch (e) {
       this.logger.warn(`publish failed (${routingKey}): ${(e as Error).message}`);
     }
-    // In-process fan-out (supports wildcard prefix "a.b.*").
-    for (const [key, handlers] of this.handlers.entries()) {
-      if (this.matches(key, routingKey)) {
-        for (const h of handlers) {
-          try {
-            await h(payload);
-          } catch (e) {
-            this.logger.error(`handler error (${key}): ${(e as Error).message}`);
+    // In-process fan-out (supports wildcard prefix "a.b.*"), off the hot path.
+    setImmediate(() => {
+      for (const [key, handlers] of this.handlers.entries()) {
+        if (this.matches(key, routingKey)) {
+          for (const h of handlers) {
+            Promise.resolve()
+              .then(() => h(payload))
+              .catch((e) =>
+                this.logger.error(`handler error (${key}): ${(e as Error).message}`),
+              );
           }
         }
       }
-    }
+    });
   }
 
   private matches(pattern: string, key: string): boolean {

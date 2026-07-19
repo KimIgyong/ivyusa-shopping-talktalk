@@ -1,8 +1,13 @@
 import { apiClient } from '../lib/api-client';
 import type { ChatReply, Conversation, ScenarioReply } from '../lib/types';
 
-export function getConversation(sessionToken: string): Promise<Conversation> {
-  return apiClient.get<Conversation>(`/chat/conversation/${sessionToken}`);
+export function getConversation(
+  sessionToken: string,
+  afterId?: string | null,
+): Promise<Conversation> {
+  return apiClient.get<Conversation>(`/chat/conversation/${sessionToken}`, {
+    after_id: afterId ?? undefined,
+  });
 }
 
 export function sendMessage(

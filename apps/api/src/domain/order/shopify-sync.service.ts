@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { ORDER_STATUS_INTERNAL, internalToUiStatus } from '@ivy/types';
 import { OrderCache } from './entity/order-cache.entity';
 import { ShopifyAdminClient, ShopifyOrderDto } from './shopify-admin.client';
@@ -9,6 +9,11 @@ import { CustomerService } from '../customer/customer.service';
 import { IntegrationService } from '../integration/integration.service';
 
 const SHOPIFY = 'shopify';
+/** Overlap subtracted from the last_sync_at cursor — upserts are idempotent, so
+ *  re-pulling a few minutes protects against clock skew and error-stamped cursors. */
+const CURSOR_LOOKBACK_MS = 10 * 60_000;
+/** Page cap per run (50 orders each) — bounds a single sync's work. */
+const MAX_PAGES = 10;
 
 /** Shopify topic → our webhook path (under /api/v1/webhooks/shopify/). */
 const WEBHOOK_TOPICS: Array<{ topic: string; path: string }> = [
@@ -59,23 +64,52 @@ export class ShopifySyncService {
       );
     }
 
-    let orders: ShopifyOrderDto[];
-    try {
-      orders = await this.client.fetchOrders(conn.shopDomain, conn.token);
-    } catch (e) {
-      return this.record(false, 0, `Sync failed: ${(e as Error).message}`);
-    }
+    // Incremental cursor (PERF-5): last_sync_at minus a lookback overlap.
+    const status = await this.integrationService.findByName(SHOPIFY);
+    const since = status?.lastSyncAt
+      ? new Date(status.lastSyncAt.getTime() - CURSOR_LOOKBACK_MS).toISOString()
+      : undefined;
 
+    let synced = 0;
+    let pages = 0;
+    let pageInfo: string | null = null;
+    try {
+      do {
+        const page = await this.client.fetchOrders(conn.shopDomain, conn.token, {
+          updatedAtMin: pageInfo ? undefined : since,
+          pageInfo: pageInfo ?? undefined,
+        });
+        synced += await this.upsertPage(tenantId, page.orders);
+        pageInfo = page.nextPageInfo;
+        pages++;
+      } while (pageInfo && pages < MAX_PAGES);
+    } catch (e) {
+      if (synced === 0) return this.record(false, 0, `Sync failed: ${(e as Error).message}`);
+      // Partial progress is kept; report it but flag the interruption.
+      return this.record(true, synced, `Synced ${synced} order(s), interrupted: ${(e as Error).message}`);
+    }
+    const detail = since
+      ? `Synced ${synced} order(s) updated since ${since}`
+      : `Synced ${synced} order(s) (initial full sync${pageInfo ? ', more pages remain' : ''})`;
+    return this.record(true, synced, detail);
+  }
+
+  /** Upsert one page with the existing rows prefetched in a single IN() query. */
+  private async upsertPage(tenantId: number, orders: ShopifyOrderDto[]): Promise<number> {
+    if (!orders.length) return 0;
+    const ids = orders.map((o) => String(o.id));
+    const existing = await this.orderRepo.find({ where: { shopifyOrderId: In(ids) } });
+    const byShopifyId = new Map(existing.map((r) => [r.shopifyOrderId, r]));
     let synced = 0;
     for (const order of orders) {
       try {
-        await this.upsertOrder(tenantId, order);
+        await this.upsertOrder(tenantId, order, byShopifyId.get(String(order.id)));
         synced++;
       } catch (e) {
         this.logger.warn(`Skipped order ${order.id}: ${(e as Error).message}`);
       }
     }
-    return this.record(true, synced, `Synced ${synced} order(s)`);
+    return synced;
   }
 
   /**
@@ -129,7 +163,7 @@ export class ShopifySyncService {
   }
 
   /** Map a Shopify order → orders_cache (+ linked customer). Public: reused by webhooks. */
-  async upsertOrder(tenantId: number, o: ShopifyOrderDto): Promise<OrderCache> {
+  async upsertOrder(tenantId: number, o: ShopifyOrderDto, prefetched?: OrderCache): Promise<OrderCache> {
     let customerId: number | null = null;
     const email = o.customer?.email ?? o.email ?? null;
     if (email) {
@@ -153,7 +187,7 @@ export class ShopifySyncService {
         ? Number(o.total_price)
         : null;
 
-    let row = await this.orderRepo.findOne({ where: { shopifyOrderId } });
+    let row = prefetched ?? (await this.orderRepo.findOne({ where: { shopifyOrderId } }));
     if (!row) {
       row = this.orderRepo.create({ shopifyOrderId });
     }

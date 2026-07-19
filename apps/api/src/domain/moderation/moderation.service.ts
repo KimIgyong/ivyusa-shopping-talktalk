@@ -6,6 +6,15 @@ import { truncate } from '@ivy/common';
 import { ContentFilterRule } from './entity/content-filter-rule.entity';
 import { ModerationLog } from './entity/moderation-log.entity';
 import { AiGatewayService } from '../../infrastructure/external/ai/ai-gateway.service';
+import { RedisService } from '../../infrastructure/cache/redis.service';
+
+/** TTL for the per-tenant active-rules cache (PERF-11). */
+const MOD_RULES_CACHE_TTL_SEC = 60;
+
+/** Exported so the rule CRUD endpoints can invalidate on change. */
+export function moderationRulesCacheKey(tenantId: number): string {
+  return `modrules:${tenantId}`;
+}
 
 export interface ModerateInput {
   tenantId: number;
@@ -37,16 +46,31 @@ export class ModerationService {
     @InjectRepository(ContentFilterRule) private readonly ruleRepo: Repository<ContentFilterRule>,
     @InjectRepository(ModerationLog) private readonly logRepo: Repository<ModerationLog>,
     private readonly ai: AiGatewayService,
+    private readonly redis: RedisService,
   ) {}
+
+  /**
+   * Active rules per tenant, Redis-cached for 60s (PERF-11) — moderation runs
+   * on EVERY AI/agent outbound message. Rule CRUD invalidates via
+   * `moderationRulesCacheKey`.
+   */
+  private async activeRules(tenantId: number, scope: string): Promise<ContentFilterRule[]> {
+    const key = moderationRulesCacheKey(tenantId);
+    let all: ContentFilterRule[] | null = null;
+    if (this.redis.available()) {
+      const hit = await this.redis.get(key);
+      if (hit) all = JSON.parse(hit) as ContentFilterRule[];
+    }
+    if (!all) {
+      all = await this.ruleRepo.find({ where: { tenantId, isActive: 1 } });
+      await this.redis.set(key, JSON.stringify(all), MOD_RULES_CACHE_TTL_SEC);
+    }
+    return all.filter((r) => r.scope === scope || r.scope === 'both');
+  }
 
   async moderate(input: ModerateInput): Promise<ModerateResult> {
     try {
-      const rules = await this.ruleRepo.find({
-        where: [
-          { tenantId: input.tenantId, scope: input.scope, isActive: 1 },
-          { tenantId: input.tenantId, scope: 'both', isActive: 1 },
-        ],
-      });
+      const rules = await this.activeRules(input.tenantId, input.scope);
 
       let working = input.text;
       for (const rule of rules) {

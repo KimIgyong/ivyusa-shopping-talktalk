@@ -20,6 +20,8 @@ import { RestockSubscription } from '../restock/entity/restock-subscription.enti
 import { Campaign } from '../campaign/entity/campaign.entity';
 import { Tenant } from '../tenant/entity/tenant.entity';
 import { AuditService } from '../audit/audit.service';
+import { RedisService } from '../../infrastructure/cache/redis.service';
+import { sessionCacheKey } from '../session/session.service';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
 import { maskPii } from '../../global/util/pii.util';
@@ -57,6 +59,7 @@ export class PrivacyService {
     @InjectRepository(Campaign) private readonly campaignRepo: Repository<Campaign>,
     @InjectRepository(Tenant) private readonly tenantRepo: Repository<Tenant>,
     private readonly audit: AuditService,
+    private readonly redis: RedisService,
   ) {}
 
   // ---- session resolution (widget DSAR/CCPA) ----
@@ -454,9 +457,12 @@ export class PrivacyService {
     // Orders: keep operational record but unlink PII association.
     await this.orderRepo.update({ customerId }, { customerId: null });
 
-    // Sessions: unbind the customer.
+    // Sessions: unbind the customer (+ drop their token→session cache entries).
     if (sessionIds.length) {
       await this.sessionRepo.update({ customerId }, { customerId: null });
+      for (const s of sessions) {
+        await this.redis.del(sessionCacheKey(s.sessionToken));
+      }
     }
 
     // Finally, anonymize the customer record itself (incl. phone — PRV-H2).

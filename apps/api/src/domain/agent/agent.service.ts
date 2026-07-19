@@ -23,6 +23,7 @@ import {
 import { AiGatewayService } from '../../infrastructure/external/ai/ai-gateway.service';
 import { AuditService } from '../audit/audit.service';
 import { RedisService } from '../../infrastructure/cache/redis.service';
+import { sessionCacheKey } from '../session/session.service';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
 import { UpsertProfileRequest } from './dto/request/agent.request';
@@ -240,6 +241,12 @@ export class AgentService {
     return map;
   }
 
+  /** Drop the widget's token→session cache after a customer (re)binding (PERF-11). */
+  private async invalidateSessionCache(sessionId: number): Promise<void> {
+    const session = await this.sessionRepo.findOne({ where: { id: sessionId } });
+    if (session) await this.redis.del(sessionCacheKey(session.sessionToken));
+  }
+
   /** Single agent's display name (for the just-sent message response). */
   async agentName(userId: number): Promise<string | null> {
     const user = await this.userRepo.findOne({ where: { id: userId } });
@@ -278,6 +285,7 @@ export class AgentService {
     // Verifies tenant ownership (throws if the customer is not in this tenant).
     await this.customerService.findById(tenantId, customerId);
     await this.sessionRepo.update({ id: conversation.sessionId }, { customerId });
+    await this.invalidateSessionCache(conversation.sessionId);
     return this.customerService.getContext(tenantId, customerId);
   }
 
@@ -290,6 +298,7 @@ export class AgentService {
     const conversation = await this.requireConversation(conversationId, tenantId);
     const customer = await this.customerService.createFromLead(tenantId, lead);
     await this.sessionRepo.update({ id: conversation.sessionId }, { customerId: customer.id });
+    await this.invalidateSessionCache(conversation.sessionId);
     return this.customerService.getContext(tenantId, customer.id);
   }
 

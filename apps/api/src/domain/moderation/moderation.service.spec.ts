@@ -32,8 +32,15 @@ function build(ruleRepo: RuleRepoMock) {
     save: jest.fn(async (x) => x),
   };
   const ai: AiMock = { complete: jest.fn() };
+  // Redis stand-in: cache misses everywhere, writes are no-ops.
+  const redis = {
+    available: () => false,
+    get: jest.fn(async () => null),
+    set: jest.fn(async () => undefined),
+    del: jest.fn(async () => undefined),
+  };
   // Cast through unknown — the service only touches the mocked methods.
-  const service = new ModerationService(ruleRepo as any, logRepo as any, ai as any);
+  const service = new ModerationService(ruleRepo as any, logRepo as any, ai as any, redis as any);
   return { service, logRepo, ai };
 }
 

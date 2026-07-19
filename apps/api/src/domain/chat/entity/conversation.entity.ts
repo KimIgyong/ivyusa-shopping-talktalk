@@ -2,6 +2,8 @@ import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn } from 
 import { bigintTransformer } from '../../../global/util/transformers';
 
 /** conversations — chat threads within a session (FR-010). */
+// Agent-console queue scans filter by status (PERF-6).
+@Index('idx_conv_status', ['status'])
 @Entity('conversations')
 export class Conversation {
   @PrimaryGeneratedColumn({ type: 'bigint' })

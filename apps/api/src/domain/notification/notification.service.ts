@@ -8,6 +8,14 @@ import { NotifyInput } from './dto/response/notification.response';
 import { EventBusService, EVENTS } from '../../infrastructure/infrastructure.module';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
+import { RedisService } from '../../infrastructure/cache/redis.service';
+
+/** TTL for the unread-badge count cache (PERF-11) — widget polls it every 30s. */
+const UNREAD_CACHE_TTL_SEC = 20;
+
+function unreadCacheKey(customerId: number): string {
+  return `notif:unread:${customerId}`;
+}
 
 const EXTERNAL_CHANNELS = ['email', 'sms', 'web_push'] as const;
 
@@ -25,6 +33,7 @@ export class NotificationService implements OnModuleInit {
     @InjectRepository(NotificationPref) private readonly prefRepo: Repository<NotificationPref>,
     @InjectRepository(Session) private readonly sessionRepo: Repository<Session>,
     private readonly bus: EventBusService,
+    private readonly redis: RedisService,
   ) {}
 
   onModuleInit(): void {
@@ -68,12 +77,13 @@ export class NotificationService implements OnModuleInit {
     return created;
   }
 
-  private createRow(
+  private async createRow(
     input: NotifyInput,
     channel: string,
     customerId: number | null,
     sessionId: number | null,
   ): Promise<Notification> {
+    if (customerId != null) await this.redis.del(unreadCacheKey(customerId));
     return this.notifRepo.save(
       this.notifRepo.create({
         customerId,
@@ -135,14 +145,23 @@ export class NotificationService implements OnModuleInit {
     }
     if (notif.readAt == null) {
       notif.readAt = new Date();
-      return this.notifRepo.save(notif);
+      const saved = await this.notifRepo.save(notif);
+      await this.redis.del(unreadCacheKey(customerId));
+      return saved;
     }
     return notif;
   }
 
   async unreadCount(token: string): Promise<number> {
     const customerId = await this.requireCustomerId(token);
-    return this.notifRepo.count({ where: { customerId, readAt: IsNull() } });
+    const key = unreadCacheKey(customerId);
+    if (this.redis.available()) {
+      const hit = await this.redis.get(key);
+      if (hit != null) return Number(hit);
+    }
+    const count = await this.notifRepo.count({ where: { customerId, readAt: IsNull() } });
+    await this.redis.set(key, String(count), UNREAD_CACHE_TTL_SEC);
+    return count;
   }
 
   async listPrefs(token: string): Promise<NotificationPref[]> {
