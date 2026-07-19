@@ -95,7 +95,8 @@ export class PrivacyService {
       actorType: 'admin',
       actorId: 0,
       action: 'gdpr.data_request',
-      target: email ?? undefined,
+      // Masked (PRV-M5): audit rows must not replicate raw PII.
+      target: email ? maskPii(email) : undefined,
     });
   }
 
@@ -110,7 +111,7 @@ export class PrivacyService {
       actorType: 'admin',
       actorId: 0,
       action: 'gdpr.customers_redact',
-      target: email ?? shopifyCustomerId ?? undefined,
+      target: email ? maskPii(email) : (shopifyCustomerId ?? undefined),
     });
   }
 
@@ -183,15 +184,52 @@ export class PrivacyService {
 
   // ---- DSAR access / portability ----
 
-  /** Assemble a machine-readable export of the customer's own data (DSAR access). */
+  /**
+   * Assemble a machine-readable export of the customer's own data (DSAR access,
+   * PRV-H1). Covers every table holding the customer's data: profile (incl.
+   * phone), orders, chat transcripts, journey events, subscriptions, restock
+   * alerts, notification preferences, affiliate status, reviews, inquiries.
+   */
   async exportData(sessionToken: string) {
     const customerId = await this.requireVerifiedCustomerId(sessionToken);
     const customer = await this.customerRepo.findOne({ where: { id: customerId } });
 
-    const orders = await this.orderRepo.find({ where: { customerId } });
-    const notifications = await this.notificationRepo.find({ where: { customerId } });
-    const reviews = await this.reviewRepo.find({ where: { customerId } });
-    const inquiries = await this.inquiryRepo.find({ where: { customerId } });
+    const [orders, notifications, reviews, inquiries, cjmEvents, subscriptions, restocks, prefs, affiliates] =
+      await Promise.all([
+        this.orderRepo.find({ where: { customerId } }),
+        this.notificationRepo.find({ where: { customerId } }),
+        this.reviewRepo.find({ where: { customerId } }),
+        this.inquiryRepo.find({ where: { customerId } }),
+        this.cjmRepo.find({ where: { customerId } }),
+        this.subscriptionRepo.find({ where: { customerId } }),
+        this.restockRepo.find({ where: { customerId } }),
+        this.prefRepo.find({ where: { customerId } }),
+        this.affiliateRepo.find({ where: { customerId } }),
+      ]);
+
+    // Chat transcripts — the most sensitive free-text PII — via sessions → conversations.
+    const sessions = await this.sessionRepo.find({ where: { customerId } });
+    const sessionIds = sessions.map((s) => s.id);
+    const conversations = sessionIds.length
+      ? await this.conversationRepo.find({ where: { sessionId: In(sessionIds) } })
+      : [];
+    const conversationIds = conversations.map((c) => c.id);
+    const messages = conversationIds.length
+      ? await this.messageRepo.find({
+          where: { conversationId: In(conversationIds) },
+          order: { id: 'ASC' },
+        })
+      : [];
+    // Keys normalized to Number: bigint PKs hydrate as strings (no transformer)
+    // while messages.conversation_id is transformed to number — a raw Map key
+    // mismatch silently drops every transcript.
+    const messagesByConversation = new Map<number, Message[]>();
+    for (const m of messages) {
+      const key = Number(m.conversationId);
+      const list = messagesByConversation.get(key) ?? [];
+      list.push(m);
+      messagesByConversation.set(key, list);
+    }
 
     // PII-access audit (best-effort; never fail the export on audit error).
     try {
@@ -213,6 +251,7 @@ export class PrivacyService {
             id: customer.id,
             email: customer.email,
             name: customer.name,
+            phone: customer.phone,
             tier: customer.tier,
             shopifyCustomerId: customer.shopifyCustomerId,
             createdAt: customer.createdAt,
@@ -223,6 +262,47 @@ export class PrivacyService {
         status: o.statusUi ?? o.statusInternal,
         total: o.total,
         currency: o.currency,
+      })),
+      conversations: conversations.map((c) => ({
+        id: c.id,
+        channel: c.channel,
+        status: c.status,
+        createdAt: c.createdAt,
+        endedAt: c.endedAt,
+        messages: (messagesByConversation.get(Number(c.id)) ?? []).map((m) => ({
+          senderType: m.senderType,
+          body: m.body,
+          lang: m.lang,
+          createdAt: m.createdAt,
+        })),
+      })),
+      journeyEvents: cjmEvents.map((e) => ({
+        stage: e.stage,
+        eventType: e.eventType,
+        createdAt: e.createdAt,
+      })),
+      subscriptions: subscriptions.map((s) => ({
+        shopifySubscriptionId: s.shopifySubscriptionId,
+        status: s.status,
+        plan: s.plan,
+        nextBilling: s.nextBilling,
+      })),
+      restockSubscriptions: restocks.map((r) => ({
+        productId: r.productId,
+        channel: r.channel,
+        createdAt: r.createdAt,
+        notifiedAt: r.notifiedAt,
+      })),
+      notificationPrefs: prefs.map((p) => ({
+        channel: p.channel,
+        category: p.category,
+        enabled: p.enabled === 1,
+      })),
+      affiliate: affiliates.map((a) => ({
+        status: a.status,
+        linkCode: a.linkCode,
+        appliedAt: a.appliedAt,
+        reviewedAt: a.reviewedAt,
       })),
       notifications: notifications.map((n) => ({
         category: n.category,
@@ -270,7 +350,12 @@ export class PrivacyService {
 
   /** Toggle external-channel opt-out across all categories (in_app stays on). */
   async setOptOut(sessionToken: string, optOut: boolean): Promise<void> {
-    const customerId = await this.requireCustomerId(sessionToken);
+    const session = await this.sessionRepo.findOne({ where: { sessionToken } });
+    if (!session) throw new BusinessException(ERROR_CODE.SESSION_NOT_FOUND, HttpStatus.NOT_FOUND);
+    if (session.customerId == null) {
+      throw new BusinessException(ERROR_CODE.UNAUTHORIZED, HttpStatus.UNAUTHORIZED);
+    }
+    const customerId = session.customerId;
     const enabled = optOut ? 0 : 1;
 
     for (const channel of EXTERNAL_CHANNELS) {
@@ -285,12 +370,14 @@ export class PrivacyService {
       }
     }
 
+    // Attribute the action to the consumer's own session, in their tenant —
+    // not to a phantom admin (PRV-M2 audit-actor fix).
     await this.audit.write({
-      tenantId: null,
-      actorType: 'admin',
+      tenantId: session.tenantId ?? null,
+      actorType: 'user',
       actorId: 0,
       action: 'ccpa.opt_out',
-      target: String(optOut),
+      target: `customer:${customerId} optOut=${optOut}`,
     });
   }
 
@@ -310,12 +397,14 @@ export class PrivacyService {
     email: string | null,
     shopifyCustomerId: string | null,
   ): Promise<Customer | null> {
-    if (email) {
-      const byEmail = await this.customerRepo.findOne({ where: { email } });
-      if (byEmail) return byEmail;
-    }
+    // Stable identifier first (PRV-H2): a redact can arrive after the email was
+    // already nulled by an earlier partial run — the Shopify id still matches.
     if (shopifyCustomerId) {
-      return this.customerRepo.findOne({ where: { shopifyCustomerId } });
+      const byId = await this.customerRepo.findOne({ where: { shopifyCustomerId } });
+      if (byId) return byId;
+    }
+    if (email) {
+      return this.customerRepo.findOne({ where: { email } });
     }
     return null;
   }
@@ -347,6 +436,12 @@ export class PrivacyService {
     // Notifications: redact title/body.
     await this.notificationRepo.update({ customerId }, { title: REDACTED, body: REDACTED });
 
+    // Marketing/engagement state tied to the person: delete outright (PRV-H2).
+    await this.prefRepo.delete({ customerId });
+    await this.subscriptionRepo.delete({ customerId });
+    await this.restockRepo.delete({ customerId });
+    await this.affiliateRepo.delete({ customerId });
+
     // Reviews: null out free-text body.
     await this.reviewRepo.update({ customerId }, { body: null });
 
@@ -364,9 +459,10 @@ export class PrivacyService {
       await this.sessionRepo.update({ customerId }, { customerId: null });
     }
 
-    // Finally, anonymize the customer record itself.
+    // Finally, anonymize the customer record itself (incl. phone — PRV-H2).
     customer.email = null;
     customer.name = REDACTED;
+    customer.phone = null;
     customer.shopifyCustomerId = null;
     customer.tier = 'guest';
     await this.customerRepo.save(customer);

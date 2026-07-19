@@ -46,6 +46,23 @@ Sprint 1 (hardening) items fixed; the auth flow was runtime-verified end-to-end 
 
 Still open after Sprint 1: SEC-M3 (SSRF), SEC-M5 (committed dev secrets/boot assertions), SEC-L3/L5/L6, all PRV items (Sprint 2), all PERF items (Sprint 3), NestJS 11 upgrade (INF-1 rest).
 
+## 0c. Remediation status (2026-07-20, branch `fix/privacy-sprint2-compliance`)
+
+Sprint 2 (compliance) items fixed; DSAR export/erasure, opt-out, campaign dispatch, consent enforcement, and audit coverage runtime-verified end-to-end against the seeded dev stack:
+
+| Ref | Fix | Files |
+|---|---|---|
+| PRV-H1 | DSAR export now covers **everything**: customer profile incl. `phone`, chat transcripts (sessions → conversations → messages), cjm journey events, subscriptions, restock subscriptions, notification prefs, affiliate status (plus the existing orders/notifications/reviews/inquiries). | `privacy/privacy.service.ts` |
+| PRV-H2 | Erasure nulls `phone`, deletes notification_prefs / subscriptions / restock_subscriptions / affiliates; redact matching tries the stable `shopifyCustomerId` first so late-arriving redacts still match. | `privacy/privacy.service.ts` |
+| PRV-H3 | Retention purge is **scheduled** (`RETENTION_PURGE_INTERVAL_HOURS`, default 24h, first run 5 min after boot) and widened to notifications + stale unreferenced sessions. Manual endpoint kept. | `privacy/retention.service.ts` |
+| PRV-H4 | Audit writes added for: login success/failure + password change (masked email), user invite + temp-password issuance (actor recorded), integration credential create/rotate, and agent conversation/PII views (Redis-deduped per agent+conversation per hour). GDPR-webhook audit targets now masked (PRV-M5 partial). | `auth/`, `user/`, `tenant/`, `agent/`, `privacy/` |
+| PRV-M2 | `CAMPAIGN_DISPATCH` has a real consumer that fans out through `NotificationService.notify`, so external channels honor per-customer prefs / CCPA opt-out (verified: opted-out customer receives in-app only). Opt-out audit attributes the consumer's session + tenant instead of a phantom admin. | `campaign/campaign.service.ts`, `privacy/privacy.service.ts` |
+| PRV-M3 | Widget privacy section: opt-out toggle wired to `POST /privacy/opt-out` (both directions, status-backed), DSAR "Download my data" (JSON download) and two-step "Delete my data", with verified-identity error handling. i18n en/es/ko. | `widget/components/settings/PreferencesPanel.tsx`, `widget/services/privacyService.ts`, `widget/hooks/usePrivacy.ts`, locales |
+| PRV-M4 | Sessions record `consent_at` + `consent_version` (notice-version constant, bump on wording change). **Declined consent now blocks chat processing**: message is neither persisted nor sent to the AI; customer gets a localized (en/es/ko) pointer to the consent banner. | `session/`, `chat/chat.service.ts`, `sql/01-schema.sql` |
+| PRV-M1 | Widget AI disclosure now names third-party AI processing in the United States (en/es/ko). Full processor naming/policy link still recommended for the tenant's privacy policy. | `widget/i18n/locales/*` |
+
+Still open after Sprint 2: PRV-M5 rest (broader maskPii call sites), PRV-M6 (PII encryption at rest), PRV-M7/FE-M3 (session token in URL), full PERF sprint, SEC-M3/M5, NestJS 11 upgrade.
+
 ---
 
 ## 0. Priority action list (do these first)

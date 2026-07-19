@@ -83,6 +83,8 @@ export class AgentConsoleController {
   async conversation(@CurrentUser() user: Principal, @Param('id', ParseIntPipe) id: number) {
     const tenantId = tenantOf(user);
     const messages = await this.agentService.listMessages(id, tenantId);
+    // PII-access audit (PRV-H4): the agent sees the transcript + customer panel.
+    await this.agentService.auditConversationView(actorIdOf(user), tenantId, id);
     const names = await this.agentService.resolveSenderNames(messages);
     const briefing = await this.agentService.briefing(tenantId, messages);
     const customer = await this.agentService.customerContext(id, tenantId);

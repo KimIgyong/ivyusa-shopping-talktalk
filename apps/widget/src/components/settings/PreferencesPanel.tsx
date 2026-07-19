@@ -1,7 +1,10 @@
-import { ArrowLeft, ShieldOff } from 'lucide-react';
+import { useState } from 'react';
+import { ArrowLeft, Download, ShieldOff, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useWidgetStore } from '../../store/widgetStore';
 import { usePrefs, useSetPref } from '../../hooks/useNotifications';
+import { useOptOutStatus, useSetOptOut } from '../../hooks/usePrivacy';
+import { deleteMyData, exportMyData } from '../../services/privacyService';
 import { Spinner } from '../ui/Spinner';
 import type {
   NotifChannel,
@@ -50,6 +53,57 @@ export function PreferencesPanel({ onBack }: { onBack: () => void }) {
   const sessionToken = useWidgetStore((s) => s.sessionToken);
   const { data, isLoading } = usePrefs(sessionToken);
   const setPref = useSetPref(sessionToken);
+  const optOutStatus = useOptOutStatus(sessionToken);
+  const setOptOut = useSetOptOut(sessionToken);
+  const [dsarBusy, setDsarBusy] = useState<'export' | 'delete' | null>(null);
+  const [dsarNotice, setDsarNotice] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  // Export/erasure require a Shopify-verified session — 401/403 means "sign in".
+  function dsarErrorText(e: unknown): string {
+    const status = (e as { status?: number }).status;
+    return status === 401 || status === 403 ? t('privacy.needVerified') : t('common.error');
+  }
+
+  async function handleExport() {
+    if (!sessionToken || dsarBusy) return;
+    setDsarBusy('export');
+    setDsarNotice(null);
+    try {
+      const payload = await exportMyData(sessionToken);
+      // Hand the export over as a JSON download (DSAR portability).
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'my-data-export.json';
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      setDsarNotice(dsarErrorText(e));
+    } finally {
+      setDsarBusy(null);
+    }
+  }
+
+  async function handleDelete() {
+    if (!sessionToken || dsarBusy) return;
+    if (!confirmDelete) {
+      setConfirmDelete(true);
+      return;
+    }
+    setDsarBusy('delete');
+    setDsarNotice(null);
+    try {
+      await deleteMyData(sessionToken);
+      setDsarNotice(t('privacy.deleteDone'));
+    } catch (e) {
+      setDsarNotice(dsarErrorText(e));
+    } finally {
+      setDsarBusy(null);
+      setConfirmDelete(false);
+    }
+  }
 
   function isEnabled(
     prefs: NotifPref[] | undefined,
@@ -128,25 +182,44 @@ export function PreferencesPanel({ onBack }: { onBack: () => void }) {
         {t('prefs.channels.in_app')}: {t('prefs.alwaysOn')}
       </p>
 
-      <a
-        href="#ccpa"
-        onClick={(e) => {
-          e.preventDefault();
-          if (sessionToken) {
-            // opt-out flips all non-in_app channels off
-            for (const ch of CHANNELS) {
-              if (ch === 'in_app') continue;
-              for (const cat of CATEGORIES) {
-                setPref.mutate({ channel: ch, category: cat, enabled: false });
-              }
-            }
-          }
-        }}
-        className="mt-4 flex items-center gap-1.5 text-xs font-medium text-gray-500 underline hover:text-error"
-      >
-        <ShieldOff className="h-3.5 w-3.5" />
-        {t('prefs.ccpa')}
-      </a>
+      {/* CCPA/CPRA + DSAR consumer rights (PRV-M3) */}
+      <div className="mt-4 border-t border-gray-200 pt-3">
+        <div className="mb-2 text-sm font-semibold text-gray-900">{t('privacy.title')}</div>
+
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5 text-xs font-medium text-gray-700">
+            <ShieldOff className="h-3.5 w-3.5 shrink-0" />
+            {t('prefs.ccpa')}
+          </div>
+          <Toggle
+            on={optOutStatus.data?.optOut ?? false}
+            disabled={!sessionToken || setOptOut.isPending}
+            onChange={(v) => setOptOut.mutate(v)}
+          />
+        </div>
+        <p className="mt-1 text-[11px] text-gray-400">{t('privacy.optOutHint')}</p>
+
+        <div className="mt-3 flex flex-col gap-2">
+          <button
+            onClick={handleExport}
+            disabled={!sessionToken || dsarBusy !== null}
+            className="flex items-center gap-1.5 text-xs font-medium text-gray-500 underline hover:text-gray-700 disabled:opacity-50"
+          >
+            <Download className="h-3.5 w-3.5" />
+            {dsarBusy === 'export' ? t('privacy.exporting') : t('privacy.export')}
+          </button>
+          <button
+            onClick={handleDelete}
+            disabled={!sessionToken || dsarBusy !== null}
+            className="flex items-center gap-1.5 text-xs font-medium text-gray-500 underline hover:text-error disabled:opacity-50"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            {confirmDelete ? t('privacy.deleteConfirm') : t('privacy.delete')}
+          </button>
+        </div>
+
+        {dsarNotice && <p className="mt-2 text-[11px] text-gray-500">{dsarNotice}</p>}
+      </div>
     </div>
   );
 }

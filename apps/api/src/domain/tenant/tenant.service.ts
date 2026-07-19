@@ -9,6 +9,7 @@ import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
 import { decryptSecret, encryptSecret } from '../../global/util/crypto.util';
 import { UpdateShopifySettingsRequest } from './dto/request/tenant.request';
+import { AuditService } from '../audit/audit.service';
 import { ShopifyTestResponse } from './dto/response/tenant.response';
 
 /** provider/name key used for the Shopify credential and integration status. */
@@ -26,6 +27,7 @@ export class TenantService {
     @InjectRepository(IntegrationCredential)
     private readonly credRepo: Repository<IntegrationCredential>,
     private readonly integrationService: IntegrationService,
+    private readonly audit: AuditService,
   ) {}
 
   async list(
@@ -103,6 +105,15 @@ export class TenantService {
   ): Promise<IntegrationCredential> {
     const secretEnc = encryptSecret(secret);
     let cred = await this.credRepo.findOne({ where: { tenantId, provider } });
+    // Credential set/rotate is a privileged action (PRV-H4); the secret itself
+    // never reaches the audit row — only which provider changed.
+    await this.audit.write({
+      tenantId,
+      actorType: 'user',
+      actorId: 0,
+      action: cred ? 'tenant.credential_rotated' : 'tenant.credential_created',
+      target: provider,
+    });
     if (cred) {
       cred.secretEnc = secretEnc;
       cred.status = 'connected';

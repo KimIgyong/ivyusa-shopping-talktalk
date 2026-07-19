@@ -7,9 +7,10 @@ import { Invitation } from './entity/invitation.entity';
 import { UserService } from './user.service';
 import { UserController } from './user.controller';
 import { JobLabelController } from './job-label.controller';
+import { AuditModule } from '../audit/audit.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([User, JobLabel, UserJobLabel, Invitation])],
+  imports: [TypeOrmModule.forFeature([User, JobLabel, UserJobLabel, Invitation]), AuditModule],
   controllers: [UserController, JobLabelController],
   providers: [UserService],
   exports: [UserService],

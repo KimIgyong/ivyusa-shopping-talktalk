@@ -8,9 +8,10 @@ import { Tenant } from '../tenant/entity/tenant.entity';
 import { AuthService } from './auth.service';
 import { LoginRateLimitService } from './login-rate-limit.service';
 import { AuthController } from './auth.controller';
+import { AuditModule } from '../audit/audit.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([AdminUser, User, JobLabel, UserJobLabel, Tenant])],
+  imports: [TypeOrmModule.forFeature([AdminUser, User, JobLabel, UserJobLabel, Tenant]), AuditModule],
   controllers: [AuthController],
   providers: [AuthService, LoginRateLimitService],
 })

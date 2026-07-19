@@ -91,6 +91,7 @@ describe('AuthService (SEC-M1/SEC-M2)', () => {
       config,
       limiter,
       redis as unknown as RedisService,
+      { write: jest.fn() } as never,
     );
   });
 

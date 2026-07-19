@@ -23,7 +23,8 @@ export const en = {
   chat: {
     welcome:
       "Hi! Welcome to IVY USA. How can we help you today? Pick a topic below or type your question.",
-    aiDisclosure: 'This chat is AI-powered for faster assistance.',
+    aiDisclosure:
+      'This chat is AI-powered. Messages you send are processed by a third-party AI service provider in the United States to generate responses.',
     inputPlaceholder: 'Type a message…',
     send: 'Send',
     connectAgent: 'Connect to an agent',
@@ -130,6 +131,17 @@ export const en = {
     },
     alwaysOn: 'Always on',
     ccpa: 'CCPA: Do not sell or share my personal information',
+  },
+
+  privacy: {
+    title: 'Privacy & your data',
+    optOutHint: 'Turns off email, SMS and web-push messaging for your account. In-app notices stay on.',
+    export: 'Download my data (JSON)',
+    exporting: 'Preparing your export…',
+    delete: 'Delete my data',
+    deleteConfirm: 'Click again to confirm — this cannot be undone',
+    deleteDone: 'Your personal data has been anonymized.',
+    needVerified: 'Please sign in to your store account first — this action requires a verified identity.',
   },
 
   common: {

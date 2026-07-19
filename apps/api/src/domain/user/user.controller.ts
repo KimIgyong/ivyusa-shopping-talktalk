@@ -69,7 +69,8 @@ export class UserController {
   @RequireCapability(CAPABILITY.USER_INVITE)
   @ApiOperation({ summary: 'Issue a temporary password for a user (admin hands it off manually)' })
   issueTempPassword(@CurrentUser() user: Principal, @Param('id', ParseIntPipe) id: number) {
-    return this.userService.issueTempPassword(asTenantUser(user).tenantId, id);
+    const actor = asTenantUser(user);
+    return this.userService.issueTempPassword(actor.tenantId, id, actor.userId);
   }
 
   @Patch(':id/rank')

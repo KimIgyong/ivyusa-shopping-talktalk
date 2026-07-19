@@ -18,6 +18,8 @@ import {
 } from './dto/response/user.response';
 
 import { BCRYPT_ROUNDS } from '../../global/constant/security.constant';
+import { AuditService } from '../audit/audit.service';
+import { maskPii } from '../../global/util/pii.util';
 const INVITE_TTL_MS = 72 * 60 * 60 * 1000;
 
 /**
@@ -31,6 +33,7 @@ export class UserService {
     @InjectRepository(JobLabel) private readonly labelRepo: Repository<JobLabel>,
     @InjectRepository(UserJobLabel) private readonly userLabelRepo: Repository<UserJobLabel>,
     @InjectRepository(Invitation) private readonly invitationRepo: Repository<Invitation>,
+    private readonly audit: AuditService,
   ) {}
 
   // ---- Users ----
@@ -96,6 +99,16 @@ export class UserService {
 
     await this.assignLabels(tenantId, user.id, labelCodes);
 
+    // Temp-password issuance is a privileged action (PRV-H4) — the plaintext is
+    // returned once to the inviter; the audit row records who triggered it.
+    await this.audit.write({
+      tenantId,
+      actorType: 'user',
+      actorId: invitedBy,
+      action: 'user.invited',
+      target: `user:${user.id} ${maskPii(email)}`,
+    });
+
     return { invitationToken: token, tempPassword, userId: user.id };
   }
 
@@ -108,12 +121,20 @@ export class UserService {
   async issueTempPassword(
     tenantId: number,
     userId: number,
+    issuedBy: number,
   ): Promise<{ userId: number; email: string; tempPassword: string }> {
     const user = await this.getTenantUser(tenantId, userId);
     const tempPassword = this.genTempPassword();
     user.passwordHash = await bcrypt.hash(tempPassword, BCRYPT_ROUNDS);
     user.mustChangePassword = 1;
     await this.userRepo.save(user);
+    await this.audit.write({
+      tenantId,
+      actorType: 'user',
+      actorId: issuedBy,
+      action: 'user.temp_password_issued',
+      target: `user:${user.id} ${maskPii(user.email)}`,
+    });
     return { userId: user.id, email: user.email, tempPassword };
   }
 

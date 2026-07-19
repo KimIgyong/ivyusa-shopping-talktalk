@@ -6,6 +6,8 @@ import { ConfigService } from '@nestjs/config';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
 import { RedisService } from '../../infrastructure/cache/redis.service';
+import { AuditService } from '../audit/audit.service';
+import { maskPii } from '../../global/util/pii.util';
 import { BCRYPT_ROUNDS } from '../../global/constant/security.constant';
 import { AdminLevel, JobLabel, Principal, UserRank } from '@ivy/types';
 import { AdminUser } from './entity/admin-user.entity';
@@ -48,16 +50,40 @@ export class AuthService {
     private readonly config: ConfigService,
     private readonly loginLimiter: LoginRateLimitService,
     private readonly redis: RedisService,
+    private readonly audit: AuditService,
   ) {}
+
+  /** Best-effort audit (PRV-H4): auth flows must not fail on an audit-write error. */
+  private async auditSafe(params: Parameters<AuditService['write']>[0]): Promise<void> {
+    try {
+      await this.audit.write(params);
+    } catch {
+      /* audited best-effort */
+    }
+  }
 
   async loginAdmin(email: string, password: string, clientIp: string): Promise<AuthTokensResponse> {
     await this.loginLimiter.assertNotLocked('admin', email, clientIp);
     const admin = await this.adminRepo.findOne({ where: { email } });
     if (!admin?.passwordHash || !(await bcrypt.compare(password, admin.passwordHash))) {
       await this.loginLimiter.recordFailure('admin', email, clientIp);
+      await this.auditSafe({
+        tenantId: null,
+        actorType: 'admin',
+        actorId: 0,
+        action: 'auth.login_failed',
+        target: maskPii(email),
+      });
       throw new BusinessException(ERROR_CODE.INVALID_CREDENTIALS, HttpStatus.UNAUTHORIZED);
     }
     await this.loginLimiter.recordSuccess('admin', email);
+    await this.auditSafe({
+      tenantId: null,
+      actorType: 'admin',
+      actorId: admin.id,
+      action: 'auth.login',
+      target: maskPii(email),
+    });
     const principal: Principal = {
       actorType: 'admin',
       adminId: admin.id,
@@ -90,6 +116,13 @@ export class AuthService {
     const user = await this.userRepo.findOne({ where: { tenantId: tenant.id, email } });
     if (!user?.passwordHash || !(await bcrypt.compare(password, user.passwordHash))) {
       await this.loginLimiter.recordFailure('user', email, clientIp);
+      await this.auditSafe({
+        tenantId: tenant.id,
+        actorType: 'user',
+        actorId: 0,
+        action: 'auth.login_failed',
+        target: maskPii(email),
+      });
       throw new BusinessException(ERROR_CODE.INVALID_CREDENTIALS, HttpStatus.UNAUTHORIZED);
     }
     // Credentials are valid — clear the failure counter even if we then reject a
@@ -98,6 +131,13 @@ export class AuthService {
     if (user.status === 'suspended') {
       throw new BusinessException(ERROR_CODE.FORBIDDEN, HttpStatus.FORBIDDEN);
     }
+    await this.auditSafe({
+      tenantId: user.tenantId,
+      actorType: 'user',
+      actorId: user.id,
+      action: 'auth.login',
+      target: maskPii(email),
+    });
     const labels = await this.loadLabels(user.id);
     const principal: Principal = {
       actorType: 'user',
@@ -202,6 +242,12 @@ export class AuthService {
         admin.passwordChangedAt = new Date();
         await this.adminRepo.save(admin);
       });
+      await this.auditSafe({
+        tenantId: null,
+        actorType: 'admin',
+        actorId: admin.id,
+        action: 'auth.password_changed',
+      });
       return this.issue(principal, false, this.toPrincipalResponse(principal));
     }
     const user = await this.userRepo.findOneByOrFail({ id: principal.userId });
@@ -210,6 +256,12 @@ export class AuthService {
       user.mustChangePassword = 0;
       user.passwordChangedAt = new Date();
       await this.userRepo.save(user);
+    });
+    await this.auditSafe({
+      tenantId: user.tenantId,
+      actorType: 'user',
+      actorId: user.id,
+      action: 'auth.password_changed',
     });
     return this.issue(principal, false, this.toPrincipalResponse(principal));
   }
