@@ -23,6 +23,10 @@ export class AdminUser {
   @Column({ name: 'must_change_password', type: 'tinyint', width: 1, default: 1 })
   mustChangePassword: number;
 
+  /** Refresh tokens issued before this instant are rejected (SEC-M1 session revocation). */
+  @Column({ name: 'password_changed_at', type: 'datetime', nullable: true })
+  passwordChangedAt: Date | null;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 }

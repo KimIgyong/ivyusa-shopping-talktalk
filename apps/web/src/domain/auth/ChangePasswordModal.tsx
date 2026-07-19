@@ -20,7 +20,7 @@ export function ChangePasswordModal({ open, forced, onClose }: Props) {
   const [next, setNext] = useState('');
   const [confirm, setConfirm] = useState('');
   const [loading, setLoading] = useState(false);
-  const clearMustChange = useAuthStore((s) => s.clearMustChange);
+  const setAuth = useAuthStore((s) => s.setAuth);
 
   const submit = async () => {
     if (next !== confirm) {
@@ -29,8 +29,10 @@ export function ChangePasswordModal({ open, forced, onClose }: Props) {
     }
     setLoading(true);
     try {
-      await authService.changePassword(current, next);
-      clearMustChange();
+      // Adopt the rotated tokens — the old access token is rejected outside
+      // the change-password flow once the must-change lockout was active.
+      const tokens = await authService.changePassword(current, next);
+      setAuth(tokens);
       toast.success(t('passwordChanged'));
       setCurrent('');
       setNext('');

@@ -20,6 +20,13 @@ export class RefreshRequest {
   refresh_token: string;
 }
 
+export class LogoutRequest {
+  // Optional: presenting the refresh token lets the server revoke it (SEC-M1).
+  @IsOptional()
+  @IsString()
+  refresh_token?: string;
+}
+
 export class ChangePasswordRequest {
   @IsString()
   @MinLength(6)

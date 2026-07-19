@@ -19,6 +19,7 @@ CREATE TABLE `admin_users` (
   `level` varchar(16) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'admin',
   `status` varchar(16) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'active',
   `must_change_password` tinyint(1) NOT NULL DEFAULT '1',
+  `password_changed_at` datetime DEFAULT NULL,
   `created_at` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_admin_email` (`email`)
@@ -561,6 +562,7 @@ CREATE TABLE `users` (
   `rank` varchar(16) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'staff',
   `status` varchar(16) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'active',
   `must_change_password` tinyint(1) NOT NULL DEFAULT '1',
+  `password_changed_at` datetime DEFAULT NULL,
   `invited_at` datetime DEFAULT NULL,
   `created_at` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
   PRIMARY KEY (`id`),

@@ -2,9 +2,15 @@ import { Body, Controller, Get, Headers, Ip, Post } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Principal } from '@ivy/types';
 import { AuthService } from './auth.service';
-import { ChangePasswordRequest, LoginRequest, RefreshRequest } from './dto/request/login.request';
+import {
+  ChangePasswordRequest,
+  LoginRequest,
+  LogoutRequest,
+  RefreshRequest,
+} from './dto/request/login.request';
 import { Public } from '../../global/decorator/public.decorator';
 import { Auth } from '../../global/decorator/auth.decorator';
+import { AllowPendingPassword } from '../../global/decorator/allow-pending-password.decorator';
 import { CurrentUser } from '../../global/decorator/current-user.decorator';
 
 /** Client IP for rate limiting: the first X-Forwarded-For hop (set by the edge
@@ -50,14 +56,24 @@ export class AuthController {
 
   @Post('change-password')
   @Auth()
-  @ApiOperation({ summary: 'Change password (clears must-change flag)' })
-  async changePassword(@CurrentUser() user: Principal, @Body() body: ChangePasswordRequest) {
-    await this.authService.changePassword(user, body.current_password, body.new_password);
-    return { changed: true };
+  @AllowPendingPassword()
+  @ApiOperation({ summary: 'Change password (clears must-change flag, returns fresh tokens)' })
+  changePassword(@CurrentUser() user: Principal, @Body() body: ChangePasswordRequest) {
+    return this.authService.changePassword(user, body.current_password, body.new_password);
+  }
+
+  @Post('logout')
+  @Auth()
+  @AllowPendingPassword()
+  @ApiOperation({ summary: 'Log out (revokes the presented refresh token)' })
+  async logout(@Body() body: LogoutRequest) {
+    await this.authService.logout(body.refresh_token);
+    return { loggedOut: true };
   }
 
   @Get('me')
   @Auth()
+  @AllowPendingPassword()
   @ApiOperation({ summary: 'Current principal' })
   me(@CurrentUser() user: Principal) {
     return this.authService.me(user);

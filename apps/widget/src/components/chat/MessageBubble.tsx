@@ -1,6 +1,19 @@
 import type { ChatMessage } from '../../lib/types';
 import { formatTime } from '../../lib/format';
 
+/**
+ * Citation URLs come from tenant-editable KB sources — only allow http(s) so a
+ * `javascript:` URL can never become a stored-XSS link in the storefront (FE-M1).
+ */
+function safeHttpUrl(url: string): string | null {
+  try {
+    const parsed = new URL(url, window.location.href);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:' ? parsed.href : null;
+  } catch {
+    return null;
+  }
+}
+
 export function MessageBubble({ message }: { message: ChatMessage }) {
   const mine = message.senderType === 'user';
   return (
@@ -21,17 +34,20 @@ export function MessageBubble({ message }: { message: ChatMessage }) {
         </div>
         {message.citations && message.citations.length > 0 && (
           <ul className="mt-1 space-y-0.5">
-            {message.citations.map((c, i) => (
-              <li key={i} className="text-xs text-primary-600">
-                {c.url ? (
-                  <a href={c.url} target="_blank" rel="noreferrer" className="underline">
-                    {c.title || c.url}
-                  </a>
-                ) : (
-                  c.title
-                )}
-              </li>
-            ))}
+            {message.citations.map((c, i) => {
+              const href = c.url ? safeHttpUrl(c.url) : null;
+              return (
+                <li key={i} className="text-xs text-primary-600">
+                  {href ? (
+                    <a href={href} target="_blank" rel="noopener noreferrer" className="underline">
+                      {c.title || c.url}
+                    </a>
+                  ) : (
+                    c.title || c.url
+                  )}
+                </li>
+              );
+            })}
           </ul>
         )}
         <div
