@@ -25,6 +25,7 @@ import { sessionCacheKey } from '../session/session.service';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
 import { maskPii } from '../../global/util/pii.util';
+import { blindIndex } from '../../global/util/crypto.util';
 
 const REDACTED = '[redacted]';
 const EXTERNAL_CHANNELS = ['email', 'sms', 'web_push'];
@@ -160,10 +161,11 @@ export class PrivacyService {
    */
   private async purgeTenant(tenantId: number): Promise<void> {
     await this.customerRepo.manager.transaction(async (mgr) => {
-      // Anonymize customers (keep rows; scrub PII).
+      // Anonymize customers (keep rows; scrub PII). email_hash is cleared
+      // explicitly — .update() bypasses the entity's BeforeUpdate hook (PRV-M6).
       await mgr.getRepository(Customer).update(
         { tenantId },
-        { email: null, name: REDACTED, shopifyCustomerId: null, tier: 'guest' },
+        { email: null, emailHash: null, name: REDACTED, shopifyCustomerId: null, tier: 'guest' },
       );
 
       // Delete tenant-scoped rows. Children before parents where applicable.
@@ -407,7 +409,8 @@ export class PrivacyService {
       if (byId) return byId;
     }
     if (email) {
-      return this.customerRepo.findOne({ where: { email } });
+      // Email is encrypted — match via the blind index (PRV-M6).
+      return this.customerRepo.findOne({ where: { emailHash: blindIndex(email) ?? '__none__' } });
     }
     return null;
   }
