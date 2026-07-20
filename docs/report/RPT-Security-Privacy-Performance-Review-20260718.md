@@ -95,6 +95,16 @@ Note: system admins get 403 on `/analytics/dashboard` (pre-existing capability-m
 
 Still open: SSE for chat (candidate now that polling is delta), PRV-M5 rest / PRV-M6 / PRV-M7, SEC-M3/M5/L3/L5/L6, NestJS 10→11 dependency sprint.
 
+## 0f. Remediation status (2026-07-20, branch `chore/nestjs-11-upgrade`)
+
+**INF-1 closed — NestJS 10→11 dependency sprint.** `@nestjs/{common,core,platform-express,testing,cli}` 10→11.1, `@nestjs/config` 3→4, `@nestjs/jwt` 10→11, `@nestjs/swagger` 7→11, `@nestjs/typeorm` 10→11 (Express 4→5, multer 2.x via platform-express), `@types/express` 4→5. Lockfile regenerated from scratch (a stale nested `@nestjs/common@10` under config would have split DI metadata).
+
+**`npm audit --omit=dev`: 0 vulnerabilities** (was 14: lodash, multer ×3, qs/express/body-parser, file-type, js-yaml, uuid, nodemailer). No source changes were required.
+
+Runtime-verified on Nest 11 / Express 5 (8/8 smoke checks): health, login + refresh rotation, chat turn with RAG reply, `?after_id=` delta query parsing, Shopify webhook rawBody path, tenant dashboard, paginated queries, Swagger UI. 101 tests, typecheck 7/7, build 5/5 (all `--force`, no stale cache).
+
+Residual (dev-only, accepted): 2 esbuild dev-server advisories via Vite (fix = Vite 8 major, frontend-only local tooling — no production exposure); schedule with the next frontend-tooling refresh.
+
 ---
 
 ## 0. Priority action list (do these first)
