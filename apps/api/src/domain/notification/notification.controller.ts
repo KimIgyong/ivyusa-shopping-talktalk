@@ -7,6 +7,7 @@ import { ReadNotificationRequest, UpdatePrefRequest } from './dto/request/notifi
 import { toNotificationResponse, toPrefResponse } from './notification.mapper';
 import { Public } from '../../global/decorator/public.decorator';
 import { Paginated } from '../../global/interceptor/transform.interceptor';
+import { SessionToken } from '../../global/decorator/session-token.decorator';
 
 /** Widget-facing notification endpoints (public; session-token identified). */
 @ApiTags('Notification')
@@ -18,7 +19,7 @@ export class NotificationController {
   @Public()
   @ApiOperation({ summary: "List the customer's notifications (FR-030)" })
   async list(
-    @Query('session_token') token: string,
+    @SessionToken() token: string,
     @Query('category') category?: string,
     @Query('page') page?: string,
     @Query('size') size?: string,
@@ -32,7 +33,7 @@ export class NotificationController {
   @Public()
   @SkipThrottle() // widget polls this on an interval — exclude from the flood limit
   @ApiOperation({ summary: 'Unread notification count' })
-  async unreadCount(@Query('session_token') token: string) {
+  async unreadCount(@SessionToken() token: string) {
     const count = await this.notificationService.unreadCount(token);
     return { count };
   }
@@ -40,7 +41,7 @@ export class NotificationController {
   @Get('prefs')
   @Public()
   @ApiOperation({ summary: 'List notification preferences (channel x category)' })
-  async listPrefs(@Query('session_token') token: string) {
+  async listPrefs(@SessionToken() token: string) {
     const prefs = await this.notificationService.listPrefs(token);
     return prefs.map(toPrefResponse);
   }

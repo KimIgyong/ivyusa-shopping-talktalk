@@ -105,6 +105,24 @@ Runtime-verified on Nest 11 / Express 5 (8/8 smoke checks): health, login + refr
 
 Residual (dev-only, accepted): 2 esbuild dev-server advisories via Vite (fix = Vite 8 major, frontend-only local tooling — no production exposure); schedule with the next frontend-tooling refresh.
 
+## 0g. Remediation status (2026-07-20, branch `fix/security-backlog-sweep`)
+
+The remaining Medium/Low security + privacy backlog:
+
+| Ref | Fix | Files |
+|---|---|---|
+| SEC-M3 | SSRF guard on the tenant-supplied Woo/Odoo probe URLs: require https, DNS-resolve, and block loopback / RFC-1918 / link-local + 169.254.169.254 metadata / CGNAT / IPv6 ULA+link-local + IPv4-mapped. 8 unit tests (blocks each range; a public IP passes through to fetch). | `tenant/ecommerce-probe.util.ts` (+spec) |
+| SEC-M5 | Boot-time secret assertions: production refuses to start (exit 1) on missing / <32-char / dev-placeholder JWT + `CRED_ENC_KEY`, identical access==refresh secrets, or `DB_SYNCHRONIZE=true`; non-prod warns only. Verified: prod boot with dev placeholders aborts. 6 unit tests. | `global/config/assert-secrets.ts` (+spec), `main.ts` |
+| SEC-L3 | `/chat/escalate` now requires `session_token` and the conversation must belong to that session — no anonymous forced state change on enumerable ids. Verified: cross-session escalate 404, own 201. | `chat/*` |
+| SEC-L5 | Public `/health` returns `{status:'ok'}` only; DB state + uptime moved to `@AdminOnly` `/health/ready`. Compose/nginx healthchecks only read the 200. | `health/health.controller.ts` |
+| SEC-L6 | `inquiry.create` stamps `tenant_id` from the session explicitly (not the subscriber auto-stamp). | `inquiry/inquiry.service.ts` |
+| PRV-M7 / FE-M3 | Session token moves to the `X-Session-Token` header (new `@SessionToken()` decorator, header→query→path with a 401 when absent — closes a `where:{sessionToken:undefined}` → arbitrary-session hole). Widget api-client lifts the token off GET URLs into the header; chat poll uses a tokenless `/chat/conversation`. Query/path still accepted for back-compat. | `global/decorator/session-token.decorator.ts`, 8 controllers, `widget/lib/api-client.ts`, `widget/services/chatService.ts` |
+| FE-L1 | Embed iframe gets a `sandbox` allowlist (scripts, same-origin, forms, popups). | `widget/public/embed.js` |
+
+Found + fixed during runtime verification: the escalate ownership check compared a bare bigint PK (string) against a transformed FK (number) — `Number()`-coerced both sides (the recurring bigint-PK-as-string trap).
+
+95 API tests (+14), typecheck 7/7, build 5/5. Backlog now down to: PRV-M5 rest (broader maskPii), PRV-M6 (PII at rest), SSE, Vite 8 tooling refresh.
+
 ---
 
 ## 0. Priority action list (do these first)

@@ -1,3 +1,5 @@
+import { promises as dns } from 'dns';
+import { isIP } from 'net';
 import { EcommerceProvider } from '@ivy/types';
 
 export interface ProbeResult {
@@ -8,6 +10,65 @@ export interface ProbeResult {
 const TIMEOUT_MS = 6000;
 /** Header-bound secrets must be printable ASCII, else fetch throws a ByteString error. */
 const ASCII = /^[\x21-\x7e]+$/;
+
+/** Raised when a tenant-supplied URL fails the SSRF allowlist (SEC-M3). */
+class SsrfBlockedError extends Error {}
+
+/**
+ * Reject a tenant-supplied URL that could reach internal infrastructure (SEC-M3).
+ * Requires https, then resolves the host and blocks any private / loopback /
+ * link-local / CGNAT / cloud-metadata address. Applied to the free-form Woo/Odoo
+ * URLs before any fetch (Cafe24/Haravan are pinned to their vendor domains).
+ */
+async function assertPublicUrl(rawUrl: string): Promise<void> {
+  let parsed: URL;
+  try {
+    parsed = new URL(rawUrl);
+  } catch {
+    throw new SsrfBlockedError('URL is malformed');
+  }
+  if (parsed.protocol !== 'https:') {
+    throw new SsrfBlockedError('URL must use https');
+  }
+  const host = parsed.hostname;
+  const literal = host.startsWith('[') && host.endsWith(']') ? host.slice(1, -1) : host;
+  const addrs = isIP(literal)
+    ? [literal]
+    : (await dns.lookup(host, { all: true })).map((a) => a.address);
+  if (!addrs.length) throw new SsrfBlockedError('host did not resolve');
+  for (const addr of addrs) {
+    if (isBlockedAddress(addr)) {
+      throw new SsrfBlockedError('URL resolves to a non-public address');
+    }
+  }
+}
+
+/** True for loopback / private / link-local / CGNAT / metadata / unspecified IPs. */
+function isBlockedAddress(addr: string): boolean {
+  const v = isIP(addr);
+  if (v === 4) {
+    const p = addr.split('.').map(Number);
+    if (p.length !== 4 || p.some((n) => Number.isNaN(n))) return true;
+    const [a, b] = p;
+    if (a === 10 || a === 127 || a === 0) return true; // private / loopback / this-host
+    if (a === 169 && b === 254) return true; // link-local + 169.254.169.254 metadata
+    if (a === 172 && b >= 16 && b <= 31) return true; // private
+    if (a === 192 && b === 168) return true; // private
+    if (a === 100 && b >= 64 && b <= 127) return true; // CGNAT (100.64/10)
+    return false;
+  }
+  // IPv6: block loopback, unspecified, ULA (fc00::/7), link-local (fe80::/10),
+  // and IPv4-mapped (::ffff:a.b.c.d) by re-checking the embedded v4.
+  const lower = addr.toLowerCase();
+  if (lower === '::1' || lower === '::') return true;
+  if (lower.startsWith('fc') || lower.startsWith('fd')) return true;
+  if (lower.startsWith('fe8') || lower.startsWith('fe9') || lower.startsWith('fea') || lower.startsWith('feb')) {
+    return true;
+  }
+  const mapped = lower.match(/::ffff:(\d+\.\d+\.\d+\.\d+)$/);
+  if (mapped) return isBlockedAddress(mapped[1]);
+  return false;
+}
 
 async function httpFetch(url: string, init: RequestInit): Promise<Response> {
   const controller = new AbortController();
@@ -50,6 +111,9 @@ export async function probeEcommerce(
         return { ok: false, detail: 'Unsupported provider' };
     }
   } catch (e) {
+    if (e instanceof SsrfBlockedError) {
+      return { ok: false, detail: `Blocked: ${e.message}` };
+    }
     return { ok: false, detail: `Connection failed: ${(e as Error).message}` };
   }
 }
@@ -63,6 +127,7 @@ async function probeWoocommerce(c: Record<string, string>): Promise<ProbeResult>
   if (!ASCII.test(key) || !ASCII.test(secret)) {
     return { ok: false, detail: 'Consumer key/secret contain invalid characters' };
   }
+  await assertPublicUrl(base); // SEC-M3: tenant-supplied store URL
   const auth = Buffer.from(`${key}:${secret}`).toString('base64');
   const res = await httpFetch(`${base}/wp-json/wc/v3/system_status`, {
     headers: { Authorization: `Basic ${auth}`, Accept: 'application/json' },
@@ -78,6 +143,7 @@ async function probeOdoo(c: Record<string, string>): Promise<ProbeResult> {
   const username = (c.username ?? '').trim();
   const apiKey = (c.api_key ?? '').trim();
   if (!url || !db || !username || !apiKey) return missing();
+  await assertPublicUrl(url); // SEC-M3: tenant-supplied Odoo URL
   const res = await httpFetch(`${url}/jsonrpc`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Accept: 'application/json' },

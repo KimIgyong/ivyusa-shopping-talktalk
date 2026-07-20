@@ -44,6 +44,12 @@
   frame.title = 'IVY USA Support';
   frame.setAttribute('allow', 'clipboard-write');
   frame.setAttribute('allowtransparency', 'true');
+  // FE-L1: sandbox the widget iframe — grant only what it needs (its own
+  // scripts, same-origin storage for the session, forms, popups for auth).
+  frame.setAttribute(
+    'sandbox',
+    'allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox',
+  );
   frame.src =
     base +
     '/?embed=1&shop=' +

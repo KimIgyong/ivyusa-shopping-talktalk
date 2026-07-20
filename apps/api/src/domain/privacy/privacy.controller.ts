@@ -21,6 +21,7 @@ import { Public } from '../../global/decorator/public.decorator';
 import { AdminOnly } from '../../global/decorator/auth.decorator';
 import { verifyShopifyHmac } from '../../global/util/shopify-hmac.util';
 import { RetentionService } from './retention.service';
+import { SessionToken } from '../../global/decorator/session-token.decorator';
 
 /**
  * Shopify mandatory GDPR/compliance webhooks (audit High-2). Public; HMAC-verified.
@@ -84,7 +85,7 @@ export class PrivacyController {
   @Get('export')
   @Public()
   @ApiOperation({ summary: 'DSAR access/portability: export customer data (audit High-3)' })
-  async export(@Query('session_token') sessionToken: string) {
+  async export(@SessionToken() sessionToken: string) {
     return this.privacyService.exportData(sessionToken);
   }
 
@@ -107,7 +108,7 @@ export class PrivacyController {
   @Get('opt-out/status')
   @Public()
   @ApiOperation({ summary: 'CCPA/CPRA: current opt-out status' })
-  async optOutStatus(@Query('session_token') sessionToken: string) {
+  async optOutStatus(@SessionToken() sessionToken: string) {
     const optOut = await this.privacyService.getOptOutStatus(sessionToken);
     return { optOut };
   }

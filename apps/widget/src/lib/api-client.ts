@@ -34,6 +34,22 @@ const raw = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
+// PRV-M7/FE-M3: keep the session token out of URLs. For GET requests the token
+// would otherwise ride in the query string and leak into browser history, proxy
+// logs, and the Referer header — so lift it into the X-Session-Token header and
+// strip it from the params. POST/PUT bodies don't leak, so they're left as-is.
+raw.interceptors.request.use((config) => {
+  const params = config.params as Record<string, unknown> | undefined;
+  const token = params?.session_token;
+  if (typeof token === 'string' && token) {
+    config.headers = config.headers ?? {};
+    (config.headers as Record<string, string>)['X-Session-Token'] = token;
+    const { session_token: _omit, ...rest } = params!;
+    config.params = rest;
+  }
+  return config;
+});
+
 function unwrapError(err: unknown): Error {
   if (err instanceof AxiosError) {
     const env = err.response?.data as ApiEnvelope<unknown> | undefined;

@@ -25,6 +25,10 @@ export class InquiryService {
     const session = await this.loadSession(sessionToken);
     const inquiry = await this.inquiryRepo.save(
       this.inquiryRepo.create({
+        // Stamp tenant_id explicitly from the session (SEC-L6) rather than
+        // relying on the TenantSubscriber auto-stamp — a public endpoint with
+        // no resolved tenant context would otherwise leave it null.
+        tenantId: session.tenantId ?? undefined,
         customerId: session.customerId,
         conversationId: conversationId != null ? Number(conversationId) : null,
         orderId: orderId != null ? Number(orderId) : null,

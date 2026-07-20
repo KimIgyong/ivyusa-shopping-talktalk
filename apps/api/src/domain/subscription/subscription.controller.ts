@@ -20,6 +20,7 @@ import { Paginated } from '../../global/interceptor/transform.interceptor';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
 import { CancelRequest } from './dto/request/subscription.request';
+import { SessionToken } from '../../global/decorator/session-token.decorator';
 
 /** Customer subscriptions (FR-043) — widget views + tenant admin list. */
 function toResponse(s: Subscription) {
@@ -34,7 +35,7 @@ export class SubscriptionController {
   @Get('subscriptions')
   @Public()
   @ApiOperation({ summary: "List the customer's subscriptions (requires auth)" })
-  async list(@Query('session_token') token: string) {
+  async list(@SessionToken() token: string) {
     const subs = await this.subscriptionService.listForSession(token);
     return subs.map(toResponse);
   }

@@ -1,6 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
+import { BusinessException } from '../../global/exception/business.exception';
+import { ERROR_CODE } from '../../global/constant/error-code.constant';
 import {
   CJM_STAGE,
   CONSENT_STATE,
@@ -291,20 +293,27 @@ export class ChatService {
   }
 
   /** Explicit "talk to an agent" request from the widget (FR-015). */
-  async escalate(conversationId: number): Promise<void> {
+  /**
+   * Escalate to a human (FR-015). SEC-L3: the conversation must belong to the
+   * caller's own session — a `@Public()` endpoint keyed on a raw, enumerable
+   * conversation id must not let anyone force-escalate another visitor's chat.
+   */
+  async escalate(session: Session, conversationId: number): Promise<void> {
     const conversation = await this.convRepo.findOne({ where: { id: conversationId } });
-    const session = conversation
-      ? await this.sessionRepo.findOne({ where: { id: conversation.sessionId } })
-      : null;
+    // Number() both sides: session.id is a bare bigint PK (hydrates as a string)
+    // while conversation.sessionId goes through bigintTransformer (number).
+    if (!conversation || Number(conversation.sessionId) !== Number(session.id)) {
+      throw new BusinessException(ERROR_CODE.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND);
+    }
     const lastUser = await this.msgRepo.findOne({
       where: { conversationId, senderType: SENDER_TYPE.USER },
       order: { id: 'DESC' },
     });
     await this.markWaiting(conversationId);
     const event: EscalationEvent = {
-      tenantId: session?.tenantId ?? conversation?.tenantId ?? 0,
+      tenantId: session.tenantId ?? conversation.tenantId ?? 0,
       conversationId,
-      sessionId: session?.id ?? null,
+      sessionId: session.id,
       reason: 'user_request',
       preview: (lastUser?.body ?? '').slice(0, 300),
     };
