@@ -123,6 +123,23 @@ Found + fixed during runtime verification: the escalate ownership check compared
 
 95 API tests (+14), typecheck 7/7, build 5/5. Backlog now down to: PRV-M5 rest (broader maskPii), PRV-M6 (PII at rest), SSE, Vite 8 tooling refresh.
 
+## 0h. Remediation status (2026-07-20, branch `feat/pii-encryption-at-rest`)
+
+**PRV-M6 — customer PII encrypted at rest.** `customers.email`, `name`, `phone` are now AES-256-GCM ciphertext (`varbinary`), encrypted/decrypted transparently by a TypeORM column transformer (same key as credentials, `CRED_ENC_KEY`). Since the ciphertext is unsearchable, a deterministic `email_hash` blind index (HMAC-SHA256 over the normalized email, keyed by `CRED_ENC_KEY`) backs all email-equality lookups — maintained by a `@BeforeInsert/@BeforeUpdate` hook and cleared explicitly on the `.update()`-based tenant purge.
+
+| Area | Change | Files |
+|---|---|---|
+| Crypto | `encryptPii`/`decryptPii` (null-aware, tolerant of legacy plaintext) + `blindIndex` | `global/util/crypto.util.ts` (+spec, 6 tests) |
+| Entity | transformer on email/name/phone; `email_hash` column + sync hook | `customer/entity/customer.entity.ts`, `sql/01-schema.sql` |
+| Lookups | findOrCreateByEmail / createFromLead / redact findCustomer / guest-lookup JOIN → `email_hash`; customer-list email search now exact-match; agent name search app-side decrypt-filter (bounded 500) | `customer/customer.service.ts`, `privacy/privacy.service.ts`, `order/order.service.ts` |
+| Migration | `npm run db:migrate-pii` backfill (re-save each customer → encrypt + hash); production must `ALTER … MODIFY varbinary` first (synchronize drops data) | `database/migrate-encrypt-pii.ts` |
+
+Runtime-verified against the dev stack: columns become `varbinary` + `email_hash` populated; DB shows ciphertext (47-byte GCM envelope) not plaintext; customer list decrypts on read; exact-email search matches via blind index; guest lookup matches on the right email (201) and rejects a wrong one (404); DSAR export returns decrypted PII; redact nulls `email`+`email_hash` and re-encrypts the `[redacted]` name. 101 tests, typecheck 7/7, build 5/5.
+
+Scope note: message/notification/review free-text bodies stay plaintext by design — encrypting them would break RAG retrieval, moderation, retention, and agent-console readability; the structured customer identifiers are the bounded high-value target. **Operational:** `CRED_ENC_KEY` must stay stable — rotating it requires decrypt-with-old-key + re-run `db:migrate-pii`.
+
+Backlog now: PRV-M5 rest (broader maskPii), FE-M2 full frame-ancestors, SSE, Vite 8 tooling refresh.
+
 ---
 
 ## 0. Priority action list (do these first)

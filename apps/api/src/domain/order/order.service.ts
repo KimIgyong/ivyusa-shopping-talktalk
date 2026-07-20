@@ -24,6 +24,7 @@ import { EventBusService, EVENTS } from '../../infrastructure/infrastructure.mod
 import { RedisService } from '../../infrastructure/cache/redis.service';
 import { WebhookSecretService } from '../tenant/webhook-secret.service';
 import { assertWebhookSecret } from '../../global/util/webhook-secret.util';
+import { blindIndex } from '../../global/util/crypto.util';
 
 const LOOKUP_MAX_ATTEMPTS = 5;
 const LOOKUP_WINDOW_SEC = 15 * 60;
@@ -60,7 +61,8 @@ export class OrderService {
       .createQueryBuilder('o')
       .innerJoin(Customer, 'c', 'c.id = o.customer_id')
       .where('o.order_number = :orderNumber', { orderNumber })
-      .andWhere('c.email = :email', { email })
+      // Email is encrypted — match on the deterministic blind index (PRV-M6).
+      .andWhere('c.email_hash = :emailHash', { emailHash: blindIndex(email) ?? '__none__' })
       .andWhere('o.tenant_id = :tenantId', { tenantId: session.tenantId })
       .andWhere('c.tenant_id = :tenantId', { tenantId: session.tenantId })
       .getOne();

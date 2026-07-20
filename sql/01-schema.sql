@@ -209,16 +209,19 @@ CREATE TABLE `customers` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `tenant_id` bigint DEFAULT NULL,
   `shopify_customer_id` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `email` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `name` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  -- PII encrypted at rest (AES-256-GCM); email_hash is the blind index for
+  -- equality lookups since the ciphertext is unsearchable (PRV-M6).
+  `email` varbinary(512) DEFAULT NULL,
+  `email_hash` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `name` varbinary(512) DEFAULT NULL,
   `tier` varchar(16) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'guest',
   `shopify_tier` varchar(32) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `created_at` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
   `updated_at` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
-  `phone` varchar(32) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `phone` varbinary(256) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `idx_customers_tenant` (`tenant_id`),
-  KEY `idx_customers_email` (`email`)
+  KEY `idx_customers_email_hash` (`email_hash`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 DROP TABLE IF EXISTS `fulfillments`;
 CREATE TABLE `fulfillments` (

@@ -1,7 +1,8 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { FindOptionsWhere, In, Like, Repository } from 'typeorm';
+import { FindOptionsWhere, In, Repository } from 'typeorm';
 import { Customer } from './entity/customer.entity';
+import { blindIndex } from '../../global/util/crypto.util';
 import { OrderCache } from '../order/entity/order-cache.entity';
 import { CustomerOrderStats } from './customer.mapper';
 import { BusinessException } from '../../global/exception/business.exception';
@@ -39,7 +40,9 @@ export class CustomerService {
     email?: string,
   ): Promise<{ items: Customer[]; total: number; stats: Map<string, CustomerOrderStats> }> {
     const where: FindOptionsWhere<Customer> = { tenantId };
-    if (email) where.email = Like(`%${email}%`);
+    // Email is encrypted — partial LIKE is impossible; match the exact address
+    // via the blind index (PRV-M6). Blank/garbage search returns nothing.
+    if (email) where.emailHash = blindIndex(email) ?? '__none__';
     const [items, total] = await this.customerRepo.findAndCount({
       where,
       order: { id: 'DESC' },
@@ -129,25 +132,53 @@ export class CustomerService {
     return map;
   }
 
-  /** Match candidates for the "link existing customer" search (email or name). */
+  /** Bounded scan window for the encrypted-column app-side name/email filter (PRV-M6). */
+  private static readonly SEARCH_SCAN = 500;
+
+  /**
+   * Match candidates for the "link existing customer" search. Email is matched
+   * exactly through the blind index; name/partial-email can't be queried on
+   * ciphertext, so a bounded, tenant-scoped recent window is decrypted and
+   * filtered in-app (PRV-M6).
+   */
   async searchByEmailOrName(tenantId: number, query: string, limit = 10): Promise<Customer[]> {
     const q = query.trim();
     if (!q) return [];
-    return this.customerRepo.find({
-      where: [
-        { tenantId, email: Like(`%${q}%`) },
-        { tenantId, name: Like(`%${q}%`) },
-      ],
-      order: { id: 'DESC' },
-      take: limit,
-    });
+
+    const found = new Map<number, Customer>();
+    const hash = blindIndex(q);
+    if (hash) {
+      const byEmail = await this.customerRepo.find({
+        where: { tenantId, emailHash: hash },
+        take: limit,
+      });
+      for (const c of byEmail) found.set(c.id, c);
+    }
+    if (found.size < limit) {
+      const pool = await this.customerRepo.find({
+        where: { tenantId },
+        order: { id: 'DESC' },
+        take: CustomerService.SEARCH_SCAN,
+      });
+      const ql = q.toLowerCase();
+      for (const c of pool) {
+        if (found.size >= limit) break;
+        if (found.has(c.id)) continue;
+        if (c.name?.toLowerCase().includes(ql) || c.email?.toLowerCase().includes(ql)) {
+          found.set(c.id, c);
+        }
+      }
+    }
+    return [...found.values()].slice(0, limit);
   }
 
   /** Create a customer from chat-captured lead fields. Reuses the email row if present. */
   async createFromLead(tenantId: number, lead: CustomerLead): Promise<Customer> {
     const email = lead.email?.trim() || null;
     if (email) {
-      const existing = await this.customerRepo.findOne({ where: { tenantId, email } });
+      const existing = await this.customerRepo.findOne({
+        where: { tenantId, emailHash: blindIndex(email) ?? '__none__' },
+      });
       if (existing) {
         let dirty = false;
         if (lead.name && existing.name !== lead.name) {
@@ -189,7 +220,9 @@ export class CustomerService {
     name?: string,
     shopifyCustomerId?: string,
   ): Promise<Customer> {
-    const existing = await this.customerRepo.findOne({ where: { tenantId, email } });
+    const existing = await this.customerRepo.findOne({
+      where: { tenantId, emailHash: blindIndex(email) ?? '__none__' },
+    });
     if (existing) {
       let dirty = false;
       if (name !== undefined && existing.name !== name) {

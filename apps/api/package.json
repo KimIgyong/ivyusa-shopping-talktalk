@@ -7,6 +7,7 @@
     "dev": "nest start --watch",
     "start": "node dist/main.js",
     "seed": "ts-node -r tsconfig-paths/register src/database/seed.ts",
+    "migrate-pii": "ts-node -r tsconfig-paths/register src/database/migrate-encrypt-pii.ts",
     "typecheck": "tsc --noEmit",
     "lint": "eslint \"src/**/*.ts\"",
     "test": "jest --passWithNoTests"
