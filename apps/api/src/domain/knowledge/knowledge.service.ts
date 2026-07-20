@@ -77,6 +77,21 @@ export class KnowledgeService {
     if (query.source_id !== undefined) where.sourceId = Number(query.source_id);
     if (query.category !== undefined) where.category = query.category;
     const [items, total] = await this.docRepo.findAndCount({
+      // PERF-9: the list never renders the LONGTEXT body — skip it so a page
+      // of documents doesn't drag megabytes of content off disk. Detail/edit
+      // endpoints still load the full row.
+      select: [
+        'id',
+        'tenantId',
+        'source',
+        'sourceId',
+        'category',
+        'title',
+        'embeddingRef',
+        'active',
+        'status',
+        'updatedAt',
+      ],
       where,
       order: { id: 'DESC' },
       skip: (page - 1) * size,

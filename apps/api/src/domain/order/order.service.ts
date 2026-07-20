@@ -87,12 +87,22 @@ export class OrderService {
       take: s,
     });
 
-    const items = await Promise.all(
-      orders.map(async (o) =>
-        OrderMapper.toListItem(o, await this.itemRepo.count({ where: { orderId: o.id } })),
-      ),
-    );
+    const countByOrder = await this.itemCounts(orders.map((o) => o.id));
+    const items = orders.map((o) => OrderMapper.toListItem(o, countByOrder.get(String(o.id)) ?? 0));
     return new Paginated(items, buildPagination(p, s, total));
+  }
+
+  /** order id → item count in one GROUP BY query (PERF-7, was one COUNT per row). */
+  private async itemCounts(orderIds: number[]): Promise<Map<string, number>> {
+    if (orderIds.length === 0) return new Map();
+    const rows = await this.itemRepo
+      .createQueryBuilder('i')
+      .select('i.order_id', 'oid')
+      .addSelect('COUNT(*)', 'cnt')
+      .where('i.order_id IN (:...ids)', { ids: orderIds })
+      .groupBy('i.order_id')
+      .getRawMany<{ oid: string; cnt: string }>();
+    return new Map(rows.map((r) => [String(r.oid), Number(r.cnt)]));
   }
 
   /** Order detail (items + totals), scoped to the bound customer. */
@@ -136,11 +146,8 @@ export class OrderService {
       skip: (p - 1) * s,
       take: s,
     });
-    const items = await Promise.all(
-      orders.map(async (o) =>
-        OrderMapper.toListItem(o, await this.itemRepo.count({ where: { orderId: o.id } })),
-      ),
-    );
+    const countByOrder = await this.itemCounts(orders.map((o) => o.id));
+    const items = orders.map((o) => OrderMapper.toListItem(o, countByOrder.get(String(o.id)) ?? 0));
     return new Paginated(items, buildPagination(p, s, total));
   }
 

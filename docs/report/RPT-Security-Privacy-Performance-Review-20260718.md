@@ -80,6 +80,21 @@ Sprint 3 (performance) items fixed; delta polling, FULLTEXT retrieval, async dis
 
 Still open: PERF-7/8/9/13 (N+1s, dashboard scoping/caching, KB SELECT *, admin code-splitting), SSE (only after these), PRV/SEC backlog above, NestJS 11 sprint.
 
+## 0e. Remediation status (2026-07-20, branch `perf/perf-polish-sprint3b`)
+
+Sprint 3b (performance polish) — the remaining PERF findings, runtime-verified:
+
+| Ref | Fix | Files |
+|---|---|---|
+| PERF-7 | N+1s batched into single GROUP BY / MAX() queries: agent-console last-message per conversation, analytics per-conversation message counts, order-list per-order item counts. Verified: counts return correctly from the batched paths. | `agent/agent.service.ts`, `analytics/analytics.service.ts`, `order/order.service.ts` |
+| PERF-8 | Dashboard KPIs are now **tenant-scoped** (was cross-tenant — a tenancy bug, not just perf), all counts run in `Promise.all`, popular-questions selects only the `body` column (no more 50 full rows with JSON traces), and the payload is Redis-cached 30s per tenant. Conversation history search is tenant-scoped too. Verified: 12ms cold / 3ms cached; `dash:1` key present. | `analytics/analytics.{service,controller}.ts` |
+| PERF-9 | KB document list selects explicit columns — the LONGTEXT `content` never leaves the DB for list views (detail/edit still load it). Verified: list returns docs with `content` absent. | `knowledge/knowledge.service.ts` |
+| PERF-13 | Admin web route-level code splitting (`React.lazy` per page + Suspense): initial chunk 512→434 KB (gzip 145 KB), each page its own 1–14 KB chunk. Login + layout stay eager. | `web/router/AppRouter.tsx` |
+
+Note: system admins get 403 on `/analytics/dashboard` (pre-existing capability-matrix behavior — the platform admin uses `/admin` overview); the tenant-scope fix applies to tenant staff, verified.
+
+Still open: SSE for chat (candidate now that polling is delta), PRV-M5 rest / PRV-M6 / PRV-M7, SEC-M3/M5/L3/L5/L6, NestJS 10→11 dependency sprint.
+
 ---
 
 ## 0. Priority action list (do these first)

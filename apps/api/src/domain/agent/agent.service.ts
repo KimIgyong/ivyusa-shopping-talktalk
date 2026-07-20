@@ -111,17 +111,27 @@ export class AgentService {
       take: size,
     });
     const customerNameByConv = await this.customerNamesByConversation(conversations);
-    const items = await Promise.all(
-      conversations.map(async (conversation) => ({
-        conversation,
-        lastMessage: await this.msgRepo.findOne({
-          where: { conversationId: conversation.id },
-          order: { id: 'DESC' },
-        }),
-        customerName: customerNameByConv.get(String(conversation.id)) ?? null,
-      })),
-    );
+    // Batched last-message lookup (PERF-7) — one query instead of one per row.
+    const lastByConv = await this.lastMessagesByConversation(conversations.map((c) => c.id));
+    const items = conversations.map((conversation) => ({
+      conversation,
+      lastMessage: lastByConv.get(String(conversation.id)) ?? null,
+      customerName: customerNameByConv.get(String(conversation.id)) ?? null,
+    }));
     return { items, total };
+  }
+
+  /** conversation id → its newest message, in a single grouped query (PERF-7). */
+  private async lastMessagesByConversation(ids: number[]): Promise<Map<string, Message>> {
+    if (ids.length === 0) return new Map();
+    const rows = await this.msgRepo
+      .createQueryBuilder('m')
+      .where(
+        'm.id IN (SELECT MAX(id) FROM messages WHERE conversation_id IN (:...ids) GROUP BY conversation_id)',
+        { ids },
+      )
+      .getMany();
+    return new Map(rows.map((m) => [String(m.conversationId), m]));
   }
 
   /** Map conversation id -> linked customer name (via session.customer_id). */
