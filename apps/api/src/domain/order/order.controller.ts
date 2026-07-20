@@ -2,12 +2,13 @@ import { Body, Controller, Get, HttpStatus, Param, ParseIntPipe, Post, Query } f
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CAPABILITY, Principal } from '@ivy/types';
 import { OrderService } from './order.service';
-import { GuestLookupRequest, OrderListQuery, SessionTokenQuery } from './dto/request/order.request';
+import { GuestLookupRequest, OrderListQuery } from './dto/request/order.request';
 import { Public } from '../../global/decorator/public.decorator';
 import { RequireCapability } from '../../global/decorator/auth.decorator';
 import { CurrentUser } from '../../global/decorator/current-user.decorator';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
+import { SessionToken } from '../../global/decorator/session-token.decorator';
 
 /** Widget + admin order endpoints (FR-019/020/021). */
 @ApiTags('Orders')
@@ -25,22 +26,22 @@ export class OrderController {
   @Get()
   @Public()
   @ApiOperation({ summary: "List the session customer's orders (FR-020)" })
-  async list(@Query() query: OrderListQuery) {
-    return this.orderService.listForSession(query.session_token, query.page, query.size);
+  async list(@SessionToken() token: string, @Query() query: OrderListQuery) {
+    return this.orderService.listForSession(token, query.page, query.size);
   }
 
   @Get(':id')
   @Public()
   @ApiOperation({ summary: 'Order detail with line items (FR-020)' })
-  async detail(@Param('id', ParseIntPipe) id: number, @Query() query: SessionTokenQuery) {
-    return this.orderService.detailForSession(query.session_token, id);
+  async detail(@Param('id', ParseIntPipe) id: number, @SessionToken() token: string) {
+    return this.orderService.detailForSession(token, id);
   }
 
   @Get(':id/tracking')
   @Public()
   @ApiOperation({ summary: 'Latest fulfillment + delivery stepper (FR-031)' })
-  async tracking(@Param('id', ParseIntPipe) id: number, @Query() query: SessionTokenQuery) {
-    return this.orderService.trackingForSession(query.session_token, id);
+  async tracking(@Param('id', ParseIntPipe) id: number, @SessionToken() token: string) {
+    return this.orderService.trackingForSession(token, id);
   }
 }
 

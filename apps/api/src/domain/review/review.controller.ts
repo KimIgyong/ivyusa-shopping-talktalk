@@ -11,6 +11,7 @@ import { Paginated } from '../../global/interceptor/transform.interceptor';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
 import { CreateReviewRequest } from './dto/request/review.request';
+import { SessionToken } from '../../global/decorator/session-token.decorator';
 
 function toResponse(r: Review) {
   return {
@@ -45,7 +46,7 @@ export class ReviewController {
   @Get('reviews')
   @Public()
   @ApiOperation({ summary: "List the customer's reviews (requires auth)" })
-  async list(@Query('session_token') token: string) {
+  async list(@SessionToken() token: string) {
     const reviews = await this.reviewService.listForSession(token);
     return reviews.map(toResponse);
   }

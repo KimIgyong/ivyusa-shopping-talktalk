@@ -7,6 +7,7 @@ export class SendMessageRequest {
 }
 
 export class EscalateRequest {
+  @IsString() session_token: string;
   @IsInt() conversation_id: number;
 }
 

@@ -11,6 +11,7 @@ import { Paginated } from '../../global/interceptor/transform.interceptor';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
 import { ApplyRequest, ReviewRequest } from './dto/request/affiliate.request';
+import { SessionToken } from '../../global/decorator/session-token.decorator';
 
 function toResponse(a: Affiliate) {
   return {
@@ -40,7 +41,7 @@ export class AffiliateController {
   @Get('affiliate/status')
   @Public()
   @ApiOperation({ summary: 'Get the current affiliate application status (requires auth)' })
-  async status(@Query('session_token') token: string) {
+  async status(@SessionToken() token: string) {
     const affiliate = await this.affiliateService.status(token);
     if (!affiliate) {
       throw new BusinessException(ERROR_CODE.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND);

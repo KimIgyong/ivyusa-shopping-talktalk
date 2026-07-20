@@ -18,6 +18,7 @@ import { RequireCapability } from '../../global/decorator/auth.decorator';
 import { CurrentUser } from '../../global/decorator/current-user.decorator';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
+import { SessionToken } from '../../global/decorator/session-token.decorator';
 
 /** Widget inquiry endpoints (FR-044). */
 @ApiTags('Inquiries')
@@ -35,8 +36,8 @@ export class InquiryController {
   @Get()
   @Public()
   @ApiOperation({ summary: "List the session customer's inquiries" })
-  async list(@Query() query: InquiryListQuery) {
-    return this.inquiryService.listForSession(query.session_token, query.page, query.size);
+  async list(@SessionToken() token: string, @Query() query: InquiryListQuery) {
+    return this.inquiryService.listForSession(token, query.page, query.size);
   }
 }
 

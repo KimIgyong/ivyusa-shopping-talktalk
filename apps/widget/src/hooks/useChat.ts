@@ -145,14 +145,14 @@ export function useChat(sessionToken: string | null) {
 
   const escalate = useCallback(async () => {
     if (!conversationId) return;
-    await escalateApi(conversationId);
+    await escalateApi(sessionToken!, conversationId);
     append({
       id: `sys-${Date.now()}`,
       senderType: 'system',
       body: 'You are being connected to a support agent. Please hold on…',
       createdAt: new Date().toISOString(),
     });
-  }, [conversationId, append]);
+  }, [conversationId, sessionToken, append]);
 
   return { messages, send, scenario, sending, escalate, append, conversationId };
 }

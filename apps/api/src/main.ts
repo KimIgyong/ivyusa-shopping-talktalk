@@ -11,6 +11,7 @@ import { TransformInterceptor } from './global/interceptor/transform.interceptor
 import { TenantContextInterceptor } from './global/interceptor/tenant-context.interceptor';
 import { LoggingInterceptor } from './global/interceptor/logging.interceptor';
 import { runSeed } from './database/seed.runner';
+import { collectSecretProblems } from './global/config/assert-secrets';
 
 async function bootstrap(): Promise<void> {
   // rawBody: preserve the exact request bytes so webhook HMAC (Shopify) can be
@@ -19,6 +20,19 @@ async function bootstrap(): Promise<void> {
   const config = app.get(ConfigService);
   const prefix = config.get<string>('API_PREFIX', 'api/v1');
   const isProd = config.get<string>('NODE_ENV') === 'production';
+
+  // Secret hygiene (SEC-M5): in production, refuse to boot on missing / short /
+  // placeholder secrets. Elsewhere, warn but continue (dev placeholders are OK).
+  const secretProblems = collectSecretProblems(config, isProd);
+  if (secretProblems.length) {
+    const log = new Logger('SecretCheck');
+    for (const p of secretProblems) log.error(p);
+    if (isProd) {
+      log.error('Refusing to start in production with insecure secrets. Aborting.');
+      process.exit(1);
+    }
+    log.warn('Insecure secrets detected (allowed outside production).');
+  }
 
   // CORS (SEC-L1): explicit allowlist via CORS_ORIGINS (comma-separated). When
   // unset, dev reflects any origin (local Vite ports vary) but prod sends no

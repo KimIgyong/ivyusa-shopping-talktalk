@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Post, Query } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { SkipThrottle } from '@nestjs/throttler';
 import { ChatService } from './chat.service';
@@ -7,6 +7,7 @@ import { ChatMapper } from './chat.mapper';
 import { SendMessageRequest, EscalateRequest, ScenarioRequest } from './dto/request/chat.request';
 import { SessionService } from '../session/session.service';
 import { Public } from '../../global/decorator/public.decorator';
+import { SessionToken } from '../../global/decorator/session-token.decorator';
 
 /** Widget-facing chat endpoints (public; session-token identified). */
 @ApiTags('Chat')
@@ -34,11 +35,11 @@ export class ChatController {
     return this.chatService.handleUserMessage(session, body.message);
   }
 
-  @Get('conversation/:token')
+  @Get('conversation')
   @Public()
   @SkipThrottle() // widget polls this every few seconds — must not count against the flood limit
   @ApiOperation({ summary: 'Get conversation messages for a session (delta via ?after_id=)' })
-  async conversation(@Param('token') token: string, @Query('after_id') afterId?: string) {
+  async conversation(@SessionToken() token: string, @Query('after_id') afterId?: string) {
     const session = await this.sessionService.findByToken(token);
     // Read-only + bounded (PERF-1): the poll never creates conversations and
     // fetches only messages newer than after_id once the widget has history.
@@ -58,7 +59,8 @@ export class ChatController {
   @Public()
   @ApiOperation({ summary: 'Request a human agent (FR-015)' })
   async escalate(@Body() body: EscalateRequest) {
-    await this.chatService.escalate(body.conversation_id);
+    const session = await this.sessionService.findByToken(body.session_token);
+    await this.chatService.escalate(session, body.conversation_id);
     return { escalated: true };
   }
 }
