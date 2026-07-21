@@ -6,6 +6,8 @@ import { Modal } from '@/components/Modal';
 import { Button } from '@/components/Button';
 import { useAgentAlerts, useAckAlert } from './live-chat.hooks';
 import type { AgentAlert } from './live-chat.service';
+import { useAuthStore } from '@/store/auth-store';
+import { makeCan } from '@/lib/rbac';
 
 /**
  * Global escalation alarm modal (FR-S3, PLAN-Scenario-Handoff-Alert §3.5).
@@ -17,7 +19,11 @@ export function EscalationAlarm() {
   const { t } = useTranslation('livechat');
   const navigate = useNavigate();
   const location = useLocation();
-  const { data: alerts } = useAgentAlerts();
+  // Only agents with conversation-handling capability may poll /agent/alerts;
+  // platform admins and non-consult users would just get 403s every 10s.
+  const principal = useAuthStore((s) => s.principal);
+  const canHandle = makeCan(principal)('live_chat');
+  const { data: alerts } = useAgentAlerts(canHandle);
   const ack = useAckAlert();
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
 
@@ -40,7 +46,7 @@ export function EscalationAlarm() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [alreadyViewing, current?.id]);
 
-  if (!current || alreadyViewing) return null;
+  if (!canHandle || !current || alreadyViewing) return null;
 
   const reasonKey =
     current.reason === 'low_confidence'

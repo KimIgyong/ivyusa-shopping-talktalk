@@ -3,7 +3,7 @@ import { apiGet, apiGetList, apiPost, apiPatch } from '@/lib/api-client';
 export interface Tenant {
   id: string;
   name: string;
-  slug?: string;
+  shopDomain?: string;
   plan?: string;
   status?: string;
   userCount?: number;
@@ -45,8 +45,9 @@ export interface AuditEntry {
 export const adminService = {
   tenants: (params: { page: number; pageSize: number }) =>
     apiGetList<Tenant>('/tenants', { page: params.page, size: params.pageSize }),
-  createTenant: (body: { name: string; slug: string; plan: string }) =>
-    apiPost<Tenant>('/tenants', body),
+  // Backend expects snake_case shop_domain.
+  createTenant: (body: { name: string; shopDomain: string; plan: string }) =>
+    apiPost<Tenant>('/tenants', { name: body.name, shop_domain: body.shopDomain, plan: body.plan }),
   setTenantStatus: (id: string, status: string) =>
     apiPatch<Tenant>(`/tenants/${id}/status`, { status }),
   // Adapt backend {status, hasKey,...} → frontend {enabled,...}.

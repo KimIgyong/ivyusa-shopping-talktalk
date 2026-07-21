@@ -2,7 +2,7 @@
   "title": "테넌트",
   "newTenant": "새 테넌트",
   "name": "이름",
-  "slug": "슬러그",
+  "shopDomain": "쇼핑몰 도메인",
   "plan": "요금제",
   "status": "상태",
   "users": "사용자",
