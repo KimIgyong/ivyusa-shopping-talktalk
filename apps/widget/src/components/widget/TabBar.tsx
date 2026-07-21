@@ -2,6 +2,7 @@ import { Bell, MessageCircle, Package } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useWidgetStore, type TabKey } from '../../store/widgetStore';
 import { useUnreadCount } from '../../hooks/useNotifications';
+import { useAnalytics } from '../../lib/analytics';
 
 const TABS: { key: TabKey; labelKey: string; icon: React.ReactNode }[] = [
   { key: 'notifications', labelKey: 'tab.notifications', icon: <Bell className="h-5 w-5" /> },
@@ -14,8 +15,14 @@ export function TabBar() {
   const activeTab = useWidgetStore((s) => s.activeTab);
   const setActiveTab = useWidgetStore((s) => s.setActiveTab);
   const sessionToken = useWidgetStore((s) => s.sessionToken);
+  const analytics = useAnalytics();
   const { data } = useUnreadCount(sessionToken);
   const unread = data?.count ?? 0;
+
+  const selectTab = (key: TabKey) => {
+    setActiveTab(key);
+    analytics.tabView(key);
+  };
 
   return (
     <nav className="flex border-t border-gray-100 bg-white">
@@ -25,7 +32,7 @@ export function TabBar() {
         return (
           <button
             key={tab.key}
-            onClick={() => setActiveTab(tab.key)}
+            onClick={() => selectTab(tab.key)}
             className={`relative flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] font-medium transition-colors ${
               active ? 'text-primary-600' : 'text-gray-400 hover:text-gray-600'
             }`}

@@ -5,10 +5,18 @@
  * theme. The iframe URL carries ?shop (tenant resolution) and ?locale; the widget
  * posts `ivy:resize` messages so this loader can grow/shrink the frame.
  *
+ * Analytics (GA4): this loader captures the storefront's UTM params + referrer +
+ * landing page and forwards them on the iframe URL, so the widget's GA4 wrapper
+ * can attribute the support/conversion journey to a precise traffic source. On
+ * the Shopify order-status ("thank you") page it detects the completed order and
+ * posts `ivy:purchase` to the widget, firing the GA4 payment-conversion event.
+ * `window.IvyWidget.trackPurchase({...})` reports a conversion manually.
+ *
  * Usage (Shopify theme / app-embed block):
  *   <script>window.IVY_WIDGET_CONFIG = {
  *     shop: "your-store.myshopify.com", locale: "en",
- *     widgetUrl: "https://widget.ivyusa.app" };</script>
+ *     widgetUrl: "https://widget.ivyusa.app",
+ *     ga4Id: "G-XXXXXXXXXX" };</script>
  *   <script src="https://widget.ivyusa.app/embed.js" defer></script>
  */
 (function () {
@@ -27,6 +35,28 @@
     }
   })();
   var locale = String(cfg.locale || document.documentElement.lang || 'en').slice(0, 2);
+
+  // ---- Traffic-source capture (UTM + referrer + landing) ---------------------
+  // Read from the STORE page URL (the widget iframe can't see it) and forward on
+  // the iframe src so the widget attributes analytics to the real source.
+  function captureAttribution() {
+    var out = [];
+    try {
+      var qs = new URLSearchParams(window.location.search);
+      var keys = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'];
+      for (var i = 0; i < keys.length; i++) {
+        var v = qs.get(keys[i]);
+        if (v) out.push(keys[i] + '=' + encodeURIComponent(v.slice(0, 200)));
+      }
+      if (document.referrer) out.push('ivy_ref=' + encodeURIComponent(document.referrer.slice(0, 300)));
+      out.push('ivy_land=' + encodeURIComponent(String(window.location.href).slice(0, 300)));
+    } catch (_) {
+      /* URL API unavailable — attribution is best-effort */
+    }
+    return out.join('&');
+  }
+  var attribution = captureAttribution();
+  var ga4Id = cfg.ga4Id && /^G-[A-Z0-9]+$/i.test(cfg.ga4Id) ? cfg.ga4Id : '';
 
   // Shopify App Proxy subpath on the store (Partner dashboard → App setup → App
   // proxy). A storefront-relative fetch to it is signed by Shopify and carries a
@@ -55,7 +85,9 @@
     '/?embed=1&shop=' +
     encodeURIComponent(shop) +
     '&locale=' +
-    encodeURIComponent(locale);
+    encodeURIComponent(locale) +
+    (ga4Id ? '&ga4=' + encodeURIComponent(ga4Id) : '') +
+    (attribution ? '&' + attribution : '');
 
   var s = frame.style;
   s.position = 'fixed';
@@ -92,6 +124,59 @@
     }
   }
 
+  // ---- Payment-conversion bridge --------------------------------------------
+  var pendingPurchase = null; // held until the widget iframe is ready
+
+  function postPurchase(tx) {
+    if (!tx || !frame.contentWindow) return;
+    frame.contentWindow.postMessage(
+      {
+        type: 'ivy:purchase',
+        transaction_id: tx.transaction_id,
+        value: tx.value,
+        currency: tx.currency,
+        items: tx.items,
+      },
+      base,
+    );
+  }
+
+  function reportPurchase(tx) {
+    if (!tx || tx.transaction_id == null || tx.value == null || !tx.currency) return;
+    if (widgetReady) postPurchase(tx);
+    else pendingPurchase = tx; // flushed on ivy:ready
+  }
+
+  // Public API for a storefront that computes the order itself.
+  window.IvyWidget = window.IvyWidget || {};
+  window.IvyWidget.trackPurchase = reportPurchase;
+
+  // Auto-detect a completed Shopify order on the order-status / thank-you page.
+  // `Shopify.checkout` is present there with order_id + totals + line items.
+  function detectShopifyPurchase() {
+    try {
+      var co = window.Shopify && window.Shopify.checkout;
+      if (!co || co.order_id == null) return;
+      var items = (co.line_items || []).map(function (li) {
+        return {
+          item_id: String(li.product_id || li.id || ''),
+          item_name: li.title,
+          quantity: li.quantity,
+          price: Number(li.price),
+        };
+      });
+      reportPurchase({
+        transaction_id: String(co.order_id),
+        value: Number(co.total_price),
+        currency: co.currency || co.presentment_currency,
+        items: items,
+      });
+    } catch (_) {
+      /* not a checkout page / shape differs — nothing to report */
+    }
+  }
+  detectShopifyPurchase();
+
   window.addEventListener('message', function (e) {
     if (e.origin !== baseOrigin) return; // only trust messages from our widget origin
     var d = e.data || {};
@@ -101,6 +186,10 @@
     } else if (d.type === 'ivy:ready') {
       widgetReady = true;
       maybeSendIdentity();
+      if (pendingPurchase) {
+        postPurchase(pendingPurchase);
+        pendingPurchase = null;
+      }
     }
   });
 

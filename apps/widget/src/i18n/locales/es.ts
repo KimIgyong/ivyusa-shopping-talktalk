@@ -32,7 +32,7 @@ export const es: Translation = {
     connectAgent: 'Conectar con un agente',
     consent: {
       title: 'Aviso de privacidad',
-      body: 'Conforme a la CCPA, procesamos tus mensajes para brindarte soporte. ¿Aceptas continuar?',
+      body: 'Conforme a la CCPA, procesamos tus mensajes para brindarte soporte y usamos analítica (Google Analytics) para entender el tráfico y mejorar el servicio. ¿Aceptas continuar?',
       accept: 'Aceptar',
       decline: 'Rechazar',
     },

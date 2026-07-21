@@ -32,7 +32,7 @@ export const ko: Translation = {
     connectAgent: '상담원 연결',
     consent: {
       title: '개인정보 처리 안내',
-      body: 'CCPA에 따라 상담 제공을 위해 고객님의 메시지를 처리합니다. 계속 진행하는 데 동의하시겠습니까?',
+      body: 'CCPA에 따라 상담 제공을 위해 고객님의 메시지를 처리하고, 트래픽 분석 및 서비스 개선을 위해 분석 도구(Google Analytics)를 사용합니다. 계속 진행하는 데 동의하시겠습니까?',
       accept: '동의',
       decline: '거부',
     },

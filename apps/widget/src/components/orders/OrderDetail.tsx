@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ArrowLeft, MessageSquare, Truck, Star } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useOrder, useTracking } from '../../hooks/useOrders';
+import { useAnalytics } from '../../lib/analytics';
 import { Badge, toneForStatus } from '../ui/Badge';
 import { Spinner } from '../ui/Spinner';
 import { formatMoney } from '../../lib/format';
@@ -20,10 +21,23 @@ export function OrderDetailView({
   onAsk: (orderNumber: string) => void;
 }) {
   const { t } = useTranslation();
+  const analytics = useAnalytics();
   const { data, isLoading, isError } = useOrder(orderId, sessionToken);
   const [showTrack, setShowTrack] = useState(false);
   const [reviewItemId, setReviewItemId] = useState<string | null>(null);
   const tracking = useTracking(showTrack ? orderId : null, sessionToken);
+
+  // Consideration signal: an order detail was opened (value attributed).
+  useEffect(() => {
+    if (data?.order) {
+      analytics.orderView({
+        id: orderId,
+        value: typeof data.order.total === 'number' ? data.order.total : undefined,
+        currency: data.order.currency,
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data?.order?.orderNumber]);
 
   if (isLoading) return <Spinner label={t('common.loading')} />;
   if (isError || !data)
@@ -116,7 +130,11 @@ export function OrderDetailView({
 
       <div className="flex gap-2">
         <button
-          onClick={() => setShowTrack((v) => !v)}
+          onClick={() => {
+            const next = !showTrack;
+            setShowTrack(next);
+            if (next) analytics.trackingView(orderId);
+          }}
           className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
         >
           <Truck className="h-4 w-4" />
