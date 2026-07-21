@@ -1,8 +1,5 @@
 import { create } from 'zustand';
-import {
-  getStoredSessionToken,
-  setStoredSessionToken,
-} from '../lib/api-client';
+import { setStoredSessionToken } from '../lib/api-client';
 
 export type TabKey = 'notifications' | 'chat' | 'orders';
 
@@ -24,17 +21,13 @@ interface WidgetState {
   consumeChatMessage: () => string | null;
 }
 
-/**
- * Embedded on a storefront? Then ignore any persisted token at bootstrap and let
- * the app-proxy handshake (or an anonymous ensure) decide the session each load.
- * This prevents a previous customer's authenticated session — persisted in this
- * widget origin's localStorage — from resuming for a different/logged-out visitor
- * on a shared browser (privacy). The standalone dev app keeps persistence.
- */
-const isEmbedded = typeof window !== 'undefined' && window.parent !== window;
-
 export const useWidgetStore = create<WidgetState>()((set, get) => ({
-  sessionToken: isEmbedded ? null : getStoredSessionToken(),
+  // Always null at bootstrap — a persisted token is only used as a resume hint
+  // for session/ensure (useEnsureSession) and reaches queries after the backend
+  // validates or replaces it. This kills startup 401 noise from stale tokens and,
+  // when embedded, keeps a previous customer's persisted session from resuming
+  // for a different visitor (privacy) — the app-proxy handshake decides instead.
+  sessionToken: null,
   activeTab: 'chat',
   panelOpen: false,
   authenticated: false,
