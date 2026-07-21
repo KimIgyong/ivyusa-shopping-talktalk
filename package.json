@@ -16,7 +16,8 @@
     "typecheck": "turbo run typecheck",
     "db:up": "docker compose -f docker/docker-compose.dev.yml up -d",
     "db:down": "docker compose -f docker/docker-compose.dev.yml down",
-    "db:seed": "npm run seed --workspace=@ivy/api"
+    "db:seed": "npm run seed --workspace=@ivy/api",
+    "set-domain": "node scripts/set-public-domain.mjs"
   },
   "devDependencies": {
     "turbo": "^2.0.0",
