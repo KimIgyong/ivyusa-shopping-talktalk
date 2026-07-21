@@ -176,6 +176,8 @@ export class TenantService {
   /**
    * Resolve the shop domain + decrypted Admin API token for a tenant, or null if
    * either is missing. Shared by the connectivity test and the order/customer sync.
+   * Expiring OAuth tokens (accessToken + refreshToken + expiresAt) are refreshed
+   * transparently here; manual custom-app tokens (no refreshToken) pass through.
    */
   async getShopifyConnection(
     tenantId: number,
@@ -184,12 +186,107 @@ export class TenantService {
     const shopDomain = tenant.shopDomain?.trim();
     const cred = await this.credRepo.findOne({ where: { tenantId, provider: SHOPIFY } });
     if (!shopDomain || !cred?.secretEnc) return null;
-    const token = this.extractAccessToken(decryptSecret(cred.secretEnc));
+    const parsed = this.parseShopifyCredential(decryptSecret(cred.secretEnc));
+    if (!parsed) return null;
+    let token = parsed.accessToken;
+    if (parsed.refreshToken && (!parsed.expiresAt || parsed.expiresAt - Date.now() < 120_000)) {
+      const refreshed = await this.refreshShopifyToken(tenantId, shopDomain, parsed, cred);
+      if (!refreshed) return null;
+      token = refreshed;
+    }
     // Shopify tokens are printable ASCII. Reject anything else (e.g. a masked/
     // placeholder value) so it never reaches an HTTP header — which would throw a
     // ByteString error on fetch instead of a clean "invalid token" result.
     if (!token || !/^[\x21-\x7e]+$/.test(token)) return null;
     return { shopDomain, token };
+  }
+
+  /**
+   * Rotate an expiring offline token via grant_type=refresh_token. Single-flight
+   * per tenant — Shopify rotates the refresh token on every use, so a concurrent
+   * second refresh with the old refresh token would be rejected.
+   */
+  private readonly refreshInFlight = new Map<number, Promise<string | null>>();
+
+  private refreshShopifyToken(
+    tenantId: number,
+    shopDomain: string,
+    parsed: { accessToken: string; refreshToken?: string },
+    cred: IntegrationCredential,
+  ): Promise<string | null> {
+    const existing = this.refreshInFlight.get(tenantId);
+    if (existing) return existing;
+    const run = (async (): Promise<string | null> => {
+      const clientId = process.env.SHOPIFY_API_KEY ?? '';
+      const clientSecret = process.env.SHOPIFY_API_SECRET ?? '';
+      if (!clientId || !clientSecret || !parsed.refreshToken) return null;
+      try {
+        const res = await fetch(`https://${shopDomain}/admin/oauth/access_token`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            grant_type: 'refresh_token',
+            client_id: clientId,
+            client_secret: clientSecret,
+            refresh_token: parsed.refreshToken,
+          }),
+        });
+        if (!res.ok) return null;
+        const data = (await res.json()) as {
+          access_token?: string;
+          expires_in?: number | string;
+          refresh_token?: string;
+          refresh_token_expires_in?: number | string;
+        };
+        if (!data.access_token) return null;
+        const now = Date.now();
+        const rotated = {
+          accessToken: data.access_token,
+          ...(data.refresh_token ? { refreshToken: data.refresh_token } : {}),
+          ...(data.expires_in ? { expiresAt: now + Number(data.expires_in) * 1000 } : {}),
+          ...(data.refresh_token_expires_in
+            ? { refreshTokenExpiresAt: now + Number(data.refresh_token_expires_in) * 1000 }
+            : {}),
+        };
+        // Automatic rotation — persist quietly (no audit row; upsertCredential's
+        // audit trail is reserved for operator-initiated set/rotate actions).
+        cred.secretEnc = encryptSecret(JSON.stringify(rotated));
+        await this.credRepo.save(cred);
+        return rotated.accessToken;
+      } catch {
+        return null;
+      }
+    })();
+    this.refreshInFlight.set(tenantId, run);
+    void run.finally(() => this.refreshInFlight.delete(tenantId));
+    return run;
+  }
+
+  /** Parse a stored Shopify credential (JSON blob or raw token string). */
+  private parseShopifyCredential(secret: string): {
+    accessToken: string;
+    refreshToken?: string;
+    expiresAt?: number;
+  } | null {
+    try {
+      const parsed = JSON.parse(secret) as {
+        accessToken?: string;
+        refreshToken?: string;
+        expiresAt?: number;
+      };
+      if (parsed && typeof parsed === 'object') {
+        return parsed.accessToken
+          ? {
+              accessToken: parsed.accessToken,
+              refreshToken: parsed.refreshToken,
+              expiresAt: parsed.expiresAt,
+            }
+          : null;
+      }
+    } catch {
+      /* not JSON — treat the whole value as the raw token */
+    }
+    return secret ? { accessToken: secret } : null;
   }
 
   /**
@@ -228,14 +325,4 @@ export class TenantService {
     return { ok, detail };
   }
 
-  /** Read the access token from a stored credential (JSON blob or raw token). */
-  private extractAccessToken(secret: string): string | null {
-    try {
-      const parsed = JSON.parse(secret) as { accessToken?: string };
-      if (parsed && typeof parsed === 'object') return parsed.accessToken ?? null;
-    } catch {
-      /* not JSON — treat the whole value as the raw token */
-    }
-    return secret || null;
-  }
 }

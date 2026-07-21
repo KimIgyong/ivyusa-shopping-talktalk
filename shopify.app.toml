@@ -1,0 +1,38 @@
+# Shopify app configuration (Dev Dashboard "shoptalk", client_id = staging SHOPIFY_API_KEY).
+# Deployed with `shopify app deploy` — creates and releases a new app version.
+# Mirrors the settings already active in the dashboard (App URL / proxy / legacy install)
+# and adds the missing auth redirect URL + mandatory GDPR compliance webhooks.
+
+client_id = "6999d1547fe02aeafa5d0b9396aa4aba"
+name = "shoptalk"
+application_url = "https://shoptalk.amoeba.site"
+embedded = false
+
+[access_scopes]
+scopes = "read_orders,read_customers"
+use_legacy_install_flow = true
+
+[auth]
+redirect_urls = [
+  "https://shoptalk.amoeba.site/api/v1/auth/shopify/callback"
+]
+
+[webhooks]
+api_version = "2026-07"
+
+[[webhooks.subscriptions]]
+compliance_topics = [ "customers/data_request" ]
+uri = "https://shoptalk.amoeba.site/api/v1/webhooks/shopify/customers/data_request"
+
+[[webhooks.subscriptions]]
+compliance_topics = [ "customers/redact" ]
+uri = "https://shoptalk.amoeba.site/api/v1/webhooks/shopify/customers/redact"
+
+[[webhooks.subscriptions]]
+compliance_topics = [ "shop/redact" ]
+uri = "https://shoptalk.amoeba.site/api/v1/webhooks/shopify/shop/redact"
+
+[app_proxy]
+url = "https://shoptalk.amoeba.site/api/v1/shopify/proxy"
+prefix = "apps"
+subpath = "ivy"
