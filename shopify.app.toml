@@ -9,7 +9,7 @@ application_url = "https://shoptalk.amoeba.site"
 embedded = false
 
 [access_scopes]
-scopes = "read_orders,read_customers"
+scopes = "read_orders,read_customers,read_fulfillments"
 use_legacy_install_flow = true
 
 [auth]
@@ -20,6 +20,11 @@ redirect_urls = [
 [webhooks]
 api_version = "2026-07"
 
+# NOTE: app-level `topics` subscriptions are NOT allowed while
+# use_legacy_install_flow = true (CLI rejects the deploy). Operational webhooks
+# (orders/*, fulfillments/*) are registered per shop at runtime via
+# webhookSubscriptionCreate — orders topics additionally require Protected
+# Customer Data approval; until then the scheduled incremental sync covers them.
 [[webhooks.subscriptions]]
 compliance_topics = [ "customers/data_request" ]
 uri = "https://shoptalk.amoeba.site/api/v1/webhooks/shopify/customers/data_request"
