@@ -2,7 +2,7 @@
   "title": "Tenants",
   "newTenant": "New tenant",
   "name": "Name",
-  "slug": "Slug",
+  "shopDomain": "Shop domain",
   "plan": "Plan",
   "status": "Status",
   "users": "Users",

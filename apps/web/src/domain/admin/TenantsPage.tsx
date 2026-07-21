@@ -21,7 +21,7 @@ export function TenantsPage() {
   const [page, setPage] = useState(1);
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
-  const [slug, setSlug] = useState('');
+  const [shopDomain, setShopDomain] = useState('');
   const [plan, setPlan] = useState(PLANS[0]);
 
   const { data, isLoading, error } = useTenants({ page, pageSize: PAGE_SIZE });
@@ -30,13 +30,13 @@ export function TenantsPage() {
 
   const resetForm = () => {
     setName('');
-    setSlug('');
+    setShopDomain('');
     setPlan(PLANS[0]);
   };
 
   const handleCreate = () => {
     createTenant.mutate(
-      { name, slug, plan },
+      { name, shopDomain, plan },
       {
         onSuccess: () => {
           setOpen(false);
@@ -48,7 +48,7 @@ export function TenantsPage() {
 
   const columns: Column<Tenant>[] = [
     { key: 'name', header: t('name'), render: (r) => r.name },
-    { key: 'slug', header: t('slug'), render: (r) => r.slug ?? '—' },
+    { key: 'shopDomain', header: t('shopDomain'), render: (r) => r.shopDomain ?? '—' },
     {
       key: 'plan',
       header: t('plan'),
@@ -116,7 +116,7 @@ export function TenantsPage() {
             </Button>
             <Button
               onClick={handleCreate}
-              disabled={createTenant.isPending || !name || !slug}
+              disabled={createTenant.isPending || !name || !shopDomain}
             >
               {tc('create')}
             </Button>
@@ -126,8 +126,12 @@ export function TenantsPage() {
         <FormRow label={t('name')}>
           <Input value={name} onChange={(e) => setName(e.target.value)} />
         </FormRow>
-        <FormRow label={t('slug')}>
-          <Input value={slug} onChange={(e) => setSlug(e.target.value)} />
+        <FormRow label={t('shopDomain')}>
+          <Input
+            value={shopDomain}
+            onChange={(e) => setShopDomain(e.target.value)}
+            placeholder="example.myshopify.com"
+          />
         </FormRow>
         <FormRow label={t('plan')}>
           <Select value={plan} onChange={(e) => setPlan(e.target.value)}>

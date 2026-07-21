@@ -16,7 +16,7 @@ export function useTenants(params: { page: number; pageSize: number }) {
 export function useCreateTenant() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (body: { name: string; slug: string; plan: string }) =>
+    mutationFn: (body: { name: string; shopDomain: string; plan: string }) =>
       adminService.createTenant(body),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: TENANTS_KEY });

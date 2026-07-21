@@ -2,7 +2,7 @@
   "title": "Inquilinos",
   "newTenant": "Nuevo inquilino",
   "name": "Nombre",
-  "slug": "Slug",
+  "shopDomain": "Dominio de la tienda",
   "plan": "Plan",
   "status": "Estado",
   "users": "Usuarios",

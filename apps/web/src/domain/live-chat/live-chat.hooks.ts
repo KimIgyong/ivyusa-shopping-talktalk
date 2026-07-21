@@ -22,12 +22,13 @@ export const useConversation = (id: string | null) => {
 };
 
 /** New escalation alerts for the alarm modal (FR-S3) — 10s poll. */
-export const useAgentAlerts = () => {
+export const useAgentAlerts = (enabled = true) => {
   const tenantKey = useTenantKey();
   return useQuery({
     queryKey: ['agent', tenantKey, 'alerts'],
     queryFn: () => liveChatService.alerts('new'),
     refetchInterval: 10000,
+    enabled,
   });
 };
 
