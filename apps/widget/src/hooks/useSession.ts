@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useWidgetStore } from '../store/widgetStore';
 import { ensureSession } from '../services/sessionService';
+import { getStoredSessionToken } from '../lib/api-client';
 import i18n, {
   LANG_STORAGE_KEY,
   SUPPORTED_LANGUAGES,
@@ -40,7 +41,13 @@ export function useEnsureSession() {
 
   useEffect(() => {
     let cancelled = false;
-    ensureSession(sessionToken, language, getShopDomain())
+    // Resume hint: the store token is always null at bootstrap; a persisted
+    // token (standalone only — embedded loads must not resume a previous
+    // customer's session) is passed to ensure for validation, and only the
+    // token the backend returns reaches the store/queries.
+    const resumeToken =
+      sessionToken ?? (window.parent === window ? getStoredSessionToken() : null);
+    ensureSession(resumeToken, language, getShopDomain())
       .then((res) => {
         if (cancelled) return;
         // The app-proxy handshake (useEmbedIdentity) may have adopted a
