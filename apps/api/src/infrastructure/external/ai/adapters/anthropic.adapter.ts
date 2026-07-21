@@ -22,10 +22,13 @@ export class AnthropicAdapter implements AiAdapter {
         'x-api-key': apiKey,
         'anthropic-version': '2023-06-01',
       },
+      // NOTE: temperature/top_p/top_k are intentionally omitted — the current
+      // Claude models (Opus 4.8/4.7, Sonnet 5, Fable 5) reject sampling params
+      // with a 400. They are optional on older models too, so omitting is safe
+      // for every model. Steer behaviour via the system prompt instead.
       body: JSON.stringify({
         model: req.model || process.env.ANTHROPIC_MODEL || 'claude-opus-4-8',
         max_tokens: req.maxTokens ?? 1024,
-        temperature: req.temperature ?? 0.3,
         system: req.system,
         messages: req.messages
           .filter((m) => m.role !== 'system')
@@ -33,7 +36,8 @@ export class AnthropicAdapter implements AiAdapter {
       }),
     });
     if (!res.ok) {
-      this.logger.error(`Anthropic error ${res.status}`);
+      const detail = await res.text().catch(() => '');
+      this.logger.error(`Anthropic error ${res.status}: ${detail.slice(0, 300)}`);
       throw new Error(`Anthropic API error ${res.status}`);
     }
     const data: any = await res.json();
