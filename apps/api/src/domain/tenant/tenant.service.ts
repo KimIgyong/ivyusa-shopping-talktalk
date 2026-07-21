@@ -14,7 +14,7 @@ import { ShopifyTestResponse } from './dto/response/tenant.response';
 
 /** provider/name key used for the Shopify credential and integration status. */
 const SHOPIFY = 'shopify';
-const SHOPIFY_API_VERSION = '2024-10';
+const SHOPIFY_API_VERSION = '2026-01';
 
 /**
  * Tenant lifecycle + per-tenant integration credentials (FR-051/FR-060).
@@ -304,16 +304,28 @@ export class TenantService {
     try {
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), 5000);
+      // GraphQL — new Dev Dashboard apps are REST-restricted on many endpoints.
       const res = await fetch(
-        `https://${conn.shopDomain}/admin/api/${SHOPIFY_API_VERSION}/shop.json`,
-        { headers: { 'X-Shopify-Access-Token': conn.token }, signal: controller.signal },
+        `https://${conn.shopDomain}/admin/api/${SHOPIFY_API_VERSION}/graphql.json`,
+        {
+          method: 'POST',
+          headers: { 'X-Shopify-Access-Token': conn.token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query: '{ shop { name } }' }),
+          signal: controller.signal,
+        },
       );
       clearTimeout(timer);
       if (!res.ok) {
         return this.recordShopifyTest(false, `Admin API returned ${res.status}`);
       }
-      const data = (await res.json()) as { shop?: { name?: string } };
-      const name = data.shop?.name;
+      const data = (await res.json()) as {
+        data?: { shop?: { name?: string } };
+        errors?: Array<{ message?: string }>;
+      };
+      if (data.errors?.length) {
+        return this.recordShopifyTest(false, `Admin API error: ${data.errors[0]?.message ?? ''}`);
+      }
+      const name = data.data?.shop?.name;
       return this.recordShopifyTest(true, name ? `Connected: ${name}` : 'Connected');
     } catch (e) {
       return this.recordShopifyTest(false, `Connection failed: ${(e as Error).message}`);
