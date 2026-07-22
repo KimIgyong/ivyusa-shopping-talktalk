@@ -1,8 +1,11 @@
 import 'reflect-metadata';
 import helmet from 'helmet';
+import { join } from 'node:path';
+import { existsSync } from 'node:fs';
 import { NestFactory, Reflector } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { DataSource } from 'typeorm';
 import { AppModule } from './app.module';
@@ -16,7 +19,9 @@ import { collectSecretProblems } from './global/config/assert-secrets';
 async function bootstrap(): Promise<void> {
   // rawBody: preserve the exact request bytes so webhook HMAC (Shopify) can be
   // verified against the raw payload, not a re-stringified JSON copy.
-  const app = await NestFactory.create(AppModule, { rawBody: true });
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    rawBody: true,
+  });
   const config = app.get(ConfigService);
   const prefix = config.get<string>('API_PREFIX', 'api/v1');
   const isProd = config.get<string>('NODE_ENV') === 'production';
@@ -56,6 +61,21 @@ async function bootstrap(): Promise<void> {
   );
 
   app.setGlobalPrefix(prefix);
+
+  // Serve the built storefront widget (apps/widget/dist) at /widget so it shares
+  // the API's public origin — no separate host/tunnel. embed.js -> /widget/embed.js,
+  // iframe app -> /widget/?embed=1. Built with VITE_BASE=/widget/. Override the
+  // dist location with WIDGET_DIST_DIR if needed.
+  const widgetDist =
+    config.get<string>('WIDGET_DIST_DIR') ?? join(__dirname, '..', '..', 'widget', 'dist');
+  if (existsSync(widgetDist)) {
+    app.useStaticAssets(widgetDist, { prefix: '/widget' });
+    new Logger('Bootstrap').log(`Serving widget at /widget from ${widgetDist}`);
+  } else {
+    new Logger('Bootstrap').warn(
+      `Widget dist not found at ${widgetDist} — run: npm run build --workspace=@ivy/widget`,
+    );
+  }
   app.useGlobalPipes(
     new ValidationPipe({ whitelist: true, transform: true, forbidNonWhitelisted: false }),
   );
