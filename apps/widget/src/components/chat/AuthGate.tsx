@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { LogIn, Search } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { guestLookup } from '../../services/orderService';
+import { useAnalytics } from '../../lib/analytics';
 
 export function AuthGate({
   sessionToken,
@@ -13,6 +14,7 @@ export function AuthGate({
   onCancel: () => void;
 }) {
   const { t } = useTranslation();
+  const analytics = useAnalytics();
   const [mode, setMode] = useState<'choice' | 'guest'>('choice');
   const [orderNumber, setOrderNumber] = useState('');
   const [email, setEmail] = useState('');
@@ -44,8 +46,10 @@ export function AuthGate({
     setLoading(true);
     try {
       await guestLookup(sessionToken, orderNumber.trim(), email.trim());
+      analytics.orderSearch(true);
       onSuccess();
     } catch (e) {
+      analytics.orderSearch(false);
       setError(e instanceof Error ? e.message : t('common.error'));
     } finally {
       setLoading(false);

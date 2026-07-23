@@ -30,7 +30,7 @@ export const en = {
     connectAgent: 'Connect to an agent',
     consent: {
       title: 'Privacy notice',
-      body: 'Under the CCPA, we process your messages to provide support. Do you consent to continue?',
+      body: 'Under the CCPA, we process your messages to provide support and use analytics (Google Analytics) to understand traffic and improve the service. Do you consent to continue?',
       accept: 'Accept',
       decline: 'Decline',
     },

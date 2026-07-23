@@ -5,6 +5,7 @@ import { useWidgetStore } from '../../store/widgetStore';
 import { useChat } from '../../hooks/useChat';
 import { useScenario } from '../../hooks/useScenario';
 import { setConsent } from '../../services/sessionService';
+import { useAnalytics } from '../../lib/analytics';
 import type { ScenarioButton } from '../../lib/types';
 import { MessageBubble } from './MessageBubble';
 import { ConsentBanner } from './ConsentBanner';
@@ -12,8 +13,6 @@ import { ScenarioMenu, type SubAction } from './ScenarioMenu';
 import { AuthGate } from './AuthGate';
 import { ContactCard } from './ContactCard';
 import { AffiliateCard } from './AffiliateCard';
-
-const CONSENT_KEY = 'ivy_consent';
 
 type Inline = 'auth' | 'contact' | 'affiliate' | null;
 
@@ -25,20 +24,14 @@ export function ChatTab() {
   const setActiveTab = useWidgetStore((s) => s.setActiveTab);
   const pendingChatMessage = useWidgetStore((s) => s.pendingChatMessage);
   const consumeChatMessage = useWidgetStore((s) => s.consumeChatMessage);
+  // CCPA notice choice — shared store state; also gates GA4 (Consent Mode).
+  const consentChoice = useWidgetStore((s) => s.consent);
+  const setConsentChoice = useWidgetStore((s) => s.setConsent);
+  const analytics = useAnalytics();
 
   const { messages, send, scenario, sending, escalate } = useChat(sessionToken);
   const scenarioButtons = useScenario(sessionToken);
 
-  // CCPA notice choice. Guests may chat (non-personal product/FAQ) regardless of
-  // the choice (FN-008); the banner just shows until a choice is recorded.
-  const [consentChoice, setConsentChoice] = useState<'granted' | 'denied' | null>(() => {
-    try {
-      const v = localStorage.getItem(CONSENT_KEY);
-      return v === 'granted' ? 'granted' : v === 'denied' ? 'denied' : null;
-    } catch {
-      return null;
-    }
-  });
   const [input, setInput] = useState('');
   const [inline, setInline] = useState<Inline>(null);
   const [showEscalate, setShowEscalate] = useState(false);
@@ -52,16 +45,13 @@ export function ChatTab() {
   }, [messages, inline, showEscalate]);
 
   function recordConsent(granted: boolean) {
-    try {
-      localStorage.setItem(CONSENT_KEY, granted ? 'granted' : 'denied');
-    } catch {
-      /* ignore */
-    }
-    setConsentChoice(granted ? 'granted' : 'denied');
+    setConsentChoice(granted); // persists + updates shared store (drives GA4 consent)
     if (sessionToken) setConsent(sessionToken, granted).catch(() => {});
   }
 
-  async function doSend(text: string) {
+  async function doSend(text: string, via: 'input' | 'scenario' | 'quick_reply' = 'input') {
+    analytics.chatStart();
+    analytics.messageSent(via);
     const res = await send(text);
     setShowEscalate(res.escalate);
     if (res.needsAuth && !authenticated) setInline('auth');
@@ -76,6 +66,7 @@ export function ChatTab() {
   }, [pendingChatMessage, sessionToken]);
 
   function handleScenario(button: ScenarioButton) {
+    analytics.scenarioClick(button.action, button.label);
     switch (button.action) {
       case 'delivery_status':
         // Scripted shipping scenario (FR-S1); order tracking via follow-up chip.
@@ -123,6 +114,7 @@ export function ChatTab() {
     switch (id) {
       case 'agent_connect':
         setShowEscalate(false);
+        analytics.escalate();
         void escalate();
         return;
       case 'my_orders':
