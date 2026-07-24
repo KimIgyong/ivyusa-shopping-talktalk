@@ -67,6 +67,8 @@ export const en = {
     email: 'Email',
     submit: 'Look up order',
     cancel: 'Cancel',
+    waiting: 'Waiting for you to sign in…',
+    useGuestInstead: 'Look up by order number instead',
   },
 
   contact: {

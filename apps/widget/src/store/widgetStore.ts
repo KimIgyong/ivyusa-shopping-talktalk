@@ -8,6 +8,8 @@ interface WidgetState {
   activeTab: TabKey;
   panelOpen: boolean;
   authenticated: boolean;
+  /** True while a storefront sign-in popup is in flight (embed brokers it). */
+  authPending: boolean;
   language: string;
   /** A message queued from another tab to be auto-sent when Chat opens. */
   pendingChatMessage: string | null;
@@ -16,6 +18,7 @@ interface WidgetState {
   setPanelOpen: (open: boolean) => void;
   togglePanel: () => void;
   setAuthenticated: (v: boolean) => void;
+  setAuthPending: (v: boolean) => void;
   setLanguage: (l: string) => void;
   queueChatMessage: (m: string) => void;
   consumeChatMessage: () => string | null;
@@ -31,6 +34,7 @@ export const useWidgetStore = create<WidgetState>()((set, get) => ({
   activeTab: 'chat',
   panelOpen: false,
   authenticated: false,
+  authPending: false,
   language: 'en',
   pendingChatMessage: null,
   setSessionToken: (t) => {
@@ -41,6 +45,7 @@ export const useWidgetStore = create<WidgetState>()((set, get) => ({
   setPanelOpen: (open) => set({ panelOpen: open }),
   togglePanel: () => set((s) => ({ panelOpen: !s.panelOpen })),
   setAuthenticated: (v) => set({ authenticated: v }),
+  setAuthPending: (v) => set({ authPending: v }),
   setLanguage: (l) => set({ language: l }),
   queueChatMessage: (m) => set({ pendingChatMessage: m, activeTab: 'chat' }),
   consumeChatMessage: () => {

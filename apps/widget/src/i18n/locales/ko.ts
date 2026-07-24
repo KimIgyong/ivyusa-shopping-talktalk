@@ -69,6 +69,8 @@ export const ko: Translation = {
     email: '이메일',
     submit: '주문 조회',
     cancel: '취소',
+    waiting: '로그인을 기다리는 중…',
+    useGuestInstead: '주문 번호로 조회하기',
   },
 
   contact: {

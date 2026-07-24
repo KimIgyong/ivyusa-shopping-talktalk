@@ -220,11 +220,25 @@ export class CustomerService {
     name?: string,
     shopifyCustomerId?: string,
   ): Promise<Customer> {
-    const existing = await this.customerRepo.findOne({
-      where: { tenantId, emailHash: blindIndex(email) ?? '__none__' },
-    });
+    // Prefer the email-hash row, but fall back to the Shopify-id row so we merge
+    // (not duplicate) a customer the app-proxy identity path already created with
+    // email:null. Without this, a shopper who opens the widget before their order
+    // history syncs gets a second Customer row, and their historical orders point
+    // to a different id than the proxy-verified session is bound to — so the
+    // logged-in "my orders" list comes back empty.
+    const existing =
+      (await this.customerRepo.findOne({
+        where: { tenantId, emailHash: blindIndex(email) ?? '__none__' },
+      })) ??
+      (shopifyCustomerId
+        ? await this.customerRepo.findOne({ where: { tenantId, shopifyCustomerId } })
+        : null);
     if (existing) {
       let dirty = false;
+      if (existing.email !== email) {
+        existing.email = email; // @BeforeUpdate re-syncs email_hash
+        dirty = true;
+      }
       if (name !== undefined && existing.name !== name) {
         existing.name = name;
         dirty = true;

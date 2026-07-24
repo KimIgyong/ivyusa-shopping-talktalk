@@ -69,6 +69,8 @@ export const es: Translation = {
     email: 'Correo electrónico',
     submit: 'Buscar pedido',
     cancel: 'Cancelar',
+    waiting: 'Esperando a que inicies sesión…',
+    useGuestInstead: 'Buscar por número de pedido',
   },
 
   contact: {

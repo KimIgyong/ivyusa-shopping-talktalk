@@ -2,6 +2,8 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { LogIn, Search } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { guestLookup } from '../../services/orderService';
+import { useStorefrontLogin } from '../../hooks/useStorefrontLogin';
+import { Spinner } from '../ui/Spinner';
 
 export function AuthGate({
   sessionToken,
@@ -13,6 +15,7 @@ export function AuthGate({
   onCancel: () => void;
 }) {
   const { t } = useTranslation();
+  const { canLogin, pending, login, cancel } = useStorefrontLogin();
   const [mode, setMode] = useState<'choice' | 'guest'>('choice');
   const [orderNumber, setOrderNumber] = useState('');
   const [email, setEmail] = useState('');
@@ -66,15 +69,30 @@ export function AuthGate({
       </div>
       <p className="mb-3 text-xs text-gray-600">{t('auth.body')}</p>
 
-      {mode === 'choice' ? (
-        <div className="flex flex-col gap-2">
+      {mode === 'choice' && pending ? (
+        <div className="flex flex-col items-center gap-3 py-3">
+          <Spinner label={t('auth.waiting')} />
           <button
-            onClick={() => alert('Sign-in flow opens the storefront account page.')}
-            className="flex items-center justify-center gap-2 rounded-lg bg-primary-500 px-3 py-2 text-sm font-medium text-white hover:bg-primary-600"
+            onClick={() => {
+              cancel();
+              setMode('guest');
+            }}
+            className="text-xs text-gray-500 underline-offset-2 hover:text-gray-700 hover:underline"
           >
-            <LogIn className="h-4 w-4" />
-            {t('auth.signIn')}
+            {t('auth.useGuestInstead')}
           </button>
+        </div>
+      ) : mode === 'choice' ? (
+        <div className="flex flex-col gap-2">
+          {canLogin && (
+            <button
+              onClick={login}
+              className="flex items-center justify-center gap-2 rounded-lg bg-primary-500 px-3 py-2 text-sm font-medium text-white hover:bg-primary-600"
+            >
+              <LogIn className="h-4 w-4" />
+              {t('auth.signIn')}
+            </button>
+          )}
           <button
             onClick={() => setMode('guest')}
             className="flex items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
