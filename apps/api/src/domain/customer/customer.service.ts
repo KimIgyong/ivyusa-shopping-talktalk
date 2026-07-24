@@ -281,4 +281,40 @@ export class CustomerService {
     });
     return this.customerRepo.save(customer);
   }
+
+  /**
+   * Best-effort profile backfill for a customer located by Shopify id. The
+   * app-proxy identity path creates the row with name/email null (it only has the
+   * numeric id); once the Admin API can read the customer we fill those in. Only
+   * fills fields still empty — never clobbers a value order-sync or an agent set —
+   * and skips the email when another row in the tenant already owns that address,
+   * so we never mint a duplicate email_hash (the reverse of the findOrCreateByEmail
+   * merge). Returns the (possibly unchanged) row, or null if the id is unknown.
+   */
+  async backfillProfileByShopifyId(
+    tenantId: number,
+    shopifyCustomerId: string,
+    profile: { email?: string | null; name?: string | null },
+  ): Promise<Customer | null> {
+    const row = await this.customerRepo.findOne({
+      where: { tenantId, shopifyCustomerId },
+    });
+    if (!row) return null;
+    let dirty = false;
+    if (!row.name && profile.name) {
+      row.name = profile.name;
+      dirty = true;
+    }
+    if (!row.email && profile.email) {
+      const hash = blindIndex(profile.email);
+      const clash = hash
+        ? await this.customerRepo.findOne({ where: { tenantId, emailHash: hash } })
+        : null;
+      if (!clash) {
+        row.email = profile.email; // @BeforeUpdate re-syncs email_hash
+        dirty = true;
+      }
+    }
+    return dirty ? this.customerRepo.save(row) : row;
+  }
 }

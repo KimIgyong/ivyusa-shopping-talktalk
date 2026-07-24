@@ -1,6 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { SessionService } from '../session/session.service';
 import { CustomerService } from '../customer/customer.service';
+import { TenantService } from '../tenant/tenant.service';
+import { ShopifyAdminClient } from '../order/shopify-admin.client';
 import { verifyShopifyProxySignature } from '../../global/util/shopify-hmac.util';
 
 export interface ProxyIdentityResult {
@@ -27,6 +29,8 @@ export class ShopifyProxyService {
   constructor(
     private readonly sessionService: SessionService,
     private readonly customerService: CustomerService,
+    private readonly tenantService: TenantService,
+    private readonly adminClient: ShopifyAdminClient,
   ) {}
 
   async resolveIdentity(query: Record<string, unknown>): Promise<IdentityOutcome> {
@@ -62,6 +66,13 @@ export class ShopifyProxyService {
       tenant.id,
       shopifyCustomerId,
     );
+    // Enrich the row with the customer's real name/email from the Admin API when
+    // we don't have them yet (the proxy only hands us the numeric id). Fire-and-
+    // forget: nothing in this response needs it, and it must not add Admin API
+    // latency to the widget handshake — it feeds the agent console + later lookups.
+    if (!customer.email || !customer.name) {
+      void this.backfillProfile(tenant.id, shopifyCustomerId);
+    }
     const locale = typeof query.locale === 'string' ? query.locale : undefined;
     const session = await this.sessionService.createForCustomer(
       tenant.id,
@@ -69,5 +80,36 @@ export class ShopifyProxyService {
       locale,
     );
     return { status: 'ok', result: { authenticated: true, sessionToken: session.sessionToken } };
+  }
+
+  /**
+   * Best-effort: read the customer's contact profile from the Admin API and fill
+   * name/email onto the (id-keyed) row. Never throws — until Protected Customer
+   * Data is approved this 403s, and order sync backfills the email later anyway.
+   * Runs unawaited on the request path, so it self-heals on the next visit once
+   * the profile becomes readable.
+   */
+  private async backfillProfile(tenantId: number, shopifyCustomerId: string): Promise<void> {
+    try {
+      const conn = await this.tenantService.getShopifyConnection(tenantId);
+      if (!conn) return;
+      const profile = await this.adminClient.fetchCustomer(
+        conn.shopDomain,
+        conn.token,
+        shopifyCustomerId,
+      );
+      if (!profile) return;
+      const name = [profile.firstName, profile.lastName].filter(Boolean).join(' ') || null;
+      await this.customerService.backfillProfileByShopifyId(tenantId, shopifyCustomerId, {
+        email: profile.email,
+        name,
+      });
+    } catch (err) {
+      this.logger.debug(
+        `customer profile backfill skipped for ${shopifyCustomerId}: ${
+          err instanceof Error ? err.message : 'unknown'
+        }`,
+      );
+    }
   }
 }

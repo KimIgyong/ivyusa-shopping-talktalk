@@ -93,6 +93,16 @@ mutation WebhookCreate($topic: WebhookSubscriptionTopic!, $sub: WebhookSubscript
   }
 }`;
 
+const CUSTOMER_QUERY = `
+query Customer($id: ID!) {
+  customer(id: $id) {
+    legacyResourceId
+    email
+    firstName
+    lastName
+  }
+}`;
+
 /**
  * Thin Shopify Admin API client (read-only + webhook subscribe). Callers pass the
  * per-tenant token. GraphQL-only: new Dev Dashboard apps are not approved for REST
@@ -162,6 +172,37 @@ export class ShopifyAdminClient {
     throw new Error(
       `webhookSubscriptionCreate failed: ${errors.map((e) => e.message).join('; ') || 'unknown error'}`,
     );
+  }
+
+  /**
+   * Fetch a single customer's contact profile by Shopify (legacy numeric) id.
+   * Used to backfill name/email onto a row the app-proxy identity path created
+   * with nulls. Requires read_customers + Protected Customer Data approval —
+   * until approved this 403s; callers treat any throw as "no profile available".
+   */
+  async fetchCustomer(
+    shopDomain: string,
+    token: string,
+    shopifyCustomerId: string,
+  ): Promise<{ email: string | null; firstName: string | null; lastName: string | null } | null> {
+    const body = (await this.gql(shopDomain, token, CUSTOMER_QUERY, {
+      id: `gid://shopify/Customer/${shopifyCustomerId}`,
+    })) as {
+      data?: {
+        customer?: {
+          email?: string | null;
+          firstName?: string | null;
+          lastName?: string | null;
+        } | null;
+      };
+    };
+    const c = body.data?.customer;
+    if (!c) return null;
+    return {
+      email: c.email ?? null,
+      firstName: c.firstName ?? null,
+      lastName: c.lastName ?? null,
+    };
   }
 
   /** POST one GraphQL request; throws on HTTP or top-level GraphQL errors. */
