@@ -1,10 +1,6 @@
-import { useNavigate } from 'react-router-dom';
-import { PanelLeft, LogOut, KeyRound } from 'lucide-react';
+import { PanelLeft } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { useAuthStore } from '@/store/auth-store';
-import { authService } from '@/domain/auth/auth.service';
 import { useUiStore } from '@/store/ui-store';
-import { Badge } from '@/components/Badge';
 import { SUPPORTED_LANGUAGES, LANGUAGE_STORAGE_KEY, type SupportedLanguage } from '@/i18n/i18n';
 import { cn } from '@/lib/cn';
 
@@ -58,23 +54,13 @@ export function LanguageSwitcher() {
   );
 }
 
-export function Header({ onChangePassword }: { onChangePassword: () => void }) {
+/**
+ * Slim top bar: sidebar toggle + locale switcher. The signed-in user block
+ * (identity / My Page / logout) lives pinned at the bottom of the Sidebar.
+ */
+export function Header() {
   const { t } = useTranslation('nav');
-  const principal = useAuthStore((s) => s.principal);
-  const clear = useAuthStore((s) => s.clear);
   const toggleSidebar = useUiStore((s) => s.toggleSidebar);
-  const navigate = useNavigate();
-
-  const logout = () => {
-    // Best-effort server-side revocation of the (in-memory) refresh token;
-    // local state is cleared regardless.
-    const { refreshToken, tenantSlug } = useAuthStore.getState();
-    void authService.logout(refreshToken ?? undefined).catch(() => undefined);
-    const target =
-      principal?.actorType === 'admin' ? '/admin/login' : tenantSlug ? `/${tenantSlug}` : '/';
-    clear();
-    navigate(target);
-  };
 
   return (
     <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-gray-200 bg-white px-6">
@@ -86,31 +72,7 @@ export function Header({ onChangePassword }: { onChangePassword: () => void }) {
         <PanelLeft className="h-5 w-5" />
       </button>
 
-      <div className="flex items-center gap-4">
-        <LanguageSwitcher />
-        <div className="text-right leading-tight">
-          <p className="text-sm font-medium text-gray-800">{principal?.email}</p>
-          <div className="flex items-center justify-end gap-1">
-            <Badge tone={principal?.actorType === 'admin' ? 'primary' : 'info'}>
-              {principal?.actorType === 'admin' ? 'admin' : principal?.rank ?? 'user'}
-            </Badge>
-          </div>
-        </div>
-        <button
-          onClick={onChangePassword}
-          className="rounded-lg p-2 text-gray-500 hover:bg-gray-100"
-          title={t('changePassword')}
-        >
-          <KeyRound className="h-5 w-5" />
-        </button>
-        <button
-          onClick={logout}
-          className="rounded-lg p-2 text-gray-500 hover:bg-gray-100"
-          title={t('logout')}
-        >
-          <LogOut className="h-5 w-5" />
-        </button>
-      </div>
+      <LanguageSwitcher />
     </header>
   );
 }

@@ -122,5 +122,26 @@
       "title": "Haravan",
       "subtitle": "Connect your Haravan store with an Admin API access token."
     }
+  },
+  "install": {
+    "subtitle": "Add the chat widget to your storefront. Pick your platform.",
+    "cafe24": {
+      "desc": "Paste the snippet into your Cafe24 theme HTML so the widget loads on every page.",
+      "step1": "In Cafe24 admin, open Design (PC/Mobile) → Smart Design edit.",
+      "step2": "Open the layout HTML of your default design.",
+      "step3": "Paste the snippet right before </body> and save/deploy."
+    },
+    "woocommerce": {
+      "desc": "Register the widget from your WordPress theme (or a code-snippets plugin).",
+      "step1": "In WordPress admin, open Appearance → Theme File Editor (child theme recommended).",
+      "step2": "Open functions.php, or add a new snippet in a code-snippets plugin.",
+      "step3": "Paste the code below and save — it loads via wp_footer on every page."
+    },
+    "odoo": {
+      "desc": "Odoo websites can inject custom code site-wide from the website settings.",
+      "step1": "In Odoo, open Website → Configuration → Settings.",
+      "step2": "Scroll to the Custom Code section.",
+      "step3": "Paste the snippet into the \"end of body\" field and save."
+    }
   }
 }

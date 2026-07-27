@@ -1,0 +1,11 @@
+{
+  "title": "Mi página",
+  "subtitle": "Información de tu cuenta y seguridad.",
+  "profile": "Perfil",
+  "email": "Correo electrónico",
+  "role": "Rol",
+  "workspace": "Espacio de trabajo",
+  "labels": "Etiquetas de trabajo",
+  "security": "Seguridad",
+  "securityDesc": "Cambia la contraseña con la que inicias sesión."
+}

@@ -13,6 +13,8 @@ interface AuthState {
    * login page — it is a route hint, not a credential.
    */
   tenantSlug: string | null;
+  /** Display name of that tenant (sidebar / login header). */
+  tenantName: string | null;
   setAuth: (payload: {
     accessToken: string;
     refreshToken: string;
@@ -20,7 +22,7 @@ interface AuthState {
     mustChangePassword: boolean;
   }) => void;
   setPrincipal: (principal: Principal) => void;
-  setTenantSlug: (slug: string) => void;
+  setTenant: (slug: string, name?: string | null) => void;
   clearMustChange: () => void;
   clear: () => void;
 }
@@ -33,10 +35,11 @@ export const useAuthStore = create<AuthState>()(
       principal: null,
       mustChangePassword: false,
       tenantSlug: null,
+      tenantName: null,
       setAuth: ({ accessToken, refreshToken, principal, mustChangePassword }) =>
         set({ accessToken, refreshToken, principal, mustChangePassword }),
       setPrincipal: (principal) => set({ principal }),
-      setTenantSlug: (tenantSlug) => set({ tenantSlug }),
+      setTenant: (tenantSlug, tenantName) => set({ tenantSlug, tenantName: tenantName ?? null }),
       clearMustChange: () => set({ mustChangePassword: false }),
       clear: () =>
         set({
@@ -55,6 +58,7 @@ export const useAuthStore = create<AuthState>()(
         principal: s.principal,
         mustChangePassword: s.mustChangePassword,
         tenantSlug: s.tenantSlug,
+        tenantName: s.tenantName,
       }),
     },
   ),

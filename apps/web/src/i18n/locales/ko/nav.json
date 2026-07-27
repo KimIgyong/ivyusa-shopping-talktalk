@@ -18,5 +18,6 @@
   "toggleSidebar": "사이드바 전환",
   "changePassword": "비밀번호 변경",
   "logout": "로그아웃",
-  "language": "언어"
+  "language": "언어",
+  "myPage": "마이페이지"
 }

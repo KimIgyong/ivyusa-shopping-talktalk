@@ -87,15 +87,19 @@ function CodeBlock({ code, label }: { code: string; label: string }) {
   );
 }
 
+type InstallPlatform = 'shopify' | 'cafe24' | 'woocommerce' | 'odoo';
+
 function InstallGuideCard() {
   const { t } = useTranslation('settings');
   const { data } = useShopifySettings();
+  const [platform, setPlatform] = useState<InstallPlatform>('shopify');
   const [method, setMethod] = useState<InstallMethod>('appEmbed');
 
-  const shop = (data?.shopDomain || '').trim() || 'your-store.myshopify.com';
+  const shop = (data?.shopDomain || '').trim() || 'your-store.example.com';
   const hasShop = Boolean((data?.shopDomain || '').trim());
 
-  const manualSnippet =
+  // Generic HTML embed — works on any platform that lets you edit theme HTML.
+  const htmlSnippet =
     `<!-- ShopTalk widget -->\n` +
     `<script>\n` +
     `  window.IVY_WIDGET_CONFIG = {\n` +
@@ -114,69 +118,128 @@ function InstallGuideCard() {
     `  }\n` +
     `}`;
 
-  const tabs: { key: InstallMethod; label: string }[] = [
+  const wooSnippet =
+    `// ShopTalk widget — add to your (child) theme's functions.php\n` +
+    `add_action( 'wp_footer', function () { ?>\n` +
+    `  <script>\n` +
+    `    window.IVY_WIDGET_CONFIG = {\n` +
+    `      shop: ${JSON.stringify(shop)},\n` +
+    `      widgetUrl: ${JSON.stringify(WIDGET_URL)}\n` +
+    `    };\n` +
+    `  </script>\n` +
+    `  <script src="${WIDGET_URL}/embed.js" defer></script>\n` +
+    `<?php } );`;
+
+  const platforms: { key: InstallPlatform; label: string }[] = [
+    { key: 'shopify', label: t('shopify.title') },
+    { key: 'cafe24', label: t('integrations.cafe24.title') },
+    { key: 'woocommerce', label: t('integrations.woocommerce.title') },
+    { key: 'odoo', label: t('integrations.odoo.title') },
+  ];
+
+  const methods: { key: InstallMethod; label: string }[] = [
     { key: 'appEmbed', label: t('shopify.install.tabAppEmbed') },
     { key: 'scriptTag', label: t('shopify.install.tabScriptTag') },
     { key: 'manual', label: t('shopify.install.tabManual') },
   ];
 
+  /** Non-Shopify platforms: description + 3 steps + one snippet. */
+  const simpleGuide = (key: Exclude<InstallPlatform, 'shopify'>, code: string) => (
+    <div className="space-y-3 text-sm text-gray-600">
+      <p>{t(`install.${key}.desc`)}</p>
+      <ol className="list-decimal space-y-1 pl-5">
+        <li>{t(`install.${key}.step1`)}</li>
+        <li>{t(`install.${key}.step2`)}</li>
+        <li>{t(`install.${key}.step3`)}</li>
+      </ol>
+      <CodeBlock code={code} label={t('shopify.install.copy')} />
+    </div>
+  );
+
   return (
     <Card title={t('shopify.install.title')}>
-      <p className="mb-1 text-sm text-gray-500">{t('shopify.install.subtitle')}</p>
+      <p className="mb-1 text-sm text-gray-500">{t('install.subtitle')}</p>
       <p className="mb-4 text-xs text-gray-400">
         {hasShop
           ? t('shopify.install.shopHint', { shop })
           : t('shopify.install.shopMissing')}
       </p>
 
-      <div className="mb-4 flex gap-1 border-b border-gray-100">
-        {tabs.map((tab) => (
+      {/* Platform tabs */}
+      <div className="mb-4 flex flex-wrap gap-1 border-b border-gray-100">
+        {platforms.map((p) => (
           <button
-            key={tab.key}
+            key={p.key}
             type="button"
-            onClick={() => setMethod(tab.key)}
+            onClick={() => setPlatform(p.key)}
             className={
               'border-b-2 px-3 py-2 text-sm font-medium transition-colors ' +
-              (method === tab.key
+              (platform === p.key
                 ? 'border-primary-500 text-primary-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700')
             }
           >
-            {tab.label}
+            {p.label}
           </button>
         ))}
       </div>
 
-      {method === 'appEmbed' && (
-        <div className="space-y-2 text-sm text-gray-600">
-          <p>{t('shopify.install.appEmbed.desc')}</p>
-          <ol className="list-decimal space-y-1 pl-5">
-            <li>{t('shopify.install.appEmbed.step1')}</li>
-            <li>{t('shopify.install.appEmbed.step2')}</li>
-            <li>{t('shopify.install.appEmbed.step3')}</li>
-          </ol>
-        </div>
+      {platform === 'shopify' && (
+        <>
+          <div className="mb-4 flex gap-1">
+            {methods.map((tab) => (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => setMethod(tab.key)}
+                className={
+                  'rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ' +
+                  (method === tab.key
+                    ? 'bg-primary-500/10 text-primary-600'
+                    : 'text-gray-500 hover:text-gray-700')
+                }
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {method === 'appEmbed' && (
+            <div className="space-y-2 text-sm text-gray-600">
+              <p>{t('shopify.install.appEmbed.desc')}</p>
+              <ol className="list-decimal space-y-1 pl-5">
+                <li>{t('shopify.install.appEmbed.step1')}</li>
+                <li>{t('shopify.install.appEmbed.step2')}</li>
+                <li>{t('shopify.install.appEmbed.step3')}</li>
+              </ol>
+            </div>
+          )}
+
+          {method === 'scriptTag' && (
+            <div className="space-y-3 text-sm text-gray-600">
+              <p>{t('shopify.install.scriptTag.desc')}</p>
+              <CodeBlock code={scriptTagSnippet} label={t('shopify.install.copy')} />
+              <p className="text-xs text-gray-400">{t('shopify.install.scriptTag.note')}</p>
+            </div>
+          )}
+
+          {method === 'manual' && (
+            <div className="space-y-3 text-sm text-gray-600">
+              <p>{t('shopify.install.manual.desc')}</p>
+              <ol className="list-decimal space-y-1 pl-5">
+                <li>{t('shopify.install.manual.step1')}</li>
+                <li>{t('shopify.install.manual.step2')}</li>
+                <li>{t('shopify.install.manual.step3')}</li>
+              </ol>
+              <CodeBlock code={htmlSnippet} label={t('shopify.install.copy')} />
+            </div>
+          )}
+        </>
       )}
 
-      {method === 'scriptTag' && (
-        <div className="space-y-3 text-sm text-gray-600">
-          <p>{t('shopify.install.scriptTag.desc')}</p>
-          <CodeBlock code={scriptTagSnippet} label={t('shopify.install.copy')} />
-          <p className="text-xs text-gray-400">{t('shopify.install.scriptTag.note')}</p>
-        </div>
-      )}
-
-      {method === 'manual' && (
-        <div className="space-y-3 text-sm text-gray-600">
-          <p>{t('shopify.install.manual.desc')}</p>
-          <ol className="list-decimal space-y-1 pl-5">
-            <li>{t('shopify.install.manual.step1')}</li>
-            <li>{t('shopify.install.manual.step2')}</li>
-            <li>{t('shopify.install.manual.step3')}</li>
-          </ol>
-          <CodeBlock code={manualSnippet} label={t('shopify.install.copy')} />
-        </div>
-      )}
+      {platform === 'cafe24' && simpleGuide('cafe24', htmlSnippet)}
+      {platform === 'woocommerce' && simpleGuide('woocommerce', wooSnippet)}
+      {platform === 'odoo' && simpleGuide('odoo', htmlSnippet)}
     </Card>
   );
 }
