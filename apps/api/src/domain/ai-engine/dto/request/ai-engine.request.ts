@@ -1,3 +1,4 @@
+import { Type } from 'class-transformer';
 import { IsIn, IsInt, IsObject, IsOptional, IsString } from 'class-validator';
 
 /** Tenant-selectable AI functions (FR-070). */
@@ -30,7 +31,9 @@ export class UpdateEngineRequest {
 // ---- Tenant AI settings ----
 
 export class UpsertAiSettingRequest {
-  @IsInt() engine_id: number;
+  // Clients echo engine ids back as strings (bigint PKs serialize as strings);
+  // coerce before @IsInt so "3" doesn't 400.
+  @Type(() => Number) @IsInt() engine_id: number;
   @IsOptional() @IsObject() params?: Record<string, unknown>;
 }
 
