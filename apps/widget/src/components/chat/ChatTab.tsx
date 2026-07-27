@@ -21,6 +21,7 @@ export function ChatTab() {
   const { t } = useTranslation();
   const sessionToken = useWidgetStore((s) => s.sessionToken);
   const authenticated = useWidgetStore((s) => s.authenticated);
+  const customerName = useWidgetStore((s) => s.customerName);
   const setAuthenticated = useWidgetStore((s) => s.setAuthenticated);
   const setActiveTab = useWidgetStore((s) => s.setActiveTab);
   const pendingChatMessage = useWidgetStore((s) => s.pendingChatMessage);
@@ -168,12 +169,14 @@ export function ChatTab() {
           />
         )}
 
-        {/* Welcome bubble */}
+        {/* Welcome bubble — greets a signed-in shopper by name when we know it. */}
         <MessageBubble
           message={{
             id: 'welcome',
             senderType: 'ai',
-            body: t('chat.welcome'),
+            body: customerName
+              ? t('chat.welcomeNamed', { name: customerName })
+              : t('chat.welcome'),
             createdAt: new Date().toISOString(),
           }}
         />

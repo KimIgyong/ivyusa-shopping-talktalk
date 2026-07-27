@@ -1,4 +1,4 @@
-import { HttpStatus, Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { BusinessException } from '../../global/exception/business.exception';
@@ -17,9 +17,12 @@ import { Tenant } from '../tenant/entity/tenant.entity';
 import { User } from '../user/entity/user.entity';
 import { RagService } from './rag.service';
 import { ModerationService } from '../moderation/moderation.service';
+import { OrderService } from '../order/order.service';
 import { EventBusService, EVENTS } from '../../infrastructure/infrastructure.module';
 
 const ESCALATION_CONFIDENCE = 0.45;
+/** Recent orders handed to the assistant as grounding for order questions. */
+const ORDER_CONTEXT_LIMIT = 5;
 
 /**
  * Localized backend-generated conversational strings (en/es/ko) keyed by
@@ -85,6 +88,8 @@ export interface EscalationEvent {
  */
 @Injectable()
 export class ChatService {
+  private readonly logger = new Logger(ChatService.name);
+
   constructor(
     @InjectRepository(Conversation) private readonly convRepo: Repository<Conversation>,
     @InjectRepository(Message) private readonly msgRepo: Repository<Message>,
@@ -93,6 +98,7 @@ export class ChatService {
     @InjectRepository(User) private readonly userRepo: Repository<User>,
     private readonly rag: RagService,
     private readonly moderation: ModerationService,
+    private readonly orderService: OrderService,
     private readonly bus: EventBusService,
   ) {}
 
@@ -228,8 +234,16 @@ export class ChatService {
       return { conversationId: conversation.id, reply: { senderType: 'system', body }, escalate: false, needsAuth: true };
     }
 
+    // Order questions from a signed-in shopper are answered from their real
+    // orders, not guessed from the knowledge base. Only reached once the gate
+    // above proved the session is bound to a customer.
+    const orderContext =
+      intent.needsOrderData && session.customerId != null
+        ? await this.buildOrderContext(tenantId, session.customerId)
+        : undefined;
+
     // RAG answer (FN-016/017).
-    const answer = await this.rag.answer(tenantId, text, session.language);
+    const answer = await this.rag.answer(tenantId, text, session.language, orderContext);
 
     // Mandatory moderation gate (FR-069).
     const moderated = await this.moderation.moderate({
@@ -321,6 +335,46 @@ export class ChatService {
   }
 
   // ---- helpers ----
+  /**
+   * Compact, factual summary of the customer's recent orders for the RAG prompt.
+   * Deliberately order-only: no email, phone or address is sent to the AI provider
+   * (PRV — minimise PII leaving the system); the shopper is asking about orders,
+   * so order number, dates, status, totals and item titles are what's needed.
+   * Never throws — losing the enrichment must not break the reply.
+   */
+  private async buildOrderContext(
+    tenantId: number,
+    customerId: number,
+  ): Promise<string | undefined> {
+    try {
+      const recent = await this.orderService.recentForCustomer(
+        tenantId,
+        customerId,
+        ORDER_CONTEXT_LIMIT,
+      );
+      if (!recent.length) return undefined;
+      return recent
+        .map(({ order, items }) => {
+          const placed = order.createdAt ? order.createdAt.toISOString().slice(0, 10) : 'unknown';
+          const total =
+            order.total != null ? `${order.total} ${order.currency ?? ''}`.trim() : 'unknown';
+          const lines = items.length
+            ? items
+                .map((i) => `${i.title}${i.optionText ? ` (${i.optionText})` : ''} x${i.qty}`)
+                .join(', ')
+            : 'no item details cached';
+          return (
+            `- Order ${order.orderNumber}: status ${order.statusUi ?? order.statusInternal ?? 'unknown'}` +
+            `, placed ${placed}, total ${total}, items: ${lines}`
+          );
+        })
+        .join('\n');
+    } catch (e) {
+      this.logger.warn(`Order context unavailable for customer ${customerId}: ${(e as Error).message}`);
+      return undefined;
+    }
+  }
+
   private async persist(
     conversationId: number,
     senderType: string,

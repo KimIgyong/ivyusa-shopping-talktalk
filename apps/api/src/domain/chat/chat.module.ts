@@ -13,6 +13,7 @@ import { ChatController } from './chat.controller';
 import { SessionModule } from '../session/session.module';
 import { ModerationModule } from '../moderation/moderation.module';
 import { AiEngineModule } from '../ai-engine/ai-engine.module';
+import { OrderModule } from '../order/order.module';
 
 @Module({
   imports: [
@@ -20,6 +21,9 @@ import { AiEngineModule } from '../ai-engine/ai-engine.module';
     SessionModule,
     ModerationModule,
     AiEngineModule,
+    // OrderService grounds order questions in the customer's real orders. Order
+    // does not depend on Chat, so this stays acyclic.
+    OrderModule,
   ],
   controllers: [ChatController],
   providers: [ChatService, RagService, ScenarioService],

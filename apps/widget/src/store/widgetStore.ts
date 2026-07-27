@@ -10,6 +10,8 @@ interface WidgetState {
   authenticated: boolean;
   /** True while a storefront sign-in popup is in flight (embed brokers it). */
   authPending: boolean;
+  /** Signed-in shopper's name, once the backend resolves it; null otherwise. */
+  customerName: string | null;
   language: string;
   /** A message queued from another tab to be auto-sent when Chat opens. */
   pendingChatMessage: string | null;
@@ -19,6 +21,7 @@ interface WidgetState {
   togglePanel: () => void;
   setAuthenticated: (v: boolean) => void;
   setAuthPending: (v: boolean) => void;
+  setCustomerName: (n: string | null) => void;
   setLanguage: (l: string) => void;
   queueChatMessage: (m: string) => void;
   consumeChatMessage: () => string | null;
@@ -35,6 +38,7 @@ export const useWidgetStore = create<WidgetState>()((set, get) => ({
   panelOpen: false,
   authenticated: false,
   authPending: false,
+  customerName: null,
   language: 'en',
   pendingChatMessage: null,
   setSessionToken: (t) => {
@@ -46,6 +50,7 @@ export const useWidgetStore = create<WidgetState>()((set, get) => ({
   togglePanel: () => set((s) => ({ panelOpen: !s.panelOpen })),
   setAuthenticated: (v) => set({ authenticated: v }),
   setAuthPending: (v) => set({ authPending: v }),
+  setCustomerName: (n) => set({ customerName: n }),
   setLanguage: (l) => set({ language: l }),
   queueChatMessage: (m) => set({ pendingChatMessage: m, activeTab: 'chat' }),
   consumeChatMessage: () => {

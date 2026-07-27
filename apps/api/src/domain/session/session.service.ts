@@ -5,6 +5,7 @@ import { CJM_STAGE, CONSENT_STATE, SESSION_IDENTITY, SESSION_LANGUAGE } from '@i
 import { generateToken } from '@ivy/common';
 import { Session } from './entity/session.entity';
 import { Tenant } from '../tenant/entity/tenant.entity';
+import { Customer } from '../customer/entity/customer.entity';
 import { EventBusService, EVENTS } from '../../infrastructure/infrastructure.module';
 import { RedisService } from '../../infrastructure/cache/redis.service';
 import { BusinessException } from '../../global/exception/business.exception';
@@ -37,6 +38,7 @@ export class SessionService {
   constructor(
     @InjectRepository(Session) private readonly sessionRepo: Repository<Session>,
     @InjectRepository(Tenant) private readonly tenantRepo: Repository<Tenant>,
+    @InjectRepository(Customer) private readonly customerRepo: Repository<Customer>,
     private readonly bus: EventBusService,
     private readonly redis: RedisService,
   ) {}
@@ -66,6 +68,20 @@ export class SessionService {
       eventType: 'session_start',
     });
     return session;
+  }
+
+  /**
+   * Display name of the session's bound customer, or null (guest, or the profile
+   * has not been filled in yet). Tenant-scoped: the customer must belong to the
+   * session's tenant, so a session can never surface another store's shopper.
+   */
+  async customerDisplayName(session: Session): Promise<string | null> {
+    if (session.customerId == null || session.tenantId == null) return null;
+    const customer = await this.customerRepo.findOne({
+      where: { id: session.customerId, tenantId: session.tenantId },
+      select: ['id', 'name'],
+    });
+    return customer?.name?.trim() || null;
   }
 
   /**

@@ -22,7 +22,7 @@ export class SessionController {
   @ApiOperation({ summary: 'Create or resume a widget session (S1)' })
   async ensure(@Body() body: EnsureSessionRequest) {
     const s = await this.sessionService.ensure(body.session_token, body.locale, body.shop_domain);
-    return SessionMapper.toResponse(s);
+    return SessionMapper.toResponse(s, await this.sessionService.customerDisplayName(s));
   }
 
   @Post('consent')

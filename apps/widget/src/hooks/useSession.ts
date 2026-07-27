@@ -37,6 +37,7 @@ export function useEnsureSession() {
   const language = useWidgetStore((s) => s.language);
   const setSessionToken = useWidgetStore((s) => s.setSessionToken);
   const setAuthenticated = useWidgetStore((s) => s.setAuthenticated);
+  const setCustomerName = useWidgetStore((s) => s.setCustomerName);
   const setLanguage = useWidgetStore((s) => s.setLanguage);
 
   useEffect(() => {
@@ -58,6 +59,7 @@ export function useEnsureSession() {
           setSessionToken(res.sessionToken);
         }
         setAuthenticated(!!res.authenticated);
+        if (res.customerName) setCustomerName(res.customerName);
 
         // Tie default UI language to the backend session, unless the user
         // has manually overridden it.

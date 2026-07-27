@@ -23,6 +23,13 @@ export interface RagAnswer {
 }
 
 /**
+ * Confidence floor when the answer is grounded in the customer's own order data.
+ * Must stay above ChatService's escalation threshold so a factual order answer is
+ * delivered rather than handed off for lack of a matching help article.
+ */
+const ORDER_CONTEXT_CONFIDENCE = 0.6;
+
+/**
  * Retrieval-Augmented answering (FN-016/017, POL-011/013). Retrieves only
  * designated + active KB documents scoped to the tenant (Knowledge Store wins;
  * Google Drive supplements). A lightweight keyword retriever stands in for the
@@ -103,23 +110,50 @@ export class RagService {
       .getMany();
   }
 
-  async answer(tenantId: number, query: string, language: string): Promise<RagAnswer> {
+  /**
+   * Answer a shopper question from the tenant's knowledge base, optionally
+   * grounded in `orderContext` — the signed-in customer's own order facts, which
+   * the knowledge base cannot contain. Callers must only pass order data for an
+   * authenticated session (see ChatService's auth gate).
+   */
+  async answer(
+    tenantId: number,
+    query: string,
+    language: string,
+    orderContext?: string,
+  ): Promise<RagAnswer> {
     const chunks = await this.retrieve(tenantId, query);
     const context = chunks.map((c) => `- [${c.category ?? 'general'}] ${c.title}: ${c.snippet}`).join('\n');
-    const confidence = chunks.length ? Math.min(0.95, 0.5 + chunks.length * 0.12) : 0.2;
+    const hasOrderContext = !!orderContext?.trim();
+    // KB-hit count drives confidence, but order facts are authoritative on their
+    // own: an order question answered from the customer's real orders must not be
+    // escalated just because no help article matched.
+    const confidence = Math.max(
+      chunks.length ? Math.min(0.95, 0.5 + chunks.length * 0.12) : 0.2,
+      hasOrderContext ? ORDER_CONTEXT_CONFIDENCE : 0,
+    );
 
     // Persona + response rules from the tenant's AI config (FR-047 / FN-040).
     const { persona, rules } = await this.aiConfig.getPersonaRules(tenantId);
     const rulesBlock = rules.length ? `\nResponse rules:\n${rules.map((r) => `- ${r}`).join('\n')}` : '';
+    const orderBlock = hasOrderContext
+      ? `\nCUSTOMER_ORDERS_START\n${orderContext!.trim()}\nCUSTOMER_ORDERS_END`
+      : '';
+    const sourceRule = hasOrderContext
+      ? "Answer ONLY from the context and the customer's own order data below. " +
+        'The order data is authoritative for their order status, items and totals; ' +
+        'never invent order numbers, dates or tracking details that are not listed.'
+      : 'Answer ONLY from the context.';
 
     const res = await this.ai.complete({
       tenantId,
       function: AI_FUNCTION.RAG,
       system:
         `${persona}${rulesBlock}\n` +
-        `Answer ONLY from the context. If the context is insufficient, say you'll connect a ` +
+        `${sourceRule} If the information is insufficient, say you'll connect a ` +
         `human agent. Reply in language code: ${language}.\n` +
-        `CONTEXT_START\n${context || '(no relevant documents found)'}\nCONTEXT_END`,
+        `CONTEXT_START\n${context || '(no relevant documents found)'}\nCONTEXT_END` +
+        orderBlock,
       messages: [{ role: 'user', content: query }],
     });
 

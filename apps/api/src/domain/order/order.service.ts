@@ -1,6 +1,6 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import {
   FULFILLMENT_STATUS,
   ORDER_STATUS_INTERNAL,
@@ -142,6 +142,37 @@ export class OrderService {
       stepIndex: fulfillmentStepIndex(status),
       steps: deliverySteps(session.language),
     };
+  }
+
+  /**
+   * Recent orders (with their line items) for a bound customer — the factual
+   * grounding the chat assistant needs to answer "where is my order?" instead of
+   * guessing from the knowledge base. Tenant-scoped on both sides so a session
+   * can never read another store's orders.
+   */
+  async recentForCustomer(
+    tenantId: number,
+    customerId: number,
+    limit = 5,
+  ): Promise<Array<{ order: OrderCache; items: OrderItem[] }>> {
+    const orders = await this.orderRepo.find({
+      where: { tenantId, customerId },
+      order: { createdAt: 'DESC' },
+      take: limit,
+    });
+    if (!orders.length) return [];
+    const items = await this.itemRepo.find({
+      where: { orderId: In(orders.map((o) => o.id)) },
+      order: { id: 'ASC' },
+    });
+    const byOrder = new Map<string, OrderItem[]>();
+    for (const it of items) {
+      const key = String(it.orderId);
+      const list = byOrder.get(key);
+      if (list) list.push(it);
+      else byOrder.set(key, [it]);
+    }
+    return orders.map((order) => ({ order, items: byOrder.get(String(order.id)) ?? [] }));
   }
 
   /** Admin view: all orders for the tenant (paginated). */

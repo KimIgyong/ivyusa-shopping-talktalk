@@ -5,6 +5,8 @@ export interface SessionResponse {
   language: string;
   consentState: 'granted' | 'denied' | 'unknown' | string;
   authenticated: boolean;
+  /** Signed-in shopper's name, when the backend knows it — used to greet them. */
+  customerName: string | null;
 }
 
 export interface ChatMessage {
