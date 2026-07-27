@@ -84,6 +84,7 @@
   // redirects to the store's hosted account login). Override if the store differs.
   var loginPath = String(cfg.loginPath || '/customer_authentication/login');
   var identity = null; // resolved { authenticated, sessionToken } from the proxy
+  var identityResolved = false; // the proxy answered (either way) — see below
   var widgetReady = false; // set once the widget iframe posts ivy:ready
   var authPopup = null; // the sign-in popup window, while one is in flight
   var authWatch = null; // interval id polling authPopup.closed
@@ -132,17 +133,21 @@
     if (frame.contentWindow) frame.contentWindow.postMessage(msg, base);
   }
 
-  // Hand the widget its customer-bound session token, but only once both sides
-  // are ready: the proxy has answered AND the widget has posted ivy:ready.
+  // Report the proxy's answer to the widget, once both sides are ready: the proxy
+  // has answered AND the widget has posted ivy:ready.
+  //
+  // The negative answer matters as much as the positive one. The widget boots much
+  // faster than this round trip (storefront → Shopify → app), so without an
+  // explicit "no customer" it cannot tell "still waiting" from "nobody is signed
+  // in" — it used to give up and open a throwaway guest session on every page
+  // load, which is where the chat thread went. Telling it either way lets it wait
+  // for a verified session and only fall back to guest when there really is none.
   function maybeSendIdentity() {
-    if (
-      widgetReady &&
-      identity &&
-      identity.authenticated &&
-      identity.sessionToken &&
-      frame.contentWindow
-    ) {
+    if (!widgetReady || !identityResolved || !frame.contentWindow) return;
+    if (identity && identity.authenticated && identity.sessionToken) {
       sendToWidget({ type: 'ivy:session', token: identity.sessionToken });
+    } else {
+      sendToWidget({ type: 'ivy:identity', authenticated: false });
     }
   }
 
@@ -230,6 +235,7 @@
         .then(function (j) {
           if (j && j.authenticated && j.sessionToken) {
             identity = j;
+            identityResolved = true;
             maybeSendIdentity();
           } else {
             // Popup closed without a completed sign-in (cancel, or not logged in).
@@ -271,10 +277,10 @@
 
   // Passive identity check on load: start authenticated if a customer is already
   // signed in. Any failure simply leaves the widget anonymous; never blocks render.
+  // Either way we mark the question answered so the widget stops waiting.
   fetchIdentity().then(function (j) {
-    if (j && j.authenticated && j.sessionToken) {
-      identity = j;
-      maybeSendIdentity();
-    }
+    if (j && j.authenticated && j.sessionToken) identity = j;
+    identityResolved = true;
+    maybeSendIdentity();
   });
 })();

@@ -12,6 +12,12 @@ interface WidgetState {
   authPending: boolean;
   /** Signed-in shopper's name, once the backend resolves it; null otherwise. */
   customerName: string | null;
+  /**
+   * Outcome of the storefront identity handshake (embedded only). 'pending' until
+   * the embed loader reports back — the widget must not open a throwaway guest
+   * session while a verified one may still be on its way.
+   */
+  embedIdentity: 'pending' | 'verified' | 'anonymous';
   language: string;
   /** A message queued from another tab to be auto-sent when Chat opens. */
   pendingChatMessage: string | null;
@@ -22,6 +28,7 @@ interface WidgetState {
   setAuthenticated: (v: boolean) => void;
   setAuthPending: (v: boolean) => void;
   setCustomerName: (n: string | null) => void;
+  setEmbedIdentity: (v: 'pending' | 'verified' | 'anonymous') => void;
   setLanguage: (l: string) => void;
   queueChatMessage: (m: string) => void;
   consumeChatMessage: () => string | null;
@@ -39,6 +46,7 @@ export const useWidgetStore = create<WidgetState>()((set, get) => ({
   authenticated: false,
   authPending: false,
   customerName: null,
+  embedIdentity: 'pending',
   language: 'en',
   pendingChatMessage: null,
   setSessionToken: (t) => {
@@ -51,6 +59,7 @@ export const useWidgetStore = create<WidgetState>()((set, get) => ({
   setAuthenticated: (v) => set({ authenticated: v }),
   setAuthPending: (v) => set({ authPending: v }),
   setCustomerName: (n) => set({ customerName: n }),
+  setEmbedIdentity: (v) => set({ embedIdentity: v }),
   setLanguage: (l) => set({ language: l }),
   queueChatMessage: (m) => set({ pendingChatMessage: m, activeTab: 'chat' }),
   consumeChatMessage: () => {

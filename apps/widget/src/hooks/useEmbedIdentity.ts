@@ -12,6 +12,7 @@ export function useEmbedIdentity() {
   const setSessionToken = useWidgetStore((s) => s.setSessionToken);
   const setAuthenticated = useWidgetStore((s) => s.setAuthenticated);
   const setAuthPending = useWidgetStore((s) => s.setAuthPending);
+  const setEmbedIdentity = useWidgetStore((s) => s.setEmbedIdentity);
 
   useEffect(() => {
     if (window.parent === window) return; // not embedded — nothing to do
@@ -37,7 +38,11 @@ export function useEmbedIdentity() {
     function onMessage(e: MessageEvent) {
       if (e.source !== window.parent) return; // only from our embedder frame
       if (!isTrustedOrigin(e.origin)) return;
-      const d = (e.data || {}) as { type?: string; token?: string };
+      const d = (e.data || {}) as {
+        type?: string;
+        token?: string;
+        authenticated?: boolean;
+      };
       const pending = useWidgetStore.getState().authPending;
       if (d.type === 'ivy:session' && d.token) {
         if (adopted && !pending) return; // block passive re-adoption only
@@ -45,6 +50,11 @@ export function useEmbedIdentity() {
         setSessionToken(d.token);
         setAuthenticated(true);
         setAuthPending(false);
+        setEmbedIdentity('verified');
+      } else if (d.type === 'ivy:identity' && d.authenticated === false) {
+        // Nobody is signed in on the storefront — release useEnsureSession to
+        // open a guest session instead of waiting for one that isn't coming.
+        setEmbedIdentity('anonymous');
       } else if (d.type === 'ivy:login-cancelled') {
         // Sign-in popup closed without a completed login — clear the waiting UI.
         setAuthPending(false);
@@ -54,5 +64,5 @@ export function useEmbedIdentity() {
     // Tell the loader we're mounted and ready to receive the identity token.
     window.parent.postMessage({ type: 'ivy:ready' }, '*');
     return () => window.removeEventListener('message', onMessage);
-  }, [setSessionToken, setAuthenticated, setAuthPending]);
+  }, [setSessionToken, setAuthenticated, setAuthPending, setEmbedIdentity]);
 }
