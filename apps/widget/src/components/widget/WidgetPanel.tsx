@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Settings, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { useWidgetStore } from '../../store/widgetStore';
+import { useWidgetStore, type TabKey } from '../../store/widgetStore';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { TabBar } from './TabBar';
 import { ChatTab } from '../chat/ChatTab';
@@ -15,6 +15,12 @@ export function WidgetPanel() {
   const setPanelOpen = useWidgetStore((s) => s.setPanelOpen);
   const [showSettings, setShowSettings] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
+
+  // Tabs the shopper has opened at least once — mounted from then on.
+  const [visited, setVisited] = useState<TabKey[]>([activeTab]);
+  useEffect(() => {
+    setVisited((v) => (v.includes(activeTab) ? v : [...v, activeTab]));
+  }, [activeTab]);
 
   // Esc closes the panel; focus the panel on open.
   useEffect(() => {
@@ -66,17 +72,30 @@ export function WidgetPanel() {
         </div>
       </header>
 
-      {/* Body */}
+      {/* Body — visited tabs stay mounted and are hidden, never unmounted.
+          ChatTab holds the thread (and its follow-up chips, escalation prompt and
+          inline cards) in component state, so swapping to Orders used to destroy
+          it: coming back showed an empty conversation with nothing to act on.
+          Mounting lazily keeps the cost of an unvisited tab at zero. */}
       <div className="min-h-0 flex-1">
-        {showSettings ? (
-          <PreferencesPanel onBack={() => setShowSettings(false)} />
-        ) : activeTab === 'notifications' ? (
-          <NotificationsTab />
-        ) : activeTab === 'chat' ? (
-          <ChatTab />
-        ) : (
-          <OrdersTab />
-        )}
+        <div className={showSettings ? 'hidden' : 'h-full'}>
+          {visited.includes('chat') && (
+            <div className={activeTab === 'chat' ? 'h-full' : 'hidden'}>
+              <ChatTab />
+            </div>
+          )}
+          {visited.includes('orders') && (
+            <div className={activeTab === 'orders' ? 'h-full' : 'hidden'}>
+              <OrdersTab />
+            </div>
+          )}
+          {visited.includes('notifications') && (
+            <div className={activeTab === 'notifications' ? 'h-full' : 'hidden'}>
+              <NotificationsTab />
+            </div>
+          )}
+        </div>
+        {showSettings && <PreferencesPanel onBack={() => setShowSettings(false)} />}
       </div>
 
       {/* Tabs */}

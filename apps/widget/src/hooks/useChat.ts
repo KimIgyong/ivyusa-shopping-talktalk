@@ -158,16 +158,20 @@ export function useChat(sessionToken: string | null) {
 }
 
 /**
- * Merge the server thread with local state. Server is the source of truth;
- * quickReplies chips exist only locally (the server does not return them on
- * the conversation read), so they are re-attached to the matching message.
+ * Merge the server thread with local state. Server is the source of truth, and it
+ * now returns a scripted turn's chips too, so a reload or tab switch keeps them.
+ * The local re-attach stays as a fallback for a message whose chips the server
+ * doesn't carry (e.g. an older row persisted before chips were stored).
  */
 function reconcile(local: ChatMessage[], server: ChatMessage[]): ChatMessage[] {
   if (server.length === 0) return local;
   if (server.length < countServerKnown(local)) return local; // stale poll
   const lastWithChips = [...local].reverse().find((m) => m.quickReplies?.length);
   return server.map((m) =>
-    lastWithChips && m.body === lastWithChips.body && m.senderType === lastWithChips.senderType
+    !m.quickReplies?.length &&
+    lastWithChips &&
+    m.body === lastWithChips.body &&
+    m.senderType === lastWithChips.senderType
       ? { ...m, quickReplies: lastWithChips.quickReplies }
       : m,
   );

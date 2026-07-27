@@ -222,20 +222,27 @@ export class ScenarioService {
     }
     const body = moderated.text;
 
+    const followUps = script.followUps.map((f) => ({ id: f.id, label: f.label[l] }));
+
     await this.msgRepo.save(
       this.msgRepo.create({
         conversationId: conversation.id,
         senderType: SENDER_TYPE.AI,
         body,
         lang: session.language,
-        retrievalTrace: { scenario: action, kind: 'script' },
+        // Persist the follow-up chips alongside the turn. They used to live only in
+        // this response, so re-reading the conversation (switching widget tab, or a
+        // page reload) lost them and left the shopper with no next action. Stored in
+        // retrieval_trace, which already carries this turn's UI metadata — keeps the
+        // chips durable without a schema change.
+        retrievalTrace: { scenario: action, kind: 'script', followUps },
       }),
     );
 
     return {
       conversationId: conversation.id,
       reply: { senderType: 'ai', body },
-      followUps: script.followUps.map((f) => ({ id: f.id, label: f.label[l] })),
+      followUps,
     };
   }
 }
