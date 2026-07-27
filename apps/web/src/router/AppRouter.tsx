@@ -71,7 +71,7 @@ const router = createBrowserRouter([
     children: [
       { index: true, element: <AdminOverviewPage /> },
       { path: 'tenants', element: <TenantsPage /> },
-      { path: 'tenants/:tenantId/users', element: <TenantUsersPage /> },
+      { path: 'tenants/:tenantUuid/users', element: <TenantUsersPage /> },
       { path: 'ai-engines', element: <AiEnginesPage /> },
       { path: 'audit', element: <AuditPage /> },
     ],

@@ -45,7 +45,7 @@ export function LandingPage() {
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-500 text-white">
             <Sparkles className="h-5 w-5" />
           </div>
-          <span className="text-sm font-semibold text-gray-900">IVY TalkTalk</span>
+          <span className="text-sm font-semibold text-gray-900">ShopTalk</span>
         </div>
         <div className="flex items-center gap-3">
           <LanguageSwitcher />

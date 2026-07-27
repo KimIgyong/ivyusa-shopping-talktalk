@@ -1,6 +1,8 @@
 {
   "title": "테넌트 설정",
   "subtitle": "연동과 자격 증명을 관리하세요.",
+  "configure": "설정",
+  "storesTitle": "연동 쇼핑몰",
   "integrationCredentials": "연동 자격 증명",
   "provider": "제공자",
   "status": "상태",
@@ -36,7 +38,11 @@
     "connectionStatus": "연결 상태",
     "credential": "자격 증명",
     "lastTested": "마지막 테스트",
-    "state": { "connected": "연결됨", "error": "오류", "unknown": "미테스트" },
+    "state": {
+      "connected": "연결됨",
+      "error": "오류",
+      "unknown": "미테스트"
+    },
     "install": {
       "title": "스토어에 설치",
       "subtitle": "Shopify 스토어프론트에 채팅 위젯을 추가합니다. 환경에 맞는 방식을 선택하세요.",
@@ -73,7 +79,11 @@
     "connectionStatus": "연결 상태",
     "credential": "자격 증명",
     "lastTested": "마지막 테스트",
-    "state": { "connected": "연결됨", "error": "오류", "unknown": "미테스트" },
+    "state": {
+      "connected": "연결됨",
+      "error": "오류",
+      "unknown": "미테스트"
+    },
     "fields": {
       "mall_id": "몰 ID",
       "client_id": "클라이언트 ID",
@@ -96,9 +106,21 @@
       "username": "user@example.com",
       "shop_domain": "your-store.myharavan.com"
     },
-    "cafe24": { "title": "Cafe24", "subtitle": "Admin API(OAuth 액세스 토큰)로 카페24 상점을 연결합니다." },
-    "woocommerce": { "title": "WooCommerce", "subtitle": "REST API consumer key로 우커머스 상점을 연결합니다." },
-    "odoo": { "title": "Odoo", "subtitle": "외부 API(URL·DB·사용자·API 키)로 Odoo를 연결합니다." },
-    "haravan": { "title": "Haravan", "subtitle": "Admin API 액세스 토큰으로 Haravan 상점을 연결합니다." }
+    "cafe24": {
+      "title": "Cafe24",
+      "subtitle": "Admin API(OAuth 액세스 토큰)로 카페24 상점을 연결합니다."
+    },
+    "woocommerce": {
+      "title": "WooCommerce",
+      "subtitle": "REST API consumer key로 우커머스 상점을 연결합니다."
+    },
+    "odoo": {
+      "title": "Odoo",
+      "subtitle": "외부 API(URL·DB·사용자·API 키)로 Odoo를 연결합니다."
+    },
+    "haravan": {
+      "title": "Haravan",
+      "subtitle": "Admin API 액세스 토큰으로 Haravan 상점을 연결합니다."
+    }
   }
 }

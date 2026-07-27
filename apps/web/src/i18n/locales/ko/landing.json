@@ -1,6 +1,6 @@
 {
   "heroTitle": "온라인 스토어를 위한 AI 채팅·고객 지원",
-  "heroSubtitle": "IVY TalkTalk은 24시간 고객 문의에 응답하고, 필요한 순간 상담원에게 연결하며, 영어·스페인어·한국어로 대화합니다.",
+  "heroSubtitle": "ShopTalk은 24시간 고객 문의에 응답하고, 필요한 순간 상담원에게 연결하며, 영어·스페인어·한국어로 대화합니다.",
   "workspaceLabel": "워크스페이스",
   "workspacePlaceholder": "your-workspace",
   "signIn": "로그인",
@@ -15,5 +15,5 @@
   "featureCommerceDesc": "Shopify 연동으로 주문·고객·캠페인 정보를 대화 바로 옆에서 확인합니다.",
   "featureI18nTitle": "기본 탑재 다국어",
   "featureI18nDesc": "고객이 영어, 스페인어, 한국어로 문의해도 위젯과 AI가 자동으로 해당 언어를 따라갑니다.",
-  "footerCopy": "IVY TalkTalk — 채팅·고객 지원 위젯"
+  "footerCopy": "ShopTalk — 채팅·고객 지원 위젯"
 }

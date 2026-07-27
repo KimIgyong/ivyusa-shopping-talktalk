@@ -292,6 +292,7 @@ CREATE TABLE integration_status (
 -- ---------- tenants ----------
 CREATE TABLE tenants (
   id          BIGINT       NOT NULL AUTO_INCREMENT,
+  uuid        CHAR(36)     NOT NULL, -- external tenant identifier (admin API/URLs)
   shop_domain VARCHAR(255) NOT NULL,
   slug        VARCHAR(64)  NOT NULL, -- URL handle: tenant login page at /<slug>
   name        VARCHAR(255) NULL,
@@ -301,7 +302,8 @@ CREATE TABLE tenants (
   updated_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
   UNIQUE KEY uk_tenant_shop (shop_domain),
-  UNIQUE KEY uk_tenant_slug (slug)
+  UNIQUE KEY uk_tenant_slug (slug),
+  UNIQUE KEY uk_tenant_uuid (uuid)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ---------- admin_users (system admins, cross-tenant) ----------

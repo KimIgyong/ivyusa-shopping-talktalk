@@ -37,15 +37,16 @@ export function TenantUsersPage() {
   const { t } = useTranslation('tenants');
   const { t: tu } = useTranslation('users');
   const { t: tc } = useTranslation('common');
-  const { tenantId = '' } = useParams<{ tenantId: string }>();
+  // Param name must match the router's `tenants/:tenantUuid/users` definition.
+  const { tenantUuid = '' } = useParams<{ tenantUuid: string }>();
 
   const [page, setPage] = useState(1);
-  const { data: tenant } = useAdminTenant(tenantId);
-  const { data, isLoading, error } = useTenantUsers(tenantId, { page, pageSize: PAGE_SIZE });
-  const { data: jobLabels } = useTenantJobLabels(tenantId);
-  const inviteUser = useInviteTenantUser(tenantId);
-  const issueTempPw = useIssueTenantUserTempPassword(tenantId);
-  const setUserStatus = useSetTenantUserStatus(tenantId);
+  const { data: tenant } = useAdminTenant(tenantUuid);
+  const { data, isLoading, error } = useTenantUsers(tenantUuid, { page, pageSize: PAGE_SIZE });
+  const { data: jobLabels } = useTenantJobLabels(tenantUuid);
+  const inviteUser = useInviteTenantUser(tenantUuid);
+  const issueTempPw = useIssueTenantUserTempPassword(tenantUuid);
+  const setUserStatus = useSetTenantUserStatus(tenantUuid);
 
   const labels = useMemo<JobLabel[]>(() => jobLabels ?? [], [jobLabels]);
 
@@ -145,7 +146,7 @@ export function TenantUsersPage() {
       </Link>
 
       <PageHeader
-        title={t('usersOf', { name: tenant?.name ?? `#${tenantId}` })}
+        title={t('usersOf', { name: tenant?.name ?? tenant?.slug ?? '…' })}
         subtitle={t('usersOfSubtitle')}
         action={
           <Button onClick={openInvite}>

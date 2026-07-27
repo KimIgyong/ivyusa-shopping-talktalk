@@ -34,7 +34,7 @@ export function Sidebar() {
         </div>
         {!collapsed && (
           <div className="leading-tight">
-            <p className="text-sm font-semibold text-gray-900">IVY TalkTalk</p>
+            <p className="text-sm font-semibold text-gray-900">ShopTalk</p>
             <p className="text-xs text-gray-400">{isAdmin ? t('platformAdmin') : t('console')}</p>
           </div>
         )}

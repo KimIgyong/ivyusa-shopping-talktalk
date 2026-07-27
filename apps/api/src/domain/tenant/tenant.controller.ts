@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Patch, Post, Put, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Put, Query } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { HttpStatus } from '@nestjs/common';
 import { CAPABILITY, Principal } from '@ivy/types';
@@ -50,11 +50,11 @@ export class TenantController {
     return TenantMapper.toPublicTenant(tenant);
   }
 
-  @Get(':id')
+  @Get(':uuid')
   @AdminOnly()
-  @ApiOperation({ summary: 'Get a tenant by id' })
-  async get(@Param('id', ParseIntPipe) id: number) {
-    const tenant = await this.tenantService.findById(id);
+  @ApiOperation({ summary: 'Get a tenant by UUID' })
+  async get(@Param('uuid') uuid: string) {
+    const tenant = await this.tenantService.getByUuid(uuid);
     return TenantMapper.toTenant(tenant);
   }
 
@@ -66,14 +66,15 @@ export class TenantController {
     return TenantMapper.toTenant(tenant);
   }
 
-  @Patch(':id/status')
+  @Patch(':uuid/status')
   @AdminOnly()
   @ApiOperation({ summary: 'Update tenant status (applied/active/suspended)' })
   async updateStatus(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('uuid') uuid: string,
     @Body() body: UpdateTenantStatusRequest,
   ) {
-    const tenant = await this.tenantService.updateStatus(id, body.status);
+    const target = await this.tenantService.getByUuid(uuid);
+    const tenant = await this.tenantService.updateStatus(Number(target.id), body.status);
     return TenantMapper.toTenant(tenant);
   }
 

@@ -13,6 +13,7 @@ export class TenantMapper {
   static toTenant(t: Tenant, userCount?: number): TenantResponse {
     return {
       id: t.id,
+      uuid: t.uuid,
       shopDomain: t.shopDomain,
       slug: t.slug,
       name: t.name,

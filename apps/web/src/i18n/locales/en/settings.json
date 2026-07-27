@@ -1,6 +1,8 @@
 {
   "title": "Tenant Settings",
   "subtitle": "Manage integrations and credentials.",
+  "configure": "Configure",
+  "storesTitle": "Store integrations",
   "integrationCredentials": "Integration credentials",
   "provider": "Provider",
   "status": "Status",
@@ -36,7 +38,11 @@
     "connectionStatus": "Connection status",
     "credential": "Credential",
     "lastTested": "Last tested",
-    "state": { "connected": "Connected", "error": "Error", "unknown": "Not tested" },
+    "state": {
+      "connected": "Connected",
+      "error": "Error",
+      "unknown": "Not tested"
+    },
     "install": {
       "title": "Install on your store",
       "subtitle": "Add the chat widget to your Shopify storefront. Pick the method that fits your setup.",
@@ -73,7 +79,11 @@
     "connectionStatus": "Connection status",
     "credential": "Credential",
     "lastTested": "Last tested",
-    "state": { "connected": "Connected", "error": "Error", "unknown": "Not tested" },
+    "state": {
+      "connected": "Connected",
+      "error": "Error",
+      "unknown": "Not tested"
+    },
     "fields": {
       "mall_id": "Mall ID",
       "client_id": "Client ID",
@@ -96,9 +106,21 @@
       "username": "user@example.com",
       "shop_domain": "your-store.myharavan.com"
     },
-    "cafe24": { "title": "Cafe24", "subtitle": "Connect your Cafe24 store via the Admin API (OAuth access token)." },
-    "woocommerce": { "title": "WooCommerce", "subtitle": "Connect your WooCommerce store with REST API consumer keys." },
-    "odoo": { "title": "Odoo", "subtitle": "Connect Odoo via the external API (URL, database, user, API key)." },
-    "haravan": { "title": "Haravan", "subtitle": "Connect your Haravan store with an Admin API access token." }
+    "cafe24": {
+      "title": "Cafe24",
+      "subtitle": "Connect your Cafe24 store via the Admin API (OAuth access token)."
+    },
+    "woocommerce": {
+      "title": "WooCommerce",
+      "subtitle": "Connect your WooCommerce store with REST API consumer keys."
+    },
+    "odoo": {
+      "title": "Odoo",
+      "subtitle": "Connect Odoo via the external API (URL, database, user, API key)."
+    },
+    "haravan": {
+      "title": "Haravan",
+      "subtitle": "Connect your Haravan store with an Admin API access token."
+    }
   }
 }

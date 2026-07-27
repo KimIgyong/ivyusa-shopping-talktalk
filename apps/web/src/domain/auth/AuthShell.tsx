@@ -25,7 +25,7 @@ export function AuthShell({ subtitle, children }: { subtitle: string; children: 
             >
               <Sparkles className="h-6 w-6" />
             </Link>
-            <h1 className="text-xl font-semibold text-gray-900">IVY TalkTalk</h1>
+            <h1 className="text-xl font-semibold text-gray-900">ShopTalk</h1>
             <p className="text-sm text-gray-500">{subtitle}</p>
           </div>
           <div className="rounded-lg border border-gray-200 bg-white p-6">{children}</div>
