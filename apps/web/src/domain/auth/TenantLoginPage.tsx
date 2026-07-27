@@ -12,7 +12,8 @@ import { toast } from '@/store/toast-store';
 /** Per-tenant login page at /<slug> (FR: tenant-scoped sign-in). */
 export function TenantLoginPage() {
   const { t } = useTranslation('auth');
-  const { slug = '' } = useParams<{ slug: string }>();
+  // Param name must match the router's `/:tenantSlug` definition.
+  const { tenantSlug: slug = '' } = useParams<{ tenantSlug: string }>();
   const principal = useAuthStore((s) => s.principal);
   const setAuth = useAuthStore((s) => s.setAuth);
   const setTenantSlug = useAuthStore((s) => s.setTenantSlug);
@@ -21,6 +22,9 @@ export function TenantLoginPage() {
   const { data: tenant, isLoading, error } = useQuery({
     queryKey: ['public-tenant', slug],
     queryFn: () => authService.publicTenant(slug),
+    // Never fire with an empty slug — /tenants/by-slug/ would fall through to
+    // the admin-only /tenants/:id route and 401.
+    enabled: !!slug,
     retry: (count, err) => getErrorStatus(err) !== 404 && count < 2,
     staleTime: 60_000,
   });
