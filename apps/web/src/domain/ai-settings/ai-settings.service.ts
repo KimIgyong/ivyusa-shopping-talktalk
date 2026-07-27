@@ -55,8 +55,13 @@ export const aiSettingsService = {
       availableEngines: d.availableEngines ?? [],
     }));
   },
+  // engine_id is numeric server-side (@IsInt) — send a number, not the
+  // stringified id the option list carries.
   update: (fn: AiFunction, body: { engine_id: string; params?: Record<string, unknown> }) =>
-    apiPut<AiFunctionSetting>(`/ai-settings/${fn}`, body),
+    apiPut<AiFunctionSetting>(`/ai-settings/${fn}`, {
+      engine_id: Number(body.engine_id),
+      ...(body.params !== undefined ? { params: body.params } : {}),
+    }),
   getConfig: () => apiGet<AiConfig>('/ai-config'),
   updateConfig: (body: { persona?: string; rules?: string[]; scenario_buttons?: ScenarioButton[] }) =>
     apiPut<AiConfig>('/ai-config', body),
