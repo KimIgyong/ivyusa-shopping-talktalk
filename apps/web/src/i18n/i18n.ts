@@ -6,6 +6,7 @@ import enCommon from './locales/en/common.json';
 import enNav from './locales/en/nav.json';
 import enAuth from './locales/en/auth.json';
 import enLanding from './locales/en/landing.json';
+import enMypage from './locales/en/mypage.json';
 import enDashboard from './locales/en/dashboard.json';
 import enLivechat from './locales/en/livechat.json';
 import enHistory from './locales/en/history.json';
@@ -26,6 +27,7 @@ import esCommon from './locales/es/common.json';
 import esNav from './locales/es/nav.json';
 import esAuth from './locales/es/auth.json';
 import esLanding from './locales/es/landing.json';
+import esMypage from './locales/es/mypage.json';
 import esDashboard from './locales/es/dashboard.json';
 import esLivechat from './locales/es/livechat.json';
 import esHistory from './locales/es/history.json';
@@ -46,6 +48,7 @@ import koCommon from './locales/ko/common.json';
 import koNav from './locales/ko/nav.json';
 import koAuth from './locales/ko/auth.json';
 import koLanding from './locales/ko/landing.json';
+import koMypage from './locales/ko/mypage.json';
 import koDashboard from './locales/ko/dashboard.json';
 import koLivechat from './locales/ko/livechat.json';
 import koHistory from './locales/ko/history.json';
@@ -71,6 +74,7 @@ export const ns = [
   'nav',
   'auth',
   'landing',
+  'mypage',
   'dashboard',
   'livechat',
   'history',
@@ -93,6 +97,7 @@ const resources = {
     nav: enNav,
     auth: enAuth,
     landing: enLanding,
+    mypage: enMypage,
     dashboard: enDashboard,
     livechat: enLivechat,
     history: enHistory,
@@ -113,6 +118,7 @@ const resources = {
     nav: esNav,
     auth: esAuth,
     landing: esLanding,
+    mypage: esMypage,
     dashboard: esDashboard,
     livechat: esLivechat,
     history: esHistory,
@@ -133,6 +139,7 @@ const resources = {
     nav: koNav,
     auth: koAuth,
     landing: koLanding,
+    mypage: koMypage,
     dashboard: koDashboard,
     livechat: koLivechat,
     history: koHistory,

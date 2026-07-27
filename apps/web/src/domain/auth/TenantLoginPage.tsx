@@ -16,7 +16,7 @@ export function TenantLoginPage() {
   const { tenantSlug: slug = '' } = useParams<{ tenantSlug: string }>();
   const principal = useAuthStore((s) => s.principal);
   const setAuth = useAuthStore((s) => s.setAuth);
-  const setTenantSlug = useAuthStore((s) => s.setTenantSlug);
+  const setTenant = useAuthStore((s) => s.setTenant);
   const navigate = useNavigate();
 
   const { data: tenant, isLoading, error } = useQuery({
@@ -38,7 +38,7 @@ export function TenantLoginPage() {
     try {
       const res = await authService.userLogin(email, password, slug);
       setAuth(res);
-      setTenantSlug(slug);
+      setTenant(slug, tenant?.name ?? slug);
       toast.success(t('signedIn'));
       navigate('/dashboard', { replace: true });
     } catch (err) {
@@ -76,7 +76,7 @@ export function TenantLoginPage() {
 
   if (tenant.status === 'suspended') {
     return (
-      <AuthShell subtitle={tenant.name ?? tenant.slug}>
+      <AuthShell tenantName={tenant.name ?? tenant.slug}>
         <div className="flex flex-col items-center py-6 text-center">
           <Ban className="mb-3 h-10 w-10 text-amber-400" />
           <p className="font-medium text-gray-800">{t('tenantSuspendedTitle')}</p>
@@ -87,9 +87,10 @@ export function TenantLoginPage() {
   }
 
   return (
-    <AuthShell subtitle={t('workspaceSubtitle', { name: tenant.name ?? tenant.slug })}>
+    <AuthShell tenantName={tenant.name ?? tenant.slug}>
       <LoginForm
         onSubmit={login}
+        rememberKey={`shoptalk_email:${slug}`}
         devHint={import.meta.env.DEV ? 'dev@amoeba.group / amb2026!@' : undefined}
       />
     </AuthShell>

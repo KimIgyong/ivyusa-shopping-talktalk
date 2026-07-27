@@ -1,0 +1,11 @@
+{
+  "title": "My Page",
+  "subtitle": "Your account information and security.",
+  "profile": "Profile",
+  "email": "Email",
+  "role": "Role",
+  "workspace": "Workspace",
+  "labels": "Job labels",
+  "security": "Security",
+  "securityDesc": "Change the password you use to sign in."
+}

@@ -1,0 +1,11 @@
+{
+  "title": "마이페이지",
+  "subtitle": "계정 정보와 보안 설정입니다.",
+  "profile": "프로필",
+  "email": "이메일",
+  "role": "역할",
+  "workspace": "워크스페이스",
+  "labels": "업무 라벨",
+  "security": "보안",
+  "securityDesc": "로그인에 사용하는 비밀번호를 변경합니다."
+}

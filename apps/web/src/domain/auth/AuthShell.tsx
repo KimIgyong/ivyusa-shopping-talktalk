@@ -7,8 +7,20 @@ import { LanguageSwitcher } from '@/layouts/Header';
 /**
  * Shared frame for the public auth pages (/<slug> and /admin/login):
  * centered card with brand mark, locale toggle and a way back to the landing page.
+ *
+ * With `tenantName` the header reads tenant-first: the tenant name at the
+ * regular title size, the ShopTalk brand underneath 25% smaller. Without it
+ * (admin login, error states) the brand is the title and `subtitle` shows below.
  */
-export function AuthShell({ subtitle, children }: { subtitle: string; children: ReactNode }) {
+export function AuthShell({
+  tenantName,
+  subtitle,
+  children,
+}: {
+  tenantName?: string;
+  subtitle?: string;
+  children: ReactNode;
+}) {
   const { t } = useTranslation('auth');
   return (
     <div className="flex min-h-screen flex-col bg-gray-50">
@@ -25,8 +37,18 @@ export function AuthShell({ subtitle, children }: { subtitle: string; children: 
             >
               <Sparkles className="h-6 w-6" />
             </Link>
-            <h1 className="text-xl font-semibold text-gray-900">ShopTalk</h1>
-            <p className="text-sm text-gray-500">{subtitle}</p>
+            {tenantName ? (
+              <>
+                <h1 className="text-xl font-semibold text-gray-900">{tenantName}</h1>
+                {/* Brand sits under the tenant name at 75% of its size (20px → 15px). */}
+                <p className="text-[15px] font-medium text-gray-500">ShopTalk</p>
+              </>
+            ) : (
+              <>
+                <h1 className="text-xl font-semibold text-gray-900">ShopTalk</h1>
+                {subtitle && <p className="text-sm text-gray-500">{subtitle}</p>}
+              </>
+            )}
           </div>
           <div className="rounded-lg border border-gray-200 bg-white p-6">{children}</div>
           <p className="mt-4 text-center">

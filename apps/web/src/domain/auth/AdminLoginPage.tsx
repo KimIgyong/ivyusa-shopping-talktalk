@@ -32,6 +32,7 @@ export function AdminLoginPage() {
     <AuthShell subtitle={t('adminSubtitle')}>
       <LoginForm
         onSubmit={login}
+        rememberKey="shoptalk_email:admin"
         devHint={import.meta.env.DEV ? 'admin@amoeba.group / amb2026!@' : undefined}
       />
     </AuthShell>

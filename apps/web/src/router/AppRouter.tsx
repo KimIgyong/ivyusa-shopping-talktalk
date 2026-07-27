@@ -20,6 +20,7 @@ const OrdersPage = lazy(() => import('@/domain/orders/OrdersPage').then((m) => (
 const CampaignsPage = lazy(() => import('@/domain/campaigns/CampaignsPage').then((m) => ({ default: m.CampaignsPage })));
 const UsersPage = lazy(() => import('@/domain/users/UsersPage').then((m) => ({ default: m.UsersPage })));
 const SettingsPage = lazy(() => import('@/domain/settings/SettingsPage').then((m) => ({ default: m.SettingsPage })));
+const MyPage = lazy(() => import('@/domain/my-page/MyPage').then((m) => ({ default: m.MyPage })));
 const AdminOverviewPage = lazy(() => import('@/domain/admin/AdminOverviewPage').then((m) => ({ default: m.AdminOverviewPage })));
 const TenantsPage = lazy(() => import('@/domain/admin/TenantsPage').then((m) => ({ default: m.TenantsPage })));
 const TenantUsersPage = lazy(() => import('@/domain/admin/TenantUsersPage').then((m) => ({ default: m.TenantUsersPage })));
@@ -59,6 +60,7 @@ const router = createBrowserRouter([
       { path: '/campaigns', element: <CampaignsPage /> },
       { path: '/users', element: <UsersPage /> },
       { path: '/settings', element: <SettingsPage /> },
+      { path: '/my-page', element: <MyPage /> },
     ],
   },
   {
@@ -74,6 +76,7 @@ const router = createBrowserRouter([
       { path: 'tenants/:tenantUuid/users', element: <TenantUsersPage /> },
       { path: 'ai-engines', element: <AiEnginesPage /> },
       { path: 'audit', element: <AuditPage /> },
+      { path: 'my-page', element: <MyPage /> },
     ],
   },
   { path: '/:tenantSlug', element: <TenantLoginPage /> },
