@@ -536,6 +536,7 @@ CREATE TABLE `tenant_ai_settings` (
 DROP TABLE IF EXISTS `tenants`;
 CREATE TABLE `tenants` (
   `id` bigint NOT NULL AUTO_INCREMENT,
+  `uuid` char(36) COLLATE utf8mb4_unicode_ci NOT NULL,
   `shop_domain` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
   `slug` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL,
   `name` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
@@ -545,7 +546,8 @@ CREATE TABLE `tenants` (
   `updated_at` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_tenant_shop` (`shop_domain`),
-  UNIQUE KEY `uk_tenant_slug` (`slug`)
+  UNIQUE KEY `uk_tenant_slug` (`slug`),
+  UNIQUE KEY `uk_tenant_uuid` (`uuid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 DROP TABLE IF EXISTS `user_job_labels`;
 CREATE TABLE `user_job_labels` (

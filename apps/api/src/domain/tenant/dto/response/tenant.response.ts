@@ -1,6 +1,7 @@
-/** Response DTOs — camelCase. */
+/** Response DTOs — camelCase. `uuid` is the external tenant identifier. */
 export interface TenantResponse {
   id: number;
+  uuid: string;
   shopDomain: string;
   slug: string;
   name: string | null;

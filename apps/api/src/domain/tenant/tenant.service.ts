@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto';
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { FindOptionsWhere, Repository } from 'typeorm';
@@ -86,6 +87,15 @@ export class TenantService {
     return this.tenantRepo.findOne({ where: { slug } });
   }
 
+  /** Resolve a tenant by its external UUID (admin API); 404 when unknown. */
+  async getByUuid(uuid: string): Promise<Tenant> {
+    const tenant = await this.tenantRepo.findOne({ where: { uuid } });
+    if (!tenant) {
+      throw new BusinessException(ERROR_CODE.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND);
+    }
+    return tenant;
+  }
+
   /** Tenant ids that have a stored Shopify credential (for scheduled sync). */
   async listShopifyTenantIds(): Promise<number[]> {
     const creds = await this.credRepo.find({ where: { provider: SHOPIFY } });
@@ -98,6 +108,7 @@ export class TenantService {
       throw new BusinessException(ERROR_CODE.DUPLICATE_RESOURCE, HttpStatus.CONFLICT);
     }
     const tenant = this.tenantRepo.create({
+      uuid: randomUUID(),
       shopDomain,
       slug: await this.resolveSlug(slug, name),
       name,
@@ -114,7 +125,13 @@ export class TenantService {
     // e.g. "acme.myshopify.com" -> slug base "acme"
     const slug = await this.generateUniqueSlug(name ?? shopDomain.split('.')[0]);
     return this.tenantRepo.save(
-      this.tenantRepo.create({ shopDomain, slug, name: name ?? shopDomain, status: 'active' }),
+      this.tenantRepo.create({
+        uuid: randomUUID(),
+        shopDomain,
+        slug,
+        name: name ?? shopDomain,
+        status: 'active',
+      }),
     );
   }
 

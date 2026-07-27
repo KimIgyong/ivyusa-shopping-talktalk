@@ -76,7 +76,7 @@ export function TenantsPage() {
           <Button
             variant="secondary"
             size="sm"
-            onClick={() => navigate(`/admin/tenants/${r.id}/users`)}
+            onClick={() => navigate(`/admin/tenants/${r.uuid}/users`)}
           >
             <UserCog className="mr-1 h-3.5 w-3.5" />
             {t('manageUsers')}
@@ -86,7 +86,7 @@ export function TenantsPage() {
               variant="danger"
               size="sm"
               disabled={setStatus.isPending}
-              onClick={() => setStatus.mutate({ id: r.id, status: 'suspended' })}
+              onClick={() => setStatus.mutate({ id: r.uuid, status: 'suspended' })}
             >
               {t('suspend')}
             </Button>
@@ -95,7 +95,7 @@ export function TenantsPage() {
               variant="secondary"
               size="sm"
               disabled={setStatus.isPending}
-              onClick={() => setStatus.mutate({ id: r.id, status: 'active' })}
+              onClick={() => setStatus.mutate({ id: r.uuid, status: 'active' })}
             >
               {t('activate')}
             </Button>
