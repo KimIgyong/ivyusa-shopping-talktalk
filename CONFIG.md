@@ -166,7 +166,7 @@ readiness); wired into the api container healthcheck (staging + production compo
 
 ## 6. Staging server (LIVE)
 
-**Public:** https://shoptalk.amoeba.site — admin console at `/`, widget at `/widget/`.
+**Public:** https://shoptalk.amoeba.site — landing at `/`, tenant login at `/<slug>` (e.g. `/ivyusa`), system-admin login at `/admin/login`, widget at `/widget/`.
 Host nginx (shared host, also runs acm/tac prod) terminates TLS (Let's Encrypt,
 auto-renew) and reverse-proxies to the docker nginx on `:8080`.
 

@@ -103,11 +103,14 @@ export class AuthService {
     password: string,
     clientIp: string,
     shopDomain?: string,
+    tenantSlug?: string,
   ): Promise<AuthTokensResponse> {
     await this.loginLimiter.assertNotLocked('user', email, clientIp);
-    const tenant = shopDomain
-      ? await this.tenantRepo.findOne({ where: { shopDomain } })
-      : await this.tenantRepo.findOne({ where: {}, order: { id: 'ASC' } });
+    const tenant = tenantSlug
+      ? await this.tenantRepo.findOne({ where: { slug: tenantSlug } })
+      : shopDomain
+        ? await this.tenantRepo.findOne({ where: { shopDomain } })
+        : await this.tenantRepo.findOne({ where: {}, order: { id: 'ASC' } });
     if (!tenant) {
       await this.loginLimiter.recordFailure('user', email, clientIp);
       throw new BusinessException(ERROR_CODE.INVALID_CREDENTIALS, HttpStatus.UNAUTHORIZED);
@@ -128,7 +131,8 @@ export class AuthService {
     // Credentials are valid — clear the failure counter even if we then reject a
     // suspended account, so a suspended user's own attempts don't cause lockout.
     await this.loginLimiter.recordSuccess('user', email);
-    if (user.status === 'suspended') {
+    // A suspended tenant blocks all of its users regardless of their own status.
+    if (user.status === 'suspended' || tenant.status === 'suspended') {
       throw new BusinessException(ERROR_CODE.FORBIDDEN, HttpStatus.FORBIDDEN);
     }
     await this.auditSafe({

@@ -61,6 +61,7 @@ export class UserService {
     email: string,
     rank: string,
     labelCodes: string[] = [],
+    actorType: 'user' | 'admin' = 'user',
   ): Promise<InviteUserResponse> {
     const existing = await this.userRepo.findOne({ where: { tenantId, email } });
     if (existing) {
@@ -103,7 +104,7 @@ export class UserService {
     // returned once to the inviter; the audit row records who triggered it.
     await this.audit.write({
       tenantId,
-      actorType: 'user',
+      actorType,
       actorId: invitedBy,
       action: 'user.invited',
       target: `user:${user.id} ${maskPii(email)}`,
@@ -122,6 +123,7 @@ export class UserService {
     tenantId: number,
     userId: number,
     issuedBy: number,
+    actorType: 'user' | 'admin' = 'user',
   ): Promise<{ userId: number; email: string; tempPassword: string }> {
     const user = await this.getTenantUser(tenantId, userId);
     const tempPassword = this.genTempPassword();
@@ -130,7 +132,7 @@ export class UserService {
     await this.userRepo.save(user);
     await this.audit.write({
       tenantId,
-      actorType: 'user',
+      actorType,
       actorId: issuedBy,
       action: 'user.temp_password_issued',
       target: `user:${user.id} ${maskPii(user.email)}`,

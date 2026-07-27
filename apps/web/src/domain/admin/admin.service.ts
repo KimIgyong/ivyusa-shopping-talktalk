@@ -1,8 +1,16 @@
 import { apiGet, apiGetList, apiPost, apiPatch } from '@/lib/api-client';
+import type {
+  InviteResult,
+  InviteUserBody,
+  JobLabel,
+  TempPasswordResult,
+  TenantUser,
+} from '@/domain/users/users.service';
 
 export interface Tenant {
   id: string;
   name: string;
+  slug?: string;
   shopDomain?: string;
   plan?: string;
   status?: string;
@@ -45,11 +53,30 @@ export interface AuditEntry {
 export const adminService = {
   tenants: (params: { page: number; pageSize: number }) =>
     apiGetList<Tenant>('/tenants', { page: params.page, size: params.pageSize }),
-  // Backend expects snake_case shop_domain.
-  createTenant: (body: { name: string; shopDomain: string; plan: string }) =>
-    apiPost<Tenant>('/tenants', { name: body.name, shop_domain: body.shopDomain, plan: body.plan }),
+  tenant: (id: string) => apiGet<Tenant>(`/tenants/${id}`),
+  // Backend expects snake_case shop_domain; slug is optional (server derives from name).
+  createTenant: (body: { name: string; shopDomain: string; plan: string; slug?: string }) =>
+    apiPost<Tenant>('/tenants', {
+      name: body.name,
+      shop_domain: body.shopDomain,
+      plan: body.plan,
+      ...(body.slug ? { slug: body.slug } : {}),
+    }),
   setTenantStatus: (id: string, status: string) =>
     apiPatch<Tenant>(`/tenants/${id}/status`, { status }),
+  // ---- Admin-scoped per-tenant user management ----
+  tenantUsers: (tenantId: string, params: { page: number; pageSize: number }) =>
+    apiGetList<TenantUser>(`/tenants/${tenantId}/users`, {
+      page: params.page,
+      size: params.pageSize,
+    }),
+  tenantJobLabels: (tenantId: string) => apiGet<JobLabel[]>(`/tenants/${tenantId}/job-labels`),
+  inviteTenantUser: (tenantId: string, body: InviteUserBody) =>
+    apiPost<InviteResult>(`/tenants/${tenantId}/users/invite`, body),
+  issueTenantUserTempPassword: (tenantId: string, userId: string) =>
+    apiPost<TempPasswordResult>(`/tenants/${tenantId}/users/${userId}/temp-password`, {}),
+  setTenantUserStatus: (tenantId: string, userId: string, status: string) =>
+    apiPatch<TenantUser>(`/tenants/${tenantId}/users/${userId}/status`, { status }),
   // Adapt backend {status, hasKey,...} → frontend {enabled,...}.
   engines: async (): Promise<AiEngine[]> => {
     const list = await apiGet<BackendEngine[]>('/ai-engines');

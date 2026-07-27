@@ -5,6 +5,7 @@ import { initReactI18next } from 'react-i18next';
 import enCommon from './locales/en/common.json';
 import enNav from './locales/en/nav.json';
 import enAuth from './locales/en/auth.json';
+import enLanding from './locales/en/landing.json';
 import enDashboard from './locales/en/dashboard.json';
 import enLivechat from './locales/en/livechat.json';
 import enHistory from './locales/en/history.json';
@@ -24,6 +25,7 @@ import enOverview from './locales/en/overview.json';
 import esCommon from './locales/es/common.json';
 import esNav from './locales/es/nav.json';
 import esAuth from './locales/es/auth.json';
+import esLanding from './locales/es/landing.json';
 import esDashboard from './locales/es/dashboard.json';
 import esLivechat from './locales/es/livechat.json';
 import esHistory from './locales/es/history.json';
@@ -43,6 +45,7 @@ import esOverview from './locales/es/overview.json';
 import koCommon from './locales/ko/common.json';
 import koNav from './locales/ko/nav.json';
 import koAuth from './locales/ko/auth.json';
+import koLanding from './locales/ko/landing.json';
 import koDashboard from './locales/ko/dashboard.json';
 import koLivechat from './locales/ko/livechat.json';
 import koHistory from './locales/ko/history.json';
@@ -67,6 +70,7 @@ export const ns = [
   'common',
   'nav',
   'auth',
+  'landing',
   'dashboard',
   'livechat',
   'history',
@@ -88,6 +92,7 @@ const resources = {
     common: enCommon,
     nav: enNav,
     auth: enAuth,
+    landing: enLanding,
     dashboard: enDashboard,
     livechat: enLivechat,
     history: enHistory,
@@ -107,6 +112,7 @@ const resources = {
     common: esCommon,
     nav: esNav,
     auth: esAuth,
+    landing: esLanding,
     dashboard: esDashboard,
     livechat: esLivechat,
     history: esHistory,
@@ -126,6 +132,7 @@ const resources = {
     common: koCommon,
     nav: koNav,
     auth: koAuth,
+    landing: koLanding,
     dashboard: koDashboard,
     livechat: koLivechat,
     history: koHistory,

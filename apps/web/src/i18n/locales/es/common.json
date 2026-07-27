@@ -28,6 +28,8 @@
   "connected": "Conectado",
   "notSet": "Sin configurar",
   "close": "Cerrar",
+  "copy": "Copiar",
+  "copied": "Copiado",
   "dialog": "Diálogo",
   "pagination": {
     "range": "{{from}}–{{to}} de {{total}}",

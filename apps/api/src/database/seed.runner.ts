@@ -45,8 +45,12 @@ export async function runSeed(ds: DataSource, opts: SeedOptions = {}): Promise<v
   let tenant = await tenantRepo.findOne({ where: { name: 'ivyusa' } });
   if (!tenant) {
     tenant = await tenantRepo.save(
-      tenantRepo.create({ shopDomain: 'ivyusa.myshopify.com', name: 'ivyusa', status: 'active', plan: 'custom' }),
+      tenantRepo.create({ shopDomain: 'ivyusa.myshopify.com', slug: 'ivyusa', name: 'ivyusa', status: 'active', plan: 'custom' }),
     );
+  } else if (!tenant.slug) {
+    // Pre-slug rows (before the /<slug> login pages) get their handle backfilled.
+    tenant.slug = 'ivyusa';
+    tenant = await tenantRepo.save(tenant);
   }
 
   // System admin + tenant master — bootstrap credentials (re)asserted each run.
