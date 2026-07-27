@@ -7,16 +7,19 @@ export class GuestLookupRequest {
   @IsEmail() email: string;
 }
 
-/** Optional pagination query for widget order lists. */
+/**
+ * Optional pagination query for widget order lists.
+ *
+ * `session_token` must stay OPTIONAL here: `@SessionToken()` is the authority and
+ * prefers the `X-Session-Token` header (PRV-M7/FE-M3 keeps the token out of URLs),
+ * so the widget's GETs carry no `session_token` param at all. Requiring it made
+ * the ValidationPipe reject those requests with 400 before the handler ran. A
+ * missing token still fails closed — the decorator throws 401.
+ */
 export class OrderListQuery {
-  @IsString() session_token: string;
+  @IsOptional() @IsString() session_token?: string;
   @IsOptional() @IsString() page?: string;
   @IsOptional() @IsString() size?: string;
-}
-
-/** Session-token query for order detail / tracking. */
-export class SessionTokenQuery {
-  @IsString() session_token: string;
 }
 
 /** POST /webhooks/fulfillment — external fulfillment update (FR-021). */
