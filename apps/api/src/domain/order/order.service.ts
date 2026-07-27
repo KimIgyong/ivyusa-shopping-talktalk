@@ -2,9 +2,9 @@ import { HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import {
-  DELIVERY_STEPS,
   FULFILLMENT_STATUS,
   ORDER_STATUS_INTERNAL,
+  deliverySteps,
   fulfillmentStepIndex,
   internalToUiStatus,
 } from '@ivy/types';
@@ -120,9 +120,14 @@ export class OrderService {
 
   /** Latest fulfillment + delivery stepper for an order (FR-031). */
   async trackingForSession(sessionToken: string, orderId: number) {
-    const customerId = await this.requireCustomerId(sessionToken);
+    // Load the session once: we need both the bound customer and its language,
+    // because the stepper labels are customer-facing and must be localized.
+    const session = await this.loadSession(sessionToken);
+    if (session.customerId == null) {
+      throw new BusinessException(ERROR_CODE.UNAUTHORIZED, HttpStatus.UNAUTHORIZED);
+    }
     const order = await this.orderRepo.findOne({ where: { id: orderId } });
-    if (!order || order.customerId !== customerId) {
+    if (!order || order.customerId !== session.customerId) {
       throw new BusinessException(ERROR_CODE.ORDER_NOT_FOUND, HttpStatus.NOT_FOUND);
     }
     const fulfillment = await this.fulfillRepo.findOne({
@@ -135,7 +140,7 @@ export class OrderService {
       carrier: fulfillment?.carrier ?? null,
       trackingNumber: fulfillment?.trackingNumber ?? null,
       stepIndex: fulfillmentStepIndex(status),
-      steps: DELIVERY_STEPS,
+      steps: deliverySteps(session.language),
     };
   }
 

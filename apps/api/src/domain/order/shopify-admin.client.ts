@@ -1,7 +1,13 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 
 const API_VERSION = '2026-01';
 const FETCH_TIMEOUT_MS = 10_000;
+/**
+ * Line items fetched per order. Kept modest so a page of orders stays inside the
+ * Admin API query-cost budget; carts longer than this are truncated (the cached
+ * item list is for customer self-service, not accounting).
+ */
+const LINE_ITEMS_PER_ORDER = 50;
 
 /** Subset of a Shopify Admin API order we cache (REST-era field names kept). */
 export interface ShopifyOrderDto {
@@ -19,6 +25,22 @@ export interface ShopifyOrderDto {
     first_name?: string | null;
     last_name?: string | null;
   } | null;
+  /**
+   * Line items, REST-shaped. Order webhooks deliver this natively (including
+   * product/variant ids and option text); the GraphQL sync fills the subset
+   * `read_orders` allows. `undefined` means "this payload carries no item info"
+   * and leaves cached items untouched; `[]` means the order genuinely has none.
+   */
+  line_items?: Array<{
+    id?: number | string;
+    product_id?: number | string | null;
+    variant_id?: number | string | null;
+    title?: string | null;
+    name?: string | null;
+    variant_title?: string | null;
+    quantity?: number | null;
+    price?: string | number | null;
+  }> | null;
 }
 
 /** Subset of a Shopify fulfillment webhook payload we act on. */
@@ -57,6 +79,13 @@ interface OrderNode {
     firstName?: string | null;
     lastName?: string | null;
   } | null;
+  lineItems?: {
+    nodes?: Array<{
+      title?: string | null;
+      quantity?: number | null;
+      originalUnitPriceSet?: { shopMoney?: { amount?: string } } | null;
+    }>;
+  } | null;
 }
 
 interface OrdersQueryResponse {
@@ -69,7 +98,24 @@ interface OrdersQueryResponse {
   errors?: Array<{ message?: string }>;
 }
 
-const ORDERS_QUERY = `
+/**
+ * `lineItems` selection, kept to fields readable with `read_orders` alone. The
+ * richer ones (`variant`, `product`, `sku`) require **read_products**, which this
+ * app does not request — asking for them fails the whole query, so we don't.
+ * Add them here only together with the scope.
+ */
+const LINE_ITEMS_SELECTION = `
+      lineItems(first: ${LINE_ITEMS_PER_ORDER}) {
+        nodes {
+          title
+          quantity
+          originalUnitPriceSet { shopMoney { amount } }
+        }
+      }`;
+
+/** Orders page query; `withLineItems` toggles the optional enrichment above. */
+function ordersQuery(withLineItems: boolean): string {
+  return `
 query Orders($first: Int!, $after: String, $query: String) {
   orders(first: $first, after: $after, query: $query, sortKey: UPDATED_AT) {
     pageInfo { hasNextPage endCursor }
@@ -80,10 +126,13 @@ query Orders($first: Int!, $after: String, $query: String) {
       displayFinancialStatus
       displayFulfillmentStatus
       totalPriceSet { shopMoney { amount currencyCode } }
-      customer { legacyResourceId email firstName lastName }
+      customer { legacyResourceId email firstName lastName }${
+        withLineItems ? LINE_ITEMS_SELECTION : ''
+      }
     }
   }
 }`;
+}
 
 const WEBHOOK_CREATE_MUTATION = `
 mutation WebhookCreate($topic: WebhookSubscriptionTopic!, $sub: WebhookSubscriptionInput!) {
@@ -110,6 +159,14 @@ query Customer($id: ID!) {
  */
 @Injectable()
 export class ShopifyAdminClient {
+  private readonly logger = new Logger(ShopifyAdminClient.name);
+
+  /** Access/scope denial on a field — the caller can retry a narrower selection. */
+  private isAccessScopeError(e: unknown): boolean {
+    const msg = e instanceof Error ? e.message : String(e);
+    return /access denied|access scope/i.test(msg);
+  }
+
   /**
    * Fetch one page of orders. Incremental (`updatedAtMin`) + cursor-paginated.
    * GraphQL cursors are only valid alongside the query they were issued for, so
@@ -129,11 +186,19 @@ export class ShopifyAdminClient {
       query = cursor.query;
     }
 
-    const body = (await this.gql(shopDomain, token, ORDERS_QUERY, {
-      first: limit,
-      after,
-      query,
-    })) as OrdersQueryResponse;
+    const vars = { first: limit, after, query };
+    let body: OrdersQueryResponse;
+    try {
+      body = (await this.gql(shopDomain, token, ordersQuery(true), vars)) as OrdersQueryResponse;
+    } catch (e) {
+      // Line items are optional enrichment — never let a scope/access error on
+      // them stall order sync. Retry once without that selection.
+      if (!this.isAccessScopeError(e)) throw e;
+      this.logger.warn(
+        `Line items unavailable for ${shopDomain} (${(e as Error).message}) — syncing orders without them`,
+      );
+      body = (await this.gql(shopDomain, token, ordersQuery(false), vars)) as OrdersQueryResponse;
+    }
     const conn = body.data?.orders;
     const orders = (conn?.nodes ?? []).map((n) => this.toOrderDto(n));
     const nextPageInfo =
@@ -251,6 +316,15 @@ export class ShopifyAdminClient {
             last_name: n.customer.lastName ?? null,
           }
         : null,
+      // Absent connection (fallback query) → undefined, so the upsert leaves any
+      // cached items alone rather than wiping them. Present → map it.
+      line_items: n.lineItems
+        ? (n.lineItems.nodes ?? []).map((li) => ({
+            title: li.title ?? null,
+            quantity: li.quantity ?? null,
+            price: li.originalUnitPriceSet?.shopMoney?.amount ?? null,
+          }))
+        : undefined,
     };
   }
 

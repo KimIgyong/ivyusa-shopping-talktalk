@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { ORDER_STATUS_INTERNAL, internalToUiStatus } from '@ivy/types';
 import { OrderCache } from './entity/order-cache.entity';
+import { OrderItem } from './entity/order-item.entity';
 import { ShopifyAdminClient, ShopifyOrderDto } from './shopify-admin.client';
 import { TenantService } from '../tenant/tenant.service';
 import { CustomerService } from '../customer/customer.service';
@@ -48,6 +49,7 @@ export class ShopifySyncService {
 
   constructor(
     @InjectRepository(OrderCache) private readonly orderRepo: Repository<OrderCache>,
+    @InjectRepository(OrderItem) private readonly itemRepo: Repository<OrderItem>,
     private readonly client: ShopifyAdminClient,
     private readonly tenantService: TenantService,
     private readonly customerService: CustomerService,
@@ -198,7 +200,48 @@ export class ShopifySyncService {
     row.statusUi = internalToUiStatus(internal);
     row.total = total;
     row.currency = o.currency ?? row.currency ?? 'USD';
-    return this.orderRepo.save(row);
+    const saved = await this.orderRepo.save(row);
+    await this.syncLineItems(tenantId, saved.id, o);
+    return saved;
+  }
+
+  /**
+   * Mirror the order's line items into order_items so the widget can show WHAT
+   * was bought (FR-020), not just the total. Replace-on-write keeps the cache in
+   * step with edits/refunds that change the cart. `line_items` absent (a payload
+   * that simply doesn't carry them) leaves existing rows untouched; an explicit
+   * empty array clears them. Never fatal: a failure here must not lose the order.
+   */
+  private async syncLineItems(
+    tenantId: number,
+    orderId: number,
+    o: ShopifyOrderDto,
+  ): Promise<void> {
+    if (o.line_items == null) return;
+    try {
+      const rows = o.line_items
+        .map((li) => {
+          const priceRaw = li.price;
+          const price =
+            priceRaw != null && priceRaw !== '' && !Number.isNaN(Number(priceRaw))
+              ? Number(priceRaw)
+              : null;
+          return this.itemRepo.create({
+            tenantId,
+            orderId,
+            productId: li.product_id != null ? String(li.product_id) : null,
+            // Shopify webhooks use `title`; some payloads only carry `name`.
+            title: (li.title ?? li.name ?? '').slice(0, 255) || 'Item',
+            optionText: li.variant_title ? String(li.variant_title).slice(0, 255) : null,
+            qty: li.quantity != null && li.quantity > 0 ? li.quantity : 1,
+            price,
+          });
+        });
+      await this.itemRepo.delete({ orderId });
+      if (rows.length) await this.itemRepo.save(rows);
+    } catch (e) {
+      this.logger.warn(`Line items for order ${orderId} not cached: ${(e as Error).message}`);
+    }
   }
 
   /**

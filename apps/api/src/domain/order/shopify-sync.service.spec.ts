@@ -36,6 +36,15 @@ describe('ShopifySyncService.syncOrders', () => {
         return Promise.resolve(x);
       }),
     };
+    const savedItems: Record<string, unknown>[] = [];
+    const itemRepo = {
+      create: jest.fn((x: Record<string, unknown>) => ({ ...x })),
+      delete: jest.fn().mockResolvedValue(undefined),
+      save: jest.fn((rows: Record<string, unknown>[]) => {
+        savedItems.push(...rows);
+        return Promise.resolve(rows);
+      }),
+    };
     const client = {
       fetchOrders: jest.fn().mockResolvedValue({ orders, nextPageInfo: null }),
     };
@@ -47,12 +56,22 @@ describe('ShopifySyncService.syncOrders', () => {
     };
     const svc = new ShopifySyncService(
       orderRepo as never,
+      itemRepo as never,
       client as never,
       tenantService as never,
       customerService as never,
       integrationService as never,
     );
-    return { svc, saved, orderRepo, client, customerService, integrationService };
+    return {
+      svc,
+      saved,
+      savedItems,
+      orderRepo,
+      itemRepo,
+      client,
+      customerService,
+      integrationService,
+    };
   }
 
   it('upserts each order with mapped status and links customers', async () => {
@@ -125,5 +144,87 @@ describe('ShopifySyncService.syncOrders', () => {
     expect(res.ok).toBe(false);
     expect(res.detail).toContain('401');
     expect(integrationService.upsert).toHaveBeenCalledWith('shopify', 'error', expect.stringContaining('401'));
+  });
+
+  describe('line items (FR-020)', () => {
+    it('caches line items, mapping title/option/qty/price', async () => {
+      const { svc, savedItems, itemRepo } = build([
+        {
+          id: 2001,
+          order_number: 2001,
+          financial_status: 'paid',
+          line_items: [
+            {
+              product_id: 77,
+              variant_id: 88,
+              title: 'Ski Wax',
+              variant_title: 'Special',
+              quantity: 2,
+              price: '24.95',
+            },
+          ],
+        },
+      ]);
+      await svc.syncOrders(7);
+
+      // Replace-on-write: stale rows for the order are cleared first.
+      expect(itemRepo.delete).toHaveBeenCalledWith({ orderId: undefined });
+      expect(savedItems).toHaveLength(1);
+      expect(savedItems[0]).toMatchObject({
+        tenantId: 7,
+        productId: '77',
+        title: 'Ski Wax',
+        optionText: 'Special',
+        qty: 2,
+        price: 24.95,
+      });
+    });
+
+    it('falls back to `name`, defaults qty, and tolerates a missing price', async () => {
+      const { svc, savedItems } = build([
+        {
+          id: 2002,
+          order_number: 2002,
+          financial_status: 'paid',
+          line_items: [{ name: 'Gift Card', quantity: 0, price: null }],
+        },
+      ]);
+      await svc.syncOrders(7);
+      expect(savedItems[0]).toMatchObject({ title: 'Gift Card', qty: 1, price: null });
+    });
+
+    it('leaves cached items untouched when the payload carries no line_items', async () => {
+      const { svc, itemRepo } = build([
+        { id: 2003, order_number: 2003, financial_status: 'paid' },
+      ]);
+      await svc.syncOrders(7);
+      expect(itemRepo.delete).not.toHaveBeenCalled();
+      expect(itemRepo.save).not.toHaveBeenCalled();
+    });
+
+    it('clears cached items when line_items is an explicit empty array', async () => {
+      const { svc, itemRepo } = build([
+        { id: 2004, order_number: 2004, financial_status: 'paid', line_items: [] },
+      ]);
+      await svc.syncOrders(7);
+      expect(itemRepo.delete).toHaveBeenCalled();
+      expect(itemRepo.save).not.toHaveBeenCalled();
+    });
+
+    it('still syncs the order when caching its items fails', async () => {
+      const { svc, saved, itemRepo } = build([
+        {
+          id: 2005,
+          order_number: 2005,
+          financial_status: 'paid',
+          line_items: [{ title: 'X', quantity: 1, price: '1.00' }],
+        },
+      ]);
+      itemRepo.save.mockRejectedValueOnce(new Error('items table locked'));
+      const res = await svc.syncOrders(7);
+      expect(res.ok).toBe(true);
+      expect(res.synced).toBe(1);
+      expect(saved).toHaveLength(1);
+    });
   });
 });
