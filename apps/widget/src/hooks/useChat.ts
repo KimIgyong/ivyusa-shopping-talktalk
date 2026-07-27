@@ -1,5 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
+import { isAuthError } from '../lib/errors';
 import {
   escalate as escalateApi,
   getConversation,
@@ -22,6 +24,7 @@ const POLL_MS = 5000;
  * kept only while a send is in flight.
  */
 export function useChat(sessionToken: string | null) {
+  const { t } = useTranslation();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [sending, setSending] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
@@ -84,13 +87,13 @@ export function useChat(sessionToken: string | null) {
         }
         return { escalate: res.escalate, needsAuth: res.needsAuth };
       } catch (e) {
+        // Not signed in is a state, not a failure: report it as needsAuth so the
+        // caller shows the sign-in card instead of a dead-end error bubble.
+        if (isAuthError(e)) return { escalate: false, needsAuth: true };
         append({
           id: `err-${Date.now()}`,
           senderType: 'system',
-          body:
-            e instanceof Error
-              ? `Sorry, something went wrong: ${e.message}`
-              : 'Sorry, something went wrong.',
+          body: t('chat.sendFailed'),
           createdAt: new Date().toISOString(),
         });
         return { escalate: false, needsAuth: false };
@@ -102,7 +105,7 @@ export function useChat(sessionToken: string | null) {
         lastServerId.current = null;
       }
     },
-    [sessionToken, append],
+    [sessionToken, append, t],
   );
 
   /** Scenario button / quick-reply chip (FR-S1): deterministic scripted turn. */
@@ -127,20 +130,22 @@ export function useChat(sessionToken: string | null) {
           createdAt: new Date().toISOString(),
           quickReplies: res.followUps,
         });
-      } catch {
-        append({
-          id: `err-${Date.now()}`,
-          senderType: 'system',
-          body: 'Sorry, something went wrong.',
-          createdAt: new Date().toISOString(),
-        });
+      } catch (e) {
+        if (!isAuthError(e)) {
+          append({
+            id: `err-${Date.now()}`,
+            senderType: 'system',
+            body: t('chat.sendFailed'),
+            createdAt: new Date().toISOString(),
+          });
+        }
       } finally {
         setSending(false);
         inFlight.current = false;
         lastServerId.current = null; // scripted turn persisted rows — full reconcile next poll
       }
     },
-    [sessionToken, append],
+    [sessionToken, append, t],
   );
 
   const escalate = useCallback(async () => {
@@ -149,10 +154,10 @@ export function useChat(sessionToken: string | null) {
     append({
       id: `sys-${Date.now()}`,
       senderType: 'system',
-      body: 'You are being connected to a support agent. Please hold on…',
+      body: t('chat.connectingAgent'),
       createdAt: new Date().toISOString(),
     });
-  }, [conversationId, sessionToken, append]);
+  }, [conversationId, sessionToken, append, t]);
 
   return { messages, send, scenario, sending, escalate, append, conversationId };
 }

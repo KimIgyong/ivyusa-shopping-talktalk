@@ -29,6 +29,8 @@ export const en = {
       'This chat is AI-powered. Messages you send are processed by a third-party AI service provider in the United States to generate responses.',
     inputPlaceholder: 'Type a message…',
     send: 'Send',
+    sendFailed: "Sorry, that didn't go through. Please try again.",
+    connectingAgent: 'You are being connected to a support agent. Please hold on…',
     /** Fallback follow-ups so a reply never leaves the shopper at a dead end. */
     nextActions: {
       myOrders: 'My orders',
@@ -77,6 +79,8 @@ export const en = {
     submit: 'Look up order',
     cancel: 'Cancel',
     waiting: 'Waiting for you to sign in…',
+    lookupFailed: "We couldn't find an order matching that number and email. Please check both and try again.",
+    lookupThrottled: 'Too many attempts. Please wait a few minutes and try again.',
     useGuestInstead: 'Look up by order number instead',
   },
 

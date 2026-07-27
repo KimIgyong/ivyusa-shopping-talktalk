@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ChevronRight, PackageSearch, Lock } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useWidgetStore } from '../../store/widgetStore';
@@ -6,6 +6,7 @@ import { useOrders } from '../../hooks/useOrders';
 import { Badge, toneForStatus } from '../ui/Badge';
 import { Spinner } from '../ui/Spinner';
 import { formatDate, formatMoney } from '../../lib/format';
+import { isAuthError } from '../../lib/errors';
 import { OrderDetailView } from './OrderDetail';
 import { AuthGate } from '../chat/AuthGate';
 import type { OrderSummary } from '../../lib/types';
@@ -36,9 +37,18 @@ export function OrdersTab() {
   const [sub, setSub] = useState<SubTab>('payments');
   const [selected, setSelected] = useState<string | null>(null);
 
-  const { data, isLoading, isError } = useOrders(sessionToken, authenticated);
+  const { data, isLoading, isError, error } = useOrders(sessionToken, authenticated);
 
-  if (!authenticated) {
+  // The server is the authority on whether this session is still customer-bound.
+  // It can stop being bound while the widget thinks otherwise — after a DSAR data
+  // deletion, for instance — and then every read 401s. Trust the server and drop
+  // back to the sign-in prompt instead of showing "Something went wrong".
+  const authLost = isError && isAuthError(error);
+  useEffect(() => {
+    if (authLost) setAuthenticated(false);
+  }, [authLost, setAuthenticated]);
+
+  if (!authenticated || authLost) {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-3 p-4">
         <Lock className="h-6 w-6 text-gray-300" />

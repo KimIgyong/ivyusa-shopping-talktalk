@@ -31,6 +31,8 @@ export const es: Translation = {
       'Este chat funciona con IA. Los mensajes que envías son procesados por un proveedor externo de IA en Estados Unidos para generar respuestas.',
     inputPlaceholder: 'Escribe un mensaje…',
     send: 'Enviar',
+    sendFailed: 'Lo sentimos, no se pudo enviar. Inténtalo de nuevo.',
+    connectingAgent: 'Te estamos conectando con un agente de soporte. Espera un momento…',
     nextActions: {
       myOrders: 'Mis pedidos',
       shipping: 'Envío y entrega',
@@ -78,6 +80,8 @@ export const es: Translation = {
     submit: 'Buscar pedido',
     cancel: 'Cancelar',
     waiting: 'Esperando a que inicies sesión…',
+    lookupFailed: "No encontramos un pedido con ese número y correo. Revisa ambos e inténtalo de nuevo.",
+    lookupThrottled: 'Demasiados intentos. Espera unos minutos e inténtalo de nuevo.',
     useGuestInstead: 'Buscar por número de pedido',
   },
 

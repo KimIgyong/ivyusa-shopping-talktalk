@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Download, ShieldOff, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useWidgetStore } from '../../store/widgetStore';
@@ -51,6 +52,10 @@ function Toggle({
 export function PreferencesPanel({ onBack }: { onBack: () => void }) {
   const { t } = useTranslation();
   const sessionToken = useWidgetStore((s) => s.sessionToken);
+  const setSessionToken = useWidgetStore((s) => s.setSessionToken);
+  const setAuthenticated = useWidgetStore((s) => s.setAuthenticated);
+  const setCustomerName = useWidgetStore((s) => s.setCustomerName);
+  const queryClient = useQueryClient();
   const { data, isLoading } = usePrefs(sessionToken);
   const setPref = useSetPref(sessionToken);
   const optOutStatus = useOptOutStatus(sessionToken);
@@ -97,6 +102,14 @@ export function PreferencesPanel({ onBack }: { onBack: () => void }) {
     try {
       await deleteMyData(sessionToken);
       setDsarNotice(t('privacy.deleteDone'));
+      // Erasure unbinds the customer from every session server-side, so this token
+      // is no longer authenticated. Reset the widget to a signed-out state, or it
+      // keeps greeting the shopper by the name they just asked us to erase and
+      // every read 401s. Sign-in is then offered again as usual.
+      setCustomerName(null);
+      setAuthenticated(false);
+      setSessionToken(null);
+      queryClient.clear();
     } catch (e) {
       setDsarNotice(dsarErrorText(e));
     } finally {

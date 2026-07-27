@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ArrowLeft, MessageSquare, Truck, Star } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useWidgetStore } from '../../store/widgetStore';
+import { isAuthError } from '../../lib/errors';
 import { useOrder, useTracking } from '../../hooks/useOrders';
 import { Badge, toneForStatus } from '../ui/Badge';
 import { Spinner } from '../ui/Spinner';
@@ -20,12 +22,21 @@ export function OrderDetailView({
   onAsk: (orderNumber: string) => void;
 }) {
   const { t } = useTranslation();
-  const { data, isLoading, isError } = useOrder(orderId, sessionToken);
+  const { data, isLoading, isError, error } = useOrder(orderId, sessionToken);
+  const setAuthenticated = useWidgetStore((s) => s.setAuthenticated);
   const [showTrack, setShowTrack] = useState(false);
   const [reviewItemId, setReviewItemId] = useState<string | null>(null);
   const tracking = useTracking(showTrack ? orderId : null, sessionToken);
 
+  // Session no longer customer-bound → clear the flag; OrdersTab (our parent)
+  // then renders the sign-in prompt instead of us showing a generic error.
+  const authLost = isError && isAuthError(error);
+  useEffect(() => {
+    if (authLost) setAuthenticated(false);
+  }, [authLost, setAuthenticated]);
+
   if (isLoading) return <Spinner label={t('common.loading')} />;
+  if (authLost) return <Spinner label={t('common.loading')} />; // parent takes over
   if (isError || !data)
     return (
       <p className="py-8 text-center text-sm text-gray-400">

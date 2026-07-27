@@ -3,6 +3,7 @@ import { LogIn, Search } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { guestLookup } from '../../services/orderService';
 import { useStorefrontLogin } from '../../hooks/useStorefrontLogin';
+import { isAuthError } from '../../lib/errors';
 import { Spinner } from '../ui/Spinner';
 
 export function AuthGate({
@@ -49,7 +50,18 @@ export function AuthGate({
       await guestLookup(sessionToken, orderNumber.trim(), email.trim());
       onSuccess();
     } catch (e) {
-      setError(e instanceof Error ? e.message : t('common.error'));
+      // Backend messages are English by design (the client localizes by code), so
+      // don't surface them raw. A rejected lookup means the pair didn't match —
+      // say that, and keep the rate-limit case distinct so a blocked shopper knows
+      // to wait rather than retyping.
+      const code = (e as { code?: string })?.code;
+      setError(
+        code === 'E1007' // GUEST_LOOKUP_LIMIT
+          ? t('auth.lookupThrottled')
+          : code === 'E5001' || isAuthError(e) // ORDER_NOT_FOUND / unbound session
+            ? t('auth.lookupFailed')
+            : t('common.error'),
+      );
     } finally {
       setLoading(false);
     }

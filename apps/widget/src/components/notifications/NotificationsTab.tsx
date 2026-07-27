@@ -1,7 +1,9 @@
-import { useState } from 'react';
-import { BellOff } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { BellOff, Lock } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useWidgetStore } from '../../store/widgetStore';
+import { AuthGate } from '../chat/AuthGate';
+import { isAuthError } from '../../lib/errors';
 import {
   useMarkRead,
   useNotifications,
@@ -64,9 +66,31 @@ function Row({
 export function NotificationsTab() {
   const { t } = useTranslation();
   const sessionToken = useWidgetStore((s) => s.sessionToken);
+  const setAuthenticated = useWidgetStore((s) => s.setAuthenticated);
   const [filter, setFilter] = useState('all');
-  const { data, isLoading, isError } = useNotifications(sessionToken, filter);
+  const { data, isLoading, isError, error } = useNotifications(sessionToken, filter);
   const markRead = useMarkRead(sessionToken);
+
+  // Notifications are customer-scoped, so a guest (or a session that stopped being
+  // customer-bound) gets 401 — that's "not signed in", not a failure. Offer the way
+  // in rather than a generic error.
+  const authLost = isError && isAuthError(error);
+  useEffect(() => {
+    if (authLost) setAuthenticated(false);
+  }, [authLost, setAuthenticated]);
+
+  if (authLost) {
+    return (
+      <div className="flex h-full flex-col items-center justify-center gap-3 p-4">
+        <Lock className="h-6 w-6 text-gray-300" />
+        <AuthGate
+          sessionToken={sessionToken}
+          onSuccess={() => setAuthenticated(true)}
+          onCancel={() => {}}
+        />
+      </div>
+    );
+  }
 
   const groups = groupByDate(data ?? []);
 
