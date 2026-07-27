@@ -74,7 +74,10 @@ export class ShopifyProxyService {
       void this.backfillProfile(tenant.id, shopifyCustomerId);
     }
     const locale = typeof query.locale === 'string' ? query.locale : undefined;
-    const session = await this.sessionService.createForCustomer(
+    // Resume the shopper's recent session rather than minting one per page load —
+    // conversations hang off the session, so a new one would empty the chat every
+    // time they follow a link.
+    const session = await this.sessionService.findOrCreateForCustomer(
       tenant.id,
       customer.id,
       locale,

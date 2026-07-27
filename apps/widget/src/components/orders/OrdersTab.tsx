@@ -58,7 +58,7 @@ export function OrdersTab() {
         sessionToken={sessionToken}
         onBack={() => setSelected(null)}
         onAsk={(orderNumber) =>
-          queueChatMessage(`I have a question about order #${orderNumber}.`)
+          queueChatMessage(t('orders.askMessage', { orderNumber }))
         }
       />
     );

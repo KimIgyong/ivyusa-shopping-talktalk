@@ -1,6 +1,6 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { MoreThan, Repository } from 'typeorm';
 import { CJM_STAGE, CONSENT_STATE, SESSION_IDENTITY, SESSION_LANGUAGE } from '@ivy/types';
 import { generateToken } from '@ivy/common';
 import { Session } from './entity/session.entity';
@@ -19,6 +19,13 @@ export const CONSENT_NOTICE_VERSION = '2026-07';
 
 /** TTL for the token→session Redis cache (PERF-11). */
 const SESSION_CACHE_TTL_SEC = 30;
+
+/**
+ * How long a verified session stays resumable, measured from its last activity.
+ * Long enough to span a shopping visit (so navigating the store keeps the chat
+ * thread) without resurrecting a conversation from days ago.
+ */
+const SESSION_REUSE_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 /**
  * Redis key for the token→session cache. Exported so the few modules that
@@ -129,6 +136,47 @@ export class SessionService {
       eventType: 'session_start',
     });
     return session;
+  }
+
+  /**
+   * Resume the customer's recent verified session, or create one.
+   *
+   * The app proxy re-resolves identity on **every storefront page load**, so
+   * always minting a session gave a signed-in shopper a new session — and, since
+   * conversations hang off `session_id`, a fresh empty chat — each time they
+   * clicked a link. It also piled up rows (16 sessions for one customer in a day).
+   * Reusing the last session inside the activity window keeps the conversation,
+   * escalation state and consent choice intact across navigation.
+   *
+   * The window is rolling: touching the row on reuse extends it, so an active
+   * shopper keeps their thread while a stale one starts clean. Scoped to
+   * tenant+customer+verified — a guest session is never resumed this way, and the
+   * token is only ever handed back after Shopify verified this same customer, so
+   * reuse grants nothing a fresh session wouldn't.
+   */
+  async findOrCreateForCustomer(
+    tenantId: number,
+    customerId: number,
+    locale?: string,
+  ): Promise<Session> {
+    const since = new Date(Date.now() - SESSION_REUSE_WINDOW_MS);
+    const existing = await this.sessionRepo.findOne({
+      where: {
+        tenantId,
+        customerId,
+        identityLevel: SESSION_IDENTITY.VERIFIED,
+        updatedAt: MoreThan(since),
+      },
+      order: { updatedAt: 'DESC' },
+    });
+    if (existing) {
+      // Touch to roll the window forward. Language is left alone on purpose: the
+      // shopper may have picked one in the widget, and the storefront locale must
+      // not silently override that choice on the next page load.
+      await this.sessionRepo.save(existing);
+      return existing;
+    }
+    return this.createForCustomer(tenantId, customerId, locale);
   }
 
   /** Resolve a tenant by its Shopify shop domain (null when unknown). */

@@ -146,6 +146,26 @@ describe('ShopifySyncService.syncOrders', () => {
     expect(integrationService.upsert).toHaveBeenCalledWith('shopify', 'error', expect.stringContaining('401'));
   });
 
+  describe('order number normalization', () => {
+    // Webhooks carry order_number (1002); the GraphQL sync only has name ("#1002").
+    // Storing both shapes made the same order flip format, breaking guest lookup
+    // (exact match on what the shopper types) and rendering "##1002" in the UI.
+    it('strips a leading # so both ingest paths agree', async () => {
+      const { svc, saved } = build([
+        { id: 3001, name: '#1002', financial_status: 'paid' },
+        { id: 3002, order_number: 1003, name: '#1003', financial_status: 'paid' },
+      ]);
+      await svc.syncOrders(7);
+      expect(saved.map((o) => o.orderNumber)).toEqual(['1002', '1003']);
+    });
+
+    it('falls back to the Shopify order id when neither is present', async () => {
+      const { svc, saved } = build([{ id: 3003, financial_status: 'paid' }]);
+      await svc.syncOrders(7);
+      expect(saved[0].orderNumber).toBe('3003');
+    });
+  });
+
   describe('line items (FR-020)', () => {
     it('caches line items, mapping title/option/qty/price', async () => {
       const { svc, savedItems, itemRepo } = build([

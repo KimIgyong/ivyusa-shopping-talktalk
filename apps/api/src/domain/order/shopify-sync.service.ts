@@ -183,7 +183,14 @@ export class ShopifySyncService {
 
     const internal = this.mapStatus(o.financial_status, o.fulfillment_status);
     const shopifyOrderId = String(o.id);
-    const orderNumber = o.order_number != null ? String(o.order_number) : o.name ?? shopifyOrderId;
+    // Store the bare number. Webhooks carry `order_number` (1002) while the
+    // GraphQL sync only has `name` ("#1002"), so the same order flipped format
+    // depending on which path touched it last — that broke guest lookup (an exact
+    // string match against what the shopper types) and made the UI, which adds its
+    // own '#', render "##1002".
+    const orderNumber = (
+      o.order_number != null ? String(o.order_number) : o.name ?? shopifyOrderId
+    ).replace(/^#/, '');
     const total =
       o.total_price != null && o.total_price !== '' && !Number.isNaN(Number(o.total_price))
         ? Number(o.total_price)

@@ -31,6 +31,12 @@ export const es: Translation = {
       'Este chat funciona con IA. Los mensajes que envías son procesados por un proveedor externo de IA en Estados Unidos para generar respuestas.',
     inputPlaceholder: 'Escribe un mensaje…',
     send: 'Enviar',
+    nextActions: {
+      myOrders: 'Mis pedidos',
+      shipping: 'Envío y entrega',
+      returns: 'Devolver o cambiar',
+      agent: 'Hablar con un agente',
+    },
     connectAgent: 'Conectar con un agente',
     consent: {
       title: 'Aviso de privacidad',
@@ -103,6 +109,7 @@ export const es: Translation = {
     },
     empty: 'No se encontraron pedidos.',
     ask: 'Preguntar sobre este pedido',
+    askMessage: 'Tengo una pregunta sobre el pedido n.º {{orderNumber}}.',
     track: 'Rastrear',
     detail: 'Detalle del pedido',
     items: 'Artículos',

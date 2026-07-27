@@ -31,6 +31,12 @@ export const ko: Translation = {
       '이 채팅은 AI 기반으로 운영됩니다. 보내신 메시지는 응답 생성을 위해 미국에 있는 외부 AI 서비스 제공업체에서 처리됩니다.',
     inputPlaceholder: '메시지를 입력하세요…',
     send: '보내기',
+    nextActions: {
+      myOrders: '내 주문',
+      shipping: '배송 안내',
+      returns: '반품/교환',
+      agent: '상담원 연결',
+    },
     connectAgent: '상담원 연결',
     consent: {
       title: '개인정보 처리 안내',
@@ -103,6 +109,7 @@ export const ko: Translation = {
     },
     empty: '주문 내역이 없습니다.',
     ask: '이 주문에 대해 문의하기',
+    askMessage: '{{orderNumber}}번 주문에 대해 문의드립니다.',
     track: '배송 조회',
     detail: '주문 상세',
     items: '상품',

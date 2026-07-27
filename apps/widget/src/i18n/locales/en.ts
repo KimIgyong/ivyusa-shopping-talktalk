@@ -29,6 +29,13 @@ export const en = {
       'This chat is AI-powered. Messages you send are processed by a third-party AI service provider in the United States to generate responses.',
     inputPlaceholder: 'Type a message…',
     send: 'Send',
+    /** Fallback follow-ups so a reply never leaves the shopper at a dead end. */
+    nextActions: {
+      myOrders: 'My orders',
+      shipping: 'Shipping & delivery',
+      returns: 'Return or exchange',
+      agent: 'Talk to an agent',
+    },
     connectAgent: 'Connect to an agent',
     consent: {
       title: 'Privacy notice',
@@ -101,6 +108,7 @@ export const en = {
     },
     empty: 'No orders found.',
     ask: 'Ask about this order',
+    askMessage: 'I have a question about order #{{orderNumber}}.',
     track: 'Track',
     detail: 'Order detail',
     items: 'Items',

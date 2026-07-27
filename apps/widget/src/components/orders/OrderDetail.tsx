@@ -114,7 +114,9 @@ export function OrderDetailView({
       )}
       {showTrack && tracking.isLoading && <Spinner />}
 
-      <div className="flex gap-2">
+      {/* Pinned so the actions stay reachable on a long order instead of being
+          pushed below the fold by the item list. */}
+      <div className="sticky bottom-0 -mx-3 flex gap-2 border-t border-gray-100 bg-white px-3 pb-1 pt-2">
         <button
           onClick={() => setShowTrack((v) => !v)}
           className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
