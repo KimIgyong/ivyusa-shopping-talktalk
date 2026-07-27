@@ -2,11 +2,20 @@
 export interface TenantResponse {
   id: number;
   shopDomain: string;
+  slug: string;
   name: string | null;
   status: string;
   plan: string | null;
+  userCount?: number;
   createdAt: Date;
   updatedAt: Date;
+}
+
+/** Display-safe subset served to the unauthenticated per-tenant login page. */
+export interface PublicTenantResponse {
+  slug: string;
+  name: string | null;
+  status: string;
 }
 
 /** Credential status only — secret material is NEVER exposed. */

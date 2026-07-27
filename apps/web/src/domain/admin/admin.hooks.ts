@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { adminService } from './admin.service';
+import type { InviteUserBody } from '@/domain/users/users.service';
 import { toast } from '@/store/toast-store';
 
 const TENANTS_KEY = ['admin', 'tenants'];
@@ -16,7 +17,7 @@ export function useTenants(params: { page: number; pageSize: number }) {
 export function useCreateTenant() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (body: { name: string; shopDomain: string; plan: string }) =>
+    mutationFn: (body: { name: string; shopDomain: string; plan: string; slug?: string }) =>
       adminService.createTenant(body),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: TENANTS_KEY });
@@ -34,6 +35,65 @@ export function useSetTenantStatus() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: TENANTS_KEY });
       toast.success('Tenant status updated');
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+}
+
+// ---- Admin-scoped per-tenant user management ----
+
+export function useAdminTenant(tenantId: string) {
+  return useQuery({
+    queryKey: [...TENANTS_KEY, 'detail', tenantId],
+    queryFn: () => adminService.tenant(tenantId),
+    enabled: !!tenantId,
+  });
+}
+
+export function useTenantUsers(tenantId: string, params: { page: number; pageSize: number }) {
+  return useQuery({
+    queryKey: [...TENANTS_KEY, tenantId, 'users', params],
+    queryFn: () => adminService.tenantUsers(tenantId, params),
+    enabled: !!tenantId,
+  });
+}
+
+export function useTenantJobLabels(tenantId: string) {
+  return useQuery({
+    queryKey: [...TENANTS_KEY, tenantId, 'job-labels'],
+    queryFn: () => adminService.tenantJobLabels(tenantId),
+    enabled: !!tenantId,
+  });
+}
+
+export function useInviteTenantUser(tenantId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: InviteUserBody) => adminService.inviteTenantUser(tenantId, body),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [...TENANTS_KEY, tenantId, 'users'] });
+      qc.invalidateQueries({ queryKey: TENANTS_KEY }); // userCount on the list
+      toast.success('User invited');
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+}
+
+export function useIssueTenantUserTempPassword(tenantId: string) {
+  return useMutation({
+    mutationFn: (userId: string) => adminService.issueTenantUserTempPassword(tenantId, userId),
+    onError: (err: Error) => toast.error(err.message),
+  });
+}
+
+export function useSetTenantUserStatus(tenantId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ userId, status }: { userId: string; status: string }) =>
+      adminService.setTenantUserStatus(tenantId, userId, status),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [...TENANTS_KEY, tenantId, 'users'] });
+      toast.success('User status updated');
     },
     onError: (err: Error) => toast.error(err.message),
   });

@@ -13,6 +13,11 @@ export class LoginRequest {
   @IsOptional()
   @IsString()
   shop_domain?: string;
+
+  // For tenant-user login from the per-tenant page (/<slug>). Wins over shop_domain.
+  @IsOptional()
+  @IsString()
+  tenant_slug?: string;
 }
 
 export class RefreshRequest {

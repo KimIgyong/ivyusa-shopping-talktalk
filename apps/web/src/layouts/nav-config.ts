@@ -25,7 +25,7 @@ export interface NavItem {
 }
 
 export const TENANT_NAV: NavItem[] = [
-  { to: '/', labelKey: 'dashboard', icon: LayoutDashboard, capability: 'dashboard' },
+  { to: '/dashboard', labelKey: 'dashboard', icon: LayoutDashboard, capability: 'dashboard' },
   { to: '/live-chat', labelKey: 'liveChat', icon: MessagesSquare, capability: 'live_chat' },
   { to: '/history', labelKey: 'history', icon: History, capability: 'history' },
   { to: '/ai-setting', labelKey: 'aiSettings', icon: Bot, capability: 'ai_settings' },

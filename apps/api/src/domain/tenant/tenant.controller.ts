@@ -16,6 +16,7 @@ import {
 } from './dto/request/tenant.request';
 import { Paginated } from '../../global/interceptor/transform.interceptor';
 import { AdminOnly, RequireCapability } from '../../global/decorator/auth.decorator';
+import { Public } from '../../global/decorator/public.decorator';
 import { CurrentUser } from '../../global/decorator/current-user.decorator';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
@@ -34,7 +35,19 @@ export class TenantController {
   async list(@Query() query: ListTenantsQuery) {
     const { page, size } = normalizePage(query.page, query.size);
     const { items, total } = await this.tenantService.list(page, size, query.status);
-    return new Paginated(TenantMapper.toTenantList(items), buildPagination(page, size, total));
+    const counts = await this.tenantService.countUsersByTenant(items.map((t) => Number(t.id)));
+    return new Paginated(TenantMapper.toTenantList(items, counts), buildPagination(page, size, total));
+  }
+
+  @Get('by-slug/:slug')
+  @Public()
+  @ApiOperation({ summary: 'Resolve a tenant login page by slug (display-safe fields only)' })
+  async getBySlug(@Param('slug') slug: string) {
+    const tenant = await this.tenantService.findBySlug(slug);
+    if (!tenant) {
+      throw new BusinessException(ERROR_CODE.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND);
+    }
+    return TenantMapper.toPublicTenant(tenant);
   }
 
   @Get(':id')
@@ -49,7 +62,7 @@ export class TenantController {
   @RequireCapability(CAPABILITY.TENANT_APPROVE)
   @ApiOperation({ summary: 'Create (approve) a tenant' })
   async create(@Body() body: CreateTenantRequest) {
-    const tenant = await this.tenantService.create(body.shop_domain, body.name, body.plan);
+    const tenant = await this.tenantService.create(body.shop_domain, body.name, body.plan, body.slug);
     return TenantMapper.toTenant(tenant);
   }
 

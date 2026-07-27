@@ -2,6 +2,9 @@
   "title": "Inquilinos",
   "newTenant": "Nuevo inquilino",
   "name": "Nombre",
+  "slug": "Ruta de acceso",
+  "slugPlaceholder": "p. ej. ivyusa",
+  "slugHint": "Minúsculas, números y guiones. Déjalo vacío para derivarlo del nombre. El personal inicia sesión en /<ruta>.",
   "shopDomain": "Dominio de la tienda",
   "plan": "Plan",
   "status": "Estado",
@@ -9,5 +12,10 @@
   "created": "Creado",
   "suspend": "Suspender",
   "activate": "Activar",
-  "empty": "No hay inquilinos."
+  "empty": "No hay inquilinos.",
+  "manageUsers": "Usuarios",
+  "usersOf": "Usuarios — {{name}}",
+  "usersOfSubtitle": "Invita personal, emite contraseñas temporales y controla el acceso de este inquilino.",
+  "usersEmpty": "Este inquilino aún no tiene usuarios.",
+  "loginUrl": "Página de acceso"
 }

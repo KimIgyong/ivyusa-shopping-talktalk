@@ -14,7 +14,9 @@ const LANGUAGE_LABELS: Record<SupportedLanguage, string> = {
   ko: '한국어',
 };
 
-function LanguageSwitcher() {
+// Exported for reuse on the public pages (landing / login), which render
+// outside AppLayout but still need the locale toggle.
+export function LanguageSwitcher() {
   const { i18n, t } = useTranslation('nav');
   const current = (SUPPORTED_LANGUAGES as readonly string[]).includes(i18n.language)
     ? (i18n.language as SupportedLanguage)
@@ -66,10 +68,12 @@ export function Header({ onChangePassword }: { onChangePassword: () => void }) {
   const logout = () => {
     // Best-effort server-side revocation of the (in-memory) refresh token;
     // local state is cleared regardless.
-    const refreshToken = useAuthStore.getState().refreshToken;
+    const { refreshToken, tenantSlug } = useAuthStore.getState();
     void authService.logout(refreshToken ?? undefined).catch(() => undefined);
+    const target =
+      principal?.actorType === 'admin' ? '/admin/login' : tenantSlug ? `/${tenantSlug}` : '/';
     clear();
-    navigate('/login');
+    navigate(target);
   };
 
   return (
