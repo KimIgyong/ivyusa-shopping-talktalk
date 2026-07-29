@@ -42,7 +42,19 @@ export const usersService = {
   list: () => apiGet<TenantUser[]>('/users'),
   jobLabels: () => apiGet<JobLabel[]>('/job-labels'),
   invite: (body: InviteUserBody) => apiPost<InviteResult>('/users/invite', body),
-  update: (id: string, body: UpdateUserBody) => apiPatch<TenantUser>(`/users/${id}`, body),
+  // The API exposes per-field endpoints with distinct RBAC (rank/labels/status),
+  // so fan out and only touch the fields that were provided.
+  update: async (id: string, body: UpdateUserBody): Promise<void> => {
+    if (body.rank !== undefined) {
+      await apiPatch<TenantUser>(`/users/${id}/rank`, { rank: body.rank });
+    }
+    if (body.label_codes !== undefined) {
+      await apiPatch<TenantUser>(`/users/${id}/labels`, { label_codes: body.label_codes });
+    }
+    if (body.status !== undefined) {
+      await apiPatch<TenantUser>(`/users/${id}/status`, { status: body.status });
+    }
+  },
   // Issue a fresh temporary password for an existing user (admin relays it manually).
   issueTempPassword: (id: string) =>
     apiPost<TempPasswordResult>(`/users/${id}/temp-password`, {}),

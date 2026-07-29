@@ -18,7 +18,7 @@ import {
   useUpdateUser,
   useIssueTempPassword,
 } from './users.hooks';
-import type { JobLabel, TenantUser } from './users.service';
+import type { JobLabel, TenantUser, UpdateUserBody } from './users.service';
 
 const RANKS = ['master', 'director', 'manager', 'staff'] as const;
 const STATUSES = ['active', 'suspended'] as const;
@@ -133,10 +133,17 @@ export function UsersPage() {
 
   const onUpdate = async () => {
     if (!editing) return;
-    await updateUser.mutateAsync({
-      id: editing.id,
-      body: { rank: editRank, label_codes: editCodes, status: editStatus },
-    });
+    // Only submit changed fields — each maps to its own endpoint with its own RBAC.
+    const prevCodes = editing.labels ?? [];
+    const codesChanged =
+      prevCodes.length !== editCodes.length || editCodes.some((c) => !prevCodes.includes(c));
+    const body: UpdateUserBody = {};
+    if (editRank !== editing.rank) body.rank = editRank;
+    if (codesChanged) body.label_codes = editCodes;
+    if (editStatus !== (editing.status ?? 'active')) body.status = editStatus;
+    if (Object.keys(body).length > 0) {
+      await updateUser.mutateAsync({ id: editing.id, body });
+    }
     setEditing(null);
   };
 
