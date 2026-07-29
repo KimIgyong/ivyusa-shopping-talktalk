@@ -9,7 +9,7 @@ export interface TenantUser {
   id: string;
   email: string;
   rank: string;
-  labels?: string[];
+  labelCodes?: string[];
   status?: string;
   createdAt?: string;
 }

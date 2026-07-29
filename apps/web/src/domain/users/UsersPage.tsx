@@ -127,14 +127,14 @@ export function UsersPage() {
   const openEdit = (u: TenantUser) => {
     setEditing(u);
     setEditRank(u.rank);
-    setEditCodes(u.labels ?? []);
+    setEditCodes(u.labelCodes ?? []);
     setEditStatus(u.status ?? 'active');
   };
 
   const onUpdate = async () => {
     if (!editing) return;
     // Only submit changed fields — each maps to its own endpoint with its own RBAC.
-    const prevCodes = editing.labels ?? [];
+    const prevCodes = editing.labelCodes ?? [];
     const codesChanged =
       prevCodes.length !== editCodes.length || editCodes.some((c) => !prevCodes.includes(c));
     const body: UpdateUserBody = {};
@@ -154,7 +154,7 @@ export function UsersPage() {
       key: 'labels',
       header: t('labels'),
       render: (u) => {
-        const codes = u.labels ?? [];
+        const codes = u.labelCodes ?? [];
         if (codes.length === 0) return '—';
         return (
           <div className="flex flex-wrap gap-1">
