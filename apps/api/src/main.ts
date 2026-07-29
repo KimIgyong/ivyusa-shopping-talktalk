@@ -10,6 +10,7 @@ import { AllExceptionFilter } from './global/filter/all-exception.filter';
 import { TransformInterceptor } from './global/interceptor/transform.interceptor';
 import { TenantContextInterceptor } from './global/interceptor/tenant-context.interceptor';
 import { LoggingInterceptor } from './global/interceptor/logging.interceptor';
+import { CacheControlInterceptor } from './global/interceptor/cache-control.interceptor';
 import { runSeed } from './database/seed.runner';
 import { collectSecretProblems } from './global/config/assert-secrets';
 
@@ -60,9 +61,12 @@ async function bootstrap(): Promise<void> {
     new ValidationPipe({ whitelist: true, transform: true, forbidNonWhitelisted: false }),
   );
   app.useGlobalFilters(new AllExceptionFilter());
-  // Tenant context (outer) wraps the handler in AsyncLocalStorage; Transform wraps the
-  // response; Logging (inner-most) records method/path/status/duration with no PII.
+  // CacheControl (outer-most) stamps `no-store` before anything can write a
+  // response; Tenant context wraps the handler in AsyncLocalStorage; Transform
+  // wraps the response; Logging (inner-most) records method/path/status/duration
+  // with no PII.
   app.useGlobalInterceptors(
+    new CacheControlInterceptor(),
     new TenantContextInterceptor(app.get(DataSource)),
     new TransformInterceptor(),
     new LoggingInterceptor(),

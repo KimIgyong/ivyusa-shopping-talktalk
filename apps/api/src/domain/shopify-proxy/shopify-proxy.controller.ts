@@ -9,6 +9,10 @@ import { ShopifyProxyService } from './shopify-proxy.service';
  * forwarded here by Shopify with a `signature`. Responses go straight to the
  * storefront browser (same-origin as the shop), so we send plain JSON and skip
  * the API envelope via @Res.
+ *
+ * The identity response carries a session token and must never be stored; the
+ * global CacheControlInterceptor stamps `no-store` ahead of the handler, which
+ * is why @Res() writing the response itself does not lose the header.
  */
 @ApiTags('shopify-proxy')
 @Controller('shopify/proxy')
@@ -23,7 +27,6 @@ export class ShopifyProxyController {
     @Res() res: Response,
   ): Promise<void> {
     const outcome = await this.proxyService.resolveIdentity(query);
-    res.setHeader('Cache-Control', 'no-store');
     if (outcome.status === 'bad_signature') {
       res.status(401).json({ authenticated: false });
       return;
