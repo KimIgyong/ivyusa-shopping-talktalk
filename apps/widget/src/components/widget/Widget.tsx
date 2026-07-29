@@ -7,6 +7,7 @@ import { useEmbedIdentity } from '../../hooks/useEmbedIdentity';
 import { useSessionProfile } from '../../hooks/useSessionProfile';
 import { useUnreadCount } from '../../hooks/useNotifications';
 import { WidgetPanel } from './WidgetPanel';
+import { ErrorBoundary } from '../ui/ErrorBoundary';
 
 export function Widget() {
   const { t } = useTranslation();
@@ -30,7 +31,13 @@ export function Widget() {
 
   return (
     <>
-      {panelOpen && <WidgetPanel />}
+      {/* The launcher lives OUTSIDE this boundary on purpose: whatever happens to
+          the panel, the shopper keeps a way to close and reopen the widget. */}
+      {panelOpen && (
+        <ErrorBoundary label="panel">
+          <WidgetPanel />
+        </ErrorBoundary>
+      )}
 
       {/* Floating launcher */}
       <button

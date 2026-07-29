@@ -8,6 +8,7 @@ import { ChatTab } from '../chat/ChatTab';
 import { NotificationsTab } from '../notifications/NotificationsTab';
 import { OrdersTab } from '../orders/OrdersTab';
 import { PreferencesPanel } from '../settings/PreferencesPanel';
+import { ErrorBoundary } from '../ui/ErrorBoundary';
 
 export function WidgetPanel() {
   const { t } = useTranslation();
@@ -81,21 +82,33 @@ export function WidgetPanel() {
         <div className={showSettings ? 'hidden' : 'h-full'}>
           {visited.includes('chat') && (
             <div className={activeTab === 'chat' ? 'h-full' : 'hidden'}>
-              <ChatTab />
+              {/* One boundary per tab: a crash here must not cost the shopper
+                  the other tabs, and re-entering the tab retries it. */}
+              <ErrorBoundary label="chat" resetKey={activeTab}>
+                <ChatTab />
+              </ErrorBoundary>
             </div>
           )}
           {visited.includes('orders') && (
             <div className={activeTab === 'orders' ? 'h-full' : 'hidden'}>
-              <OrdersTab />
+              <ErrorBoundary label="orders" resetKey={activeTab}>
+                <OrdersTab />
+              </ErrorBoundary>
             </div>
           )}
           {visited.includes('notifications') && (
             <div className={activeTab === 'notifications' ? 'h-full' : 'hidden'}>
-              <NotificationsTab />
+              <ErrorBoundary label="notifications" resetKey={activeTab}>
+                <NotificationsTab />
+              </ErrorBoundary>
             </div>
           )}
         </div>
-        {showSettings && <PreferencesPanel onBack={() => setShowSettings(false)} />}
+        {showSettings && (
+          <ErrorBoundary label="settings">
+            <PreferencesPanel onBack={() => setShowSettings(false)} />
+          </ErrorBoundary>
+        )}
       </div>
 
       {/* Tabs */}

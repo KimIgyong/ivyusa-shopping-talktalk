@@ -165,6 +165,9 @@ export const es: Translation = {
   common: {
     loading: 'Cargando…',
     error: 'Algo salió mal.',
+    crashTitle: 'Algo falló de nuestro lado.',
+    crashBody:
+      'El resto del widget sigue funcionando. Inténtalo de nuevo o cambia de pestaña y vuelve.',
     retry: 'Reintentar',
   },
 

@@ -165,6 +165,9 @@ export const ko: Translation = {
   common: {
     loading: '불러오는 중…',
     error: '문제가 발생했습니다.',
+    crashTitle: '문제가 발생했습니다.',
+    crashBody:
+      '위젯의 다른 기능은 계속 사용할 수 있습니다. 다시 시도하거나 다른 탭으로 이동한 뒤 돌아와 주세요.',
     retry: '다시 시도',
   },
 

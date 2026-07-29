@@ -164,6 +164,9 @@ export const en = {
   common: {
     loading: 'Loading…',
     error: 'Something went wrong.',
+    crashTitle: 'Something broke on our side.',
+    crashBody:
+      'The rest of the widget still works. Try again, or switch tabs and come back.',
     retry: 'Retry',
   },
 
