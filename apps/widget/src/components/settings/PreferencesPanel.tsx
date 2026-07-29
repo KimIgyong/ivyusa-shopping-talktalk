@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Download, ShieldOff, Trash2 } from 'lucide-react';
+import { ArrowLeft, Download, Lock, ShieldOff, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useWidgetStore } from '../../store/widgetStore';
 import { usePrefs, useSetPref } from '../../hooks/useNotifications';
 import { useOptOutStatus, useSetOptOut } from '../../hooks/usePrivacy';
 import { deleteMyData, exportMyData } from '../../services/privacyService';
+import { AuthGate } from '../chat/AuthGate';
+import { isAuthError } from '../../lib/errors';
 import { Spinner } from '../ui/Spinner';
 import type {
   NotifChannel,
@@ -56,7 +58,10 @@ export function PreferencesPanel({ onBack }: { onBack: () => void }) {
   const setAuthenticated = useWidgetStore((s) => s.setAuthenticated);
   const setCustomerName = useWidgetStore((s) => s.setCustomerName);
   const queryClient = useQueryClient();
-  const { data, isLoading } = usePrefs(sessionToken);
+  const authenticated = useWidgetStore((s) => s.authenticated);
+  const { data, isLoading, isError, error } = usePrefs(sessionToken);
+  // The server is the authority: a 401 here means the session lost its customer.
+  const authLost = isError && isAuthError(error);
   const setPref = useSetPref(sessionToken);
   const optOutStatus = useOptOutStatus(sessionToken);
   const setOptOut = useSetOptOut(sessionToken);
@@ -128,6 +133,32 @@ export function PreferencesPanel({ onBack }: { onBack: () => void }) {
       (x) => x.channel === channel && x.category === category,
     );
     return p?.enabled ?? false;
+  }
+
+  // Everything on this panel is customer-scoped — preferences, the CCPA opt-out
+  // and the DSAR actions all 401 without a bound customer. Rendering the controls
+  // anyway was worse than an error: the toggles moved, the writes were rejected,
+  // and nothing told the shopper. Offer the way in instead.
+  if (!authenticated || authLost) {
+    return (
+      <div className="scroll-thin flex h-full flex-col overflow-y-auto p-3">
+        <button
+          onClick={onBack}
+          className="mb-3 flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" />
+          {t('orders.back')}
+        </button>
+        <div className="flex flex-1 flex-col items-center justify-center gap-3">
+          <Lock className="h-6 w-6 text-gray-300" />
+          <AuthGate
+            sessionToken={sessionToken}
+            onSuccess={() => setAuthenticated(true)}
+            onCancel={onBack}
+          />
+        </div>
+      </div>
+    );
   }
 
   return (
