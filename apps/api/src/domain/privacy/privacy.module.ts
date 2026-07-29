@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { SessionModule } from '../session/session.module';
 import { Customer } from '../customer/entity/customer.entity';
 import { Session } from '../session/entity/session.entity';
 import { OrderCache } from '../order/entity/order-cache.entity';
@@ -28,6 +29,7 @@ import { PrivacyController, ShopifyComplianceController } from './privacy.contro
  */
 @Module({
   imports: [
+    SessionModule,
     TypeOrmModule.forFeature([
       Customer,
       Session,

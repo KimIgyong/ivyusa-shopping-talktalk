@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { generateCode } from '@ivy/common';
 import { Affiliate } from './entity/affiliate.entity';
 import { Session } from '../session/entity/session.entity';
+import { SessionService } from '../session/session.service';
 import { Customer } from '../customer/entity/customer.entity';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
@@ -15,15 +16,12 @@ export class AffiliateService {
     @InjectRepository(Affiliate) private readonly affiliateRepo: Repository<Affiliate>,
     @InjectRepository(Session) private readonly sessionRepo: Repository<Session>,
     @InjectRepository(Customer) private readonly customerRepo: Repository<Customer>,
+    private readonly sessionService: SessionService,
   ) {}
 
-  private async requireCustomerId(token: string): Promise<number> {
-    const session = await this.sessionRepo.findOne({ where: { sessionToken: token } });
-    if (!session) throw new BusinessException(ERROR_CODE.SESSION_NOT_FOUND, HttpStatus.NOT_FOUND);
-    if (session.customerId == null) {
-      throw new BusinessException(ERROR_CODE.UNAUTHORIZED, HttpStatus.UNAUTHORIZED);
-    }
-    return session.customerId;
+  /** Widget-session authorization — single implementation in SessionService. */
+  private requireCustomerId(token: string): Promise<number> {
+    return this.sessionService.requireCustomerId(token);
   }
 
   async apply(token: string): Promise<Affiliate> {

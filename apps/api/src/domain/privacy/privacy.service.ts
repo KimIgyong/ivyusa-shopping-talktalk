@@ -21,7 +21,7 @@ import { Campaign } from '../campaign/entity/campaign.entity';
 import { Tenant } from '../tenant/entity/tenant.entity';
 import { AuditService } from '../audit/audit.service';
 import { RedisService } from '../../infrastructure/cache/redis.service';
-import { sessionCacheKey } from '../session/session.service';
+import { SessionService, sessionCacheKey } from '../session/session.service';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
 import { maskPii } from '../../global/util/pii.util';
@@ -59,20 +59,16 @@ export class PrivacyService {
     private readonly restockRepo: Repository<RestockSubscription>,
     @InjectRepository(Campaign) private readonly campaignRepo: Repository<Campaign>,
     @InjectRepository(Tenant) private readonly tenantRepo: Repository<Tenant>,
+    private readonly sessionService: SessionService,
     private readonly audit: AuditService,
     private readonly redis: RedisService,
   ) {}
 
   // ---- session resolution (widget DSAR/CCPA) ----
 
-  /** Resolve the bound customer from a session token; consumer-rights require auth. */
+  /** Widget-session authorization — single implementation in SessionService. */
   async requireCustomerId(sessionToken: string): Promise<number> {
-    const session = await this.sessionRepo.findOne({ where: { sessionToken } });
-    if (!session) throw new BusinessException(ERROR_CODE.SESSION_NOT_FOUND, HttpStatus.NOT_FOUND);
-    if (session.customerId == null) {
-      throw new BusinessException(ERROR_CODE.UNAUTHORIZED, HttpStatus.UNAUTHORIZED);
-    }
-    return session.customerId;
+    return this.sessionService.requireCustomerId(sessionToken);
   }
 
   /**
@@ -82,12 +78,10 @@ export class PrivacyService {
    * irreversible erasure — only the Shopify App Proxy path is strong enough.
    */
   async requireVerifiedCustomerId(sessionToken: string): Promise<number> {
-    const session = await this.sessionRepo.findOne({ where: { sessionToken } });
-    if (!session) throw new BusinessException(ERROR_CODE.SESSION_NOT_FOUND, HttpStatus.NOT_FOUND);
-    if (session.customerId == null || session.identityLevel !== SESSION_IDENTITY.VERIFIED) {
-      throw new BusinessException(ERROR_CODE.FORBIDDEN, HttpStatus.FORBIDDEN);
-    }
-    return session.customerId;
+    // Delegated so the rule lives in one place. Slight change: an *unbound*
+    // session now gets 401 (not authenticated) rather than 403; a bound-but-guest
+    // one still gets 403. Both already read as "sign in first" on the client.
+    return this.sessionService.requireCustomerId(sessionToken, { verified: true });
   }
 
   // ---- Shopify GDPR webhooks ----
@@ -355,12 +349,10 @@ export class PrivacyService {
 
   /** Toggle external-channel opt-out across all categories (in_app stays on). */
   async setOptOut(sessionToken: string, optOut: boolean): Promise<void> {
-    const session = await this.sessionRepo.findOne({ where: { sessionToken } });
-    if (!session) throw new BusinessException(ERROR_CODE.SESSION_NOT_FOUND, HttpStatus.NOT_FOUND);
-    if (session.customerId == null) {
-      throw new BusinessException(ERROR_CODE.UNAUTHORIZED, HttpStatus.UNAUTHORIZED);
-    }
-    const customerId = session.customerId;
+    // Shared gate; we keep the session because the audit row is attributed to the
+    // consumer's own tenant, not a phantom admin (PRV-M2).
+    const session = await this.sessionService.requireCustomer(sessionToken);
+    const customerId = session.customerId as number;
     const enabled = optOut ? 0 : 1;
 
     for (const channel of EXTERNAL_CHANNELS) {

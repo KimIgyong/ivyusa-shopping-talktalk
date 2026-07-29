@@ -64,3 +64,62 @@ describe('SessionService.findOrCreateForCustomer', () => {
     expect(s.sessionToken).toBeTruthy();
   });
 });
+
+/**
+ * SessionService.requireCustomer — the single widget-session authorization gate.
+ * Every storefront endpoint that touches personal data routes through it, so the
+ * two tiers (bound vs Shopify-verified) are pinned here rather than in ten copies.
+ */
+describe('SessionService.requireCustomer', () => {
+  function build(session: unknown) {
+    const sessionRepo = { findOne: jest.fn().mockResolvedValue(session) };
+    const svc = new SessionService(
+      sessionRepo as never,
+      {} as never,
+      {} as never,
+      { publish: jest.fn() } as never,
+      { available: () => false, get: jest.fn(), set: jest.fn(), del: jest.fn() } as never,
+    );
+    return { svc };
+  }
+
+  const guest = { sessionToken: 't', customerId: 4, identityLevel: 'guest' };
+  const verified = { sessionToken: 't', customerId: 4, identityLevel: 'verified' };
+  const anon = { sessionToken: 't', customerId: null, identityLevel: 'guest' };
+
+  it('returns the session for a bound customer', async () => {
+    const { svc } = build(guest);
+    await expect(svc.requireCustomerId('t')).resolves.toBe(4);
+  });
+
+  it('rejects an unbound session with 401', async () => {
+    const { svc } = build(anon);
+    await expect(svc.requireCustomerId('t')).rejects.toMatchObject({ status: 401 });
+  });
+
+  it('rejects a missing session with 404', async () => {
+    const { svc } = build(null);
+    await expect(svc.requireCustomerId('t')).rejects.toMatchObject({ status: 404 });
+  });
+
+  it('accepts a Shopify-verified session when verified identity is demanded', async () => {
+    const { svc } = build(verified);
+    await expect(svc.requireCustomerId('t', { verified: true })).resolves.toBe(4);
+  });
+
+  it('rejects a guest-bound session with 403 when verified identity is demanded', async () => {
+    // SEC-C3: order number + email are printed on packing slips — strong enough to
+    // read your own orders, never enough to export or erase an account.
+    const { svc } = build(guest);
+    await expect(svc.requireCustomerId('t', { verified: true })).rejects.toMatchObject({
+      status: 403,
+    });
+  });
+
+  it('rejects an unbound session with 401 even when verified is demanded', async () => {
+    const { svc } = build(anon);
+    await expect(svc.requireCustomerId('t', { verified: true })).rejects.toMatchObject({
+      status: 401,
+    });
+  });
+});

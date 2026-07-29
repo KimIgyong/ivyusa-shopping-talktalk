@@ -14,7 +14,7 @@ import { OrderCache } from './entity/order-cache.entity';
 import { OrderItem } from './entity/order-item.entity';
 import { Fulfillment } from './entity/fulfillment.entity';
 import { Session } from '../session/entity/session.entity';
-import { sessionCacheKey } from '../session/session.service';
+import { SessionService, sessionCacheKey } from '../session/session.service';
 import { Customer } from '../customer/entity/customer.entity';
 import { OrderMapper } from './order.mapper';
 import { Paginated } from '../../global/interceptor/transform.interceptor';
@@ -45,6 +45,7 @@ export class OrderService {
     private readonly bus: EventBusService,
     private readonly redis: RedisService,
     private readonly webhookSecretService: WebhookSecretService,
+    private readonly sessionService: SessionService,
   ) {}
 
   /** Guest order lookup (FR-019). Rate-limited per email; binds session on success. */
@@ -120,12 +121,9 @@ export class OrderService {
 
   /** Latest fulfillment + delivery stepper for an order (FR-031). */
   async trackingForSession(sessionToken: string, orderId: number) {
-    // Load the session once: we need both the bound customer and its language,
-    // because the stepper labels are customer-facing and must be localized.
-    const session = await this.loadSession(sessionToken);
-    if (session.customerId == null) {
-      throw new BusinessException(ERROR_CODE.UNAUTHORIZED, HttpStatus.UNAUTHORIZED);
-    }
+    // The shared gate returns the session, which we also need for its language —
+    // the stepper labels are customer-facing and must be localized.
+    const session = await this.sessionService.requireCustomer(sessionToken);
     const order = await this.orderRepo.findOne({ where: { id: orderId } });
     if (!order || order.customerId !== session.customerId) {
       throw new BusinessException(ERROR_CODE.ORDER_NOT_FOUND, HttpStatus.NOT_FOUND);
@@ -263,13 +261,13 @@ export class OrderService {
     return session;
   }
 
-  /** Resolve bound customer; order data requires auth (POL-001). */
-  private async requireCustomerId(token: string): Promise<number> {
-    const session = await this.loadSession(token);
-    if (session.customerId == null) {
-      throw new BusinessException(ERROR_CODE.UNAUTHORIZED, HttpStatus.UNAUTHORIZED);
-    }
-    return session.customerId;
+  /**
+   * Widget-session authorization — single implementation in SessionService.
+   * `loadSession` above stays for the paths that MUTATE the session (guest bind),
+   * which must not write back a cached copy.
+   */
+  private requireCustomerId(token: string): Promise<number> {
+    return this.sessionService.requireCustomerId(token);
   }
 
   private async enforceLookupLimit(email: string): Promise<void> {

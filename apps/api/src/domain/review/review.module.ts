@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { SessionModule } from '../session/session.module';
 import { Review } from './entity/review.entity';
 import { Session } from '../session/entity/session.entity';
 import { OrderItem } from '../order/entity/order-item.entity';
@@ -7,7 +8,7 @@ import { ReviewService } from './review.service';
 import { ReviewController } from './review.controller';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Review, Session, OrderItem])],
+  imports: [TypeOrmModule.forFeature([Review, Session, OrderItem]), SessionModule],
   controllers: [ReviewController],
   providers: [ReviewService],
   exports: [ReviewService],

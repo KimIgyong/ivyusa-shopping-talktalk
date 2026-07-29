@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { CJM_STAGE } from '@ivy/types';
 import { Review } from './entity/review.entity';
 import { Session } from '../session/entity/session.entity';
+import { SessionService } from '../session/session.service';
 import { OrderItem } from '../order/entity/order-item.entity';
 import { EventBusService, EVENTS } from '../../infrastructure/infrastructure.module';
 import { BusinessException } from '../../global/exception/business.exception';
@@ -16,16 +17,13 @@ export class ReviewService {
     @InjectRepository(Review) private readonly reviewRepo: Repository<Review>,
     @InjectRepository(Session) private readonly sessionRepo: Repository<Session>,
     @InjectRepository(OrderItem) private readonly orderItemRepo: Repository<OrderItem>,
+    private readonly sessionService: SessionService,
     private readonly bus: EventBusService,
   ) {}
 
-  private async requireCustomerId(token: string): Promise<number> {
-    const session = await this.sessionRepo.findOne({ where: { sessionToken: token } });
-    if (!session) throw new BusinessException(ERROR_CODE.SESSION_NOT_FOUND, HttpStatus.NOT_FOUND);
-    if (session.customerId == null) {
-      throw new BusinessException(ERROR_CODE.UNAUTHORIZED, HttpStatus.UNAUTHORIZED);
-    }
-    return session.customerId;
+  /** Widget-session authorization — single implementation in SessionService. */
+  private requireCustomerId(token: string): Promise<number> {
+    return this.sessionService.requireCustomerId(token);
   }
 
   async create(

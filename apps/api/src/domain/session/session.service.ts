@@ -199,6 +199,37 @@ export class SessionService {
     return session;
   }
 
+  /**
+   * The one place widget-session authorization is decided (POL-001).
+   *
+   * Every storefront endpoint that touches personal data needs the same two-tier
+   * answer, and it used to be re-implemented per service — six copies of
+   * `requireCustomerId` plus four inline checks. They happened to agree, but
+   * nothing made them agree, which is precisely how a gap gets introduced later.
+   * Routing them all through here also means they finally use the cached lookup.
+   *
+   * - not bound to a customer  → 401 UNAUTHORIZED
+   * - `verified: true` and the binding came from a guest order lookup rather than
+   *   Shopify → 403 FORBIDDEN. Guest identity is weak: enough to read one's own
+   *   orders, never enough to export or erase an account (SEC-C3).
+   */
+  async requireCustomer(token: string, opts?: { verified?: boolean }): Promise<Session> {
+    const session = await this.findByToken(token);
+    if (session.customerId == null) {
+      throw new BusinessException(ERROR_CODE.UNAUTHORIZED, HttpStatus.UNAUTHORIZED);
+    }
+    if (opts?.verified && session.identityLevel !== SESSION_IDENTITY.VERIFIED) {
+      throw new BusinessException(ERROR_CODE.FORBIDDEN, HttpStatus.FORBIDDEN);
+    }
+    return session;
+  }
+
+  /** Shorthand for the common case: the bound customer's id. */
+  async requireCustomerId(token: string, opts?: { verified?: boolean }): Promise<number> {
+    const session = await this.requireCustomer(token, opts);
+    return session.customerId as number;
+  }
+
   /** Uncached DB load — used before mutations so we never save a cached copy. */
   private async loadByToken(token: string): Promise<Session> {
     const session = await this.sessionRepo.findOne({ where: { sessionToken: token } });
