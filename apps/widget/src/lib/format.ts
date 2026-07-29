@@ -1,11 +1,21 @@
-export function formatMoney(amount: number, currency = 'USD'): string {
+/**
+ * Money for display. Amount and currency are nullable on the wire (an order or
+ * line item can legitimately carry neither), so render a dash rather than "NaN"
+ * or throwing — a missing price must never take the widget down.
+ */
+export function formatMoney(
+  amount: number | null | undefined,
+  currency: string | null | undefined = 'USD',
+): string {
+  if (amount == null || Number.isNaN(Number(amount))) return '—';
+  const value = Number(amount);
   try {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency,
-    }).format(amount);
+      currency: currency || 'USD',
+    }).format(value);
   } catch {
-    return `$${amount.toFixed(2)}`;
+    return `$${value.toFixed(2)}`;
   }
 }
 

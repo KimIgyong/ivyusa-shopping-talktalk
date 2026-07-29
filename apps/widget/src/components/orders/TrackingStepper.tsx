@@ -1,17 +1,15 @@
 import { Check } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import type { Tracking } from '../../lib/types';
-import { formatDate } from '../../lib/format';
 
 export function TrackingStepper({ tracking }: { tracking: Tracking }) {
-  const steps =
-    tracking.steps && tracking.steps.length
-      ? tracking.steps
-      : [
-          { label: 'Ordered' },
-          { label: 'Preparing' },
-          { label: 'Shipped' },
-          { label: 'Delivered' },
-        ];
+  const { t } = useTranslation();
+  // Labels come from the backend already localized to the session language. The
+  // fallback is only for a payload without them — and must not be hardcoded
+  // English either, so it goes through i18n like everything else.
+  const steps = tracking.steps?.length
+    ? tracking.steps
+    : (t('orders.trackingSteps', { returnObjects: true }) as string[]);
 
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-3">
@@ -26,8 +24,8 @@ export function TrackingStepper({ tracking }: { tracking: Tracking }) {
         )}
       </div>
       <ol className="relative ml-2 border-l border-gray-200">
-        {steps.map((step, i) => {
-          const done = step.done ?? i <= tracking.stepIndex;
+        {steps.map((label, i) => {
+          const done = i <= tracking.stepIndex;
           const current = i === tracking.stepIndex;
           return (
             <li key={i} className="mb-4 ml-4 last:mb-0">
@@ -47,13 +45,8 @@ export function TrackingStepper({ tracking }: { tracking: Tracking }) {
                       : 'text-gray-400'
                 }`}
               >
-                {step.label}
+                {label}
               </div>
-              {step.at && (
-                <div className="text-[11px] text-gray-400">
-                  {formatDate(step.at)}
-                </div>
-              )}
             </li>
           );
         })}

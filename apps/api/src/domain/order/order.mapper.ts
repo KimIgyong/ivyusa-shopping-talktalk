@@ -21,6 +21,8 @@ export interface OrderListItem {
 }
 
 export interface OrderItemView {
+  /** Needed to review the item (POST /reviews takes order_item_id). */
+  id: number;
   title: string;
   optionText: string | null;
   qty: number;
@@ -68,6 +70,7 @@ export class OrderMapper {
 
   static toItemView(item: OrderItem): OrderItemView {
     return {
+      id: item.id,
       title: item.title,
       optionText: item.optionText,
       qty: item.qty,

@@ -75,23 +75,36 @@ export interface OrderItem {
   price: number;
 }
 
+/**
+ * GET /orders/:id — the order's own fields with its line items, FLAT (mirrors the
+ * backend's OrderDetailView). It is deliberately not `{ order, items }`: this type
+ * used to claim that shape, nothing validated it, and reading `data.order.statusUi`
+ * threw at runtime — which unmounted the whole widget, bubble included.
+ */
 export interface OrderDetail {
-  order: OrderSummary & Record<string, unknown>;
+  id: string;
+  orderNumber: string;
+  statusInternal: string | null;
+  statusUi: string | null;
+  total: number | null;
+  currency: string | null;
+  createdAt: string;
   items: OrderItem[];
 }
 
-export interface TrackingStep {
-  label: string;
-  at?: string | null;
-  done?: boolean;
-}
-
+/**
+ * GET /orders/:id/tracking. `steps` is a list of localized LABELS (the backend
+ * sends `deliverySteps(session.language)`), and how far along we are comes from
+ * `stepIndex` — there is no per-step object. This used to be typed as
+ * `{label, at, done}[]`, which silently rendered blank labels, and `step.at` hit
+ * `String.prototype.at` — a function — which React then refused to render.
+ */
 export interface Tracking {
   status: string;
-  carrier: string;
-  trackingNumber: string;
+  carrier: string | null;
+  trackingNumber: string | null;
   stepIndex: number;
-  steps: TrackingStep[];
+  steps: string[];
 }
 
 export type NotificationCategory =

@@ -113,6 +113,7 @@ export const en = {
     empty: 'No orders found.',
     ask: 'Ask about this order',
     askMessage: 'I have a question about order #{{orderNumber}}.',
+    trackingSteps: ['Preparing', 'Shipped', 'In transit', 'Delivered'],
     track: 'Track',
     detail: 'Order detail',
     items: 'Items',

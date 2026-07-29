@@ -44,8 +44,9 @@ export function OrderDetailView({
       </p>
     );
 
-  const { order, items } = data;
-  const delivered = /deliver|complete/i.test(order.statusUi);
+  const order = data; // flat payload: the order's fields sit alongside `items`
+  const items = data.items ?? [];
+  const delivered = /deliver|complete/i.test(order.statusUi ?? '');
 
   return (
     <div className="scroll-thin h-full overflow-y-auto p-3">

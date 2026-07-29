@@ -114,6 +114,7 @@ export const ko: Translation = {
     empty: '주문 내역이 없습니다.',
     ask: '이 주문에 대해 문의하기',
     askMessage: '{{orderNumber}}번 주문에 대해 문의드립니다.',
+    trackingSteps: ['발송준비', '배송시작', '배송중', '배송완료'],
     track: '배송 조회',
     detail: '주문 상세',
     items: '상품',
