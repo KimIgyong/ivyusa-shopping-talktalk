@@ -1,6 +1,7 @@
 import { apiClient } from '../lib/api-client';
 import type {
   OrderDetail,
+  OrderLookupResult,
   OrderSummary,
   Tracking,
 } from '../lib/types';
@@ -9,8 +10,8 @@ export function guestLookup(
   sessionToken: string,
   orderNumber: string,
   email: string,
-): Promise<OrderSummary> {
-  return apiClient.post<OrderSummary>('/orders/guest-lookup', {
+): Promise<OrderLookupResult> {
+  return apiClient.post<OrderLookupResult>('/orders/guest-lookup', {
     session_token: sessionToken,
     order_number: orderNumber,
     email,

@@ -57,22 +57,42 @@ export interface ScenarioReply {
   followUps: ScenarioFollowUp[];
 }
 
+/**
+ * GET /orders item (backend OrderListItem). The status/total/currency really are
+ * nullable on the wire — an order can be cached before Shopify reports them — so
+ * they are typed that way here. Declaring them non-null hid the nullability from
+ * every consumer instead of removing it.
+ */
 export interface OrderSummary {
   id: string;
   orderNumber: string;
-  statusUi: string;
-  total: number;
-  currency: string;
+  statusInternal: string | null;
+  statusUi: string | null;
+  total: number | null;
+  currency: string | null;
   itemCount: number;
   createdAt: string;
 }
 
 export interface OrderItem {
-  id?: string;
+  id: string;
   title: string;
-  optionText?: string;
+  optionText: string | null;
   qty: number;
-  price: number;
+  price: number | null;
+}
+
+/**
+ * POST /orders/guest-lookup returns the backend's much smaller `OrderSummary`
+ * (4 fields) — NOT the list-item shape. It was typed as the full list item, which
+ * promised `currency`, `createdAt` and `itemCount` that never arrive; nothing reads
+ * the result today, so the lie was invisible.
+ */
+export interface OrderLookupResult {
+  id: string;
+  orderNumber: string;
+  statusUi: string | null;
+  total: number | null;
 }
 
 /**
@@ -118,8 +138,13 @@ export interface NotificationItem {
   id: string;
   category: NotificationCategory;
   title: string;
-  body: string;
+  /** Nullable on the wire (notification.entity `body` is nullable). */
+  body: string | null;
   statusBadge?: string | null;
+  /** Delivery channel the row was created for (in_app/email/sms/web_push). */
+  channel?: string;
+  /** Server-derived `readAt != null`; the UI keys off readAt directly. */
+  read?: boolean;
   readAt?: string | null;
   createdAt: string;
 }
@@ -132,8 +157,13 @@ export interface NotifPref {
   enabled: boolean;
 }
 
+/**
+ * GET /affiliate/status. Note `'none'` never comes from the server — with no
+ * affiliate row the endpoint 404s, and the caller falls back to 'none'.
+ */
 export interface AffiliateStatus {
-  status: 'none' | 'pending' | 'approved' | 'rejected' | string;
+  status: 'pending' | 'approved' | 'rejected' | string;
+  linkCode?: string | null;
   commissionRate?: number;
 }
 

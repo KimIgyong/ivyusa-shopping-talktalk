@@ -20,10 +20,12 @@ const SUBTABS: { key: SubTab; labelKey: string }[] = [
 ];
 
 function filterForSubtab(orders: OrderSummary[], sub: SubTab): OrderSummary[] {
+  // statusUi is nullable on the wire; `?? ''` keeps a status-less order out of the
+  // filtered tabs instead of matching on the string "null".
   if (sub === 'shipping')
-    return orders.filter((o) => /ship|transit|deliver/i.test(o.statusUi));
+    return orders.filter((o) => /ship|transit|deliver/i.test(o.statusUi ?? ''));
   if (sub === 'inquiries')
-    return orders.filter((o) => /cancel|refund|return|inquir/i.test(o.statusUi));
+    return orders.filter((o) => /cancel|refund|return|inquir/i.test(o.statusUi ?? ''));
   return orders; // payments == all paid orders
 }
 
