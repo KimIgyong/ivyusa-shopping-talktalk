@@ -1,44 +1,21 @@
-import { internalToUiStatus } from '@ivy/types';
+import {
+  internalToUiStatus,
+  type OrderDetailResponse,
+  type OrderItemResponse,
+  type OrderListItemResponse,
+  type OrderLookupResponse,
+} from '@ivy/types';
 import { OrderCache } from './entity/order-cache.entity';
 import { OrderItem } from './entity/order-item.entity';
 
-export interface OrderSummary {
-  id: number;
-  orderNumber: string;
-  statusUi: string | null;
-  total: number | null;
-}
-
-export interface OrderListItem {
-  id: number;
-  orderNumber: string;
-  statusInternal: string | null;
-  statusUi: string | null;
-  total: number | null;
-  currency: string | null;
-  createdAt: Date;
-  itemCount: number;
-}
-
-export interface OrderItemView {
-  /** Needed to review the item (POST /reviews takes order_item_id). */
-  id: number;
-  title: string;
-  optionText: string | null;
-  qty: number;
-  price: number | null;
-}
-
-export interface OrderDetailView {
-  id: number;
-  orderNumber: string;
-  statusInternal: string | null;
-  statusUi: string | null;
-  total: number | null;
-  currency: string | null;
-  createdAt: Date;
-  items: OrderItemView[];
-}
+/**
+ * Response shapes live in `@ivy/types` so the widget consumes the same contract —
+ * see the note there. Aliased locally to keep existing call sites readable.
+ */
+export type OrderSummary = OrderLookupResponse;
+export type OrderListItem = OrderListItemResponse;
+export type OrderItemView = OrderItemResponse;
+export type OrderDetailView = OrderDetailResponse;
 
 /** Entity -> response mapping for orders (camelCase payloads). */
 export class OrderMapper {
@@ -48,7 +25,7 @@ export class OrderMapper {
 
   static toSummary(order: OrderCache): OrderSummary {
     return {
-      id: order.id,
+      id: String(order.id),
       orderNumber: order.orderNumber,
       statusUi: this.uiStatus(order),
       total: order.total,
@@ -57,20 +34,20 @@ export class OrderMapper {
 
   static toListItem(order: OrderCache, itemCount: number): OrderListItem {
     return {
-      id: order.id,
+      id: String(order.id),
       orderNumber: order.orderNumber,
       statusInternal: order.statusInternal,
       statusUi: this.uiStatus(order),
       total: order.total,
       currency: order.currency,
-      createdAt: order.createdAt,
+      createdAt: order.createdAt.toISOString(),
       itemCount,
     };
   }
 
   static toItemView(item: OrderItem): OrderItemView {
     return {
-      id: item.id,
+      id: String(item.id),
       title: item.title,
       optionText: item.optionText,
       qty: item.qty,
@@ -80,13 +57,13 @@ export class OrderMapper {
 
   static toDetail(order: OrderCache, items: OrderItem[]): OrderDetailView {
     return {
-      id: order.id,
+      id: String(order.id),
       orderNumber: order.orderNumber,
       statusInternal: order.statusInternal,
       statusUi: this.uiStatus(order),
       total: order.total,
       currency: order.currency,
-      createdAt: order.createdAt,
+      createdAt: order.createdAt.toISOString(),
       items: items.map((i) => this.toItemView(i)),
     };
   }

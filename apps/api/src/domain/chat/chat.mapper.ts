@@ -1,23 +1,19 @@
+import type {
+  ChatMessageResponse,
+  ConversationResponse,
+  ScenarioFollowUpResponse,
+} from '@ivy/types';
 import { Conversation } from './entity/conversation.entity';
 import { Message } from './entity/message.entity';
 
-/** Entity → camelCase response mapping (static methods, per convention). */
-export interface MessageResponse {
-  id: number;
-  senderType: string;
-  senderName: string | null;
-  body: string;
-  createdAt: Date;
-  /**
-   * Follow-up chips for a scripted turn, when the message carries them. Returned
-   * on the conversation read so the widget can restore them after a tab switch or
-   * page reload — they used to exist only in the scenario response.
-   */
-  quickReplies?: Array<{ id: string; label: string }>;
-}
+/**
+ * Response shapes live in `@ivy/types` — the widget imports the same contract.
+ */
+export type MessageResponse = ChatMessageResponse;
+export type { ConversationResponse };
 
 /** Chips persisted on the message's trace by ScenarioService, if any. */
-function followUpsOf(m: Message): Array<{ id: string; label: string }> | undefined {
+function followUpsOf(m: Message): ScenarioFollowUpResponse[] | undefined {
   const trace = m.retrievalTrace as { followUps?: unknown } | null;
   const raw = Array.isArray(trace?.followUps) ? trace.followUps : null;
   if (!raw?.length) return undefined;
@@ -30,20 +26,14 @@ function followUpsOf(m: Message): Array<{ id: string; label: string }> | undefin
   return chips.length ? chips.map((f) => ({ id: f.id, label: f.label })) : undefined;
 }
 
-export interface ConversationResponse {
-  conversationId: number;
-  status: string;
-  messages: MessageResponse[];
-}
-
 export class ChatMapper {
   static toMessageResponse(m: Message, senderName: string | null = null): MessageResponse {
     return {
-      id: m.id,
+      id: String(m.id),
       senderType: m.senderType,
       senderName,
       body: m.body,
-      createdAt: m.createdAt,
+      createdAt: m.createdAt.toISOString(),
       quickReplies: followUpsOf(m),
     };
   }
@@ -54,7 +44,7 @@ export class ChatMapper {
     senderNames?: Map<string, string>,
   ): ConversationResponse {
     return {
-      conversationId: conversation.id,
+      conversationId: String(conversation.id),
       status: conversation.status,
       messages: messages.map((m) =>
         ChatMapper.toMessageResponse(

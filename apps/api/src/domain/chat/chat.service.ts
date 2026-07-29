@@ -17,6 +17,7 @@ import { Tenant } from '../tenant/entity/tenant.entity';
 import { User } from '../user/entity/user.entity';
 import { RagService } from './rag.service';
 import { ModerationService } from '../moderation/moderation.service';
+import type { ChatTurnResponse } from '@ivy/types';
 import { OrderService } from '../order/order.service';
 import { EventBusService, EVENTS } from '../../infrastructure/infrastructure.module';
 
@@ -62,13 +63,8 @@ function sysMsg(key: keyof typeof SYSTEM_MESSAGES, lang: string): string {
   return (set as Record<string, string>)[lang] ?? set.EN;
 }
 
-export interface ChatTurnResult {
-  conversationId: number;
-  /** Null when the conversation is in agent mode (no bot reply; agent answers). */
-  reply: { senderType: string; body: string; citations?: unknown } | null;
-  escalate: boolean;
-  needsAuth: boolean;
-}
+/** Response shape lives in `@ivy/types` — the widget imports the same contract. */
+export type ChatTurnResult = ChatTurnResponse;
 
 export type EscalationReason = 'low_confidence' | 'moderation_blocked' | 'user_request';
 
@@ -196,7 +192,7 @@ export class ChatService {
     // the AI — the customer gets a localized pointer back to the consent banner.
     if (session.consentState === CONSENT_STATE.DECLINED) {
       return {
-        conversationId: 0,
+        conversationId: null,
         reply: { senderType: 'system', body: sysMsg('consentRequired', session.language) },
         escalate: false,
         needsAuth: false,
@@ -223,7 +219,7 @@ export class ChatService {
       conversation.status === CONVERSATION_STATUS.WAITING ||
       conversation.status === CONVERSATION_STATUS.AGENT
     ) {
-      return { conversationId: conversation.id, reply: null, escalate: false, needsAuth: false };
+      return { conversationId: String(conversation.id), reply: null, escalate: false, needsAuth: false };
     }
 
     // Intent + scope check (FN-015): order data requires authentication first.
@@ -231,7 +227,7 @@ export class ChatService {
     if (intent.needsOrderData && session.customerId == null) {
       const body = sysMsg('authRequired', session.language);
       await this.persist(conversation.id, SENDER_TYPE.SYSTEM, body, session.language);
-      return { conversationId: conversation.id, reply: { senderType: 'system', body }, escalate: false, needsAuth: true };
+      return { conversationId: String(conversation.id), reply: { senderType: 'system', body }, escalate: false, needsAuth: true };
     }
 
     // Order questions from a signed-in shopper are answered from their real
@@ -256,14 +252,14 @@ export class ChatService {
 
     if (moderated.decision === MODERATION_DECISION.BLOCKED) {
       const body = await this.handoff(conversation.id, session, tenantId, 'moderation_blocked', text);
-      return { conversationId: conversation.id, reply: { senderType: 'system', body }, escalate: true, needsAuth: false };
+      return { conversationId: String(conversation.id), reply: { senderType: 'system', body }, escalate: true, needsAuth: false };
     }
 
     // RAG fallback (FR-S3): no confident answer within the knowledge base →
     // hand off to a human instead of replying, and alert the agents.
     if (answer.confidence < ESCALATION_CONFIDENCE) {
       const body = await this.handoff(conversation.id, session, tenantId, 'low_confidence', text);
-      return { conversationId: conversation.id, reply: { senderType: 'system', body }, escalate: true, needsAuth: false };
+      return { conversationId: String(conversation.id), reply: { senderType: 'system', body }, escalate: true, needsAuth: false };
     }
 
     await this.persist(conversation.id, SENDER_TYPE.AI, moderated.text, session.language, {
@@ -273,7 +269,7 @@ export class ChatService {
     await this.bus.publish(EVENTS.CONVERSATION_LOG, { conversationId: conversation.id, senderType: 'ai' });
 
     return {
-      conversationId: conversation.id,
+      conversationId: String(conversation.id),
       reply: { senderType: 'ai', body: moderated.text, citations: answer.citations },
       escalate: false,
       needsAuth: false,

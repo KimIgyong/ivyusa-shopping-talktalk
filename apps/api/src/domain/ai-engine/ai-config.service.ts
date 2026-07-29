@@ -1,6 +1,7 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import type { ScenarioConfigResponse } from '@ivy/types';
 import { ScenarioButton, TenantAiConfig } from './entity/tenant-ai-config.entity';
 import { Session } from '../session/entity/session.entity';
 import { Tenant } from '../tenant/entity/tenant.entity';
@@ -87,7 +88,7 @@ export class AiConfigService {
   }
 
   /** Widget (public) — enabled scenario buttons for the session's tenant. */
-  async getScenarioForSession(sessionToken: string): Promise<{ scenarioButtons: ScenarioButton[] }> {
+  async getScenarioForSession(sessionToken: string): Promise<ScenarioConfigResponse> {
     const session = await this.sessionRepo.findOne({ where: { sessionToken } });
     if (!session) throw new BusinessException(ERROR_CODE.SESSION_NOT_FOUND, HttpStatus.NOT_FOUND);
     const tenantId = session.tenantId ?? (await this.firstTenantId());

@@ -2,6 +2,10 @@ import { HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { MODERATION_DECISION, SENDER_TYPE } from '@ivy/types';
+import type {
+  ScenarioFollowUpResponse,
+  ScenarioTurnResponse,
+} from '@ivy/types';
 import { Message } from './entity/message.entity';
 import { Session } from '../session/entity/session.entity';
 import { ChatService } from './chat.service';
@@ -9,16 +13,9 @@ import { ModerationService } from '../moderation/moderation.service';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
 
-export interface ScenarioFollowUp {
-  id: string;
-  label: string;
-}
-
-export interface ScenarioTurnResult {
-  conversationId: number;
-  reply: { senderType: string; body: string };
-  followUps: ScenarioFollowUp[];
-}
+/** Response shapes live in `@ivy/types` — the widget imports the same contract. */
+export type ScenarioFollowUp = ScenarioFollowUpResponse;
+export type ScenarioTurnResult = ScenarioTurnResponse;
 
 type Lang = 'EN' | 'ES' | 'KO';
 
@@ -215,7 +212,7 @@ export class ScenarioService {
         script.utterance[l],
       );
       return {
-        conversationId: conversation.id,
+        conversationId: String(conversation.id),
         reply: { senderType: 'system', body: notice },
         followUps: [],
       };
@@ -240,7 +237,7 @@ export class ScenarioService {
     );
 
     return {
-      conversationId: conversation.id,
+      conversationId: String(conversation.id),
       reply: { senderType: 'ai', body },
       followUps,
     };

@@ -1,131 +1,66 @@
+/**
+ * Widget-side view of the API contracts.
+ *
+ * The response shapes are NOT redeclared here — they are imported from
+ * `@ivy/types`, the same file the API mappers return. That is deliberate: this
+ * file used to hand-maintain its own copies, nothing compared the two, and they
+ * drifted into runtime crashes (an order detail typed `{ order, items }` against a
+ * flat payload took the whole widget down). Now a backend shape change that the
+ * widget doesn't expect is a compile error instead.
+ *
+ * Only genuinely client-side concepts are defined locally: the narrowed unions the
+ * UI switches on, and fields that exist solely in local optimistic state.
+ */
+import type {
+  AffiliateStatusResponse,
+  ChatCitation,
+  ChatMessageResponse,
+  ChatTurnResponse,
+  ConversationResponse,
+  NotificationPrefResponse,
+  NotificationResponse,
+  OrderDetailResponse,
+  OrderItemResponse,
+  OrderListItemResponse,
+  OrderLookupResponse,
+  ScenarioButtonResponse,
+  ScenarioFollowUpResponse,
+  ScenarioTurnResponse,
+  SessionResponse,
+  TrackingResponse,
+} from '@ivy/types';
+
+export type { SessionResponse };
+
+/** Narrowed for the UI's sender switch; the wire type is a plain string. */
 export type SenderType = 'user' | 'ai' | 'agent' | 'system';
 
-export interface SessionResponse {
-  sessionToken: string;
-  language: string;
-  consentState: 'granted' | 'denied' | 'unknown' | string;
-  authenticated: boolean;
-  /** Signed-in shopper's name, when the backend knows it — used to greet them. */
-  customerName: string | null;
-}
+export type Citation = ChatCitation;
 
-export interface ChatMessage {
-  id: string;
-  senderType: SenderType;
-  /** For agent messages, the display name of the replying agent (FR-066). */
+/**
+ * A thread message: the wire shape plus the bits that only exist locally.
+ * `senderName` is relaxed to optional because optimistic bubbles the widget builds
+ * itself have no agent name — the server always sends the key (possibly null).
+ * `senderType` stays the wire's `string`: server values must be assignable, so it
+ * cannot be narrowed to SenderType here.
+ */
+export interface ChatMessage extends Omit<ChatMessageResponse, 'senderName'> {
   senderName?: string | null;
-  body: string;
-  createdAt: string;
   citations?: Citation[];
+  /** Optimistic bubble still in flight — never sent by the server. */
   pending?: boolean;
-  /** Scenario follow-up chips attached to a scripted reply (FR-S1). */
-  quickReplies?: ScenarioFollowUp[];
 }
 
-export interface Citation {
-  title?: string;
-  url?: string;
-}
+export type Conversation = ConversationResponse;
+export type ChatReply = ChatTurnResponse;
+export type ScenarioFollowUp = ScenarioFollowUpResponse;
+export type ScenarioReply = ScenarioTurnResponse;
 
-export interface Conversation {
-  /** Null until the first message creates a conversation (read-only poll). */
-  conversationId: string | null;
-  status: string;
-  messages: ChatMessage[];
-}
-
-export interface ChatReply {
-  conversationId: string;
-  /** Null when the conversation is in agent mode (agent replies via polling). */
-  reply: {
-    senderType: SenderType;
-    body: string;
-    citations?: Citation[];
-  } | null;
-  escalate: boolean;
-  needsAuth: boolean;
-}
-
-export interface ScenarioFollowUp {
-  id: string;
-  label: string;
-}
-
-export interface ScenarioReply {
-  conversationId: string;
-  reply: { senderType: SenderType; body: string };
-  followUps: ScenarioFollowUp[];
-}
-
-/**
- * GET /orders item (backend OrderListItem). The status/total/currency really are
- * nullable on the wire — an order can be cached before Shopify reports them — so
- * they are typed that way here. Declaring them non-null hid the nullability from
- * every consumer instead of removing it.
- */
-export interface OrderSummary {
-  id: string;
-  orderNumber: string;
-  statusInternal: string | null;
-  statusUi: string | null;
-  total: number | null;
-  currency: string | null;
-  itemCount: number;
-  createdAt: string;
-}
-
-export interface OrderItem {
-  id: string;
-  title: string;
-  optionText: string | null;
-  qty: number;
-  price: number | null;
-}
-
-/**
- * POST /orders/guest-lookup returns the backend's much smaller `OrderSummary`
- * (4 fields) — NOT the list-item shape. It was typed as the full list item, which
- * promised `currency`, `createdAt` and `itemCount` that never arrive; nothing reads
- * the result today, so the lie was invisible.
- */
-export interface OrderLookupResult {
-  id: string;
-  orderNumber: string;
-  statusUi: string | null;
-  total: number | null;
-}
-
-/**
- * GET /orders/:id — the order's own fields with its line items, FLAT (mirrors the
- * backend's OrderDetailView). It is deliberately not `{ order, items }`: this type
- * used to claim that shape, nothing validated it, and reading `data.order.statusUi`
- * threw at runtime — which unmounted the whole widget, bubble included.
- */
-export interface OrderDetail {
-  id: string;
-  orderNumber: string;
-  statusInternal: string | null;
-  statusUi: string | null;
-  total: number | null;
-  currency: string | null;
-  createdAt: string;
-  items: OrderItem[];
-}
-
-/**
- * GET /orders/:id/tracking. `steps` is a list of localized LABELS (the backend
- * sends `deliverySteps(session.language)`), and how far along we are comes from
- * `stepIndex` — there is no per-step object. This used to be typed as
- * `{label, at, done}[]`, which silently rendered blank labels, and `step.at` hit
- * `String.prototype.at` — a function — which React then refused to render.
- */
-export interface Tracking {
-  status: string;
-  carrier: string | null;
-  trackingNumber: string | null;
-  stepIndex: number;
-  steps: string[];
-}
+export type OrderSummary = OrderListItemResponse;
+export type OrderItem = OrderItemResponse;
+export type OrderDetail = OrderDetailResponse;
+export type OrderLookupResult = OrderLookupResponse;
+export type Tracking = TrackingResponse;
 
 export type NotificationCategory =
   | 'payment'
@@ -134,38 +69,12 @@ export type NotificationCategory =
   | 'review'
   | string;
 
-export interface NotificationItem {
-  id: string;
-  category: NotificationCategory;
-  title: string;
-  /** Nullable on the wire (notification.entity `body` is nullable). */
-  body: string | null;
-  statusBadge?: string | null;
-  /** Delivery channel the row was created for (in_app/email/sms/web_push). */
-  channel?: string;
-  /** Server-derived `readAt != null`; the UI keys off readAt directly. */
-  read?: boolean;
-  readAt?: string | null;
-  createdAt: string;
-}
+export type NotificationItem = NotificationResponse;
 
 export type NotifChannel = 'in_app' | 'email' | 'sms' | 'web_push';
+export type NotifPref = NotificationPrefResponse;
 
-export interface NotifPref {
-  channel: NotifChannel;
-  category: NotificationCategory;
-  enabled: boolean;
-}
-
-/**
- * GET /affiliate/status. Note `'none'` never comes from the server — with no
- * affiliate row the endpoint 404s, and the caller falls back to 'none'.
- */
-export interface AffiliateStatus {
-  status: 'pending' | 'approved' | 'rejected' | string;
-  linkCode?: string | null;
-  commissionRate?: number;
-}
+export type AffiliateStatus = AffiliateStatusResponse;
 
 /** Server-driven scenario action keys (admin-configured). */
 export type ScenarioActionKey =
@@ -177,9 +86,4 @@ export type ScenarioActionKey =
   | 'my_orders'
   | 'message';
 
-export interface ScenarioButton {
-  id: string;
-  label: string;
-  action: ScenarioActionKey | string;
-  enabled: boolean;
-}
+export type ScenarioButton = ScenarioButtonResponse;
