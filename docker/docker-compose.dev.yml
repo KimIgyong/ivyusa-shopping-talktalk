@@ -41,7 +41,16 @@ services:
     volumes:
       - ivy_rabbitmq_data:/var/lib/rabbitmq
 
+  qdrant:
+    image: qdrant/qdrant:v1.15.1
+    container_name: ivy_qdrant
+    ports:
+      - '6343:6333'
+    volumes:
+      - ivy_qdrant_data:/qdrant/storage
+
 volumes:
   ivy_mysql_data:
   ivy_redis_data:
   ivy_rabbitmq_data:
+  ivy_qdrant_data:

@@ -92,6 +92,16 @@ services:
     volumes:
       - ivy_rabbitmq_staging_data:/var/lib/rabbitmq
 
+  qdrant:
+    image: qdrant/qdrant:v1.15.1
+    container_name: ivy_qdrant_staging
+    restart: unless-stopped
+    # No host port — the API reaches it on the compose network (QDRANT_URL=http://qdrant:6333).
+    expose:
+      - '6333'
+    volumes:
+      - ivy_qdrant_staging_data:/qdrant/storage
+
   nginx:
     image: nginx:alpine
     container_name: ivy_nginx_staging
@@ -109,3 +119,4 @@ volumes:
   ivy_mysql_staging_data:
   ivy_redis_staging_data:
   ivy_rabbitmq_staging_data:
+  ivy_qdrant_staging_data:

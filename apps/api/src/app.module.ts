@@ -7,6 +7,7 @@ import { buildTypeOrmOptions } from './global/config/typeorm.config';
 import { GlobalModule } from './global/global.module';
 import { InfrastructureModule } from './infrastructure/infrastructure.module';
 import { AiModule } from './infrastructure/external/ai/ai.module';
+import { VectorModule } from './infrastructure/external/vector/vector.module';
 import { JwtAuthGuard } from './global/guard/jwt-auth.guard';
 import { XffThrottlerGuard } from './global/guard/xff-throttler.guard';
 
@@ -54,6 +55,7 @@ import { ShopifyProxyModule } from './domain/shopify-proxy/shopify-proxy.module'
     GlobalModule,
     InfrastructureModule,
     AiModule,
+    VectorModule,
     // domains
     AuthModule,
     SessionModule,
