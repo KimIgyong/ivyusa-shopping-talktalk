@@ -111,6 +111,7 @@ export const AI_FUNCTION = {
   SUMMARY: 'summary',
   ASSIST: 'assist',
   MODERATION: 'moderation',
+  EMBEDDING: 'embedding',
 } as const;
 export type AiFunction = (typeof AI_FUNCTION)[keyof typeof AI_FUNCTION];
 

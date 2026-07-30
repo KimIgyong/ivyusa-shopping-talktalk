@@ -77,6 +77,14 @@ services:
     volumes:
       - ivy_rabbitmq_production_data:/var/lib/rabbitmq
 
+  qdrant:
+    image: qdrant/qdrant:v1.15.1
+    container_name: ivy_qdrant_production
+    restart: always
+    # Internal-network only — the API reaches it via QDRANT_URL=http://qdrant:6333.
+    volumes:
+      - ivy_qdrant_production_data:/qdrant/storage
+
   nginx:
     image: nginx:alpine
     container_name: ivy_nginx_production
@@ -93,3 +101,4 @@ volumes:
   ivy_mysql_production_data:
   ivy_redis_production_data:
   ivy_rabbitmq_production_data:
+  ivy_qdrant_production_data:
