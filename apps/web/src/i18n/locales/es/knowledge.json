@@ -16,5 +16,16 @@
   "content": "Contenido",
   "noSources": "Aún no hay fuentes.",
   "noDocuments": "Aún no hay documentos.",
-  "deleteDocumentConfirm": "¿Eliminar este documento?"
+  "deleteDocumentConfirm": "¿Eliminar este documento?",
+  "category": "Categoría",
+  "active": "Activo",
+  "updated": "Actualizado",
+  "visible": "Visible",
+  "hidden": "Oculto",
+  "activate": "Activar",
+  "deactivate": "Desactivar",
+  "allCategories": "Todas las categorías",
+  "categoryPlaceholder": "p. ej. policy_shipping, faq",
+  "documentDetail": "Documento",
+  "noContent": "(sin contenido)"
 }
