@@ -1,8 +1,12 @@
 # CLAUDE.md — IVY USA Chat & Support Widget
 
-AI working instructions for this repo, aligned to the Amoeba standards in `reference/`
-(skill, SPEC, structure, code_convention, web_style_guide, privacy_compliance v2).
-Read with `SPEC.md` and the project skill `.claude/skills/ivy-talktalk-dev/SKILL.md`.
+AI working instructions for this repo, aligned to the Amoeba standards in `reference/`.
+Standards source of truth: **`reference/btbz-dev-kit/`** (2026-07-30 — code convention v3.0,
+dev standard v2.0, git v2.0, deploy/ops v2.0, lessons-learned) supersedes the older
+`reference/amoeba_*_v2` docs where they conflict. Where the kit differs from conventions
+already shipped in this repo (pagination `size`, decorator names, `tenant_id` axis), the
+repo convention stands as an approved deviation — see SPEC §13. Read with `SPEC.md` and
+the project skill `.claude/skills/ivy-talktalk-dev/SKILL.md`.
 
 ## 1. What this is
 Multi-tenant Shopify chat/support widget (Naver TalkTalk style) + tenant console +
@@ -17,9 +21,10 @@ Tailwind + Zustand + React Query + react-i18next** (frontends). Pluggable AI gat
 - **Auth decorators** (`global/decorator/auth.decorator.ts`): `@Auth()` (JWT), `@AdminOnly(level?)`, `@RequireRank(...ranks)`, `@RequireCapability(...caps)`, `@Public()` (widget/storefront), `@CurrentUser()`. Global `JwtAuthGuard` (authn) + `AuthorizationGuard` (authz/RBAC). *(Standard's `@MasterOrAdmin`/`@PartnerOnly` ≈ `@RequireRank`/`@AdminOnly` here.)*
 - **RBAC**: rank (master/director/manager/staff) × label (consult/accounting/operations) via `@ivy/common/permission-matrix`; system admin super/admin. ACL owner-visibility (POL-019) above it.
 - **Multitenancy**: tenant-scoped queries filter by `tenant_id` (from `user.tenantId`; narrow the `Principal` union with `asTenantUser()`/`actorType==='user'`). **Never leak cross-tenant data.** ⚠️ Several legacy tables still lack `tenant_id` — see §6 gaps; add it when touching them.
-- **Entities**: nullable columns get explicit `type` in `@Column`; `BIGINT`→`bigintTransformer`, `DECIMAL`→`decimalTransformer`; camelCase prop ↔ snake_case `name:`. Tables/columns are **bare snake_case** (no `amb_`/`cw_` prefix — approved deviation, see SPEC §13). Backtick reserved words (`` `rank` ``, `` `function` ``).
+- **Entities**: nullable columns get explicit `type` in `@Column` — ⚠️ a union TS type (`string | null`) without `type` makes TypeORM infer `Object` → DataSource init fails → **API boot crash that `tsc` cannot catch** (dev-kit lesson A-1); after entity changes verify a real boot (`Nest application successfully started`). `BIGINT`→`bigintTransformer`, `DECIMAL`→`decimalTransformer`; camelCase prop ↔ snake_case `name:`. Tables/columns are **bare snake_case** (no `amb_`/`cw_` prefix — approved deviation, see SPEC §13). Backtick reserved words (`` `rank` ``, `` `function` ``). Per-tenant sequence numbers need a composite unique `(tenant_id, number)` + max-sequence+1 (never `count+1`).
 - **Response**: never hand-build the envelope — return plain objects/entities (global `TransformInterceptor` wraps them) or `new Paginated(items, buildPagination(page,size,total))` for lists.
-- **Errors**: `throw new BusinessException(ERROR_CODE.X, HttpStatus.Y)` (Exxxx codes in `global/constant/error-code.constant.ts`). Backend messages English; client localizes by code.
+- **Errors**: `throw new BusinessException(ERROR_CODE.X, HttpStatus.Y)` (Exxxx codes in `global/constant/error-code.constant.ts`). Backend messages English; client localizes by code. New modules allocate the next free Exxxx block sequentially (dev-kit §2.4). ⚠️ 4xx are not server-logged by default — "no error in logs ≠ request succeeded"; add `logger.warn` in rejecting guards.
+- **UX feedback (MUST)**: every save/update/create/delete shows explicit success/error feedback (toast; success auto-close, error manual close, i18n keys) — silent success is banned (dev-kit §4.3; retrofit cost AMA 120+ call sites). Exempt only when the result is immediately self-evident (navigate-away, toggles, live updates).
 - **i18n**: NO hardcoded UI text — use `t()` from `useTranslation()`; register namespaces in each app's `i18n.ts`; `fallbackLng: 'en'`; locales en/es/ko. Backend conversational strings localized by `session.language`; AI/RAG answers honor it.
 - **Moderation**: ALL AI + agent outbound MUST pass `ModerationService.moderate()` (fail-safe = block on error) — non-bypassable (FR-069/POL-020).
 - **Security/Privacy**: passwords bcrypt; credentials AES-256-GCM (`crypto.util`); PII masked in logs; privileged actions → `AuditService.write`. CCPA/GDPR posture (consent, opt-out) — see `reference/amoeba_privacy_compliance_v2`.
@@ -42,10 +47,42 @@ Tailwind + Zustand + React Query + react-i18next** (frontends). Pluggable AI gat
 ## 6. Seed credentials & known gaps
 Seed logins (must change on first login): `admin@amoeba.group` / `amb2026!@` (System Admin),
 `dev@amoeba.group` / `amb2026!@` (Tenant Master, ivyusa).
-**Open gaps (remediation roadmap)** — see `docs/report/RPT-Standards-Compliance-Audit-20260619.md` & SPEC §14:
-High = full `tenant_id` coverage + tenant-scope guard (remove chat "first tenant"), Shopify GDPR webhooks, DSAR/opt-out; Med = PII masking/audit, bcrypt 10→12, DTO/mapper normalization, residual hardcoded strings; Low = tests (currently 0), soft-delete, staging/prod Docker.
+**Open gaps** — the 2026-06 audit roadmap (tenant_id coverage, GDPR/DSAR, PII masking,
+bcrypt 12, DTO normalization, staging/prod Docker, unit tests) is **closed** — see SPEC §14
+for the resolution log. Remaining: e2e HTTP tests (supertest), Shopify OAuth partner
+approval, production host + `.env.production` (deploy pending), and ⚠️ **staging runs
+`DB_SYNCHRONIZE=true`** — violates dev-kit MUST (staging/prod must be `false` + manual SQL
+pre-apply, `sql/` migrations); flip once the migration runbook is exercised on staging.
 
-## 7. Workflow & traceability (`reference/amoeba_basic_skill_v2`, `_Structure_v2` §8.2)
-Requirements work: Analysis → Plan → Implementation → Test cases → Implementation report
-(`docs/{analysis,plan,implementation,test}/`). Keep code mapped to design IDs
-(FR→FN→SCR→TBL→SEQ→T). Git: branch `feature/*` from `main`, PR + squash-merge.
+## 7. Workflow & traceability (dev-kit `claude/spec-guide.md` + `_Structure_v2` §8.2)
+**Requirements workflow** — a `[요구사항]`/requirements-type request MUST follow, in order:
+1. **REQ** `docs/analysis/REQ-{Topic}-{YYYYMMDD}.md` — AS-IS, TO-BE, gap analysis, user flow, constraints
+2. **PLN** `docs/plan/PLN-{Topic}-{YYYYMMDD}.md` — staged plan + side-impact analysis;
+   ⚠️ **ASCII wireframe REQUIRED for any UI add/change** (backend-only PLN must state "no UI impact");
+   ⚠️ **implement only after the user approves the PLN — never auto-start implementation**
+3. **Implementation** (post-approval)
+4. **TCR** `docs/test/TCR-{Topic}-{YYYYMMDD}.md` — unit cases, integration scenarios, edge cases
+5. **RPT** `docs/implementation/RPT-{Topic}-{YYYYMMDD}.md` — what changed, file list, test results,
+   **deploy state (PR#, commit SHA, per-env deploy + migration status)** — this feeds memory and prevents re-implementation
+
+**Bug-fix workflow**: root cause from logs/repro (no symptom patching) → proposed fix + impact →
+minimal change → **FIX** `docs/bug-fix/FIX-{Topic}-{YYYYMMDD}.md` incl. prevention pattern
+(promote generalizable ones to memory / dev-kit). Conversation logs & daily reports go in
+`docs/log/YYYY-MM-DD/` (gitignored). Legacy `AN-`/`PLAN-`/`TC-` files are historical — do not
+rename; new docs use the kit prefixes with this repo's full `YYYYMMDD` dates. When operational
+values change (ports/domains/creds), update `CLAUDE.md`/`SPEC.md`/`CONFIG.md` immediately;
+past REQ/PLN/RPT stay as written. Keep code mapped to design IDs (FR→FN→SCR→TBL→SEQ→T).
+Git: branch `feature/*` from `main`, PR + squash-merge.
+
+Kit rules adopted (dev-kit 03/04 — MUST):
+- **Schema-change PRs** (diff touches `sql/*.sql` or `*.entity.ts`) need a `## Migration`
+  section in the PR body: SQL path, per-env apply checkboxes, rollback plan. The deploy
+  script does NOT run SQL automatically.
+- **Migration order**: apply SQL to the target DB **before** deploying code (old code +
+  new column = safe; new code + old schema = 500). Use the `pre-deploy-check` skill.
+- **Solo-dev merges**: self-approval is impossible; use `gh pr merge <N> --squash --admin`.
+- **Deploy verification**: never trust exit code alone. Check boot log
+  (`successfully started`), container age (`docker ps` STATUS), and a new route's HTTP
+  status — **401 = deployed, 404 = not deployed, 502 = API down/restarting**.
+- Never run `docker/staging/deploy-staging.sh` locally (deploys to local Docker);
+  never `docker compose build` directly (`--env-file` loss inlines wrong `VITE_*`).

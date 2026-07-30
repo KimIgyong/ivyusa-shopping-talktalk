@@ -1,0 +1,141 @@
+# {PROJECT_NAME} - Claude Code 지침
+
+> **템플릿 사용법**: `{...}` placeholder를 프로젝트 값으로 치환 후 루트 `CLAUDE.md`로 저장한다.
+> AMA 운영에서 검증된 구성 — 섹션 순서와 강제 규칙(⚠️)은 유지 권장.
+
+## 프로젝트 개요
+{프로젝트 한 줄 정의 — 도메인, 대상 사용자, 핵심 가치} (React + NestJS 풀스택)
+
+### 핵심 관점
+- {비즈니스 관점 1}
+- {비즈니스 관점 2}
+
+## 기술 스택
+- **Frontend**: React 18 + TypeScript 5 + TailwindCSS 3 + Vite 5
+- **Backend**: NestJS 10 + TypeORM + PostgreSQL 15
+- **AI**: Anthropic Claude API (`@anthropic-ai/sdk`)
+- **실시간 통신**: SSE (Server-Sent Events)
+- **모노레포**: npm workspaces + Turborepo
+
+## 프로젝트 구조
+```
+apps/api/           - @{prj}/api        NestJS 메인 백엔드 (포트 {API_PORT})
+apps/web/           - @{prj}/web        React 메인 프론트엔드 (포트 {WEB_PORT})
+packages/types/     - 공유 TypeScript 타입
+packages/common/    - 공유 유틸리티/상수
+```
+
+## 코드 컨벤션
+
+### DB 네이밍
+- 테이블: `{prj}_` prefix + snake_case 복수형
+- 컬럼: 3자 prefix + snake_case (예: `usr_email`)
+- PK: `{prefix}_id` (UUID) / Soft Delete: `{prefix}_deleted_at`
+- ⚠️ 유니언 TS 타입 컬럼(`string | null` 등)은 반드시 `type` 명시 — 미지정 시 API 부팅 크래시. tsc로는 못 잡으므로 엔티티 변경 시 실부팅 확인.
+
+### API 규칙
+- Base Path: `/api/v1`
+- Request DTO: `snake_case` / Response DTO: `camelCase`
+- 표준 응답: `{ success, data, error?, timestamp }`
+- 페이지네이션: `{ items, page, limit, totalCount, totalPages, hasNext, hasPrev }`
+
+### 파일 네이밍
+- 컴포넌트: PascalCase / 서비스·스토어: kebab-case / 훅: `use` + PascalCase
+
+## 데이터 격리 규칙 (멀티테넌시 — ent_id 기반)
+
+### 격리 필수 규칙
+1. 모든 USER_LEVEL API 엔드포인트는 반드시 `ent_id`로 데이터를 필터링한다
+2. 컨트롤러 패턴: `@Auth()` → `@UseGuards(OwnEntityGuard)` → `resolveEntityId(query, user)` → 서비스 호출
+3. 서비스 쿼리: `entityId`를 WHERE 조건에 포함
+4. ADMIN_LEVEL은 OwnEntityGuard 자동 바이패스
+5. `resolveEntityId()`: Query `entity_id` 우선 → JWT `entityId` fallback
+
+### ⚠️ 위반 시 심각도
+- `ent_id` 필터 누락 = 타 법인 데이터 노출 → 보안 사고
+- 신규 엔드포인트 추가 시(통계/집계 포함) 반드시 격리 적용 확인
+
+## 주요 명령어
+```bash
+npm run dev             # api + web 동시 실행
+npm run db:up           # PostgreSQL Docker 실행
+npm run build           # 전체 빌드
+npm run lint            # 린트 검사
+```
+
+## 환경 변수
+- Backend: `env/backend/.env.development` / Frontend: `env/frontend/.env.development`
+- Staging/Production: `docker/{env}/.env.{env}` (git 미포함, 서버 직접 관리)
+- `CLAUDE_API_KEY` 필수, `CLAUDE_MODEL`로 모델 오버라이드 가능
+
+## Git 브랜치 전략
+
+| 브랜치 | 용도 | 배포 환경 | 머지 방식 |
+|--------|------|-----------|----------|
+| `production` | 프로덕션 릴리즈 | 프로덕션 서버 | main→production PR, **Merge Commit** |
+| `main` | 개발 통합 (기본) | 스테이징 서버 | feature→main PR, **Squash** |
+| `feature/*` `fix/*` | 개발 | 로컬 | - |
+| `hotfix/*` | 긴급 수정 | production+main 양쪽 머지 | - |
+
+- 커밋 메시지: `{type}: {설명}` (feat/fix/docs/style/refactor/test/chore/hotfix)
+- ⚠️ 관리자 머지 경로(1인 개발): main `gh pr merge --squash --admin`, production `--merge --admin`
+- ⚠️ 스키마 변경 PR은 본문에 `## Migration` 섹션(SQL 경로 + 환경별 체크박스 + 롤백) 필수
+
+## 인프라 및 배포
+
+### 환경별 접속 정보
+| 환경 | Web | API | 비고 |
+|------|-----|-----|------|
+| 개발 | http://localhost:{WEB_PORT} | http://localhost:{API_PORT} | |
+| 스테이징 | https://stg-{app}.{domain} | .../api/v1 | branch: main |
+| 프로덕션 | https://{app}.{domain} | .../api/v1 | branch: production |
+
+### 배포
+- 스테이징: `ssh {staging-alias} "cd ~/{project} && bash docker/staging/deploy-staging.sh"`
+- 프로덕션: `ssh {production-alias} "cd ~/{project} && echo y | bash docker/production/deploy-production.sh"`
+- ⚠️ 각 환경 스크립트는 반드시 해당 서버에서 실행 (로컬 실행 시 로컬 Docker에 배포됨)
+- ⚠️ `docker compose build` 직접 실행 금지 → 반드시 deploy-*.sh 경유 (`--env-file` 누락 방지)
+- ⚠️ `VITE_*` 변수는 빌드 시점 인라인 — 변경 시 이미지 재빌드 필수
+- ⚠️ 프로덕션 deploy는 `production` 브랜치를 빌드 — main→production PR 먼저
+- ⚠️ 배포 검증: exit code 아닌 부팅 로그 + 컨테이너 나이 + 신규 라우트 401(배포됨)/404(미배포)로 판정
+
+### DB 마이그레이션 (수동 적용)
+- 운영 환경 `synchronize: false`. `sql/*.sql`은 **코드 배포 전 선적용**:
+```bash
+ssh {env} "docker cp ~/{project}/sql/<f>.sql {pg-container}:/tmp/m.sql \
+  && docker exec {pg-container} psql -U {db_user} -d {db_name} -v ON_ERROR_STOP=1 -f /tmp/m.sql"
+```
+
+## 에러 코드 체계
+- E1xxx: 인증/인가 / E2xxx: 사용자 / ... / E9xxx: 시스템
+- 신규 모듈: 기존 최대값+1000 범위 순차 할당
+
+## 요구사항 작업 워크플로우
+`[요구사항]` 타이틀 요청은 반드시 아래 순서로 진행한다:
+
+1. **요구사항 분석서** → `docs/analysis/REQ-{YYMMDD}-{제목}.md` (AS-IS/TO-BE/갭/플로우/제약)
+2. **작업 계획서** → `docs/plan/PLN-{YYMMDD}-{제목}.md`
+   - ⚠️ **반드시 화면구성도(ASCII 와이어프레임) 포함.** 없으면 미완성 간주.
+   - ⚠️ **작성 후 사용자 확인·진행 지시를 받은 뒤에만 구현 착수. 자동 구현 금지.**
+3. **구현** (사용자 지시 후)
+4. **테스트 케이스** → `docs/test/TCR-{YYMMDD}-{제목}.md`
+5. **작업 완료 보고** → `docs/implementation/RPT-{YYMMDD}-{제목}.md`
+
+## 버그 수정 워크플로우
+1. 원인 분석 (로그/재현 경로 기반 근본 원인) → 2. 해결 방안 제시 → 3. 최소 범위 수정 → 4. **버그 수정 보고서** `docs/bug-fix/FIX-{YYMMDD}-{제목}.md`
+
+## 대화 기록 및 데일리 리포트
+- 대화 로그: `docs/log/YYYY-MM-DD/{HH}_{순번}_{작업요약}.md` (git 제외)
+- 데일리 리포트: `docs/log/YYYY-MM-DD/DAILY-REPORT.md`
+- 기록 내용: 요청 원문, 작업 요약, 변경 파일, 이슈/해결, 미완료 항목
+
+## i18n 규칙
+- UI 텍스트 하드코딩 금지 → `locales/` + `t()` / 새 네임스페이스는 `i18n.ts` 등록
+- 백엔드 에러 메시지는 영어 고정 (프론트 에러 코드 번역)
+- AI 응답 언어는 `Accept-Language` 헤더 제어
+
+## UX 규칙: 버튼 동작 피드백 필수
+- ⚠️ 모든 데이터 변경(저장/수정/생성/삭제) 후 반드시 완료 안내 표시 — 조용한 성공 처리 금지
+- 성공: 자동 닫힘 3초 / 실패: 에러 상세 + 수동 닫기
+- 표준 컴포넌트: {앱별 확정 — 예: web=sonner toast, portal=AlertModal}
+- 메시지는 i18n 키 사용 (`common:saveSuccess` 등 공통 키 재사용)
