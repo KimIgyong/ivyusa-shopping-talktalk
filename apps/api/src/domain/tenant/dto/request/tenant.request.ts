@@ -1,4 +1,14 @@
-import { IsIn, IsObject, IsOptional, IsString, Matches, MinLength } from 'class-validator';
+import {
+  IsIn,
+  IsObject,
+  IsOptional,
+  IsString,
+  IsUrl,
+  Length,
+  Matches,
+  MaxLength,
+  MinLength,
+} from 'class-validator';
 import { TENANT_SLUG_PATTERN } from '../../../../global/constant/reserved-slug.constant';
 
 /** Request DTOs — snake_case (amoeba_code_convention). */
@@ -82,4 +92,24 @@ export class UpdateShopifySettingsRequest {
 export class UpdateIntegrationRequest {
   @IsObject()
   config: Record<string, string>;
+}
+
+/**
+ * Tenant privacy-notice settings (PLN-Privacy-Control-Gap Stage 2). Both fields
+ * are optional (PATCH semantics); sending null clears the value back to the
+ * platform default. Bumping `consent_notice_version` forces widget re-consent.
+ */
+export class UpdatePrivacyNoticeRequest {
+  // Must be an absolute http(s) URL when set; null clears it.
+  @IsOptional()
+  @IsUrl({ protocols: ['http', 'https'], require_protocol: true })
+  @MaxLength(512)
+  privacy_policy_url?: string | null;
+
+  // Safe charset only (letters/digits . _ -); null falls back to the platform version.
+  @IsOptional()
+  @IsString()
+  @Length(1, 32)
+  @Matches(/^[A-Za-z0-9][A-Za-z0-9._-]*$/)
+  consent_notice_version?: string | null;
 }

@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Param, Patch, Post, Put, Query } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { HttpStatus } from '@nestjs/common';
-import { CAPABILITY, Principal } from '@ivy/types';
+import { CAPABILITY, Principal, USER_RANK } from '@ivy/types';
 import { buildPagination, normalizePage } from '@ivy/common';
 import { TenantService } from './tenant.service';
 import { EcommerceIntegrationService } from './ecommerce-integration.service';
@@ -10,12 +10,13 @@ import {
   CreateTenantRequest,
   ListTenantsQuery,
   UpdateIntegrationRequest,
+  UpdatePrivacyNoticeRequest,
   UpdateShopifySettingsRequest,
   UpdateTenantStatusRequest,
   UpsertCredentialRequest,
 } from './dto/request/tenant.request';
 import { Paginated } from '../../global/interceptor/transform.interceptor';
-import { AdminOnly, RequireCapability } from '../../global/decorator/auth.decorator';
+import { AdminOnly, RequireCapability, RequireRank } from '../../global/decorator/auth.decorator';
 import { Public } from '../../global/decorator/public.decorator';
 import { CurrentUser } from '../../global/decorator/current-user.decorator';
 import { BusinessException } from '../../global/exception/business.exception';
@@ -48,6 +49,30 @@ export class TenantController {
       throw new BusinessException(ERROR_CODE.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND);
     }
     return TenantMapper.toPublicTenant(tenant);
+  }
+
+  // NOTE: declared before ':uuid' so 'privacy-notice' is not captured as a UUID.
+  @Get('privacy-notice')
+  @RequireRank(USER_RANK.MASTER, USER_RANK.DIRECTOR)
+  @ApiOperation({ summary: 'Get this tenant privacy-notice settings (PLN-Privacy-Control-Gap Stage 2)' })
+  async getPrivacyNotice(@CurrentUser() user: Principal) {
+    const tenant = await this.tenantService.findById(this.tenantId(user));
+    return TenantMapper.toPrivacyNotice(tenant);
+  }
+
+  @Patch('privacy-notice')
+  @RequireRank(USER_RANK.MASTER, USER_RANK.DIRECTOR)
+  @ApiOperation({ summary: 'Update this tenant privacy-policy URL / consent-notice version' })
+  async updatePrivacyNotice(
+    @CurrentUser() user: Principal,
+    @Body() body: UpdatePrivacyNoticeRequest,
+  ) {
+    // @RequireRank guarantees a tenant user at runtime; narrow for TS.
+    if (user.actorType !== 'user') {
+      throw new BusinessException(ERROR_CODE.FORBIDDEN, HttpStatus.FORBIDDEN);
+    }
+    const tenant = await this.tenantService.updatePrivacyNotice(user.tenantId, user.userId, body);
+    return TenantMapper.toPrivacyNotice(tenant);
   }
 
   @Get(':uuid')

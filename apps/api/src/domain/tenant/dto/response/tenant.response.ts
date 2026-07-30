@@ -50,6 +50,15 @@ export interface ShopifyTestResponse {
 }
 
 /**
+ * Tenant privacy-notice settings (PLN-Privacy-Control-Gap Stage 2). Stored
+ * values as configured — null means "unset, platform default applies".
+ */
+export interface PrivacyNoticeResponse {
+  privacyPolicyUrl: string | null;
+  consentNoticeVersion: string | null;
+}
+
+/**
  * Generic e-commerce integration settings view. `fields` holds the non-secret
  * credential values (echoed back); `secrets` maps each secret field key to whether
  * it is currently stored (the value itself is never returned).

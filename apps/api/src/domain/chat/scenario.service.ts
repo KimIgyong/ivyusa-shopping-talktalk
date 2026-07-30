@@ -1,11 +1,12 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { MODERATION_DECISION, SENDER_TYPE } from '@ivy/types';
+import { CONSENT_STATE, MODERATION_DECISION, SENDER_TYPE } from '@ivy/types';
 import { Message } from './entity/message.entity';
 import { Session } from '../session/entity/session.entity';
-import { ChatService } from './chat.service';
+import { ChatService, sysMsg } from './chat.service';
 import { ModerationService } from '../moderation/moderation.service';
+import { SessionService } from '../session/session.service';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
 
@@ -172,6 +173,7 @@ export class ScenarioService {
     @InjectRepository(Message) private readonly msgRepo: Repository<Message>,
     private readonly chatService: ChatService,
     private readonly moderation: ModerationService,
+    private readonly sessionService: SessionService,
   ) {}
 
   isScenarioAction(action: string): boolean {
@@ -184,6 +186,20 @@ export class ScenarioService {
       throw new BusinessException(ERROR_CODE.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND);
     }
     const l = lang(session);
+
+    // Consent gate (PLN-Privacy-Control-Gap D-1, fail-closed) — mirrors the
+    // chat path: without an effective GRANTED (fresh read, current notice
+    // version) nothing is persisted and no conversation is created; the widget
+    // gets a soft system reply pointing back to the consent banner.
+    const consent = await this.sessionService.effectiveConsentFor(session.id, session.tenantId);
+    if (consent !== CONSENT_STATE.GRANTED) {
+      return {
+        conversationId: 0,
+        reply: { senderType: 'system', body: sysMsg('consentRequired', session.language) },
+        followUps: [],
+      };
+    }
+
     const conversation = await this.chatService.getOrCreateConversation(session.id);
 
     await this.msgRepo.save(
