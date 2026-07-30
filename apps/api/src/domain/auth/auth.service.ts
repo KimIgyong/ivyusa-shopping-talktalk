@@ -8,7 +8,11 @@ import * as bcrypt from 'bcryptjs';
 import { RedisService } from '../../infrastructure/cache/redis.service';
 import { AuditService } from '../audit/audit.service';
 import { maskPii } from '../../global/util/pii.util';
-import { BCRYPT_ROUNDS, MFA_STEP_UP_TTL_SEC } from '../../global/constant/security.constant';
+import {
+  BCRYPT_ROUNDS,
+  MFA_REQUIRED_USER_RANKS,
+  MFA_STEP_UP_TTL_SEC,
+} from '../../global/constant/security.constant';
 import { validatePassword } from '../../global/util/password-policy.util';
 import { AdminLevel, JobLabel, Principal, UserRank } from '@ivy/types';
 import { AdminUser } from './entity/admin-user.entity';
@@ -39,6 +43,20 @@ interface MfaStepUpPayload {
   actorType?: string;
   purpose?: string;
 }
+
+/**
+ * MFA-enrollment enforcement state for one account (PLN-MFA Stage M3).
+ * `required` — the rank must enroll and MFA_ENFORCE_FROM is set;
+ * `enforced` — the enforcement date has passed, so the access token carries
+ * `mfaPending` and JwtAuthGuard locks non-enrollment routes (E1010).
+ */
+interface MfaEnforcementInfo {
+  required: boolean;
+  enforceFrom: string | null;
+  enforced: boolean;
+}
+
+const MFA_NOT_ENFORCED: MfaEnforcementInfo = { required: false, enforceFrom: null, enforced: false };
 
 /**
  * Authentication (SEQ-02 partial; FR-053/054, POL-018). Issues short-lived
@@ -114,12 +132,18 @@ export class AuthService {
       email: admin.email,
       level: admin.level as AdminLevel,
     };
-    return this.issue(principal, admin.mustChangePassword === 1, {
-      actorType: 'admin',
-      id: admin.id,
-      email: admin.email,
-      level: admin.level as AdminLevel,
-    });
+    return this.issue(
+      principal,
+      admin.mustChangePassword === 1,
+      {
+        actorType: 'admin',
+        id: admin.id,
+        email: admin.email,
+        level: admin.level as AdminLevel,
+      },
+      // challenge==null ⇒ MFA not enabled for this account (M3 flags apply).
+      this.mfaEnforcementFor('admin', undefined, false),
+    );
   }
 
   async loginUser(
@@ -178,14 +202,20 @@ export class AuthService {
       rank: user.rank as UserRank,
       labels,
     };
-    return this.issue(principal, user.mustChangePassword === 1, {
-      actorType: 'user',
-      id: user.id,
-      email: user.email,
-      tenantId: user.tenantId,
-      rank: user.rank as UserRank,
-      labels,
-    });
+    return this.issue(
+      principal,
+      user.mustChangePassword === 1,
+      {
+        actorType: 'user',
+        id: user.id,
+        email: user.email,
+        tenantId: user.tenantId,
+        rank: user.rank as UserRank,
+        labels,
+      },
+      // challenge==null ⇒ MFA not enabled for this account (M3 flags apply).
+      this.mfaEnforcementFor('user', user.rank, false),
+    );
   }
 
   /**
@@ -315,12 +345,17 @@ export class AuthService {
         email: admin.email,
         level: admin.level as AdminLevel,
       };
-      return this.issue(principal, admin.mustChangePassword === 1, {
-        actorType: 'admin',
-        id: admin.id,
-        email: admin.email,
-        level: admin.level as AdminLevel,
-      });
+      return this.issue(
+        principal,
+        admin.mustChangePassword === 1,
+        {
+          actorType: 'admin',
+          id: admin.id,
+          email: admin.email,
+          level: admin.level as AdminLevel,
+        },
+        await this.mfaEnforcementWithLookup('admin', admin.id, undefined),
+      );
     }
     const user = await this.userRepo.findOne({ where: { id: payload.userId } });
     if (!user || user.status === 'suspended') {
@@ -336,14 +371,19 @@ export class AuthService {
       rank: user.rank as UserRank,
       labels,
     };
-    return this.issue(principal, user.mustChangePassword === 1, {
-      actorType: 'user',
-      id: user.id,
-      email: user.email,
-      tenantId: user.tenantId,
-      rank: user.rank as UserRank,
-      labels,
-    });
+    return this.issue(
+      principal,
+      user.mustChangePassword === 1,
+      {
+        actorType: 'user',
+        id: user.id,
+        email: user.email,
+        tenantId: user.tenantId,
+        rank: user.rank as UserRank,
+        labels,
+      },
+      await this.mfaEnforcementWithLookup('user', user.id, user.rank),
+    );
   }
 
   /**
@@ -370,7 +410,12 @@ export class AuthService {
         actorId: admin.id,
         action: 'auth.password_changed',
       });
-      return this.issue(principal, false, this.toPrincipalResponse(principal));
+      return this.issue(
+        principal,
+        false,
+        this.toPrincipalResponse(principal),
+        await this.mfaEnforcementWithLookup('admin', admin.id, undefined),
+      );
     }
     const user = await this.userRepo.findOneByOrFail({ id: principal.userId });
     await this.assertAndSet(user.passwordHash, current, next, { email: user.email, name: user.name }, async (hash) => {
@@ -385,7 +430,12 @@ export class AuthService {
       actorId: user.id,
       action: 'auth.password_changed',
     });
-    return this.issue(principal, false, this.toPrincipalResponse(principal));
+    return this.issue(
+      principal,
+      false,
+      this.toPrincipalResponse(principal),
+      await this.mfaEnforcementWithLookup('user', user.id, user.rank),
+    );
   }
 
   /** Revoke the presented refresh token (best-effort; invalid tokens are ignored). */
@@ -482,10 +532,88 @@ export class AuthService {
     await save(await bcrypt.hash(next, BCRYPT_ROUNDS));
   }
 
+  /**
+   * MFA-enrollment enforcement (Stage M3, D-M1/D-M2). Driven by the
+   * MFA_ENFORCE_FROM env var (ISO date): unset → capability only, no flags.
+   * Enrolled accounts and non-required ranks never carry flags. Before the
+   * date the login response advises (grace banner); after it the token gets
+   * `mfaPending` and the guard locks the account to the enrollment routes.
+   */
+  private mfaEnforcementFor(
+    actorType: 'admin' | 'user',
+    rank: string | undefined,
+    enrolled: boolean,
+  ): MfaEnforcementInfo {
+    const raw = (this.config.get<string>('MFA_ENFORCE_FROM') ?? '').trim();
+    if (!raw || enrolled) return MFA_NOT_ENFORCED;
+    const requiredRank =
+      actorType === 'admin' || (rank != null && MFA_REQUIRED_USER_RANKS.includes(rank));
+    if (!requiredRank) return MFA_NOT_ENFORCED;
+    const ts = Date.parse(raw);
+    if (Number.isNaN(ts)) {
+      this.logger.warn(`MFA_ENFORCE_FROM is not a parseable date: "${raw}" — enforcement inactive`);
+      return MFA_NOT_ENFORCED;
+    }
+    return { required: true, enforceFrom: new Date(ts).toISOString(), enforced: Date.now() >= ts };
+  }
+
+  /** Enforcement info for flows where enrollment isn't already known (refresh, change-password). */
+  private async mfaEnforcementWithLookup(
+    actorType: 'admin' | 'user',
+    actorId: number,
+    rank: string | undefined,
+  ): Promise<MfaEnforcementInfo> {
+    // Skip the DB lookup entirely when enforcement can't apply.
+    if (this.mfaEnforcementFor(actorType, rank, false) === MFA_NOT_ENFORCED) return MFA_NOT_ENFORCED;
+    const enrolled = await this.mfa.isEnabled(actorType, actorId);
+    return this.mfaEnforcementFor(actorType, rank, enrolled);
+  }
+
+  /**
+   * Fresh token pair right after MFA activation so the client can immediately
+   * drop a `mfaPending`-locked access token (Stage M3).
+   */
+  async reissueAfterMfaEnroll(principal: Principal): Promise<AuthTokensResponse> {
+    if (principal.actorType === 'admin') {
+      const admin = await this.adminRepo.findOneByOrFail({ id: principal.adminId });
+      const p: Principal = {
+        actorType: 'admin',
+        adminId: admin.id,
+        email: admin.email,
+        level: admin.level as AdminLevel,
+      };
+      return this.issue(p, admin.mustChangePassword === 1, {
+        actorType: 'admin',
+        id: admin.id,
+        email: admin.email,
+        level: admin.level as AdminLevel,
+      });
+    }
+    const user = await this.userRepo.findOneByOrFail({ id: principal.userId });
+    const labels = await this.loadLabels(user.id);
+    const p: Principal = {
+      actorType: 'user',
+      userId: user.id,
+      tenantId: user.tenantId,
+      email: user.email,
+      rank: user.rank as UserRank,
+      labels,
+    };
+    return this.issue(p, user.mustChangePassword === 1, {
+      actorType: 'user',
+      id: user.id,
+      email: user.email,
+      tenantId: user.tenantId,
+      rank: user.rank as UserRank,
+      labels,
+    });
+  }
+
   private async issue(
     rawPrincipal: Principal,
     mustChangePassword: boolean,
     principalResponse: PrincipalResponse,
+    mfa: MfaEnforcementInfo = MFA_NOT_ENFORCED,
   ): Promise<AuthTokensResponse> {
     // Allowlist the principal fields: callers may pass req.user, which is the
     // decoded JWT payload and carries iat/exp/pwdPending — re-signing those
@@ -497,6 +625,9 @@ export class AuthService {
     const accessToken = this.jwt.sign({
       ...(principal as object),
       ...(mustChangePassword ? { pwdPending: true } : {}),
+      // mfa-pending rides in the ACCESS token, same as pwdPending, so the
+      // guard can enforce the enrollment lockout without a DB hit (M3).
+      ...(mfa.enforced ? { mfaPending: true } : {}),
     });
     const refreshTtl = Number(this.config.get<string>('JWT_REFRESH_TTL', '604800'));
     const jti = randomUUID();
@@ -508,7 +639,15 @@ export class AuthService {
       },
     );
     await this.redis.set(this.refreshKey(jti), '1', refreshTtl);
-    return { accessToken, refreshToken, mustChangePassword, principal: principalResponse };
+    return {
+      accessToken,
+      refreshToken,
+      mustChangePassword,
+      principal: principalResponse,
+      mfaEnrollmentRequired: mfa.required,
+      mfaEnforceFrom: mfa.enforceFrom,
+      mfaEnforced: mfa.enforced,
+    };
   }
 
   private refreshKey(jti: string): string {

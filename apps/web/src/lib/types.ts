@@ -23,6 +23,14 @@ export interface LoginResponse {
   refreshToken: string;
   mustChangePassword: boolean;
   principal: Principal;
+  /**
+   * MFA-enrollment enforcement (PLN-MFA M3): required = rank must enroll
+   * (grace banner until mfaEnforceFrom); mfaEnforced = deadline passed, the
+   * token only works on enrollment routes (forced modal).
+   */
+  mfaEnrollmentRequired?: boolean;
+  mfaEnforceFrom?: string | null;
+  mfaEnforced?: boolean;
 }
 
 /** Step-up login response for MFA-enabled accounts (no tokens/principal yet). */

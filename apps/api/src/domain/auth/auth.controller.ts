@@ -17,6 +17,7 @@ import {
 import { Public } from '../../global/decorator/public.decorator';
 import { Auth } from '../../global/decorator/auth.decorator';
 import { AllowPendingPassword } from '../../global/decorator/allow-pending-password.decorator';
+import { AllowPendingMfa } from '../../global/decorator/allow-pending-mfa.decorator';
 import { CurrentUser } from '../../global/decorator/current-user.decorator';
 
 /** Client IP for rate limiting: the first X-Forwarded-For hop (set by the edge
@@ -77,6 +78,7 @@ export class AuthController {
 
   @Get('mfa/status')
   @Auth()
+  @AllowPendingMfa()
   @ApiOperation({ summary: 'MFA enrollment status for the current account' })
   mfaStatus(@CurrentUser() user: Principal) {
     return this.mfaService.status(user);
@@ -84,6 +86,7 @@ export class AuthController {
 
   @Post('mfa/enroll')
   @Auth()
+  @AllowPendingMfa()
   @ApiOperation({ summary: 'Start MFA enrollment (returns otpauth URI + manual key ONCE)' })
   mfaEnroll(@CurrentUser() user: Principal) {
     return this.mfaService.enroll(user);
@@ -91,9 +94,13 @@ export class AuthController {
 
   @Post('mfa/enroll/verify')
   @Auth()
+  @AllowPendingMfa()
   @ApiOperation({ summary: 'Confirm enrollment with a first TOTP; returns one-time recovery codes' })
-  mfaEnrollVerify(@CurrentUser() user: Principal, @Body() body: MfaEnrollVerifyRequest) {
-    return this.mfaService.enrollVerify(user, body.code);
+  async mfaEnrollVerify(@CurrentUser() user: Principal, @Body() body: MfaEnrollVerifyRequest) {
+    const { recoveryCodes } = await this.mfaService.enrollVerify(user, body.code);
+    // Fresh pair so the client can drop a mfaPending-locked token at once (M3).
+    const tokens = await this.authService.reissueAfterMfaEnroll(user);
+    return { recoveryCodes, tokens };
   }
 
   @Post('mfa/disable')
@@ -118,6 +125,7 @@ export class AuthController {
   @Post('change-password')
   @Auth()
   @AllowPendingPassword()
+  @AllowPendingMfa()
   @ApiOperation({ summary: 'Change password (clears must-change flag, returns fresh tokens)' })
   changePassword(@CurrentUser() user: Principal, @Body() body: ChangePasswordRequest) {
     return this.authService.changePassword(user, body.current_password, body.new_password);
@@ -126,6 +134,7 @@ export class AuthController {
   @Post('logout')
   @Auth()
   @AllowPendingPassword()
+  @AllowPendingMfa()
   @ApiOperation({ summary: 'Log out (revokes the presented refresh token)' })
   async logout(@Body() body: LogoutRequest) {
     await this.authService.logout(body.refresh_token);
@@ -135,6 +144,7 @@ export class AuthController {
   @Get('me')
   @Auth()
   @AllowPendingPassword()
+  @AllowPendingMfa()
   @ApiOperation({ summary: 'Current principal' })
   me(@CurrentUser() user: Principal) {
     return this.authService.me(user);

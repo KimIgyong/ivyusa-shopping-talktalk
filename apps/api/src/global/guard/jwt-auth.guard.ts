@@ -6,6 +6,7 @@ import { Request } from 'express';
 import { Principal } from '@ivy/types';
 import { IS_PUBLIC_KEY } from '../decorator/public.decorator';
 import { ALLOW_PENDING_PASSWORD_KEY } from '../decorator/allow-pending-password.decorator';
+import { ALLOW_PENDING_MFA_KEY } from '../decorator/allow-pending-mfa.decorator';
 import { BusinessException } from '../exception/business.exception';
 import { ERROR_CODE } from '../constant/error-code.constant';
 import { HttpStatus } from '@nestjs/common';
@@ -36,9 +37,11 @@ export class JwtAuthGuard implements CanActivate {
     if (!token) {
       throw new BusinessException(ERROR_CODE.UNAUTHORIZED, HttpStatus.UNAUTHORIZED);
     }
-    let payload: Principal & { pwdPending?: boolean; purpose?: string };
+    let payload: Principal & { pwdPending?: boolean; mfaPending?: boolean; purpose?: string };
     try {
-      payload = await this.jwt.verifyAsync<Principal & { pwdPending?: boolean; purpose?: string }>(
+      payload = await this.jwt.verifyAsync<
+        Principal & { pwdPending?: boolean; mfaPending?: boolean; purpose?: string }
+      >(
         token,
         {
           secret: this.config.get<string>('JWT_ACCESS_SECRET'),
@@ -65,6 +68,21 @@ export class JwtAuthGuard implements CanActivate {
       ]);
       if (!allowPending) {
         throw new BusinessException(ERROR_CODE.MUST_CHANGE_PASSWORD, HttpStatus.FORBIDDEN);
+      }
+    }
+    // MFA-enrollment lockout (PLN-MFA M3): past MFA_ENFORCE_FROM, a required-rank
+    // account without MFA can only reach the enrollment routes. 4xx are not
+    // server-logged by default, so warn here.
+    if (payload.mfaPending) {
+      const allowMfaPending = this.reflector.getAllAndOverride<boolean>(ALLOW_PENDING_MFA_KEY, [
+        ctx.getHandler(),
+        ctx.getClass(),
+      ]);
+      if (!allowMfaPending) {
+        this.logger.warn(
+          `blocked mfaPending token on a non-enrollment route (${payload.actorType} ${payload.email})`,
+        );
+        throw new BusinessException(ERROR_CODE.MFA_REQUIRED, HttpStatus.FORBIDDEN);
       }
     }
     req.user = payload;

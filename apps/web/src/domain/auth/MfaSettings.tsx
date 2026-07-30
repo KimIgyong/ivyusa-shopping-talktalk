@@ -93,6 +93,12 @@ export function MfaSettings() {
     onSuccess: (res) => {
       setEnrollment(null);
       setRecoveryCodes(res.recoveryCodes);
+      // M3: activation returns a fresh token pair — swap out a possibly
+      // mfaPending-locked token and drop the enforcement flags right away.
+      if (res.tokens) {
+        useAuthStore.getState().setAuth(res.tokens);
+      }
+      useAuthStore.getState().clearMfaEnrollment();
       toast.success(t('mfaEnrolled'));
       qc.invalidateQueries({ queryKey: statusKey });
     },

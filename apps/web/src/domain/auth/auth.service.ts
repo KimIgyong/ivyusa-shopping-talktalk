@@ -37,7 +37,11 @@ export const authService = {
   mfaEnroll: () => apiPost<MfaEnrollment>('/auth/mfa/enroll', {}),
   // Confirms the authenticator setup; the 10 recovery codes are shown ONCE.
   mfaEnrollVerify: (code: string) =>
-    apiPost<{ recoveryCodes: string[] }>('/auth/mfa/enroll/verify', { code }),
+    // tokens: fresh pair issued on activation so a mfaPending-locked client
+    // can immediately resume normal API access (PLN-MFA M3).
+    apiPost<{ recoveryCodes: string[]; tokens?: LoginResponse }>('/auth/mfa/enroll/verify', {
+      code,
+    }),
   mfaDisable: (password: string, code: string) =>
     apiPost<{ disabled: boolean }>('/auth/mfa/disable', { password, code }),
 };
