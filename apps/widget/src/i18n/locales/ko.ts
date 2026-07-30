@@ -35,6 +35,16 @@ export const ko: Translation = {
       body: 'CCPA에 따라 상담 제공을 위해 고객님의 메시지를 처리합니다. 계속 진행하는 데 동의하시겠습니까?',
       accept: '동의',
       decline: '거부',
+      versionLabel: '안내문 버전 {{version}}',
+      updated: '개인정보 처리 안내가 변경되었습니다 — 내용을 확인하고 다시 선택해 주세요.',
+      items: '수집 항목: 채팅 메시지, 요청하신 주문 조회 내역, 기본 기기 정보',
+      purpose: '이용 목적: 문의 응대 및 고객 지원 제공',
+      retention: '보관 기간: 채팅 데이터는 최대 365일 보관 후 삭제됩니다.',
+      aiProcessor: 'AI 처리: 메시지는 미국 소재 제3자 AI 제공업체가 처리합니다.',
+      policyLink: '개인정보 처리방침',
+      privacyChoices: '개인정보 선택 및 내 데이터',
+      saveError: '선택을 저장하지 못했습니다. 다시 시도해 주세요.',
+      retry: '다시 시도',
     },
     scenarios: {
       delivery: '배송 조회',
@@ -137,6 +147,24 @@ export const ko: Translation = {
 
   privacy: {
     title: '개인정보 및 내 데이터',
+    consent: {
+      title: '채팅·AI 동의',
+      state: {
+        granted: '동의함',
+        declined: '동의 철회됨',
+        pending: '아직 선택하지 않음',
+      },
+      grantedAt: '{{date}}',
+      version: '안내문 버전 {{version}}',
+      pendingHint: '채팅 탭에서 개인정보 처리 안내를 확인하고 선택해 주세요.',
+      withdraw: '동의 철회',
+      withdrawConfirm: '한 번 더 클릭하면 철회가 확정됩니다',
+      withdrawHint: '철회하면 다시 동의할 때까지 채팅과 AI 처리가 중단됩니다.',
+      reconsent: '다시 동의하기',
+      saved: '동의 선택이 저장되었습니다.',
+      error: '선택을 저장하지 못했습니다. 다시 시도해 주세요.',
+      unavailable: '현재 동의 상태를 확인할 수 없습니다. 연결 상태를 확인한 뒤 위젯을 다시 열어 주세요.',
+    },
     optOutHint: '계정의 이메일, SMS, 웹 푸시 메시지를 끕니다. 앱 내 알림은 유지됩니다.',
     export: '내 데이터 다운로드 (JSON)',
     exporting: '내보내기를 준비하는 중…',
@@ -150,6 +178,7 @@ export const ko: Translation = {
     loading: '불러오는 중…',
     error: '문제가 발생했습니다.',
     retry: '다시 시도',
+    close: '닫기',
   },
 
   a11y: {

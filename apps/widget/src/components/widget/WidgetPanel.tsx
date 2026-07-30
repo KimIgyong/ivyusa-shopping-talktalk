@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { Settings, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useWidgetStore } from '../../store/widgetStore';
@@ -13,7 +13,10 @@ export function WidgetPanel() {
   const { t } = useTranslation();
   const activeTab = useWidgetStore((s) => s.activeTab);
   const setPanelOpen = useWidgetStore((s) => s.setPanelOpen);
-  const [showSettings, setShowSettings] = useState(false);
+  // Store-held so other surfaces (e.g. the consent banner's "privacy choices"
+  // link) can open the settings/preferences area too.
+  const showSettings = useWidgetStore((s) => s.settingsOpen);
+  const setShowSettings = useWidgetStore((s) => s.setSettingsOpen);
   const panelRef = useRef<HTMLDivElement>(null);
 
   // Esc closes the panel; focus the panel on open.
@@ -48,7 +51,7 @@ export function WidgetPanel() {
         <div className="flex items-center gap-1.5">
           <LanguageSwitcher />
           <button
-            onClick={() => setShowSettings((v) => !v)}
+            onClick={() => setShowSettings(!showSettings)}
             aria-label={t('settings')}
             className={`rounded-lg p-1.5 hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/70 ${
               showSettings ? 'bg-white/20' : ''
