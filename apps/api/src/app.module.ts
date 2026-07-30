@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ThrottlerModule } from '@nestjs/throttler';
@@ -10,6 +10,7 @@ import { AiModule } from './infrastructure/external/ai/ai.module';
 import { VectorModule } from './infrastructure/external/vector/vector.module';
 import { JwtAuthGuard } from './global/guard/jwt-auth.guard';
 import { XffThrottlerGuard } from './global/guard/xff-throttler.guard';
+import { RequestContextMiddleware } from './global/middleware/request-context.middleware';
 
 // Domain modules
 import { AuthModule } from './domain/auth/auth.module';
@@ -90,4 +91,9 @@ import { ShopifyProxyModule } from './domain/shopify-proxy/shopify-proxy.module'
     { provide: APP_GUARD, useClass: JwtAuthGuard },
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer): void {
+    // Request-context (requestId + client IP) for audit traceability — all routes.
+    consumer.apply(RequestContextMiddleware).forRoutes('*');
+  }
+}
