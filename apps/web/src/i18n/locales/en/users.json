@@ -20,5 +20,10 @@
   "tempPwDesc": "Share this with the user through a secure channel. They must change it on first login. It is shown only once.",
   "tempPwIssued": "Temporary password issued.",
   "copy": "Copy",
-  "copied": "Copied"
+  "copied": "Copied",
+  "mfaReset": "Reset MFA",
+  "mfaResetTitle": "Reset MFA",
+  "mfaResetConfirm": "Reset MFA for {{email}}?",
+  "mfaResetWarning": "The user will need to enroll MFA again at their next sign-in. This action is recorded in the audit log.",
+  "mfaResetDone": "MFA has been reset."
 }

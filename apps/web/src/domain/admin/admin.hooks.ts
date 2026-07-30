@@ -86,6 +86,13 @@ export function useIssueTenantUserTempPassword(tenantId: string) {
   });
 }
 
+export function useResetTenantUserMfa(tenantId: string) {
+  return useMutation({
+    mutationFn: (userId: string) => adminService.resetTenantUserMfa(tenantId, userId),
+    onError: (err: Error) => toast.error(err.message, { sticky: true }),
+  });
+}
+
 export function useSetTenantUserStatus(tenantId: string) {
   const qc = useQueryClient();
   return useMutation({

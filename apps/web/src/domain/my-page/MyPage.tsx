@@ -6,6 +6,7 @@ import { Card } from '@/components/Card';
 import { Badge } from '@/components/Badge';
 import { Button } from '@/components/Button';
 import { ChangePasswordModal } from '@/domain/auth/ChangePasswordModal';
+import { MfaSettings } from '@/domain/auth/MfaSettings';
 import { useAuthStore } from '@/store/auth-store';
 
 /** Signed-in user's profile: identity, role and password change. */
@@ -63,6 +64,11 @@ export function MyPage() {
           <KeyRound className="mr-1.5 h-4 w-4" />
           {ta('changePassword')}
         </Button>
+      </Card>
+
+      <Card title={ta('mfaTitle')}>
+        <p className="mb-4 text-sm text-gray-500">{ta('mfaDesc')}</p>
+        <MfaSettings />
       </Card>
 
       <ChangePasswordModal open={pwOpen} onClose={() => setPwOpen(false)} />

@@ -20,5 +20,10 @@
   "tempPwDesc": "Compártela con el usuario por un canal seguro. Deberá cambiarla en el primer inicio de sesión. Se muestra una sola vez.",
   "tempPwIssued": "Contraseña temporal emitida.",
   "copy": "Copiar",
-  "copied": "Copiado"
+  "copied": "Copiado",
+  "mfaReset": "Restablecer MFA",
+  "mfaResetTitle": "Restablecer MFA",
+  "mfaResetConfirm": "¿Restablecer la MFA de {{email}}?",
+  "mfaResetWarning": "El usuario deberá registrar la MFA de nuevo en su próximo inicio de sesión. Esta acción se registra en el registro de auditoría.",
+  "mfaResetDone": "La MFA ha sido restablecida."
 }
