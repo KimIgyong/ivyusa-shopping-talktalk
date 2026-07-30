@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcryptjs';
 import { Repository } from 'typeorm';
 import { AuthService } from './auth.service';
+import { BusinessException } from '../../global/exception/business.exception';
 import { AdminUser } from './entity/admin-user.entity';
 import { User } from '../user/entity/user.entity';
 import { LoginRateLimitService } from './login-rate-limit.service';
@@ -145,6 +146,46 @@ describe('AuthService (SEC-M1/SEC-M2)', () => {
     expect(tokens.mustChangePassword).toBe(false);
     // The pair issued by the change itself must survive the revocation stamp.
     await expect(svc.refresh(tokens.refreshToken)).resolves.toBeDefined();
+  });
+
+  it('changePassword rejects a policy-violating new password with E1009 and writes nothing', async () => {
+    const originalHash = user.passwordHash;
+    const reqUser = {
+      actorType: 'user',
+      userId: user.id,
+      tenantId: 1,
+      email: user.email,
+      rank: 'master',
+      labels: [],
+    };
+    // Too short + too few classes + common — service-layer enforcement (DTO bypass).
+    await expect(svc.changePassword(reqUser as never, PASSWORD, 'password1')).rejects.toBeInstanceOf(
+      BusinessException,
+    );
+    await expect(
+      svc.changePassword(reqUser as never, PASSWORD, 'password1'),
+    ).rejects.toMatchObject({
+      errorCode: 'E1009',
+      details: {
+        password: expect.arrayContaining(['min_length', 'char_classes', 'common_password']),
+      },
+    });
+    expect(user.passwordHash).toBe(originalHash);
+    expect(user.passwordChangedAt).toBeNull();
+  });
+
+  it('changePassword rejects reusing the current password (same_as_current)', async () => {
+    const reqUser = {
+      actorType: 'user',
+      userId: user.id,
+      tenantId: 1,
+      email: user.email,
+      rank: 'master',
+      labels: [],
+    };
+    await expect(svc.changePassword(reqUser as never, PASSWORD, PASSWORD)).rejects.toMatchObject({
+      errorCode: 'E1009',
+    });
   });
 
   it('marks the access token pwd-pending while must-change is set (admin)', async () => {

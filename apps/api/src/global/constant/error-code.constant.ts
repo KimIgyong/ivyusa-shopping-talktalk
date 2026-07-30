@@ -13,6 +13,8 @@ export const ERROR_CODE = {
   TENANT_MISMATCH: { code: 'E1006', message: 'Cross-tenant access denied' },
   GUEST_LOOKUP_LIMIT: { code: 'E1007', message: 'Too many lookup attempts, try later' },
   LOGIN_RATE_LIMITED: { code: 'E1008', message: 'Too many login attempts, try again later' },
+  // details.password carries the failed rule keys (see password-policy.util PASSWORD_RULE).
+  PASSWORD_POLICY_VIOLATION: { code: 'E1009', message: 'Password does not meet the password policy' },
 
   // E2xxx — user / invitation
   USER_NOT_FOUND: { code: 'E2001', message: 'User not found' },
