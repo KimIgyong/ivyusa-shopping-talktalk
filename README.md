@@ -124,7 +124,7 @@ npm run dev        # API :3000 (/api/v1/docs) · admin web :5173 · widget :5174
 
 ## 8. Deployment
 
-- **Staging — LIVE:** [`https://shoptalk.amoeba.site`](https://shoptalk.amoeba.site) (admin console at `/`, widget at `/widget/`). Host nginx + Let's Encrypt TLS → docker nginx `:8080`.
+- **Staging — LIVE:** [`https://shoptalk.amoeba.site`](https://shoptalk.amoeba.site) (landing at `/`, per-tenant login at `/<slug>` e.g. `/ivyusa`, system-admin login at `/admin/login`, widget at `/widget/`). Host nginx + Let's Encrypt TLS → docker nginx `:8080`.
 - **Production:** Docker templates ready (`docker/production/`), **not yet deployed** (needs a host + `.env.production`).
 
 Deploy runbook: [docs/guide/STAGING-DEPLOY.md](docs/guide/STAGING-DEPLOY.md). Full environment/config reference: [CONFIG.md](CONFIG.md). Server connection & credentials: `secrets/staging-server.md` (gitignored, local-only).

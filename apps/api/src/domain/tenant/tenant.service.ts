@@ -1,12 +1,18 @@
+import { randomUUID } from 'crypto';
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { FindOptionsWhere, Repository } from 'typeorm';
 import { Tenant } from './entity/tenant.entity';
 import { IntegrationCredential } from './entity/integration-credential.entity';
+import { User } from '../user/entity/user.entity';
 import { IntegrationStatusEntity } from '../integration/entity/integration-status.entity';
 import { IntegrationService } from '../integration/integration.service';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
+import {
+  RESERVED_TENANT_SLUGS,
+  TENANT_SLUG_PATTERN,
+} from '../../global/constant/reserved-slug.constant';
 import { decryptSecret, encryptSecret } from '../../global/util/crypto.util';
 import { UpdateShopifySettingsRequest } from './dto/request/tenant.request';
 import { AuditService } from '../audit/audit.service';
@@ -26,6 +32,7 @@ export class TenantService {
     @InjectRepository(Tenant) private readonly tenantRepo: Repository<Tenant>,
     @InjectRepository(IntegrationCredential)
     private readonly credRepo: Repository<IntegrationCredential>,
+    @InjectRepository(User) private readonly userRepo: Repository<User>,
     private readonly integrationService: IntegrationService,
     private readonly audit: AuditService,
   ) {}
@@ -46,6 +53,22 @@ export class TenantService {
     return { items, total };
   }
 
+  /** users-per-tenant counts for the admin tenant list. */
+  async countUsersByTenant(tenantIds: number[]): Promise<Map<number, number>> {
+    const counts = new Map<number, number>();
+    if (!tenantIds.length) return counts;
+    // Raw rows come back as strings (bigint PK / COUNT) — normalize to numbers.
+    const rows = await this.userRepo
+      .createQueryBuilder('u')
+      .select('u.tenant_id', 'tenantId')
+      .addSelect('COUNT(*)', 'cnt')
+      .where('u.tenant_id IN (:...ids)', { ids: tenantIds })
+      .groupBy('u.tenant_id')
+      .getRawMany<{ tenantId: string; cnt: string }>();
+    for (const row of rows) counts.set(Number(row.tenantId), Number(row.cnt));
+    return counts;
+  }
+
   async findById(id: number): Promise<Tenant> {
     const tenant = await this.tenantRepo.findOne({ where: { id } });
     if (!tenant) {
@@ -59,19 +82,35 @@ export class TenantService {
     return this.tenantRepo.findOne({ where: { shopDomain } });
   }
 
+  /** Resolve a tenant by its URL slug (per-tenant login page). */
+  async findBySlug(slug: string): Promise<Tenant | null> {
+    return this.tenantRepo.findOne({ where: { slug } });
+  }
+
+  /** Resolve a tenant by its external UUID (admin API); 404 when unknown. */
+  async getByUuid(uuid: string): Promise<Tenant> {
+    const tenant = await this.tenantRepo.findOne({ where: { uuid } });
+    if (!tenant) {
+      throw new BusinessException(ERROR_CODE.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND);
+    }
+    return tenant;
+  }
+
   /** Tenant ids that have a stored Shopify credential (for scheduled sync). */
   async listShopifyTenantIds(): Promise<number[]> {
     const creds = await this.credRepo.find({ where: { provider: SHOPIFY } });
     return creds.map((c) => c.tenantId).filter((id): id is number => id != null);
   }
 
-  async create(shopDomain: string, name: string, plan: string): Promise<Tenant> {
+  async create(shopDomain: string, name: string, plan: string, slug?: string): Promise<Tenant> {
     const existing = await this.tenantRepo.findOne({ where: { shopDomain } });
     if (existing) {
       throw new BusinessException(ERROR_CODE.DUPLICATE_RESOURCE, HttpStatus.CONFLICT);
     }
     const tenant = this.tenantRepo.create({
+      uuid: randomUUID(),
       shopDomain,
+      slug: await this.resolveSlug(slug, name),
       name,
       plan,
       status: 'applied',
@@ -83,9 +122,47 @@ export class TenantService {
   async upsertByShopDomain(shopDomain: string, name?: string): Promise<Tenant> {
     const existing = await this.tenantRepo.findOne({ where: { shopDomain } });
     if (existing) return existing;
+    // e.g. "acme.myshopify.com" -> slug base "acme"
+    const slug = await this.generateUniqueSlug(name ?? shopDomain.split('.')[0]);
     return this.tenantRepo.save(
-      this.tenantRepo.create({ shopDomain, name: name ?? shopDomain, status: 'active' }),
+      this.tenantRepo.create({
+        uuid: randomUUID(),
+        shopDomain,
+        slug,
+        name: name ?? shopDomain,
+        status: 'active',
+      }),
     );
+  }
+
+  /**
+   * Validate a caller-chosen slug (pattern + reserved words + uniqueness), or
+   * derive one from the tenant name when none was given.
+   */
+  private async resolveSlug(slug: string | undefined, name: string): Promise<string> {
+    if (!slug) return this.generateUniqueSlug(name);
+    if (!TENANT_SLUG_PATTERN.test(slug) || RESERVED_TENANT_SLUGS.includes(slug)) {
+      throw new BusinessException(ERROR_CODE.VALIDATION_FAILED, HttpStatus.BAD_REQUEST);
+    }
+    if (await this.findBySlug(slug)) {
+      throw new BusinessException(ERROR_CODE.DUPLICATE_RESOURCE, HttpStatus.CONFLICT);
+    }
+    return slug;
+  }
+
+  /** Slugify a base string and suffix -2, -3, … until unique and not reserved. */
+  private async generateUniqueSlug(base: string): Promise<string> {
+    const cleaned =
+      base
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .slice(0, 56) || 'shop';
+    let candidate = RESERVED_TENANT_SLUGS.includes(cleaned) ? `${cleaned}-shop` : cleaned;
+    for (let n = 2; await this.findBySlug(candidate); n++) {
+      candidate = `${cleaned}-${n}`;
+    }
+    return candidate;
   }
 
   async updateStatus(id: number, status: string): Promise<Tenant> {

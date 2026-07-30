@@ -7,6 +7,14 @@ interface AuthState {
   refreshToken: string | null;
   principal: Principal | null;
   mustChangePassword: boolean;
+  /**
+   * Slug of the tenant login page the user last signed in from (/<slug>).
+   * Deliberately survives clear() so logout/401 can route back to the right
+   * login page — it is a route hint, not a credential.
+   */
+  tenantSlug: string | null;
+  /** Display name of that tenant (sidebar / login header). */
+  tenantName: string | null;
   setAuth: (payload: {
     accessToken: string;
     refreshToken: string;
@@ -14,6 +22,7 @@ interface AuthState {
     mustChangePassword: boolean;
   }) => void;
   setPrincipal: (principal: Principal) => void;
+  setTenant: (slug: string, name?: string | null) => void;
   clearMustChange: () => void;
   clear: () => void;
 }
@@ -25,9 +34,12 @@ export const useAuthStore = create<AuthState>()(
       refreshToken: null,
       principal: null,
       mustChangePassword: false,
+      tenantSlug: null,
+      tenantName: null,
       setAuth: ({ accessToken, refreshToken, principal, mustChangePassword }) =>
         set({ accessToken, refreshToken, principal, mustChangePassword }),
       setPrincipal: (principal) => set({ principal }),
+      setTenant: (tenantSlug, tenantName) => set({ tenantSlug, tenantName: tenantName ?? null }),
       clearMustChange: () => set({ mustChangePassword: false }),
       clear: () =>
         set({
@@ -45,6 +57,8 @@ export const useAuthStore = create<AuthState>()(
         accessToken: s.accessToken,
         principal: s.principal,
         mustChangePassword: s.mustChangePassword,
+        tenantSlug: s.tenantSlug,
+        tenantName: s.tenantName,
       }),
     },
   ),

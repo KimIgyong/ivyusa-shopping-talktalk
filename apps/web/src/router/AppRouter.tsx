@@ -3,11 +3,13 @@ import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom'
 import { Loader2 } from 'lucide-react';
 import { AppLayout } from '@/layouts/AppLayout';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
-import { LoginPage } from '@/domain/auth/LoginPage';
+import { LandingPage } from '@/domain/landing/LandingPage';
+import { TenantLoginPage } from '@/domain/auth/TenantLoginPage';
+import { AdminLoginPage } from '@/domain/auth/AdminLoginPage';
 
 // Route-level code splitting (PERF-13): each page ships as its own chunk so
-// the initial bundle is the shell + login, not every admin screen at once.
-// Login and the layout stay eager for a fast first paint.
+// the initial bundle is the shell + public pages, not every admin screen at
+// once. The landing/login pages stay eager for a fast first paint.
 const DashboardPage = lazy(() => import('@/domain/dashboard/DashboardPage').then((m) => ({ default: m.DashboardPage })));
 const LiveChatPage = lazy(() => import('@/domain/live-chat/LiveChatPage').then((m) => ({ default: m.LiveChatPage })));
 const HistoryPage = lazy(() => import('@/domain/history/HistoryPage').then((m) => ({ default: m.HistoryPage })));
@@ -18,8 +20,10 @@ const OrdersPage = lazy(() => import('@/domain/orders/OrdersPage').then((m) => (
 const CampaignsPage = lazy(() => import('@/domain/campaigns/CampaignsPage').then((m) => ({ default: m.CampaignsPage })));
 const UsersPage = lazy(() => import('@/domain/users/UsersPage').then((m) => ({ default: m.UsersPage })));
 const SettingsPage = lazy(() => import('@/domain/settings/SettingsPage').then((m) => ({ default: m.SettingsPage })));
+const MyPage = lazy(() => import('@/domain/my-page/MyPage').then((m) => ({ default: m.MyPage })));
 const AdminOverviewPage = lazy(() => import('@/domain/admin/AdminOverviewPage').then((m) => ({ default: m.AdminOverviewPage })));
 const TenantsPage = lazy(() => import('@/domain/admin/TenantsPage').then((m) => ({ default: m.TenantsPage })));
+const TenantUsersPage = lazy(() => import('@/domain/admin/TenantUsersPage').then((m) => ({ default: m.TenantUsersPage })));
 const AiEnginesPage = lazy(() => import('@/domain/admin/AiEnginesPage').then((m) => ({ default: m.AiEnginesPage })));
 const AuditPage = lazy(() => import('@/domain/admin/AuditPage').then((m) => ({ default: m.AuditPage })));
 
@@ -32,26 +36,31 @@ function PageFallback() {
   );
 }
 
+// Public: landing at /, system-admin login at /admin/login, per-tenant login
+// at /:tenantSlug. Static segments outrank the :tenantSlug param, so every
+// console route below stays reachable; slugs matching them are rejected
+// server-side (RESERVED_TENANT_SLUGS).
 const router = createBrowserRouter([
-  { path: '/login', element: <LoginPage /> },
+  { path: '/', element: <LandingPage /> },
+  { path: '/admin/login', element: <AdminLoginPage /> },
   {
-    path: '/',
     element: (
       <ProtectedRoute actorType="user">
         <AppLayout />
       </ProtectedRoute>
     ),
     children: [
-      { index: true, element: <DashboardPage /> },
-      { path: 'live-chat', element: <LiveChatPage /> },
-      { path: 'history', element: <HistoryPage /> },
-      { path: 'ai-setting', element: <AiSettingsPage /> },
-      { path: 'knowledge', element: <KnowledgePage /> },
-      { path: 'customers', element: <CustomersPage /> },
-      { path: 'orders', element: <OrdersPage /> },
-      { path: 'campaigns', element: <CampaignsPage /> },
-      { path: 'users', element: <UsersPage /> },
-      { path: 'settings', element: <SettingsPage /> },
+      { path: '/dashboard', element: <DashboardPage /> },
+      { path: '/live-chat', element: <LiveChatPage /> },
+      { path: '/history', element: <HistoryPage /> },
+      { path: '/ai-setting', element: <AiSettingsPage /> },
+      { path: '/knowledge', element: <KnowledgePage /> },
+      { path: '/customers', element: <CustomersPage /> },
+      { path: '/orders', element: <OrdersPage /> },
+      { path: '/campaigns', element: <CampaignsPage /> },
+      { path: '/users', element: <UsersPage /> },
+      { path: '/settings', element: <SettingsPage /> },
+      { path: '/my-page', element: <MyPage /> },
     ],
   },
   {
@@ -64,10 +73,13 @@ const router = createBrowserRouter([
     children: [
       { index: true, element: <AdminOverviewPage /> },
       { path: 'tenants', element: <TenantsPage /> },
+      { path: 'tenants/:tenantUuid/users', element: <TenantUsersPage /> },
       { path: 'ai-engines', element: <AiEnginesPage /> },
       { path: 'audit', element: <AuditPage /> },
+      { path: 'my-page', element: <MyPage /> },
     ],
   },
+  { path: '/:tenantSlug', element: <TenantLoginPage /> },
   { path: '*', element: <Navigate to="/" replace /> },
 ]);
 

@@ -3,26 +3,35 @@ import { IntegrationCredential } from './entity/integration-credential.entity';
 import { IntegrationStatusEntity } from '../integration/entity/integration-status.entity';
 import {
   CredentialResponse,
+  PublicTenantResponse,
   ShopifySettingsResponse,
   TenantResponse,
 } from './dto/response/tenant.response';
 
 /** Entity -> response mapping. Keeps secrets out of API payloads. */
 export class TenantMapper {
-  static toTenant(t: Tenant): TenantResponse {
+  static toTenant(t: Tenant, userCount?: number): TenantResponse {
     return {
       id: t.id,
+      uuid: t.uuid,
       shopDomain: t.shopDomain,
+      slug: t.slug,
       name: t.name,
       status: t.status,
       plan: t.plan,
+      ...(userCount !== undefined ? { userCount } : {}),
       createdAt: t.createdAt,
       updatedAt: t.updatedAt,
     };
   }
 
-  static toTenantList(tenants: Tenant[]): TenantResponse[] {
-    return tenants.map((t) => this.toTenant(t));
+  static toTenantList(tenants: Tenant[], counts?: Map<number, number>): TenantResponse[] {
+    return tenants.map((t) => this.toTenant(t, counts?.get(Number(t.id)) ?? (counts ? 0 : undefined)));
+  }
+
+  /** Unauthenticated login-page view — never add fields beyond display-safe ones. */
+  static toPublicTenant(t: Tenant): PublicTenantResponse {
+    return { slug: t.slug, name: t.name, status: t.status };
   }
 
   static toCredential(c: IntegrationCredential): CredentialResponse {

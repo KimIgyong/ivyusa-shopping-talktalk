@@ -1,0 +1,19 @@
+{
+  "heroTitle": "온라인 스토어를 위한 AI 채팅·고객 지원",
+  "heroSubtitle": "ShopTalk은 24시간 고객 문의에 응답하고, 필요한 순간 상담원에게 연결하며, 영어·스페인어·한국어로 대화합니다.",
+  "workspaceLabel": "워크스페이스",
+  "workspacePlaceholder": "your-workspace",
+  "signIn": "로그인",
+  "adminLogin": "관리자 콘솔",
+  "goToConsole": "콘솔로 이동",
+  "continueTo": "/{{slug}} 로 계속",
+  "featureAiTitle": "24시간 AI 자동 응답",
+  "featureAiDesc": "지식 베이스 기반 어시스턴트가 일반 문의를 즉시 해결하고, 모든 답변은 고객에게 전달되기 전에 모더레이션을 거칩니다.",
+  "featureChatTitle": "자연스러운 상담원 연결",
+  "featureChatDesc": "상담원 라우팅이 포함된 실시간 채팅 — 대화 이력, 상용구 답변, 전체 맥락을 함께 제공합니다.",
+  "featureCommerceTitle": "커머스에 최적화",
+  "featureCommerceDesc": "Shopify 연동으로 주문·고객·캠페인 정보를 대화 바로 옆에서 확인합니다.",
+  "featureI18nTitle": "기본 탑재 다국어",
+  "featureI18nDesc": "고객이 영어, 스페인어, 한국어로 문의해도 위젯과 AI가 자동으로 해당 언어를 따라갑니다.",
+  "footerCopy": "ShopTalk — 채팅·고객 지원 위젯"
+}

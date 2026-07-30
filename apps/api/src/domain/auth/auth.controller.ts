@@ -44,7 +44,13 @@ export class AuthController {
     @Ip() ip: string,
     @Headers('x-forwarded-for') xff?: string,
   ) {
-    return this.authService.loginUser(body.email, body.password, clientIp(xff, ip), body.shop_domain);
+    return this.authService.loginUser(
+      body.email,
+      body.password,
+      clientIp(xff, ip),
+      body.shop_domain,
+      body.tenant_slug,
+    );
   }
 
   @Post('refresh')

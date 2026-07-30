@@ -1,6 +1,8 @@
 {
   "title": "Configuración del inquilino",
   "subtitle": "Gestione integraciones y credenciales.",
+  "configure": "Configurar",
+  "storesTitle": "Integraciones de tiendas",
   "integrationCredentials": "Credenciales de integración",
   "provider": "Proveedor",
   "status": "Estado",
@@ -36,7 +38,11 @@
     "connectionStatus": "Estado de conexión",
     "credential": "Credencial",
     "lastTested": "Última prueba",
-    "state": { "connected": "Conectado", "error": "Error", "unknown": "Sin probar" },
+    "state": {
+      "connected": "Conectado",
+      "error": "Error",
+      "unknown": "Sin probar"
+    },
     "install": {
       "title": "Instalar en tu tienda",
       "subtitle": "Añade el widget de chat a tu tienda Shopify. Elige el método que se adapte a tu configuración.",
@@ -73,7 +79,11 @@
     "connectionStatus": "Estado de conexión",
     "credential": "Credencial",
     "lastTested": "Última prueba",
-    "state": { "connected": "Conectado", "error": "Error", "unknown": "Sin probar" },
+    "state": {
+      "connected": "Conectado",
+      "error": "Error",
+      "unknown": "Sin probar"
+    },
     "fields": {
       "mall_id": "ID de tienda",
       "client_id": "Client ID",
@@ -96,9 +106,42 @@
       "username": "user@example.com",
       "shop_domain": "your-store.myharavan.com"
     },
-    "cafe24": { "title": "Cafe24", "subtitle": "Conecta tu tienda Cafe24 mediante la Admin API (token OAuth)." },
-    "woocommerce": { "title": "WooCommerce", "subtitle": "Conecta tu tienda WooCommerce con claves REST API." },
-    "odoo": { "title": "Odoo", "subtitle": "Conecta Odoo mediante la API externa (URL, base de datos, usuario, API key)." },
-    "haravan": { "title": "Haravan", "subtitle": "Conecta tu tienda Haravan con un token de la Admin API." }
+    "cafe24": {
+      "title": "Cafe24",
+      "subtitle": "Conecta tu tienda Cafe24 mediante la Admin API (token OAuth)."
+    },
+    "woocommerce": {
+      "title": "WooCommerce",
+      "subtitle": "Conecta tu tienda WooCommerce con claves REST API."
+    },
+    "odoo": {
+      "title": "Odoo",
+      "subtitle": "Conecta Odoo mediante la API externa (URL, base de datos, usuario, API key)."
+    },
+    "haravan": {
+      "title": "Haravan",
+      "subtitle": "Conecta tu tienda Haravan con un token de la Admin API."
+    }
+  },
+  "install": {
+    "subtitle": "Añade el widget de chat a tu tienda. Elige tu plataforma.",
+    "cafe24": {
+      "desc": "Pega el fragmento en el HTML del tema de Cafe24 para que el widget cargue en todas las páginas.",
+      "step1": "En el admin de Cafe24, abre Diseño (PC/Móvil) → edición Smart Design.",
+      "step2": "Abre el HTML de layout de tu diseño principal.",
+      "step3": "Pega el fragmento justo antes de </body> y guarda/publica."
+    },
+    "woocommerce": {
+      "desc": "Registra el widget desde tu tema de WordPress (o un plugin de snippets).",
+      "step1": "En WordPress, abre Apariencia → Editor de archivos de temas (se recomienda un tema hijo).",
+      "step2": "Abre functions.php o añade un snippet en un plugin de código.",
+      "step3": "Pega el código de abajo y guarda: se carga con wp_footer en todas las páginas."
+    },
+    "odoo": {
+      "desc": "Los sitios de Odoo permiten inyectar código personalizado desde la configuración del sitio.",
+      "step1": "En Odoo, abre Sitio web → Configuración → Ajustes.",
+      "step2": "Desplázate hasta la sección Código personalizado.",
+      "step3": "Pega el fragmento en el campo \"final de body\" y guarda."
+    }
   }
 }

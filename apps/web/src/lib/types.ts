@@ -25,6 +25,13 @@ export interface LoginResponse {
   principal: Principal;
 }
 
+/** Display-safe tenant view served to the unauthenticated /<slug> login page. */
+export interface PublicTenant {
+  slug: string;
+  name: string | null;
+  status: string;
+}
+
 export interface Paginated<T> {
   items: T[];
   total: number;

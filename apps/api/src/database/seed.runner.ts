@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto';
 import * as bcrypt from 'bcryptjs';
 import { DataSource } from 'typeorm';
 import { Logger } from '@nestjs/common';
@@ -45,8 +46,27 @@ export async function runSeed(ds: DataSource, opts: SeedOptions = {}): Promise<v
   let tenant = await tenantRepo.findOne({ where: { name: 'ivyusa' } });
   if (!tenant) {
     tenant = await tenantRepo.save(
-      tenantRepo.create({ shopDomain: 'ivyusa.myshopify.com', name: 'ivyusa', status: 'active', plan: 'custom' }),
+      tenantRepo.create({
+        uuid: randomUUID(),
+        shopDomain: 'ivyusa.myshopify.com',
+        slug: 'ivyusa',
+        name: 'ivyusa',
+        status: 'active',
+        plan: 'custom',
+      }),
     );
+  } else {
+    // Rows predating the slug/uuid columns get their identifiers backfilled.
+    let dirty = false;
+    if (!tenant.slug) {
+      tenant.slug = 'ivyusa';
+      dirty = true;
+    }
+    if (!tenant.uuid) {
+      tenant.uuid = randomUUID();
+      dirty = true;
+    }
+    if (dirty) tenant = await tenantRepo.save(tenant);
   }
 
   // System admin + tenant master — bootstrap credentials (re)asserted each run.

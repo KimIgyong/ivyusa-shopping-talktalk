@@ -1,8 +1,18 @@
 import { apiGet, apiGetList, apiPost, apiPatch } from '@/lib/api-client';
+import type {
+  InviteResult,
+  InviteUserBody,
+  JobLabel,
+  TempPasswordResult,
+  TenantUser,
+} from '@/domain/users/users.service';
 
 export interface Tenant {
   id: string;
+  /** External tenant identifier — all admin routes/URLs use this, never `id`. */
+  uuid: string;
   name: string;
+  slug?: string;
   shopDomain?: string;
   plan?: string;
   status?: string;
@@ -45,11 +55,30 @@ export interface AuditEntry {
 export const adminService = {
   tenants: (params: { page: number; pageSize: number }) =>
     apiGetList<Tenant>('/tenants', { page: params.page, size: params.pageSize }),
-  // Backend expects snake_case shop_domain.
-  createTenant: (body: { name: string; shopDomain: string; plan: string }) =>
-    apiPost<Tenant>('/tenants', { name: body.name, shop_domain: body.shopDomain, plan: body.plan }),
-  setTenantStatus: (id: string, status: string) =>
-    apiPatch<Tenant>(`/tenants/${id}/status`, { status }),
+  tenant: (uuid: string) => apiGet<Tenant>(`/tenants/${uuid}`),
+  // Backend expects snake_case shop_domain; slug is optional (server derives from name).
+  createTenant: (body: { name: string; shopDomain: string; plan: string; slug?: string }) =>
+    apiPost<Tenant>('/tenants', {
+      name: body.name,
+      shop_domain: body.shopDomain,
+      plan: body.plan,
+      ...(body.slug ? { slug: body.slug } : {}),
+    }),
+  setTenantStatus: (uuid: string, status: string) =>
+    apiPatch<Tenant>(`/tenants/${uuid}/status`, { status }),
+  // ---- Admin-scoped per-tenant user management (tenant addressed by UUID) ----
+  tenantUsers: (tenantUuid: string, params: { page: number; pageSize: number }) =>
+    apiGetList<TenantUser>(`/tenants/${tenantUuid}/users`, {
+      page: params.page,
+      size: params.pageSize,
+    }),
+  tenantJobLabels: (tenantUuid: string) => apiGet<JobLabel[]>(`/tenants/${tenantUuid}/job-labels`),
+  inviteTenantUser: (tenantUuid: string, body: InviteUserBody) =>
+    apiPost<InviteResult>(`/tenants/${tenantUuid}/users/invite`, body),
+  issueTenantUserTempPassword: (tenantUuid: string, userId: string) =>
+    apiPost<TempPasswordResult>(`/tenants/${tenantUuid}/users/${userId}/temp-password`, {}),
+  setTenantUserStatus: (tenantUuid: string, userId: string, status: string) =>
+    apiPatch<TenantUser>(`/tenants/${tenantUuid}/users/${userId}/status`, { status }),
   // Adapt backend {status, hasKey,...} → frontend {enabled,...}.
   engines: async (): Promise<AiEngine[]> => {
     const list = await apiGet<BackendEngine[]>('/ai-engines');

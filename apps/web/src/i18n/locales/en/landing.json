@@ -1,0 +1,19 @@
+{
+  "heroTitle": "AI-powered chat & support for your online store",
+  "heroSubtitle": "ShopTalk answers your customers 24/7, hands off to your team when it matters, and speaks their language — English, Spanish and Korean.",
+  "workspaceLabel": "Workspace",
+  "workspacePlaceholder": "your-workspace",
+  "signIn": "Sign in",
+  "adminLogin": "Admin console",
+  "goToConsole": "Go to console",
+  "continueTo": "Continue to /{{slug}}",
+  "featureAiTitle": "AI answers, around the clock",
+  "featureAiDesc": "A knowledge-base-backed assistant resolves common questions instantly, with every reply passing moderation before it reaches a customer.",
+  "featureChatTitle": "Seamless human handoff",
+  "featureChatDesc": "Live chat with routing to your consultants — conversation history, canned replies and full context included.",
+  "featureCommerceTitle": "Built for commerce",
+  "featureCommerceDesc": "Shopify-connected: orders, customers and campaigns are right next to the conversation.",
+  "featureI18nTitle": "Multilingual by default",
+  "featureI18nDesc": "Customers chat in English, Spanish or Korean — the widget and the AI follow their language automatically.",
+  "footerCopy": "ShopTalk — chat & support widget"
+}

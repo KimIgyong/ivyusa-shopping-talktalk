@@ -1,4 +1,5 @@
-import { IsIn, IsObject, IsOptional, IsString, MinLength } from 'class-validator';
+import { IsIn, IsObject, IsOptional, IsString, Matches, MinLength } from 'class-validator';
+import { TENANT_SLUG_PATTERN } from '../../../../global/constant/reserved-slug.constant';
 
 /** Request DTOs — snake_case (amoeba_code_convention). */
 export class ListTenantsQuery {
@@ -19,6 +20,12 @@ export class CreateTenantRequest {
   @IsString()
   @MinLength(1)
   shop_domain: string;
+
+  // Login-page path (/<slug>); auto-derived from `name` when omitted.
+  @IsOptional()
+  @IsString()
+  @Matches(TENANT_SLUG_PATTERN)
+  slug?: string;
 
   @IsString()
   @MinLength(1)

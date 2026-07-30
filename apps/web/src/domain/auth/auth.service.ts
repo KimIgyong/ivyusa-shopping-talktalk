@@ -1,11 +1,13 @@
 import { apiGet, apiPost } from '@/lib/api-client';
-import type { LoginResponse, Principal } from '@/lib/types';
+import type { LoginResponse, Principal, PublicTenant } from '@/lib/types';
 
 export const authService = {
-  userLogin: (email: string, password: string) =>
-    apiPost<LoginResponse>('/auth/user/login', { email, password }),
+  userLogin: (email: string, password: string, tenantSlug: string) =>
+    apiPost<LoginResponse>('/auth/user/login', { email, password, tenant_slug: tenantSlug }),
   adminLogin: (email: string, password: string) =>
     apiPost<LoginResponse>('/auth/admin/login', { email, password }),
+  // Public: resolves the /<slug> login page (404 when the tenant does not exist).
+  publicTenant: (slug: string) => apiGet<PublicTenant>(`/tenants/by-slug/${encodeURIComponent(slug)}`),
   me: () => apiGet<Principal>('/auth/me'),
   // Returns a fresh token pair — the pre-change access token is locked to the
   // change-password flow server-side, so the client must swap immediately.

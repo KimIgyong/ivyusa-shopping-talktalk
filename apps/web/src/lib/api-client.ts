@@ -43,9 +43,16 @@ http.interceptors.response.use(
   },
   (error: AxiosError<ApiEnvelope<unknown>>) => {
     if (error.response?.status === 401) {
-      useAuthStore.getState().clear();
-      if (window.location.pathname !== '/login') {
-        window.location.href = '/login';
+      const store = useAuthStore.getState();
+      // Route back to the matching login page: /admin/* → admin login, tenant
+      // users → their /<slug> page, otherwise the public landing page. When the
+      // 401 IS the login attempt (already on the target page) we only clear.
+      const isAdminContext =
+        store.principal?.actorType === 'admin' || window.location.pathname.startsWith('/admin');
+      const target = isAdminContext ? '/admin/login' : store.tenantSlug ? `/${store.tenantSlug}` : '/';
+      store.clear();
+      if (window.location.pathname !== target) {
+        window.location.href = target;
       }
     }
     const envelope = error.response?.data;
