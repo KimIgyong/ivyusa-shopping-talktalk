@@ -1,10 +1,25 @@
 export type SenderType = 'user' | 'ai' | 'agent' | 'system';
 
+export type ConsentState = 'pending' | 'granted' | 'declined';
+
 export interface SessionResponse {
   sessionToken: string;
   language: string;
-  consentState: 'granted' | 'denied' | 'unknown' | string;
+  consentState: ConsentState | string;
   authenticated: boolean;
+  /** Tenant-configured privacy policy link (null when unset). */
+  privacyPolicyUrl?: string | null;
+  /** Version tag of the consent notice currently in force for this tenant. */
+  consentNoticeVersion?: string;
+  /** True when the stored consent predates the current notice version. */
+  noticeOutdated?: boolean;
+  /** When the current consent choice was recorded (null when pending). */
+  consentAt?: string | null;
+}
+
+export interface ConsentResult {
+  consentState: ConsentState | string;
+  consentVersion: string;
 }
 
 export interface ChatMessage {

@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import {
   AI_FUNCTION,
+  CONSENT_STATE,
   CONVERSATION_STATUS,
   MODERATION_DECISION,
   SENDER_TYPE,
@@ -23,7 +24,7 @@ import {
 import { AiGatewayService } from '../../infrastructure/external/ai/ai-gateway.service';
 import { AuditService } from '../audit/audit.service';
 import { RedisService } from '../../infrastructure/cache/redis.service';
-import { sessionCacheKey } from '../session/session.service';
+import { SessionService, sessionCacheKey } from '../session/session.service';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
 import { UpsertProfileRequest } from './dto/request/agent.request';
@@ -50,6 +51,7 @@ export class AgentService {
     private readonly aiGateway: AiGatewayService,
     private readonly audit: AuditService,
     private readonly redis: RedisService,
+    private readonly sessionService: SessionService,
   ) {}
 
   /**
@@ -209,7 +211,21 @@ export class AgentService {
     tenantId: number,
     body: string,
   ): Promise<Message> {
-    await this.requireConversation(conversationId, tenantId);
+    const conversation = await this.requireConversation(conversationId, tenantId);
+    // Consent gate (PLN-Privacy-Control-Gap D-1, fail-closed): an agent reply is
+    // processing of the visitor's conversation, so it too requires an effective
+    // GRANTED (fresh read, current notice version). 4xx rejections are not
+    // server-logged by default — warn explicitly so the block is traceable.
+    const consent = await this.sessionService.effectiveConsentFor(
+      conversation.sessionId,
+      tenantId,
+    );
+    if (consent !== CONSENT_STATE.GRANTED) {
+      this.logger.warn(
+        `agent reply blocked: effective consent '${consent}' for session=${conversation.sessionId} conversation=${conversationId} agent=${agentId}`,
+      );
+      throw new BusinessException(ERROR_CODE.CONSENT_REQUIRED, HttpStatus.FORBIDDEN);
+    }
     const moderated = await this.moderation.moderate({
       tenantId,
       scope: 'agent',

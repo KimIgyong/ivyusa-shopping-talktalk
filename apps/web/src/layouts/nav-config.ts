@@ -35,6 +35,8 @@ export const TENANT_NAV: NavItem[] = [
   { to: '/campaigns', labelKey: 'campaigns', icon: Megaphone, capability: 'campaigns' },
   { to: '/users', labelKey: 'users', icon: UserCog, capability: 'users' },
   { to: '/settings', labelKey: 'settings', icon: Settings, capability: 'settings' },
+  // Consent notice config — same master/director gate as tenant settings.
+  { to: '/privacy-notice', labelKey: 'privacyNotice', icon: ShieldCheck, capability: 'settings' },
 ];
 
 export const ADMIN_NAV: NavItem[] = [

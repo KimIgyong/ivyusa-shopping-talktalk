@@ -31,6 +31,18 @@ export class Tenant {
   @Column({ type: 'varchar', length: 32, nullable: true })
   plan: string | null;
 
+  /** Tenant's public privacy-policy page shown in the widget consent banner. */
+  @Column({ name: 'privacy_policy_url', type: 'varchar', length: 512, nullable: true })
+  privacyPolicyUrl: string | null;
+
+  /**
+   * Tenant override of the consent-notice version; null falls back to the
+   * platform-wide CONSENT_NOTICE_VERSION. Bumping it forces re-consent
+   * (PLN-Privacy-Control-Gap Stage 2).
+   */
+  @Column({ name: 'consent_notice_version', type: 'varchar', length: 32, nullable: true })
+  consentNoticeVersion: string | null;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 

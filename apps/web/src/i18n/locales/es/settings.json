@@ -17,6 +17,22 @@
   "secretOptional": "Secreto (opcional)",
   "secretPlaceholder": "Introduzca el secreto",
   "empty": "No hay integraciones disponibles.",
+  "privacyNotice": {
+    "title": "Aviso de privacidad",
+    "subtitle": "Configure el aviso de consentimiento que ven los visitantes del widget.",
+    "cardTitle": "Configuración del aviso de consentimiento",
+    "policyUrl": "URL de la política de privacidad",
+    "policyUrlPlaceholder": "https://su-tienda.com/privacidad",
+    "policyUrlHint": "Se muestra como enlace en el aviso de consentimiento del widget. Déjelo vacío para ocultar el enlace.",
+    "invalidUrl": "Introduzca una URL válida que empiece por http:// o https://.",
+    "version": "Versión del aviso de consentimiento",
+    "versionPlaceholder": "p. ej. 2026-07",
+    "invalidVersion": "Use letras, dígitos, puntos, guiones o guiones bajos (debe empezar con letra o dígito, máx. 32).",
+    "versionDefaultHint": "Vacío significa que se aplica la versión predeterminada de la plataforma.",
+    "versionWarning": "Cambiar la versión vuelve a solicitar el consentimiento a todos los clientes. Su chat mostrará el aviso de nuevo hasta que acepten o rechacen.",
+    "saved": "Configuración del aviso de privacidad guardada.",
+    "saveError": "No se pudo guardar la configuración del aviso de privacidad."
+  },
   "shopify": {
     "title": "Conexión de Shopify",
     "subtitle": "La dirección de la tienda y el token de API que vinculan este widget con su tienda Shopify.",

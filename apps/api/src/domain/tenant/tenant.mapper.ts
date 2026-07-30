@@ -3,6 +3,7 @@ import { IntegrationCredential } from './entity/integration-credential.entity';
 import { IntegrationStatusEntity } from '../integration/entity/integration-status.entity';
 import {
   CredentialResponse,
+  PrivacyNoticeResponse,
   PublicTenantResponse,
   ShopifySettingsResponse,
   TenantResponse,
@@ -32,6 +33,14 @@ export class TenantMapper {
   /** Unauthenticated login-page view — never add fields beyond display-safe ones. */
   static toPublicTenant(t: Tenant): PublicTenantResponse {
     return { slug: t.slug, name: t.name, status: t.status };
+  }
+
+  /** Tenant privacy-notice settings (stored values; null = platform default). */
+  static toPrivacyNotice(t: Tenant): PrivacyNoticeResponse {
+    return {
+      privacyPolicyUrl: t.privacyPolicyUrl,
+      consentNoticeVersion: t.consentNoticeVersion,
+    };
   }
 
   static toCredential(c: IntegrationCredential): CredentialResponse {
