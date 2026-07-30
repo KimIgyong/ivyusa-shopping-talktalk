@@ -2,12 +2,18 @@ import { Body, Controller, Get, Headers, Ip, Post } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Principal } from '@ivy/types';
 import { AuthService } from './auth.service';
+import { MfaService } from './mfa.service';
 import {
   ChangePasswordRequest,
   LoginRequest,
   LogoutRequest,
   RefreshRequest,
 } from './dto/request/login.request';
+import {
+  MfaDisableRequest,
+  MfaEnrollVerifyRequest,
+  MfaVerifyRequest,
+} from './dto/request/mfa.request';
 import { Public } from '../../global/decorator/public.decorator';
 import { Auth } from '../../global/decorator/auth.decorator';
 import { AllowPendingPassword } from '../../global/decorator/allow-pending-password.decorator';
@@ -23,7 +29,10 @@ function clientIp(xff: string | undefined, ip: string): string {
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly mfaService: MfaService,
+  ) {}
 
   @Post('admin/login')
   @Public()
@@ -51,6 +60,52 @@ export class AuthController {
       body.shop_domain,
       body.tenant_slug,
     );
+  }
+
+  // ---- MFA (PLN-MFA Stage M1) ----
+
+  @Post('mfa/verify')
+  @Public()
+  @ApiOperation({ summary: 'Step-up login: exchange mfa_token + TOTP/recovery code for tokens' })
+  verifyMfa(
+    @Body() body: MfaVerifyRequest,
+    @Ip() ip: string,
+    @Headers('x-forwarded-for') xff?: string,
+  ) {
+    return this.authService.verifyMfa(body.mfa_token, body.code, clientIp(xff, ip));
+  }
+
+  @Get('mfa/status')
+  @Auth()
+  @ApiOperation({ summary: 'MFA enrollment status for the current account' })
+  mfaStatus(@CurrentUser() user: Principal) {
+    return this.mfaService.status(user);
+  }
+
+  @Post('mfa/enroll')
+  @Auth()
+  @ApiOperation({ summary: 'Start MFA enrollment (returns otpauth URI + manual key ONCE)' })
+  mfaEnroll(@CurrentUser() user: Principal) {
+    return this.mfaService.enroll(user);
+  }
+
+  @Post('mfa/enroll/verify')
+  @Auth()
+  @ApiOperation({ summary: 'Confirm enrollment with a first TOTP; returns one-time recovery codes' })
+  mfaEnrollVerify(@CurrentUser() user: Principal, @Body() body: MfaEnrollVerifyRequest) {
+    return this.mfaService.enrollVerify(user, body.code);
+  }
+
+  @Post('mfa/disable')
+  @Auth()
+  @ApiOperation({ summary: 'Disable MFA (requires password + TOTP/recovery code)' })
+  mfaDisable(
+    @CurrentUser() user: Principal,
+    @Body() body: MfaDisableRequest,
+    @Ip() ip: string,
+    @Headers('x-forwarded-for') xff?: string,
+  ) {
+    return this.mfaService.disable(user, body.password, body.code, clientIp(xff, ip));
   }
 
   @Post('refresh')

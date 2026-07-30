@@ -55,6 +55,18 @@ describe('JwtAuthGuard — must-change-password lockout (SEC-M2)', () => {
     expect(req.user).toMatchObject({ actorType: 'admin' });
   });
 
+  it('rejects an mfa-purpose step-up token on a normal API route with 401 (PLN-MFA M1)', async () => {
+    const token = jwt.sign({ sub: '1', actorType: 'admin', purpose: 'mfa' }, { expiresIn: 300 });
+    const { guard, ctx } = ctxWith(token, {});
+    await guard.canActivate(ctx).then(
+      () => fail('should have thrown'),
+      (e: BusinessException) => {
+        expect(e.getStatus()).toBe(HttpStatus.UNAUTHORIZED);
+        expect(e.errorCode).toBe('E1001');
+      },
+    );
+  });
+
   it('still honors @Public()', async () => {
     const { guard, ctx } = ctxWith(null, { [IS_PUBLIC_KEY]: true });
     await expect(guard.canActivate(ctx)).resolves.toBe(true);

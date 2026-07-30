@@ -8,7 +8,7 @@ import * as bcrypt from 'bcryptjs';
 import { RedisService } from '../../infrastructure/cache/redis.service';
 import { AuditService } from '../audit/audit.service';
 import { maskPii } from '../../global/util/pii.util';
-import { BCRYPT_ROUNDS } from '../../global/constant/security.constant';
+import { BCRYPT_ROUNDS, MFA_STEP_UP_TTL_SEC } from '../../global/constant/security.constant';
 import { validatePassword } from '../../global/util/password-policy.util';
 import { AdminLevel, JobLabel, Principal, UserRank } from '@ivy/types';
 import { AdminUser } from './entity/admin-user.entity';
@@ -18,14 +18,26 @@ import { UserJobLabel } from '../user/entity/user-job-label.entity';
 import { Tenant } from '../tenant/entity/tenant.entity';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
-import { AuthTokensResponse, PrincipalResponse } from './dto/response/auth.response';
+import {
+  AuthTokensResponse,
+  MfaChallengeResponse,
+  PrincipalResponse,
+} from './dto/response/auth.response';
 import { LoginRateLimitService } from './login-rate-limit.service';
+import { MfaService } from './mfa.service';
 
 /** Refresh-token JWT claims beyond the principal. */
 interface RefreshPayload {
   type?: string;
   jti?: string;
   iat?: number;
+}
+
+/** Purpose-limited step-up token claims (PLN-MFA Stage M1). */
+interface MfaStepUpPayload {
+  sub?: string;
+  actorType?: string;
+  purpose?: string;
 }
 
 /**
@@ -54,6 +66,7 @@ export class AuthService {
     private readonly loginLimiter: LoginRateLimitService,
     private readonly redis: RedisService,
     private readonly audit: AuditService,
+    private readonly mfa: MfaService,
   ) {}
 
   /** Best-effort audit (PRV-H4): auth flows must not fail on an audit-write error. */
@@ -65,7 +78,11 @@ export class AuthService {
     }
   }
 
-  async loginAdmin(email: string, password: string, clientIp: string): Promise<AuthTokensResponse> {
+  async loginAdmin(
+    email: string,
+    password: string,
+    clientIp: string,
+  ): Promise<AuthTokensResponse | MfaChallengeResponse> {
     await this.loginLimiter.assertNotLocked('admin', email, clientIp);
     const admin = await this.adminRepo.findOne({ where: { email } });
     if (!admin?.passwordHash || !(await bcrypt.compare(password, admin.passwordHash))) {
@@ -80,6 +97,10 @@ export class AuthService {
       throw new BusinessException(ERROR_CODE.INVALID_CREDENTIALS, HttpStatus.UNAUTHORIZED);
     }
     await this.loginLimiter.recordSuccess('admin', email);
+    // MFA step-up (PLN-MFA M1): password OK but the login is NOT complete —
+    // no tokens, no principal, no auth.login audit until /auth/mfa/verify.
+    const challenge = await this.mfaChallengeIfEnabled('admin', admin.id);
+    if (challenge) return challenge;
     await this.auditSafe({
       tenantId: null,
       actorType: 'admin',
@@ -107,7 +128,7 @@ export class AuthService {
     clientIp: string,
     shopDomain?: string,
     tenantSlug?: string,
-  ): Promise<AuthTokensResponse> {
+  ): Promise<AuthTokensResponse | MfaChallengeResponse> {
     await this.loginLimiter.assertNotLocked('user', email, clientIp);
     const tenant = tenantSlug
       ? await this.tenantRepo.findOne({ where: { slug: tenantSlug } })
@@ -138,12 +159,106 @@ export class AuthService {
     if (user.status === 'suspended' || tenant.status === 'suspended') {
       throw new BusinessException(ERROR_CODE.FORBIDDEN, HttpStatus.FORBIDDEN);
     }
+    // MFA step-up (PLN-MFA M1): see loginAdmin — the login completes at verify.
+    const challenge = await this.mfaChallengeIfEnabled('user', user.id);
+    if (challenge) return challenge;
     await this.auditSafe({
       tenantId: user.tenantId,
       actorType: 'user',
       actorId: user.id,
       action: 'auth.login',
       target: maskPii(email),
+    });
+    const labels = await this.loadLabels(user.id);
+    const principal: Principal = {
+      actorType: 'user',
+      userId: user.id,
+      tenantId: user.tenantId,
+      email: user.email,
+      rank: user.rank as UserRank,
+      labels,
+    };
+    return this.issue(principal, user.mustChangePassword === 1, {
+      actorType: 'user',
+      id: user.id,
+      email: user.email,
+      tenantId: user.tenantId,
+      rank: user.rank as UserRank,
+      labels,
+    });
+  }
+
+  /**
+   * Step-up verification (POST /auth/mfa/verify — @Public; the mfa_token IS the
+   * credential). Accepts a 6-digit TOTP or a recovery code, then issues EXACTLY
+   * the same response as the corresponding successful login. Rate limited by
+   * actor+ip (login-rate-limit pattern); invalid/reused codes are E1011,
+   * invalid/expired/mispurposed tokens are the existing 401.
+   */
+  async verifyMfa(mfaToken: string, code: string, clientIp: string): Promise<AuthTokensResponse> {
+    let payload: MfaStepUpPayload;
+    try {
+      payload = await this.jwt.verifyAsync<MfaStepUpPayload>(mfaToken, { algorithms: ['HS256'] });
+    } catch {
+      throw new BusinessException(ERROR_CODE.UNAUTHORIZED, HttpStatus.UNAUTHORIZED);
+    }
+    if (
+      payload.purpose !== 'mfa' ||
+      !payload.sub ||
+      (payload.actorType !== 'admin' && payload.actorType !== 'user')
+    ) {
+      this.logger.warn('mfa verify rejected: token is not an mfa step-up token');
+      throw new BusinessException(ERROR_CODE.UNAUTHORIZED, HttpStatus.UNAUTHORIZED);
+    }
+    const actorType = payload.actorType;
+    const actorId = Number(payload.sub);
+    const limiterKey = this.mfa.limiterKey({ actorType, actorId });
+    await this.loginLimiter.assertNotLocked('mfa', limiterKey, clientIp);
+
+    if (actorType === 'admin') {
+      const admin = await this.adminRepo.findOne({ where: { id: actorId } });
+      if (!admin) {
+        throw new BusinessException(ERROR_CODE.UNAUTHORIZED, HttpStatus.UNAUTHORIZED);
+      }
+      await this.consumeMfaCode('admin', admin.id, null, admin.email, code, limiterKey, clientIp);
+      await this.auditSafe({
+        tenantId: null,
+        actorType: 'admin',
+        actorId: admin.id,
+        action: 'auth.login',
+        target: maskPii(admin.email),
+        metadata: { mfa: true },
+      });
+      const principal: Principal = {
+        actorType: 'admin',
+        adminId: admin.id,
+        email: admin.email,
+        level: admin.level as AdminLevel,
+      };
+      return this.issue(principal, admin.mustChangePassword === 1, {
+        actorType: 'admin',
+        id: admin.id,
+        email: admin.email,
+        level: admin.level as AdminLevel,
+      });
+    }
+
+    const user = await this.userRepo.findOne({ where: { id: actorId } });
+    if (!user) {
+      throw new BusinessException(ERROR_CODE.UNAUTHORIZED, HttpStatus.UNAUTHORIZED);
+    }
+    const tenant = await this.tenantRepo.findOne({ where: { id: user.tenantId } });
+    if (user.status === 'suspended' || tenant?.status === 'suspended') {
+      throw new BusinessException(ERROR_CODE.FORBIDDEN, HttpStatus.FORBIDDEN);
+    }
+    await this.consumeMfaCode('user', user.id, user.tenantId, user.email, code, limiterKey, clientIp);
+    await this.auditSafe({
+      tenantId: user.tenantId,
+      actorType: 'user',
+      actorId: user.id,
+      action: 'auth.login',
+      target: maskPii(user.email),
+      metadata: { mfa: true },
     });
     const labels = await this.loadLabels(user.id);
     const principal: Principal = {
@@ -293,6 +408,45 @@ export class AuthService {
   }
 
   // ---- helpers ----
+
+  /**
+   * When the account has an active MFA credential, mint the purpose-limited
+   * step-up JWT (5 min, `purpose:'mfa'` — rejected by JwtAuthGuard for normal
+   * APIs) and return the challenge instead of tokens.
+   */
+  private async mfaChallengeIfEnabled(
+    actorType: 'admin' | 'user',
+    actorId: number,
+  ): Promise<MfaChallengeResponse | null> {
+    if (!(await this.mfa.isEnabled(actorType, actorId))) return null;
+    const mfaToken = this.jwt.sign(
+      { sub: String(actorId), actorType, purpose: 'mfa' },
+      { expiresIn: MFA_STEP_UP_TTL_SEC },
+    );
+    return { mfaRequired: true, mfaToken };
+  }
+
+  /** Consume a TOTP/recovery code, recording rate-limit failures per actor+ip. */
+  private async consumeMfaCode(
+    actorType: 'admin' | 'user',
+    actorId: number,
+    tenantId: number | null,
+    email: string,
+    code: string,
+    limiterKey: string,
+    clientIp: string,
+  ): Promise<void> {
+    try {
+      await this.mfa.consumeLoginCode(actorType, actorId, tenantId, email, code);
+    } catch (e) {
+      if (e instanceof BusinessException && e.errorCode === ERROR_CODE.MFA_CODE_INVALID.code) {
+        await this.loginLimiter.recordFailure('mfa', limiterKey, clientIp);
+      }
+      throw e;
+    }
+    await this.loginLimiter.recordSuccess('mfa', limiterKey);
+  }
+
   private async loadLabels(userId: number): Promise<JobLabel[]> {
     const links = await this.userLabelRepo.find({ where: { userId } });
     if (!links.length) return [];

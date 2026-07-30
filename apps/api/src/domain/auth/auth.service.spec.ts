@@ -7,6 +7,7 @@ import { BusinessException } from '../../global/exception/business.exception';
 import { AdminUser } from './entity/admin-user.entity';
 import { User } from '../user/entity/user.entity';
 import { LoginRateLimitService } from './login-rate-limit.service';
+import { MfaService } from './mfa.service';
 import { RedisService } from '../../infrastructure/cache/redis.service';
 
 /** In-memory Redis stand-in with the availability flag the service consults. */
@@ -93,6 +94,8 @@ describe('AuthService (SEC-M1/SEC-M2)', () => {
       limiter,
       redis as unknown as RedisService,
       { write: jest.fn() } as never,
+      // MFA disabled for these accounts — the step-up branch is covered in mfa.service.spec.
+      { isEnabled: jest.fn(async () => false), consumeLoginCode: jest.fn() } as unknown as MfaService,
     );
   });
 

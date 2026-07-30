@@ -1,4 +1,4 @@
-import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
+import { CanActivate, ExecutionContext, Injectable, Logger } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
@@ -16,6 +16,8 @@ import { HttpStatus } from '@nestjs/common';
  */
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
+  private readonly logger = new Logger(JwtAuthGuard.name);
+
   constructor(
     private readonly reflector: Reflector,
     private readonly jwt: JwtService,
@@ -34,14 +36,24 @@ export class JwtAuthGuard implements CanActivate {
     if (!token) {
       throw new BusinessException(ERROR_CODE.UNAUTHORIZED, HttpStatus.UNAUTHORIZED);
     }
-    let payload: Principal & { pwdPending?: boolean };
+    let payload: Principal & { pwdPending?: boolean; purpose?: string };
     try {
-      payload = await this.jwt.verifyAsync<Principal & { pwdPending?: boolean }>(token, {
-        secret: this.config.get<string>('JWT_ACCESS_SECRET'),
-        algorithms: ['HS256'],
-      });
+      payload = await this.jwt.verifyAsync<Principal & { pwdPending?: boolean; purpose?: string }>(
+        token,
+        {
+          secret: this.config.get<string>('JWT_ACCESS_SECRET'),
+          algorithms: ['HS256'],
+        },
+      );
     } catch {
       throw new BusinessException(ERROR_CODE.TOKEN_EXPIRED, HttpStatus.UNAUTHORIZED);
+    }
+    // Purpose-limited tokens (e.g. the MFA step-up token, purpose:'mfa') are NOT
+    // access tokens — they only work at their dedicated endpoint (PLN-MFA M1).
+    // 4xx are not server-logged by default, so warn here.
+    if (payload.purpose) {
+      this.logger.warn(`rejected purpose-limited token (purpose=${payload.purpose}) on a normal API route`);
+      throw new BusinessException(ERROR_CODE.UNAUTHORIZED, HttpStatus.UNAUTHORIZED);
     }
     // Must-change-password lockout (SEC-M2): a token issued while the account
     // still carries a seeded/temporary password can only reach the routes
