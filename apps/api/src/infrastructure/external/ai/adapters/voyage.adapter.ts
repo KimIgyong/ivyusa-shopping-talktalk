@@ -30,6 +30,10 @@ export class VoyageAdapter implements AiAdapter {
     if (!apiKey) throw new Error('Voyage API key not configured');
     const model = req.model || process.env.VOYAGE_MODEL || 'voyage-4';
 
+    // Blocking 429 backoff is for BATCH calls only (reindex CLI). A single-text
+    // request is the live chat query path — fail fast there so retrieval
+    // degrades to FULLTEXT instead of stalling the reply for up to 105s.
+    const maxRetries = req.texts.length > 1 ? VoyageAdapter.RETRY_429_MS.length : 0;
     let res: Response | null = null;
     for (let attempt = 0; ; attempt++) {
       res = await fetch('https://api.voyageai.com/v1/embeddings', {
@@ -44,7 +48,7 @@ export class VoyageAdapter implements AiAdapter {
           input_type: req.inputType,
         }),
       });
-      if (res.status === 429 && attempt < VoyageAdapter.RETRY_429_MS.length) {
+      if (res.status === 429 && attempt < maxRetries) {
         const wait = VoyageAdapter.RETRY_429_MS[attempt];
         this.logger.warn(`Voyage 429 (rate limit) — retrying in ${wait / 1000}s`);
         await new Promise((r) => setTimeout(r, wait));
