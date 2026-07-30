@@ -8,6 +8,14 @@ interface AuthState {
   principal: Principal | null;
   mustChangePassword: boolean;
   /**
+   * MFA-enrollment enforcement (PLN-MFA M3). `mfaEnrollmentRequired` — this
+   * rank must enroll (grace banner until `mfaEnforceFrom`); `mfaEnforced` —
+   * the date passed, the token is locked to enrollment routes (forced modal).
+   */
+  mfaEnrollmentRequired: boolean;
+  mfaEnforceFrom: string | null;
+  mfaEnforced: boolean;
+  /**
    * Slug of the tenant login page the user last signed in from (/<slug>).
    * Deliberately survives clear() so logout/401 can route back to the right
    * login page — it is a route hint, not a credential.
@@ -20,10 +28,14 @@ interface AuthState {
     refreshToken: string;
     principal: Principal;
     mustChangePassword: boolean;
+    mfaEnrollmentRequired?: boolean;
+    mfaEnforceFrom?: string | null;
+    mfaEnforced?: boolean;
   }) => void;
   setPrincipal: (principal: Principal) => void;
   setTenant: (slug: string, name?: string | null) => void;
   clearMustChange: () => void;
+  clearMfaEnrollment: () => void;
   clear: () => void;
 }
 
@@ -34,19 +46,43 @@ export const useAuthStore = create<AuthState>()(
       refreshToken: null,
       principal: null,
       mustChangePassword: false,
+      mfaEnrollmentRequired: false,
+      mfaEnforceFrom: null,
+      mfaEnforced: false,
       tenantSlug: null,
       tenantName: null,
-      setAuth: ({ accessToken, refreshToken, principal, mustChangePassword }) =>
-        set({ accessToken, refreshToken, principal, mustChangePassword }),
+      setAuth: ({
+        accessToken,
+        refreshToken,
+        principal,
+        mustChangePassword,
+        mfaEnrollmentRequired,
+        mfaEnforceFrom,
+        mfaEnforced,
+      }) =>
+        set({
+          accessToken,
+          refreshToken,
+          principal,
+          mustChangePassword,
+          mfaEnrollmentRequired: mfaEnrollmentRequired ?? false,
+          mfaEnforceFrom: mfaEnforceFrom ?? null,
+          mfaEnforced: mfaEnforced ?? false,
+        }),
       setPrincipal: (principal) => set({ principal }),
       setTenant: (tenantSlug, tenantName) => set({ tenantSlug, tenantName: tenantName ?? null }),
       clearMustChange: () => set({ mustChangePassword: false }),
+      clearMfaEnrollment: () =>
+        set({ mfaEnrollmentRequired: false, mfaEnforceFrom: null, mfaEnforced: false }),
       clear: () =>
         set({
           accessToken: null,
           refreshToken: null,
           principal: null,
           mustChangePassword: false,
+          mfaEnrollmentRequired: false,
+          mfaEnforceFrom: null,
+          mfaEnforced: false,
         }),
     }),
     {
@@ -57,6 +93,9 @@ export const useAuthStore = create<AuthState>()(
         accessToken: s.accessToken,
         principal: s.principal,
         mustChangePassword: s.mustChangePassword,
+        mfaEnrollmentRequired: s.mfaEnrollmentRequired,
+        mfaEnforceFrom: s.mfaEnforceFrom,
+        mfaEnforced: s.mfaEnforced,
         tenantSlug: s.tenantSlug,
         tenantName: s.tenantName,
       }),

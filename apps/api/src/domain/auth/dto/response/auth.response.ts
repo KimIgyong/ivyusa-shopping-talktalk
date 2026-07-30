@@ -6,6 +6,15 @@ export interface AuthTokensResponse {
   refreshToken: string;
   mustChangePassword: boolean;
   principal: PrincipalResponse;
+  /**
+   * MFA-enrollment enforcement (PLN-MFA Stage M3). `mfaEnrollmentRequired` —
+   * this rank must enroll (grace banner until `mfaEnforceFrom`); `mfaEnforced`
+   * — the date has passed and the access token is locked to the enrollment
+   * routes (web shows the forced modal).
+   */
+  mfaEnrollmentRequired: boolean;
+  mfaEnforceFrom: string | null;
+  mfaEnforced: boolean;
 }
 
 /**

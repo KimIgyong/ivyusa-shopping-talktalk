@@ -11,6 +11,15 @@ export const MFA_STEP_UP_TTL_SEC = 300;
 /** Recovery codes issued per enrollment (shown once, bcrypt-hashed at rest). */
 export const MFA_RECOVERY_CODE_COUNT = 10;
 
+/**
+ * Tenant-user ranks required to enroll MFA once enforcement starts (Stage M3,
+ * decision D-M1). System admins (any level) are always required. Enforcement
+ * activates only when MFA_ENFORCE_FROM (ISO date env var) is set; before that
+ * date the login response carries an advisory flag, after it the issued access
+ * token carries `mfaPending` and non-enrollment routes return E1010.
+ */
+export const MFA_REQUIRED_USER_RANKS: readonly string[] = ['master', 'director'];
+
 // ---- Password policy (Stage 3 — POL-018 hardening) ----
 // Applies to NEW passwords (change-password, accept-invite, temp issuance).
 // Existing passwords are grandfathered until their next change; login is untouched.

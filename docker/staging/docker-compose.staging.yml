@@ -66,8 +66,9 @@ services:
       - '127.0.0.1:3317:3306'
     volumes:
       - ivy_mysql_staging_data:/var/lib/mysql
-      # Staging builds the schema via TypeORM synchronize (DB_SYNCHRONIZE=true) and
-      # self-bootstraps via SEED_ON_BOOT — no init-sql mount (avoids double-create).
+      # Staging runs DB_SYNCHRONIZE=false (since 2026-07-31) — schema comes from
+      # sql/01-schema.sql + migration_*.sql applied MANUALLY before each deploy
+      # (kit 04 §3). SEED_ON_BOOT stays false; no init-sql mount.
       # sql/01-schema.sql remains the manual migration reference.
     healthcheck:
       test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost']
