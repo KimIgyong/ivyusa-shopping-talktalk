@@ -201,7 +201,13 @@ export class ShopifySyncService {
       row = this.orderRepo.create({ shopifyOrderId });
     }
     row.tenantId = tenantId;
-    row.customerId = customerId;
+    // Never downgrade a known link to NULL. A later payload can legitimately carry
+    // no customer/email — Shopify redacts protected customer fields until PCD is
+    // approved, and an orders/updated webhook can arrive minimal — and blindly
+    // assigning `customerId` then unlinked an order the shopper had been seeing,
+    // silently: the order stays in the cache but drops out of "my orders" forever,
+    // with nothing logged. Resolved wins, otherwise keep what we already knew.
+    row.customerId = customerId ?? row.customerId ?? null;
     row.orderNumber = orderNumber;
     row.statusInternal = internal;
     row.statusUi = internalToUiStatus(internal);

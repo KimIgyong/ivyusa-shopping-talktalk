@@ -247,4 +247,52 @@ describe('ShopifySyncService.syncOrders', () => {
       expect(saved).toHaveLength(1);
     });
   });
+
+  describe('customer link', () => {
+    // `upsertOrder` is also the webhook entry point, and a webhook forwards whatever
+    // Shopify sent. A payload with no customer/email is normal: Shopify redacts
+    // protected customer fields until PCD is approved, and an order genuinely may
+    // have no customer. So the incomplete case must never erase what the complete
+    // case established — the order would stay cached but silently vanish from the
+    // shopper's own order list, with nothing logged.
+    it('keeps the existing link when a later payload carries no customer/email', async () => {
+      const { svc, saved, orderRepo, customerService } = build([]);
+      orderRepo.findOne.mockResolvedValue({
+        id: 4,
+        shopifyOrderId: '6667987910830',
+        customerId: 6,
+      } as OrderCache);
+
+      await svc.upsertOrder(2, {
+        id: 6667987910830,
+        order_number: 1001,
+        financial_status: 'paid',
+      });
+
+      expect(customerService.findOrCreateByEmail).not.toHaveBeenCalled();
+      expect(saved[0].customerId).toBe(6);
+    });
+
+    it('leaves a genuinely customer-less order unlinked', async () => {
+      // Shopify's own answer for #1001: customer null, email null. Upstream truth,
+      // not local data loss — it stays NULL rather than being attached to anyone.
+      const { svc, saved } = build([]);
+      await svc.upsertOrder(2, { id: 6667987910830, order_number: 1001, financial_status: 'paid' });
+      expect(saved[0].customerId).toBeNull();
+    });
+
+    it('re-links once a later payload restores the customer', async () => {
+      const { svc, saved, orderRepo } = build([]);
+      orderRepo.findOne.mockResolvedValue({ id: 4, shopifyOrderId: '9', customerId: null } as OrderCache);
+
+      await svc.upsertOrder(2, {
+        id: 9,
+        order_number: 1003,
+        financial_status: 'paid',
+        customer: { id: 8984201134254, email: 'back@example.com' },
+      });
+
+      expect(saved[0].customerId).toBe(42);
+    });
+  });
 });
