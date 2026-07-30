@@ -16,5 +16,16 @@
   "content": "내용",
   "noSources": "아직 소스가 없습니다.",
   "noDocuments": "아직 문서가 없습니다.",
-  "deleteDocumentConfirm": "이 문서를 삭제하시겠습니까?"
+  "deleteDocumentConfirm": "이 문서를 삭제하시겠습니까?",
+  "category": "카테고리",
+  "active": "노출",
+  "updated": "수정일",
+  "visible": "노출중",
+  "hidden": "숨김",
+  "activate": "활성화",
+  "deactivate": "비활성화",
+  "allCategories": "전체 카테고리",
+  "categoryPlaceholder": "예: policy_shipping, faq",
+  "documentDetail": "문서",
+  "noContent": "(내용 없음)"
 }

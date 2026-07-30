@@ -112,6 +112,11 @@ export class KnowledgeService {
     return { items, total, page, size };
   }
 
+  /** Full document including LONGTEXT content (list omits it — PERF-9). */
+  async getDocument(tenantId: number, id: number): Promise<KbDocument> {
+    return this.findDocument(tenantId, id);
+  }
+
   async createDocument(tenantId: number, body: CreateDocumentRequest): Promise<KbDocument> {
     const doc = this.docRepo.create({
       tenantId,

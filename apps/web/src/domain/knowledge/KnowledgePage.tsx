@@ -8,45 +8,74 @@ import { StatusBadge } from '@/components/StatusBadge';
 import { Table } from '@/components/Table';
 import type { Column } from '@/components/Table';
 import { Modal } from '@/components/Modal';
+import { Pagination } from '@/components/Pagination';
 import { FormRow, Input, Select } from '@/components/Field';
 import {
   useSources,
   useCreateSource,
-  useToggleSource,
+  useSetSourceStatus,
   useDocuments,
+  useDocument,
   useCreateDocument,
+  useUpdateDocument,
   useDeleteDocument,
 } from './knowledge.hooks';
 import type { KnowledgeSource, KnowledgeDocument } from './knowledge.service';
+
+const PAGE_SIZE = 20;
+const SOURCE_TYPES = ['board', 'repository', 'gdrive'];
+/** Known category values: legacy seed tags + policy import taxonomy. */
+const CATEGORIES = [
+  'faq',
+  'policy',
+  'product',
+  'warranty',
+  'policy_legal',
+  'policy_shipping',
+  'policy_return',
+  'policy_cancellation',
+  'policy_claims',
+  'policy_payment',
+  'policy_promotion',
+  'policy_membership',
+  'policy_professional',
+  'policy_beautizen',
+  'policy_roundtable',
+  'policy_b2b',
+  'policy_safety',
+  'policy_fraud',
+];
 
 export function KnowledgePage() {
   const { t } = useTranslation('knowledge');
   const { t: tc } = useTranslation('common');
   const sources = useSources();
   const createSource = useCreateSource();
-  const toggleSource = useToggleSource();
-  const documents = useDocuments();
+  const setSourceStatus = useSetSourceStatus();
+
+  const [page, setPage] = useState(1);
+  const [category, setCategory] = useState('');
+  const documents = useDocuments({ page, size: PAGE_SIZE, category: category || undefined });
   const createDocument = useCreateDocument();
+  const updateDocument = useUpdateDocument();
   const deleteDocument = useDeleteDocument();
+
+  const [detailId, setDetailId] = useState<string | null>(null);
+  const detail = useDocument(detailId);
 
   const [sourceOpen, setSourceOpen] = useState(false);
   const [sourceName, setSourceName] = useState('');
-  const [sourceType, setSourceType] = useState('url');
+  const [sourceType, setSourceType] = useState(SOURCE_TYPES[0]);
 
   const [docOpen, setDocOpen] = useState(false);
   const [docTitle, setDocTitle] = useState('');
-  const [docSourceId, setDocSourceId] = useState('');
+  const [docCategory, setDocCategory] = useState('');
   const [docContent, setDocContent] = useState('');
-
-  const sourceList = sources.data ?? [];
-
-  const sourceName_ = (id?: string) =>
-    sourceList.find((s) => s.id === id)?.name ?? '—';
 
   const closeSource = () => {
     setSourceOpen(false);
     setSourceName('');
-    setSourceType('url');
+    setSourceType(SOURCE_TYPES[0]);
   };
 
   const saveSource = () => {
@@ -56,47 +85,47 @@ export function KnowledgePage() {
   const closeDoc = () => {
     setDocOpen(false);
     setDocTitle('');
-    setDocSourceId('');
+    setDocCategory('');
     setDocContent('');
   };
 
   const saveDoc = () => {
     createDocument.mutate(
-      {
-        title: docTitle,
-        sourceId: docSourceId || undefined,
-        content: docContent || undefined,
-      },
+      { title: docTitle, category: docCategory, content: docContent },
       { onSuccess: closeDoc },
     );
   };
 
   const removeDoc = (id: string) => {
     if (window.confirm(t('deleteDocumentConfirm'))) {
-      deleteDocument.mutate(id);
+      deleteDocument.mutate(id, { onSuccess: () => setDetailId(null) });
     }
+  };
+
+  const toggleActive = (doc: { id: string; active: number }) => {
+    updateDocument.mutate({ id: doc.id, body: { active: doc.active === 1 ? 0 : 1 } });
   };
 
   const sourceColumns: Column<KnowledgeSource>[] = [
     { key: 'name', header: t('name'), render: (r) => r.name },
-    { key: 'type', header: t('type'), render: (r) => r.type ?? '—' },
+    { key: 'type', header: t('type'), render: (r) => r.type },
     {
-      key: 'documentCount',
-      header: t('documentsColumn'),
-      render: (r) => (r.documentCount ?? 0).toLocaleString(),
-    },
-    {
-      key: 'enabled',
-      header: t('enabled'),
+      key: 'status',
+      header: t('status'),
       render: (r) => (
         <Button
           variant="ghost"
           size="sm"
-          disabled={toggleSource.isPending}
-          onClick={() => toggleSource.mutate({ id: r.id, enabled: !r.enabled })}
+          disabled={setSourceStatus.isPending}
+          onClick={() =>
+            setSourceStatus.mutate({
+              id: r.id,
+              status: r.status === 'active' ? 'inactive' : 'active',
+            })
+          }
         >
-          <Badge tone={r.enabled ? 'success' : 'gray'}>
-            {r.enabled ? tc('enabled') : tc('disabled')}
+          <Badge tone={r.status === 'active' ? 'success' : 'gray'}>
+            {r.status === 'active' ? tc('enabled') : tc('disabled')}
           </Badge>
         </Button>
       ),
@@ -109,13 +138,45 @@ export function KnowledgePage() {
   ];
 
   const docColumns: Column<KnowledgeDocument>[] = [
-    { key: 'title', header: t('title_column'), render: (r) => r.title },
-    { key: 'source', header: t('source'), render: (r) => sourceName_(r.sourceId) },
+    {
+      key: 'title',
+      header: t('title_column'),
+      render: (r) => (
+        <button
+          type="button"
+          className="text-left font-medium text-primary-600 hover:underline"
+          onClick={() => setDetailId(r.id)}
+        >
+          {r.title}
+        </button>
+      ),
+    },
+    {
+      key: 'category',
+      header: t('category'),
+      render: (r) => (r.category ? <Badge tone="info">{r.category}</Badge> : '—'),
+    },
+    {
+      key: 'active',
+      header: t('active'),
+      render: (r) => (
+        <Button
+          variant="ghost"
+          size="sm"
+          disabled={updateDocument.isPending}
+          onClick={() => toggleActive(r)}
+        >
+          <Badge tone={r.active === 1 ? 'success' : 'warning'}>
+            {r.active === 1 ? t('visible') : t('hidden')}
+          </Badge>
+        </Button>
+      ),
+    },
     { key: 'status', header: t('status'), render: (r) => <StatusBadge status={r.status} /> },
     {
-      key: 'createdAt',
-      header: t('created'),
-      render: (r) => (r.createdAt ? new Date(r.createdAt).toLocaleDateString() : '—'),
+      key: 'updatedAt',
+      header: t('updated'),
+      render: (r) => (r.updatedAt ? new Date(r.updatedAt).toLocaleDateString() : '—'),
     },
     {
       key: 'actions',
@@ -133,6 +194,8 @@ export function KnowledgePage() {
       ),
     },
   ];
+
+  const docList = documents.data;
 
   return (
     <div>
@@ -155,15 +218,39 @@ export function KnowledgePage() {
 
         <Card
           title={t('documents')}
-          action={<Button onClick={() => setDocOpen(true)}>{t('addDocument')}</Button>}
+          action={
+            <div className="flex items-center gap-2">
+              <Select
+                value={category}
+                onChange={(e) => {
+                  setCategory(e.target.value);
+                  setPage(1);
+                }}
+              >
+                <option value="">{t('allCategories')}</option>
+                {CATEGORIES.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </Select>
+              <Button onClick={() => setDocOpen(true)}>{t('addDocument')}</Button>
+            </div>
+          }
         >
           <Table<KnowledgeDocument>
             columns={docColumns}
-            data={documents.data}
+            data={docList?.items}
             loading={documents.isLoading}
             error={documents.error ? (documents.error as Error).message : null}
             emptyMessage={t('noDocuments')}
             rowKey={(r) => r.id}
+          />
+          <Pagination
+            page={page}
+            pageSize={PAGE_SIZE}
+            total={docList?.total ?? 0}
+            onPageChange={setPage}
           />
         </Card>
       </div>
@@ -188,10 +275,11 @@ export function KnowledgePage() {
         </FormRow>
         <FormRow label={t('type')}>
           <Select value={sourceType} onChange={(e) => setSourceType(e.target.value)}>
-            <option value="url">url</option>
-            <option value="file">file</option>
-            <option value="faq">faq</option>
-            <option value="manual">manual</option>
+            {SOURCE_TYPES.map((v) => (
+              <option key={v} value={v}>
+                {v}
+              </option>
+            ))}
           </Select>
         </FormRow>
       </Modal>
@@ -205,7 +293,10 @@ export function KnowledgePage() {
             <Button variant="ghost" onClick={closeDoc}>
               {tc('cancel')}
             </Button>
-            <Button onClick={saveDoc} disabled={createDocument.isPending || !docTitle}>
+            <Button
+              onClick={saveDoc}
+              disabled={createDocument.isPending || !docTitle || !docCategory || !docContent}
+            >
               {tc('save')}
             </Button>
           </>
@@ -214,24 +305,75 @@ export function KnowledgePage() {
         <FormRow label={t('title_column')}>
           <Input value={docTitle} onChange={(e) => setDocTitle(e.target.value)} />
         </FormRow>
-        <FormRow label={t('source')}>
-          <Select value={docSourceId} onChange={(e) => setDocSourceId(e.target.value)}>
-            <option value="">{tc('none')}</option>
-            {sourceList.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
-              </option>
-            ))}
-          </Select>
+        <FormRow label={t('category')}>
+          <>
+            <Input
+              value={docCategory}
+              onChange={(e) => setDocCategory(e.target.value)}
+              list="kb-categories"
+              placeholder={t('categoryPlaceholder')}
+            />
+            <datalist id="kb-categories">
+              {CATEGORIES.map((c) => (
+                <option key={c} value={c} />
+              ))}
+            </datalist>
+          </>
         </FormRow>
         <FormRow label={t('content')}>
           <textarea
             className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-primary-500"
-            rows={4}
+            rows={8}
             value={docContent}
             onChange={(e) => setDocContent(e.target.value)}
           />
         </FormRow>
+      </Modal>
+
+      <Modal
+        open={detailId !== null}
+        onClose={() => setDetailId(null)}
+        title={detail.data?.title ?? t('documentDetail')}
+        footer={
+          <>
+            {detail.data && (
+              <Button
+                variant="secondary"
+                disabled={updateDocument.isPending}
+                onClick={() => toggleActive(detail.data)}
+              >
+                {detail.data.active === 1 ? t('deactivate') : t('activate')}
+              </Button>
+            )}
+            <Button variant="ghost" onClick={() => setDetailId(null)}>
+              {tc('close')}
+            </Button>
+          </>
+        }
+      >
+        {detail.isLoading ? (
+          <p className="py-6 text-center text-sm text-gray-500">{tc('loading')}</p>
+        ) : detail.error ? (
+          <p className="py-6 text-center text-sm text-error">{(detail.error as Error).message}</p>
+        ) : detail.data ? (
+          <div className="space-y-3">
+            <div className="flex flex-wrap items-center gap-2">
+              {detail.data.category && <Badge tone="info">{detail.data.category}</Badge>}
+              <Badge tone={detail.data.active === 1 ? 'success' : 'warning'}>
+                {detail.data.active === 1 ? t('visible') : t('hidden')}
+              </Badge>
+              <StatusBadge status={detail.data.status} />
+              {detail.data.updatedAt && (
+                <span className="text-xs text-gray-500">
+                  {t('updated')}: {new Date(detail.data.updatedAt).toLocaleString()}
+                </span>
+              )}
+            </div>
+            <div className="max-h-96 overflow-y-auto whitespace-pre-wrap rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm leading-relaxed">
+              {detail.data.content ?? t('noContent')}
+            </div>
+          </div>
+        ) : null}
       </Modal>
     </div>
   );
