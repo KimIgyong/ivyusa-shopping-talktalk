@@ -1,5 +1,5 @@
 import { randomUUID } from 'crypto';
-import { HttpStatus, Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
@@ -9,6 +9,7 @@ import { RedisService } from '../../infrastructure/cache/redis.service';
 import { AuditService } from '../audit/audit.service';
 import { maskPii } from '../../global/util/pii.util';
 import { BCRYPT_ROUNDS } from '../../global/constant/security.constant';
+import { validatePassword } from '../../global/util/password-policy.util';
 import { AdminLevel, JobLabel, Principal, UserRank } from '@ivy/types';
 import { AdminUser } from './entity/admin-user.entity';
 import { User } from '../user/entity/user.entity';
@@ -40,6 +41,8 @@ interface RefreshPayload {
  */
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     @InjectRepository(AdminUser) private readonly adminRepo: Repository<AdminUser>,
     @InjectRepository(User) private readonly userRepo: Repository<User>,
@@ -240,7 +243,7 @@ export class AuthService {
   ): Promise<AuthTokensResponse> {
     if (principal.actorType === 'admin') {
       const admin = await this.adminRepo.findOneByOrFail({ id: principal.adminId });
-      await this.assertAndSet(admin.passwordHash, current, next, async (hash) => {
+      await this.assertAndSet(admin.passwordHash, current, next, { email: admin.email }, async (hash) => {
         admin.passwordHash = hash;
         admin.mustChangePassword = 0;
         admin.passwordChangedAt = new Date();
@@ -255,7 +258,7 @@ export class AuthService {
       return this.issue(principal, false, this.toPrincipalResponse(principal));
     }
     const user = await this.userRepo.findOneByOrFail({ id: principal.userId });
-    await this.assertAndSet(user.passwordHash, current, next, async (hash) => {
+    await this.assertAndSet(user.passwordHash, current, next, { email: user.email, name: user.name }, async (hash) => {
       user.passwordHash = hash;
       user.mustChangePassword = 0;
       user.passwordChangedAt = new Date();
@@ -297,14 +300,30 @@ export class AuthService {
     return labels.map((l) => l.code as JobLabel);
   }
 
+  /**
+   * Verify the current password, enforce the password policy on the NEW one
+   * (service-layer double enforcement — DTO validation can be bypassed), then
+   * hash and persist. Policy failures are E1009 with the failed rule keys in
+   * `details.password`, and warned to the log (4xx are not logged by default).
+   */
   private async assertAndSet(
     currentHash: string | null,
     current: string,
     next: string,
+    identity: { email?: string | null; name?: string | null },
     save: (hash: string) => Promise<void>,
   ): Promise<void> {
     if (!currentHash || !(await bcrypt.compare(current, currentHash))) {
       throw new BusinessException(ERROR_CODE.INVALID_CREDENTIALS, HttpStatus.UNAUTHORIZED);
+    }
+    const policy = validatePassword(next, { ...identity, currentPasswordPlain: current });
+    if (!policy.ok) {
+      this.logger.warn(
+        `password change rejected by policy [${policy.failed.join(', ')}] for ${maskPii(identity.email ?? '')}`,
+      );
+      throw new BusinessException(ERROR_CODE.PASSWORD_POLICY_VIOLATION, HttpStatus.BAD_REQUEST, {
+        password: policy.failed,
+      });
     }
     await save(await bcrypt.hash(next, BCRYPT_ROUNDS));
   }

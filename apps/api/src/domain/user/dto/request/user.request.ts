@@ -8,6 +8,8 @@ import {
   MinLength,
 } from 'class-validator';
 import { USER_RANK } from '@ivy/types';
+import { IsStrongPassword } from '../../../../global/util/password-policy.util';
+import { PASSWORD_MIN_LENGTH } from '../../../../global/constant/security.constant';
 
 /** Request DTOs — snake_case (amoeba_code_convention). */
 
@@ -33,7 +35,8 @@ export class AcceptInviteRequest {
   token: string;
 
   @IsString()
-  @MinLength(8)
+  @MinLength(PASSWORD_MIN_LENGTH)
+  @IsStrongPassword()
   new_password: string;
 }
 
