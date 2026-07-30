@@ -1,0 +1,77 @@
+language: "ko"
+tone_instructions: >-
+  Provide concise, actionable reviews in Korean. Focus on correctness, security,
+  multitenancy, data integrity, and regressions; avoid style-only comments.
+
+reviews:
+  profile: "assertive"
+  high_level_summary: true
+  high_level_summary_instructions: >-
+    Summarize user-visible behavior, API or schema changes, migration and rollback
+    implications, and any risks. Write the summary in Korean.
+  review_status: true
+  review_details: false
+  collapse_walkthrough: true
+  sequence_diagrams: false
+  estimate_code_review_effort: false
+  related_issues: false
+  related_prs: false
+  suggested_labels: false
+  suggested_reviewers: false
+  auto_review:
+    enabled: true
+    auto_incremental_review: true
+    drafts: false
+    base_branches:
+      - "main"
+      - "production"
+  path_filters:
+    - "!**/node_modules/**"
+    - "!**/dist/**"
+    - "!**/coverage/**"
+    - "!**/*.lock"
+  path_instructions:
+    - path: "apps/api/**"
+      instructions: >-
+        NestJS: keep controllers thin and put business logic in services. Request
+        DTO fields and query parameters must use snake_case and be validated;
+        response DTOs must be camelCase and use static mappers. Check every
+        tenant-scoped query filters by trusted tenant_id, never by a client-provided
+        tenant identifier. Flag missing authorization, unmoderated AI or agent
+        outbound messages, unmasked PII logs, plaintext credentials, and privileged
+        actions that lack an audit record. Ensure errors use BusinessException and
+        ERROR_CODE rather than ad-hoc responses.
+    - path: "apps/{web,widget}/**"
+      instructions: >-
+        React: require all visible strings and accessible labels to use i18n with
+        en, es, and ko translations. Ensure React Query cache keys include tenantId
+        for tenant-scoped data, mutations invalidate related queries, and API calls
+        use the shared client. Review accessibility for interactive controls,
+        dialogs, keyboard handling, and live chat updates.
+    - path: "packages/**"
+      instructions: >-
+        Review shared types and utilities for backwards compatibility across the
+        API, web console, and widget. Do not permit unsafe casts that hide broken
+        contracts.
+    - path: "sql/**"
+      instructions: >-
+        Review migrations for safe forward deployment and rollback considerations.
+        Check tenant_id, indexes for tenant-scoped access, snake_case naming, and
+        BIGINT/DECIMAL handling consistency with TypeORM entities.
+    - path: ".github/workflows/**"
+      instructions: >-
+        Review CI changes for pinned action versions, least-privilege permissions,
+        no secret disclosure, and preservation of typecheck, test, and build gates.
+
+chat:
+  auto_reply: true
+
+finishing_touches:
+  docstrings:
+    enabled: false
+  unit_tests:
+    enabled: false
+  autofix:
+    enabled: false
+  fix_ci:
+    enabled: false
