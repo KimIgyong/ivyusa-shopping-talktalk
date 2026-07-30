@@ -50,9 +50,9 @@ Seed logins (must change on first login): `admin@amoeba.group` / `amb2026!@` (Sy
 **Open gaps** — the 2026-06 audit roadmap (tenant_id coverage, GDPR/DSAR, PII masking,
 bcrypt 12, DTO normalization, staging/prod Docker, unit tests) is **closed** — see SPEC §14
 for the resolution log. Remaining: e2e HTTP tests (supertest), Shopify OAuth partner
-approval, production host + `.env.production` (deploy pending), and ⚠️ **staging runs
-`DB_SYNCHRONIZE=true`** — violates dev-kit MUST (staging/prod must be `false` + manual SQL
-pre-apply, `sql/` migrations); flip once the migration runbook is exercised on staging.
+approval, production host + `.env.production` (deploy pending). Staging runs
+`DB_SYNCHRONIZE=false` since 2026-07-31 (migration runbook exercised) — schema changes
+now REQUIRE manual SQL pre-apply from `sql/` on staging before deploying code.
 
 ## 7. Workflow & traceability (dev-kit `claude/spec-guide.md` + `_Structure_v2` §8.2)
 **Requirements workflow** — a `[요구사항]`/requirements-type request MUST follow, in order:
