@@ -223,10 +223,16 @@ export class KnowledgeService {
     }, delay).unref?.();
   }
 
+  /** Batch size for reindex embedding calls (Voyage accepts up to 128 inputs). */
+  private static readonly REINDEX_BATCH = 64;
+
   /**
    * Rebuild the vector index from MySQL (npm run kb:reindex). Re-embeds
    * pending docs and docs whose stored embedding_model differs from the
-   * current one; `force` re-embeds everything. Returns counts for reporting.
+   * current one; `force` re-embeds everything. Embeds in batches (a per-doc
+   * call per row trips free-tier Voyage rate limits). When a Voyage key is
+   * configured, a stub fallback result is counted as FAILURE — mixing stub
+   * pseudo-vectors into a voyage collection would corrupt the vector space.
    */
   async reindexAll(opts: { force?: boolean } = {}): Promise<{ scanned: number; embedded: number; failed: number }> {
     const currentModel = (await this.ai.embed(['probe'], 'document')).model;
@@ -239,15 +245,48 @@ export class KnowledgeService {
             { embeddingModel: Not(currentModel) },
           ],
         });
+    const realKeySet = !!process.env.VOYAGE_API_KEY;
     let embedded = 0;
     let failed = 0;
-    for (const doc of docs) {
+    for (let i = 0; i < docs.length; i += KnowledgeService.REINDEX_BATCH) {
+      const batch = docs.slice(i, i + KnowledgeService.REINDEX_BATCH);
+      const texts = batch.map((d) =>
+        `${d.title}\n${d.content ?? ''}`.slice(0, KnowledgeService.EMBED_MAX_CHARS),
+      );
       try {
-        await this.embedOnce(doc);
-        embedded++;
+        const emb = await this.ai.embed(texts, 'document');
+        if (realKeySet && emb.provider === 'stub') {
+          throw new Error('embedder degraded to stub while VOYAGE_API_KEY is set');
+        }
+        for (let j = 0; j < batch.length; j++) {
+          const doc = batch[j];
+          try {
+            if (this.qdrant.enabled) {
+              await this.qdrant.upsert(Number(doc.id), emb.vectors[j], {
+                tenant_id: doc.tenantId ?? 0,
+                category: doc.category,
+                source: doc.source,
+                active: doc.active === 1,
+              });
+              doc.embeddingRef = `qdrant:${doc.id}`;
+            } else {
+              doc.embeddingRef = `emb_${doc.id}`;
+            }
+            doc.embeddingModel = emb.model;
+            doc.embeddedAt = new Date();
+            doc.status = 'embedded';
+            await this.docRepo.save(doc);
+            embedded++;
+          } catch (e) {
+            failed++;
+            this.logger.warn(`reindex upsert(${doc.id}) failed: ${(e as Error).message}`);
+          }
+        }
       } catch (e) {
-        failed++;
-        this.logger.warn(`reindex embed(${doc.id}) failed: ${(e as Error).message}`);
+        failed += batch.length;
+        this.logger.warn(
+          `reindex batch ${i}-${i + batch.length - 1} failed: ${(e as Error).message}`,
+        );
       }
     }
     return { scanned: docs.length, embedded, failed };
