@@ -215,6 +215,10 @@ export class ScenarioService {
     // Non-bypassable moderation gate (FR-069) — scripts are trusted copy, but
     // the gate stays in the path so tenant rules always apply. A blocked script
     // hands off to a human instead of bypassing the gate (POL-020).
+    // PII minimization (PRV Stage 5): no scrub here by design — the egress is
+    // static script copy (no user free text reaches the AI on this path), and
+    // moderated.text is delivered to the customer, so scrubbing pre-moderation
+    // would corrupt delivery.
     const moderated = await this.moderation.moderate({
       tenantId: session.tenantId ?? 0,
       scope: 'ai',

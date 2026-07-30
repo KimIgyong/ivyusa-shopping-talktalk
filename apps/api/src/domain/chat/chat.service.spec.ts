@@ -152,6 +152,25 @@ describe('ChatService consent gate', () => {
     expect(moderate).toHaveBeenCalled();
   });
 
+  it('scrubs PII from the AI egress copy while persisting the original (Stage 5)', async () => {
+    session = makeSession(CONSENT_STATE.GRANTED, CONSENT_NOTICE_VERSION);
+    build();
+    const original = 'refund please, mail me at jane.doe@example.com about order #1001';
+    const result = await svc.handleUserMessage(session, original);
+    expect(result.reply?.senderType).toBe('ai');
+
+    // AI provider sees the scrubbed copy…
+    const egress = ragClassify.mock.calls[0][1] as string;
+    expect(egress).toContain('[EMAIL]');
+    expect(egress).toContain('[ORDER]');
+    expect(egress).not.toContain('jane.doe@example.com');
+    expect(ragAnswer.mock.calls[0][1]).toBe(egress);
+
+    // …while the persisted user turn keeps the original text for agents.
+    const persistedUserTurn = msgSave.mock.calls[0][0] as { body: string };
+    expect(persistedUserTurn.body).toBe(original);
+  });
+
   it('withdrawal regression: granted then declined → next message is blocked', async () => {
     session = makeSession(CONSENT_STATE.GRANTED, CONSENT_NOTICE_VERSION);
     build();

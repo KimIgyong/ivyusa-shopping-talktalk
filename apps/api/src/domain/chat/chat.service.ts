@@ -1,4 +1,4 @@
-import { HttpStatus, Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { BusinessException } from '../../global/exception/business.exception';
@@ -19,6 +19,7 @@ import { RagService } from './rag.service';
 import { ModerationService } from '../moderation/moderation.service';
 import { SessionService } from '../session/session.service';
 import { EventBusService, EVENTS } from '../../infrastructure/infrastructure.module';
+import { scrubPii } from '../../global/util/pii-scrub.util';
 
 const ESCALATION_CONFIDENCE = 0.45;
 
@@ -87,6 +88,8 @@ export interface EscalationEvent {
  */
 @Injectable()
 export class ChatService {
+  private readonly logger = new Logger(ChatService.name);
+
   constructor(
     @InjectRepository(Conversation) private readonly convRepo: Repository<Conversation>,
     @InjectRepository(Message) private readonly msgRepo: Repository<Message>,
@@ -227,8 +230,18 @@ export class ChatService {
       return { conversationId: conversation.id, reply: null, escalate: false, needsAuth: false };
     }
 
+    // PII minimization (PRV Stage 5): the AI provider gets a scrubbed COPY of
+    // the message; the persisted original stays intact (agents need it). Only
+    // match counts are logged — never the original text.
+    const { text: egressText, counts: piiCounts } = scrubPii(text);
+    if (Object.keys(piiCounts).length > 0) {
+      this.logger.warn(
+        `PII scrubbed from AI egress (conversation ${conversation.id}): ${JSON.stringify(piiCounts)}`,
+      );
+    }
+
     // Intent + scope check (FN-015): order data requires authentication first.
-    const intent = await this.rag.classifyIntent(tenantId, text);
+    const intent = await this.rag.classifyIntent(tenantId, egressText);
     if (intent.needsOrderData && session.customerId == null) {
       const body = sysMsg('authRequired', session.language);
       await this.persist(conversation.id, SENDER_TYPE.SYSTEM, body, session.language);
@@ -236,7 +249,7 @@ export class ChatService {
     }
 
     // RAG answer (FN-016/017).
-    const answer = await this.rag.answer(tenantId, text, session.language);
+    const answer = await this.rag.answer(tenantId, egressText, session.language);
 
     // Mandatory moderation gate (FR-069).
     const moderated = await this.moderation.moderate({
