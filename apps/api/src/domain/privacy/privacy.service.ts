@@ -85,6 +85,21 @@ export class PrivacyService {
     const session = await this.sessionRepo.findOne({ where: { sessionToken } });
     if (!session) throw new BusinessException(ERROR_CODE.SESSION_NOT_FOUND, HttpStatus.NOT_FOUND);
     if (session.customerId == null || session.identityLevel !== SESSION_IDENTITY.VERIFIED) {
+      // Explicit 403 on a consumer-rights path — leave a 'denied' trail (Stage 4);
+      // best-effort so an audit failure never masks the rejection itself.
+      try {
+        await this.audit.write({
+          tenantId: session.tenantId ?? null,
+          actorType: 'user',
+          actorId: 0,
+          action: 'dsar.denied',
+          target: session.customerId != null ? `customer:${session.customerId}` : undefined,
+          result: 'denied',
+          metadata: { reason: 'identity_not_verified' },
+        });
+      } catch (err) {
+        this.logger.warn(`dsar.denied audit write failed: ${String(err)}`);
+      }
       throw new BusinessException(ERROR_CODE.FORBIDDEN, HttpStatus.FORBIDDEN);
     }
     return session.customerId;
@@ -94,9 +109,10 @@ export class PrivacyService {
 
   /** GDPR "request customer data" — logged; data is compiled out-of-band. */
   async handleCustomerDataRequest(email: string | null): Promise<void> {
+    // Machine writer (Shopify webhook) — 'system', not a phantom admin (Stage 4).
     await this.audit.write({
       tenantId: null,
-      actorType: 'admin',
+      actorType: 'system',
       actorId: 0,
       action: 'gdpr.data_request',
       // Masked (PRV-M5): audit rows must not replicate raw PII.
@@ -112,7 +128,7 @@ export class PrivacyService {
     }
     await this.audit.write({
       tenantId: customer?.tenantId ?? null,
-      actorType: 'admin',
+      actorType: 'system',
       actorId: 0,
       action: 'gdpr.customers_redact',
       target: email ? maskPii(email) : (shopifyCustomerId ?? undefined),
@@ -132,10 +148,11 @@ export class PrivacyService {
     if (!tenant) {
       await this.audit.write({
         tenantId: null,
-        actorType: 'admin',
+        actorType: 'system',
         actorId: 0,
         action: 'gdpr.shop_redact',
         target: shopDomain ?? undefined,
+        metadata: { purged: false },
       });
       return { purged: false };
     }
@@ -145,10 +162,11 @@ export class PrivacyService {
 
     await this.audit.write({
       tenantId,
-      actorType: 'admin',
+      actorType: 'system',
       actorId: 0,
       action: 'gdpr.shop_redact',
       target: shopDomain ?? String(tenantId),
+      metadata: { purged: true },
     });
 
     return { purged: true, tenantId };
@@ -237,13 +255,16 @@ export class PrivacyService {
     }
 
     // PII-access audit (best-effort; never fail the export on audit error).
+    // Machine-assembled export — 'system' actor, not a phantom user (Stage 4).
     try {
       await this.audit.write({
         tenantId: customer?.tenantId ?? null,
-        actorType: 'user',
+        actorType: 'system',
         actorId: 0,
         action: 'dsar.export',
         target: maskPii(customer?.email ?? null),
+        result: 'success',
+        metadata: { kind: 'export', customerId },
       });
     } catch (err) {
       this.logger.warn(`dsar.export audit write failed: ${String(err)}`);
@@ -342,12 +363,14 @@ export class PrivacyService {
     const customerId = await this.requireVerifiedCustomerId(sessionToken);
     const customer = await this.customerRepo.findOne({ where: { id: customerId } });
     if (customer) await this.anonymizeCustomer(customer);
+    // Machine-executed erasure — 'system' actor, not a phantom admin (Stage 4).
     await this.audit.write({
       tenantId: customer?.tenantId ?? null,
-      actorType: 'admin',
+      actorType: 'system',
       actorId: 0,
       action: 'dsar.delete',
       target: String(customerId),
+      metadata: { kind: 'erasure' },
     });
   }
 
@@ -363,17 +386,12 @@ export class PrivacyService {
     const customerId = session.customerId;
     const enabled = optOut ? 0 : 1;
 
-    for (const channel of EXTERNAL_CHANNELS) {
-      for (const category of PREF_CATEGORIES) {
-        let pref = await this.prefRepo.findOne({ where: { customerId, channel, category } });
-        if (pref) {
-          pref.enabled = enabled;
-        } else {
-          pref = this.prefRepo.create({ customerId, channel, category, enabled });
-        }
-        await this.prefRepo.save(pref);
-      }
-    }
+    // Bulk upsert the full external-channel × category grid in one statement,
+    // keyed on the uk_pref (customer_id, channel, category) unique constraint.
+    const rows = EXTERNAL_CHANNELS.flatMap((channel) =>
+      PREF_CATEGORIES.map((category) => ({ customerId, channel, category, enabled })),
+    );
+    await this.prefRepo.upsert(rows, ['customerId', 'channel', 'category']);
 
     // Attribute the action to the consumer's own session, in their tenant —
     // not to a phantom admin (PRV-M2 audit-actor fix).
@@ -383,6 +401,8 @@ export class PrivacyService {
       actorId: 0,
       action: 'ccpa.opt_out',
       target: `customer:${customerId} optOut=${optOut}`,
+      result: 'success',
+      metadata: { optOut, customerId },
     });
   }
 
@@ -392,6 +412,9 @@ export class PrivacyService {
     const prefs = await this.prefRepo.find({
       where: { customerId, channel: In(EXTERNAL_CHANNELS) },
     });
+    // Zero rows = the customer never touched prefs and never opted out → false.
+    // (Delivery-side suppression is separate: with no rows, marketing categories
+    // are still default-denied at NotificationService.isSuppressed — D-4.)
     if (prefs.length === 0) return false;
     return prefs.every((p) => p.enabled === 0);
   }

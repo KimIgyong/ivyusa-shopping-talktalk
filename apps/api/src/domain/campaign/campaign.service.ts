@@ -104,12 +104,14 @@ export class CampaignService implements OnModuleInit {
       }
     }
 
+    // Event-bus consumer (machine writer) — 'system' actor, not a phantom user (Stage 4).
     await this.audit.write({
       tenantId: campaign.tenantId,
-      actorType: 'user',
+      actorType: 'system',
       actorId: 0,
       action: 'campaign.dispatched',
-      target: `campaign:${campaignId} external=${externalDelivered} inAppOnly=${inAppOnly}`,
+      target: `campaign:${campaignId}`,
+      metadata: { externalDelivered, inAppOnly },
     });
   }
 

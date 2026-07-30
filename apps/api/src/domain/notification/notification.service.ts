@@ -20,6 +20,13 @@ function unreadCacheKey(customerId: number): string {
 const EXTERNAL_CHANNELS = ['email', 'sms', 'web_push'] as const;
 
 /**
+ * Transactional categories may default-allow on external channels when the
+ * customer has no explicit pref row; everything else (marketing: event/review)
+ * is default-DENY per approved decision D-4 (Stage 6).
+ */
+const TRANSACTIONAL_CATEGORIES = ['payment', 'shipping'] as const;
+
+/**
  * Customer/session notifications (FR-030/031). Always creates an in-app
  * notification on EVENTS.NOTIFICATION; honors per-customer prefs for external
  * channels (mocked delivery -> a notification row per enabled channel).
@@ -64,12 +71,9 @@ export class NotificationService implements OnModuleInit {
         : [...EXTERNAL_CHANNELS];
 
     for (const channel of externalTargets) {
-      const enabled = await this.isChannelEnabled(customerId, channel, input.category);
-      if (!enabled) {
-        this.logger.debug(`channel ${channel} disabled for customer ${customerId} / ${input.category}`);
-        continue;
-      }
-      // External delivery is mocked — record a row per enabled channel.
+      const suppressed = await this.isSuppressed(customerId, channel, input.category);
+      if (suppressed) continue; // reason already logged by isSuppressed
+      // External delivery is mocked — record a row per allowed channel.
       this.logger.debug(`mock-deliver ${channel} -> customer ${customerId}: ${input.title}`);
       created.push(await this.createRow(input, channel, customerId, sessionId));
     }
@@ -98,16 +102,35 @@ export class NotificationService implements OnModuleInit {
     );
   }
 
-  /** Default enabled if no pref row exists. */
-  private async isChannelEnabled(
-    customerId: number | null,
-    channel: string,
-    category: string,
-  ): Promise<boolean> {
-    if (customerId == null) return true;
+  /**
+   * Single suppression decision point for EXTERNAL channels (Stage 6, D-4).
+   * - No identified recipient → suppressed (fail-closed: never send external
+   *   to an anonymous session).
+   * - Explicit pref row → follow it (opt-out AND re-consent both honored).
+   * - No row → transactional (payment/shipping) allowed; marketing
+   *   (event/review) default-DENY.
+   * in_app is not routed through here — it is always-on by design.
+   */
+  async isSuppressed(customerId: number | null, channel: string, category: string): Promise<boolean> {
+    if (customerId == null) {
+      this.logger.debug(`suppress ${channel}/${category}: no identified recipient (fail-closed)`);
+      return true;
+    }
     const pref = await this.prefRepo.findOne({ where: { customerId, channel, category } });
-    if (!pref) return true;
-    return pref.enabled === 1;
+    if (pref) {
+      const suppressed = pref.enabled !== 1;
+      if (suppressed) {
+        this.logger.debug(`suppress ${channel}/${category} for customer ${customerId}: pref disabled`);
+      }
+      return suppressed;
+    }
+    const transactional = (TRANSACTIONAL_CATEGORIES as readonly string[]).includes(category);
+    if (!transactional) {
+      this.logger.debug(
+        `suppress ${channel}/${category} for customer ${customerId}: marketing default-deny (no consent row)`,
+      );
+    }
+    return !transactional;
   }
 
   /** Resolve the customer behind a session token; throws if unauthenticated. */
