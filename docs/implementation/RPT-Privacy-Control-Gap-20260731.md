@@ -12,13 +12,13 @@
 
 | PR | 내용 | main SHA | staging | 마이그레이션 |
 |---|---|---|---|---|
-| #40 | Stage 1-2: 동의 fail-closed + 테넌트 고지 (api+web+widget) | `a8b6ce8` | **미배포** | `sql/migration_tenant_privacy_notice.sql` **staging 미적용** |
-| #39 | Stage 4+6: 감사 컨텍스트 + 알림 억제 (api) | `869886d` | **미배포** | `sql/migration_audit_context.sql` **staging 미적용** |
-| #41 | Stage 3: 비밀번호 정책 (api+web) | `3e57e0b` | **미배포** | 없음 |
-| #42 | Stage 5: AI egress PII 스크럽 (api) | `84b3c17` | **미배포** | 없음 |
+| #40 | Stage 1-2: 동의 fail-closed + 테넌트 고지 (api+web+widget) | `a8b6ce8` | **배포됨** (2026-07-31) | `migration_tenant_privacy_notice.sql` **적용됨** |
+| #39 | Stage 4+6: 감사 컨텍스트 + 알림 억제 (api) | `869886d` | **배포됨** (2026-07-31) | `migration_audit_context.sql` **적용됨** |
+| #41 | Stage 3: 비밀번호 정책 (api+web) | `3e57e0b` | **배포됨** (2026-07-31) | 없음 |
+| #42 | Stage 5: AI egress PII 스크럽 (api) | `84b3c17` | **배포됨** (2026-07-31) | 없음 |
 | #43 | 문서 팩: REQ/PLN + Doc-A~D | `d2943c1` | — | 없음 |
 
-⚠️ **staging 배포 절차(필수 순서)**: ① `secrets/staging-server.md` 접속 → `ivy_mysql_staging`에 `migration_tenant_privacy_notice.sql`, `migration_audit_context.sql` 적용(둘 다 additive nullable — 구코드와 공존 안전) → ② 코드 배포 → ③ `pre-deploy-check` 스킬로 검증(부팅 로그·컨테이너 age·신규 라우트 401 확인: `GET /api/v1/tenants/privacy-notice` 무토큰 401=배포됨). production 미구축.
+**staging 배포 완료 기록 (2026-07-31, main `47b00d4`)**: ① 스키마 백업(`~/backup-pre-privacy-20260731-052104.sql`) → ② 마이그레이션 2건 `ivy_mysql_staging` 선적용·컬럼 검증 → ③ **`DB_SYNCHRONIZE=false` 전환**(마이그레이션 런북 리허설 — SPEC §14 위반 해소, env 백업 `~/env.staging.bak-*`) → ④ `deploy-staging.sh` → ⑤ 검증: 부팅 `successfully started`, 컨테이너 재생성 확인, `GET /tenants/privacy-notice` 무토큰 **401**(배포됨), health db up, 스키마 오류 0건 → ⑥ 기능 스모크: PENDING 메시지 차단(convId 0, consent 안내) → 동의(`granted`/`2026-07`) → AI 정상 응답(convId 45) + **PII 스크럽 실동작 로그** `PII scrubbed from AI egress (conversation 45): {"email":1}`. production 미구축.
 
 ## 2. 변경 요약 (REQ 항목 매핑)
 
@@ -50,7 +50,7 @@ TCR-Privacy-Control-Gap-20260731 참조. 요약: **25 suites / 225 tests 전체 
 
 | 항목 | 트랙 | 비고 |
 |---|---|---|
-| staging 마이그레이션 2건 적용 + 배포 + 스모크 | 운영 | §1 절차. 이때 staging `DB_SYNCHRONIZE=false` 전환 리허설 병행 권장(기존 MUST 위반 해소) |
+| ~~staging 마이그레이션 2건 적용 + 배포 + 스모크~~ | 운영 | **완료(2026-07-31)** — §1 기록. `DB_SYNCHRONIZE=false` 전환 포함 |
 | MFA(관리자/고권한) | 별도 REQ→PLN | D-2. Stage 3 완료로 착수 조건 충족 |
 | Doc-B DPA 체결·Doc-C RACI 실명·보존 매트릭스 승인 | 법무/보안 | 문서 내 TBD 소유자 지정 필요 |
 | Ops(REQ #9/#10/#11/#12): 볼륨·백업 암호화, 복구 리허설, DLP | 운영/인프라 | PLN §4 — 코드 범위 외 |

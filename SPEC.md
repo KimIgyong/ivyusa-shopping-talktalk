@@ -399,8 +399,8 @@ Full evidence: `docs/report/RPT-Standards-Compliance-Audit-20260619.md`.
 
 **Remaining — Low (optional)** — e2e HTTP tests (supertest + test DB) and broader service-level coverage; complete OAuth approval on the Shopify Partner side; production host + `.env.production` (deploy pending). **Soft-delete columns: intentionally not added** — the disposal model is hard-delete + anonymization (GDPR `redact`/DSAR `delete` + retention purge), which satisfies POL-003/privacy without an unused `deleted_at` column. Audit roadmap (High/Medium) is otherwise fully closed.
 
-**Open (2026-07-31, from btbz-dev-kit adoption)**
-- ⚠️ Staging runs `DB_SYNCHRONIZE=true` (`docker/staging/docker-compose.staging.yml`) — dev-kit MUST violation (kit 02 §3.3: staging/production `false` + manual SQL pre-apply). Code already gates on the env var and `sql/` migrations exist; remediation = flip staging to `false` after exercising the migration runbook (kit 04 §3) there.
+**Resolved (2026-07-31, from btbz-dev-kit adoption)**
+- ~~Staging `DB_SYNCHRONIZE=true` (dev-kit MUST violation)~~ → **flipped to `false` 2026-07-31** while deploying PR #39–#44: migration runbook (kit 04 §3) exercised on staging — `migration_tenant_privacy_notice.sql` + `migration_audit_context.sql` applied to `ivy_mysql_staging` before code deploy, then verified (boot OK, new route 401, zero `Unknown column` errors). Schema changes now require manual SQL pre-apply on staging, same as production.
 
 ## 15. Reference (참조)
 `reference/btbz-dev-kit/` (**standards source of truth**, 2026-07-30) ·

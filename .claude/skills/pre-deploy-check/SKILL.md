@@ -12,10 +12,10 @@ description: Check for missing schema migrations right before/after a staging or
 
 Adapted from `reference/btbz-dev-kit/claude/skills-guide.md` template 1 for this
 project's MySQL stack. The deploy script (`docker/staging/deploy-staging.sh`) does
-**NOT** run SQL migrations. ⚠️ Current caveat: staging still runs `DB_SYNCHRONIZE=true`
-(SPEC §14 open item), so TypeORM auto-creates schema there — but production is
-`synchronize=false`, and staging is planned to flip. Follow this runbook whenever a
-deploy carries schema changes.
+**NOT** run SQL migrations. Staging runs `DB_SYNCHRONIZE=false` (flipped 2026-07-31,
+SPEC §14 resolved) — schema is NEVER auto-created on staging or production, so every
+schema change MUST be pre-applied via `sql/` on the target DB before the code deploy.
+Follow this runbook whenever a deploy carries schema changes.
 
 ## 1. Detect schema-affecting changes
 ```bash
