@@ -22,23 +22,36 @@ export class VoyageAdapter implements AiAdapter {
     throw new Error('Voyage adapter is embedding-only');
   }
 
+  /** Backoff for 429s — free-tier Voyage rate limits are low (RPM-scale). */
+  private static readonly RETRY_429_MS = [15_000, 30_000, 60_000];
+
   async embed(req: AiEmbeddingRequest): Promise<AiEmbeddingResult> {
     const apiKey = req.apiKey ?? process.env.VOYAGE_API_KEY;
     if (!apiKey) throw new Error('Voyage API key not configured');
     const model = req.model || process.env.VOYAGE_MODEL || 'voyage-4';
 
-    const res = await fetch('https://api.voyageai.com/v1/embeddings', {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        input: req.texts,
-        model,
-        input_type: req.inputType,
-      }),
-    });
+    let res: Response | null = null;
+    for (let attempt = 0; ; attempt++) {
+      res = await fetch('https://api.voyageai.com/v1/embeddings', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          input: req.texts,
+          model,
+          input_type: req.inputType,
+        }),
+      });
+      if (res.status === 429 && attempt < VoyageAdapter.RETRY_429_MS.length) {
+        const wait = VoyageAdapter.RETRY_429_MS[attempt];
+        this.logger.warn(`Voyage 429 (rate limit) — retrying in ${wait / 1000}s`);
+        await new Promise((r) => setTimeout(r, wait));
+        continue;
+      }
+      break;
+    }
     if (!res.ok) {
       this.logger.error(`Voyage error ${res.status}`);
       throw new Error(`Voyage API error ${res.status}`);
