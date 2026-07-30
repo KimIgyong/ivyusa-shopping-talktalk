@@ -1,6 +1,15 @@
 import { useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Check, Copy, KeyRound, UserPlus, ExternalLink } from 'lucide-react';
+import {
+  ArrowLeft,
+  Check,
+  Copy,
+  KeyRound,
+  UserPlus,
+  ExternalLink,
+  ShieldOff,
+  AlertTriangle,
+} from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { PageHeader } from '@/components/PageHeader';
 import { Card } from '@/components/Card';
@@ -18,6 +27,7 @@ import {
   useAdminTenant,
   useInviteTenantUser,
   useIssueTenantUserTempPassword,
+  useResetTenantUserMfa,
   useSetTenantUserStatus,
   useTenantJobLabels,
   useTenantUsers,
@@ -46,6 +56,7 @@ export function TenantUsersPage() {
   const { data: jobLabels } = useTenantJobLabels(tenantUuid);
   const inviteUser = useInviteTenantUser(tenantUuid);
   const issueTempPw = useIssueTenantUserTempPassword(tenantUuid);
+  const resetMfa = useResetTenantUserMfa(tenantUuid);
   const setUserStatus = useSetTenantUserStatus(tenantUuid);
 
   const labels = useMemo<JobLabel[]>(() => jobLabels ?? [], [jobLabels]);
@@ -91,6 +102,20 @@ export function TenantUsersPage() {
     toast.success(tu('tempPwIssued'));
   };
 
+  // Target of a pending MFA reset (confirm dialog).
+  const [mfaResetTarget, setMfaResetTarget] = useState<TenantUser | null>(null);
+
+  const onResetMfa = async () => {
+    if (!mfaResetTarget) return;
+    try {
+      await resetMfa.mutateAsync(mfaResetTarget.id);
+      setMfaResetTarget(null);
+      toast.success(tu('mfaResetDone'));
+    } catch {
+      /* error toast handled by the hook; keep the dialog open */
+    }
+  };
+
   const columns: Column<TenantUser>[] = [
     { key: 'email', header: tu('email'), render: (u) => u.email },
     { key: 'rank', header: tu('rank'), render: (u) => <Badge tone="primary">{u.rank}</Badge> },
@@ -110,6 +135,16 @@ export function TenantUsersPage() {
           >
             <KeyRound className="mr-1 h-3.5 w-3.5" />
             {tu('tempPassword')}
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => setMfaResetTarget(u)}
+            disabled={resetMfa.isPending}
+            title={tu('mfaResetTitle')}
+          >
+            <ShieldOff className="mr-1 h-3.5 w-3.5" />
+            {tu('mfaReset')}
           </Button>
           {u.status === 'suspended' ? (
             <Button
@@ -282,6 +317,35 @@ export function TenantUsersPage() {
             <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
               {tu('tempPwDesc')}
             </p>
+          </div>
+        )}
+      </Modal>
+
+      <Modal
+        open={mfaResetTarget !== null}
+        onClose={() => setMfaResetTarget(null)}
+        title={tu('mfaResetTitle')}
+        size="sm"
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setMfaResetTarget(null)}>
+              {tc('cancel')}
+            </Button>
+            <Button variant="danger" onClick={onResetMfa} disabled={resetMfa.isPending}>
+              {tu('mfaReset')}
+            </Button>
+          </>
+        }
+      >
+        {mfaResetTarget && (
+          <div className="space-y-3">
+            <p className="text-sm text-gray-600">
+              {tu('mfaResetConfirm', { email: mfaResetTarget.email })}
+            </p>
+            <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+              <p>{tu('mfaResetWarning')}</p>
+            </div>
           </div>
         )}
       </Modal>

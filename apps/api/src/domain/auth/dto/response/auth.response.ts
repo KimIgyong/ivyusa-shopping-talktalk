@@ -8,6 +8,16 @@ export interface AuthTokensResponse {
   principal: PrincipalResponse;
 }
 
+/**
+ * Step-up challenge (PLN-MFA Stage M1): returned by the login endpoints instead
+ * of tokens when the authenticated account has MFA enabled. The mfaToken is a
+ * purpose-limited 5-minute JWT usable only at POST /auth/mfa/verify.
+ */
+export interface MfaChallengeResponse {
+  mfaRequired: true;
+  mfaToken: string;
+}
+
 export interface PrincipalResponse {
   actorType: 'admin' | 'user';
   id: number;

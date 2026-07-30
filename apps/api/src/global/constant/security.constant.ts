@@ -3,6 +3,14 @@
 /** bcrypt cost factor for password hashing. Convention requires >= 12. */
 export const BCRYPT_ROUNDS = 12;
 
+// ---- MFA (PLN-MFA Stage M1) ----
+
+/** Lifetime of the purpose-limited step-up token issued between password and TOTP. */
+export const MFA_STEP_UP_TTL_SEC = 300;
+
+/** Recovery codes issued per enrollment (shown once, bcrypt-hashed at rest). */
+export const MFA_RECOVERY_CODE_COUNT = 10;
+
 // ---- Password policy (Stage 3 — POL-018 hardening) ----
 // Applies to NEW passwords (change-password, accept-invite, temp issuance).
 // Existing passwords are grandfathered until their next change; login is untouched.

@@ -77,6 +77,10 @@ export const adminService = {
     apiPost<InviteResult>(`/tenants/${tenantUuid}/users/invite`, body),
   issueTenantUserTempPassword: (tenantUuid: string, userId: string) =>
     apiPost<TempPasswordResult>(`/tenants/${tenantUuid}/users/${userId}/temp-password`, {}),
+  // Clear a tenant user's MFA enrollment — re-enrollment at next login (audited).
+  // Mirrors the temp-password route pattern of the admin-scoped user routes.
+  resetTenantUserMfa: (tenantUuid: string, userId: string) =>
+    apiPost<{ reset: boolean }>(`/tenants/${tenantUuid}/users/${userId}/mfa-reset`, {}),
   setTenantUserStatus: (tenantUuid: string, userId: string, status: string) =>
     apiPatch<TenantUser>(`/tenants/${tenantUuid}/users/${userId}/status`, { status }),
   // Adapt backend {status, hasKey,...} → frontend {enabled,...}.
