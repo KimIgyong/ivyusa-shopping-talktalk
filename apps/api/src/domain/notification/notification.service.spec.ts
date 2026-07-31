@@ -6,11 +6,12 @@ import { Session } from '../session/entity/session.entity';
 import { EventBusService } from '../../infrastructure/infrastructure.module';
 import { RedisService } from '../../infrastructure/cache/redis.service';
 
-const EXTERNAL = ['email', 'sms', 'web_push'];
-const CATEGORIES = ['payment', 'shipping', 'event', 'review'];
+const EXTERNAL = ['email', 'sms', 'web_push', 'push'];
+const CATEGORIES = ['payment', 'shipping', 'event', 'review', 'chat'];
 
 describe('NotificationService.isSuppressed / notify (Stage 6 — D-4 fail-closed suppression)', () => {
   let svc: NotificationService;
+  let busPublish: jest.Mock;
   /** (customerId:channel:category) -> enabled(0|1); absent key = no pref row. */
   let prefRows: Map<string, number>;
 
@@ -30,7 +31,8 @@ describe('NotificationService.isSuppressed / notify (Stage 6 — D-4 fail-closed
       }),
     } as unknown as Repository<NotificationPref>;
     const sessionRepo = {} as unknown as Repository<Session>;
-    const bus = { subscribe: jest.fn(), publish: jest.fn() } as unknown as EventBusService;
+    busPublish = jest.fn();
+    const bus = { subscribe: jest.fn(), publish: busPublish } as unknown as EventBusService;
     const redis = {
       del: jest.fn(),
       get: jest.fn(async () => null),
@@ -52,15 +54,20 @@ describe('NotificationService.isSuppressed / notify (Stage 6 — D-4 fail-closed
     expect(channelsOf(rows)).toEqual(['in_app']);
   });
 
-  it('transactional category with no pref row: external allowed', async () => {
+  it('transactional category with no pref row: external allowed (incl. push)', async () => {
     const rows = await svc.notify({ customerId: 1, category: 'shipping', title: 't' });
-    expect(channelsOf(rows)).toEqual(['email', 'in_app', 'sms', 'web_push']);
+    expect(channelsOf(rows)).toEqual(['email', 'in_app', 'push', 'sms', 'web_push']);
+  });
+
+  it('chat category is transactional: push allowed with no pref row', async () => {
+    const rows = await svc.notify({ customerId: 1, category: 'chat', title: 't', channel: 'push' });
+    expect(channelsOf(rows)).toEqual(['in_app', 'push']);
   });
 
   it('explicitly disabled row suppresses just that channel', async () => {
     prefRows.set(key(1, 'email', 'payment'), 0);
     const rows = await svc.notify({ customerId: 1, category: 'payment', title: 't' });
-    expect(channelsOf(rows)).toEqual(['in_app', 'sms', 'web_push']);
+    expect(channelsOf(rows)).toEqual(['in_app', 'push', 'sms', 'web_push']);
   });
 
   it('full opt-out (every external row disabled): zero external, in_app kept', async () => {
@@ -74,7 +81,27 @@ describe('NotificationService.isSuppressed / notify (Stage 6 — D-4 fail-closed
   it('re-consent (rows re-enabled) resumes external sends, incl. marketing', async () => {
     for (const ch of EXTERNAL) for (const cat of CATEGORIES) prefRows.set(key(1, ch, cat), 1);
     const marketing = await svc.notify({ customerId: 1, category: 'event', title: 't' });
-    expect(channelsOf(marketing)).toEqual(['email', 'in_app', 'sms', 'web_push']);
+    expect(channelsOf(marketing)).toEqual(['email', 'in_app', 'push', 'sms', 'web_push']);
+  });
+
+  it('push row publishes EVENTS.PUSH_DISPATCH with tenant/customer context', async () => {
+    const rows = await svc.notify({
+      tenantId: 7,
+      customerId: 1,
+      category: 'shipping',
+      title: 't',
+      channel: 'push',
+    });
+    expect(channelsOf(rows)).toEqual(['in_app', 'push']);
+    expect(busPublish).toHaveBeenCalledWith(
+      'push.dispatch',
+      expect.objectContaining({ tenantId: 7, customerId: 1, category: 'shipping' }),
+    );
+  });
+
+  it('tenantId is stamped on created rows (detached-handler G4 fix)', async () => {
+    const rows = await svc.notify({ tenantId: 7, customerId: 1, category: 'payment', title: 't' });
+    for (const r of rows) expect(r.tenantId).toBe(7);
   });
 
   it('isSuppressed matrix directly', async () => {

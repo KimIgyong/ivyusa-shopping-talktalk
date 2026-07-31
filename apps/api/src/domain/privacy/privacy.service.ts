@@ -17,6 +17,7 @@ import { CjmEvent } from '../cjm/entity/cjm-event.entity';
 import { Affiliate } from '../affiliate/entity/affiliate.entity';
 import { Subscription } from '../subscription/entity/subscription.entity';
 import { RestockSubscription } from '../restock/entity/restock-subscription.entity';
+import { DeviceToken } from '../push/entity/device-token.entity';
 import { Campaign } from '../campaign/entity/campaign.entity';
 import { Tenant } from '../tenant/entity/tenant.entity';
 import { AuditService } from '../audit/audit.service';
@@ -28,8 +29,8 @@ import { maskPii } from '../../global/util/pii.util';
 import { blindIndex } from '../../global/util/crypto.util';
 
 const REDACTED = '[redacted]';
-const EXTERNAL_CHANNELS = ['email', 'sms', 'web_push'];
-const PREF_CATEGORIES = ['payment', 'shipping', 'event', 'review'];
+const EXTERNAL_CHANNELS = ['email', 'sms', 'web_push', 'push'];
+const PREF_CATEGORIES = ['payment', 'shipping', 'event', 'review', 'chat'];
 
 /**
  * Privacy / consumer-rights logic (audit High-2 GDPR webhooks, High-3 DSAR/CCPA).
@@ -57,6 +58,7 @@ export class PrivacyService {
     @InjectRepository(Subscription) private readonly subscriptionRepo: Repository<Subscription>,
     @InjectRepository(RestockSubscription)
     private readonly restockRepo: Repository<RestockSubscription>,
+    @InjectRepository(DeviceToken) private readonly deviceTokenRepo: Repository<DeviceToken>,
     @InjectRepository(Campaign) private readonly campaignRepo: Repository<Campaign>,
     @InjectRepository(Tenant) private readonly tenantRepo: Repository<Tenant>,
     private readonly audit: AuditService,
@@ -195,6 +197,7 @@ export class PrivacyService {
       await mgr.getRepository(Affiliate).delete({ tenantId });
       await mgr.getRepository(Subscription).delete({ tenantId });
       await mgr.getRepository(RestockSubscription).delete({ tenantId });
+      await mgr.getRepository(DeviceToken).delete({ tenantId });
       await mgr.getRepository(Inquiry).delete({ tenantId });
       await mgr.getRepository(CjmEvent).delete({ tenantId });
       await mgr.getRepository(Campaign).delete({ tenantId });
@@ -466,10 +469,12 @@ export class PrivacyService {
     await this.notificationRepo.update({ customerId }, { title: REDACTED, body: REDACTED });
 
     // Marketing/engagement state tied to the person: delete outright (PRV-H2).
+    // Device push tokens are contact endpoints — same treatment.
     await this.prefRepo.delete({ customerId });
     await this.subscriptionRepo.delete({ customerId });
     await this.restockRepo.delete({ customerId });
     await this.affiliateRepo.delete({ customerId });
+    await this.deviceTokenRepo.delete({ customerId });
 
     // Reviews: null out free-text body.
     await this.reviewRepo.update({ customerId }, { body: null });

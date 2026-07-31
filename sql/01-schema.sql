@@ -619,6 +619,29 @@ CREATE TABLE `mfa_recovery_codes` (
   KEY `idx_mfa_code_credential` (`credential_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Mobile push device tokens — PLN-MobileApp-20260731 M1 (see sql/migration_push_notifications.sql).
+DROP TABLE IF EXISTS `device_tokens`;
+CREATE TABLE `device_tokens` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `tenant_id` bigint DEFAULT NULL,
+  `customer_id` bigint DEFAULT NULL,
+  `session_id` bigint DEFAULT NULL,
+  `platform` varchar(16) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `provider` varchar(16) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'expo',
+  `token` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `locale` varchar(8) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `app_version` varchar(32) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `last_seen_at` datetime DEFAULT NULL,
+  `revoked_at` datetime DEFAULT NULL,
+  `created_at` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  `updated_at` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_device_token` (`token`),
+  KEY `idx_dtok_tenant` (`tenant_id`),
+  KEY `idx_dtok_customer` (`customer_id`),
+  KEY `idx_dtok_tenant_customer` (`tenant_id`,`customer_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 
 
 SET FOREIGN_KEY_CHECKS = 1;

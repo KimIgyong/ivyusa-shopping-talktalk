@@ -21,6 +21,7 @@ import { TenantModule } from './domain/tenant/tenant.module';
 import { UserModule } from './domain/user/user.module';
 import { OrderModule } from './domain/order/order.module';
 import { NotificationModule } from './domain/notification/notification.module';
+import { PushModule } from './domain/push/push.module';
 import { ReviewModule } from './domain/review/review.module';
 import { AffiliateModule } from './domain/affiliate/affiliate.module';
 import { RestockModule } from './domain/restock/restock.module';
@@ -69,6 +70,7 @@ import { ShopifyProxyModule } from './domain/shopify-proxy/shopify-proxy.module'
     ShopifyOAuthModule,
     ShopifyProxyModule,
     NotificationModule,
+    PushModule,
     ReviewModule,
     AffiliateModule,
     RestockModule,

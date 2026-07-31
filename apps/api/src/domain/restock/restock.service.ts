@@ -57,6 +57,7 @@ export class RestockService {
     const now = new Date();
     for (const sub of subs) {
       await this.bus.publish(EVENTS.NOTIFICATION, {
+        tenantId: sub.tenantId,
         customerId: sub.customerId,
         category: 'shipping',
         title: 'Back in stock',

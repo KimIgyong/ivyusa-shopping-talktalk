@@ -124,7 +124,9 @@ export interface NotificationItem {
   createdAt: string;
 }
 
-export type NotifChannel = 'in_app' | 'email' | 'sms' | 'web_push';
+// 'push' = native mobile push (managed from the mobile app; not surfaced in the
+// widget's preference panel — the widget cannot register device tokens).
+export type NotifChannel = 'in_app' | 'email' | 'sms' | 'web_push' | 'push';
 
 export interface NotifPref {
   channel: NotifChannel;

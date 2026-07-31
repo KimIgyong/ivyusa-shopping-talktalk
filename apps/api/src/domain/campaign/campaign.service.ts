@@ -6,6 +6,8 @@ import { Customer } from '../customer/entity/customer.entity';
 import { CreateCampaignRequest, UpdateCampaignRequest } from './dto/request/campaign.request';
 import { EventBusService, EVENTS } from '../../infrastructure/infrastructure.module';
 import { NotificationService } from '../notification/notification.service';
+import { ModerationService } from '../moderation/moderation.service';
+import { MODERATION_DECISION } from '@ivy/types';
 import { AuditService } from '../audit/audit.service';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
@@ -20,6 +22,7 @@ export class CampaignService implements OnModuleInit {
     @InjectRepository(Customer) private readonly customerRepo: Repository<Customer>,
     private readonly bus: EventBusService,
     private readonly notifications: NotificationService,
+    private readonly moderation: ModerationService,
     private readonly audit: AuditService,
   ) {}
 
@@ -85,22 +88,70 @@ export class CampaignService implements OnModuleInit {
     const campaign = await this.campaignRepo.findOne({ where: { id: campaignId } });
     if (!campaign?.tenantId) return;
 
+    // Announcement copy now reaches lock screens (mobile push) — run it through
+    // the same non-bypassable outbound gate as chat (FR-069; PLN-MobileApp D-8).
+    // Masked/rephrased output is what gets sent; a BLOCKED verdict aborts the
+    // whole dispatch, audited (fail-safe).
+    const rawBody = this.campaignBody(campaign.content);
+    const [modTitle, modBody] = await Promise.all([
+      this.moderation.moderate({
+        tenantId: campaign.tenantId,
+        scope: 'agent',
+        authorType: 'agent',
+        text: campaign.name,
+      }),
+      rawBody != null
+        ? this.moderation.moderate({
+            tenantId: campaign.tenantId,
+            scope: 'agent',
+            authorType: 'agent',
+            text: rawBody,
+          })
+        : Promise.resolve(null),
+    ]);
+    if (
+      modTitle.decision === MODERATION_DECISION.BLOCKED ||
+      modBody?.decision === MODERATION_DECISION.BLOCKED
+    ) {
+      this.logger.warn(`campaign ${campaignId} dispatch blocked by moderation`);
+      await this.audit.write({
+        tenantId: campaign.tenantId,
+        actorType: 'system',
+        actorId: 0,
+        action: 'campaign.blocked',
+        target: `campaign:${campaignId}`,
+        result: 'denied',
+        metadata: { reason: 'moderation_blocked' },
+      });
+      return;
+    }
+
     const customers = await this.customerRepo.find({ where: { tenantId: campaign.tenantId } });
     let externalDelivered = 0;
     let inAppOnly = 0;
-    for (const customer of customers) {
-      try {
-        const rows = await this.notifications.notify({
-          customerId: customer.id,
-          category: 'event',
-          title: campaign.name,
-          body: this.campaignBody(campaign.content),
-        });
-        // notify() always creates the in-app row; extra rows = enabled external channels.
-        if (rows.length > 1) externalDelivered += 1;
-        else inAppOnly += 1;
-      } catch (err) {
-        this.logger.warn(`campaign ${campaignId} notify failed for customer ${customer.id}: ${String(err)}`);
+    // Chunked fan-out (PLN-MobileApp M4): bounded concurrency instead of one
+    // long sequential loop — a large tenant no longer serializes the dispatch.
+    const CHUNK = 50;
+    for (let i = 0; i < customers.length; i += CHUNK) {
+      const results = await Promise.allSettled(
+        customers.slice(i, i + CHUNK).map((customer) =>
+          this.notifications.notify({
+            tenantId: campaign.tenantId,
+            customerId: customer.id,
+            category: 'event',
+            title: modTitle.text,
+            body: modBody ? modBody.text : null,
+          }),
+        ),
+      );
+      for (const r of results) {
+        if (r.status === 'fulfilled') {
+          // notify() always creates the in-app row; extra rows = enabled external channels.
+          if (r.value.length > 1) externalDelivered += 1;
+          else inAppOnly += 1;
+        } else {
+          this.logger.warn(`campaign ${campaignId} notify failed: ${String(r.reason)}`);
+        }
       }
     }
 

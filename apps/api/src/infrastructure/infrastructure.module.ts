@@ -22,4 +22,5 @@ export const EVENTS = {
   WEBHOOK_FULFILLMENT: 'webhook.fulfillment',
   CAMPAIGN_DISPATCH: 'campaign.dispatch',
   ESCALATION: 'escalation.requested',
+  PUSH_DISPATCH: 'push.dispatch',
 } as const;
