@@ -81,6 +81,9 @@ export const NOTIFICATION_CATEGORY = {
   SHIPPING: 'shipping',
   EVENT: 'event',
   REVIEW: 'review',
+  // Agent chat replies delivered while the mobile app is backgrounded.
+  // Transactional (service) category — default-allow like payment/shipping.
+  CHAT: 'chat',
   ALL: 'all',
 } as const;
 export type NotificationCategory = (typeof NOTIFICATION_CATEGORY)[keyof typeof NOTIFICATION_CATEGORY];
@@ -90,6 +93,8 @@ export const NOTIFICATION_CHANNEL = {
   EMAIL: 'email',
   SMS: 'sms',
   WEB_PUSH: 'web_push',
+  // Native mobile push (FCM/APNs via the provider abstraction in domain/push).
+  PUSH: 'push',
 } as const;
 export type NotificationChannel = (typeof NOTIFICATION_CHANNEL)[keyof typeof NOTIFICATION_CHANNEL];
 

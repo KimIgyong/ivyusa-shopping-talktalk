@@ -63,8 +63,9 @@ export class ReviewService {
   }
 
   /** Ask a customer to review a delivered order item. */
-  async requestReview(orderItemId: number, customerId: number): Promise<void> {
+  async requestReview(orderItemId: number, customerId: number, tenantId?: number | null): Promise<void> {
     await this.bus.publish(EVENTS.NOTIFICATION, {
+      tenantId: tenantId ?? null,
       customerId,
       orderItemId,
       category: 'review',

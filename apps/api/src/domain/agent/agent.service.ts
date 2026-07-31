@@ -23,11 +23,19 @@ import {
 } from '../customer/customer.service';
 import { AiGatewayService } from '../../infrastructure/external/ai/ai-gateway.service';
 import { AuditService } from '../audit/audit.service';
+import { EventBusService, EVENTS } from '../../infrastructure/infrastructure.module';
 import { RedisService } from '../../infrastructure/cache/redis.service';
 import { SessionService, sessionCacheKey } from '../session/session.service';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
 import { UpsertProfileRequest } from './dto/request/agent.request';
+
+/** Localized generic copy for the agent-reply push (session.language EN/ES/KO). */
+const AGENT_REPLY_COPY = {
+  EN: { title: 'New reply from support', body: 'You have a new reply from support.' },
+  ES: { title: 'Nueva respuesta de soporte', body: 'Tienes una nueva respuesta de soporte.' },
+  KO: { title: '상담 답변 도착', body: '상담원 답변이 도착했습니다.' },
+} as const;
 
 /**
  * Agent console orchestration (FR-066/067, FR-045). Manages the human-agent
@@ -52,6 +60,7 @@ export class AgentService {
     private readonly audit: AuditService,
     private readonly redis: RedisService,
     private readonly sessionService: SessionService,
+    private readonly bus: EventBusService,
   ) {}
 
   /**
@@ -237,7 +246,7 @@ export class AgentService {
     if (moderated.decision === MODERATION_DECISION.BLOCKED) {
       throw new BusinessException(ERROR_CODE.MODERATION_BLOCKED, HttpStatus.UNPROCESSABLE_ENTITY);
     }
-    return this.msgRepo.save(
+    const saved = await this.msgRepo.save(
       this.msgRepo.create({
         conversationId,
         senderType: SENDER_TYPE.AGENT,
@@ -247,6 +256,30 @@ export class AgentService {
         retrievalTrace: null,
       }),
     );
+    await this.notifyCustomerOfReply(conversation.sessionId, tenantId);
+    return saved;
+  }
+
+  /**
+   * Mobile push for an agent reply (REQ-MobileApp): the app polls only while
+   * the chat screen is foregrounded, so push is the backgrounded delivery path.
+   * Generic localized copy only — never message content in a lock-screen
+   * preview. channel 'push' keeps email/sms out of the per-message fan-out.
+   */
+  private async notifyCustomerOfReply(sessionId: number, tenantId: number): Promise<void> {
+    const session = await this.sessionRepo.findOne({ where: { id: sessionId } });
+    if (!session || session.customerId == null) return; // anonymous: polling only
+    const copy =
+      AGENT_REPLY_COPY[session.language as keyof typeof AGENT_REPLY_COPY] ?? AGENT_REPLY_COPY.EN;
+    await this.bus.publish(EVENTS.NOTIFICATION, {
+      tenantId,
+      customerId: session.customerId,
+      sessionId,
+      category: 'chat',
+      title: copy.title,
+      body: copy.body,
+      channel: 'push',
+    });
   }
 
   /** Resolve agent display names for a set of messages (agent messages only). */

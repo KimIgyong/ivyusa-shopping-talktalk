@@ -5,8 +5,8 @@ import { NotificationPref } from '../notification/entity/notification-pref.entit
 import { AuditService } from '../audit/audit.service';
 import { RedisService } from '../../infrastructure/cache/redis.service';
 
-const EXTERNAL = ['email', 'sms', 'web_push'];
-const CATEGORIES = ['payment', 'shipping', 'event', 'review'];
+const EXTERNAL = ['email', 'sms', 'web_push', 'push'];
+const CATEGORIES = ['payment', 'shipping', 'event', 'review', 'chat'];
 
 describe('PrivacyService.setOptOut / getOptOutStatus (Stage 6 — bulk upsert)', () => {
   let svc: PrivacyService;
@@ -56,6 +56,7 @@ describe('PrivacyService.setOptOut / getOptOutStatus (Stage 6 — bulk upsert)',
       stubRepo(), // affiliate
       stubRepo(), // subscription
       stubRepo(), // restock
+      stubRepo(), // deviceToken
       stubRepo(), // campaign
       stubRepo(), // tenant
       audit,
@@ -92,7 +93,7 @@ describe('PrivacyService.setOptOut / getOptOutStatus (Stage 6 — bulk upsert)',
   it('opt-back-in upserts the same grid with enabled=1', async () => {
     await svc.setOptOut('tok', false);
     const [rows] = upsert.mock.calls[0];
-    expect(rows).toHaveLength(12);
+    expect(rows).toHaveLength(EXTERNAL.length * CATEGORIES.length);
     expect(rows.every((r: NotificationPref) => r.enabled === 1)).toBe(true);
   });
 

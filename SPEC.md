@@ -112,7 +112,7 @@ External: Shopify (OAuth/App Proxy/webhooks) · Fulfillment webhook · Klaviyo �
 ### 4.1 Monorepo Structure
 ```
 ivy-talktalk/
-├── apps/{api,web,widget}        # NestJS API · React admin · React widget
+├── apps/{api,web,widget,mobile} # NestJS API · React admin · React widget · Expo RN app
 ├── packages/{types,common}      # shared enums/response envelope/RBAC matrix/utils
 ├── docker/                      # compose {dev,staging,production} + Dockerfiles + nginx + deploy-*.sh
 ├── env/{backend,frontend}/      # .env.development (committed; staging/prod gitignored)
@@ -128,8 +128,8 @@ ivy-talktalk/
 ### 4.2 Backend Structure (NestJS)
 `apps/api/src/{domain,global,infrastructure,database}`. Each domain module:
 `controller/ · service · entity/ · dto/ (request snake_case, response camelCase) ·
-mapper · {domain}.module.ts` (repository/ optional). **26 domain modules** (incl. privacy,
-health, shopify-oauth, shopify-proxy).
+mapper · {domain}.module.ts` (repository/ optional). **27 domain modules** (incl. privacy,
+health, shopify-oauth, shopify-proxy, push).
 `global/`: config, filter, interceptor (transform, tenant-context, logging), decorator
 (`@Auth/@AdminOnly/@RequireRank/@RequireCapability/@Public/@CurrentUser`), guard (jwt-auth,
 authorization), constant (error codes), util (crypto, transformers, maskPii).
@@ -165,7 +165,7 @@ crossed with job labels (Consult/Accounting/Operations). ACL owner-visibility la
 ## 6. Database Design (데이터베이스 설계)
 
 ### 6.1 Database Information
-Name `db_ivy_talktalk` · MySQL 8 · utf8mb4 / InnoDB · 38 tables / 40 TypeORM entities.
+Name `db_ivy_talktalk` · MySQL 8 · utf8mb4 / InnoDB · 39 tables / 41 TypeORM entities.
 Source of truth for orders = Shopify/Odoo (cached locally). DDL: `sql/01-schema.sql`
 (= `design/chat-widget-schema.sql`); dev/staging build via TypeORM `synchronize`.
 
@@ -181,7 +181,7 @@ Core chat/commerce (19) + tenancy/RBAC (tenants, admin_users, users, job_labels,
 user_job_labels, roles_permissions, integration_credentials, audit_logs) + bootstrap
 (invitations) + knowledge (knowledge_sources, kb_documents, kb_board_posts, kb_files) +
 agent/moderation (agent_profiles, assignments, content_filter_rules, moderation_logs,
-agent_daily_stats) + AI (ai_engines, tenant_ai_settings).
+agent_daily_stats) + AI (ai_engines, tenant_ai_settings) + mobile push (device_tokens).
 
 ### 6.4 Entity Authoring Rules
 Nullable columns specify explicit `type` in `@Column`; `BIGINT` via `bigintTransformer`,
@@ -221,7 +221,9 @@ Request DTO **snake_case** (class-validator); Response **camelCase** (via Mapper
 
 ### 7.5 Key API Endpoints
 `auth/*`, `session/*`, `chat/*` (RAG; guest + logged-in), `orders/*` (+guest-lookup, tracking,
-fulfillment webhook), `notifications/*`, `reviews/affiliate/restock/subscriptions/inquiries`,
+fulfillment webhook), `notifications/*`, `push/register`+`/unregister` (mobile device
+tokens, E5006; delivery via Expo Push behind the PushProvider abstraction),
+`reviews/affiliate/restock/subscriptions/inquiries`,
 `agent/*` (console), `analytics/*`, `knowledge/*`, `ai-engines`/`ai-settings`,
 `moderation/rules`, `tenants/*` (+`tenants/me/shopify`), `users`/`job-labels` (+temp-password),
 `campaigns`, `cjm/events`, `audit`, `integrations/status`, `health`.
