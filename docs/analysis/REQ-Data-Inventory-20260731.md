@@ -76,8 +76,8 @@
 | 전송처 | 전송 데이터(코드 근거) | 목적 | 처리 국가 | 근거/상태 |
 |---|---|---|---|---|
 | Shopify Admin API (GraphQL, `shopify-admin.client.ts` — `https://{shop}/admin/api/{ver}/graphql.json`) | 주문 조회 질의(주문번호·고객 식별자); 응답으로 고객 `email`/`firstName`/`lastName`/주문 정보 **수신**(Protected Customer Data) | 주문 상담 | 미국(Shopify 인프라 — 리전 `TBD/확인 필요`) | 계약이행. GDPR 웹훅 3종(`customers/data_request`/`customers/redact`/`shop/redact`) 구현 완료(`privacy.service`). PCD 등급 승인 절차 진행 필요 |
-| Anthropic Messages API (`anthropic.adapter.ts` — `api.anthropic.com`, 기본 모델 `claude-opus-4-8`) | **채팅 원문 전체**: 사용자 메시지 + RAG 컨텍스트(KB 스니펫) + 페르소나 프롬프트. 의도분류·모더레이션 분류·rephrase에도 대화 텍스트 송신 | RAG 답변·의도분류·모더레이션 | 미국 | **갭 G-9: 송신 전 PII 마스킹/필터 없음** — 고객이 채팅에 입력한 이메일·주소 등이 원문 그대로 전송됨. DPA/ZDR(Zero Data Retention) 계약 상태 `TBD/확인 필요` |
-| Voyage AI (`voyage.adapter.ts` — `api.voyageai.com`, `voyage-4`) | ① KB 문서 텍스트(reindex 배치) ② **사용자 질의 원문**(라이브 채팅의 벡터 검색 leg — `rag.service.retrieveVector`가 `ai.embed([query])` 호출) | 임베딩 생성 | 미국 | 갭 G-9와 동일 — 질의 원문에 PII 포함 가능. DPA 상태 `TBD/확인 필요` |
+| Anthropic Messages API (`anthropic.adapter.ts` — `api.anthropic.com`, 기본 모델 `claude-opus-4-8`) | **채팅 원문 전체**: 사용자 메시지 + RAG 컨텍스트(KB 스니펫) + 페르소나 프롬프트. 의도분류·모더레이션 분류·rephrase에도 대화 텍스트 송신 | RAG 답변·의도분류·모더레이션 | 미국 | ~~갭 G-9: 송신 전 PII 마스킹/필터 없음~~ **(2026-08-02 갱신)** PR #42로 chat egress에 `pii-scrub.util.ts` 마스킹(email/phone/card/order/address) 적용됨. 패턴 커버리지 한계 존재, DPA/ZDR(Zero Data Retention) 계약 상태는 여전히 `TBD/확인 필요` |
+| Voyage AI (`voyage.adapter.ts` — `api.voyageai.com`, `voyage-4`) | ① KB 문서 텍스트(reindex 배치) ② **사용자 질의 원문**(라이브 채팅의 벡터 검색 leg — `rag.service.retrieveVector`가 `ai.embed([query])` 호출) | 임베딩 생성 | 미국 | 갭 G-9와 동일 — **(2026-08-02 갱신)** 질의 임베딩 leg에도 스크럽 적용. DPA 상태 `TBD/확인 필요` |
 | SMTP 메일 / Slack Incoming Webhook (`agent-alert.service.ts`, `SMTP_*`/`SLACK_WEBHOOK_URL` 미설정 시 비활성) | 에스컬레이션 알림: 대화번호 + **고객 메시지 preview(최대 300자)** | 상담원 호출 | 설정된 제공자에 따름(`TBD/확인 필요`) | 운영 설정 시 수탁자 대장(Doc-B) 등록 필수 |
 | 고객 대상 이메일/SMS/웹푸시 | **현재 미전송(mock)** — `notification.service`가 채널별 행 기록 + debug 로그만 남김 | (향후) 고객 알림 | — | 실제 제공자 선정 시 Doc-B 절차 선행 |
 | Google GA4 (위젯 전환/UTM 추적) | 본 브랜치 코드에서 **GA4 래퍼 미확인**(`apps/widget/src/lib/analytics/` 부재). 별도 브랜치/PR(#20)에 consent-gated 래퍼가 있다는 기록 있음 | 전환 분석 | 미국(Google) | `TBD/확인 필요` — 병합 여부·Consent Mode v2 게이팅을 배포 브랜치에서 재검증할 것 |
@@ -111,5 +111,5 @@
 | G-6 | audit_logs 보존연한 미정 | 법정 요건 검토 후 확정(삭제가 아닌 장기보존 결정도 가능하나 명문화 필요) |
 | G-7 | 앱 로그 로테이션/보존 기준 없음 | docker 로그 드라이버 옵션 + 보존기간 명문화 |
 | G-8 | 백업 절차 부재(+도입 시 백업 내 파기 반영 정책 필요) | 백업 설계 시 암호화·보존기간·DSAR 반영 방식 포함 |
-| G-9 | Anthropic/Voyage 송신 전 PII 마스킹 없음, DPA 미확인 | 마스킹 전처리 검토 + Doc-B 대장에서 계약 상태 확정 |
+| G-9 | ~~Anthropic/Voyage 송신 전 PII 마스킹 없음~~ **(2026-08-02 갱신: PR #42로 마스킹 적용됨 — 패턴 범위·DPA/ZDR은 미확인 잔존)** | 잔여: 마스킹 패턴 커버리지 정기 점검 + Doc-B 대장에서 계약 상태 확정 |
 | G-10 | GA4 래퍼가 본 브랜치에 없음 — 배포 브랜치 기준 동의 게이팅 재확인 필요 | 병합 상태 확인 후 본 인벤토리 갱신 |
