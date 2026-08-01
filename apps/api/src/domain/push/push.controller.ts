@@ -1,4 +1,4 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, Get, Post } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { PushService } from './push.service';
 import { RegisterPushRequest, UnregisterPushRequest } from './dto/request/push.request';
@@ -26,5 +26,12 @@ export class PushController {
   async unregister(@SessionToken() token: string, @Body() body: UnregisterPushRequest) {
     await this.pushService.unregister(token, body.token);
     return { revoked: true };
+  }
+
+  @Get('vapid-key')
+  @Public()
+  @ApiOperation({ summary: 'VAPID public key for Web Push subscription (PLN-PWA P1)' })
+  vapidKey() {
+    return { publicKey: this.pushService.vapidPublicKey() };
   }
 }
