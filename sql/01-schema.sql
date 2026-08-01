@@ -628,7 +628,8 @@ CREATE TABLE `device_tokens` (
   `session_id` bigint DEFAULT NULL,
   `platform` varchar(16) COLLATE utf8mb4_unicode_ci NOT NULL,
   `provider` varchar(16) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'expo',
-  `token` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `token` text COLLATE utf8mb4_unicode_ci NOT NULL,
+  `token_hash` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL,
   `locale` varchar(8) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `app_version` varchar(32) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `last_seen_at` datetime DEFAULT NULL,
@@ -636,7 +637,7 @@ CREATE TABLE `device_tokens` (
   `created_at` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
   `updated_at` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_device_token` (`token`),
+  UNIQUE KEY `uk_device_token_hash` (`token_hash`),
   KEY `idx_dtok_tenant` (`tenant_id`),
   KEY `idx_dtok_customer` (`customer_id`),
   KEY `idx_dtok_tenant_customer` (`tenant_id`,`customer_id`)

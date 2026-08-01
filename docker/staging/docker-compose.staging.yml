@@ -50,6 +50,18 @@ services:
     expose:
       - '80'
 
+  pwa:
+    build:
+      context: ../..
+      dockerfile: docker/staging/Dockerfile.pwa
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL}
+        VITE_SHOP_DOMAIN: ${VITE_SHOP_DOMAIN:-ambshop-dev.myshopify.com}
+    container_name: ivy_pwa_staging
+    restart: unless-stopped
+    expose:
+      - '80'
+
   mysql:
     image: mysql:8.0
     container_name: ivy_mysql_staging
@@ -113,6 +125,7 @@ services:
       - api
       - web
       - widget
+      - pwa
     ports:
       - '8080:80'
 

@@ -112,7 +112,7 @@ External: Shopify (OAuth/App Proxy/webhooks) · Fulfillment webhook · Klaviyo �
 ### 4.1 Monorepo Structure
 ```
 ivy-talktalk/
-├── apps/{api,web,widget,mobile} # NestJS API · React admin · React widget · Expo RN app
+├── apps/{api,web,widget,mobile,pwa} # NestJS API · React admin · React widget · Expo RN app · installable PWA
 ├── packages/{types,common}      # shared enums/response envelope/RBAC matrix/utils
 ├── docker/                      # compose {dev,staging,production} + Dockerfiles + nginx + deploy-*.sh
 ├── env/{backend,frontend}/      # .env.development (committed; staging/prod gitignored)
@@ -221,8 +221,9 @@ Request DTO **snake_case** (class-validator); Response **camelCase** (via Mapper
 
 ### 7.5 Key API Endpoints
 `auth/*`, `session/*`, `chat/*` (RAG; guest + logged-in), `orders/*` (+guest-lookup, tracking,
-fulfillment webhook), `notifications/*`, `push/register`+`/unregister` (mobile device
-tokens, E5006; delivery via Expo Push behind the PushProvider abstraction),
+fulfillment webhook), `notifications/*`, `push/register`+`/unregister`+`/vapid-key`
+(device tokens, E5006; delivery behind the PushProvider abstraction — Expo Push for
+the RN app, Web Push/VAPID for the PWA, routed per device row's provider),
 `reviews/affiliate/restock/subscriptions/inquiries`,
 `agent/*` (console), `analytics/*`, `knowledge/*`, `ai-engines`/`ai-settings`,
 `moderation/rules`, `tenants/*` (+`tenants/me/shopify`), `users`/`job-labels` (+temp-password),

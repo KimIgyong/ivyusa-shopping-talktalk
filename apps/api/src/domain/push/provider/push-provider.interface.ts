@@ -40,3 +40,4 @@ export interface PushProvider {
 }
 
 export const PUSH_PROVIDER = 'PUSH_PROVIDER';
+export const WEB_PUSH_PROVIDER = 'WEB_PUSH_PROVIDER';

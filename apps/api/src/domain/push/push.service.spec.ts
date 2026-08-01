@@ -1,3 +1,4 @@
+import { createHash } from 'crypto';
 import { Repository } from 'typeorm';
 import { PushService } from './push.service';
 import { DeviceToken } from './entity/device-token.entity';
@@ -7,22 +8,33 @@ import { PushProvider, PushTicket } from './provider/push-provider.interface';
 import { BusinessException } from '../../global/exception/business.exception';
 
 const EXPO_TOKEN = 'ExponentPushToken[abc123]';
+const WEBPUSH_TOKEN = JSON.stringify({
+  endpoint: 'https://fcm.googleapis.com/x',
+  keys: { p256dh: 'k', auth: 'a' },
+});
 
-describe('PushService (REQ-MobileApp M1 — registration + dispatch)', () => {
+const sha256 = (s: string): string => createHash('sha256').update(s).digest('hex');
+
+describe('PushService (REQ-MobileApp M1 + PLN-PWA P1 — registration + dispatch)', () => {
   let svc: PushService;
   let tokenRows: DeviceToken[];
   let sessions: Map<string, Partial<Session>>;
   let sendMock: jest.Mock<Promise<PushTicket[]>, never[]>;
+  let webSendMock: jest.Mock<Promise<PushTicket[]>, never[]>;
   let updateMock: jest.Mock;
 
   beforeEach(() => {
     tokenRows = [];
     sessions = new Map();
     sendMock = jest.fn(async () => [] as PushTicket[]);
+    webSendMock = jest.fn(async () => [] as PushTicket[]);
     updateMock = jest.fn(async () => ({ affected: 1 }));
 
     const tokenRepo = {
-      findOne: jest.fn(async ({ where }: { where: { token: string } }) => {
+      findOne: jest.fn(async ({ where }: { where: { token?: string; tokenHash?: string } }) => {
+        if (where.tokenHash !== undefined) {
+          return tokenRows.find((t) => t.tokenHash === where.tokenHash) ?? null;
+        }
         return tokenRows.find((t) => t.token === where.token) ?? null;
       }),
       find: jest.fn(async ({ where }: { where: { customerId: number; tenantId?: number } }) => {
@@ -35,7 +47,9 @@ describe('PushService (REQ-MobileApp M1 — registration + dispatch)', () => {
       }),
       create: jest.fn((e: Partial<DeviceToken>) => e as DeviceToken),
       save: jest.fn(async (e: DeviceToken) => {
-        const idx = tokenRows.findIndex((t) => t.token === e.token);
+        const idx = tokenRows.findIndex((t) =>
+          e.tokenHash !== undefined ? t.tokenHash === e.tokenHash : t.token === e.token,
+        );
         if (idx >= 0) tokenRows[idx] = e;
         else tokenRows.push(e);
         return e;
@@ -51,8 +65,12 @@ describe('PushService (REQ-MobileApp M1 — registration + dispatch)', () => {
 
     const bus = { subscribe: jest.fn(), publish: jest.fn() } as unknown as EventBusService;
     const provider: PushProvider = { send: sendMock, getReceipts: jest.fn(async () => []) };
+    const webPushProvider: PushProvider = {
+      send: webSendMock,
+      getReceipts: jest.fn(async () => []),
+    };
 
-    svc = new PushService(tokenRepo, sessionRepo, provider, bus);
+    svc = new PushService(tokenRepo, sessionRepo, provider, webPushProvider, bus);
   });
 
   const session = (token: string, over: Partial<Session> = {}): void => {
@@ -90,6 +108,34 @@ describe('PushService (REQ-MobileApp M1 — registration + dispatch)', () => {
     );
   });
 
+  it('register: webpush subscription stored with provider + 64-hex token hash', async () => {
+    session('s1');
+    const row = await svc.register('s1', {
+      token: WEBPUSH_TOKEN,
+      platform: 'web',
+      provider: 'webpush',
+    });
+    expect(row.provider).toBe('webpush');
+    expect(row.token).toBe(WEBPUSH_TOKEN);
+    expect(row.tokenHash).toMatch(/^[0-9a-f]{64}$/);
+    expect(row.tokenHash).toBe(sha256(WEBPUSH_TOKEN));
+  });
+
+  it('register: webpush with http endpoint or missing keys rejected with E5006', async () => {
+    session('s1');
+    const httpEndpoint = JSON.stringify({
+      endpoint: 'http://fcm.googleapis.com/x',
+      keys: { p256dh: 'k', auth: 'a' },
+    });
+    await expect(
+      svc.register('s1', { token: httpEndpoint, platform: 'web', provider: 'webpush' }),
+    ).rejects.toThrow(BusinessException);
+    const missingKeys = JSON.stringify({ endpoint: 'https://fcm.googleapis.com/x' });
+    await expect(
+      svc.register('s1', { token: missingKeys, platform: 'web', provider: 'webpush' }),
+    ).rejects.toThrow(BusinessException);
+  });
+
   it('unregister: revokes and is idempotent', async () => {
     session('s1');
     await svc.register('s1', { token: EXPO_TOKEN, platform: 'ios' });
@@ -100,9 +146,9 @@ describe('PushService (REQ-MobileApp M1 — registration + dispatch)', () => {
 
   it('dispatch: sends one message per active device of the customer', async () => {
     tokenRows.push(
-      { token: 'ExponentPushToken[a]', customerId: 42, tenantId: 1, revokedAt: null } as DeviceToken,
-      { token: 'ExponentPushToken[b]', customerId: 42, tenantId: 1, revokedAt: null } as DeviceToken,
-      { token: 'ExponentPushToken[c]', customerId: 99, tenantId: 1, revokedAt: null } as DeviceToken,
+      { token: 'ExponentPushToken[a]', provider: 'expo', customerId: 42, tenantId: 1, revokedAt: null } as DeviceToken,
+      { token: 'ExponentPushToken[b]', provider: 'expo', customerId: 42, tenantId: 1, revokedAt: null } as DeviceToken,
+      { token: 'ExponentPushToken[c]', provider: 'expo', customerId: 99, tenantId: 1, revokedAt: null } as DeviceToken,
     );
     await svc.dispatch({
       notificationId: 5,
@@ -117,6 +163,28 @@ describe('PushService (REQ-MobileApp M1 — registration + dispatch)', () => {
     const messages = sendMock.mock.calls[0][0] as unknown as Array<{ to: string; data: Record<string, unknown> }>;
     expect(messages.map((m) => m.to)).toEqual(['ExponentPushToken[a]', 'ExponentPushToken[b]']);
     expect(messages[0].data).toMatchObject({ category: 'shipping', notificationId: 5 });
+  });
+
+  it('dispatch: routes each device row through its own provider (expo + webpush)', async () => {
+    tokenRows.push(
+      { token: 'ExponentPushToken[a]', provider: 'expo', customerId: 42, tenantId: 1, revokedAt: null } as DeviceToken,
+      { token: WEBPUSH_TOKEN, provider: 'webpush', customerId: 42, tenantId: 1, revokedAt: null } as DeviceToken,
+    );
+    await svc.dispatch({
+      notificationId: 7,
+      tenantId: 1,
+      customerId: 42,
+      category: 'shipping',
+      title: 't',
+      body: null,
+      statusBadge: null,
+    });
+    expect(sendMock).toHaveBeenCalledTimes(1);
+    const expoMsgs = sendMock.mock.calls[0][0] as unknown as Array<{ to: string }>;
+    expect(expoMsgs.map((m) => m.to)).toEqual(['ExponentPushToken[a]']);
+    expect(webSendMock).toHaveBeenCalledTimes(1);
+    const webMsgs = webSendMock.mock.calls[0][0] as unknown as Array<{ to: string }>;
+    expect(webMsgs.map((m) => m.to)).toEqual([WEBPUSH_TOKEN]);
   });
 
   it('dispatch: null customer is a no-op (fail-closed upstream)', async () => {
@@ -135,6 +203,7 @@ describe('PushService (REQ-MobileApp M1 — registration + dispatch)', () => {
   it('dispatch: DeviceNotRegistered ticket revokes the token', async () => {
     tokenRows.push({
       token: 'ExponentPushToken[dead]',
+      provider: 'expo',
       customerId: 42,
       tenantId: 1,
       revokedAt: null,
@@ -152,7 +221,33 @@ describe('PushService (REQ-MobileApp M1 — registration + dispatch)', () => {
       statusBadge: null,
     });
     expect(updateMock).toHaveBeenCalledWith(
-      expect.objectContaining({ token: 'ExponentPushToken[dead]' }),
+      expect.objectContaining({ tokenHash: sha256('ExponentPushToken[dead]') }),
+      expect.objectContaining({ revokedAt: expect.any(Date) }),
+    );
+  });
+
+  it('dispatch: expired webpush ticket (shouldRevoke) revokes by token hash', async () => {
+    tokenRows.push({
+      token: WEBPUSH_TOKEN,
+      provider: 'webpush',
+      customerId: 42,
+      tenantId: 1,
+      revokedAt: null,
+    } as DeviceToken);
+    webSendMock.mockResolvedValueOnce([
+      { token: WEBPUSH_TOKEN, ok: false, shouldRevoke: true, error: 'subscription_gone' },
+    ]);
+    await svc.dispatch({
+      notificationId: 8,
+      tenantId: 1,
+      customerId: 42,
+      category: 'shipping',
+      title: 't',
+      body: null,
+      statusBadge: null,
+    });
+    expect(updateMock).toHaveBeenCalledWith(
+      expect.objectContaining({ tokenHash: sha256(WEBPUSH_TOKEN) }),
       expect.objectContaining({ revokedAt: expect.any(Date) }),
     );
   });
