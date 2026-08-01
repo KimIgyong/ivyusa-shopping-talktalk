@@ -21,11 +21,13 @@ fi
 echo "==> Building and starting staging stack..."
 docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d --build
 
-# Recreated app containers get new IPs; reload the edge nginx so it re-reads its
-# config and re-resolves upstreams (avoids stale-IP 404/502 after a redeploy).
-echo "==> Reloading edge nginx..."
-docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" exec -T nginx nginx -s reload \
-  || docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d --force-recreate nginx
+# Recreate (not reload) the edge nginx: nginx.conf is a single-FILE bind mount,
+# and `git pull` replaces the file via rename (new inode) — a running container
+# keeps the OLD inode, so `nginx -s reload` re-reads stale config (found
+# 2026-08-02: new /app route silently missing after deploy). Recreating re-binds
+# the mount to the current file; also re-resolves recreated upstream IPs.
+echo "==> Recreating edge nginx (single-file bind mount goes stale on git pull)..."
+docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d --force-recreate nginx
 
 echo "==> Status:"
 docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" ps
