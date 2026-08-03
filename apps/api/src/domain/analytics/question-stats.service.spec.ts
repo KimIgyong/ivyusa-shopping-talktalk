@@ -100,7 +100,13 @@ describe('QuestionStatsService.aggregateDay (4 lenses)', () => {
       embed: jest.fn(async (texts: string[]) => {
         embedCalls.push(texts);
         if (opts.embedFails) throw new Error('voyage 429');
-        return { vectors: texts.map((_, i) => vec(i)), model: 'voyage-4', provider: 'voyage', tokensIn: 1, dimension: 8 };
+        return {
+          vectors: texts.map((_, i) => vec(i)),
+          model: opts.stubProvider ? 'stub-1' : 'voyage-4',
+          provider: opts.stubProvider ? 'stub' : 'voyage',
+          tokensIn: 1,
+          dimension: 8,
+        };
       }),
     } as unknown as AiGatewayService;
 
@@ -172,6 +178,38 @@ describe('QuestionStatsService.aggregateDay (4 lenses)', () => {
     expect(rowsFor('cluster')).toHaveLength(0);
     expect(rowsFor('intent').length).toBeGreaterThan(0);
     expect(rowsFor('keyword').length).toBeGreaterThan(0);
+  });
+
+  it('refuses stub vectors when a real embedding key is configured', async () => {
+    // The gateway degrades to the deterministic stub on any provider error — a
+    // 429 is enough — and stub vectors share no space with real ones. Accepting
+    // them seeds permanent centroids nothing ever matches. Observed on staging
+    // during the 2026-08-04 backfill.
+    const previous = process.env.VOYAGE_API_KEY;
+    process.env.VOYAGE_API_KEY = 'test-key';
+    try {
+      const svc = build({ stubProvider: true });
+      await svc.aggregateDay('2026-08-04');
+      expect(rowsFor('cluster')).toHaveLength(0);
+      // The other three lenses still produce a snapshot.
+      expect(rowsFor('intent').length).toBeGreaterThan(0);
+      expect(rowsFor('keyword').length).toBeGreaterThan(0);
+    } finally {
+      if (previous === undefined) delete process.env.VOYAGE_API_KEY;
+      else process.env.VOYAGE_API_KEY = previous;
+    }
+  });
+
+  it('accepts stub vectors in a keyless deployment (local dev)', async () => {
+    const previous = process.env.VOYAGE_API_KEY;
+    delete process.env.VOYAGE_API_KEY;
+    try {
+      const svc = build({ stubProvider: true });
+      await svc.aggregateDay('2026-08-04');
+      expect(rowsFor('cluster').length).toBeGreaterThan(0);
+    } finally {
+      if (previous !== undefined) process.env.VOYAGE_API_KEY = previous;
+    }
   });
 
   it('upserts on (tenant, date, dimension, key) so a re-run cannot double-count', async () => {
