@@ -22,6 +22,12 @@ const piiTransformer = {
 };
 
 /** customers — Shopify customer cache + tenancy/tier columns (FR-057). PII encrypted at rest. */
+// One row per Shopify customer per tenant: the app-proxy identity path (id, no
+// email) and the order-sync path (email) must converge on the same row, or
+// sessions bind to a different customer than the one holding the orders
+// (FIX-Customer-Duplicate-ShopifyId-20260803). NULL ids (guest lookups) are
+// exempt — MySQL unique indexes permit repeated NULLs.
+@Index('uq_customers_tenant_shopify', ['tenantId', 'shopifyCustomerId'], { unique: true })
 @Entity('customers')
 export class Customer {
   @PrimaryGeneratedColumn({ type: 'bigint' })
