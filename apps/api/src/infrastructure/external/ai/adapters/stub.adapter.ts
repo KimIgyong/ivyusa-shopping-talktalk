@@ -42,8 +42,11 @@ export class StubAdapter implements AiAdapter {
     const ctxMatch = system.match(/CONTEXT_START([\s\S]*?)CONTEXT_END/);
     const ctx = ctxMatch?.[1]?.trim();
     if (ctx) {
+      // Context lines are "- [category] title: snippet" — strip the list marker
+      // and internal [category] label so customers never see internal doc structure.
       const firstLine = ctx.split('\n').filter(Boolean)[0] ?? '';
-      return `Based on our help center: ${firstLine} (If this doesn't fully answer your question, I can connect you with a support agent.)`;
+      const fact = firstLine.replace(/^-\s*/, '').replace(/^\[[^\]]*\]\s*/, '');
+      return `Here's what I found for you: ${fact} If this doesn't fully answer your question, I'd be happy to connect you with a support agent.`;
     }
     return `Thanks for your question about "${question.slice(0, 80)}". I can help with orders, shipping, returns, and product info. Could you share a bit more, or tap a menu option?`;
   }

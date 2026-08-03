@@ -257,8 +257,8 @@ export class RagService {
       function: AI_FUNCTION.RAG,
       system:
         `${persona}${rulesBlock}\n` +
-        `${sourceRule} If the information is insufficient, say you'll connect a ` +
-        `human agent. Reply in language code: ${language}.\n` +
+        `${sourceRule} If the information is insufficient, apologize briefly and ` +
+        `offer to connect a human agent. Reply in language code: ${language}.\n` +
         `CONTEXT_START\n${context || '(no relevant documents found)'}\nCONTEXT_END` +
         orderBlock,
       messages: [{ role: 'user', content: query }],
