@@ -1,4 +1,4 @@
-import { IsArray, IsBoolean, IsOptional, IsString } from 'class-validator';
+import { IsArray, IsBoolean, IsObject, IsOptional, IsString } from 'class-validator';
 
 class ScenarioButtonDto {
   @IsString() id: string;
@@ -19,4 +19,11 @@ export class UpdateAiConfigRequest {
   @IsOptional() @IsArray() @IsString({ each: true }) rules?: string[];
 
   @IsOptional() @IsArray() scenario_buttons?: ScenarioButtonDto[];
+
+  /**
+   * Per-action script edits keyed by scenario action. Shape is validated and
+   * pruned in AiConfigService.sanitizeOverrides (blank fields fall back to the
+   * built-in script), so an object check is the right depth here.
+   */
+  @IsOptional() @IsObject() scenario_overrides?: Record<string, unknown>;
 }

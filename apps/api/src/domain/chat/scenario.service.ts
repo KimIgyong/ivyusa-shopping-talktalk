@@ -11,6 +11,11 @@ import { Session } from '../session/entity/session.entity';
 import { ChatService, sysMsg } from './chat.service';
 import { ModerationService } from '../moderation/moderation.service';
 import { SessionService } from '../session/session.service';
+import { AiConfigService } from '../ai-engine/ai-config.service';
+import type {
+  ScenarioOverride,
+  ScenarioPostAction,
+} from '../ai-engine/entity/tenant-ai-config.entity';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
 
@@ -171,6 +176,7 @@ export class ScenarioService {
     private readonly chatService: ChatService,
     private readonly moderation: ModerationService,
     private readonly sessionService: SessionService,
+    private readonly aiConfig: AiConfigService,
   ) {}
 
   isScenarioAction(action: string): boolean {
@@ -178,11 +184,15 @@ export class ScenarioService {
   }
 
   async handle(session: Session, action: string): Promise<ScenarioTurnResult> {
-    const script = SCENARIOS[action];
-    if (!script) {
+    const builtIn = SCENARIOS[action];
+    if (!builtIn) {
       throw new BusinessException(ERROR_CODE.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND);
     }
     const l = lang(session);
+    // Tenant edits (FR-003, PLN-AiSetting W2) layer over the built-in script:
+    // any field the tenant left empty keeps the shipped copy.
+    const override = await this.aiConfig.getScenarioOverride(session.tenantId, action);
+    const script = mergeScript(builtIn, override, l);
 
     // Consent gate (PLN-Privacy-Control-Gap D-1, fail-closed) — mirrors the
     // chat path: without an effective GRANTED (fresh read, current notice
@@ -208,7 +218,7 @@ export class ScenarioService {
       this.msgRepo.create({
         conversationId: conversation.id,
         senderType: SENDER_TYPE.USER,
-        body: script.utterance[l],
+        body: script.utterance,
         lang: session.language,
         retrievalTrace: { scenario: action, kind: 'button' },
       }),
@@ -226,7 +236,7 @@ export class ScenarioService {
       scope: 'ai',
       authorType: 'ai',
       conversationId: conversation.id,
-      text: script.reply[l],
+      text: script.reply,
     });
     if (moderated.decision === MODERATION_DECISION.BLOCKED) {
       const notice = await this.chatService.handoff(
@@ -234,7 +244,7 @@ export class ScenarioService {
         session,
         session.tenantId ?? 0,
         'moderation_blocked',
-        script.utterance[l],
+        script.utterance,
       );
       return {
         conversationId: String(conversation.id),
@@ -244,7 +254,7 @@ export class ScenarioService {
     }
     const body = moderated.text;
 
-    const followUps = script.followUps.map((f) => ({ id: f.id, label: f.label[l] }));
+    const followUps = script.followUps;
 
     await this.msgRepo.save(
       this.msgRepo.create({
@@ -265,6 +275,39 @@ export class ScenarioService {
       conversationId: String(conversation.id),
       reply: { senderType: 'ai', body },
       followUps,
+      ...(script.postAction && script.postAction.type !== 'none'
+        ? { postAction: script.postAction }
+        : {}),
     };
   }
+}
+
+/** Language pick with EN fallback — tenants may translate only some languages. */
+function pick(text: Partial<Record<Lang, string>> | undefined, l: Lang): string | undefined {
+  const value = text?.[l]?.trim() || text?.EN?.trim();
+  return value || undefined;
+}
+
+/**
+ * Resolve one scenario turn's copy for a language: tenant override first,
+ * built-in script as the fallback for anything left blank.
+ */
+function mergeScript(
+  builtIn: ScenarioScript,
+  override: ScenarioOverride | null,
+  l: Lang,
+): { utterance: string; reply: string; followUps: ScenarioFollowUp[]; postAction?: ScenarioPostAction } {
+  const overriddenFollowUps = override?.followUps
+    ?.map((f) => ({ id: f.id, label: pick(f.label, l) }))
+    .filter((f): f is ScenarioFollowUp => !!f.id && !!f.label);
+
+  return {
+    utterance: builtIn.utterance[l], // the shopper's echoed words stay ours
+    reply: pick(override?.reply, l) ?? builtIn.reply[l],
+    followUps:
+      overriddenFollowUps && overriddenFollowUps.length > 0
+        ? overriddenFollowUps
+        : builtIn.followUps.map((f) => ({ id: f.id, label: f.label[l] })),
+    postAction: override?.postAction,
+  };
 }

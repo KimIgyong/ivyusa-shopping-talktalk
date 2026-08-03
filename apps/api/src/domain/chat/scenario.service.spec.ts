@@ -6,6 +6,7 @@ import { Message } from './entity/message.entity';
 import { Session } from '../session/entity/session.entity';
 import { ModerationService } from '../moderation/moderation.service';
 import { SessionService } from '../session/session.service';
+import type { AiConfigService } from '../ai-engine/ai-config.service';
 
 /**
  * Consent gate on the scenario-button path (PLN-Privacy-Control-Gap Stage 1) —
@@ -43,6 +44,8 @@ describe('ScenarioService consent gate', () => {
       { getOrCreateConversation, handoff: jest.fn() } as unknown as ChatService,
       { moderate } as unknown as ModerationService,
       { effectiveConsentFor } as unknown as SessionService,
+      // No tenant overrides in these cases — the built-in script is used.
+      { getScenarioOverride: jest.fn().mockResolvedValue(null) } as unknown as AiConfigService,
     );
   });
 

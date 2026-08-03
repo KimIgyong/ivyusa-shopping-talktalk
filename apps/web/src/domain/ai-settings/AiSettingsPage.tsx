@@ -10,6 +10,7 @@ import { FormRow, Input, Select, Label } from '@/components/Field';
 import { Table, type Column } from '@/components/Table';
 import { cn } from '@/lib/cn';
 import { PreviewPanel } from './PreviewPanel';
+import { ScenarioReplyEditor } from './ScenarioReplyEditor';
 import {
   useAiSettings,
   useUpdateAiSetting,
@@ -23,6 +24,7 @@ import type {
   AiFunctionSetting,
   ModerationRule,
   ScenarioButton,
+  ScenarioOverride,
 } from './ai-settings.service';
 
 const FUNCTION_KEYS = new Set(['chat', 'rag', 'summary', 'assist', 'moderation']);
@@ -184,9 +186,14 @@ function ScenarioButtonsSection() {
   const { data: config, isLoading, error } = useAiConfig();
   const updateConfig = useUpdateAiConfig();
   const [buttons, setButtons] = useState<ScenarioButton[]>([]);
+  const [overrides, setOverrides] = useState<Record<string, ScenarioOverride>>({});
+  const [editing, setEditing] = useState<string | null>(null);
 
   useEffect(() => {
-    if (config) setButtons(config.scenarioButtons ?? []);
+    if (config) {
+      setButtons(config.scenarioButtons ?? []);
+      setOverrides(config.scenarioOverrides ?? {});
+    }
   }, [config]);
 
   const patch = (i: number, partial: Partial<ScenarioButton>) =>
@@ -214,6 +221,7 @@ function ScenarioButtonsSection() {
   const save = () =>
     updateConfig.mutate({
       scenario_buttons: buttons.filter((b) => b.label.trim().length > 0),
+      scenario_overrides: overrides,
     });
 
   return (
@@ -265,6 +273,13 @@ function ScenarioButtonsSection() {
                 <Button
                   variant="ghost"
                   size="sm"
+                  onClick={() => setEditing(editing === btn.action ? null : btn.action)}
+                >
+                  {t('editReply')}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
                   aria-label={t('moveUp')}
                   disabled={i === 0}
                   onClick={() => move(i, -1)}
@@ -289,6 +304,15 @@ function ScenarioButtonsSection() {
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
+              {editing === btn.action && (
+                <div className="w-full">
+                  <ScenarioReplyEditor
+                    action={btn.action}
+                    value={overrides[btn.action] ?? {}}
+                    onChange={(next) => setOverrides((prev) => ({ ...prev, [btn.action]: next }))}
+                  />
+                </div>
+              )}
             </div>
           ))}
           <div className="flex justify-end">

@@ -2,7 +2,7 @@ import { HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import type { ScenarioConfigResponse } from '@ivy/types';
-import { ScenarioButton, TenantAiConfig } from './entity/tenant-ai-config.entity';
+import { ScenarioButton, ScenarioOverride, TenantAiConfig } from './entity/tenant-ai-config.entity';
 import { Session } from '../session/entity/session.entity';
 import { Tenant } from '../tenant/entity/tenant.entity';
 import { BusinessException } from '../../global/exception/business.exception';
@@ -39,12 +39,14 @@ export interface AiConfigResponse {
   persona: string;
   rules: string[];
   scenarioButtons: ScenarioButton[];
+  scenarioOverrides: Record<string, ScenarioOverride>;
 }
 
 export interface AiConfigInput {
   persona?: string;
   rules?: string[];
   scenarioButtons?: ScenarioButton[];
+  scenarioOverrides?: Record<string, ScenarioOverride>;
 }
 
 /** Tenant AI behavior config (FR-047 / FN-040): persona, response rules, scenario buttons. */
@@ -64,7 +66,22 @@ export class AiConfigService {
       persona: row?.persona ?? DEFAULT_PERSONA,
       rules: row?.rules ?? [],
       scenarioButtons: row?.scenarioButtons ?? DEFAULT_SCENARIO_BUTTONS,
+      scenarioOverrides: row?.scenarioOverrides ?? {},
     };
+  }
+
+  /**
+   * One action's tenant edits, or null when it uses the built-in script.
+   * Read on every scenario turn — shares the persona cache TTL policy by
+   * being a single indexed row read (no extra cache layer for now).
+   */
+  async getScenarioOverride(
+    tenantId: number | null,
+    action: string,
+  ): Promise<ScenarioOverride | null> {
+    if (tenantId == null) return null;
+    const row = await this.configRepo.findOne({ where: { tenantId } });
+    return row?.scenarioOverrides?.[action] ?? null;
   }
 
   /** Admin write — upsert persona / rules / scenario buttons. */
@@ -75,6 +92,9 @@ export class AiConfigService {
     if (input.persona !== undefined) row.persona = input.persona;
     if (input.rules !== undefined) row.rules = input.rules;
     if (input.scenarioButtons !== undefined) row.scenarioButtons = this.sanitize(input.scenarioButtons);
+    if (input.scenarioOverrides !== undefined) {
+      row.scenarioOverrides = this.sanitizeOverrides(input.scenarioOverrides);
+    }
     await this.configRepo.save(row);
     await this.redis.del(personaCacheKey(tenantId));
     return this.getConfig(tenantId);
@@ -106,6 +126,52 @@ export class AiConfigService {
   private async firstTenantId(): Promise<number | null> {
     const t = await this.tenantRepo.findOne({ where: {}, order: { id: 'ASC' } });
     return t?.id ?? null;
+  }
+
+  /**
+   * Keep only meaningful edits: blank strings are dropped so the built-in
+   * script shows through, and an action whose every field ended up empty is
+   * removed entirely (that is how a tenant "resets to default").
+   */
+  private sanitizeOverrides(
+    input: Record<string, ScenarioOverride>,
+  ): Record<string, ScenarioOverride> | null {
+    const out: Record<string, ScenarioOverride> = {};
+    for (const [action, ov] of Object.entries(input ?? {})) {
+      if (!ov) continue;
+      const entry: ScenarioOverride = {};
+
+      const reply = this.trimLangMap(ov.reply);
+      if (reply) entry.reply = reply;
+
+      const followUps = (ov.followUps ?? [])
+        .map((f) => ({ id: f.id?.trim(), label: this.trimLangMap(f.label) }))
+        .filter((f): f is { id: string; label: Record<string, string> } => !!f.id && !!f.label);
+      if (followUps.length) entry.followUps = followUps;
+
+      if (ov.postAction && ov.postAction.type && ov.postAction.type !== 'none') {
+        const url = ov.postAction.url?.trim();
+        // A URL action without a URL is a no-op — drop it rather than storing a trap.
+        if (ov.postAction.type !== 'open_url' || url) {
+          entry.postAction = { type: ov.postAction.type, ...(url ? { url } : {}) };
+        }
+      }
+
+      if (Object.keys(entry).length > 0) out[action] = entry;
+    }
+    return Object.keys(out).length > 0 ? out : null;
+  }
+
+  private trimLangMap(
+    map: Partial<Record<'EN' | 'ES' | 'KO', string>> | undefined,
+  ): Record<string, string> | undefined {
+    if (!map) return undefined;
+    const out: Record<string, string> = {};
+    for (const lang of ['EN', 'ES', 'KO'] as const) {
+      const v = map[lang]?.trim();
+      if (v) out[lang] = v;
+    }
+    return Object.keys(out).length > 0 ? out : undefined;
   }
 
   private sanitize(buttons: ScenarioButton[]): ScenarioButton[] {

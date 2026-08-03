@@ -75,5 +75,25 @@
     "agentBadge": "Agente (vista previa)",
     "escalated": "Escalado",
     "agentMode": "(bot en silencio — la conversación está con un agente)"
+  },
+  "editReply": "Editar respuesta",
+  "postAction_none": "Seguir en el chat",
+  "postAction_open_orders": "Abrir Mis pedidos",
+  "postAction_open_contact": "Abrir formulario de contacto",
+  "postAction_open_affiliate": "Abrir tarjeta de afiliados",
+  "postAction_connect_agent": "Conectar con un agente",
+  "postAction_open_url": "Abrir una URL",
+  "editor": {
+    "language": "Idioma",
+    "reply": "Texto de respuesta",
+    "replyPlaceholder": "Déjalo vacío para usar la respuesta integrada",
+    "blankHint": "Los campos vacíos usan el guion integrado (por idioma).",
+    "noScriptHint": "Esta acción no tiene respuesta guionizada — define abajo a dónde va el cliente.",
+    "followUps": "Chips de seguimiento",
+    "addFollowUp": "Añadir chip",
+    "followUpId": "id de acción",
+    "followUpLabel": "etiqueta",
+    "postAction": "Después de la respuesta",
+    "url": "URL"
   }
 }
