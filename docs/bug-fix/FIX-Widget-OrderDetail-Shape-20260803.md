@@ -48,4 +48,6 @@ API 변경은 필드 **추가**뿐이라 다른 소비자에 비파괴적.
 ## 5. 배포 기록
 
 - 스키마 변경 없음 — SQL 선적용 불필요
-- PR/커밋/배포: 머지 후 기입
+- PR **#63** squash-merge → main `0108a54`
+- **staging 배포 완료 2026-08-03**: `deploy-staging.sh`, API `successfully started`·healthy, `/health` ok
+- 사용자 실확인: 주문 상세 진입·품목 렌더 (확인되면 기입)
