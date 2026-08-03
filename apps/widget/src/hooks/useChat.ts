@@ -8,7 +8,7 @@ import {
   sendMessage,
   sendScenario,
 } from '../services/chatService';
-import type { ChatMessage, ChatReply } from '../lib/types';
+import type { ChatMessage, ChatReply, ScenarioPostAction } from '../lib/types';
 
 export interface SendResult {
   escalate: boolean;
@@ -108,10 +108,14 @@ export function useChat(sessionToken: string | null) {
     [sessionToken, append, t],
   );
 
-  /** Scenario button / quick-reply chip (FR-S1): deterministic scripted turn. */
+  /**
+   * Scenario button / quick-reply chip (FR-S1): deterministic scripted turn.
+   * Resolves with the tenant-configured post-action (PLN-AiSetting W2) so the
+   * caller can navigate after the reply lands; undefined = stay in the thread.
+   */
   const scenario = useCallback(
-    async (action: string, label: string): Promise<void> => {
-      if (!sessionToken) return;
+    async (action: string, label: string): Promise<ScenarioPostAction | undefined> => {
+      if (!sessionToken) return undefined;
       append({
         id: `local-${Date.now()}`,
         senderType: 'user',
@@ -130,6 +134,7 @@ export function useChat(sessionToken: string | null) {
           createdAt: new Date().toISOString(),
           quickReplies: res.followUps,
         });
+        return res.postAction;
       } catch (e) {
         if (!isAuthError(e)) {
           append({
@@ -144,6 +149,7 @@ export function useChat(sessionToken: string | null) {
         inFlight.current = false;
         lastServerId.current = null; // scripted turn persisted rows — full reconcile next poll
       }
+      return undefined;
     },
     [sessionToken, append, t],
   );

@@ -90,6 +90,12 @@ export interface ChatTurnResponse {
   needsAuth: boolean;
 }
 
+/** Post-reply navigation the widget performs after a scripted answer (FR-003). */
+export interface ScenarioPostActionResponse {
+  type: 'none' | 'open_orders' | 'open_contact' | 'open_affiliate' | 'connect_agent' | 'open_url';
+  url?: string;
+}
+
 export interface ScenarioTurnResponse {
   /**
    * Null when the turn produced no conversation — same consent-declined case as
@@ -99,6 +105,8 @@ export interface ScenarioTurnResponse {
   conversationId: string | null;
   reply: { senderType: string; body: string };
   followUps: ScenarioFollowUpResponse[];
+  /** Absent/`none` = stay in the thread. */
+  postAction?: ScenarioPostActionResponse;
 }
 
 // ---- orders -------------------------------------------------------------

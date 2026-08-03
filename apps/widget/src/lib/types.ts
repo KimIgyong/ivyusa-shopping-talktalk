@@ -25,6 +25,7 @@ import type {
   OrderLookupResponse,
   ScenarioButtonResponse,
   ScenarioFollowUpResponse,
+  ScenarioPostActionResponse,
   ScenarioTurnResponse,
   SessionResponse,
   TrackingResponse,
@@ -68,6 +69,7 @@ export type Conversation = ConversationResponse;
 export type ChatReply = ChatTurnResponse;
 export type ScenarioFollowUp = ScenarioFollowUpResponse;
 export type ScenarioReply = ScenarioTurnResponse;
+export type ScenarioPostAction = ScenarioPostActionResponse;
 
 export type OrderSummary = OrderListItemResponse;
 export type OrderItem = OrderItemResponse;

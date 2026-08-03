@@ -75,5 +75,25 @@
     "agentBadge": "Agent (preview)",
     "escalated": "Escalated",
     "agentMode": "(bot silent — thread is with an agent)"
+  },
+  "editReply": "Edit reply",
+  "postAction_none": "Stay in chat",
+  "postAction_open_orders": "Open My orders",
+  "postAction_open_contact": "Open contact form",
+  "postAction_open_affiliate": "Open affiliate card",
+  "postAction_connect_agent": "Connect to an agent",
+  "postAction_open_url": "Open a URL",
+  "editor": {
+    "language": "Language",
+    "reply": "Reply text",
+    "replyPlaceholder": "Leave blank to keep the built-in reply",
+    "blankHint": "Blank fields fall back to the built-in script (per language).",
+    "noScriptHint": "This action has no scripted reply — set where the shopper goes after it below.",
+    "followUps": "Follow-up chips",
+    "addFollowUp": "Add chip",
+    "followUpId": "action id",
+    "followUpLabel": "label",
+    "postAction": "After the reply",
+    "url": "URL"
   }
 }

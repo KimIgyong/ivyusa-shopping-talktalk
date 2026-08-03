@@ -8,7 +8,7 @@ import { getShopDomain } from '../../hooks/useSession';
 import { ensureSession, setConsent } from '../../services/sessionService';
 import { getStoredConsent, setStoredConsent } from '../../lib/consent';
 import { useAnalytics } from '../../lib/analytics';
-import type { ScenarioButton } from '../../lib/types';
+import type { ScenarioButton, ScenarioPostAction } from '../../lib/types';
 import { MessageBubble } from './MessageBubble';
 import { ConsentBanner } from './ConsentBanner';
 import { ScenarioMenu, type SubAction } from './ScenarioMenu';
@@ -105,7 +105,7 @@ export function ChatTab() {
     switch (button.action) {
       case 'delivery_status':
         // Scripted shipping scenario (FR-S1); order tracking via follow-up chip.
-        void scenario('shipping_policy', button.label);
+        void scenario('shipping_policy', button.label).then(runPostAction);
         return;
       case 'my_orders':
         if (!authenticated) {
@@ -121,12 +121,40 @@ export function ChatTab() {
         setInline('affiliate');
         return;
       case 'cancel_refund':
-        void scenario('cancel_refund', button.label);
+        void scenario('cancel_refund', button.label).then(runPostAction);
         return;
       case 'message':
       default:
         // Custom button: send its label as a chat message (RAG path).
         void doSend(button.label);
+        return;
+    }
+  }
+
+  /**
+   * Tenant-configured navigation after a scripted reply (PLN-AiSetting W2).
+   * Mirrors the scenario-button destinations so an admin can send a shopper
+   * straight to their orders, the contact form, or an external page.
+   */
+  function runPostAction(post?: ScenarioPostAction) {
+    if (!post || post.type === 'none') return;
+    switch (post.type) {
+      case 'open_orders':
+        if (!authenticated) setInline('auth');
+        else setActiveTab('orders');
+        return;
+      case 'open_contact':
+        setInline('contact');
+        return;
+      case 'open_affiliate':
+        setInline('affiliate');
+        return;
+      case 'connect_agent':
+        void escalate();
+        return;
+      case 'open_url':
+        // noopener/noreferrer: the destination is tenant-supplied.
+        if (post.url) window.open(post.url, '_blank', 'noopener,noreferrer');
         return;
     }
   }
@@ -157,7 +185,7 @@ export function ChatTab() {
         else setActiveTab('orders');
         return;
       default:
-        void scenario(id, label);
+        void scenario(id, label).then(runPostAction);
         return;
     }
   }

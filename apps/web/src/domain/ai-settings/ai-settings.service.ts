@@ -42,10 +42,26 @@ export interface ScenarioButton {
   enabled: boolean;
 }
 
+export type ScenarioLang = 'EN' | 'ES' | 'KO';
+
+/** Where the widget sends the shopper after a scripted reply (PLN-AiSetting W2). */
+export interface ScenarioPostAction {
+  type: 'none' | 'open_orders' | 'open_contact' | 'open_affiliate' | 'connect_agent' | 'open_url';
+  url?: string;
+}
+
+/** Tenant edits to a built-in scenario script; blank fields keep the built-in copy. */
+export interface ScenarioOverride {
+  reply?: Partial<Record<ScenarioLang, string>>;
+  followUps?: Array<{ id: string; label: Partial<Record<ScenarioLang, string>> }>;
+  postAction?: ScenarioPostAction;
+}
+
 export interface AiConfig {
   persona: string;
   rules: string[];
   scenarioButtons: ScenarioButton[];
+  scenarioOverrides?: Record<string, ScenarioOverride>;
 }
 
 // Backend returns { settings: [{function, engineId, engineName, params}], availableEngines: [...] }.
@@ -74,7 +90,12 @@ export const aiSettingsService = {
       ...(body.params !== undefined ? { params: body.params } : {}),
     }),
   getConfig: () => apiGet<AiConfig>('/ai-config'),
-  updateConfig: (body: { persona?: string; rules?: string[]; scenario_buttons?: ScenarioButton[] }) =>
+  updateConfig: (body: {
+    persona?: string;
+    rules?: string[];
+    scenario_buttons?: ScenarioButton[];
+    scenario_overrides?: Record<string, ScenarioOverride>;
+  }) =>
     apiPut<AiConfig>('/ai-config', body),
   rules: () => apiGet<ModerationRule[]>('/moderation/rules'),
   createRule: (body: CreateModerationRule) => apiPost<ModerationRule>('/moderation/rules', body),
