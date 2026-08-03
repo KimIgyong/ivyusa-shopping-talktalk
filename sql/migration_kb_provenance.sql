@@ -34,7 +34,16 @@ PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- Existing rows predate created_at; seed it from updated_at so "added on" is
 -- not uniformly the migration timestamp.
-UPDATE kb_documents SET created_at = updated_at
+--
+-- ⚠️ `updated_at` is `ON UPDATE CURRENT_TIMESTAMP`, so touching a row bumps it.
+-- Assigning it explicitly (even to its own value) suppresses that — without the
+-- second assignment this statement rewrites every document's "last edited" to
+-- the migration timestamp, destroying the staleness signal these columns exist
+-- to provide. Observed on staging 2026-08-04: 230 rows bumped, recovered from
+-- created_at, which had captured the pre-update values.
+UPDATE kb_documents
+   SET created_at = updated_at,
+       updated_at = updated_at
  WHERE updated_at IS NOT NULL AND created_at > updated_at;
 
 -- 2) Conflict review queue.
