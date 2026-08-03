@@ -2,6 +2,26 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { LogIn, Search } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { guestLookup } from '../../services/orderService';
+import { getShopDomain } from '../../hooks/useSession';
+
+/**
+ * Storefront sign-in (FIX-Widget-SignIn-Sandbox-20260803). The widget iframe is
+ * sandboxed (no modals, no top navigation), so it cannot open the account page
+ * itself: embedded, it asks the embed.js loader to navigate the store page
+ * ('ivy:signin'); standalone with a known shop it opens the account page in a
+ * new tab (allow-popups). Returns false when no sign-in target exists (local
+ * dev without ?shop=) so the caller can hide the button.
+ */
+function startSignIn(): boolean {
+  if (window.parent !== window) {
+    window.parent.postMessage({ type: 'ivy:signin' }, '*');
+    return true;
+  }
+  const shop = getShopDomain();
+  if (!shop) return false;
+  window.open(`https://${shop}/account/login`, '_blank', 'noopener');
+  return true;
+}
 
 export function AuthGate({
   sessionToken,
@@ -68,13 +88,15 @@ export function AuthGate({
 
       {mode === 'choice' ? (
         <div className="flex flex-col gap-2">
-          <button
-            onClick={() => alert('Sign-in flow opens the storefront account page.')}
-            className="flex items-center justify-center gap-2 rounded-lg bg-primary-500 px-3 py-2 text-sm font-medium text-white hover:bg-primary-600"
-          >
-            <LogIn className="h-4 w-4" />
-            {t('auth.signIn')}
-          </button>
+          {(window.parent !== window || !!getShopDomain()) && (
+            <button
+              onClick={startSignIn}
+              className="flex items-center justify-center gap-2 rounded-lg bg-primary-500 px-3 py-2 text-sm font-medium text-white hover:bg-primary-600"
+            >
+              <LogIn className="h-4 w-4" />
+              {t('auth.signIn')}
+            </button>
+          )}
           <button
             onClick={() => setMode('guest')}
             className="flex items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
