@@ -9,6 +9,7 @@ import { SessionModule } from '../session/session.module';
 import { AiEngineService } from './ai-engine.service';
 import { AiSettingService } from './ai-setting.service';
 import { AiConfigService } from './ai-config.service';
+import { HandoffRouterService } from './handoff-router.service';
 import { AiEngineController } from './ai-engine.controller';
 import { AiSettingController } from './ai-setting.controller';
 import { AiConfigController } from './ai-config.controller';
@@ -19,7 +20,7 @@ import { AiConfigController } from './ai-config.controller';
     SessionModule,
   ],
   controllers: [AiEngineController, AiSettingController, AiConfigController],
-  providers: [AiEngineService, AiSettingService, AiConfigService],
-  exports: [AiEngineService, AiSettingService, AiConfigService],
+  providers: [AiEngineService, AiSettingService, AiConfigService, HandoffRouterService],
+  exports: [AiEngineService, AiSettingService, AiConfigService, HandoffRouterService],
 })
 export class AiEngineModule {}

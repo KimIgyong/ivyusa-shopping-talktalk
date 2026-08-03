@@ -95,5 +95,27 @@
     "followUpLabel": "label",
     "postAction": "After the reply",
     "url": "URL"
+  },
+  "handoff": {
+    "title": "Agent handoff",
+    "assignees": "Assigned agents",
+    "assigneesHint": "Leave empty to alert every agent — the first to accept takes the conversation.",
+    "noAgents": "No agents with the consult label yet.",
+    "useBusinessHours": "Route to agents only during business hours",
+    "timezone": "Time zone",
+    "start": "From",
+    "end": "To",
+    "days": "Days",
+    "day_0": "Sun",
+    "day_1": "Mon",
+    "day_2": "Tue",
+    "day_3": "Wed",
+    "day_4": "Thu",
+    "day_5": "Fri",
+    "day_6": "Sat",
+    "offHoursEmail": "Off-hours email",
+    "offHoursNotice": "Off-hours message to the customer",
+    "noticePlaceholder": "Leave blank to use the default wording",
+    "emailWarning": "Without an email, off-hours escalations still page agents."
   }
 }

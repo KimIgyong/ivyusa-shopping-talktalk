@@ -20,6 +20,7 @@ import { ModerationService } from '../moderation/moderation.service';
 import type { ChatTurnResponse } from '@ivy/types';
 import { OrderService } from '../order/order.service';
 import { SessionService } from '../session/session.service';
+import { HandoffRouterService } from '../ai-engine/handoff-router.service';
 import { EventBusService, EVENTS } from '../../infrastructure/infrastructure.module';
 import { scrubPii } from '../../global/util/pii-scrub.util';
 
@@ -78,6 +79,10 @@ export interface EscalationEvent {
   sessionId: number | null;
   reason: EscalationReason;
   preview: string;
+  /** Agents to address the alert to (PLN-AiSetting W3). Empty = broadcast. */
+  targetUserIds?: number[];
+  /** Off-hours: mail the summary here instead of paging the console. */
+  offHoursEmail?: string;
 }
 
 /**
@@ -99,6 +104,7 @@ export class ChatService {
     private readonly moderation: ModerationService,
     private readonly orderService: OrderService,
     private readonly sessionService: SessionService,
+    private readonly handoffRouter: HandoffRouterService,
     private readonly bus: EventBusService,
   ) {}
 
@@ -321,7 +327,11 @@ export class ChatService {
     reason: EscalationReason,
     preview: string,
   ): Promise<string> {
-    const body = sysMsg('handoff', session.language);
+    // Routing decides both who gets paged and what the customer is told:
+    // outside business hours the message goes to a mailbox and the shopper is
+    // told to expect an email reply instead of a live agent (PLN-AiSetting W3).
+    const route = await this.handoffRouter.route(tenantId, session.language);
+    const body = route.mode === 'email' && route.notice ? route.notice : sysMsg('handoff', session.language);
     await this.persist(conversationId, SENDER_TYPE.SYSTEM, body, session.language, { reason });
     // Preview sandbox: show the real handoff notice but never page the agents —
     // no WAITING flip (the bot keeps answering for iterative testing), no alert
@@ -334,6 +344,8 @@ export class ChatService {
       sessionId: session.id,
       reason,
       preview: preview.slice(0, 300),
+      targetUserIds: route.targetUserIds,
+      offHoursEmail: route.mode === 'email' ? route.email : undefined,
     };
     await this.bus.publish(EVENTS.ESCALATION, event);
     return body;
@@ -357,13 +369,25 @@ export class ChatService {
       where: { conversationId, senderType: SENDER_TYPE.USER },
       order: { id: 'DESC' },
     });
+    const tenantId = session.tenantId ?? conversation.tenantId ?? 0;
+    // Same routing as the automatic handoff (PLN-AiSetting W3). Off hours the
+    // widget's local "connecting you" line would be a lie, so persist the
+    // off-hours notice — the conversation poll shows it to the customer.
+    const route = await this.handoffRouter.route(tenantId, session.language);
+    if (route.mode === 'email' && route.notice) {
+      await this.persist(conversationId, SENDER_TYPE.SYSTEM, route.notice, session.language, {
+        reason: 'user_request',
+      });
+    }
     await this.markWaiting(conversationId);
     const event: EscalationEvent = {
-      tenantId: session.tenantId ?? conversation.tenantId ?? 0,
+      tenantId,
       conversationId,
       sessionId: session.id,
       reason: 'user_request',
       preview: (lastUser?.body ?? '').slice(0, 300),
+      targetUserIds: route.targetUserIds,
+      offHoursEmail: route.mode === 'email' ? route.email : undefined,
     };
     await this.bus.publish(EVENTS.ESCALATION, event);
   }

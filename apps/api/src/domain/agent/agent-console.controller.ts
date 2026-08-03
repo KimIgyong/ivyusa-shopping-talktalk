@@ -43,8 +43,10 @@ export class AgentConsoleController {
   @Get('alerts')
   @RequireCapability(CAPABILITY.CONVERSATION_HANDLE)
   @ApiOperation({ summary: 'Escalation alerts for the console alarm modal (FR-S3)' })
-  async alerts(@Query() query: ListAlertsQuery) {
-    const items = await this.alertService.list(query.status ?? 'new');
+  async alerts(@CurrentUser() user: Principal, @Query() query: ListAlertsQuery) {
+    // An alert addressed to a specific agent is only shown to that agent;
+    // broadcast alerts (target NULL) stay visible to everyone (PLN-AiSetting W3).
+    const items = await this.alertService.list(query.status ?? 'new', actorIdOf(user));
     return items.map(toAlertResponse);
   }
 

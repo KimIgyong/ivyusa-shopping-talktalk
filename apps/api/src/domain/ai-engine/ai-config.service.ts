@@ -2,7 +2,12 @@ import { HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import type { ScenarioConfigResponse } from '@ivy/types';
-import { ScenarioButton, ScenarioOverride, TenantAiConfig } from './entity/tenant-ai-config.entity';
+import {
+  HandoffConfig,
+  ScenarioButton,
+  ScenarioOverride,
+  TenantAiConfig,
+} from './entity/tenant-ai-config.entity';
 import { Session } from '../session/entity/session.entity';
 import { Tenant } from '../tenant/entity/tenant.entity';
 import { BusinessException } from '../../global/exception/business.exception';
@@ -40,6 +45,7 @@ export interface AiConfigResponse {
   rules: string[];
   scenarioButtons: ScenarioButton[];
   scenarioOverrides: Record<string, ScenarioOverride>;
+  handoffConfig: HandoffConfig | null;
 }
 
 export interface AiConfigInput {
@@ -47,6 +53,7 @@ export interface AiConfigInput {
   rules?: string[];
   scenarioButtons?: ScenarioButton[];
   scenarioOverrides?: Record<string, ScenarioOverride>;
+  handoffConfig?: HandoffConfig | null;
 }
 
 /** Tenant AI behavior config (FR-047 / FN-040): persona, response rules, scenario buttons. */
@@ -67,7 +74,15 @@ export class AiConfigService {
       rules: row?.rules ?? [],
       scenarioButtons: row?.scenarioButtons ?? DEFAULT_SCENARIO_BUTTONS,
       scenarioOverrides: row?.scenarioOverrides ?? {},
+      handoffConfig: row?.handoffConfig ?? null,
     };
+  }
+
+  /** Handoff routing for a tenant, or null when it has never been configured. */
+  async getHandoffConfig(tenantId: number | null): Promise<HandoffConfig | null> {
+    if (tenantId == null) return null;
+    const row = await this.configRepo.findOne({ where: { tenantId } });
+    return row?.handoffConfig ?? null;
   }
 
   /**
@@ -95,6 +110,7 @@ export class AiConfigService {
     if (input.scenarioOverrides !== undefined) {
       row.scenarioOverrides = this.sanitizeOverrides(input.scenarioOverrides);
     }
+    if (input.handoffConfig !== undefined) row.handoffConfig = input.handoffConfig;
     await this.configRepo.save(row);
     await this.redis.del(personaCacheKey(tenantId));
     return this.getConfig(tenantId);

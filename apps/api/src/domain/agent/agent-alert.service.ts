@@ -1,7 +1,7 @@
 import { HttpStatus, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 import { AgentAlert } from './entity/agent-alert.entity';
 import { EventBusService, EVENTS } from '../../infrastructure/infrastructure.module';
 import { BusinessException } from '../../global/exception/business.exception';
@@ -13,6 +13,10 @@ interface EscalationPayload {
   sessionId?: number | null;
   reason?: string;
   preview?: string;
+  /** Agents to address the alert to (PLN-AiSetting W3). Empty/omitted = broadcast. */
+  targetUserIds?: number[];
+  /** Set when routing decided this is an off-hours handoff: mail, don't page. */
+  offHoursEmail?: string;
 }
 
 const REASON_LABEL: Record<string, string> = {
@@ -65,16 +69,38 @@ export class AgentAlertService implements OnModuleInit {
           sessionId: payload.sessionId ?? null,
           reason: payload.reason ?? 'user_request',
           preview: payload.preview?.slice(0, 300) ?? null,
+          // One row per addressed agent would duplicate the alarm, so a single
+          // row carries the first assignee; the console filters on it and NULL
+          // keeps the historical broadcast behaviour.
+          targetUserId: payload.targetUserIds?.[0] ?? null,
           status: 'new',
         }),
       ));
     if (existing) return; // channels already notified for this escalation
 
+    // Off hours: the shopper has already been told to expect an email, so the
+    // summary goes to the configured mailbox instead of paging the on-call
+    // channels (PLN-AiSetting W3).
+    if (payload.offHoursEmail) {
+      await this.notifyEmail(alert, payload.offHoursEmail);
+      return;
+    }
     await Promise.allSettled([this.notifySlack(alert), this.notifyEmail(alert)]);
   }
 
-  async list(status: string): Promise<AgentAlert[]> {
-    return this.alertRepo.find({ where: { status }, order: { id: 'DESC' }, take: 50 });
+  /** Broadcast alerts plus the ones addressed to this agent. */
+  async list(status: string, userId?: number): Promise<AgentAlert[]> {
+    return this.alertRepo.find({
+      where:
+        userId == null
+          ? { status }
+          : [
+              { status, targetUserId: IsNull() },
+              { status, targetUserId: userId },
+            ],
+      order: { id: 'DESC' },
+      take: 50,
+    });
   }
 
   async ack(id: number, userId: number): Promise<AgentAlert> {
@@ -118,9 +144,9 @@ export class AgentAlertService implements OnModuleInit {
    * disabled). nodemailer is loaded lazily so the API still boots and
    * typechecks when the dependency has not been installed yet.
    */
-  private async notifyEmail(alert: AgentAlert): Promise<void> {
+  private async notifyEmail(alert: AgentAlert, overrideTo?: string): Promise<void> {
     const host = this.config.get<string>('SMTP_HOST');
-    const to = this.config.get<string>('ALERT_EMAIL_TO');
+    const to = overrideTo ?? this.config.get<string>('ALERT_EMAIL_TO');
     if (!host || !to) return;
     try {
       const nodemailer = (await import('nodemailer' as string).catch(() => null)) as {

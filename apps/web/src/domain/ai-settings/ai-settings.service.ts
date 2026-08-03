@@ -57,11 +57,19 @@ export interface ScenarioOverride {
   postAction?: ScenarioPostAction;
 }
 
+/** Escalation routing (PLN-AiSetting W3). */
+export interface HandoffConfig {
+  assigneeUserIds?: number[];
+  businessHours?: { timezone: string; days: number[]; start: string; end: string };
+  offHours?: { email?: string; notice?: Partial<Record<ScenarioLang, string>> };
+}
+
 export interface AiConfig {
   persona: string;
   rules: string[];
   scenarioButtons: ScenarioButton[];
   scenarioOverrides?: Record<string, ScenarioOverride>;
+  handoffConfig?: HandoffConfig | null;
 }
 
 // Backend returns { settings: [{function, engineId, engineName, params}], availableEngines: [...] }.
@@ -95,6 +103,7 @@ export const aiSettingsService = {
     rules?: string[];
     scenario_buttons?: ScenarioButton[];
     scenario_overrides?: Record<string, ScenarioOverride>;
+    handoff_config?: HandoffConfig;
   }) =>
     apiPut<AiConfig>('/ai-config', body),
   rules: () => apiGet<ModerationRule[]>('/moderation/rules'),

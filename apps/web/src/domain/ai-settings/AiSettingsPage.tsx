@@ -11,6 +11,7 @@ import { Table, type Column } from '@/components/Table';
 import { cn } from '@/lib/cn';
 import { PreviewPanel } from './PreviewPanel';
 import { ScenarioReplyEditor } from './ScenarioReplyEditor';
+import { HandoffSection } from './HandoffSection';
 import {
   useAiSettings,
   useUpdateAiSetting,
@@ -55,6 +56,7 @@ export function AiSettingsPage() {
           <ScenarioButtonsSection />
           <AiFunctionsSection />
           <ModerationSection />
+          <HandoffSection />
         </div>
         <div className="xl:sticky xl:top-6 xl:self-start">
           <PreviewPanel />
