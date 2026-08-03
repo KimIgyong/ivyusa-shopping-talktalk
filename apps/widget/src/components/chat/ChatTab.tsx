@@ -4,7 +4,9 @@ import { useTranslation } from 'react-i18next';
 import { useWidgetStore } from '../../store/widgetStore';
 import { useChat } from '../../hooks/useChat';
 import { useScenario } from '../../hooks/useScenario';
-import { setConsent } from '../../services/sessionService';
+import { getShopDomain } from '../../hooks/useSession';
+import { ensureSession, setConsent } from '../../services/sessionService';
+import { getStoredConsent, setStoredConsent } from '../../lib/consent';
 import { useAnalytics } from '../../lib/analytics';
 import type { ScenarioButton } from '../../lib/types';
 import { MessageBubble } from './MessageBubble';
@@ -30,14 +32,16 @@ export function ChatTab() {
   const language = useWidgetStore((s) => s.language);
   const pendingChatMessage = useWidgetStore((s) => s.pendingChatMessage);
   const consumeChatMessage = useWidgetStore((s) => s.consumeChatMessage);
-  // CCPA notice choice — shared store state; also gates GA4 (Consent Mode).
-  const consentChoice = useWidgetStore((s) => s.consent);
-  const setConsentChoice = useWidgetStore((s) => s.setConsent);
   const analytics = useAnalytics();
 
   const { messages, send, scenario, sending, escalate } = useChat(sessionToken);
   const scenarioButtons = useScenario(sessionToken);
 
+  // CCPA notice choice — local cache only used until session/ensure reports the
+  // server-side state (the server is the source of truth; see showConsentBanner).
+  const [consentChoice, setConsentChoice] = useState<'granted' | 'denied' | null>(
+    () => getStoredConsent(),
+  );
   const [input, setInput] = useState('');
   const [inline, setInline] = useState<Inline>(null);
   const [showEscalate, setShowEscalate] = useState(false);
@@ -50,10 +54,35 @@ export function ChatTab() {
     });
   }, [messages, inline, showEscalate]);
 
-  function recordConsent(granted: boolean) {
-    setConsentChoice(granted); // persists + updates shared store (drives GA4 consent)
-    if (sessionToken) setConsent(sessionToken, granted).catch(() => {});
+  /**
+   * Fail-closed consent recording (ConsentBanner awaits this): the banner only
+   * dismisses after the server acknowledged the choice. Also refreshes the
+   * local cache that gates GA4 before the next ensure.
+   */
+  async function recordConsent(granted: boolean): Promise<void> {
+    let token = sessionToken;
+    if (!token) {
+      // Session may not exist yet (e.g. first ensure failed) — establish one.
+      const res = await ensureSession(null, language, getShopDomain());
+      token = res.sessionToken;
+      setSessionToken(token);
+    }
+    const result = await setConsent(token, granted);
+    setStoredConsent(granted);
+    setConsentChoice(granted ? 'granted' : 'denied');
+    updateConsentState(
+      granted ? 'granted' : 'declined',
+      new Date().toISOString(),
+      result.consentVersion,
+    );
   }
+
+  // Server truth wins; an outdated notice version re-prompts regardless of the
+  // local cache. Before the first ensure resolves (or offline), fall back to
+  // the local choice.
+  const showConsentBanner = consent
+    ? consent.state === 'pending' || consent.noticeOutdated
+    : consentChoice === null;
 
   async function doSend(text: string, via: 'input' | 'scenario' | 'quick_reply' = 'input') {
     analytics.chatStart();

@@ -16,6 +16,8 @@ export function Widget() {
   useEnsureSession();
   useEmbedIdentity();
   useSessionProfile();
+  usePurchaseSignal();
+  const analytics = useAnalytics();
   const panelOpen = useWidgetStore((s) => s.panelOpen);
   const togglePanel = useWidgetStore((s) => s.togglePanel);
   const sessionToken = useWidgetStore((s) => s.sessionToken);

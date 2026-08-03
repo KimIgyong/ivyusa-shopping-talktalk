@@ -23,6 +23,7 @@ export function OrderDetailView({
   onAsk: (orderNumber: string) => void;
 }) {
   const { t } = useTranslation();
+  const analytics = useAnalytics();
   const { data, isLoading, isError, error } = useOrder(orderId, sessionToken);
   const setAuthenticated = useWidgetStore((s) => s.setAuthenticated);
   const [showTrack, setShowTrack] = useState(false);

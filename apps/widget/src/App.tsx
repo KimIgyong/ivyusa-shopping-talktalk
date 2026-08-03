@@ -3,6 +3,7 @@ import { Storefront } from './components/storefront/Storefront';
 import { Widget } from './components/widget/Widget';
 import { Ga4Provider } from './lib/analytics';
 import { useWidgetStore } from './store/widgetStore';
+import { getStoredConsent } from './lib/consent';
 
 /** Embedded on a real storefront (via embed.js) — render only the widget. */
 const isEmbed = new URLSearchParams(window.location.search).get('embed') === '1';
@@ -22,7 +23,12 @@ function useAnalyticsContext() {
 
 export default function App() {
   // GA4 fires only after the visitor accepts the privacy notice (Consent Mode v2).
-  const consentGranted = useWidgetStore((s) => s.consent) === 'granted';
+  // Server-confirmed state wins; before the first session/ensure resolves, fall
+  // back to the local cache so a returning visitor's analytics start unbroken.
+  const consentInfo = useWidgetStore((s) => s.consent);
+  const consentGranted = consentInfo
+    ? consentInfo.state === 'granted'
+    : getStoredConsent() === 'granted';
   const context = useAnalyticsContext();
 
   const tree = isEmbed ? (
