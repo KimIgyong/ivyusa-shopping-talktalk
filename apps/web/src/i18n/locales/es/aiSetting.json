@@ -95,5 +95,27 @@
     "followUpLabel": "etiqueta",
     "postAction": "Después de la respuesta",
     "url": "URL"
+  },
+  "handoff": {
+    "title": "Transferencia a agente",
+    "assignees": "Agentes asignados",
+    "assigneesHint": "Déjalo vacío para avisar a todos los agentes; el primero en aceptar atiende la conversación.",
+    "noAgents": "Aún no hay agentes con la etiqueta consult.",
+    "useBusinessHours": "Enviar a agentes solo en horario laboral",
+    "timezone": "Zona horaria",
+    "start": "Desde",
+    "end": "Hasta",
+    "days": "Días",
+    "day_0": "Dom",
+    "day_1": "Lun",
+    "day_2": "Mar",
+    "day_3": "Mié",
+    "day_4": "Jue",
+    "day_5": "Vie",
+    "day_6": "Sáb",
+    "offHoursEmail": "Correo fuera de horario",
+    "offHoursNotice": "Mensaje al cliente fuera de horario",
+    "noticePlaceholder": "Déjalo vacío para usar el texto predeterminado",
+    "emailWarning": "Sin correo, las escaladas fuera de horario siguen avisando a los agentes."
   }
 }

@@ -2,7 +2,7 @@ import { Body, Controller, Get, Post, Put, Query } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CAPABILITY, Principal } from '@ivy/types';
 import { AiConfigService } from './ai-config.service';
-import type { ScenarioOverride } from './entity/tenant-ai-config.entity';
+import type { HandoffConfig, ScenarioOverride } from './entity/tenant-ai-config.entity';
 import { SessionService } from '../session/session.service';
 import { UpdateAiConfigRequest, CreatePreviewSessionRequest } from './dto/request/ai-config.request';
 import { RequireCapability } from '../../global/decorator/auth.decorator';
@@ -38,6 +38,7 @@ export class AiConfigController {
       scenarioButtons: body.scenario_buttons,
       // Shape is pruned/validated in the service (sanitizeOverrides).
       scenarioOverrides: body.scenario_overrides as Record<string, ScenarioOverride> | undefined,
+      handoffConfig: body.handoff_config as HandoffConfig | undefined,
     });
   }
 

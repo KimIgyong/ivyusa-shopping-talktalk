@@ -26,4 +26,7 @@ export class UpdateAiConfigRequest {
    * built-in script), so an object check is the right depth here.
    */
   @IsOptional() @IsObject() scenario_overrides?: Record<string, unknown>;
+
+  /** Escalation routing; shape is documented on HandoffConfig (entity). */
+  @IsOptional() @IsObject() handoff_config?: Record<string, unknown>;
 }

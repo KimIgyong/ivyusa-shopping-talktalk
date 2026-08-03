@@ -21,6 +21,28 @@ export interface ScenarioPostAction {
  * may be omitted — the built-in script supplies the rest (see ScenarioService).
  * Text is per language (EN/ES/KO); a missing language falls back to EN.
  */
+/**
+ * Handoff routing (PLN-AiSetting W3). All fields optional — an empty config
+ * keeps the historical behaviour: alert every agent, any time of day.
+ */
+export interface HandoffConfig {
+  /** Agents to page. Empty/omitted = broadcast to all (first to accept wins). */
+  assigneeUserIds?: number[];
+  /** When agents are on duty. Omitted = always route to agents. */
+  businessHours?: {
+    timezone: string; // IANA, e.g. America/New_York
+    days: number[]; // 0=Sun … 6=Sat
+    start: string; // 'HH:mm'
+    end: string; // 'HH:mm'
+  };
+  /** Where to send the conversation outside business hours. */
+  offHours?: {
+    email?: string;
+    /** Customer-facing notice; blank falls back to the built-in wording. */
+    notice?: Partial<Record<'EN' | 'ES' | 'KO', string>>;
+  };
+}
+
 export interface ScenarioOverride {
   reply?: Partial<Record<'EN' | 'ES' | 'KO', string>>;
   followUps?: Array<{ id: string; label: Partial<Record<'EN' | 'ES' | 'KO', string>> }>;
@@ -53,6 +75,10 @@ export class TenantAiConfig {
   /** Per-action edits to the built-in scripts, keyed by scenario action. */
   @Column({ name: 'scenario_overrides', type: 'json', nullable: true })
   scenarioOverrides: Record<string, ScenarioOverride> | null;
+
+  /** Who gets paged on escalation, when, and what happens after hours. */
+  @Column({ name: 'handoff_config', type: 'json', nullable: true })
+  handoffConfig: HandoffConfig | null;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

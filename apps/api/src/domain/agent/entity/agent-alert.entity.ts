@@ -28,6 +28,13 @@ export class AgentAlert {
   @Column({ type: 'varchar', length: 300, nullable: true })
   preview: string | null;
 
+  /**
+   * Agent this alert is addressed to. NULL = broadcast (every agent sees it),
+   * which is the behaviour when no assignees are configured (PLN-AiSetting W3).
+   */
+  @Column({ name: 'target_user_id', type: 'bigint', nullable: true, transformer: bigintTransformer })
+  targetUserId: number | null;
+
   @Column({ type: 'varchar', length: 16, default: 'new' })
   @Index('idx_alert_status')
   status: string; // new/acked
