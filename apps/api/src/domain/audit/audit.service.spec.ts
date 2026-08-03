@@ -1,7 +1,15 @@
 import { Repository } from 'typeorm';
 import { AuditService } from './audit.service';
 import { AuditLog } from './entity/audit-log.entity';
+import { User } from '../user/entity/user.entity';
+import { AdminUser } from '../auth/entity/admin-user.entity';
 import { runWithRequestContext } from '../../global/middleware/request-context.middleware';
+
+/** Actor-name lookups are exercised in the list suite below; write() never uses them. */
+const userRepo = (rows: Array<Partial<User>> = []) =>
+  ({ find: jest.fn(async () => rows) }) as unknown as Repository<User>;
+const adminRepo = (rows: Array<Partial<AdminUser>> = []) =>
+  ({ find: jest.fn(async () => rows) }) as unknown as Repository<AdminUser>;
 
 describe('AuditService (Stage 4 — request context + system actor)', () => {
   let svc: AuditService;
@@ -16,7 +24,7 @@ describe('AuditService (Stage 4 — request context + system actor)', () => {
         return e;
       }),
     } as unknown as Repository<AuditLog>;
-    svc = new AuditService(repo);
+    svc = new AuditService(repo, userRepo(), adminRepo());
   });
 
   it('auto-fills ip/requestId from the request context and defaults result=success', async () => {
@@ -73,5 +81,71 @@ describe('AuditService (Stage 4 — request context + system actor)', () => {
       result: 'success',
       metadata: null,
     });
+  });
+});
+
+describe('AuditService.list — filters + actor names', () => {
+  const rows = [
+    { id: 1, actorType: 'user', actorId: 5, action: 'agent.conversation_accepted' },
+    { id: 2, actorType: 'admin', actorId: 9, action: 'tenant.approved' },
+    { id: 3, actorType: 'system', actorId: 0, action: 'retention.purge' },
+  ] as AuditLog[];
+
+  const build = () => {
+    const captured: Record<string, unknown> = {};
+    const qb = {
+      andWhere: jest.fn((clause: string, params: Record<string, unknown>) => {
+        captured[clause] = params;
+        return qb;
+      }),
+      orderBy: jest.fn(() => qb),
+      skip: jest.fn(() => qb),
+      take: jest.fn(() => qb),
+      getManyAndCount: jest.fn(async () => [rows, rows.length] as [AuditLog[], number]),
+    };
+    const repo = { createQueryBuilder: jest.fn(() => qb) } as unknown as Repository<AuditLog>;
+    const svc = new AuditService(
+      repo,
+      userRepo([{ id: 5, name: 'Lee Sangdam', email: 'lee@shop.test' }]),
+      adminRepo([{ id: 9, email: 'admin@amoeba.group' }]),
+    );
+    return { svc, captured };
+  };
+
+  it('resolves each actor to a display name (regression: column was always "—")', async () => {
+    const { svc } = build();
+    const { items } = await svc.list({ tenantId: 1, page: 1, size: 20 });
+    expect(items.map((i) => i.actorName)).toEqual(['Lee Sangdam', 'admin@amoeba.group', 'system']);
+  });
+
+  it('applies actor_id, action prefix and date-range filters', async () => {
+    const { svc, captured } = build();
+    await svc.list({
+      tenantId: 1,
+      actorId: 5,
+      actionPrefix: 'agent.',
+      from: new Date('2026-08-01T00:00:00Z'),
+      to: new Date('2026-08-05T00:00:00Z'),
+      page: 1,
+      size: 20,
+    });
+    expect(captured['a.actor_id = :actorId']).toEqual({ actorId: 5 });
+    expect(captured['a.action LIKE :prefix']).toEqual({ prefix: 'agent.%' });
+    expect(captured['a.created_at >= :from']).toBeDefined();
+    expect(captured['a.created_at < :to']).toBeDefined();
+  });
+
+  it('falls back to null when the actor row no longer exists', async () => {
+    const qb = {
+      andWhere: jest.fn(() => qb),
+      orderBy: jest.fn(() => qb),
+      skip: jest.fn(() => qb),
+      take: jest.fn(() => qb),
+      getManyAndCount: jest.fn(async () => [[rows[0]], 1] as [AuditLog[], number]),
+    };
+    const repo = { createQueryBuilder: jest.fn(() => qb) } as unknown as Repository<AuditLog>;
+    const svc = new AuditService(repo, userRepo([]), adminRepo([]));
+    const { items } = await svc.list({ tenantId: 1, page: 1, size: 20 });
+    expect(items[0].actorName).toBeNull();
   });
 });

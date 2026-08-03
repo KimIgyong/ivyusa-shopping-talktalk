@@ -7,6 +7,7 @@ import { RequireCapability } from '../../global/decorator/auth.decorator';
 import { CurrentUser } from '../../global/decorator/current-user.decorator';
 import { Paginated } from '../../global/interceptor/transform.interceptor';
 import { ListAuditQuery } from './dto/request/audit.request';
+import { parseFrom, parseTo } from '../../global/util/date-range.util';
 
 /** Audit log read access (FR-061). Tenant-scoped for tenant users. */
 @ApiTags('Audit')
@@ -23,7 +24,11 @@ export class AuditController {
     const { items, total } = await this.auditService.list({
       tenantId,
       action: query.action,
+      actionPrefix: query.action_prefix,
       actorType: query.actor_type,
+      actorId: query.actor_id ? Number(query.actor_id) : undefined,
+      from: parseFrom(query.from),
+      to: parseTo(query.to),
       page,
       size,
     });
@@ -33,6 +38,7 @@ export class AuditController {
         tenantId: a.tenantId,
         actorType: a.actorType,
         actorId: a.actorId,
+        actorName: a.actorName,
         action: a.action,
         target: a.target,
         ip: a.ip,

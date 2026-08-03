@@ -1,7 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { AuditLog } from './entity/audit-log.entity';
+import { User } from '../user/entity/user.entity';
+import { AdminUser } from '../auth/entity/admin-user.entity';
 import { getRequestContext } from '../../global/middleware/request-context.middleware';
 
 export type AuditResult = 'success' | 'denied' | 'error';
@@ -27,15 +29,25 @@ export interface ListAuditParams {
   tenantId: number | null; // null => all tenants (system admin)
   action?: string;
   actorType?: string;
+  actorId?: number;
+  /** Action-prefix filter, e.g. 'agent.' for the agent work log. */
+  actionPrefix?: string;
+  from?: Date;
+  to?: Date;
   page: number;
   size: number;
 }
+
+/** An audit row with its actor resolved to a display name. */
+export type AuditLogWithActor = AuditLog & { actorName: string | null };
 
 /** Privileged action audit trail (FR-061). */
 @Injectable()
 export class AuditService {
   constructor(
     @InjectRepository(AuditLog) private readonly logRepo: Repository<AuditLog>,
+    @InjectRepository(User) private readonly userRepo: Repository<User>,
+    @InjectRepository(AdminUser) private readonly adminRepo: Repository<AdminUser>,
   ) {}
 
   /**
@@ -60,15 +72,49 @@ export class AuditService {
     );
   }
 
-  async list(params: ListAuditParams): Promise<{ items: AuditLog[]; total: number }> {
+  async list(params: ListAuditParams): Promise<{ items: AuditLogWithActor[]; total: number }> {
     const qb = this.logRepo.createQueryBuilder('a');
     if (params.tenantId != null) qb.andWhere('a.tenant_id = :tenantId', { tenantId: params.tenantId });
     if (params.action) qb.andWhere('a.action = :action', { action: params.action });
+    if (params.actionPrefix) {
+      qb.andWhere('a.action LIKE :prefix', { prefix: `${params.actionPrefix}%` });
+    }
     if (params.actorType) qb.andWhere('a.actor_type = :actorType', { actorType: params.actorType });
+    if (params.actorId != null) qb.andWhere('a.actor_id = :actorId', { actorId: params.actorId });
+    if (params.from) qb.andWhere('a.created_at >= :from', { from: params.from });
+    if (params.to) qb.andWhere('a.created_at < :to', { to: params.to });
     qb.orderBy('a.id', 'DESC')
       .skip((params.page - 1) * params.size)
       .take(params.size);
     const [items, total] = await qb.getManyAndCount();
-    return { items, total };
+    return { items: await this.withActorNames(items), total };
+  }
+
+  /**
+   * Resolve actor_type/actor_id to a display name in two batched queries. The
+   * list previously returned the raw id only, so the console's "actor" column
+   * rendered a dash on every row — the one thing an audit log has to answer.
+   */
+  private async withActorNames(items: AuditLog[]): Promise<AuditLogWithActor[]> {
+    const userIds = [...new Set(items.filter((i) => i.actorType === 'user').map((i) => i.actorId))];
+    const adminIds = [...new Set(items.filter((i) => i.actorType === 'admin').map((i) => i.actorId))];
+    const names = new Map<string, string>();
+
+    if (userIds.length > 0) {
+      const users = await this.userRepo.find({ where: { id: In(userIds) }, select: ['id', 'name', 'email'] });
+      for (const u of users) names.set(`user:${u.id}`, u.name || u.email);
+    }
+    if (adminIds.length > 0) {
+      // admin_users has no display name — the address is the only identifier.
+      const admins = await this.adminRepo.find({ where: { id: In(adminIds) }, select: ['id', 'email'] });
+      for (const a of admins) names.set(`admin:${a.id}`, a.email);
+    }
+
+    return items.map((i) => ({
+      ...i,
+      // 'system' actors are machine writers (schedulers, event consumers) and
+      // have no row to join to — label them rather than showing a bare id.
+      actorName: i.actorType === 'system' ? 'system' : (names.get(`${i.actorType}:${i.actorId}`) ?? null),
+    })) as AuditLogWithActor[];
   }
 }

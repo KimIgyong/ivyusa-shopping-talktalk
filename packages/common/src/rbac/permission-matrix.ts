@@ -26,11 +26,17 @@ const ADMIN_CAPS: Record<AdminLevel, Capability[]> = {
     CAPABILITY.AI_ENGINE_MANAGE,
     CAPABILITY.BILLING_MANAGE,
     CAPABILITY.PLATFORM_AUDIT_READ,
+    // A platform admin reading the audit trail is reading it across every
+    // tenant, so the tenant-scoped capability is implied by the platform one.
+    // Without this the audit console 403'd for admins while the tenant users
+    // who hold TENANT_AUDIT_READ had no route to it — nobody could read it.
+    CAPABILITY.TENANT_AUDIT_READ,
   ],
   [ADMIN_LEVEL.ADMIN]: [
     CAPABILITY.TENANT_APPROVE,
     CAPABILITY.AI_ENGINE_MANAGE,
     CAPABILITY.PLATFORM_AUDIT_READ,
+    CAPABILITY.TENANT_AUDIT_READ,
   ],
 };
 

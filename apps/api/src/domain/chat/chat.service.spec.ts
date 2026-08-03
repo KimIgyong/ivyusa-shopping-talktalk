@@ -165,6 +165,19 @@ describe('ChatService consent gate', () => {
     expect(moderate).toHaveBeenCalled();
   });
 
+  it('stamps tenant_id on every persisted turn (not left to TenantSubscriber)', async () => {
+    // TenantSubscriber only fires inside a request's tenant context. A turn
+    // written without an explicit tenant_id drops out of every tenant-scoped
+    // statistic, and nothing in the response reveals it — so pin it here.
+    session = makeSession(CONSENT_STATE.GRANTED, CONSENT_NOTICE_VERSION);
+    build();
+    await svc.handleUserMessage(session, 'hello');
+
+    const persisted = msgSave.mock.calls.map((c) => c[0] as { tenantId?: number | null });
+    expect(persisted.length).toBeGreaterThanOrEqual(2); // user turn + AI turn
+    for (const m of persisted) expect(m.tenantId).toBe(1);
+  });
+
   it('scrubs PII from the AI egress copy while persisting the original (Stage 5)', async () => {
     session = makeSession(CONSENT_STATE.GRANTED, CONSENT_NOTICE_VERSION);
     build();

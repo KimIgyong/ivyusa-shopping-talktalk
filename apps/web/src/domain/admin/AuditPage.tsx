@@ -17,7 +17,11 @@ export function AuditPage() {
 
   const columns: Column<AuditEntry>[] = [
     { key: 'createdAt', header: t('time'), render: (r) => r.createdAt ?? '—' },
-    { key: 'actor', header: t('actor'), render: (r) => r.actor ?? '—' },
+    {
+      key: 'actor',
+      header: t('actor'),
+      render: (r) => r.actorName ?? (r.actorId ? `#${r.actorId}` : '—'),
+    },
     { key: 'action', header: t('action'), render: (r) => <Badge tone="info">{r.action}</Badge> },
     { key: 'target', header: t('target'), render: (r) => r.target ?? '—' },
     { key: 'ip', header: t('ip'), render: (r) => r.ip ?? '—' },
