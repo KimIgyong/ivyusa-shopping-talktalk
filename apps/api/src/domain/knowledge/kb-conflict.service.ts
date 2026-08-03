@@ -27,6 +27,10 @@ const NEIGHBOURS = 5;
 const EXCERPT_CHARS = 1200;
 /** Ceiling on model calls per scan, so a large KB cannot run away. */
 const MAX_JUDGEMENTS_PER_SCAN = 40;
+/** Embedding batch size, matching the KB reindex batching that fixed Voyage 429s. */
+const EMBED_BATCH = 64;
+/** Keep embedding input well inside voyage-4's context window. */
+const EMBED_MAX_CHARS = 4000;
 
 export interface ScanResult {
   scanned: number;
@@ -77,15 +81,22 @@ export class KbConflictService {
     const byId = new Map(docs.map((d) => [Number(d.id), d]));
     const pairs = new Map<string, { a: KbDocument; b: KbDocument; score: number }>();
 
-    for (const doc of docs) {
-      let vector: number[];
-      try {
-        const emb = await this.ai.embed([`${doc.title}\n${doc.content ?? ''}`.slice(0, 4000)], 'document');
-        vector = emb.vectors[0];
-      } catch (e) {
-        this.logger.warn(`conflict scan: embed failed for doc ${doc.id}: ${(e as Error).message}`);
-        continue;
-      }
+    // Embed in batches, not one call per document: a 230-document knowledge
+    // base is 230 requests otherwise, and the adapter deliberately does not
+    // retry single-text requests (that guard keeps live chat from stalling
+    // behind a rate-limit backoff), so a per-document loop fails en masse the
+    // moment the provider throttles.
+    let vectors: number[][];
+    try {
+      vectors = await this.embedDocuments(docs);
+    } catch (e) {
+      this.logger.warn(`conflict scan aborted: ${(e as Error).message}`);
+      return result;
+    }
+
+    for (const [index, doc] of docs.entries()) {
+      const vector = vectors[index];
+      if (!vector) continue;
 
       const hits = await this.qdrant.search(tenantId, vector, NEIGHBOURS);
       for (const hit of hits) {
@@ -122,6 +133,28 @@ export class KbConflictService {
       );
     }
     return result;
+  }
+
+  /**
+   * Embed every document in batches. A stub-provider result while a real key is
+   * configured is a failure, not a usable vector — stub vectors share no space
+   * with real ones, so scanning against them would produce meaningless
+   * neighbours (same guard as the knowledge index and the statistics job).
+   */
+  private async embedDocuments(docs: KbDocument[]): Promise<number[][]> {
+    const realKeySet = !!process.env.VOYAGE_API_KEY;
+    const out: number[][] = [];
+    for (let i = 0; i < docs.length; i += EMBED_BATCH) {
+      const batch = docs
+        .slice(i, i + EMBED_BATCH)
+        .map((d) => `${d.title}\n${d.content ?? ''}`.slice(0, EMBED_MAX_CHARS));
+      const res = await this.ai.embed(batch, 'document');
+      if (realKeySet && res.provider === 'stub') {
+        throw new Error('embedder degraded to stub while VOYAGE_API_KEY is set');
+      }
+      out.push(...res.vectors);
+    }
+    return out;
   }
 
   /**
