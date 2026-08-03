@@ -8,6 +8,7 @@ export interface JobLabel {
 export interface TenantUser {
   id: string;
   email: string;
+  name?: string | null;
   rank: string;
   labelCodes?: string[];
   status?: string;

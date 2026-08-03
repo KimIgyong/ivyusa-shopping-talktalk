@@ -11,3 +11,16 @@ export const useConversations = (params: HistoryListParams) => {
     placeholderData: keepPreviousData,
   });
 };
+
+/**
+ * Transcript for one conversation. Only fetched once a row is opened — the read
+ * writes a PII-access audit entry, so it must not fire for rows merely listed.
+ */
+export const useConversationDetail = (id: string | null) => {
+  const tenantKey = useTenantKey();
+  return useQuery({
+    queryKey: ['conversation', tenantKey, id],
+    queryFn: () => historyService.detail(id as string),
+    enabled: !!id,
+  });
+};
