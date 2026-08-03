@@ -93,7 +93,7 @@ function ConsentSection() {
     if (successTimer.current) clearTimeout(successTimer.current);
     try {
       const res = await setConsent(sessionToken, granted);
-      setStoredConsent(granted);
+      setStoredConsent(granted, res.consentVersion);
       updateConsentState(
         granted ? 'granted' : 'declined',
         new Date().toISOString(),

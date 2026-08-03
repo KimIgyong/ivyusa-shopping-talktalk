@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { MessageCircle, X } from 'lucide-react';
+import { MessageCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useWidgetStore, type TabKey } from '../../store/widgetStore';
 import { useEnsureSession } from '../../hooks/useSession';
@@ -62,24 +62,24 @@ export function Widget() {
         </ErrorBoundary>
       )}
 
-      {/* Floating launcher */}
-      <button
-        onClick={togglePanel}
-        aria-label={panelOpen ? t('a11y.closeSupport') : t('a11y.openSupport')}
-        aria-expanded={panelOpen}
-        className="fixed bottom-5 right-5 z-10 flex h-14 w-14 items-center justify-center rounded-full bg-primary-500 text-white shadow-lg transition-transform hover:scale-105 hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 active:scale-95"
-      >
-        {panelOpen ? (
-          <X className="h-6 w-6" />
-        ) : (
+      {/* Floating launcher — closed state only. While the panel is open the
+          bottom-right X would duplicate the panel header's close button (and
+          sit right under it on mobile), so closing is the header X / Esc. */}
+      {!panelOpen && (
+        <button
+          onClick={togglePanel}
+          aria-label={t('a11y.openSupport')}
+          aria-expanded={false}
+          className="fixed bottom-5 right-5 z-10 flex h-14 w-14 items-center justify-center rounded-full bg-primary-500 text-white shadow-lg transition-transform hover:scale-105 hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 active:scale-95"
+        >
           <MessageCircle className="h-6 w-6" />
-        )}
-        {!panelOpen && unread > 0 && (
-          <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-error px-1 text-[10px] font-bold text-white ring-2 ring-white">
-            {unread > 99 ? '99+' : unread}
-          </span>
-        )}
-      </button>
+          {unread > 0 && (
+            <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-error px-1 text-[10px] font-bold text-white ring-2 ring-white">
+              {unread > 99 ? '99+' : unread}
+            </span>
+          )}
+        </button>
+      )}
     </>
   );
 }

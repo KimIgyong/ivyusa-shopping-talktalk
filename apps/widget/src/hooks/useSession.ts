@@ -1,8 +1,8 @@
 import { useEffect } from 'react';
 import { useWidgetStore, type ConsentInfo } from '../store/widgetStore';
-import { ensureSession } from '../services/sessionService';
+import { ensureSession, setConsent } from '../services/sessionService';
 import { getStoredSessionToken } from '../lib/api-client';
-import { clearStoredConsent, setStoredConsent } from '../lib/consent';
+import { clearStoredConsent, getStoredConsentRecord, setStoredConsent } from '../lib/consent';
 import type { SessionResponse } from '../lib/types';
 import i18n, {
   LANG_STORAGE_KEY,
@@ -56,8 +56,12 @@ export function consentInfoFromSession(res: SessionResponse): ConsentInfo {
 }
 
 function syncStoredConsent(info: ConsentInfo): void {
-  if (info.state === 'pending' || info.noticeOutdated) clearStoredConsent();
-  else setStoredConsent(info.state === 'granted');
+  // A pending state no longer clears the cache: embedded anonymous widgets get
+  // a fresh (pending) session every page load, and the cached choice is exactly
+  // what lets auto-replay skip re-asking. Only a stale notice version (bump →
+  // re-consent policy, PRV-M4) invalidates the local record.
+  if (info.noticeOutdated) clearStoredConsent();
+  else if (info.state !== 'pending') setStoredConsent(info.state === 'granted', info.noticeVersion);
 }
 
 /**
@@ -142,9 +146,36 @@ export function useEnsureSession() {
         if (res.customerName) setCustomerName(res.customerName);
 
         // Server-side consent is the source of truth for the notice banner
-        // (pending / outdated re-prompts regardless of the local cache).
+        // (an outdated notice re-prompts regardless of the local cache). One
+        // exception: a brand-new session is always 'pending' even for a shopper
+        // who already chose on a previous page load (embedded anonymous widgets
+        // never resume sessions) — replay a version-matching local choice onto
+        // this session instead of re-asking (see lib/consent.ts).
         const consentInfo = consentInfoFromSession(res);
-        setConsentInfo(consentInfo);
+        const stored = getStoredConsentRecord();
+        const replay =
+          consentInfo.state === 'pending' &&
+          !consentInfo.noticeOutdated &&
+          stored != null &&
+          stored.version != null &&
+          stored.version === consentInfo.noticeVersion
+            ? stored
+            : null;
+        if (replay) {
+          // Optimistic: hide the banner now; the server session is re-recorded
+          // below. On failure fall back to 'pending' so the banner (fail-closed
+          // recorder) takes over again.
+          setConsentInfo({
+            ...consentInfo,
+            state: replay.state === 'granted' ? 'granted' : 'declined',
+            consentAt: replay.at,
+          });
+          void setConsent(res.sessionToken, replay.state === 'granted').catch(() => {
+            if (!cancelled) setConsentInfo(consentInfo);
+          });
+        } else {
+          setConsentInfo(consentInfo);
+        }
         syncStoredConsent(consentInfo);
 
         // Tie default UI language to the backend session, unless the user

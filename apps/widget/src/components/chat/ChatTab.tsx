@@ -68,7 +68,7 @@ export function ChatTab() {
       setSessionToken(token);
     }
     const result = await setConsent(token, granted);
-    setStoredConsent(granted);
+    setStoredConsent(granted, result.consentVersion);
     setConsentChoice(granted ? 'granted' : 'denied');
     updateConsentState(
       granted ? 'granted' : 'declined',
