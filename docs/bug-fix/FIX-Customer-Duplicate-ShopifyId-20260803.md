@@ -56,5 +56,12 @@ staging 증거 (shopify_customer_id=7817610756176):
 
 ## 6. 배포 기록
 
-- **스키마 변경 있음** — `sql/migration_customer_shopify_unique.sql` staging 선적용 필수 (중복 병합 후)
-- PR/커밋/배포: 머지 후 기입
+- PR **#61** squash-merge → main `e17c2ab`
+- **staging 2026-08-03 완료** (마이그레이션 순서 준수 — SQL 선적용 후 코드 배포):
+  1. 전체 DB 백업 `~/backup-pre-customer-dedup-20260803-1817.sql`
+  2. 중복 전수 점검 — (tenant 1, 7817610756176) → ids 3,4 한 쌍뿐
+  3. 병합 트랜잭션: sessions 21건 외 FK 10개 테이블 3→4 UPDATE, 행 3 DELETE (병합 후 세션 22건 확인)
+  4. `migration_customer_shopify_unique.sql` 적용 — `uq_customers_tenant_shopify` 인덱스 확인
+  5. `deploy-staging.sh` → 부팅 `successfully started`, 스키마 오류 0, healthy, `/health` ok
+- production: 배포 시 동일 절차(§3) 필요 — 이 마이그레이션은 미적용 상태
+- 사용자 실확인: 위젯 재로그인 후 주문 #1001 표시 여부 (확인되면 기입)
