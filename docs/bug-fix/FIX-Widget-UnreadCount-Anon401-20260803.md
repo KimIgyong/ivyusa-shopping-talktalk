@@ -51,4 +51,14 @@ Shopify 로그인 고객도 첫 로드에는 앱 프록시 핸드셰이크(`useE
 ## 5. 배포 기록
 
 - 스키마 변경 없음(위젯 코드만) — SQL 선적용 불필요
-- PR/커밋/배포: 머지 후 기입
+- PR **#59** squash-merge → main `ea2e766`
+- **staging 배포 완료 2026-08-03**: `deploy-staging.sh`, API `successfully started`·healthy, `/health` ok
+- 배포 후 검증: embed 모드(`?embed=1&shop=ambshop-dev…`) 신규 익명 세션에서 `session/ensure` 201 후
+  폴링 윈도(45초) 동안 `unread-count` 요청 **0건**(nginx 액세스 로그 UA 필터로 확인). 구 번들을 실행
+  중인 기존 스토어프런트 탭은 새로고침 전까지 401을 계속 냄(정상 — 재로드 시 해소).
+
+## 6. 조사 중 별도 확인 사항 (조치 없음)
+
+standalone `/widget/`(쿼리 `?shop=` 없음) 접속은 `POST /session/ensure`가 **400 E5005
+"Unknown shop domain"** 으로 거부되어 세션 없이 렌더링됨 — 멀티테넌시 설계상 의도된
+기존 동작(embed 로더는 항상 `shop`을 전달). 오늘 변경과 무관.
