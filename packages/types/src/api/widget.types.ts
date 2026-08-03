@@ -83,6 +83,8 @@ export interface ChatTurnResponse {
     senderType: string;
     body: string;
     citations?: ChatCitation[];
+    /** RAG grounding confidence — surfaced for the admin preview diagnostics. */
+    confidence?: number;
   } | null;
   escalate: boolean;
   needsAuth: boolean;

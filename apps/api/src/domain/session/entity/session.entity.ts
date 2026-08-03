@@ -11,6 +11,13 @@ export class Session {
   @Column({ name: 'session_token', type: 'varchar', length: 128 })
   sessionToken: string;
 
+  /**
+   * Origin channel. NULL = normal widget session; 'preview' = admin console
+   * sandbox (/ai-setting) — isolated from agent alerts/queues and consent gate.
+   */
+  @Column({ type: 'varchar', length: 16, nullable: true })
+  channel: string | null;
+
   // Tenant the session belongs to (resolved at creation). Threads tenant context
   // through the chat/notification path instead of a "first tenant" lookup.
   @Column({ name: 'tenant_id', type: 'bigint', nullable: true, transformer: bigintTransformer })

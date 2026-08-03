@@ -99,6 +99,27 @@ export class SessionService {
   }
 
   /**
+   * Admin console sandbox session (PLN-AiSetting-Preview W1). Bound to the
+   * admin's own tenant with channel='preview': the chat pipeline runs for real
+   * (persona/rules/KB/moderation) but the session is exempt from the consent
+   * gate and never fans out escalation alerts or enters the agent queue.
+   * No CJM event — preview traffic must not pollute journey analytics.
+   */
+  async createPreview(tenantId: number, locale?: string): Promise<Session> {
+    return this.sessionRepo.save(
+      this.sessionRepo.create({
+        sessionToken: generateToken(),
+        tenantId,
+        channel: 'preview',
+        language: this.resolveLanguage(locale),
+        consentState: CONSENT_STATE.GRANTED,
+        customerId: null,
+        identityLevel: SESSION_IDENTITY.GUEST,
+      }),
+    );
+  }
+
+  /**
    * Display name of the session's bound customer, or null (guest, or the profile
    * has not been filled in yet). Tenant-scoped: the customer must belong to the
    * session's tenant, so a session can never surface another store's shopper.
