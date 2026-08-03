@@ -5,7 +5,7 @@
 | Doc ID | CHATWIDGET-RPT-OPSLOG-1.0.0 |
 | 작성일 | 2026-08-04 |
 | 선행 문서 | REQ (PR #85, v1.0.1) → PLN (PR #86) → 구현 (#87~#91) → TCR |
-| 상태 | **구현·테스트 완료, main 머지 완료 / 스테이징 배포 대기** |
+| 상태 | **구현·테스트·스테이징 배포 완료** (2026-08-04) / 프로덕션 미적용 |
 | 규모 | 79 파일, +4,218 / −135 |
 
 ---
@@ -21,6 +21,10 @@
 | S2 | ③ 상담원 작업로그 | **#89** | `da12aa1` | 없음 |
 | S3 | ④ 고객질문 통계 4축 | **#90** | `0298ad8` | **있음** |
 | S4 | ⑤ 지식 충돌·출처·노후 | **#91** | `1e07307` | **있음** |
+| — | TCR + RPT | #92 | `c9d1eef` | 없음 |
+| **배포 중 수정** | 백필이 `updated_at` 덮어씀 | **#93** | `50a7fb9` | SQL 수정 |
+| **배포 중 수정** | 클러스터링이 stub 벡터 수용 | **#94** | `71f4966` | 없음 |
+| **배포 중 수정** | 충돌 스캔 문서당 1요청 | **#95** | `ec3fcf9` | 없음 |
 
 5개 PR 모두 CI 게이트(`typecheck · test · build`) 통과 후 squash 머지했습니다.
 
@@ -153,56 +157,62 @@ apps/web/src/i18n/locales/{en,es,ko}/{workLog,statistics}.json
 
 | 환경 | 코드 | 마이그레이션 | 상태 |
 |---|---|---|---|
-| main | `1e07307` | — | **머지 완료** |
-| staging | 미배포 | 미적용 | **대기** |
+| main | `ec3fcf9` | — | 머지 완료 |
+| **staging** | `ec3fcf9` | **2건 적용 완료** | **배포 완료 2026-08-04** |
 | production | 미배포 | 미적용 | 대기 |
 
-### 스테이징 배포 절차 (⚠️ 순서 엄수)
+### 스테이징 배포 실적
 
-스테이징은 `DB_SYNCHRONIZE=false`이므로 **SQL을 코드보다 먼저** 적용해야 합니다. 추가 전용이라 "구코드 + 신스키마"는 안전하지만 반대는 500을 냅니다.
+| 단계 | 결과 |
+|---|---|
+| 스키마 스냅샷 | `/home/shoptalk/backup-pre-opslog-20260804-071037.sql` |
+| SQL 선적용 | `migration_question_stats.sql` · `migration_kb_provenance.sql` |
+| 스키마 검증 | `question_stats_daily`·`question_clusters`·`kb_conflicts` 생성, `messages` +2컬럼 +인덱스, `kb_documents` +8컬럼 |
+| 코드 배포 | `deploy-staging.sh`, 전 컨테이너 재생성 |
+| 부팅 | `Nest application successfully started` + `Question stats scheduled every 24h` + `Qdrant connected` |
+| 라우트 | `/analytics/questions` · `/analytics/conversations/:id` · `/knowledge/conflicts` · `/audit` **전부 401**(대조군 미존재 라우트는 404 → 실제 라우트 매칭 확인) |
+| SQL 오류 | 30분 스캔 0건 |
+| 웹 콘솔 | 200 |
 
-```bash
-# 1) 스키마 스냅샷
-ssh <staging> "docker exec ivy_mysql_staging sh -c 'mysqldump -u ivy -p\"\$MYSQL_PASSWORD\" \
-  --no-data db_ivy_talktalk messages kb_documents' > ~/backup-pre-opslog-$(date +%Y%m%d-%H%M%S).sql"
+### 백필 실적
 
-# 2) SQL 선적용 (docker cp + 파일 실행 — heredoc은 조용히 무동작, kit lesson B-4)
-ssh <staging> "cd ~/<repo> && git pull && \
-  docker cp sql/migration_question_stats.sql ivy_mysql_staging:/tmp/m1.sql && \
-  docker cp sql/migration_kb_provenance.sql   ivy_mysql_staging:/tmp/m2.sql && \
-  docker exec ivy_mysql_staging sh -c 'mysql --default-character-set=utf8mb4 -u ivy -p\"\$MYSQL_PASSWORD\" db_ivy_talktalk < /tmp/m1.sql' && \
-  docker exec ivy_mysql_staging sh -c 'mysql --default-character-set=utf8mb4 -u ivy -p\"\$MYSQL_PASSWORD\" db_ivy_talktalk < /tmp/m2.sql'"
+| 항목 | 결과 |
+|---|---|
+| 통계 백필 | 2026-07-01 ~ 08-03, **141 질문 → 450 스냅샷 행** |
+| 축별 | document 69키/194 · category 40키/194 · keyword 266키/469 · cluster 76키/141 |
+| 클러스터 | 40개 그룹, 141 멤버, **누락 일자 0** |
+| 충돌 스캔 | 229 문서 → 후보 121쌍 → 판정 36건 → **상충 1 · 중복 28 · 보완 7** |
 
-# 3) 코드 배포
-ssh <staging> "cd ~/<repo> && bash docker/staging/deploy-staging.sh"
+검출된 상충 1건은 실제로 유효합니다 — "Shipping & Delivery"가 표준 배송 3~5영업일이라고 하는 반면 "2.1.2 Estimated Delivery"는 발송 후 기준을 달리 서술합니다. 중복 28건은 초기 시드 FAQ와 정책 문서 임포트가 겹친 것으로 보입니다.
 
-# 4) 검증 — 종료코드만 믿지 않습니다
-ssh <staging> "docker logs ivy_api_staging --tail 60 2>&1 | grep -iE 'successfully started|Question stats scheduled|error'"
-ssh <staging> "docker ps --format 'table {{.Names}}\t{{.Status}}'"     # 컨테이너 age = 재빌드 여부
-curl -s -o /dev/null -w '%{http_code}' https://shoptalk.amoeba.site/api/v1/analytics/questions
-# 401 = 배포됨 / 404 = 미배포 / 502 = API 다운
-ssh <staging> "docker logs ivy_api_staging --since=5m 2>&1 | grep -iE \"doesn't exist|Unknown column\""
-```
-
-### 배포 후 1회 백필
-
-통계는 스냅샷 기반이라 배포 직후에는 비어 있습니다. 마스터 계정으로 과거 구간을 소급 집계해야 화면에 추이가 나타납니다.
-
-```
-POST /api/v1/analytics/questions/aggregate?date=YYYY-MM-DD   (TENANT_SETTINGS_MANAGE)
-```
-멱등이므로 반복 실행해도 중복되지 않습니다. 이후는 매 24시간 스케줄러가 전일을 자동 집계합니다.
-
-지식 충돌은 `POST /api/v1/knowledge/conflicts/scan`으로 1회 수동 스캔합니다(문서 236건 기준 Qdrant 236회 + 후보 쌍에 한한 모델 호출).
+> ⚠️ **충돌 스캔은 1회 실행당 판정 40건 상한**입니다. 후보 121쌍 중 36건만 판정됐으므로, 나머지를 소진하려면 **스캔을 몇 차례 더 실행**해야 합니다.
 
 ---
 
-## 8. 남은 작업
+## 8. 배포 중 발견해 고친 결함
+
+배포는 계획대로 진행됐지만, **실제 데이터에 닿고 나서야 드러난 결함이 3건** 있었습니다. 전부 배포 과정에서 수정·재배포했습니다.
+
+| # | 결함 | 영향 | 수정 |
+|---|---|---|---|
+| D1 | **백필이 모든 문서의 `updated_at`을 덮어씀** | `kb_documents.updated_at`은 `ON UPDATE CURRENT_TIMESTAMP`라, `created_at`을 시드하는 UPDATE가 230건 전부를 "마이그레이션 시각에 편집됨"으로 만듦 — **노후 판정이 읽는 신호를 지움** | `updated_at`을 자기 값에 명시 대입해 자동 갱신 억제 (#93). `created_at`이 이전 값을 보존하고 있어 230건 전부 정확히 복구 |
+| D2 | **클러스터링이 stub 벡터를 수용** | Voyage 429 시 게이트웨이가 stub으로 폴백하는데 이를 그대로 사용 → 실제 벡터와 공간을 공유하지 않는 **영구 죽은 클러스터** 생성 | 키 설정 상태의 stub 결과를 실패로 처리, 해당 실행의 클러스터 축만 건너뜀 (#94). 지식 색인이 이미 쓰던 가드와 동일 |
+| D3 | **충돌 스캔이 문서당 1회 요청** | 229 문서 = 229 요청. 어댑터는 단일 텍스트를 재시도하지 않으므로(라이브 채팅 정지 방지 가드) **throttle 즉시 통째로 실패** — 스캔 완료 불가 | 64건 배치로 4회 요청 (#95). 수정 후 스캔 정상 완료 |
+
+**세 결함 모두 로컬 테스트로는 드러나지 않았습니다.** D1은 scratch DB 검증이 `created_at` 시드만 확인하고 `updated_at` 보존은 확인하지 않아 통과했고, D2·D3은 로컬이 stub 어댑터라 rate limit 자체가 발생하지 않습니다.
+
+각 수정에 회귀 테스트를 추가했습니다(+6, 총 **420건**).
+
+---
+
+## 9. 남은 작업
 
 | 항목 | 성격 |
 |---|---|
-| 스테이징 배포 + 화면 클릭 검증 | 콘솔 비밀번호가 운영자 보유 — **사람 확인 필요** |
-| LLM 충돌 판정 실품질 확인 | 로컬은 stub. 실 키 환경에서 상충 판정 정확도 점검 |
+| 콘솔 화면 클릭 검증 | 비밀번호가 운영자 보유 — **사람 확인 필요** |
+| 충돌 스캔 추가 실행 | 후보 121쌍 중 36건만 판정됨(회당 40건 상한) |
+| **Voyage 결제수단 등록** | 무료 티어 rate limit이 배포 중 반복 관측됨. 프로덕션 트래픽 전 필수 |
+| 저볼륨 일자의 클러스터 축 | 질문 1건인 날은 단일 텍스트 임베딩이라 재시도 없이 실패 가능(라이브 채팅 보호 가드와의 상호작용) |
 | A3 한국어 키워드 품질 | 2-gram 기준. 실 트래픽 축적 후 형태소 분석기 도입 여부 판단 |
 | 문서 검토주기 기본값 일괄 설정 | 정책 문서 236건에 카테고리별 기본 주기 부여 검토 |
 | B7 대화 이관 기능 | 별도 요구사항으로 분리됨 |
