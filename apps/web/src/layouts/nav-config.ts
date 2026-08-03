@@ -2,6 +2,7 @@ import {
   LayoutDashboard,
   MessagesSquare,
   History,
+  ClipboardList,
   Bot,
   BookOpen,
   Users,
@@ -28,6 +29,8 @@ export const TENANT_NAV: NavItem[] = [
   { to: '/dashboard', labelKey: 'dashboard', icon: LayoutDashboard, capability: 'dashboard' },
   { to: '/live-chat', labelKey: 'liveChat', icon: MessagesSquare, capability: 'live_chat' },
   { to: '/history', labelKey: 'history', icon: History, capability: 'history' },
+  // Audit-backed agent activity — same holders as TENANT_AUDIT_READ.
+  { to: '/work-log', labelKey: 'workLog', icon: ClipboardList, capability: 'work_log' },
   { to: '/ai-setting', labelKey: 'aiSettings', icon: Bot, capability: 'ai_settings' },
   { to: '/knowledge', labelKey: 'knowledge', icon: BookOpen, capability: 'knowledge' },
   { to: '/customers', labelKey: 'customers', icon: Users, capability: 'customers' },

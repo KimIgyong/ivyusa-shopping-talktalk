@@ -1,0 +1,24 @@
+{
+  "title": "상담원 작업로그",
+  "subtitle": "상담원별 수행 내역을 시간순으로 조회합니다",
+  "time": "시각",
+  "agent": "상담원",
+  "action": "행위",
+  "target": "대상",
+  "result": "결과",
+  "success": "성공",
+  "allActions": "전체 행위",
+  "from": "시작일",
+  "to": "종료일",
+  "empty": "해당 기간에 활동이 없습니다.",
+  "notice": "이 로그는 업무 추적용이며 인사평가 자료로 사용되지 않습니다.",
+  "actions": {
+    "agent.conversation_accepted": "대화 수락",
+    "agent.message_sent": "답변 전송",
+    "agent.customer_linked": "고객 연결",
+    "agent.customer_created": "고객 생성",
+    "agent.conversation_ended": "대화 종료",
+    "agent.conversation_viewed": "대화 열람(PII)",
+    "agent.transcript_viewed": "대화 원문 열람(PII)"
+  }
+}

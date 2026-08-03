@@ -13,6 +13,7 @@ import { AdminLoginPage } from '@/domain/auth/AdminLoginPage';
 const DashboardPage = lazy(() => import('@/domain/dashboard/DashboardPage').then((m) => ({ default: m.DashboardPage })));
 const LiveChatPage = lazy(() => import('@/domain/live-chat/LiveChatPage').then((m) => ({ default: m.LiveChatPage })));
 const HistoryPage = lazy(() => import('@/domain/history/HistoryPage').then((m) => ({ default: m.HistoryPage })));
+const WorkLogPage = lazy(() => import('@/domain/work-log/WorkLogPage').then((m) => ({ default: m.WorkLogPage })));
 const AiSettingsPage = lazy(() => import('@/domain/ai-settings/AiSettingsPage').then((m) => ({ default: m.AiSettingsPage })));
 const KnowledgePage = lazy(() => import('@/domain/knowledge/KnowledgePage').then((m) => ({ default: m.KnowledgePage })));
 const CustomersPage = lazy(() => import('@/domain/customers/CustomersPage').then((m) => ({ default: m.CustomersPage })));
@@ -54,6 +55,7 @@ const router = createBrowserRouter([
       { path: '/dashboard', element: <DashboardPage /> },
       { path: '/live-chat', element: <LiveChatPage /> },
       { path: '/history', element: <HistoryPage /> },
+      { path: '/work-log', element: <WorkLogPage /> },
       { path: '/ai-setting', element: <AiSettingsPage /> },
       { path: '/knowledge', element: <KnowledgePage /> },
       { path: '/customers', element: <CustomersPage /> },
