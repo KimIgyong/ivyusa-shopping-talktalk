@@ -6,6 +6,7 @@ process.env.CRED_ENC_KEY = randomBytes(32).toString('base64');
 import { CustomerService } from './customer.service';
 import { Customer } from './entity/customer.entity';
 import { OrderCache } from '../order/entity/order-cache.entity';
+import { ErasureSuppressionService } from '../privacy/erasure-suppression.service';
 
 /**
  * Regression for FIX-Customer-Duplicate-ShopifyId-20260803: the app-proxy
@@ -42,7 +43,10 @@ describe('CustomerService.findOrCreateByEmail (duplicate prevention)', () => {
   beforeEach(() => {
     rows = [];
     customerRepo = makeRepo();
-    svc = new CustomerService(customerRepo, {} as Repository<OrderCache>);
+    // Suppression stub: these tests cover dedup, not erasure — nothing suppressed.
+    svc = new CustomerService(customerRepo, {} as Repository<OrderCache>, {
+      isSuppressed: async () => false,
+    } as unknown as ErasureSuppressionService);
   });
 
   it('adopts the email-less proxy-created row instead of creating a duplicate', async () => {
