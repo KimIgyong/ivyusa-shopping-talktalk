@@ -14,7 +14,8 @@
  * Usage (Shopify theme / app-embed block):
  *   <script>window.IVY_WIDGET_CONFIG = {
  *     shop: "your-store.myshopify.com", locale: "en",
- *     widgetUrl: "https://widget.ivyusa.app" };</script>
+ *     widgetUrl: "https://widget.ivyusa.app",
+ *     ga4Id: "G-XXXXXXXXXX" };</script>
  *   <script src="https://widget.ivyusa.app/embed.js" defer></script>
  */
 (function () {
@@ -74,6 +75,28 @@
   })();
   var locale = String(cfg.locale || document.documentElement.lang || 'en').slice(0, 2);
 
+  // ---- Traffic-source capture (UTM + referrer + landing) ---------------------
+  // Read from the STORE page URL (the widget iframe can't see it) and forward on
+  // the iframe src so the widget attributes analytics to the real source.
+  function captureAttribution() {
+    var out = [];
+    try {
+      var qs = new URLSearchParams(window.location.search);
+      var keys = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'];
+      for (var i = 0; i < keys.length; i++) {
+        var v = qs.get(keys[i]);
+        if (v) out.push(keys[i] + '=' + encodeURIComponent(v.slice(0, 200)));
+      }
+      if (document.referrer) out.push('ivy_ref=' + encodeURIComponent(document.referrer.slice(0, 300)));
+      out.push('ivy_land=' + encodeURIComponent(String(window.location.href).slice(0, 300)));
+    } catch (_) {
+      /* URL API unavailable — attribution is best-effort */
+    }
+    return out.join('&');
+  }
+  var attribution = captureAttribution();
+  var ga4Id = cfg.ga4Id && /^G-[A-Z0-9]+$/i.test(cfg.ga4Id) ? cfg.ga4Id : '';
+
   // Shopify App Proxy subpath on the store (Partner dashboard → App setup → App
   // proxy). A storefront-relative fetch to it is signed by Shopify and carries a
   // verified logged_in_customer_id, letting the backend hand us a customer-bound
@@ -109,7 +132,9 @@
     '/?embed=1&shop=' +
     encodeURIComponent(shop) +
     '&locale=' +
-    encodeURIComponent(locale);
+    encodeURIComponent(locale) +
+    (ga4Id ? '&ga4=' + encodeURIComponent(ga4Id) : '') +
+    (attribution ? '&' + attribution : '');
 
   var s = frame.style;
   s.position = 'fixed';

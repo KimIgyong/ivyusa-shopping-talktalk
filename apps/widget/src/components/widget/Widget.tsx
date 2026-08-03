@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { MessageCircle, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useWidgetStore } from '../../store/widgetStore';
@@ -6,6 +6,8 @@ import { useEnsureSession } from '../../hooks/useSession';
 import { useEmbedIdentity } from '../../hooks/useEmbedIdentity';
 import { useSessionProfile } from '../../hooks/useSessionProfile';
 import { useUnreadCount } from '../../hooks/useNotifications';
+import { usePurchaseSignal } from '../../hooks/usePurchaseSignal';
+import { useAnalytics } from '../../lib/analytics';
 import { WidgetPanel } from './WidgetPanel';
 import { ErrorBoundary } from '../ui/ErrorBoundary';
 
@@ -20,6 +22,7 @@ export function Widget() {
   const authenticated = useWidgetStore((s) => s.authenticated);
   const { data } = useUnreadCount(sessionToken, authenticated);
   const unread = data?.count ?? 0;
+  const prevOpen = useRef(panelOpen);
 
   // When embedded in a storefront iframe, tell the embed.js loader to grow/shrink
   // the frame as the panel opens/closes. targetOrigin '*' is safe here — the payload
@@ -28,7 +31,13 @@ export function Widget() {
     if (window.parent !== window) {
       window.parent.postMessage({ type: 'ivy:resize', open: panelOpen }, '*');
     }
-  }, [panelOpen]);
+    // Engagement funnel: fire open/close only on an actual transition.
+    if (panelOpen !== prevOpen.current) {
+      if (panelOpen) analytics.widgetOpen();
+      else analytics.widgetClose();
+      prevOpen.current = panelOpen;
+    }
+  }, [panelOpen, analytics]);
 
   return (
     <>

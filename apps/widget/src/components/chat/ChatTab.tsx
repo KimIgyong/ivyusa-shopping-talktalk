@@ -4,9 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { useWidgetStore } from '../../store/widgetStore';
 import { useChat } from '../../hooks/useChat';
 import { useScenario } from '../../hooks/useScenario';
-import { getShopDomain } from '../../hooks/useSession';
-import { ensureSession, setConsent } from '../../services/sessionService';
-import { getStoredConsent, setStoredConsent } from '../../lib/consent';
+import { setConsent } from '../../services/sessionService';
+import { useAnalytics } from '../../lib/analytics';
 import type { ScenarioButton } from '../../lib/types';
 import { MessageBubble } from './MessageBubble';
 import { ConsentBanner } from './ConsentBanner';
@@ -31,15 +30,14 @@ export function ChatTab() {
   const language = useWidgetStore((s) => s.language);
   const pendingChatMessage = useWidgetStore((s) => s.pendingChatMessage);
   const consumeChatMessage = useWidgetStore((s) => s.consumeChatMessage);
+  // CCPA notice choice — shared store state; also gates GA4 (Consent Mode).
+  const consentChoice = useWidgetStore((s) => s.consent);
+  const setConsentChoice = useWidgetStore((s) => s.setConsent);
+  const analytics = useAnalytics();
 
   const { messages, send, scenario, sending, escalate } = useChat(sessionToken);
   const scenarioButtons = useScenario(sessionToken);
 
-  // CCPA notice choice — local cache only used until session/ensure reports the
-  // server-side state (the server is the source of truth; see showConsentBanner).
-  const [consentChoice, setConsentChoice] = useState<'granted' | 'denied' | null>(
-    () => getStoredConsent(),
-  );
   const [input, setInput] = useState('');
   const [inline, setInline] = useState<Inline>(null);
   const [showEscalate, setShowEscalate] = useState(false);
@@ -52,37 +50,14 @@ export function ChatTab() {
     });
   }, [messages, inline, showEscalate]);
 
-  /**
-   * Fail-closed consent recording: nothing is persisted (localStorage, store,
-   * banner) until the server acknowledged the choice. Errors propagate to the
-   * ConsentBanner, which keeps itself open and offers a retry.
-   */
-  async function recordConsent(granted: boolean): Promise<void> {
-    let token = sessionToken;
-    if (!token) {
-      // Session may not exist yet (e.g. first ensure failed) — establish one.
-      const res = await ensureSession(null, language, getShopDomain());
-      token = res.sessionToken;
-      setSessionToken(token);
-    }
-    const result = await setConsent(token, granted);
-    setStoredConsent(granted);
-    setConsentChoice(granted ? 'granted' : 'denied');
-    updateConsentState(
-      granted ? 'granted' : 'declined',
-      new Date().toISOString(),
-      result.consentVersion,
-    );
+  function recordConsent(granted: boolean) {
+    setConsentChoice(granted); // persists + updates shared store (drives GA4 consent)
+    if (sessionToken) setConsent(sessionToken, granted).catch(() => {});
   }
 
-  // Server is the source of truth once session/ensure reported: pending or an
-  // outdated notice version re-prompts regardless of the local cache. Before
-  // the first ensure resolves (or offline), fall back to the local choice.
-  const showConsentBanner = consent
-    ? consent.state === 'pending' || consent.noticeOutdated
-    : consentChoice === null;
-
-  async function doSend(text: string) {
+  async function doSend(text: string, via: 'input' | 'scenario' | 'quick_reply' = 'input') {
+    analytics.chatStart();
+    analytics.messageSent(via);
     const res = await send(text);
     setShowEscalate(res.escalate);
     if (res.needsAuth && !authenticated) setInline('auth');
@@ -97,6 +72,7 @@ export function ChatTab() {
   }, [pendingChatMessage, sessionToken]);
 
   function handleScenario(button: ScenarioButton) {
+    analytics.scenarioClick(button.action, button.label);
     switch (button.action) {
       case 'delivery_status':
         // Scripted shipping scenario (FR-S1); order tracking via follow-up chip.
@@ -144,6 +120,7 @@ export function ChatTab() {
     switch (id) {
       case 'agent_connect':
         setShowEscalate(false);
+        analytics.escalate();
         void escalate();
         return;
       case 'my_orders':

@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useWidgetStore } from '../../store/widgetStore';
 import { isAuthError } from '../../lib/errors';
 import { useOrder, useTracking } from '../../hooks/useOrders';
+import { useAnalytics } from '../../lib/analytics';
 import { Badge, toneForStatus } from '../ui/Badge';
 import { Spinner } from '../ui/Spinner';
 import { formatMoney } from '../../lib/format';
@@ -132,7 +133,11 @@ export function OrderDetailView({
           pushed below the fold by the item list. */}
       <div className="sticky bottom-0 -mx-3 flex gap-2 border-t border-gray-100 bg-white px-3 pb-1 pt-2">
         <button
-          onClick={() => setShowTrack((v) => !v)}
+          onClick={() => {
+            const next = !showTrack;
+            setShowTrack(next);
+            if (next) analytics.trackingView(orderId);
+          }}
           className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
         >
           <Truck className="h-4 w-4" />

@@ -3,6 +3,19 @@ import { setStoredSessionToken } from '../lib/api-client';
 import type { ConsentState } from '../lib/types';
 
 export type TabKey = 'notifications' | 'chat' | 'orders';
+export type ConsentChoice = 'granted' | 'denied' | null;
+
+/** Persisted privacy/analytics consent choice (shared by chat + analytics). */
+const CONSENT_KEY = 'ivy_consent';
+
+function readStoredConsent(): ConsentChoice {
+  try {
+    const v = localStorage.getItem(CONSENT_KEY);
+    return v === 'granted' ? 'granted' : v === 'denied' ? 'denied' : null;
+  } catch {
+    return null;
+  }
+}
 
 /** Server-confirmed consent snapshot (from session/ensure — source of truth). */
 export interface ConsentInfo {
@@ -31,8 +44,8 @@ interface WidgetState {
    */
   embedIdentity: 'pending' | 'verified' | 'anonymous';
   language: string;
-  /** Null until session/ensure has reported the server-side consent state. */
-  consent: ConsentInfo | null;
+  /** Privacy/analytics consent — gates chat persistence AND GA4 (Consent Mode). */
+  consent: ConsentChoice;
   /** A message queued from another tab to be auto-sent when Chat opens. */
   pendingChatMessage: string | null;
   setSessionToken: (t: string | null) => void;
@@ -45,13 +58,7 @@ interface WidgetState {
   setCustomerName: (n: string | null) => void;
   setEmbedIdentity: (v: 'pending' | 'verified' | 'anonymous') => void;
   setLanguage: (l: string) => void;
-  setConsentInfo: (c: ConsentInfo | null) => void;
-  /** Record a fresh, server-acknowledged consent choice (clears outdated flag). */
-  updateConsentState: (
-    state: ConsentState,
-    consentAt: string | null,
-    noticeVersion?: string,
-  ) => void;
+  setConsent: (granted: boolean) => void;
   queueChatMessage: (m: string) => void;
   consumeChatMessage: () => string | null;
 }
@@ -71,7 +78,7 @@ export const useWidgetStore = create<WidgetState>()((set, get) => ({
   customerName: null,
   embedIdentity: 'pending',
   language: 'en',
-  consent: null,
+  consent: readStoredConsent(),
   pendingChatMessage: null,
   setSessionToken: (t) => {
     setStoredSessionToken(t);
@@ -86,18 +93,14 @@ export const useWidgetStore = create<WidgetState>()((set, get) => ({
   setCustomerName: (n) => set({ customerName: n }),
   setEmbedIdentity: (v) => set({ embedIdentity: v }),
   setLanguage: (l) => set({ language: l }),
-  setConsentInfo: (c) => set({ consent: c }),
-  updateConsentState: (state, consentAt, noticeVersion) =>
-    set((s) => ({
-      consent: {
-        state,
-        consentAt,
-        noticeVersion: noticeVersion ?? s.consent?.noticeVersion ?? null,
-        privacyPolicyUrl: s.consent?.privacyPolicyUrl ?? null,
-        // A just-recorded choice is always against the current notice version.
-        noticeOutdated: false,
-      },
-    })),
+  setConsent: (granted) => {
+    try {
+      localStorage.setItem(CONSENT_KEY, granted ? 'granted' : 'denied');
+    } catch {
+      /* storage unavailable — consent still held in memory for this session */
+    }
+    set({ consent: granted ? 'granted' : 'denied' });
+  },
   queueChatMessage: (m) => set({ pendingChatMessage: m, activeTab: 'chat' }),
   consumeChatMessage: () => {
     const m = get().pendingChatMessage;

@@ -48,6 +48,7 @@ export function AuthGate({
     setLoading(true);
     try {
       await guestLookup(sessionToken, orderNumber.trim(), email.trim());
+      analytics.orderSearch(true);
       onSuccess();
     } catch (e) {
       // Backend messages are English by design (the client localizes by code), so
