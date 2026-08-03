@@ -3,6 +3,7 @@ import {
   MessagesSquare,
   History,
   ClipboardList,
+  BarChart3,
   Bot,
   BookOpen,
   Users,
@@ -31,6 +32,7 @@ export const TENANT_NAV: NavItem[] = [
   { to: '/history', labelKey: 'history', icon: History, capability: 'history' },
   // Audit-backed agent activity — same holders as TENANT_AUDIT_READ.
   { to: '/work-log', labelKey: 'workLog', icon: ClipboardList, capability: 'work_log' },
+  { to: '/statistics', labelKey: 'statistics', icon: BarChart3, capability: 'statistics' },
   { to: '/ai-setting', labelKey: 'aiSettings', icon: Bot, capability: 'ai_settings' },
   { to: '/knowledge', labelKey: 'knowledge', icon: BookOpen, capability: 'knowledge' },
   { to: '/customers', labelKey: 'customers', icon: Users, capability: 'customers' },

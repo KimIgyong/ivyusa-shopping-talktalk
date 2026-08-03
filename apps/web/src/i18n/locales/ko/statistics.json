@@ -1,0 +1,30 @@
+{
+  "title": "고객질문 통계",
+  "subtitle": "고객이 무엇을 묻고, 얼마나 잘 답변되는지 확인합니다",
+  "from": "시작일",
+  "to": "종료일",
+  "tab": {
+    "intent": "의도",
+    "document": "사용된 지식",
+    "keyword": "키워드",
+    "cluster": "유사질문 그룹"
+  },
+  "dimension": {
+    "intent": "의도",
+    "category": "카테고리",
+    "document": "문서",
+    "keyword": "키워드",
+    "cluster": "질문 그룹"
+  },
+  "asked": "건수",
+  "share": "비중",
+  "escalationRate": "이관율",
+  "noSource": "근거 없음",
+  "avgConfidence": "평균 신뢰도",
+  "trendTitle": "질문 추이",
+  "noTrend": "해당 기간에 데이터가 없습니다.",
+  "trendAria": "{{count}}일간 질문 추이",
+  "empty": "해당 기간에 기록된 질문이 없습니다.",
+  "attentionHint": "표시된 항목은 이관율이 높거나 신뢰도가 낮습니다 — 지식 보강을 먼저 해야 할 주제입니다.",
+  "snapshotNote": "수치는 일별 스냅샷 기준이므로 대화 로그가 삭제된 이후에도 유지됩니다."
+}
