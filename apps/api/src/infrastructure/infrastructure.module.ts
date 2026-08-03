@@ -18,7 +18,6 @@ export class InfrastructureModule {}
 export const EVENTS = {
   CJM: 'cjm.event',
   NOTIFICATION: 'notification.event',
-  CONVERSATION_LOG: 'conversation.log',
   WEBHOOK_FULFILLMENT: 'webhook.fulfillment',
   CAMPAIGN_DISPATCH: 'campaign.dispatch',
   ESCALATION: 'escalation.requested',

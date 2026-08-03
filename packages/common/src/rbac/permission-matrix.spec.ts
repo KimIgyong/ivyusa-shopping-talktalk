@@ -72,6 +72,21 @@ describe('permission-matrix — userCan', () => {
     ).toBe(false);
   });
 
+  it('both admin levels can read the audit trail (regression: nobody could)', () => {
+    // The audit console lives on the system-admin route but GET /audit is
+    // guarded by the tenant capability. Admins held only PLATFORM_AUDIT_READ,
+    // so every request 403'd while the tenant users who did hold
+    // TENANT_AUDIT_READ had no route to the page — the log was unreadable.
+    for (const level of [ADMIN_LEVEL.SUPER_ADMIN, ADMIN_LEVEL.ADMIN]) {
+      expect(adminCan(level, CAPABILITY.PLATFORM_AUDIT_READ)).toBe(true);
+      expect(adminCan(level, CAPABILITY.TENANT_AUDIT_READ)).toBe(true);
+    }
+    // Tenant side is unchanged: master/director yes, manager no.
+    expect(userCan(USER_RANK.MASTER, [], CAPABILITY.TENANT_AUDIT_READ)).toBe(true);
+    expect(userCan(USER_RANK.DIRECTOR, [], CAPABILITY.TENANT_AUDIT_READ)).toBe(true);
+    expect(userCan(USER_RANK.MANAGER, [], CAPABILITY.TENANT_AUDIT_READ)).toBe(false);
+  });
+
   it('deny-by-default for an unknown capability', () => {
     expect(userCan(USER_RANK.MASTER, [], 'totally.unknown' as never)).toBe(false);
     expect(adminCan(ADMIN_LEVEL.SUPER_ADMIN, 'totally.unknown' as never)).toBe(false);

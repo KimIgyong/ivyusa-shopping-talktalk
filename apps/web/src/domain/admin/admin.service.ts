@@ -45,10 +45,14 @@ interface BackendEngine {
 
 export interface AuditEntry {
   id: string;
-  actor?: string;
+  /** Resolved display name (staff name/email, admin email, or 'system'). */
+  actorName?: string | null;
+  actorType?: string;
+  actorId?: string;
   action: string;
   target?: string;
   ip?: string;
+  result?: string;
   createdAt?: string;
 }
 

@@ -216,6 +216,9 @@ export class ScenarioService {
 
     await this.msgRepo.save(
       this.msgRepo.create({
+        // Explicit tenant stamp — see ChatService.persist for why we don't rely
+        // on TenantSubscriber's request-context auto-stamp alone.
+        tenantId: session.tenantId ?? null,
         conversationId: conversation.id,
         senderType: SENDER_TYPE.USER,
         body: script.utterance,
@@ -258,6 +261,7 @@ export class ScenarioService {
 
     await this.msgRepo.save(
       this.msgRepo.create({
+        tenantId: session.tenantId ?? null,
         conversationId: conversation.id,
         senderType: SENDER_TYPE.AI,
         body,

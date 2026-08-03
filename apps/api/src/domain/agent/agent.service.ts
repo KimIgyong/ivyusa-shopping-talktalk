@@ -248,6 +248,8 @@ export class AgentService {
     }
     const saved = await this.msgRepo.save(
       this.msgRepo.create({
+        // Explicit tenant stamp — see ChatService.persist.
+        tenantId,
         conversationId,
         senderType: SENDER_TYPE.AGENT,
         senderId: agentId,

@@ -221,8 +221,7 @@ export class ChatService {
     const tenantId = session.tenantId ?? (await this.resolveTenantId());
     const conversation = await this.getOrCreateConversation(session.id);
 
-    await this.persist(conversation.id, SENDER_TYPE.USER, text, session.language);
-    await this.bus.publish(EVENTS.CONVERSATION_LOG, { conversationId: conversation.id, senderType: 'user' });
+    await this.persist(tenantId, conversation.id, SENDER_TYPE.USER, text, session.language);
     await this.bus.publish(EVENTS.CJM, {
       tenantId,
       sessionId: session.id,
@@ -255,7 +254,7 @@ export class ChatService {
     const intent = await this.rag.classifyIntent(tenantId, egressText);
     if (intent.needsOrderData && session.customerId == null) {
       const body = sysMsg('authRequired', session.language);
-      await this.persist(conversation.id, SENDER_TYPE.SYSTEM, body, session.language);
+      await this.persist(tenantId, conversation.id, SENDER_TYPE.SYSTEM, body, session.language);
       return { conversationId: String(conversation.id), reply: { senderType: 'system', body }, escalate: false, needsAuth: true };
     }
 
@@ -295,11 +294,10 @@ export class ChatService {
       return { conversationId: String(conversation.id), reply: { senderType: 'system', body }, escalate: true, needsAuth: false };
     }
 
-    await this.persist(conversation.id, SENDER_TYPE.AI, moderated.text, session.language, {
+    await this.persist(tenantId, conversation.id, SENDER_TYPE.AI, moderated.text, session.language, {
       citations: answer.citations,
       confidence: answer.confidence,
     });
-    await this.bus.publish(EVENTS.CONVERSATION_LOG, { conversationId: conversation.id, senderType: 'ai' });
 
     return {
       conversationId: String(conversation.id),
@@ -332,7 +330,7 @@ export class ChatService {
     // told to expect an email reply instead of a live agent (PLN-AiSetting W3).
     const route = await this.handoffRouter.route(tenantId, session.language);
     const body = route.mode === 'email' && route.notice ? route.notice : sysMsg('handoff', session.language);
-    await this.persist(conversationId, SENDER_TYPE.SYSTEM, body, session.language, { reason });
+    await this.persist(tenantId, conversationId, SENDER_TYPE.SYSTEM, body, session.language, { reason });
     // Preview sandbox: show the real handoff notice but never page the agents —
     // no WAITING flip (the bot keeps answering for iterative testing), no alert
     // fan-out, no console-queue entry.
@@ -375,7 +373,7 @@ export class ChatService {
     // off-hours notice — the conversation poll shows it to the customer.
     const route = await this.handoffRouter.route(tenantId, session.language);
     if (route.mode === 'email' && route.notice) {
-      await this.persist(conversationId, SENDER_TYPE.SYSTEM, route.notice, session.language, {
+      await this.persist(tenantId, conversationId, SENDER_TYPE.SYSTEM, route.notice, session.language, {
         reason: 'user_request',
       });
     }
@@ -433,7 +431,15 @@ export class ChatService {
     }
   }
 
+  /**
+   * `tenantId` is passed explicitly rather than left to `TenantSubscriber`'s
+   * auto-stamp: the subscriber only fires inside a request's tenant context, so
+   * a write from an event consumer — or a widget request whose session token
+   * failed to resolve while more than one tenant exists — would land a row with
+   * a null tenant_id and silently drop out of every tenant-scoped statistic.
+   */
   private async persist(
+    tenantId: number | null,
     conversationId: number,
     senderType: string,
     body: string,
@@ -441,7 +447,7 @@ export class ChatService {
     trace?: unknown,
   ): Promise<Message> {
     return this.msgRepo.save(
-      this.msgRepo.create({ conversationId, senderType, body, lang, retrievalTrace: trace ?? null }),
+      this.msgRepo.create({ tenantId, conversationId, senderType, body, lang, retrievalTrace: trace ?? null }),
     );
   }
 
