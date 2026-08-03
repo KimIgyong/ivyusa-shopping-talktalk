@@ -16,6 +16,8 @@
  * Nullability below is what the entities actually allow, not what is convenient.
  */
 
+import type { WidgetLoginMode } from '../common/enum.types';
+
 // ---- session -------------------------------------------------------------
 export interface SessionResponse {
   sessionToken: string;
@@ -32,6 +34,8 @@ export interface SessionResponse {
   noticeOutdated: boolean;
   /** When the consent choice was recorded (ISO 8601), null when never recorded. */
   consentAt: string | null;
+  /** How the widget's "Sign in" opens the storefront login (tenant console setting). */
+  widgetLoginMode: WidgetLoginMode;
 }
 
 // ---- chat ---------------------------------------------------------------

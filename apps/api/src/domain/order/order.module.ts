@@ -41,6 +41,6 @@ import { IntegrationModule } from '../integration/integration.module';
     ShopifyWebhookService,
     ScheduledShopifySyncService,
   ],
-  exports: [OrderService],
+  exports: [OrderService, ShopifySyncService],
 })
 export class OrderModule {}

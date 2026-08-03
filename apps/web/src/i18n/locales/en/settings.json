@@ -33,6 +33,17 @@
     "saved": "Privacy notice settings saved.",
     "saveError": "Failed to save privacy notice settings."
   },
+  "widgetBehavior": {
+    "title": "Widget behavior",
+    "desc": "How the chat widget behaves on your storefront.",
+    "loginMode": "Customer sign-in opens as",
+    "redirect": "Full page (recommended)",
+    "popup": "Popup window",
+    "redirectHint": "Clicking \"Sign in\" takes the shopper to the store's login page in the same tab; after signing in they return and the widget reopens on their orders.",
+    "popupHint": "Clicking \"Sign in\" opens the store's login page in a popup window. Popup blockers may interfere; if the login stays on shopify.com the shopper must close the popup manually.",
+    "saved": "Widget settings saved.",
+    "saveError": "Failed to save widget settings."
+  },
   "shopify": {
     "title": "Shopify connection",
     "subtitle": "The shop address and API token that bind this widget to your Shopify store.",

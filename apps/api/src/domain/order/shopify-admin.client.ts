@@ -56,6 +56,8 @@ export interface FetchOrdersOptions {
   limit?: number;
   /** Incremental cursor — only orders updated at/after this instant (PERF-5). */
   updatedAtMin?: string;
+  /** Only this customer's orders (Shopify legacy numeric id) — login backfill. */
+  customerId?: string;
   /** Opaque cursor from a previous page; excludes other filters (they ride inside). */
   pageInfo?: string;
 }
@@ -197,7 +199,10 @@ export class ShopifyAdminClient {
   ): Promise<FetchOrdersPage> {
     const limit = opts.limit ?? 50;
     let after: string | null = null;
-    let query: string | null = opts.updatedAtMin ? `updated_at:>='${opts.updatedAtMin}'` : null;
+    const clauses: string[] = [];
+    if (opts.updatedAtMin) clauses.push(`updated_at:>='${opts.updatedAtMin}'`);
+    if (opts.customerId) clauses.push(`customer_id:${opts.customerId.replace(/\D/g, '')}`);
+    let query: string | null = clauses.length ? clauses.join(' ') : null;
     if (opts.pageInfo) {
       const cursor = this.decodeCursor(opts.pageInfo);
       after = cursor.after;

@@ -50,6 +50,18 @@ export function OrdersTab() {
     if (authLost) setAuthenticated(false);
   }, [authLost, setAuthenticated]);
 
+  // Just back from a redirect sign-in (loader auto-reopened this tab) while the
+  // identity handshake is still in flight — hold a spinner rather than flashing
+  // the sign-in prompt at a shopper who signed in two seconds ago.
+  const embedIdentity = useWidgetStore((s) => s.embedIdentity);
+  if (!authenticated && embedIdentity === 'pending' && window.parent !== window) {
+    return (
+      <div className="flex h-full items-center justify-center p-4">
+        <Spinner label={t('common.loading')} />
+      </div>
+    );
+  }
+
   if (!authenticated || authLost) {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-3 p-4">

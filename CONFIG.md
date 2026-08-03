@@ -173,8 +173,8 @@ auto-renew) and reverse-proxies to the docker nginx on `:8080`.
 **Connection, SSH keys, and app credentials:** `secrets/staging-server.md` (gitignored,
 local-only — **never commit**). SSH key: `secrets/ssh/ivy_staging_ed25519`.
 
-**Shopify:** OAuth app wired to store `ambshopi.myshopify.com` (custom-app token);
-tenant #1 `shop_domain` repointed `ivyusa` → `ambshopi`. Native + GDPR webhooks
+**Shopify:** OAuth app is wired to store `ambshop-dev.myshopify.com`;
+tenant #1 `shop_domain` is set to `ambshop-dev.myshopify.com`. Native + GDPR webhooks
 HMAC-enforced; on-demand + 30-min scheduled sync verified live.
 
 ### Deploy / redeploy

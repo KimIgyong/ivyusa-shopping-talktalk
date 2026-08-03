@@ -5,11 +5,15 @@
  * theme. The iframe URL carries ?shop (tenant resolution) and ?locale; the widget
  * posts `ivy:resize` messages so this loader can grow/shrink the frame.
  *
- * It also brokers the Shopify customer sign-in popup: the sandboxed widget asks
- * (`ivy:login`), this loader opens the store's own login page in a popup, and
- * when that popup lands back on a storefront page (where this same script runs)
- * it reports completion so the loader re-resolves identity and hands the widget a
- * customer-bound session token — no separate account system, just the store's.
+ * It also brokers Shopify customer sign-in: the sandboxed widget asks
+ * (`ivy:login`, carrying the tenant-configured mode). In `redirect` mode (the
+ * default) this loader navigates the whole tab to the store's own login page and
+ * leaves a one-shot reopen flag so the widget reopens on the orders tab when the
+ * shopper returns. In `popup` mode it opens the login in a popup instead; when
+ * that popup lands back on a storefront page (where this same script runs) it
+ * reports completion so the loader re-resolves identity. Either way the widget
+ * ends up with a customer-bound session token — no separate account system,
+ * just the store's.
  *
  * Usage (Shopify theme / app-embed block):
  *   <script>window.IVY_WIDGET_CONFIG = {
@@ -116,6 +120,27 @@
   var CLOSED = { w: '96px', h: '96px' };
   var OPEN = { w: 'min(420px, 100vw)', h: 'min(680px, 100vh)' };
 
+  // One-shot reopen flag: set when redirect-mode sign-in navigates the tab away,
+  // consumed on the return visit so the widget reopens where the shopper left
+  // off (sessionStorage = same tab only, which is exactly the redirect round trip).
+  var REOPEN_KEY = 'ivy:reopen';
+  function setReopenFlag(tab) {
+    try {
+      sessionStorage.setItem(REOPEN_KEY, tab);
+    } catch (_) {
+      /* storage unavailable — the shopper just reopens the widget manually */
+    }
+  }
+  var reopenTab = (function () {
+    try {
+      var v = sessionStorage.getItem(REOPEN_KEY);
+      if (v) sessionStorage.removeItem(REOPEN_KEY);
+      return v === 'orders' || v === 'chat' || v === 'notifications' ? v : null;
+    } catch (_) {
+      return null;
+    }
+  })();
+
   var frame = document.createElement('iframe');
   frame.id = 'ivy-talktalk-frame';
   frame.title = 'IVY USA Support';
@@ -134,6 +159,7 @@
     '&locale=' +
     encodeURIComponent(locale) +
     (ga4Id ? '&ga4=' + encodeURIComponent(ga4Id) : '') +
+    (reopenTab ? '&reopen=' + encodeURIComponent(reopenTab) : '') +
     (attribution ? '&' + attribution : '');
 
   var s = frame.style;
@@ -221,6 +247,15 @@
     );
   }
 
+  // Redirect-mode sign-in: navigate this whole tab to the store's login page.
+  // Shopify's hosted login (New Customer Accounts) then returns the shopper to
+  // the current page (`return_to`), where the identity handshake authenticates
+  // the widget and the reopen flag brings it back up on the orders tab.
+  function redirectToLogin() {
+    setReopenFlag('orders');
+    window.location.assign(buildLoginUrl());
+  }
+
   // Open the sign-in popup and watch for its return. Called only in response to
   // an explicit ivy:login from our widget iframe (user clicked "Sign in").
   function openLoginPopup() {
@@ -295,8 +330,15 @@
       widgetReady = true;
       maybeSendIdentity();
     } else if (d.type === 'ivy:login') {
-      // Only the widget iframe may trigger the sign-in popup.
-      if (e.source === frame.contentWindow) openLoginPopup();
+      // Only the widget iframe may trigger sign-in. The widget forwards the
+      // tenant-configured mode (console setting); anything but an explicit
+      // 'popup' means redirect — the safer default (no popup blockers, and the
+      // popup return leg doesn't fire when Shopify's hosted login keeps the
+      // popup on shopify.com).
+      if (e.source === frame.contentWindow) {
+        if (d.mode === 'popup') openLoginPopup();
+        else redirectToLogin();
+      }
     } else if (d.type === 'ivy:signin') {
       // Back-compat with widgets that predate the popup flow: the sandboxed
       // iframe cannot navigate the store page itself, so do it here.

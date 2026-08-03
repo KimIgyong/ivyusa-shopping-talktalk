@@ -33,6 +33,17 @@
     "saved": "Configuración del aviso de privacidad guardada.",
     "saveError": "No se pudo guardar la configuración del aviso de privacidad."
   },
+  "widgetBehavior": {
+    "title": "Comportamiento del widget",
+    "desc": "Cómo se comporta el widget de chat en su tienda.",
+    "loginMode": "El inicio de sesión del cliente se abre como",
+    "redirect": "Página completa (recomendado)",
+    "popup": "Ventana emergente",
+    "redirectHint": "Al hacer clic en \"Iniciar sesión\", el comprador va a la página de inicio de sesión de la tienda en la misma pestaña; al volver, el widget se reabre en sus pedidos.",
+    "popupHint": "Al hacer clic en \"Iniciar sesión\" se abre la página de inicio de sesión en una ventana emergente. Los bloqueadores de ventanas emergentes pueden interferir; si el inicio de sesión permanece en shopify.com, el comprador debe cerrar la ventana manualmente.",
+    "saved": "Configuración del widget guardada.",
+    "saveError": "No se pudo guardar la configuración del widget."
+  },
   "shopify": {
     "title": "Conexión de Shopify",
     "subtitle": "La dirección de la tienda y el token de API que vinculan este widget con su tienda Shopify.",

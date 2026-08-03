@@ -31,6 +31,7 @@ import type {
 } from '@ivy/types';
 
 export type { SessionResponse };
+export type { WidgetLoginMode } from '@ivy/types';
 
 /** Narrowed for the UI's sender switch; the wire type is a plain string. */
 export type SenderType = 'user' | 'ai' | 'agent' | 'system';

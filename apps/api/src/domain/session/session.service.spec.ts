@@ -129,6 +129,7 @@ describe('SessionService consent (PLN-Privacy-Control-Gap Stage 1-2)', () => {
       await expect(svc.privacyNotice(1)).resolves.toEqual({
         privacyPolicyUrl: 'https://shop.example/privacy',
         consentNoticeVersion: 'v9',
+        widgetLoginMode: 'redirect',
       });
     });
   });

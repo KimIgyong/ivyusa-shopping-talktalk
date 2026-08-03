@@ -113,7 +113,7 @@ bash docker/staging/deploy-staging.sh        # or deploy-production.sh
 
 ## 9. Current state & production plan (현황·프로덕션 계획)
 
-**Staging — LIVE** (`main`): admin `/`, widget `/widget/`; Shopify OAuth + App Proxy + sync + webhooks verified against `ambshopi.myshopify.com`. `SEED_ON_BOOT=false`.
+**Staging — LIVE** (`main`): admin `/`, widget `/widget/`; Shopify OAuth + App Proxy + sync + webhooks verified against `ambshop-dev.myshopify.com`. `SEED_ON_BOOT=false`.
 
 ### Staging server access (접속 정보 — 패스워드 제외)
 > ⚠️ Passwords / SSH passwords / SEED_PASSWORD / Shopify secrets are **not** here — they live in

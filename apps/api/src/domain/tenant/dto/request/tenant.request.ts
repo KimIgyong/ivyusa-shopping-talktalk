@@ -9,6 +9,7 @@ import {
   MaxLength,
   MinLength,
 } from 'class-validator';
+import { WIDGET_LOGIN_MODE, WidgetLoginMode } from '@ivy/types';
 import { TENANT_SLUG_PATTERN } from '../../../../global/constant/reserved-slug.constant';
 
 /** Request DTOs — snake_case (amoeba_code_convention). */
@@ -112,4 +113,13 @@ export class UpdatePrivacyNoticeRequest {
   @Length(1, 32)
   @Matches(/^[A-Za-z0-9][A-Za-z0-9._-]*$/)
   consent_notice_version?: string | null;
+}
+
+/**
+ * Widget behavior settings (PLN-Widget-Login-Redirect-Orders): how the widget's
+ * "Sign in" opens the storefront login — whole-tab redirect (default) or popup.
+ */
+export class UpdateWidgetSettingsRequest {
+  @IsIn(Object.values(WIDGET_LOGIN_MODE))
+  login_mode: WidgetLoginMode;
 }

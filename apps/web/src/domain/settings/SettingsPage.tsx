@@ -7,12 +7,16 @@ import { Button } from '@/components/Button';
 import { Table } from '@/components/Table';
 import type { Column } from '@/components/Table';
 import { Modal } from '@/components/Modal';
-import { FormRow, Input } from '@/components/Field';
+import { FormRow, Input, Select } from '@/components/Field';
+// Type-only: @ivy/types ships CJS whose runtime exports Rollup cannot see.
+import type { WidgetLoginMode } from '@ivy/types';
 import {
   useCredentials,
   useIntegration,
+  useSaveWidgetSettings,
   useShopifySettings,
   useUpdateCredential,
+  useWidgetSettings,
 } from './settings.hooks';
 import type { CredentialStatus } from './settings.service';
 import { ECOMMERCE_PROVIDERS, type EcommerceProvider } from './integration-providers';
@@ -282,6 +286,46 @@ function EcommerceTile({
   );
 }
 
+/**
+ * Widget sign-in behavior (PLN-Widget-Login-Redirect-Orders): whole-tab redirect
+ * to the store's hosted login (default) vs a popup window. Delivered to the
+ * widget via session/ensure; takes effect on the shopper's next page load.
+ */
+function WidgetBehaviorCard() {
+  const { t } = useTranslation('settings');
+  const { t: tc } = useTranslation('common');
+  const { data, isLoading } = useWidgetSettings();
+  const save = useSaveWidgetSettings();
+  // Local pick, if any; otherwise whatever is stored (redirect until loaded).
+  const [picked, setPicked] = useState<WidgetLoginMode | null>(null);
+  const value: WidgetLoginMode = picked ?? data?.loginMode ?? 'redirect';
+  const dirty = data != null && value !== data.loginMode;
+
+  return (
+    <Card title={t('widgetBehavior.title')}>
+      <p className="mb-4 text-sm text-gray-500">{t('widgetBehavior.desc')}</p>
+      <div className="max-w-md">
+        <FormRow label={t('widgetBehavior.loginMode')}>
+          <Select
+            value={value}
+            disabled={isLoading}
+            onChange={(e) => setPicked(e.target.value as WidgetLoginMode)}
+          >
+            <option value="redirect">{t('widgetBehavior.redirect')}</option>
+            <option value="popup">{t('widgetBehavior.popup')}</option>
+          </Select>
+        </FormRow>
+        <p className="mb-4 text-xs text-gray-400">
+          {value === 'popup' ? t('widgetBehavior.popupHint') : t('widgetBehavior.redirectHint')}
+        </p>
+        <Button onClick={() => save.mutate(value)} disabled={!dirty || save.isPending}>
+          {save.isPending ? tc('saving') : tc('save')}
+        </Button>
+      </div>
+    </Card>
+  );
+}
+
 export function SettingsPage() {
   const { t } = useTranslation('settings');
   const { t: tc } = useTranslation('common');
@@ -349,6 +393,8 @@ export function SettingsPage() {
       </section>
 
       <InstallGuideCard />
+
+      <WidgetBehaviorCard />
 
       <Card title={t('integrationCredentials')}>
         <Table<CredentialStatus>
