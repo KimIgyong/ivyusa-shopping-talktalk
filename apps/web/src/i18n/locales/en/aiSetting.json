@@ -62,5 +62,18 @@
   "rephrase": "Rephrase",
   "created": "Created",
   "contextPromptLabel": "Classifier prompt",
-  "contextPromptPlaceholder": "Describe what should be flagged; an LLM will judge each message"
+  "contextPromptPlaceholder": "Describe what should be flagged; an LLM will judge each message",
+  "preview": {
+    "title": "Chat preview",
+    "newSession": "New session",
+    "hint": "Runs the real pipeline (persona, rules, knowledge, moderation) on an isolated session — agents are never alerted.",
+    "empty": "Ask a question as a customer, or press a scenario button.",
+    "modeCustomer": "Customer",
+    "modeAgent": "Agent reply",
+    "customerPlaceholder": "Type a customer question…",
+    "agentPlaceholder": "Type an agent reply…",
+    "agentBadge": "Agent (preview)",
+    "escalated": "Escalated",
+    "agentMode": "(bot silent — thread is with an agent)"
+  }
 }

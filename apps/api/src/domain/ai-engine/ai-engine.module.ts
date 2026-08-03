@@ -5,6 +5,7 @@ import { TenantAiSetting } from './entity/tenant-ai-setting.entity';
 import { TenantAiConfig } from './entity/tenant-ai-config.entity';
 import { Session } from '../session/entity/session.entity';
 import { Tenant } from '../tenant/entity/tenant.entity';
+import { SessionModule } from '../session/session.module';
 import { AiEngineService } from './ai-engine.service';
 import { AiSettingService } from './ai-setting.service';
 import { AiConfigService } from './ai-config.service';
@@ -13,7 +14,10 @@ import { AiSettingController } from './ai-setting.controller';
 import { AiConfigController } from './ai-config.controller';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([AiEngine, TenantAiSetting, TenantAiConfig, Session, Tenant])],
+  imports: [
+    TypeOrmModule.forFeature([AiEngine, TenantAiSetting, TenantAiConfig, Session, Tenant]),
+    SessionModule,
+  ],
   controllers: [AiEngineController, AiSettingController, AiConfigController],
   providers: [AiEngineService, AiSettingService, AiConfigService],
   exports: [AiEngineService, AiSettingService, AiConfigService],

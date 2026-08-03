@@ -1,8 +1,9 @@
-import { Body, Controller, Get, Put, Query } from '@nestjs/common';
+import { Body, Controller, Get, Post, Put, Query } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CAPABILITY, Principal } from '@ivy/types';
 import { AiConfigService } from './ai-config.service';
-import { UpdateAiConfigRequest } from './dto/request/ai-config.request';
+import { SessionService } from '../session/session.service';
+import { UpdateAiConfigRequest, CreatePreviewSessionRequest } from './dto/request/ai-config.request';
 import { RequireCapability } from '../../global/decorator/auth.decorator';
 import { Public } from '../../global/decorator/public.decorator';
 import { CurrentUser } from '../../global/decorator/current-user.decorator';
@@ -14,7 +15,10 @@ import { HttpStatus } from '@nestjs/common';
 @ApiTags('AI Config')
 @Controller('ai-config')
 export class AiConfigController {
-  constructor(private readonly aiConfig: AiConfigService) {}
+  constructor(
+    private readonly aiConfig: AiConfigService,
+    private readonly sessionService: SessionService,
+  ) {}
 
   @Get()
   @RequireCapability(CAPABILITY.AI_SETTINGS_MANAGE)
@@ -32,6 +36,14 @@ export class AiConfigController {
       rules: body.rules,
       scenarioButtons: body.scenario_buttons,
     });
+  }
+
+  @Post('preview-session')
+  @RequireCapability(CAPABILITY.AI_SETTINGS_MANAGE)
+  @ApiOperation({ summary: 'Create an isolated sandbox chat session for the /ai-setting preview' })
+  async createPreviewSession(@CurrentUser() user: Principal, @Body() body: CreatePreviewSessionRequest) {
+    const session = await this.sessionService.createPreview(this.tenantId(user), body.language);
+    return { sessionToken: session.sessionToken, language: session.language };
   }
 
   @Get('scenario')

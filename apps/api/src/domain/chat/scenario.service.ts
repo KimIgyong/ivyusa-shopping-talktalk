@@ -188,7 +188,10 @@ export class ScenarioService {
     // chat path: without an effective GRANTED (fresh read, current notice
     // version) nothing is persisted and no conversation is created; the widget
     // gets a soft system reply pointing back to the consent banner.
-    const consent = await this.sessionService.effectiveConsentFor(session.id, session.tenantId);
+    const consent =
+      session.channel === 'preview' // admin sandbox — see chat.service consent gate note
+        ? CONSENT_STATE.GRANTED
+        : await this.sessionService.effectiveConsentFor(session.id, session.tenantId);
     if (consent !== CONSENT_STATE.GRANTED) {
       return {
         // No conversation was created — null, not 0: the client guards on falsiness

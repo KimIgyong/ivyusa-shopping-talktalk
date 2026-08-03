@@ -197,7 +197,12 @@ export class ChatService {
     // the turn proceed; PENDING, DECLINED, and an outdated grant all soft-block:
     // the message is neither persisted nor sent to the AI, no CJM event fires,
     // and the customer gets a localized pointer back to the consent banner.
-    const consent = await this.sessionService.effectiveConsentFor(session.id, session.tenantId);
+    // Preview sandbox (/ai-setting) skips the gate: the admin is not a data
+    // subject and the session is isolated from alerts/queues/analytics.
+    const isPreview = session.channel === 'preview';
+    const consent = isPreview
+      ? CONSENT_STATE.GRANTED
+      : await this.sessionService.effectiveConsentFor(session.id, session.tenantId);
     if (consent !== CONSENT_STATE.GRANTED) {
       return {
         conversationId: null,
@@ -292,7 +297,13 @@ export class ChatService {
 
     return {
       conversationId: String(conversation.id),
-      reply: { senderType: 'ai', body: moderated.text, citations: answer.citations },
+      // confidence rides along for the admin preview diagnostics; widget ignores it.
+      reply: {
+        senderType: 'ai',
+        body: moderated.text,
+        citations: answer.citations,
+        confidence: answer.confidence,
+      },
       escalate: false,
       needsAuth: false,
     };
@@ -312,6 +323,10 @@ export class ChatService {
   ): Promise<string> {
     const body = sysMsg('handoff', session.language);
     await this.persist(conversationId, SENDER_TYPE.SYSTEM, body, session.language, { reason });
+    // Preview sandbox: show the real handoff notice but never page the agents —
+    // no WAITING flip (the bot keeps answering for iterative testing), no alert
+    // fan-out, no console-queue entry.
+    if (session.channel === 'preview') return body;
     await this.markWaiting(conversationId);
     const event: EscalationEvent = {
       tenantId,
@@ -337,6 +352,7 @@ export class ChatService {
     if (!conversation || Number(conversation.sessionId) !== Number(session.id)) {
       throw new BusinessException(ERROR_CODE.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND);
     }
+    if (session.channel === 'preview') return; // sandbox: never page the agents
     const lastUser = await this.msgRepo.findOne({
       where: { conversationId, senderType: SENDER_TYPE.USER },
       order: { id: 'DESC' },

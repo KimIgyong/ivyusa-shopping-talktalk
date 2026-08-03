@@ -62,5 +62,18 @@
   "rephrase": "Reformular",
   "created": "Creado",
   "contextPromptLabel": "Prompt del clasificador",
-  "contextPromptPlaceholder": "Describe qué debe bloquearse; un LLM juzgará cada mensaje"
+  "contextPromptPlaceholder": "Describe qué debe bloquearse; un LLM juzgará cada mensaje",
+  "preview": {
+    "title": "Vista previa del chat",
+    "newSession": "Nueva sesión",
+    "hint": "Ejecuta el flujo real (persona, reglas, conocimiento, moderación) en una sesión aislada — los agentes no reciben avisos.",
+    "empty": "Escribe una pregunta como cliente o pulsa un botón de escenario.",
+    "modeCustomer": "Cliente",
+    "modeAgent": "Respuesta del agente",
+    "customerPlaceholder": "Escribe una pregunta del cliente…",
+    "agentPlaceholder": "Escribe una respuesta del agente…",
+    "agentBadge": "Agente (vista previa)",
+    "escalated": "Escalado",
+    "agentMode": "(bot en silencio — la conversación está con un agente)"
+  }
 }

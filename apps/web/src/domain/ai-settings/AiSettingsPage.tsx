@@ -9,6 +9,7 @@ import { Modal } from '@/components/Modal';
 import { FormRow, Input, Select, Label } from '@/components/Field';
 import { Table, type Column } from '@/components/Table';
 import { cn } from '@/lib/cn';
+import { PreviewPanel } from './PreviewPanel';
 import {
   useAiSettings,
   useUpdateAiSetting,
@@ -40,14 +41,23 @@ export function AiSettingsPage() {
   const { t } = useTranslation('aiSetting');
 
   return (
-    <div className="space-y-6">
+    <div>
       <PageHeader title={t('title')} subtitle={t('subtitle')} />
 
-      <PersonaSection />
-      <ResponseRulesSection />
-      <ScenarioButtonsSection />
-      <AiFunctionsSection />
-      <ModerationSection />
+      {/* Settings on the left, live preview pinned on the right (xl+). Below xl
+          the preview drops under the settings so it stays reachable on tablets. */}
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_400px]">
+        <div className="space-y-6">
+          <PersonaSection />
+          <ResponseRulesSection />
+          <ScenarioButtonsSection />
+          <AiFunctionsSection />
+          <ModerationSection />
+        </div>
+        <div className="xl:sticky xl:top-6 xl:self-start">
+          <PreviewPanel />
+        </div>
+      </div>
     </div>
   );
 }

@@ -7,6 +7,11 @@ class ScenarioButtonDto {
   @IsBoolean() enabled: boolean;
 }
 
+/** /ai-setting preview sandbox session (PLN-AiSetting-Preview W1). */
+export class CreatePreviewSessionRequest {
+  @IsOptional() @IsString() language?: string; // en/es/ko
+}
+
 /** Request DTO — snake_case. */
 export class UpdateAiConfigRequest {
   @IsOptional() @IsString() persona?: string;
