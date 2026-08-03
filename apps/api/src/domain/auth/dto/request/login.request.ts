@@ -1,4 +1,6 @@
 import { IsEmail, IsOptional, IsString, MinLength } from 'class-validator';
+import { IsStrongPassword } from '../../../../global/util/password-policy.util';
+import { PASSWORD_MIN_LENGTH } from '../../../../global/constant/security.constant';
 
 /** Request DTO — snake_case (amoeba_code_convention). */
 export class LoginRequest {
@@ -33,11 +35,13 @@ export class LogoutRequest {
 }
 
 export class ChangePasswordRequest {
+  // Grandfathered passwords may predate the 12-char policy — keep the old floor.
   @IsString()
   @MinLength(6)
   current_password: string;
 
   @IsString()
-  @MinLength(8)
+  @MinLength(PASSWORD_MIN_LENGTH)
+  @IsStrongPassword()
   new_password: string;
 }

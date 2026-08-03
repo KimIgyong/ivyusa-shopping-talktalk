@@ -1,5 +1,9 @@
 /** Input accepted by NotificationService.notify and the EVENTS.NOTIFICATION handler. */
 export interface NotifyInput {
+  // Emitters MUST pass tenantId explicitly: EVENTS.NOTIFICATION handlers run
+  // detached (setImmediate) outside the request's ALS tenant context, so the
+  // TenantSubscriber cannot stamp it on insert.
+  tenantId?: number | null;
   customerId?: number | null;
   sessionId?: number | null;
   category: string;

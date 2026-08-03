@@ -38,6 +38,18 @@ export type SenderType = 'user' | 'ai' | 'agent' | 'system';
 export type Citation = ChatCitation;
 
 /**
+ * Narrowed for the UI's consent switch. `SessionResponse` is NOT redeclared here —
+ * it comes from `@ivy/types` above, including the privacy-notice fields, so the
+ * consent UI cannot drift from what the session mapper actually sends.
+ */
+export type ConsentState = 'pending' | 'granted' | 'declined';
+
+export interface ConsentResult {
+  consentState: ConsentState | string;
+  consentVersion: string;
+}
+
+/**
  * A thread message: the wire shape plus the bits that only exist locally.
  * `senderName` is relaxed to optional because optimistic bubbles the widget builds
  * itself have no agent name — the server always sends the key (possibly null).
@@ -71,7 +83,9 @@ export type NotificationCategory =
 
 export type NotificationItem = NotificationResponse;
 
-export type NotifChannel = 'in_app' | 'email' | 'sms' | 'web_push';
+// 'push' = native mobile push (managed from the mobile app; not surfaced in the
+// widget's preference panel — the widget cannot register device tokens).
+export type NotifChannel = 'in_app' | 'email' | 'sms' | 'web_push' | 'push';
 export type NotifPref = NotificationPrefResponse;
 
 export type AffiliateStatus = AffiliateStatusResponse;

@@ -20,6 +20,7 @@ const OrdersPage = lazy(() => import('@/domain/orders/OrdersPage').then((m) => (
 const CampaignsPage = lazy(() => import('@/domain/campaigns/CampaignsPage').then((m) => ({ default: m.CampaignsPage })));
 const UsersPage = lazy(() => import('@/domain/users/UsersPage').then((m) => ({ default: m.UsersPage })));
 const SettingsPage = lazy(() => import('@/domain/settings/SettingsPage').then((m) => ({ default: m.SettingsPage })));
+const PrivacyNoticePage = lazy(() => import('@/domain/privacy-notice/PrivacyNoticePage').then((m) => ({ default: m.PrivacyNoticePage })));
 const MyPage = lazy(() => import('@/domain/my-page/MyPage').then((m) => ({ default: m.MyPage })));
 const AdminOverviewPage = lazy(() => import('@/domain/admin/AdminOverviewPage').then((m) => ({ default: m.AdminOverviewPage })));
 const TenantsPage = lazy(() => import('@/domain/admin/TenantsPage').then((m) => ({ default: m.TenantsPage })));
@@ -60,6 +61,7 @@ const router = createBrowserRouter([
       { path: '/campaigns', element: <CampaignsPage /> },
       { path: '/users', element: <UsersPage /> },
       { path: '/settings', element: <SettingsPage /> },
+      { path: '/privacy-notice', element: <PrivacyNoticePage /> },
       { path: '/my-page', element: <MyPage /> },
     ],
   },

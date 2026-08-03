@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Navigate, useNavigate, useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Loader2, SearchX, Ban } from 'lucide-react';
@@ -5,9 +6,11 @@ import { useTranslation } from 'react-i18next';
 import { authService } from './auth.service';
 import { AuthShell } from './AuthShell';
 import { LoginForm } from './LoginForm';
+import { MfaChallengeForm } from './MfaChallengeForm';
 import { useAuthStore } from '@/store/auth-store';
 import { getErrorStatus } from '@/lib/api-client';
 import { toast } from '@/store/toast-store';
+import { isMfaRequired, type LoginResponse } from '@/lib/types';
 
 /** Per-tenant login page at /<slug> (FR: tenant-scoped sign-in). */
 export function TenantLoginPage() {
@@ -18,6 +21,9 @@ export function TenantLoginPage() {
   const setAuth = useAuthStore((s) => s.setAuth);
   const setTenant = useAuthStore((s) => s.setTenant);
   const navigate = useNavigate();
+
+  // Step-up token when the account has MFA enabled (null = password step).
+  const [mfaToken, setMfaToken] = useState<string | null>(null);
 
   const { data: tenant, isLoading, error } = useQuery({
     queryKey: ['public-tenant', slug],
@@ -34,13 +40,22 @@ export function TenantLoginPage() {
     return <Navigate to={principal.actorType === 'admin' ? '/admin' : '/dashboard'} replace />;
   }
 
+  // Shared success path for both a plain login and a verified MFA challenge.
+  const finishLogin = (res: LoginResponse) => {
+    setAuth(res);
+    setTenant(slug, tenant?.name ?? slug);
+    toast.success(t('signedIn'));
+    navigate('/dashboard', { replace: true });
+  };
+
   const login = async (email: string, password: string) => {
     try {
       const res = await authService.userLogin(email, password, slug);
-      setAuth(res);
-      setTenant(slug, tenant?.name ?? slug);
-      toast.success(t('signedIn'));
-      navigate('/dashboard', { replace: true });
+      if (isMfaRequired(res)) {
+        setMfaToken(res.mfaToken);
+        return;
+      }
+      finishLogin(res);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t('loginFailed'));
     }
@@ -88,11 +103,20 @@ export function TenantLoginPage() {
 
   return (
     <AuthShell tenantName={tenant.name ?? tenant.slug}>
-      <LoginForm
-        onSubmit={login}
-        rememberKey={`shoptalk_email:${slug}`}
-        devHint={import.meta.env.DEV ? 'dev@amoeba.group / amb2026!@' : undefined}
-      />
+      {mfaToken ? (
+        <MfaChallengeForm
+          mfaToken={mfaToken}
+          onSuccess={finishLogin}
+          onExpired={() => setMfaToken(null)}
+          onCancel={() => setMfaToken(null)}
+        />
+      ) : (
+        <LoginForm
+          onSubmit={login}
+          rememberKey={`shoptalk_email:${slug}`}
+          devHint={import.meta.env.DEV ? 'dev@amoeba.group / amb2026!@' : undefined}
+        />
+      )}
     </AuthShell>
   );
 }

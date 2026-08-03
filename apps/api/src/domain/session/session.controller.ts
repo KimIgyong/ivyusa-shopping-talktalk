@@ -22,7 +22,8 @@ export class SessionController {
   @ApiOperation({ summary: 'Create or resume a widget session (S1)' })
   async ensure(@Body() body: EnsureSessionRequest) {
     const s = await this.sessionService.ensure(body.session_token, body.locale, body.shop_domain);
-    return SessionMapper.toResponse(s, await this.sessionService.customerDisplayName(s));
+    const notice = await this.sessionService.privacyNotice(s.tenantId);
+    return SessionMapper.toResponse(s, notice, await this.sessionService.customerDisplayName(s));
   }
 
   @Post('consent')
@@ -30,7 +31,7 @@ export class SessionController {
   @ApiOperation({ summary: 'Record CCPA consent (FN-008)' })
   async consent(@Body() body: ConsentRequest) {
     const s = await this.sessionService.setConsent(body.session_token, body.granted);
-    return { consentState: s.consentState };
+    return { consentState: s.consentState, consentVersion: s.consentVersion };
   }
 
   @Post('language')

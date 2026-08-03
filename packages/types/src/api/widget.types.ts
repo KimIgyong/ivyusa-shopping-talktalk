@@ -24,6 +24,14 @@ export interface SessionResponse {
   authenticated: boolean;
   /** Bound customer's display name; null for guests and until the profile syncs. */
   customerName: string | null;
+  /** Tenant's privacy-policy link (null when the tenant has not set one). */
+  privacyPolicyUrl: string | null;
+  /** Effective consent-notice version (tenant override ?? platform default). */
+  consentNoticeVersion: string;
+  /** True when a recorded consent references a version other than the effective one. */
+  noticeOutdated: boolean;
+  /** When the consent choice was recorded (ISO 8601), null when never recorded. */
+  consentAt: string | null;
 }
 
 // ---- chat ---------------------------------------------------------------
@@ -77,7 +85,12 @@ export interface ChatTurnResponse {
 }
 
 export interface ScenarioTurnResponse {
-  conversationId: string;
+  /**
+   * Null when the turn produced no conversation — same consent-declined case as
+   * ChatTurnResponse above, reached from the scenario-button path. Null rather
+   * than a stringified 0 for the same reason: the client tests it for falsiness.
+   */
+  conversationId: string | null;
   reply: { senderType: string; body: string };
   followUps: ScenarioFollowUpResponse[];
 }

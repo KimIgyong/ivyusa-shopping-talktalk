@@ -23,27 +23,36 @@ describe('RagService.classifyIntent', () => {
 
 /** RagService.answer — order grounding for a signed-in shopper (#3). */
 describe('RagService.answer with order context', () => {
-  /** No KB documents, so confidence would be the 0.2 "nothing found" floor. */
+  /**
+   * No KB documents, so confidence falls to the 0.2 "nothing found" floor and the
+   * order-context floor is the only thing that can lift it.
+   *
+   * The query builder is a self-returning proxy rather than a hand-built chain:
+   * hybrid retrieval (FULLTEXT + Qdrant + RRF) reshaped that chain, and a literal
+   * mock of it silently stopped matching. This stays valid whatever the chain does,
+   * as long as it ends in getMany/getRawMany.
+   */
   function build() {
-    const kbRepo = {
-      createQueryBuilder: () => ({
-        where: () => ({
-          andWhere: () => ({
-            andWhere: () => ({
-              orderBy: () => ({
-                addOrderBy: () => ({ take: () => ({ getMany: async () => [] }) }),
-              }),
-            }),
-          }),
-        }),
-      }),
-    };
+    const qb: Record<string, unknown> = new Proxy(
+      {},
+      {
+        get(_t, prop: string) {
+          if (prop === 'getMany' || prop === 'getRawMany') return async () => [];
+          return () => qb;
+        },
+      },
+    );
+    const kbRepo = { createQueryBuilder: () => qb };
     const ai = {
       complete: jest.fn().mockResolvedValue({ text: 'Your order is on the way.', tokensIn: 1, tokensOut: 2 }),
+      embed: jest.fn(),
     };
+    // Vector leg off — the documented silent degrade to FULLTEXT-only. This suite is
+    // about the order-context block, not retrieval.
+    const qdrant = { enabled: false, search: jest.fn() };
     const aiConfig = { getPersonaRules: jest.fn().mockResolvedValue({ persona: 'P', rules: [] }) };
-    const svc = new RagService(kbRepo as never, ai as never, aiConfig as never);
-    return { svc, ai };
+    const svc = new RagService(kbRepo as never, ai as never, qdrant as never, aiConfig as never);
+    return { svc, ai, qdrant };
   }
 
   const ORDERS = '- Order #1002: status Confirmed, placed 2026-07-27, total 24.95 USD, items: Ski Wax x1';

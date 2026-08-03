@@ -20,5 +20,10 @@
   "tempPwDesc": "안전한 경로로 사용자에게 전달하세요. 최초 로그인 시 반드시 변경해야 합니다. 이 값은 한 번만 표시됩니다.",
   "tempPwIssued": "임시 비밀번호가 발급되었습니다.",
   "copy": "복사",
-  "copied": "복사됨"
+  "copied": "복사됨",
+  "mfaReset": "MFA 리셋",
+  "mfaResetTitle": "MFA 리셋",
+  "mfaResetConfirm": "{{email}}의 MFA를 리셋할까요?",
+  "mfaResetWarning": "리셋하면 다음 로그인 시 MFA를 다시 등록해야 하며, 이 작업은 감사 로그에 기록됩니다.",
+  "mfaResetDone": "MFA가 리셋되었습니다."
 }

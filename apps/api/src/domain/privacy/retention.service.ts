@@ -112,12 +112,21 @@ export class RetentionService implements OnModuleInit, OnModuleDestroy {
       sessions: sess.affected ?? 0,
     };
 
+    // Scheduler-driven purge — 'system' actor, not a phantom admin (Stage 4).
     await this.audit.write({
       tenantId: null,
-      actorType: 'admin',
+      actorType: 'system',
       actorId: 0,
       action: 'retention.purge',
-      target: `cutoff=${result.cutoff} msgs=${result.messages} convs=${result.conversations} cjm=${result.cjmEvents} notifs=${result.notifications} sessions=${result.sessions}`,
+      target: `cutoff=${result.cutoff}`,
+      metadata: {
+        retentionDays: result.retentionDays,
+        messages: result.messages,
+        conversations: result.conversations,
+        cjmEvents: result.cjmEvents,
+        notifications: result.notifications,
+        sessions: result.sessions,
+      },
     });
 
     return result;

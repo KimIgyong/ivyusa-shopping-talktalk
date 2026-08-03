@@ -236,6 +236,7 @@ export class OrderService {
       carrier: fulfillment.carrier,
     });
     await this.bus.publish(EVENTS.NOTIFICATION, {
+      tenantId: order.tenantId,
       customerId: order.customerId,
       category: 'shipping',
       title: 'Shipping update',

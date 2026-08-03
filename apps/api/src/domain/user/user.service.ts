@@ -1,8 +1,8 @@
-import { HttpStatus, Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
-import { generateToken, generateCode } from '@ivy/common';
+import { generateToken } from '@ivy/common';
 import { User } from './entity/user.entity';
 import { JobLabel } from './entity/job-label.entity';
 import { UserJobLabel } from './entity/user-job-label.entity';
@@ -18,6 +18,7 @@ import {
 } from './dto/response/user.response';
 
 import { BCRYPT_ROUNDS } from '../../global/constant/security.constant';
+import { generateTempPassword, validatePassword } from '../../global/util/password-policy.util';
 import { AuditService } from '../audit/audit.service';
 import { maskPii } from '../../global/util/pii.util';
 const INVITE_TTL_MS = 72 * 60 * 60 * 1000;
@@ -28,6 +29,8 @@ const INVITE_TTL_MS = 72 * 60 * 60 * 1000;
  */
 @Injectable()
 export class UserService {
+  private readonly logger = new Logger(UserService.name);
+
   constructor(
     @InjectRepository(User) private readonly userRepo: Repository<User>,
     @InjectRepository(JobLabel) private readonly labelRepo: Repository<JobLabel>,
@@ -158,6 +161,18 @@ export class UserService {
       throw new BusinessException(ERROR_CODE.INVITATION_INVALID, HttpStatus.BAD_REQUEST);
     }
 
+    // Service-layer double enforcement (DTO validation can be bypassed) with
+    // identity context; failures are E1009 + warn (4xx are not logged by default).
+    const policy = validatePassword(newPassword, { email: user.email, name: user.name });
+    if (!policy.ok) {
+      this.logger.warn(
+        `accept-invite password rejected by policy [${policy.failed.join(', ')}] for ${maskPii(user.email)}`,
+      );
+      throw new BusinessException(ERROR_CODE.PASSWORD_POLICY_VIOLATION, HttpStatus.BAD_REQUEST, {
+        password: policy.failed,
+      });
+    }
+
     user.passwordHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
     user.status = 'active';
     user.mustChangePassword = 0;
@@ -222,9 +237,9 @@ export class UserService {
 
   // ---- helpers ----
 
-  /** Readable, reasonably strong one-time temp password (e.g. "Ivy7KQ2MA3B!"). */
+  /** Readable one-time temp password that satisfies the password policy (e.g. "IvyK7Q2MA3B9X!"). */
   private genTempPassword(): string {
-    return `Ivy${generateCode(8)}!`;
+    return generateTempPassword();
   }
 
   private async getTenantUser(tenantId: number, userId: number): Promise<User> {

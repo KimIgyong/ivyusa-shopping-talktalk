@@ -14,7 +14,10 @@ export function WidgetPanel() {
   const { t } = useTranslation();
   const activeTab = useWidgetStore((s) => s.activeTab);
   const setPanelOpen = useWidgetStore((s) => s.setPanelOpen);
-  const [showSettings, setShowSettings] = useState(false);
+  // Store-held so other surfaces (e.g. the consent banner's "privacy choices"
+  // link) can open the settings/preferences area too.
+  const showSettings = useWidgetStore((s) => s.settingsOpen);
+  const setShowSettings = useWidgetStore((s) => s.setSettingsOpen);
   const panelRef = useRef<HTMLDivElement>(null);
 
   // Tabs the shopper has opened at least once — mounted from then on.
@@ -55,7 +58,7 @@ export function WidgetPanel() {
         <div className="flex items-center gap-1.5">
           <LanguageSwitcher />
           <button
-            onClick={() => setShowSettings((v) => !v)}
+            onClick={() => setShowSettings(!showSettings)}
             aria-label={t('settings')}
             className={`rounded-lg p-1.5 hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/70 ${
               showSettings ? 'bg-white/20' : ''

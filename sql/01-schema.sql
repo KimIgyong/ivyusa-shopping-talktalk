@@ -136,6 +136,10 @@ CREATE TABLE `audit_logs` (
   `actor_id` bigint NOT NULL,
   `action` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL,
   `target` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `ip` varchar(45) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `request_id` varchar(36) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `result` varchar(16) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `metadata` json DEFAULT NULL,
   `created_at` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
   PRIMARY KEY (`id`),
   KEY `idx_audit_tenant` (`tenant_id`),
@@ -565,6 +569,10 @@ CREATE TABLE `tenants` (
   `name` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `status` varchar(16) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'active',
   `plan` varchar(32) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  -- Privacy notice (PLN-Privacy-Control-Gap Stage 2): policy link for the widget
+  -- consent banner + tenant override of the consent-notice version (NULL = platform default).
+  `privacy_policy_url` varchar(512) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `consent_notice_version` varchar(32) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `created_at` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
   `updated_at` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
   PRIMARY KEY (`id`),
@@ -594,6 +602,57 @@ CREATE TABLE `users` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_user_tenant_email` (`tenant_id`,`email`),
   KEY `idx_user_tenant` (`tenant_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- MFA (TOTP) — PLN-MFA-20260731 Stage M1 (see sql/migration_mfa.sql).
+-- One credential per account across the dual account model (actor_type, actor_id);
+-- secret_enc = AES-256-GCM ciphertext (base64); recovery codes are bcrypt hashes.
+DROP TABLE IF EXISTS `mfa_credentials`;
+CREATE TABLE `mfa_credentials` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `actor_type` varchar(16) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `actor_id` bigint NOT NULL,
+  `secret_enc` varchar(512) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `enabled_at` datetime DEFAULT NULL,
+  `last_used_step` bigint DEFAULT NULL,
+  `created_at` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  `updated_at` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_mfa_actor` (`actor_type`,`actor_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+DROP TABLE IF EXISTS `mfa_recovery_codes`;
+CREATE TABLE `mfa_recovery_codes` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `credential_id` bigint NOT NULL,
+  `code_hash` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `used_at` datetime DEFAULT NULL,
+  `created_at` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  PRIMARY KEY (`id`),
+  KEY `idx_mfa_code_credential` (`credential_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Mobile push device tokens — PLN-MobileApp-20260731 M1 (see sql/migration_push_notifications.sql).
+DROP TABLE IF EXISTS `device_tokens`;
+CREATE TABLE `device_tokens` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `tenant_id` bigint DEFAULT NULL,
+  `customer_id` bigint DEFAULT NULL,
+  `session_id` bigint DEFAULT NULL,
+  `platform` varchar(16) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `provider` varchar(16) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'expo',
+  `token` text COLLATE utf8mb4_unicode_ci NOT NULL,
+  `token_hash` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `locale` varchar(8) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `app_version` varchar(32) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `last_seen_at` datetime DEFAULT NULL,
+  `revoked_at` datetime DEFAULT NULL,
+  `created_at` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  `updated_at` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_device_token_hash` (`token_hash`),
+  KEY `idx_dtok_tenant` (`tenant_id`),
+  KEY `idx_dtok_customer` (`customer_id`),
+  KEY `idx_dtok_tenant_customer` (`tenant_id`,`customer_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 

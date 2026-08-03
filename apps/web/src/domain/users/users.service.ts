@@ -58,4 +58,6 @@ export const usersService = {
   // Issue a fresh temporary password for an existing user (admin relays it manually).
   issueTempPassword: (id: string) =>
     apiPost<TempPasswordResult>(`/users/${id}/temp-password`, {}),
+  // Clear the user's MFA enrollment — they re-enroll at their next login (audited).
+  resetMfa: (id: string) => apiPost<{ reset: boolean }>(`/users/${id}/mfa-reset`, {}),
 };

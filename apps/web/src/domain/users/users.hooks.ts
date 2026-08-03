@@ -44,6 +44,15 @@ export function useIssueTempPassword() {
   });
 }
 
+export function useResetUserMfa() {
+  return useMutation({
+    mutationFn: (id: string) => usersService.resetMfa(id),
+    onError: (e: Error) => {
+      toast.error(e.message || 'Failed to reset MFA.', { sticky: true });
+    },
+  });
+}
+
 export function useUpdateUser() {
   const qc = useQueryClient();
   const tenantKey = useTenantKey();

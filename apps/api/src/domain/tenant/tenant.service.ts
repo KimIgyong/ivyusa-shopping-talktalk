@@ -14,7 +14,10 @@ import {
   TENANT_SLUG_PATTERN,
 } from '../../global/constant/reserved-slug.constant';
 import { decryptSecret, encryptSecret } from '../../global/util/crypto.util';
-import { UpdateShopifySettingsRequest } from './dto/request/tenant.request';
+import {
+  UpdatePrivacyNoticeRequest,
+  UpdateShopifySettingsRequest,
+} from './dto/request/tenant.request';
 import { AuditService } from '../audit/audit.service';
 import { ShopifyTestResponse } from './dto/response/tenant.response';
 
@@ -163,6 +166,47 @@ export class TenantService {
       candidate = `${cleaned}-${n}`;
     }
     return candidate;
+  }
+
+  /**
+   * Update this tenant's privacy-notice settings (PLN-Privacy-Control-Gap
+   * Stage 2). PATCH semantics: omitted fields keep their value, null clears
+   * back to the platform default. Privileged + privacy-relevant → audited.
+   */
+  async updatePrivacyNotice(
+    tenantId: number,
+    actorId: number,
+    dto: UpdatePrivacyNoticeRequest,
+  ): Promise<Tenant> {
+    const tenant = await this.findById(tenantId);
+    if (dto.privacy_policy_url !== undefined) {
+      tenant.privacyPolicyUrl = dto.privacy_policy_url?.trim() || null;
+    }
+    if (dto.consent_notice_version !== undefined) {
+      tenant.consentNoticeVersion = dto.consent_notice_version?.trim() || null;
+    }
+    const saved = await this.tenantRepo.save(tenant);
+    // Audit target: the new notice version, else the policy URL's host — never
+    // the full URL (keeps audit rows short and query-string-free).
+    const target =
+      saved.consentNoticeVersion ?? this.safeUrlHost(saved.privacyPolicyUrl) ?? 'cleared';
+    await this.audit.write({
+      tenantId,
+      actorType: 'user',
+      actorId,
+      action: 'tenant.privacy_notice_updated',
+      target,
+    });
+    return saved;
+  }
+
+  private safeUrlHost(url: string | null): string | null {
+    if (!url) return null;
+    try {
+      return new URL(url).host;
+    } catch {
+      return null;
+    }
   }
 
   async updateStatus(id: number, status: string): Promise<Tenant> {

@@ -1,0 +1,562 @@
+[
+  {
+    "category": "policy_legal",
+    "title": "1.1.1 Eligibility to Use the Site",
+    "content": "The AI should explain that the website and purchasing services are intended for adults who are legally able to enter into a binding agreement.\n\nDefault AI response:\n\n“By using the Services, you confirm that you are at least 18 years old and legally able to enter into these Terms. If you are using the Services on behalf of an organization, you represent that you have authority to bind that organization to these Terms.”\n\nReference:\n\n<https://ivyusa.com/policies/terms-of-service>\n\nThis language is already displayed on the website."
+  },
+  {
+    "category": "policy_legal",
+    "title": "1.1.2 Accurate Account and Order Information",
+    "content": "Customers must provide accurate and up-to-date information when creating an account or placing an order, including:\n\n- Name\n\n- Email address\n\n- Phone number\n\n- Shipping address\n\n- Billing address\n\n- Payment information\n\nAn account or order may be restricted, placed on hold, or canceled when false, unauthorized, or incorrect information is used.\n\nDefault AI response:\n\n“Please make sure your account and order information is accurate and up to date. Incorrect information may cause shipping or payment issues and may require additional review.”"
+  },
+  {
+    "category": "policy_legal",
+    "title": "1.2.1 Creating an Account",
+    "content": "Customers may create an account on the IVY Beauty website. Complete and accurate information must be provided during registration."
+  },
+  {
+    "category": "policy_legal",
+    "title": "1.2.2 Account Security",
+    "content": "Customers are responsible for maintaining the confidentiality of their password and login credentials.\n\nOrders, rewards activity, reviews, and other actions completed through an account will generally be treated as activity authorized by the account holder.\n\nDefault AI response:\n\n“Do not share your password or login information with anyone.”"
+  },
+  {
+    "category": "policy_legal",
+    "title": "1.2.3 Unauthorized Access or Security Concerns",
+    "content": "If a customer suspects unauthorized access or an account security issue, the AI should direct the customer to contact Customer Support immediately.\n\nFront-end button:\n\nContact Customer Support"
+  },
+  {
+    "category": "policy_legal",
+    "title": "1.2.4 Updating Account Information",
+    "content": "Customers should keep their email address, phone number, and saved addresses up to date.\n\nUpdating an address in the customer account after an order has been placed may not update the shipping address on that existing order."
+  },
+  {
+    "category": "policy_legal",
+    "title": "1.2.5 Account Restrictions, Suspension, or Closure",
+    "content": "Default AI response:\n\n“Following a review, IVY Beauty may restrict account access, suspend an account, or close an account for reasons such as:\n\n- Providing false or inaccurate information\n\n- Using another person’s identity or information without authorization\n\n- Misusing promotions, coupons, discounts, or rewards\n\n- Creating multiple accounts to receive duplicate benefits\n\n- Excessive or abusive returns, refunds, or payment disputes\n\n- Filing fraudulent or abusive chargebacks\n\n- Unauthorized resale\n\n- Interfering with or misusing the website or services\n\n- Violating the Terms of Service or other applicable policies\n\nThe AI chatbot cannot make, reverse, or remove an account restriction, suspension, or closure. For details about your account status or to request a review, please contact Customer Support.”\n\nThe AI may not decide whether an account should be restricted or reinstate an account."
+  },
+  {
+    "category": "policy_legal",
+    "title": "1.3.1 Order Submission and Acceptance",
+    "content": "Submitting an order does not mean the order has been finally accepted.\n\nAn order may be declined, placed on hold, or canceled for reasons including:\n\n- Item is out of stock\n\n- Payment authorization failed\n\n- Pricing or product information error\n\n- Suspected fraud or unauthorized activity\n\n- Policy violation\n\n- Unsupported shipping destination\n\n- Other order-processing limitations\n\nDefault AI response:\n\n“After your order is submitted, payment and inventory are reviewed. Your order is considered accepted once it has been confirmed and moves into processing or fulfillment.”"
+  },
+  {
+    "category": "policy_legal",
+    "title": "1.3.2 Pricing and Product Information Errors",
+    "content": "IVY Beauty makes reasonable efforts to keep prices and product information accurate.\n\nIf a system error, typographical error, or incorrect product listing is identified, IVY Beauty may contact the customer and correct or cancel the order.\n\nThe AI must not promise that an incorrectly displayed price will be honored."
+  },
+  {
+    "category": "policy_legal",
+    "title": "1.3.3 Payment Authorization",
+    "content": "Customers must provide valid and accurate payment information.\n\nIf a payment method is declined or cannot be authorized, the order may not be successfully created or processed."
+  },
+  {
+    "category": "policy_legal",
+    "title": "1.3.4 Inventory Availability and Order Cancellation",
+    "content": "All orders are subject to product availability.\n\nIf an item becomes unavailable, IVY Beauty may:\n\n- Remove the unavailable item from the order\n\n- Cancel the entire order\n\n- Contact the customer with additional information\n\n- Issue a refund for the unavailable item or canceled order\n\nThe final resolution depends on the order status and must be confirmed by Customer Support."
+  },
+  {
+    "category": "policy_legal",
+    "title": "1.3.5 Incorrect Order Information",
+    "content": "Delivery issues caused by an incorrect shipping address, phone number, or other order information may require customer verification.\n\nIf an order is returned because of an address error, additional shipping charges may apply.\n\nDefault AI response:\n\n“If a shipping issue was caused by an incorrect address, phone number, or order detail, Customer Support will need to review the order. Additional shipping charges may apply if the package is returned or needs to be reshipped.”"
+  },
+  {
+    "category": "policy_legal",
+    "title": "1.4 Prohibited Activity and Policy Abuse",
+    "content": "The following activity is not permitted:\n\n- Creating accounts with false information\n\n- Using multiple accounts to redeem duplicate coupons or offers\n\n- Manipulating loyalty points or rewards\n\n- Placing fraudulent orders\n\n- Using stolen or unauthorized payment information\n\n- Intentionally exploiting a pricing error\n\n- Repeatedly placing and canceling orders in an abusive manner\n\n- Excessive or abusive returns, refunds, or payment disputes\n\n- Filing bad-faith chargebacks for orders that were properly fulfilled\n\nThe AI must not directly accuse a customer of fraud or abuse.\n\nDefault AI response:\n\n“If activity of this type is identified, the account or order may be subject to additional review, restrictions, or suspension. Please contact Customer Support for details.”"
+  },
+  {
+    "category": "policy_legal",
+    "title": "1.5 User-Generated Content",
+    "content": "This policy applies to content submitted by customers, including:\n\n- Product reviews\n\n- Photos\n\n- Videos\n\n- Comments\n\n- Survey responses\n\n- Beautizen content\n\n- RoundTable content\n\n- Social media posts\n\nCustomers may submit only content they own or have permission to use.\n\nContent may be rejected, limited, or removed if it includes:\n\n- Copyright or intellectual property infringement\n\n- Fake or misleading reviews\n\n- Abusive, hateful, discriminatory, or harassing content\n\n- Illegal content\n\n- Personal or confidential information\n\n- Advertising, solicitation, or spam\n\n- Large volumes of fabricated AI-generated reviews\n\nSpecific content usage rights should be addressed separately in the Beautizen and other program terms."
+  },
+  {
+    "category": "policy_legal",
+    "title": "1.6.1 Information IVY Beauty May Collect or Process",
+    "content": "IVY Beauty may collect or process information needed to provide its services, including:\n\n- Order information\n\n- Payment information\n\n- Shipping information\n\n- Customer account information\n\n- Email address and phone number\n\n- Membership tier information\n\n- Loyalty point earning and redemption history\n\n- Beautizen activity\n\n- RoundTable survey and product-testing information\n\n- B2B, wholesale, and application information\n\n- Customer Support communications\n\n- AI chatbot conversations\n\n- Website usage information\n\n- Marketing preferences and consent status\n\nThe AI may provide only general information about data collection and use. Detailed privacy questions should be directed to the applicable Privacy Policy or Customer Support."
+  },
+  {
+    "category": "policy_legal",
+    "title": "1.6.2 Customer Support and AI Chat Data",
+    "content": "Information entered into the AI chatbot may be used to respond to inquiries, improve services, and connect the customer with Customer Support.\n\nCustomers should not enter the following information in the chat:\n\n- Full credit or debit card number\n\n- Card security code\n\n- Password\n\n- Social Security number\n\n- Government-issued identification number\n\n- Full medical records\n\n- Other highly sensitive personal information"
+  },
+  {
+    "category": "policy_legal",
+    "title": "1.6.3 Marketing Opt-Out",
+    "content": "Customers may opt out of email or text marketing.\n\nMembers may update their email newsletter preferences through:\n\nMY IVY > MY PROFILE\n\nDefault AI response:\n\n“You can review and update your email preferences on this page.”\n\nFront-end button:\n\nManage Email Preferences"
+  },
+  {
+    "category": "policy_legal",
+    "title": "1.6.4 U.S. State Privacy Rights",
+    "content": "Depending on the customer’s state of residence, the customer may have rights to request:\n\n- Access to personal information\n\n- Correction of personal information\n\n- Deletion of personal information\n\n- Restriction of certain processing\n\n- Opt-out of certain sharing or targeted advertising\n\nRequirements vary by state, including California and other states. The AI may explain how to submit a request, but Customer Support or the appropriate privacy team must process the request."
+  },
+  {
+    "category": "policy_legal",
+    "title": "1.6.5 Suspected Data Breach or Security Incident",
+    "content": "If a customer suspects that personal information has been exposed or an account has been compromised, the AI should direct the customer to Customer Support immediately.\n\nThe AI may not determine whether a breach occurred or promise compensation."
+  },
+  {
+    "category": "policy_legal",
+    "title": "1.7.1 Email Newsletter Sign-Up",
+    "content": "Customers may subscribe to email updates through the website footer.\n\nMembers may also manage email preferences through:\n\nMY IVY > MY PROFILE"
+  },
+  {
+    "category": "policy_legal",
+    "title": "1.7.2 Email Marketing Consent",
+    "content": "Customers who provide an email address and consent to marketing may receive:\n\n- Promotions\n\n- New product announcements\n\n- Member offers\n\n- Events\n\n- Brand news"
+  },
+  {
+    "category": "policy_legal",
+    "title": "1.7.3 SMS Marketing",
+    "content": "If SMS marketing is offered, separate consent must be collected.\n\nEmail consent and SMS consent must be managed separately."
+  },
+  {
+    "category": "policy_legal",
+    "title": "1.7.4 Unsubscribing",
+    "content": "Customers may unsubscribe through the Unsubscribe link in an email or through account settings.\n\nIt may take a reasonable amount of time for an opt-out request to be reflected in all systems.\n\nDefault AI response:\n\n“You can review or update your marketing preferences on this page.”"
+  },
+  {
+    "category": "policy_shipping",
+    "title": "2.1.1 Order Processing Time",
+    "content": "Orders are processed Monday through Friday.\n\nOrders may not be processed on:\n\n- Weekends\n\n- U.S. federal holidays\n\n- Company-observed holidays\n\nOrder processing generally takes 1–3 business days.\n\nOrders placed before 11:00 a.m. Eastern Time may begin processing the same day, but same-day shipment is not guaranteed.\n\nDefault AI response:\n\n“Orders generally take 1–3 business days to process. Weekends and holidays are not included in processing time.”"
+  },
+  {
+    "category": "policy_shipping",
+    "title": "2.1.2 Estimated Delivery Time",
+    "content": "After shipment, most orders are delivered within 5–7 business days.\n\nOrder processing time and carrier transit time are separate.\n\nExample:\n\n- Processing: 1–3 business days\n\n- Estimated transit time after shipment: 5–7 business days\n\nThe AI must not guarantee delivery by a specific date."
+  },
+  {
+    "category": "policy_shipping",
+    "title": "2.1.3 Shipping Rates and Free Shipping Thresholds",
+    "content": "Standard U.S. shipping:\n\n- Guest checkout: Free standard shipping on qualifying orders of $29.99 or more\n\n- IVY Beauty members: Free standard shipping on qualifying orders of $19.99 or more\n\n- Orders below the applicable threshold: $4.99 standard shipping\n\nThe free-shipping threshold is based on the final merchandise subtotal after applying:\n\n- Discounts\n\n- Promotions\n\n- Coupons\n\n- Rewards\n\nA lower free-shipping threshold may apply to certain membership tiers."
+  },
+  {
+    "category": "policy_shipping",
+    "title": "2.1.4 Shipping Destinations",
+    "content": "IVY Beauty currently ships to:\n\n- The 48 contiguous United States\n\nIVY Beauty does not currently ship to:\n\n- International destinations\n\n- Alaska\n\n- Hawaii\n\n- Puerto Rico\n\n- U.S. Virgin Islands\n\n- Other U.S. territories\n\n- APO addresses\n\n- FPO addresses\n\n- DPO addresses\n\nInternational shipping is not currently available.\n\nDefault AI response:\n\n“IVY Beauty currently ships only within the 48 contiguous United States. International shipping is not available.”"
+  },
+  {
+    "category": "policy_shipping",
+    "title": "2.1.5 Order Tracking",
+    "content": "A shipping confirmation email is sent after the order ships.\n\nThe email includes a tracking number.\n\nCustomers may track the shipment through the carrier’s website.\n\nTracking information may take up to 48 hours to appear or update in the carrier’s system.\n\nFront-end button:\n\nTrack My Order"
+  },
+  {
+    "category": "policy_shipping",
+    "title": "2.1.6 Shipping Address",
+    "content": "Customers must review the shipping address before submitting the order.\n\nThe shipping address generally cannot be changed after an order has been submitted.\n\nIf an order is returned because of an incorrect or incomplete address:\n\n- Original shipping charges are non-refundable\n\n- A reshipping fee may apply\n\n- Return-related charges may be deducted from any refund\n\nThe AI may not update a shipping address and must direct address-change requests to Customer Support."
+  },
+  {
+    "category": "policy_shipping",
+    "title": "2.1.7 Order Changes and Cancellations",
+    "content": "After an order has been submitted, product, quantity, address, and other order details generally cannot be changed.\n\nCustomers should contact Customer Support as soon as possible to request a cancellation.\n\nCancellation availability depends on the order’s fulfillment status.\n\nDefault AI response:\n\n“Orders may begin processing immediately after submission, so changes and cancellations cannot be guaranteed. Please contact hello@ivyusa.com as soon as possible.”"
+  },
+  {
+    "category": "policy_shipping",
+    "title": "2.1.8 Undeliverable and Return-to-Sender Packages",
+    "content": "A package may be returned to sender because of:\n\n- Incomplete address\n\n- Incorrect address\n\n- Refused delivery\n\n- Package not picked up within the carrier’s hold period\n\n- Carrier determination that the package is undeliverable\n\nA returned package may be handled by:\n\n- Reshipping after the customer pays an additional shipping fee\n\n- Refunding the order after applicable charges are deducted\n\nUntil the deduction policy is finalized, the AI must not quote a guaranteed refund amount."
+  },
+  {
+    "category": "policy_shipping",
+    "title": "2.1.9 Marked Delivered but Not Received",
+    "content": "If tracking shows “Delivered” but the customer cannot locate the package, the AI should first recommend:\n\n- Allowing up to 48 hours after the delivery scan\n\n- Confirming the shipping address\n\n- Checking the front door, side door, porch, garage, or other delivery location\n\n- Checking the mailroom or package room\n\n- Checking with building staff or property management\n\n- Checking with household members or neighbors\n\n- Contacting the carrier to open a claim\n\n- For USPS shipments, using the USPS Missing Mail search process\n\nIVY Beauty does not automatically guarantee a refund or replacement for packages lost, stolen, or misdelivered after the carrier marks them as delivered.\n\nIVY Beauty may provide supporting information for a carrier claim, including:\n\n- Order details\n\n- Tracking number\n\n- Shipping records\n\nThe AI must not promise a refund or replacement and should direct the customer to Customer Support."
+  },
+  {
+    "category": "policy_shipping",
+    "title": "2.1.10 Freight Forwarders and Third-Party Reshipping Services",
+    "content": "When a customer uses a freight forwarder, parcel forwarder, or reshipping service, IVY Beauty’s delivery responsibility may end when the package is delivered to that forwarding address.\n\nIssues occurring after delivery to the forwarding service may not be eligible for reimbursement, including:\n\n- Loss\n\n- Damage\n\n- Theft\n\n- Customs issues\n\n- Reshipping issues\n\n- Delivery delays\n\nAfter delivery to the forwarding service, the customer and forwarding provider are responsible for onward shipping, customs, and related documentation."
+  },
+  {
+    "category": "policy_return",
+    "title": "2.2.1 Return Eligibility",
+    "content": "A return request may be submitted only when all of the following conditions are met:\n\n- The item was purchased directly from ivyusa.com\n\n- The item is unopened\n\n- The item is unused\n\n- The shade, color, or formula has not been tested\n\n- The item is in its original packaging\n\n- All seals and protective packaging are intact\n\n- The return is requested within 10 days of confirmed delivery\n\nDefault AI response:\n\n“Unopened and unused items purchased from ivyusa.com may be eligible for return when the request is submitted within 10 days of delivery.”"
+  },
+  {
+    "category": "policy_return",
+    "title": "2.2.2 Return Shipping Fee",
+    "content": "A $6.95 return shipping fee applies.\n\nThe $6.95 fee is deducted from the final refund amount.\n\nOriginal outbound shipping charges are non-refundable."
+  },
+  {
+    "category": "policy_return",
+    "title": "2.2.3 How to Request a Return",
+    "content": "Return request steps:\n\n1\\.  Go to account.ivyusa.com\n\n2\\.  Sign in to the customer account\n\n3\\.  Select the applicable order\n\n4\\.  Select “Request return”\n\n5\\.  Select the item or items to return\n\n6\\.  Select a return reason\n\n7\\.  Add details if needed\n\n8\\.  Submit the return request\n\n9\\.  Wait for approval\n\n10\\.  After approval, receive the prepaid return label by email\n\n11\\.  Ship the approved return within 5 days\n\nFront-end button:\n\nRequest a Return"
+  },
+  {
+    "category": "policy_return",
+    "title": "2.2.4 Return Shipment Deadline",
+    "content": "Once a return is approved, the item must be shipped within 5 days of the approval date.\n\nIf the package is not shipped within 5 days:\n\n- The return request may expire or be canceled\n\n- The request may not be reopened or approved again\n\n- An item sent without a valid approval may not qualify for a refund"
+  },
+  {
+    "category": "policy_return",
+    "title": "2.2.5 Return Label and Return Address",
+    "content": "After approval, IVY Beauty provides a prepaid return label by email.\n\nA return may not qualify for a refund if it is:\n\n- Sent directly to a corporate or office address\n\n- Sent to an unauthorized address\n\n- Sent without prior approval\n\n- Sent without trackable shipping"
+  },
+  {
+    "category": "policy_return",
+    "title": "2.2.6 Return Inspection",
+    "content": "All returned items are inspected after arrival.\n\nItems that do not meet the return requirements will not be refunded.\n\nItems that fail inspection may not be sent back to the customer.\n\nA refund cannot be issued if carrier tracking does not show that the return was delivered to IVY Beauty.\n\nThe AI must not guarantee the inspection result."
+  },
+  {
+    "category": "policy_return",
+    "title": "2.2.7 Refund Processing",
+    "content": "A refund is issued after the returned item arrives and passes inspection.\n\nRefunds are issued to the original payment method.\n\nIVY Beauty generally issues the refund within 10 business days after confirmed delivery of the return.\n\nThe time required for the refund to appear on the customer’s account depends on the bank, card issuer, or payment provider."
+  },
+  {
+    "category": "policy_return",
+    "title": "2.2.8 Non-Returnable and Non-Refundable Items",
+    "content": "The following are generally not eligible for return or refund:\n\n- Clearance items\n\n- Final Sale items\n\n- Free gifts\n\n- Promotional gifts\n\n- International orders\n\n- Bulk orders\n\n- Wholesale orders\n\n- Opened items\n\n- Used items\n\n- Items on which the shade, color, or formula has been tested\n\nThe AI may not approve exceptions and should direct exception requests to Customer Support."
+  },
+  {
+    "category": "policy_return",
+    "title": "2.2.9 Refund Amount for Discounted or Promotional Orders",
+    "content": "Refunds are based on the amount actually paid after discounts and promotions.\n\nIf a return causes the order to fall below a promotion requirement:\n\n- Promotional discounts may be recalculated\n\n- Free-shipping eligibility may be recalculated\n\n- Gift-with-purchase eligibility may be removed\n\nIf the customer no longer qualifies for a free gift, the gift may also need to be returned unused.\n\nIf the gift is not returned, its regular retail value may be deducted from the refund."
+  },
+  {
+    "category": "policy_return",
+    "title": "2.2.10 Shade, Color, and Formula Selection",
+    "content": "Customers who are unsure about a shade, color, or formula should consider testing the product at an authorized retail location before purchasing.\n\nProduct selection and inventory vary by retailer, so customers should contact the store before visiting.\n\nItems that have been tested are not eligible under the standard return policy."
+  },
+  {
+    "category": "policy_return",
+    "title": "2.2.11 Exchanges",
+    "content": "IVY Beauty does not offer direct exchanges.\n\nCustomers who want a different item should:\n\n1\\.  Return the original item, if eligible\n\n2\\.  Place a separate order for the new item\n\nDefault AI response:\n\n“IVY Beauty does not offer direct exchanges. Please return the original item, if eligible, and place a new order for the item you want.”"
+  },
+  {
+    "category": "policy_return",
+    "title": "2.2.12 Items Purchased from Other Retailers",
+    "content": "Items purchased from a third-party retailer are not eligible for return through ivyusa.com.\n\nCustomers must follow the return policy of the original seller.\n\nExamples:\n\n- Amazon\n\n- Walmart\n\n- Brick-and-mortar stores\n\n- Other online or physical retailers\n\nThe AI should first confirm the purchase location and then direct the customer to the appropriate retailer."
+  },
+  {
+    "category": "policy_cancellation",
+    "title": "2.3.1 Requesting an Order Cancellation",
+    "content": "Customers should email hello@ivyusa.com as soon as possible to request cancellation.\n\nThe AI should ask the customer to provide:\n\n- Order number\n\n- Email address used for the order\n\n- Reason for the cancellation request"
+  },
+  {
+    "category": "policy_cancellation",
+    "title": "2.3.2 Modifying an Order",
+    "content": "The following generally cannot be changed after order submission:\n\n- Product\n\n- Shade or color\n\n- Quantity\n\n- Shipping address\n\n- Payment method\n\n- Coupon\n\n- Rewards redemption\n\nThe customer may need to request cancellation and place a new order."
+  },
+  {
+    "category": "policy_cancellation",
+    "title": "2.3.3 Whether a Cancellation Is Possible",
+    "content": "An order may be canceled only if fulfillment has not progressed too far.\n\nOrders may automatically move into:\n\n- Picking\n\n- Packing\n\n- Shipping label creation\n\n- Shipment preparation\n\nIVY Beauty will make reasonable efforts to honor a cancellation request, but cancellation is not guaranteed.\n\nAn order cannot be canceled after shipment.\n\nAfter shipment, the customer must use the return process if the item is eligible."
+  },
+  {
+    "category": "policy_cancellation",
+    "title": "2.3.4 Items Requiring Final Policy Approval",
+    "content": "The following must be finalized before the AI provides definitive answers:\n\n- Cancellation request cutoff\n\n- Whether a cancellation confirmation email is sent\n\n- Whether a coupon is restored after cancellation\n\n- When redeemed rewards are restored\n\n- How long a reversed card authorization takes to appear\n\nUntil confirmed, the AI must not guarantee a specific timeframe."
+  },
+  {
+    "category": "policy_shipping",
+    "title": "2.4.1 Automatic Refunds",
+    "content": "A package returned to sender by the carrier is not automatically refunded.\n\nThe customer must contact Customer Support within 10 days of the first delivery attempt."
+  },
+  {
+    "category": "policy_shipping",
+    "title": "2.4.2 Review Process",
+    "content": "IVY Beauty may review:\n\n- Order status\n\n- Tracking status\n\n- Return-to-sender reason\n\n- Whether the returned package has been received\n\nA refund may be processed only after the package is physically received and reviewed."
+  },
+  {
+    "category": "policy_shipping",
+    "title": "2.4.3 Refund Amount",
+    "content": "Under the current draft policy, the standard $6.95 return fee may be deducted.\n\nOriginal shipping charges are non-refundable.\n\nThe following deduction methods still require internal approval:\n\n- Deduct only $6.95\n\n- Deduct $6.95 plus the original shipping charge\n\n- Deduct $6.95 plus a separate restocking fee\n\n- Apply different deductions based on the return-to-sender reason\n\nUntil finalized, the AI must not guarantee the final refund amount."
+  },
+  {
+    "category": "policy_claims",
+    "title": "2.5.1 Reporting Deadline",
+    "content": "Customers should report a missing, damaged, or incorrect item to hello@ivyusa.com within 48 hours of delivery.\n\nClaims submitted more than 7 days after delivery may not be eligible for a refund or replacement."
+  },
+  {
+    "category": "policy_claims",
+    "title": "2.5.2 Information and Documentation Required",
+    "content": "Customers may be asked to provide:\n\n- Order number\n\n- Photo of the shipping box\n\n- Photo of the shipping label\n\n- Photo of the packing slip\n\n- Photo of all items received\n\n- Photo showing the missing, damaged, or incorrect item issue\n\n- Product barcode\n\n- Batch number or lot number\n\n- Brief description of the issue"
+  },
+  {
+    "category": "policy_claims",
+    "title": "2.5.3 Possible Resolutions",
+    "content": "After review, IVY Beauty may:\n\n- Send a replacement\n\n- Issue a refund\n\n- Issue store credit\n\n- Request additional documentation\n\n- Direct the customer to file a carrier claim\n\nThe AI may not choose or promise a resolution."
+  },
+  {
+    "category": "policy_claims",
+    "title": "2.5.4 Items Requiring Final Policy Approval",
+    "content": "The following still require internal approval:\n\n- Whether the 48-hour period is mandatory or recommended\n\n- How claims submitted after 48 hours but within 7 days are handled\n\n- Whether exceptions are allowed after 7 days\n\n- Whether incorrect items must be returned\n\n- Criteria for replacement, refund, or store credit"
+  },
+  {
+    "category": "policy_payment",
+    "title": "2.6.1 Accepted Payment Methods",
+    "content": "Current payment methods:\n\n- Credit cards\n\n- Debit cards\n\n- Apple Pay\n\n- Google Pay\n\n- PayPal\n\n- IVY Beauty Reward Points"
+  },
+  {
+    "category": "policy_payment",
+    "title": "2.6.2 Card Authorization and Payment Capture",
+    "content": "A payment authorization may be requested when an order is submitted.\n\nSome transactions may appear as a pending authorization.\n\nThe final posting date and payment status depend on the bank, card issuer, or payment provider."
+  },
+  {
+    "category": "policy_payment",
+    "title": "2.6.3 Charged but No Order Was Created",
+    "content": "This is a high-risk inquiry that the AI cannot verify.\n\nThe AI should ask the customer to check:\n\n- Whether an order confirmation email was received\n\n- Order history in the customer account\n\n- The payment provider’s authorization status\n\n- Whether duplicate orders were created\n\nThe AI should then direct the customer to Customer Support."
+  },
+  {
+    "category": "policy_payment",
+    "title": "2.6.4 Payment Declined",
+    "content": "If payment is declined, the AI may recommend checking:\n\n- Card information\n\n- Billing address\n\n- Expiration date\n\n- Available balance or credit limit\n\n- Online purchase restrictions set by the card issuer\n\n- Whether another payment method is available\n\nThe AI cannot view the specific reason for a card decline."
+  },
+  {
+    "category": "policy_payment",
+    "title": "2.6.5 Duplicate Charge",
+    "content": "If a duplicate charge is suspected, the AI must not promise a refund.\n\nThe customer should prepare the order number, transaction date, and transaction amount and contact Customer Support."
+  },
+  {
+    "category": "policy_payment",
+    "title": "2.6.6 Suspected Fraud or Unauthorized Payment",
+    "content": "An order may be placed on hold or canceled if fraud, account takeover, or unauthorized payment activity is suspected.\n\nThe AI must not disclose internal fraud-screening rules."
+  },
+  {
+    "category": "policy_payment",
+    "title": "2.6.7 Sales Tax",
+    "content": "Sales tax may be calculated at checkout based on the shipping address and applicable law.\n\nThe AI may not determine whether an individual customer qualifies for a tax exemption."
+  },
+  {
+    "category": "policy_payment",
+    "title": "2.6.8 Refund Method",
+    "content": "Refunds are issued to the original payment method.\n\nA refund cannot be sent to a different card, paid in cash, or transferred to an unrelated account."
+  },
+  {
+    "category": "policy_payment",
+    "title": "2.6.9 Chargebacks and Payment Disputes",
+    "content": "The AI may not manage a chargeback or payment dispute.\n\nA bad-faith or abusive chargeback related to a properly fulfilled order may be reviewed as a policy violation."
+  },
+  {
+    "category": "policy_promotion",
+    "title": "2.7.1 New Customer Coupon",
+    "content": "A new customer coupon may be selected or entered at checkout.\n\nIf the coupon does not appear or apply, the AI should recommend checking:\n\n- Whether the customer is signed in\n\n- New-customer eligibility\n\n- Expiration date\n\n- Excluded products\n\n- Minimum purchase requirement\n\n- Whether another promotion is already applied"
+  },
+  {
+    "category": "policy_promotion",
+    "title": "2.7.2 Coupon Stacking",
+    "content": "Some promotional codes may be combined.\n\nIf stacking is not allowed, checkout will display an applicable message.\n\nThe AI must not say that all coupons can be combined."
+  },
+  {
+    "category": "policy_promotion",
+    "title": "2.7.3 Promotional Exclusions",
+    "content": "Certain products or orders may be excluded from promotions.\n\nExamples:\n\n- Final Sale\n\n- Clearance\n\n- Selected brands or products\n\n- B2B orders\n\n- Beauty Professional orders\n\n- Bulk orders\n\n- Free gifts\n\n- Already-discounted items"
+  },
+  {
+    "category": "policy_promotion",
+    "title": "2.7.4 Gifts with Purchase",
+    "content": "Gift-with-purchase offers require the order to meet the stated qualifying conditions.\n\nIf a return causes the order to no longer qualify, the promotional gift may also need to be returned."
+  },
+  {
+    "category": "policy_membership",
+    "title": "3.1 Membership Program",
+    "content": "Current or planned member benefits may include:\n\n- Member-only sales\n\n- Early access to new products\n\n- Gifts for higher membership tiers\n\n- Points on eligible purchases\n\n- Tier-based earning rates\n\n- Lower free-shipping thresholds than guest checkout\n\nEarly-access functionality should be added to the AI only after its actual availability is confirmed."
+  },
+  {
+    "category": "policy_membership",
+    "title": "3.2 Membership Tiers",
+    "content": "Current tiers:\n\n- IVY\n\n- Red\n\n- Gold\n\n- Ruby\n\nCurrent earning rates:\n\n- IVY: 1 point per $1\n\n- Red: 2 points per $1\n\n- Gold: 3 points per $1\n\n- Ruby: 4 points per $1\n\nDefault AI response:\n\n“Members earn 1–4 points per $1, depending on their membership tier.”"
+  },
+  {
+    "category": "policy_membership",
+    "title": "3.2.1 Tier Upgrades",
+    "content": "Tiers are intended to be based on the customer’s qualifying purchase total.\n\nThe following still require approval:\n\n- Measurement period\n\n- Spend thresholds\n\n- Tier validity period\n\n- How cancellations and returns affect qualifying spend\n\n- Free-shipping threshold for each tier"
+  },
+  {
+    "category": "policy_membership",
+    "title": "3.2.2 Tier Downgrades",
+    "content": "There is currently no separate tier-downgrade policy.\n\nDefault AI response:\n\n“There is currently no automatic tier downgrade. This policy may be updated in the future.”"
+  },
+  {
+    "category": "policy_membership",
+    "title": "3.3.1 Earning Points",
+    "content": "Eligible member orders automatically earn points based on the customer’s tier.\n\nThe following still require approval:\n\n- Eligible merchandise subtotal\n\n- Whether shipping and tax earn points\n\n- When points become available"
+  },
+  {
+    "category": "policy_membership",
+    "title": "3.3.2 Redeeming Points",
+    "content": "Customers may redeem up to $10 in rewards per order.\n\nThe current points balance is available in MY IVY.\n\nFront-end button:\n\nGo to MY IVY"
+  },
+  {
+    "category": "policy_membership",
+    "title": "3.3.3 Cancellations and Returns",
+    "content": "Points earned from a canceled or returned order may be reversed.\n\nThe timing for restoring points used on a canceled order still requires internal confirmation."
+  },
+  {
+    "category": "policy_membership",
+    "title": "3.3.4 Point Restrictions",
+    "content": "General rules:\n\n- Points cannot be redeemed for cash\n\n- Points cannot be transferred to another person\n\n- Points cannot be moved between accounts\n\n- Duplicate point awards may be reversed\n\n- Points earned through fraudulent or abusive activity may be canceled"
+  },
+  {
+    "category": "policy_membership",
+    "title": "3.3.5 Point Expiration",
+    "content": "The expiration period and forfeiture rules still require approval.\n\nUntil finalized, the AI must not provide an expiration date."
+  },
+  {
+    "category": "policy_membership",
+    "title": "3.3.6 Program Rewards vs. Purchase Rewards",
+    "content": "Standard purchase points may be tracked separately from:\n\n- Beautizen review rewards\n\n- RoundTable participation rewards\n\n- Promotional rewards\n\n- Manually issued points"
+  },
+  {
+    "category": "policy_membership",
+    "title": "3.4 Multiple Account Policy",
+    "content": "As a general rule, one customer may maintain one account.\n\nIf multiple accounts are created, IVY Beauty may:\n\n- Remove promotional eligibility\n\n- Cancel coupons\n\n- Reverse points\n\n- Merge accounts\n\n- Restrict or suspend accounts\n\nIf a separate account is required for a specific company-operated program, IVY Beauty may create or approve an exception.\n\nThe AI must not encourage customers to create additional accounts."
+  },
+  {
+    "category": "policy_professional",
+    "title": "4.1 Program Overview",
+    "content": "IVY Beauty may offer special pricing or discounts to beauty-industry professionals and students enrolled in eligible programs.\n\nApplicants must have an IVY Beauty account.\n\nApplication page:\n\n<https://ivyusa.com/pages/beauty-pro-students>\n\nFront-end button:\n\nApply for Beauty Pro"
+  },
+  {
+    "category": "policy_professional",
+    "title": "4.2 Eligibility",
+    "content": "Potentially eligible applicants include:\n\n- Beauty-industry professionals\n\n- Licensed professionals\n\n- Students enrolled in an eligible beauty-related program\n\n- Other applicants approved by IVY Beauty\n\nFinal eligibility is determined after document review."
+  },
+  {
+    "category": "policy_professional",
+    "title": "4.3 Verification Documents",
+    "content": "Applicants may be asked to submit proof of professional or student status, such as:\n\n- Cosmetology or professional license\n\n- Business documentation\n\n- Student ID\n\n- Proof of enrollment\n\n- School registration documentation\n\nThe AI may not determine whether an application will be approved."
+  },
+  {
+    "category": "policy_professional",
+    "title": "4.4 Discount Benefit",
+    "content": "Beauty Pro members may receive 20% off eligible orders by using their dedicated discount code.\n\nDefault AI response:\n\n“Beauty Pro members can receive 20% off eligible orders by applying their dedicated discount code at checkout.”\n\nWhether the discount can be combined with promotions, rewards, or other codes depends on checkout rules and the applicable program terms."
+  },
+  {
+    "category": "policy_beautizen",
+    "title": "5.1 Current Default Response",
+    "content": "If the Beautizen program is not yet open, the AI must not provide unconfirmed participation or reward details.\n\nDefault AI response:\n\n“The Beautizen program is currently being prepared. Please check back after the program officially launches.”\n\nWhen needed, direct inquiries to:\n\nbeautizen@ivyusa.com"
+  },
+  {
+    "category": "policy_beautizen",
+    "title": "5.2 Planned Program Activities",
+    "content": "The Beautizen program may include:\n\n- Product sampling\n\n- Product reviews\n\n- Social media sharing\n\n- Features on the brand website\n\n- Reward opportunities\n\n- Ambassador networking\n\nUntil the program officially launches, the AI must not guarantee participation or compensation."
+  },
+  {
+    "category": "policy_beautizen",
+    "title": "5.3 Review Rewards",
+    "content": "Current operational concept under review:\n\n- Review points are generally issued on the Friday following review submission\n\n- Inquiries: beautizen@ivyusa.com\n\nThe following still require approval:\n\n- Eligible reviews\n\n- Review moderation criteria\n\n- Reward issuance date\n\n- Ineligible reviews\n\n- Duplicate reviews\n\n- Deleted reviews\n\n- Fake or misleading reviews\n\n- Duplicate rewards\n\n- AI-generated reviews\n\n- Treatment of negative reviews\n\nThe AI must not state that submitting a review guarantees points."
+  },
+  {
+    "category": "policy_beautizen",
+    "title": "5.4 Negative Reviews",
+    "content": "A review should not be excluded from rewards solely because it is negative.\n\nHowever, a review may be ineligible if it includes:\n\n- False or misleading claims\n\n- A review from someone who did not use the product\n\n- Duplicate submissions\n\n- Spam\n\n- Copied content\n\n- Fabricated AI-generated content\n\n- Other policy-violating content"
+  },
+  {
+    "category": "policy_beautizen",
+    "title": "5.5 Sponsored Content Disclosure",
+    "content": "Customers who receive free products, points, or other incentives may be required to clearly disclose the brand relationship under applicable FTC endorsement guidelines.\n\nThe AI should not provide individualized legal advice and should direct participants to the official program guidelines."
+  },
+  {
+    "category": "policy_beautizen",
+    "title": "5.6 Use of Participant Content",
+    "content": "Subject to the final program terms and any required consent, IVY Beauty may repost or use participant-submitted photos, videos, reviews, and social media handles as brand content.\n\nThe following require separate policy approval or consent language:\n\n- Content ownership\n\n- Reposting on official brand accounts\n\n- Use of photos, videos, or social media handles\n\n- Website publication\n\n- Email marketing use\n\n- Paid advertising use\n\n- Editing rights\n\n- Content removal requests\n\n- Copyright\n\n- Right of publicity and likeness rights"
+  },
+  {
+    "category": "policy_roundtable",
+    "title": "6.1 Program Activities",
+    "content": "The RoundTable program may include:\n\n- Surveys\n\n- Product testing\n\n- Focus groups\n\n- New product feedback\n\n- Participation rewards\n\nThe AI should provide an application link only when a program is actively recruiting."
+  },
+  {
+    "category": "policy_roundtable",
+    "title": "6.2.1 Application and Selection",
+    "content": "Submitting an application does not guarantee selection.\n\nSelection criteria may include:\n\n- Age\n\n- Skin type or skin concerns\n\n- Hair type or hair concerns\n\n- Allergies\n\n- Sensitivities\n\n- Pregnancy or breastfeeding status\n\n- Prior product experience\n\n- Other study-specific criteria\n\nThe AI must not guarantee selection."
+  },
+  {
+    "category": "policy_roundtable",
+    "title": "6.2.2 Product Use",
+    "content": "Selected participants must follow the provided instructions and testing period.\n\nTest products may not be transferred, gifted, or resold."
+  },
+  {
+    "category": "policy_roundtable",
+    "title": "6.2.3 Survey and Content Submission",
+    "content": "Participants may be required to submit:\n\n- Testing survey\n\n- Product feedback\n\n- Photos\n\n- Videos\n\n- Product-use log"
+  },
+  {
+    "category": "policy_roundtable",
+    "title": "6.2.4 Incomplete Participation",
+    "content": "Participants who do not complete the product test or required survey may:\n\n- Become ineligible for rewards\n\n- Be restricted from future program participation"
+  },
+  {
+    "category": "policy_roundtable",
+    "title": "6.2.5 Adverse Reactions",
+    "content": "If an adverse reaction occurs during product testing, the participant should stop using the product immediately.\n\nFor severe, persistent, or worsening symptoms, the participant should contact a qualified healthcare professional.\n\nThe AI may not provide medical diagnosis or treatment advice and should direct the customer to Customer Support or the program team."
+  },
+  {
+    "category": "policy_roundtable",
+    "title": "6.3 Focus Groups",
+    "content": "The focus-group policy should address:\n\n- Participant selection\n\n- Attendance date and time\n\n- Rescheduling\n\n- Audio and video recording\n\n- Confidentiality\n\n- Personal information handling\n\n- Compensation\n\n- Event cancellation\n\n- No-show policy\n\nThe AI may not approve attendance, compensation, or exceptions."
+  },
+  {
+    "category": "policy_b2b",
+    "title": "7.1 Current Default Response",
+    "content": "If B2B and wholesale terms have not been finalized, use:\n\n“B2B and wholesale pricing, order requirements, and account terms require review by the appropriate team. Please contact Customer Support for assistance.”\n\nThe AI must not disclose unapproved pricing or contract terms."
+  },
+  {
+    "category": "policy_b2b",
+    "title": "7.2 Wholesale Account Application",
+    "content": "Applicants may be asked to provide:\n\n- Business information\n\n- EIN\n\n- Resale certificate\n\n- Sales tax exemption documentation\n\n- Sales channels\n\n- Website or store information\n\n- Estimated order volume\n\n- Primary contact information\n\nIVY Beauty may approve or decline an application.\n\nApproved accounts may be reviewed periodically."
+  },
+  {
+    "category": "policy_b2b",
+    "title": "7.3 B2B Pricing and Ordering",
+    "content": "The following require final approval:\n\n- Wholesale pricing\n\n- Minimum order quantity\n\n- Minimum order value\n\n- Case-pack requirements\n\n- Quote validity period\n\n- Order changes\n\n- Order cancellations\n\n- Out-of-stock handling\n\n- Partial shipments\n\n- Prepayment requirements\n\n- Credit terms\n\n- Consumer coupon restrictions\n\n- Rewards restrictions\n\nThe AI must not provide pricing or discounts that have not been approved."
+  },
+  {
+    "category": "policy_b2b",
+    "title": "7.4 B2B Shipping",
+    "content": "The B2B shipping policy should address:\n\n- Bulk-order processing time\n\n- Small-parcel shipping\n\n- Freight shipping\n\n- Pallet shipments\n\n- Shipping charges\n\n- Free-shipping eligibility\n\n- Split shipments\n\n- Inspection at delivery\n\n- Shortage claims\n\n- Damage claims\n\n- Transfer of risk"
+  },
+  {
+    "category": "policy_b2b",
+    "title": "7.5 B2B Returns",
+    "content": "The current B2C return policy excludes:\n\n- Bulk orders\n\n- Wholesale orders\n\n- International orders\n\nA separate B2B return policy is required.\n\nThe future policy should address:\n\n- Prior return authorization\n\n- Return window\n\n- Unopened case requirements\n\n- Return shipping\n\n- Restocking fee\n\n- Special-order items\n\n- Discontinued items\n\n- Discounted items\n\n- Defective items\n\n- Missing items\n\n- Damaged items\n\n- Substitutions\n\n- Account credit\n\nThe AI may not approve a B2B return."
+  },
+  {
+    "category": "policy_b2b",
+    "title": "7.6 Authorized Sales Channels",
+    "content": "Sales channels used by B2B customers may require prior approval.\n\nChannels subject to review may include:\n\n- Amazon\n\n- Walmart Marketplace\n\n- eBay\n\n- TikTok Shop\n\n- Brick-and-mortar retail stores\n\n- The customer’s own website\n\n- Dropshipping\n\n- International resale\n\nRestricted activity may include:\n\n- Unauthorized distribution\n\n- Selling on unapproved marketplaces\n\n- Reselling testers\n\n- Reselling free samples\n\n- Unauthorized use of brand images\n\n- Unapproved advertising or product claims"
+  },
+  {
+    "category": "policy_safety",
+    "title": "8.1 Product Use and Patch Testing",
+    "content": "The AI should remind customers to:\n\n- Read the product label\n\n- Follow the directions for use\n\n- Consider a patch test before use\n\n- Review ingredients for known allergens\n\n- Consider individual skin or scalp sensitivity\n\n- Stop use if irritation occurs\n\n- Avoid contact with eyes or mucous membranes\n\n- Keep products out of reach of children\n\nThe AI must not state that a product is safe for every customer."
+  },
+  {
+    "category": "policy_safety",
+    "title": "8.2 Adverse Reactions",
+    "content": "Customers should stop using the product if they experience:\n\n- Rash\n\n- Itching\n\n- Swelling\n\n- Eye irritation\n\n- Pain\n\n- Severe redness\n\n- Difficulty breathing\n\nFor difficulty breathing, severe swelling, or another medical emergency, the customer should seek immediate medical care.\n\nThe AI may not diagnose a condition, recommend treatment, or advise on medication."
+  },
+  {
+    "category": "policy_safety",
+    "title": "8.3 Information for an Adverse Event Report",
+    "content": "Customers may be asked to provide:\n\n- Product name\n\n- Shade, color, or type\n\n- Batch number or lot number\n\n- Order number\n\n- Date of product use\n\n- Date symptoms began\n\n- How the product was used\n\n- Other products used at the same time\n\n- Photos of the symptoms\n\n- Photos of the product\n\n- Whether medical care was sought\n\nSensitive medical information should be requested only when necessary and only to the minimum extent required."
+  },
+  {
+    "category": "policy_safety",
+    "title": "8.4 Internal Escalation",
+    "content": "Serious adverse events should be escalated to the quality or regulatory team.\n\nFollow-up may include:\n\n- Product retrieval\n\n- Additional interview\n\n- Batch or lot verification\n\n- Quality testing\n\n- Record retention\n\n- Regulatory review\n\nThe AI must not state that an adverse event case has been closed or resolved."
+  },
+  {
+    "category": "policy_safety",
+    "title": "8.5 Product Quality Complaints",
+    "content": "The following may be reported as product quality issues:\n\n- Leakage\n\n- Defective container\n\n- Defective pump\n\n- Defective sprayer\n\n- Change in odor\n\n- Change in color\n\n- Foreign material\n\n- Suspected contamination\n\n- Packaging defect\n\nCustomers may be asked to provide:\n\n- Order number\n\n- Product name\n\n- Batch number or lot number\n\n- Photos or video of the issue\n\n- Photos of the packaging\n\nDepending on the review, IVY Beauty may issue a refund or replacement, but the AI may not approve or promise either outcome."
+  },
+  {
+    "category": "policy_fraud",
+    "title": "9.1 Activity Subject to Review",
+    "content": "IVY Beauty may review activity involving:\n\n- Promotion abuse\n\n- Rewards abuse\n\n- False or inaccurate information\n\n- Intentional exploitation of pricing errors\n\n- Multiple-account use\n\n- Repeated abuse of free-shipping offers\n\n- Excessive or abusive returns\n\n- Repeated payment disputes\n\n- Fraudulent or bad-faith chargebacks\n\n- Unauthorized resale\n\n- Unusual or suspicious bulk ordering"
+  },
+  {
+    "category": "policy_fraud",
+    "title": "9.2 Order and Account Review",
+    "content": "If suspicious or abusive activity is identified, IVY Beauty may:\n\n- Place an order on hold\n\n- Consolidate orders\n\n- Cancel an order\n\n- Request additional identity verification\n\n- Verify payment information\n\n- Reverse points\n\n- Cancel coupons\n\n- Restrict account access\n\n- Suspend an account\n\n- Limit future purchases\n\nIf multiple orders are consolidated, shipping charges paid on each order may remain non-refundable."
+  },
+  {
+    "category": "policy_fraud",
+    "title": "9.3 AI Response Standard",
+    "content": "The AI must not disclose internal review criteria, fraud-screening methods, or detection rules.\n\nThe AI must not label a customer as fraudulent or abusive.\n\nDefault AI response:\n\n“Some orders may require additional review based on account, payment, or promotional activity. Please contact Customer Support for more information.”"
+  },
+  {
+    "category": "policy_fraud",
+    "title": "9.4 Requesting a Review",
+    "content": "A customer who disagrees with an account or order restriction may request a review through Customer Support.\n\nRemoving a restriction or approving an exception requires authorized staff review."
+  }
+]

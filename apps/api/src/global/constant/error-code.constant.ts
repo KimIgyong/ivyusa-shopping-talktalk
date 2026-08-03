@@ -13,6 +13,12 @@ export const ERROR_CODE = {
   TENANT_MISMATCH: { code: 'E1006', message: 'Cross-tenant access denied' },
   GUEST_LOOKUP_LIMIT: { code: 'E1007', message: 'Too many lookup attempts, try later' },
   LOGIN_RATE_LIMITED: { code: 'E1008', message: 'Too many login attempts, try again later' },
+  // details.password carries the failed rule keys (see password-policy.util PASSWORD_RULE).
+  PASSWORD_POLICY_VIOLATION: { code: 'E1009', message: 'Password does not meet the password policy' },
+  // MFA (PLN-MFA Stage M1). E1010 is reserved for Stage M3 policy enforcement.
+  MFA_REQUIRED: { code: 'E1010', message: 'Multi-factor authentication required' },
+  MFA_CODE_INVALID: { code: 'E1011', message: 'Invalid or already used MFA code' },
+  MFA_ALREADY_ENROLLED: { code: 'E1012', message: 'MFA is already enrolled for this account' },
 
   // E2xxx — user / invitation
   USER_NOT_FOUND: { code: 'E2001', message: 'User not found' },
@@ -37,7 +43,11 @@ export const ERROR_CODE = {
   VALIDATION_FAILED: { code: 'E5003', message: 'Validation failed' },
   DUPLICATE_RESOURCE: { code: 'E5004', message: 'Resource already exists' },
   TENANT_NOT_FOUND: { code: 'E5005', message: 'Unknown shop domain' },
-  IDENTITY_ERASED: { code: 'E5006', message: 'This person requested erasure of their data' },
+  // Push module (REQ-MobileApp M1)
+  PUSH_TOKEN_INVALID: { code: 'E5006', message: 'Invalid push token' },
+  // E5006 was taken by push on main first; this one moved rather than renumbering a
+  // code already shipped to clients.
+  IDENTITY_ERASED: { code: 'E5007', message: 'This person requested erasure of their data' },
 
   // E9xxx — system
   INTERNAL_ERROR: { code: 'E9001', message: 'Internal server error' },

@@ -1,0 +1,22 @@
+{
+  "expo": {
+    "name": "ShopTalk",
+    "slug": "shoptalk",
+    "version": "1.0.0",
+    "scheme": "shoptalk",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": false,
+    "ios": {
+      "bundleIdentifier": "com.ivyusa.shoptalk",
+      "supportsTablet": false,
+      "infoPlist": {
+        "UIBackgroundModes": ["remote-notification"]
+      }
+    },
+    "android": {
+      "package": "com.ivyusa.shoptalk"
+    },
+    "plugins": ["expo-router", "expo-notifications", "expo-secure-store", "expo-localization"]
+  }
+}

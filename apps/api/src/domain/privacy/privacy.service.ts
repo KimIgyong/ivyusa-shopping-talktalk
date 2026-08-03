@@ -17,6 +17,7 @@ import { CjmEvent } from '../cjm/entity/cjm-event.entity';
 import { Affiliate } from '../affiliate/entity/affiliate.entity';
 import { Subscription } from '../subscription/entity/subscription.entity';
 import { RestockSubscription } from '../restock/entity/restock-subscription.entity';
+import { DeviceToken } from '../push/entity/device-token.entity';
 import { Campaign } from '../campaign/entity/campaign.entity';
 import { Tenant } from '../tenant/entity/tenant.entity';
 import { AuditService } from '../audit/audit.service';
@@ -32,8 +33,8 @@ import { maskPii } from '../../global/util/pii.util';
 import { blindIndex } from '../../global/util/crypto.util';
 
 const REDACTED = '[redacted]';
-const EXTERNAL_CHANNELS = ['email', 'sms', 'web_push'];
-const PREF_CATEGORIES = ['payment', 'shipping', 'event', 'review'];
+const EXTERNAL_CHANNELS = ['email', 'sms', 'web_push', 'push'];
+const PREF_CATEGORIES = ['payment', 'shipping', 'event', 'review', 'chat'];
 
 /**
  * Privacy / consumer-rights logic (audit High-2 GDPR webhooks, High-3 DSAR/CCPA).
@@ -61,6 +62,7 @@ export class PrivacyService {
     @InjectRepository(Subscription) private readonly subscriptionRepo: Repository<Subscription>,
     @InjectRepository(RestockSubscription)
     private readonly restockRepo: Repository<RestockSubscription>,
+    @InjectRepository(DeviceToken) private readonly deviceTokenRepo: Repository<DeviceToken>,
     @InjectRepository(Campaign) private readonly campaignRepo: Repository<Campaign>,
     @InjectRepository(Tenant) private readonly tenantRepo: Repository<Tenant>,
     private readonly sessionService: SessionService,
@@ -85,19 +87,52 @@ export class PrivacyService {
    * irreversible erasure — only the Shopify App Proxy path is strong enough.
    */
   async requireVerifiedCustomerId(sessionToken: string): Promise<number> {
-    // Delegated so the rule lives in one place. Slight change: an *unbound*
-    // session now gets 401 (not authenticated) rather than 403; a bound-but-guest
-    // one still gets 403. Both already read as "sign in first" on the client.
-    return this.sessionService.requireCustomerId(sessionToken, { verified: true });
+    // The rule itself is delegated so it lives in one place (SessionService is the
+    // single widget-session gate). One deliberate difference from the inline version
+    // this replaced: an *unbound* session now gets 401 (not authenticated) while a
+    // bound-but-guest one still gets 403 — both already read as "sign in first".
+    //
+    // The 'denied' audit trail is kept: a refused consumer-rights request is exactly
+    // the kind a regulator asks about, so it must leave a record either way.
+    try {
+      return await this.sessionService.requireCustomerId(sessionToken, { verified: true });
+    } catch (err) {
+      await this.auditDsarDenied(sessionToken);
+      throw err;
+    }
+  }
+
+  /**
+   * Record a refused DSAR attempt (Stage 4). Best-effort on purpose: an audit
+   * failure must never mask the rejection, and a token that resolves to no session
+   * is a bad token rather than a denied consumer right — nothing to attribute.
+   */
+  private async auditDsarDenied(sessionToken: string): Promise<void> {
+    try {
+      const session = await this.sessionRepo.findOne({ where: { sessionToken } });
+      if (!session) return;
+      await this.audit.write({
+        tenantId: session.tenantId ?? null,
+        actorType: 'user',
+        actorId: 0,
+        action: 'dsar.denied',
+        target: session.customerId != null ? `customer:${session.customerId}` : undefined,
+        result: 'denied',
+        metadata: { reason: 'identity_not_verified' },
+      });
+    } catch (err) {
+      this.logger.warn(`dsar.denied audit write failed: ${String(err)}`);
+    }
   }
 
   // ---- Shopify GDPR webhooks ----
 
   /** GDPR "request customer data" — logged; data is compiled out-of-band. */
   async handleCustomerDataRequest(email: string | null): Promise<void> {
+    // Machine writer (Shopify webhook) — 'system', not a phantom admin (Stage 4).
     await this.audit.write({
       tenantId: null,
-      actorType: 'admin',
+      actorType: 'system',
       actorId: 0,
       action: 'gdpr.data_request',
       // Masked (PRV-M5): audit rows must not replicate raw PII.
@@ -114,7 +149,7 @@ export class PrivacyService {
     }
     await this.audit.write({
       tenantId: customer?.tenantId ?? null,
-      actorType: 'admin',
+      actorType: 'system',
       actorId: 0,
       action: 'gdpr.customers_redact',
       target: email ? maskPii(email) : (shopifyCustomerId ?? undefined),
@@ -134,10 +169,11 @@ export class PrivacyService {
     if (!tenant) {
       await this.audit.write({
         tenantId: null,
-        actorType: 'admin',
+        actorType: 'system',
         actorId: 0,
         action: 'gdpr.shop_redact',
         target: shopDomain ?? undefined,
+        metadata: { purged: false },
       });
       return { purged: false };
     }
@@ -147,10 +183,11 @@ export class PrivacyService {
 
     await this.audit.write({
       tenantId,
-      actorType: 'admin',
+      actorType: 'system',
       actorId: 0,
       action: 'gdpr.shop_redact',
       target: shopDomain ?? String(tenantId),
+      metadata: { purged: true },
     });
 
     return { purged: true, tenantId };
@@ -185,6 +222,7 @@ export class PrivacyService {
       await mgr.getRepository(Affiliate).delete({ tenantId });
       await mgr.getRepository(Subscription).delete({ tenantId });
       await mgr.getRepository(RestockSubscription).delete({ tenantId });
+      await mgr.getRepository(DeviceToken).delete({ tenantId });
       await mgr.getRepository(Inquiry).delete({ tenantId });
       await mgr.getRepository(CjmEvent).delete({ tenantId });
       await mgr.getRepository(Campaign).delete({ tenantId });
@@ -245,13 +283,16 @@ export class PrivacyService {
     }
 
     // PII-access audit (best-effort; never fail the export on audit error).
+    // Machine-assembled export — 'system' actor, not a phantom user (Stage 4).
     try {
       await this.audit.write({
         tenantId: customer?.tenantId ?? null,
-        actorType: 'user',
+        actorType: 'system',
         actorId: 0,
         action: 'dsar.export',
         target: maskPii(customer?.email ?? null),
+        result: 'success',
+        metadata: { kind: 'export', customerId },
       });
     } catch (err) {
       this.logger.warn(`dsar.export audit write failed: ${String(err)}`);
@@ -357,12 +398,14 @@ export class PrivacyService {
         propagate: true,
       });
     }
+    // Machine-executed erasure — 'system' actor, not a phantom admin (Stage 4).
     await this.audit.write({
       tenantId: customer?.tenantId ?? null,
-      actorType: 'admin',
+      actorType: 'system',
       actorId: 0,
       action: 'dsar.delete',
       target: String(customerId),
+      metadata: { kind: 'erasure' },
     });
   }
 
@@ -376,17 +419,12 @@ export class PrivacyService {
     const customerId = session.customerId as number;
     const enabled = optOut ? 0 : 1;
 
-    for (const channel of EXTERNAL_CHANNELS) {
-      for (const category of PREF_CATEGORIES) {
-        let pref = await this.prefRepo.findOne({ where: { customerId, channel, category } });
-        if (pref) {
-          pref.enabled = enabled;
-        } else {
-          pref = this.prefRepo.create({ customerId, channel, category, enabled });
-        }
-        await this.prefRepo.save(pref);
-      }
-    }
+    // Bulk upsert the full external-channel × category grid in one statement,
+    // keyed on the uk_pref (customer_id, channel, category) unique constraint.
+    const rows = EXTERNAL_CHANNELS.flatMap((channel) =>
+      PREF_CATEGORIES.map((category) => ({ customerId, channel, category, enabled })),
+    );
+    await this.prefRepo.upsert(rows, ['customerId', 'channel', 'category']);
 
     // Attribute the action to the consumer's own session, in their tenant —
     // not to a phantom admin (PRV-M2 audit-actor fix).
@@ -396,6 +434,8 @@ export class PrivacyService {
       actorId: 0,
       action: 'ccpa.opt_out',
       target: `customer:${customerId} optOut=${optOut}`,
+      result: 'success',
+      metadata: { optOut, customerId },
     });
   }
 
@@ -405,6 +445,9 @@ export class PrivacyService {
     const prefs = await this.prefRepo.find({
       where: { customerId, channel: In(EXTERNAL_CHANNELS) },
     });
+    // Zero rows = the customer never touched prefs and never opted out → false.
+    // (Delivery-side suppression is separate: with no rows, marketing categories
+    // are still default-denied at NotificationService.isSuppressed — D-4.)
     if (prefs.length === 0) return false;
     return prefs.every((p) => p.enabled === 0);
   }
@@ -476,10 +519,12 @@ export class PrivacyService {
     await this.notificationRepo.update({ customerId }, { title: REDACTED, body: REDACTED });
 
     // Marketing/engagement state tied to the person: delete outright (PRV-H2).
+    // Device push tokens are contact endpoints — same treatment.
     await this.prefRepo.delete({ customerId });
     await this.subscriptionRepo.delete({ customerId });
     await this.restockRepo.delete({ customerId });
     await this.affiliateRepo.delete({ customerId });
+    await this.deviceTokenRepo.delete({ customerId });
 
     // Reviews: null out free-text body.
     await this.reviewRepo.update({ customerId }, { body: null });

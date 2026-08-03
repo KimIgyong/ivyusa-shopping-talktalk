@@ -12,6 +12,7 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CAPABILITY, Principal, USER_RANK } from '@ivy/types';
 import { buildPagination, normalizePage } from '@ivy/common';
 import { UserService } from './user.service';
+import { MfaService } from '../auth/mfa.service';
 import { Paginated } from '../../global/interceptor/transform.interceptor';
 import { Public } from '../../global/decorator/public.decorator';
 import { RequireCapability, RequireRank } from '../../global/decorator/auth.decorator';
@@ -28,7 +29,10 @@ import {
 @ApiTags('Users')
 @Controller('users')
 export class UserController {
-  constructor(private readonly userService: UserService) {}
+  constructor(
+    private readonly userService: UserService,
+    private readonly mfaService: MfaService,
+  ) {}
 
   @Get()
   @RequireRank(USER_RANK.MASTER, USER_RANK.DIRECTOR, USER_RANK.MANAGER)
@@ -71,6 +75,14 @@ export class UserController {
   issueTempPassword(@CurrentUser() user: Principal, @Param('id', ParseIntPipe) id: number) {
     const actor = asTenantUser(user);
     return this.userService.issueTempPassword(actor.tenantId, id, actor.userId);
+  }
+
+  @Post(':id/mfa-reset')
+  @RequireCapability(CAPABILITY.USER_INVITE)
+  @ApiOperation({ summary: 'Reset a user MFA credential (target re-enrolls at next login)' })
+  resetMfa(@CurrentUser() user: Principal, @Param('id', ParseIntPipe) id: number) {
+    const actor = asTenantUser(user);
+    return this.mfaService.resetForUser(actor.tenantId, id, user);
   }
 
   @Patch(':id/rank')

@@ -1,5 +1,5 @@
 import { randomUUID } from 'crypto';
-import { HttpStatus, Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
@@ -8,7 +8,12 @@ import * as bcrypt from 'bcryptjs';
 import { RedisService } from '../../infrastructure/cache/redis.service';
 import { AuditService } from '../audit/audit.service';
 import { maskPii } from '../../global/util/pii.util';
-import { BCRYPT_ROUNDS } from '../../global/constant/security.constant';
+import {
+  BCRYPT_ROUNDS,
+  MFA_REQUIRED_USER_RANKS,
+  MFA_STEP_UP_TTL_SEC,
+} from '../../global/constant/security.constant';
+import { validatePassword } from '../../global/util/password-policy.util';
 import { AdminLevel, JobLabel, Principal, UserRank } from '@ivy/types';
 import { AdminUser } from './entity/admin-user.entity';
 import { User } from '../user/entity/user.entity';
@@ -17,8 +22,13 @@ import { UserJobLabel } from '../user/entity/user-job-label.entity';
 import { Tenant } from '../tenant/entity/tenant.entity';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
-import { AuthTokensResponse, PrincipalResponse } from './dto/response/auth.response';
+import {
+  AuthTokensResponse,
+  MfaChallengeResponse,
+  PrincipalResponse,
+} from './dto/response/auth.response';
 import { LoginRateLimitService } from './login-rate-limit.service';
+import { MfaService } from './mfa.service';
 
 /** Refresh-token JWT claims beyond the principal. */
 interface RefreshPayload {
@@ -26,6 +36,27 @@ interface RefreshPayload {
   jti?: string;
   iat?: number;
 }
+
+/** Purpose-limited step-up token claims (PLN-MFA Stage M1). */
+interface MfaStepUpPayload {
+  sub?: string;
+  actorType?: string;
+  purpose?: string;
+}
+
+/**
+ * MFA-enrollment enforcement state for one account (PLN-MFA Stage M3).
+ * `required` — the rank must enroll and MFA_ENFORCE_FROM is set;
+ * `enforced` — the enforcement date has passed, so the access token carries
+ * `mfaPending` and JwtAuthGuard locks non-enrollment routes (E1010).
+ */
+interface MfaEnforcementInfo {
+  required: boolean;
+  enforceFrom: string | null;
+  enforced: boolean;
+}
+
+const MFA_NOT_ENFORCED: MfaEnforcementInfo = { required: false, enforceFrom: null, enforced: false };
 
 /**
  * Authentication (SEQ-02 partial; FR-053/054, POL-018). Issues short-lived
@@ -40,6 +71,8 @@ interface RefreshPayload {
  */
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     @InjectRepository(AdminUser) private readonly adminRepo: Repository<AdminUser>,
     @InjectRepository(User) private readonly userRepo: Repository<User>,
@@ -51,6 +84,7 @@ export class AuthService {
     private readonly loginLimiter: LoginRateLimitService,
     private readonly redis: RedisService,
     private readonly audit: AuditService,
+    private readonly mfa: MfaService,
   ) {}
 
   /** Best-effort audit (PRV-H4): auth flows must not fail on an audit-write error. */
@@ -62,7 +96,11 @@ export class AuthService {
     }
   }
 
-  async loginAdmin(email: string, password: string, clientIp: string): Promise<AuthTokensResponse> {
+  async loginAdmin(
+    email: string,
+    password: string,
+    clientIp: string,
+  ): Promise<AuthTokensResponse | MfaChallengeResponse> {
     await this.loginLimiter.assertNotLocked('admin', email, clientIp);
     const admin = await this.adminRepo.findOne({ where: { email } });
     if (!admin?.passwordHash || !(await bcrypt.compare(password, admin.passwordHash))) {
@@ -77,6 +115,10 @@ export class AuthService {
       throw new BusinessException(ERROR_CODE.INVALID_CREDENTIALS, HttpStatus.UNAUTHORIZED);
     }
     await this.loginLimiter.recordSuccess('admin', email);
+    // MFA step-up (PLN-MFA M1): password OK but the login is NOT complete —
+    // no tokens, no principal, no auth.login audit until /auth/mfa/verify.
+    const challenge = await this.mfaChallengeIfEnabled('admin', admin.id);
+    if (challenge) return challenge;
     await this.auditSafe({
       tenantId: null,
       actorType: 'admin',
@@ -90,12 +132,18 @@ export class AuthService {
       email: admin.email,
       level: admin.level as AdminLevel,
     };
-    return this.issue(principal, admin.mustChangePassword === 1, {
-      actorType: 'admin',
-      id: admin.id,
-      email: admin.email,
-      level: admin.level as AdminLevel,
-    });
+    return this.issue(
+      principal,
+      admin.mustChangePassword === 1,
+      {
+        actorType: 'admin',
+        id: admin.id,
+        email: admin.email,
+        level: admin.level as AdminLevel,
+      },
+      // challenge==null ⇒ MFA not enabled for this account (M3 flags apply).
+      this.mfaEnforcementFor('admin', undefined, false),
+    );
   }
 
   async loginUser(
@@ -104,7 +152,7 @@ export class AuthService {
     clientIp: string,
     shopDomain?: string,
     tenantSlug?: string,
-  ): Promise<AuthTokensResponse> {
+  ): Promise<AuthTokensResponse | MfaChallengeResponse> {
     await this.loginLimiter.assertNotLocked('user', email, clientIp);
     const tenant = tenantSlug
       ? await this.tenantRepo.findOne({ where: { slug: tenantSlug } })
@@ -135,12 +183,112 @@ export class AuthService {
     if (user.status === 'suspended' || tenant.status === 'suspended') {
       throw new BusinessException(ERROR_CODE.FORBIDDEN, HttpStatus.FORBIDDEN);
     }
+    // MFA step-up (PLN-MFA M1): see loginAdmin — the login completes at verify.
+    const challenge = await this.mfaChallengeIfEnabled('user', user.id);
+    if (challenge) return challenge;
     await this.auditSafe({
       tenantId: user.tenantId,
       actorType: 'user',
       actorId: user.id,
       action: 'auth.login',
       target: maskPii(email),
+    });
+    const labels = await this.loadLabels(user.id);
+    const principal: Principal = {
+      actorType: 'user',
+      userId: user.id,
+      tenantId: user.tenantId,
+      email: user.email,
+      rank: user.rank as UserRank,
+      labels,
+    };
+    return this.issue(
+      principal,
+      user.mustChangePassword === 1,
+      {
+        actorType: 'user',
+        id: user.id,
+        email: user.email,
+        tenantId: user.tenantId,
+        rank: user.rank as UserRank,
+        labels,
+      },
+      // challenge==null ⇒ MFA not enabled for this account (M3 flags apply).
+      this.mfaEnforcementFor('user', user.rank, false),
+    );
+  }
+
+  /**
+   * Step-up verification (POST /auth/mfa/verify — @Public; the mfa_token IS the
+   * credential). Accepts a 6-digit TOTP or a recovery code, then issues EXACTLY
+   * the same response as the corresponding successful login. Rate limited by
+   * actor+ip (login-rate-limit pattern); invalid/reused codes are E1011,
+   * invalid/expired/mispurposed tokens are the existing 401.
+   */
+  async verifyMfa(mfaToken: string, code: string, clientIp: string): Promise<AuthTokensResponse> {
+    let payload: MfaStepUpPayload;
+    try {
+      payload = await this.jwt.verifyAsync<MfaStepUpPayload>(mfaToken, { algorithms: ['HS256'] });
+    } catch {
+      throw new BusinessException(ERROR_CODE.UNAUTHORIZED, HttpStatus.UNAUTHORIZED);
+    }
+    if (
+      payload.purpose !== 'mfa' ||
+      !payload.sub ||
+      (payload.actorType !== 'admin' && payload.actorType !== 'user')
+    ) {
+      this.logger.warn('mfa verify rejected: token is not an mfa step-up token');
+      throw new BusinessException(ERROR_CODE.UNAUTHORIZED, HttpStatus.UNAUTHORIZED);
+    }
+    const actorType = payload.actorType;
+    const actorId = Number(payload.sub);
+    const limiterKey = this.mfa.limiterKey({ actorType, actorId });
+    await this.loginLimiter.assertNotLocked('mfa', limiterKey, clientIp);
+
+    if (actorType === 'admin') {
+      const admin = await this.adminRepo.findOne({ where: { id: actorId } });
+      if (!admin) {
+        throw new BusinessException(ERROR_CODE.UNAUTHORIZED, HttpStatus.UNAUTHORIZED);
+      }
+      await this.consumeMfaCode('admin', admin.id, null, admin.email, code, limiterKey, clientIp);
+      await this.auditSafe({
+        tenantId: null,
+        actorType: 'admin',
+        actorId: admin.id,
+        action: 'auth.login',
+        target: maskPii(admin.email),
+        metadata: { mfa: true },
+      });
+      const principal: Principal = {
+        actorType: 'admin',
+        adminId: admin.id,
+        email: admin.email,
+        level: admin.level as AdminLevel,
+      };
+      return this.issue(principal, admin.mustChangePassword === 1, {
+        actorType: 'admin',
+        id: admin.id,
+        email: admin.email,
+        level: admin.level as AdminLevel,
+      });
+    }
+
+    const user = await this.userRepo.findOne({ where: { id: actorId } });
+    if (!user) {
+      throw new BusinessException(ERROR_CODE.UNAUTHORIZED, HttpStatus.UNAUTHORIZED);
+    }
+    const tenant = await this.tenantRepo.findOne({ where: { id: user.tenantId } });
+    if (user.status === 'suspended' || tenant?.status === 'suspended') {
+      throw new BusinessException(ERROR_CODE.FORBIDDEN, HttpStatus.FORBIDDEN);
+    }
+    await this.consumeMfaCode('user', user.id, user.tenantId, user.email, code, limiterKey, clientIp);
+    await this.auditSafe({
+      tenantId: user.tenantId,
+      actorType: 'user',
+      actorId: user.id,
+      action: 'auth.login',
+      target: maskPii(user.email),
+      metadata: { mfa: true },
     });
     const labels = await this.loadLabels(user.id);
     const principal: Principal = {
@@ -197,12 +345,17 @@ export class AuthService {
         email: admin.email,
         level: admin.level as AdminLevel,
       };
-      return this.issue(principal, admin.mustChangePassword === 1, {
-        actorType: 'admin',
-        id: admin.id,
-        email: admin.email,
-        level: admin.level as AdminLevel,
-      });
+      return this.issue(
+        principal,
+        admin.mustChangePassword === 1,
+        {
+          actorType: 'admin',
+          id: admin.id,
+          email: admin.email,
+          level: admin.level as AdminLevel,
+        },
+        await this.mfaEnforcementWithLookup('admin', admin.id, undefined),
+      );
     }
     const user = await this.userRepo.findOne({ where: { id: payload.userId } });
     if (!user || user.status === 'suspended') {
@@ -218,14 +371,19 @@ export class AuthService {
       rank: user.rank as UserRank,
       labels,
     };
-    return this.issue(principal, user.mustChangePassword === 1, {
-      actorType: 'user',
-      id: user.id,
-      email: user.email,
-      tenantId: user.tenantId,
-      rank: user.rank as UserRank,
-      labels,
-    });
+    return this.issue(
+      principal,
+      user.mustChangePassword === 1,
+      {
+        actorType: 'user',
+        id: user.id,
+        email: user.email,
+        tenantId: user.tenantId,
+        rank: user.rank as UserRank,
+        labels,
+      },
+      await this.mfaEnforcementWithLookup('user', user.id, user.rank),
+    );
   }
 
   /**
@@ -240,7 +398,7 @@ export class AuthService {
   ): Promise<AuthTokensResponse> {
     if (principal.actorType === 'admin') {
       const admin = await this.adminRepo.findOneByOrFail({ id: principal.adminId });
-      await this.assertAndSet(admin.passwordHash, current, next, async (hash) => {
+      await this.assertAndSet(admin.passwordHash, current, next, { email: admin.email }, async (hash) => {
         admin.passwordHash = hash;
         admin.mustChangePassword = 0;
         admin.passwordChangedAt = new Date();
@@ -252,10 +410,15 @@ export class AuthService {
         actorId: admin.id,
         action: 'auth.password_changed',
       });
-      return this.issue(principal, false, this.toPrincipalResponse(principal));
+      return this.issue(
+        principal,
+        false,
+        this.toPrincipalResponse(principal),
+        await this.mfaEnforcementWithLookup('admin', admin.id, undefined),
+      );
     }
     const user = await this.userRepo.findOneByOrFail({ id: principal.userId });
-    await this.assertAndSet(user.passwordHash, current, next, async (hash) => {
+    await this.assertAndSet(user.passwordHash, current, next, { email: user.email, name: user.name }, async (hash) => {
       user.passwordHash = hash;
       user.mustChangePassword = 0;
       user.passwordChangedAt = new Date();
@@ -267,7 +430,12 @@ export class AuthService {
       actorId: user.id,
       action: 'auth.password_changed',
     });
-    return this.issue(principal, false, this.toPrincipalResponse(principal));
+    return this.issue(
+      principal,
+      false,
+      this.toPrincipalResponse(principal),
+      await this.mfaEnforcementWithLookup('user', user.id, user.rank),
+    );
   }
 
   /** Revoke the presented refresh token (best-effort; invalid tokens are ignored). */
@@ -290,6 +458,45 @@ export class AuthService {
   }
 
   // ---- helpers ----
+
+  /**
+   * When the account has an active MFA credential, mint the purpose-limited
+   * step-up JWT (5 min, `purpose:'mfa'` — rejected by JwtAuthGuard for normal
+   * APIs) and return the challenge instead of tokens.
+   */
+  private async mfaChallengeIfEnabled(
+    actorType: 'admin' | 'user',
+    actorId: number,
+  ): Promise<MfaChallengeResponse | null> {
+    if (!(await this.mfa.isEnabled(actorType, actorId))) return null;
+    const mfaToken = this.jwt.sign(
+      { sub: String(actorId), actorType, purpose: 'mfa' },
+      { expiresIn: MFA_STEP_UP_TTL_SEC },
+    );
+    return { mfaRequired: true, mfaToken };
+  }
+
+  /** Consume a TOTP/recovery code, recording rate-limit failures per actor+ip. */
+  private async consumeMfaCode(
+    actorType: 'admin' | 'user',
+    actorId: number,
+    tenantId: number | null,
+    email: string,
+    code: string,
+    limiterKey: string,
+    clientIp: string,
+  ): Promise<void> {
+    try {
+      await this.mfa.consumeLoginCode(actorType, actorId, tenantId, email, code);
+    } catch (e) {
+      if (e instanceof BusinessException && e.errorCode === ERROR_CODE.MFA_CODE_INVALID.code) {
+        await this.loginLimiter.recordFailure('mfa', limiterKey, clientIp);
+      }
+      throw e;
+    }
+    await this.loginLimiter.recordSuccess('mfa', limiterKey);
+  }
+
   private async loadLabels(userId: number): Promise<JobLabel[]> {
     const links = await this.userLabelRepo.find({ where: { userId } });
     if (!links.length) return [];
@@ -297,22 +504,116 @@ export class AuthService {
     return labels.map((l) => l.code as JobLabel);
   }
 
+  /**
+   * Verify the current password, enforce the password policy on the NEW one
+   * (service-layer double enforcement — DTO validation can be bypassed), then
+   * hash and persist. Policy failures are E1009 with the failed rule keys in
+   * `details.password`, and warned to the log (4xx are not logged by default).
+   */
   private async assertAndSet(
     currentHash: string | null,
     current: string,
     next: string,
+    identity: { email?: string | null; name?: string | null },
     save: (hash: string) => Promise<void>,
   ): Promise<void> {
     if (!currentHash || !(await bcrypt.compare(current, currentHash))) {
       throw new BusinessException(ERROR_CODE.INVALID_CREDENTIALS, HttpStatus.UNAUTHORIZED);
     }
+    const policy = validatePassword(next, { ...identity, currentPasswordPlain: current });
+    if (!policy.ok) {
+      this.logger.warn(
+        `password change rejected by policy [${policy.failed.join(', ')}] for ${maskPii(identity.email ?? '')}`,
+      );
+      throw new BusinessException(ERROR_CODE.PASSWORD_POLICY_VIOLATION, HttpStatus.BAD_REQUEST, {
+        password: policy.failed,
+      });
+    }
     await save(await bcrypt.hash(next, BCRYPT_ROUNDS));
+  }
+
+  /**
+   * MFA-enrollment enforcement (Stage M3, D-M1/D-M2). Driven by the
+   * MFA_ENFORCE_FROM env var (ISO date): unset → capability only, no flags.
+   * Enrolled accounts and non-required ranks never carry flags. Before the
+   * date the login response advises (grace banner); after it the token gets
+   * `mfaPending` and the guard locks the account to the enrollment routes.
+   */
+  private mfaEnforcementFor(
+    actorType: 'admin' | 'user',
+    rank: string | undefined,
+    enrolled: boolean,
+  ): MfaEnforcementInfo {
+    const raw = (this.config.get<string>('MFA_ENFORCE_FROM') ?? '').trim();
+    if (!raw || enrolled) return MFA_NOT_ENFORCED;
+    const requiredRank =
+      actorType === 'admin' || (rank != null && MFA_REQUIRED_USER_RANKS.includes(rank));
+    if (!requiredRank) return MFA_NOT_ENFORCED;
+    const ts = Date.parse(raw);
+    if (Number.isNaN(ts)) {
+      this.logger.warn(`MFA_ENFORCE_FROM is not a parseable date: "${raw}" — enforcement inactive`);
+      return MFA_NOT_ENFORCED;
+    }
+    return { required: true, enforceFrom: new Date(ts).toISOString(), enforced: Date.now() >= ts };
+  }
+
+  /** Enforcement info for flows where enrollment isn't already known (refresh, change-password). */
+  private async mfaEnforcementWithLookup(
+    actorType: 'admin' | 'user',
+    actorId: number,
+    rank: string | undefined,
+  ): Promise<MfaEnforcementInfo> {
+    // Skip the DB lookup entirely when enforcement can't apply.
+    if (this.mfaEnforcementFor(actorType, rank, false) === MFA_NOT_ENFORCED) return MFA_NOT_ENFORCED;
+    const enrolled = await this.mfa.isEnabled(actorType, actorId);
+    return this.mfaEnforcementFor(actorType, rank, enrolled);
+  }
+
+  /**
+   * Fresh token pair right after MFA activation so the client can immediately
+   * drop a `mfaPending`-locked access token (Stage M3).
+   */
+  async reissueAfterMfaEnroll(principal: Principal): Promise<AuthTokensResponse> {
+    if (principal.actorType === 'admin') {
+      const admin = await this.adminRepo.findOneByOrFail({ id: principal.adminId });
+      const p: Principal = {
+        actorType: 'admin',
+        adminId: admin.id,
+        email: admin.email,
+        level: admin.level as AdminLevel,
+      };
+      return this.issue(p, admin.mustChangePassword === 1, {
+        actorType: 'admin',
+        id: admin.id,
+        email: admin.email,
+        level: admin.level as AdminLevel,
+      });
+    }
+    const user = await this.userRepo.findOneByOrFail({ id: principal.userId });
+    const labels = await this.loadLabels(user.id);
+    const p: Principal = {
+      actorType: 'user',
+      userId: user.id,
+      tenantId: user.tenantId,
+      email: user.email,
+      rank: user.rank as UserRank,
+      labels,
+    };
+    return this.issue(p, user.mustChangePassword === 1, {
+      actorType: 'user',
+      id: user.id,
+      email: user.email,
+      tenantId: user.tenantId,
+      rank: user.rank as UserRank,
+      labels,
+    });
   }
 
   private async issue(
     rawPrincipal: Principal,
     mustChangePassword: boolean,
     principalResponse: PrincipalResponse,
+    mfa: MfaEnforcementInfo = MFA_NOT_ENFORCED,
   ): Promise<AuthTokensResponse> {
     // Allowlist the principal fields: callers may pass req.user, which is the
     // decoded JWT payload and carries iat/exp/pwdPending — re-signing those
@@ -324,6 +625,9 @@ export class AuthService {
     const accessToken = this.jwt.sign({
       ...(principal as object),
       ...(mustChangePassword ? { pwdPending: true } : {}),
+      // mfa-pending rides in the ACCESS token, same as pwdPending, so the
+      // guard can enforce the enrollment lockout without a DB hit (M3).
+      ...(mfa.enforced ? { mfaPending: true } : {}),
     });
     const refreshTtl = Number(this.config.get<string>('JWT_REFRESH_TTL', '604800'));
     const jti = randomUUID();
@@ -335,7 +639,15 @@ export class AuthService {
       },
     );
     await this.redis.set(this.refreshKey(jti), '1', refreshTtl);
-    return { accessToken, refreshToken, mustChangePassword, principal: principalResponse };
+    return {
+      accessToken,
+      refreshToken,
+      mustChangePassword,
+      principal: principalResponse,
+      mfaEnrollmentRequired: mfa.required,
+      mfaEnforceFrom: mfa.enforceFrom,
+      mfaEnforced: mfa.enforced,
+    };
   }
 
   private refreshKey(jti: string): string {

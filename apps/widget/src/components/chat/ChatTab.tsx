@@ -4,7 +4,9 @@ import { useTranslation } from 'react-i18next';
 import { useWidgetStore } from '../../store/widgetStore';
 import { useChat } from '../../hooks/useChat';
 import { useScenario } from '../../hooks/useScenario';
-import { setConsent } from '../../services/sessionService';
+import { getShopDomain } from '../../hooks/useSession';
+import { ensureSession, setConsent } from '../../services/sessionService';
+import { getStoredConsent, setStoredConsent } from '../../lib/consent';
 import type { ScenarioButton } from '../../lib/types';
 import { MessageBubble } from './MessageBubble';
 import { ConsentBanner } from './ConsentBanner';
@@ -12,8 +14,6 @@ import { ScenarioMenu, type SubAction } from './ScenarioMenu';
 import { AuthGate } from './AuthGate';
 import { ContactCard } from './ContactCard';
 import { AffiliateCard } from './AffiliateCard';
-
-const CONSENT_KEY = 'ivy_consent';
 
 type Inline = 'auth' | 'contact' | 'affiliate' | null;
 
@@ -24,22 +24,22 @@ export function ChatTab() {
   const customerName = useWidgetStore((s) => s.customerName);
   const setAuthenticated = useWidgetStore((s) => s.setAuthenticated);
   const setActiveTab = useWidgetStore((s) => s.setActiveTab);
+  const setSessionToken = useWidgetStore((s) => s.setSessionToken);
+  const setSettingsOpen = useWidgetStore((s) => s.setSettingsOpen);
+  const consent = useWidgetStore((s) => s.consent);
+  const updateConsentState = useWidgetStore((s) => s.updateConsentState);
+  const language = useWidgetStore((s) => s.language);
   const pendingChatMessage = useWidgetStore((s) => s.pendingChatMessage);
   const consumeChatMessage = useWidgetStore((s) => s.consumeChatMessage);
 
   const { messages, send, scenario, sending, escalate } = useChat(sessionToken);
   const scenarioButtons = useScenario(sessionToken);
 
-  // CCPA notice choice. Guests may chat (non-personal product/FAQ) regardless of
-  // the choice (FN-008); the banner just shows until a choice is recorded.
-  const [consentChoice, setConsentChoice] = useState<'granted' | 'denied' | null>(() => {
-    try {
-      const v = localStorage.getItem(CONSENT_KEY);
-      return v === 'granted' ? 'granted' : v === 'denied' ? 'denied' : null;
-    } catch {
-      return null;
-    }
-  });
+  // CCPA notice choice — local cache only used until session/ensure reports the
+  // server-side state (the server is the source of truth; see showConsentBanner).
+  const [consentChoice, setConsentChoice] = useState<'granted' | 'denied' | null>(
+    () => getStoredConsent(),
+  );
   const [input, setInput] = useState('');
   const [inline, setInline] = useState<Inline>(null);
   const [showEscalate, setShowEscalate] = useState(false);
@@ -52,15 +52,35 @@ export function ChatTab() {
     });
   }, [messages, inline, showEscalate]);
 
-  function recordConsent(granted: boolean) {
-    try {
-      localStorage.setItem(CONSENT_KEY, granted ? 'granted' : 'denied');
-    } catch {
-      /* ignore */
+  /**
+   * Fail-closed consent recording: nothing is persisted (localStorage, store,
+   * banner) until the server acknowledged the choice. Errors propagate to the
+   * ConsentBanner, which keeps itself open and offers a retry.
+   */
+  async function recordConsent(granted: boolean): Promise<void> {
+    let token = sessionToken;
+    if (!token) {
+      // Session may not exist yet (e.g. first ensure failed) — establish one.
+      const res = await ensureSession(null, language, getShopDomain());
+      token = res.sessionToken;
+      setSessionToken(token);
     }
+    const result = await setConsent(token, granted);
+    setStoredConsent(granted);
     setConsentChoice(granted ? 'granted' : 'denied');
-    if (sessionToken) setConsent(sessionToken, granted).catch(() => {});
+    updateConsentState(
+      granted ? 'granted' : 'declined',
+      new Date().toISOString(),
+      result.consentVersion,
+    );
   }
+
+  // Server is the source of truth once session/ensure reported: pending or an
+  // outdated notice version re-prompts regardless of the local cache. Before
+  // the first ensure resolves (or offline), fall back to the local choice.
+  const showConsentBanner = consent
+    ? consent.state === 'pending' || consent.noticeOutdated
+    : consentChoice === null;
 
   async function doSend(text: string) {
     const res = await send(text);
@@ -183,10 +203,14 @@ export function ChatTab() {
         aria-label={t('a11y.messageThread')}
         className="scroll-thin flex-1 space-y-3 overflow-y-auto p-3"
       >
-        {consentChoice === null && (
+        {showConsentBanner && (
           <ConsentBanner
+            version={consent?.noticeVersion}
+            privacyPolicyUrl={consent?.privacyPolicyUrl}
+            noticeOutdated={consent?.noticeOutdated}
             onAccept={() => recordConsent(true)}
             onDecline={() => recordConsent(false)}
+            onOpenPrivacySettings={() => setSettingsOpen(true)}
           />
         )}
 

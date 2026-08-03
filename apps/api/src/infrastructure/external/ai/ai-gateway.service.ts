@@ -5,9 +5,15 @@ import { AiFunction } from '@ivy/types';
 import { AiEngine } from '../../../domain/ai-engine/entity/ai-engine.entity';
 import { TenantAiSetting } from '../../../domain/ai-engine/entity/tenant-ai-setting.entity';
 import { decryptSecret } from '../../../global/util/crypto.util';
-import { AiAdapter, AiCompletionResult, AiMessage } from './ai-adapter.interface';
+import {
+  AiAdapter,
+  AiCompletionResult,
+  AiEmbeddingResult,
+  AiMessage,
+} from './ai-adapter.interface';
 import { StubAdapter } from './adapters/stub.adapter';
 import { AnthropicAdapter } from './adapters/anthropic.adapter';
+import { VoyageAdapter } from './adapters/voyage.adapter';
 
 export interface GatewayRequest {
   tenantId: number;
@@ -34,10 +40,12 @@ export class AiGatewayService {
     @InjectRepository(TenantAiSetting) private readonly settingRepo: Repository<TenantAiSetting>,
     stub: StubAdapter,
     anthropic: AnthropicAdapter,
+    voyage: VoyageAdapter,
   ) {
     this.adapters = new Map<string, AiAdapter>([
       [stub.provider, stub],
       [anthropic.provider, anthropic],
+      [voyage.provider, voyage],
     ]);
   }
 
@@ -65,6 +73,26 @@ export class AiGatewayService {
         model: 'stub-1',
       });
     }
+  }
+
+  /**
+   * Embed texts for vector retrieval. Deliberately NOT tenant-routed: all
+   * tenants share one Qdrant collection, so every point must come from the
+   * same model/vector space. Voyage when VOYAGE_API_KEY is set, else the
+   * deterministic stub (keyless dev). Errors degrade to the stub so KB writes
+   * never hard-fail on the embedding step.
+   */
+  async embed(texts: string[], inputType: 'query' | 'document'): Promise<AiEmbeddingResult> {
+    const voyage = this.adapters.get('voyage')!;
+    const stub = this.adapters.get('stub')!;
+    if (process.env.VOYAGE_API_KEY) {
+      try {
+        return await voyage.embed!({ texts, inputType });
+      } catch (e) {
+        this.logger.warn(`Voyage embed failed, falling back to stub: ${(e as Error).message}`);
+      }
+    }
+    return stub.embed!({ texts, inputType });
   }
 
   private async resolveEngine(tenantId: number, fn: AiFunction): Promise<AiEngine | null> {

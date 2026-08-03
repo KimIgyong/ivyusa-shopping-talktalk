@@ -17,6 +17,22 @@
   "secretOptional": "Secret (optional)",
   "secretPlaceholder": "Enter secret",
   "empty": "No integrations available.",
+  "privacyNotice": {
+    "title": "Privacy Notice",
+    "subtitle": "Configure the consent notice shown to widget visitors.",
+    "cardTitle": "Consent notice settings",
+    "policyUrl": "Privacy policy URL",
+    "policyUrlPlaceholder": "https://your-store.com/privacy",
+    "policyUrlHint": "Shown as a link in the widget consent banner. Leave empty to hide the link.",
+    "invalidUrl": "Enter a valid URL starting with http:// or https://.",
+    "version": "Consent notice version",
+    "versionPlaceholder": "e.g. 2026-07",
+    "invalidVersion": "Use letters, digits, dots, dashes or underscores (must start with a letter or digit, max 32).",
+    "versionDefaultHint": "Empty means the platform default version is in effect.",
+    "versionWarning": "Changing the version re-prompts every customer for consent. Their chat will show the notice again until they accept or decline.",
+    "saved": "Privacy notice settings saved.",
+    "saveError": "Failed to save privacy notice settings."
+  },
   "shopify": {
     "title": "Shopify connection",
     "subtitle": "The shop address and API token that bind this widget to your Shopify store.",
