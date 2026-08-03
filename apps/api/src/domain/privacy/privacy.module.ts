@@ -19,8 +19,11 @@ import { RestockSubscription } from '../restock/entity/restock-subscription.enti
 import { Campaign } from '../campaign/entity/campaign.entity';
 import { Tenant } from '../tenant/entity/tenant.entity';
 import { AuditModule } from '../audit/audit.module';
+import { TenantModule } from '../tenant/tenant.module';
+import { ShopifyAdminClient } from '../order/shopify-admin.client';
 import { PrivacyService } from './privacy.service';
 import { RetentionService } from './retention.service';
+import { ErasureSuppressionModule } from './erasure-suppression.module';
 import { PrivacyController, ShopifyComplianceController } from './privacy.controller';
 
 /**
@@ -50,8 +53,13 @@ import { PrivacyController, ShopifyComplianceController } from './privacy.contro
       Tenant,
     ]),
     AuditModule,
+    ErasureSuppressionModule,
+    // For propagating an erasure upstream: the per-tenant Shopify credential and
+    // the Admin API client. The client is stateless (no injected deps), so it is
+    // provided here rather than dragging in the whole OrderModule.
+    TenantModule,
   ],
   controllers: [ShopifyComplianceController, PrivacyController],
-  providers: [PrivacyService, RetentionService],
+  providers: [PrivacyService, RetentionService, ShopifyAdminClient],
 })
 export class PrivacyModule {}

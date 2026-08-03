@@ -153,6 +153,24 @@ query Customer($id: ID!) {
 }`;
 
 /**
+ * Ask Shopify to erase the customer at source. Our own scrub only holds while
+ * nothing re-imports them, and Shopify is the source of truth — so a DSAR that
+ * stops at our database leaves the data alive upstream, ready to flow back.
+ * Shopify runs its own legal-hold checks (recent orders block it) and reports
+ * refusals in userErrors rather than failing the request.
+ */
+const CUSTOMER_ERASURE_MUTATION = `
+mutation CustomerRequestDataErasure($customerId: ID!) {
+  customerRequestDataErasure(customerId: $customerId) {
+    customerId
+    userErrors {
+      field
+      message
+    }
+  }
+}`;
+
+/**
  * Thin Shopify Admin API client (read-only + webhook subscribe). Callers pass the
  * per-tenant token. GraphQL-only: new Dev Dashboard apps are not approved for REST
  * endpoints carrying protected customer data (orders return 403 over REST).
@@ -268,6 +286,44 @@ export class ShopifyAdminClient {
       firstName: c.firstName ?? null,
       lastName: c.lastName ?? null,
     };
+  }
+
+  /**
+   * Request erasure of a customer at Shopify (PRV-H2, GDPR/CCPA propagation).
+   *
+   * Needs the `write_customer_data_erasure` scope, which the app does not request
+   * yet — verified against the live store, which answers:
+   *   "Access denied for customerRequestDataErasure field. Required access:
+   *    `write_customer_data_erasure` access scope. Also: The user must have access
+   *    to erase customer data."
+   * So until that scope is added and the store reinstalled, this throws. Callers
+   * treat it as best-effort: the local scrub must complete regardless, and the
+   * suppression list keeps the re-import blocked meanwhile.
+   *
+   * Returns the refusals Shopify reported (empty on success) so the caller can
+   * record *why* the source still holds the data — most often a legal hold on a
+   * recent order, which is a real answer, not a failure.
+   */
+  async requestCustomerErasure(
+    shopDomain: string,
+    token: string,
+    shopifyCustomerId: string,
+  ): Promise<{ accepted: boolean; userErrors: string[] }> {
+    const body = (await this.gql(shopDomain, token, CUSTOMER_ERASURE_MUTATION, {
+      customerId: `gid://shopify/Customer/${shopifyCustomerId}`,
+    })) as {
+      data?: {
+        customerRequestDataErasure?: {
+          customerId?: string | null;
+          userErrors?: Array<{ field?: string[] | null; message?: string }> | null;
+        } | null;
+      };
+    };
+    const result = body.data?.customerRequestDataErasure;
+    const userErrors = (result?.userErrors ?? [])
+      .map((e) => e.message ?? '')
+      .filter(Boolean);
+    return { accepted: userErrors.length === 0 && result?.customerId != null, userErrors };
   }
 
   /** POST one GraphQL request; throws on HTTP or top-level GraphQL errors. */

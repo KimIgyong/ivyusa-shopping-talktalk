@@ -294,5 +294,61 @@ describe('ShopifySyncService.syncOrders', () => {
 
       expect(saved[0].customerId).toBe(42);
     });
+
+    describe('erased identities (PRV-H2)', () => {
+      // Observed in live data: a shopper was erased, then this very sync read their
+      // email back out of Shopify and re-linked their order. CustomerService now
+      // returns null for a suppressed identity and the order must stay unlinked.
+      it('leaves the order unlinked when the identity was erased', async () => {
+        const { svc, saved, customerService } = build([]);
+        customerService.findOrCreateByEmail.mockResolvedValue(null);
+
+        await svc.upsertOrder(2, {
+          id: 6677415297198,
+          order_number: 1002,
+          financial_status: 'paid',
+          email: 'erased@example.com',
+        });
+
+        expect(saved[0].customerId).toBeNull();
+      });
+
+      it('erasure beats keep-what-we-knew: an existing link is dropped', async () => {
+        // The two rules meet here. Normally an incomplete payload keeps the old link;
+        // an erased identity must override that and unlink, or the order keeps
+        // pointing at the person who asked to be deleted.
+        const { svc, saved, orderRepo, customerService } = build([]);
+        orderRepo.findOne.mockResolvedValue({
+          id: 6,
+          shopifyOrderId: '6677415297198',
+          customerId: 6,
+        } as OrderCache);
+        customerService.findOrCreateByEmail.mockResolvedValue(null);
+
+        await svc.upsertOrder(2, {
+          id: 6677415297198,
+          order_number: 1002,
+          financial_status: 'paid',
+          email: 'erased@example.com',
+        });
+
+        expect(saved[0].customerId).toBeNull();
+      });
+
+      it('still caches the order itself — the merchant keeps their books', async () => {
+        const { svc, saved, customerService } = build([]);
+        customerService.findOrCreateByEmail.mockResolvedValue(null);
+
+        await svc.upsertOrder(2, {
+          id: 6677415297198,
+          order_number: 1002,
+          financial_status: 'paid',
+          total_price: '24.95',
+          email: 'erased@example.com',
+        });
+
+        expect(saved[0]).toMatchObject({ orderNumber: '1002', total: 24.95, tenantId: 2 });
+      });
+    });
   });
 });

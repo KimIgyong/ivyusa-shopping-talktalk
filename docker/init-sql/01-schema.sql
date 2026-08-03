@@ -217,6 +217,18 @@ CREATE TABLE `customers` (
   KEY `idx_customers_tenant` (`tenant_id`),
   KEY `idx_customers_email` (`email`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+DROP TABLE IF EXISTS `erased_identities`;
+CREATE TABLE `erased_identities` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `tenant_id` bigint DEFAULT NULL,
+  `email_hash` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `shopify_customer_hash` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `source` varchar(16) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `erased_at` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  PRIMARY KEY (`id`),
+  KEY `idx_erased_tenant_email` (`tenant_id`,`email_hash`),
+  KEY `idx_erased_tenant_shopify` (`tenant_id`,`shopify_customer_hash`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 DROP TABLE IF EXISTS `fulfillments`;
 CREATE TABLE `fulfillments` (
   `id` bigint NOT NULL AUTO_INCREMENT,

@@ -66,6 +66,13 @@ export class ShopifyProxyService {
       tenant.id,
       shopifyCustomerId,
     );
+    // This shopper asked to be erased. They are still signed into the storefront —
+    // Shopify knows them, we deliberately no longer do — so report them as anonymous
+    // rather than rebuilding the profile they deleted. The widget then behaves as it
+    // does for any visitor: chat works, "my orders" offers sign-in it cannot satisfy.
+    if (!customer) {
+      return { status: 'ok', result: { authenticated: false } };
+    }
     // Enrich the row with the customer's real name/email from the Admin API when
     // we don't have them yet (the proxy only hands us the numeric id). Fire-and-
     // forget: nothing in this response needs it, and it must not add Admin API

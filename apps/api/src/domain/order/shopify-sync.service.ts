@@ -167,6 +167,9 @@ export class ShopifySyncService {
   /** Map a Shopify order → orders_cache (+ linked customer). Public: reused by webhooks. */
   async upsertOrder(tenantId: number, o: ShopifyOrderDto, prefetched?: OrderCache): Promise<OrderCache> {
     let customerId: number | null = null;
+    // Erased identities come back null. Shopify still holds the address after we
+    // scrub it, so this is the poll that used to undo an erasure minutes later.
+    let identityErased = false;
     const email = o.customer?.email ?? o.email ?? null;
     if (email) {
       const name =
@@ -178,7 +181,8 @@ export class ShopifySyncService {
         name,
         shopifyCustomerId,
       );
-      customerId = customer.id;
+      if (customer) customerId = customer.id;
+      else identityErased = true;
     }
 
     const internal = this.mapStatus(o.financial_status, o.fulfillment_status);
@@ -207,7 +211,9 @@ export class ShopifySyncService {
     // assigning `customerId` then unlinked an order the shopper had been seeing,
     // silently: the order stays in the cache but drops out of "my orders" forever,
     // with nothing logged. Resolved wins, otherwise keep what we already knew.
-    row.customerId = customerId ?? row.customerId ?? null;
+    // Erasure overrides the keep-what-we-knew rule below: the order stays cached for
+    // the merchant's books but must not point at the person who asked to be deleted.
+    row.customerId = identityErased ? null : customerId ?? row.customerId ?? null;
     row.orderNumber = orderNumber;
     row.statusInternal = internal;
     row.statusUi = internalToUiStatus(internal);

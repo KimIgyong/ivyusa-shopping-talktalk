@@ -37,6 +37,7 @@ export const ERROR_CODE = {
   VALIDATION_FAILED: { code: 'E5003', message: 'Validation failed' },
   DUPLICATE_RESOURCE: { code: 'E5004', message: 'Resource already exists' },
   TENANT_NOT_FOUND: { code: 'E5005', message: 'Unknown shop domain' },
+  IDENTITY_ERASED: { code: 'E5006', message: 'This person requested erasure of their data' },
 
   // E9xxx — system
   INTERNAL_ERROR: { code: 'E9001', message: 'Internal server error' },

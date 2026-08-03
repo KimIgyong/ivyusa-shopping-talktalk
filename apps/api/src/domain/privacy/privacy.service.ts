@@ -22,6 +22,10 @@ import { Tenant } from '../tenant/entity/tenant.entity';
 import { AuditService } from '../audit/audit.service';
 import { RedisService } from '../../infrastructure/cache/redis.service';
 import { SessionService, sessionCacheKey } from '../session/session.service';
+import { TenantService } from '../tenant/tenant.service';
+import { ShopifyAdminClient } from '../order/shopify-admin.client';
+import { ErasureSuppressionService } from './erasure-suppression.service';
+import { ERASURE_SOURCE, ErasureSource } from './entity/erased-identity.entity';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
 import { maskPii } from '../../global/util/pii.util';
@@ -62,6 +66,9 @@ export class PrivacyService {
     private readonly sessionService: SessionService,
     private readonly audit: AuditService,
     private readonly redis: RedisService,
+    private readonly suppression: ErasureSuppressionService,
+    private readonly tenantService: TenantService,
+    private readonly adminClient: ShopifyAdminClient,
   ) {}
 
   // ---- session resolution (widget DSAR/CCPA) ----
@@ -102,7 +109,8 @@ export class PrivacyService {
   async handleCustomerRedact(email: string | null, shopifyCustomerId: string | null): Promise<void> {
     const customer = await this.findCustomer(email, shopifyCustomerId);
     if (customer) {
-      await this.anonymizeCustomer(customer);
+      // Shopify initiated this one; propagating would bounce it back at the sender.
+      await this.anonymizeCustomer(customer, { source: ERASURE_SOURCE.SHOPIFY });
     }
     await this.audit.write({
       tenantId: customer?.tenantId ?? null,
@@ -154,6 +162,12 @@ export class PrivacyService {
    * deleted by tenant_id (they also carry tenant_id), alongside the order cache.
    */
   private async purgeTenant(tenantId: number): Promise<void> {
+    // Deliberately does NOT add these customers to the erasure suppression list.
+    // shop/redact means the app was uninstalled, not that each shopper objected to
+    // processing — and a merchant who reinstalls has a lawful basis again. Blocking
+    // every past customer forever would quietly break that reinstall. Nothing here
+    // needs the block either: the tenant's orders and sessions are deleted outright,
+    // so there is no link left to re-establish.
     await this.customerRepo.manager.transaction(async (mgr) => {
       // Anonymize customers (keep rows; scrub PII). email_hash is cleared
       // explicitly — .update() bypasses the entity's BeforeUpdate hook (PRV-M6).
@@ -335,7 +349,14 @@ export class PrivacyService {
     }
     const customerId = await this.requireVerifiedCustomerId(sessionToken);
     const customer = await this.customerRepo.findOne({ where: { id: customerId } });
-    if (customer) await this.anonymizeCustomer(customer);
+    // The shopper asked us directly, so the request goes upstream as well — leaving
+    // it in Shopify is what let the next order sync hand their data straight back.
+    if (customer) {
+      await this.anonymizeCustomer(customer, {
+        source: ERASURE_SOURCE.DSAR,
+        propagate: true,
+      });
+    }
     await this.audit.write({
       tenantId: customer?.tenantId ?? null,
       actorType: 'admin',
@@ -411,9 +432,29 @@ export class PrivacyService {
    * Scrub a single customer's PII while preserving referential rows. Messages are
    * reached via sessions -> conversations (best-effort); orders/inquiries are kept
    * but unlinked; reviews/notifications are redacted in place.
+   *
+   * `source` records who asked. `propagate` sends the erasure upstream to Shopify —
+   * on for a shopper's own DSAR, off when Shopify's own customers/redact webhook
+   * triggered us, which would otherwise bounce the request back at its sender.
    */
-  private async anonymizeCustomer(customer: Customer): Promise<void> {
+  private async anonymizeCustomer(
+    customer: Customer,
+    opts: { source?: ErasureSource; propagate?: boolean } = {},
+  ): Promise<void> {
     const customerId = customer.id;
+    // FIRST, before anything is scrubbed: remember the identity. The scrub below
+    // nulls both the email and the Shopify id, and those are the only things that
+    // can recognise this person when Shopify feeds them back on the next sync. If
+    // this throws we have not destroyed anything yet — the caller fails and can
+    // retry, rather than scrubbing the row and quietly losing the enforcement key.
+    await this.suppression.record(
+      customer.tenantId,
+      { emailHash: customer.emailHash, shopifyCustomerId: customer.shopifyCustomerId },
+      opts.source ?? ERASURE_SOURCE.DSAR,
+    );
+    if (opts.propagate) {
+      await this.propagateErasureToShopify(customer);
+    }
 
     // Redact chat messages reachable from the customer's sessions.
     const sessions = await this.sessionRepo.find({ where: { customerId } });
@@ -467,5 +508,52 @@ export class PrivacyService {
     customer.shopifyCustomerId = null;
     customer.tier = 'guest';
     await this.customerRepo.save(customer);
+  }
+
+  /**
+   * Ask Shopify to erase the customer too (PRV-H2). Scrubbing only our copy leaves
+   * the data alive at the source, which is what let a later sync re-import it.
+   *
+   * Best-effort by design: the shopper's request must not fail because the store's
+   * credential expired or the app lacks `write_customer_data_erasure` (it currently
+   * does — the scope is not requested yet, so this records an access-denied until
+   * the app is reinstalled with it). The suppression list holds the line meanwhile
+   * and is what actually keeps the erasure enforced locally. Every
+   * outcome is audited, because "we asked and Shopify refused" is the answer a
+   * regulator asks for, and silence would be indistinguishable from never asking.
+   */
+  private async propagateErasureToShopify(customer: Customer): Promise<void> {
+    const shopifyCustomerId = customer.shopifyCustomerId;
+    const tenantId = customer.tenantId;
+    if (!shopifyCustomerId || tenantId == null) return;
+
+    let outcome: string;
+    try {
+      const conn = await this.tenantService.getShopifyConnection(tenantId);
+      if (!conn) {
+        outcome = 'skipped: no Shopify connection';
+      } else {
+        const res = await this.adminClient.requestCustomerErasure(
+          conn.shopDomain,
+          conn.token,
+          shopifyCustomerId,
+        );
+        outcome = res.accepted
+          ? 'accepted'
+          : `refused: ${res.userErrors.join('; ') || 'no customerId returned'}`;
+      }
+    } catch (e) {
+      outcome = `failed: ${(e as Error).message}`;
+    }
+    if (!outcome.startsWith('accepted')) {
+      this.logger.warn(`Shopify erasure for customer ${customer.id} — ${outcome}`);
+    }
+    await this.audit.write({
+      tenantId,
+      actorType: 'admin',
+      actorId: 0,
+      action: 'dsar.delete.upstream',
+      target: `customer:${customer.id} ${outcome}`,
+    });
   }
 }
