@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { PageHeader } from '@/components/PageHeader';
 import { Card } from '@/components/Card';
@@ -94,6 +95,18 @@ export function KnowledgePage() {
       setEditContent(detail.data.content ?? '');
     }
   }, [detail.data]);
+
+  // Deep link from a conversation transcript's grounding badge (?doc=<id>):
+  // "which document produced this answer" has to land on the document itself,
+  // not on page 1 of the list. Consumed once so closing the modal sticks.
+  const [searchParams, setSearchParams] = useSearchParams();
+  useEffect(() => {
+    const doc = searchParams.get('doc');
+    if (!doc) return;
+    setDetailId(doc);
+    searchParams.delete('doc');
+    setSearchParams(searchParams, { replace: true });
+  }, [searchParams, setSearchParams]);
 
   const closeDetail = () => {
     setDetailId(null);
