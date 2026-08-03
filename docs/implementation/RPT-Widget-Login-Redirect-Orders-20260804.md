@@ -62,6 +62,12 @@
 (S1 리다이렉트 왕복 + 자동 재오픈, S2 주문 백필 표시, S3 팝업 모드 전환, S6 Shop 로그인)는
 실제 고객 계정 로그인이 필요하므로 수동 검증. 결과는 본 문서에 추기.
 
+**2026-08-04 추기 — 서버측 인증·백필 실동작 확인**: 스테이징에서 사용자 로그인 세션에 대해
+identity `logged_in_customer_id=present` + `Backfilled 1 order(s) for customer
+1:7817610756176` 로그 확인(로그인 시 주문 백필 §1-4 실동작 입증). 그 직전까지 인증이
+익명 처리되던 원인은 누락 마이그레이션이었음 —
+`docs/bug-fix/FIX-Staging-ErasedIdentities-Migration-20260804.md`.
+
 ## 6. 예방 패턴 (CI 실패에서)
 
 Vite/web 워크스페이스에서 `@ivy/types` 런타임/타입 임포트를 새로 도입할 때:

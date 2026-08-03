@@ -30,10 +30,14 @@ docs (PLN/TCR/RPT). **API/스키마 변경 없음.**
 
 | 항목 | 값 |
 |---|---|
-| PR | #(작성 예정) `feature/widget-close-consent-replay` → main, squash |
+| PR | #81 `feature/widget-close-consent-replay` → main, squash |
+| 커밋 | `dcf434e` (main) |
 | 마이그레이션 | 해당 없음 |
-| 스테이징 배포 | 예정 (widget 재빌드) |
+| 스테이징 배포 | **완료** (2026-08-04, deploy-staging.sh; API 부팅·health OK) |
 
-## 5. 스테이징 검증 기록
+## 5. 스테이징 검증 기록 (2026-08-04)
 
-(배포 후 추기)
+- 배포 검증: API `successfully started`, `GET /health` ok, widget 컨테이너 재기동.
+- C1(런처 숨김)·C2/C3(auto-replay)은 실브라우저 확인 필요 — 사용자 실측 대기.
+- 같은 날 별건으로 로그인 인식 불가 원인이 확정·해결됨(누락 마이그레이션):
+  `docs/bug-fix/FIX-Staging-ErasedIdentities-Migration-20260804.md` 참조.
