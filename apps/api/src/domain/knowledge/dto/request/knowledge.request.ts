@@ -40,6 +40,25 @@ export class UpdateDocumentRequest {
   @IsOptional() @IsString() content?: string;
   @IsOptional() @IsString() category?: string;
   @IsOptional() @IsInt() active?: number;
+  // Provenance & staleness (PLN D7). Nullable on purpose: clearing a review
+  // cadence is a legitimate edit, so `null` is distinct from "not sent".
+  @IsOptional() @IsString() source_url?: string | null;
+  @IsOptional() @IsString() effective_from?: string | null;
+  @IsOptional() @IsInt() review_interval_days?: number | null;
+  @IsOptional() @IsInt() owner_user_id?: number | null;
+}
+
+/** Conflict review queue filter. */
+export class ListConflictsQuery {
+  /** pending (default view) | resolved | dismissed */
+  @IsOptional() @IsString() status?: string;
+  @IsOptional() @IsString() page?: string;
+  @IsOptional() @IsString() size?: string;
+}
+
+export class ResolveConflictRequest {
+  /** kept_a | kept_b | kept_both */
+  @IsString() resolution: string;
 }
 
 /** Console knowledge QA (PLN-Knowledge-QA-Console F1). */

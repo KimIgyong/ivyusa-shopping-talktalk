@@ -1,6 +1,6 @@
 import { HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { IsNull, Not, Repository } from 'typeorm';
+import { In, IsNull, Not, Repository } from 'typeorm';
 import { normalizePage } from '@ivy/common';
 import { MODERATION_DECISION } from '@ivy/types';
 import { AiGatewayService } from '../../infrastructure/external/ai/ai-gateway.service';
@@ -19,6 +19,7 @@ import {
   UpdateDocumentRequest,
   UpdateSourceRequest,
 } from './dto/request/knowledge.request';
+import { KbConflictService, isStale } from './kb-conflict.service';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
 
@@ -46,6 +47,7 @@ export class KnowledgeService {
     private readonly qdrant: QdrantService,
     private readonly rag: RagService,
     private readonly moderation: ModerationService,
+    private readonly conflicts: KbConflictService,
   ) {}
 
   // ---- Sources ----
@@ -108,6 +110,10 @@ export class KnowledgeService {
         'active',
         'status',
         'updatedAt',
+        'reviewedAt',
+        'reviewIntervalDays',
+        'effectiveFrom',
+        'supersededBy',
       ],
       where,
       order: { id: 'DESC' },
@@ -167,6 +173,12 @@ export class KnowledgeService {
       category: string | null;
       similarity: number | null;
       snippet: string;
+      /** Source system the document came from — knowledge_store or google_drive. */
+      source: string | null;
+      /** Past its review cadence, so its facts may have moved on. */
+      stale: boolean;
+      /** Contradicts another cited document (an open conflict names this one). */
+      conflicted: boolean;
     }>;
   }> {
     const result = await this.rag.answer(tenantId, question, language.toUpperCase());
@@ -177,18 +189,47 @@ export class KnowledgeService {
       text: result.text,
     });
     const blocked = moderated.decision === MODERATION_DECISION.BLOCKED;
+
+    // Provenance/freshness/conflict markers for the cited documents.
+    const citedIds = result.citations.map((c) => Number(c.id)).filter(Number.isFinite);
+    const [citedDocs, conflicted] = await Promise.all([
+      citedIds.length ? this.docRepo.find({ where: { id: In(citedIds), tenantId } }) : Promise.resolve([]),
+      this.conflicts.forDocuments(tenantId, citedIds),
+    ]);
+    const docsById = new Map(citedDocs.map((d) => [Number(d.id), d]));
+
     return {
       answer: blocked ? '' : moderated.text,
       confidence: result.confidence,
       blocked,
-      sources: result.citations.map((c) => ({
-        id: Number(c.id),
-        title: c.title,
-        category: c.category,
-        similarity: c.similarity,
-        snippet: c.snippet,
-      })),
+      sources: result.citations.map((c) => {
+        const doc = docsById.get(Number(c.id));
+        return {
+          id: Number(c.id),
+          title: c.title,
+          category: c.category,
+          similarity: c.similarity,
+          snippet: c.snippet,
+          source: doc?.source ?? null,
+          stale: doc ? isStale(doc) : false,
+          // A flat ranked list gave no way to tell which of two disagreeing
+          // sources to trust; this marks the ones already flagged for review.
+          conflicted: conflicted.has(Number(c.id)),
+        };
+      }),
     };
+  }
+
+  /**
+   * Record that a person has re-checked this document's facts. Distinct from
+   * saving an edit: `updated_at` moves for any change, including one that never
+   * revisited the content, so it cannot answer "is this still true?".
+   */
+  async markReviewed(tenantId: number, id: number, userId: number): Promise<KbDocument> {
+    const doc = await this.findDocument(tenantId, id);
+    doc.reviewedAt = new Date();
+    doc.reviewedBy = userId;
+    return this.docRepo.save(doc);
   }
 
   async createDocument(tenantId: number, body: CreateDocumentRequest): Promise<KbDocument> {
@@ -215,6 +256,12 @@ export class KnowledgeService {
     const doc = await this.findDocument(tenantId, id);
     if (body.title !== undefined) doc.title = body.title;
     if (body.category !== undefined) doc.category = body.category;
+    // Provenance/staleness fields (PLN D7). `null` is meaningful — clearing a
+    // review cadence is a real edit — so only `undefined` means "not sent".
+    if (body.source_url !== undefined) doc.sourceUrl = body.source_url;
+    if (body.effective_from !== undefined) doc.effectiveFrom = body.effective_from;
+    if (body.review_interval_days !== undefined) doc.reviewIntervalDays = body.review_interval_days;
+    if (body.owner_user_id !== undefined) doc.ownerUserId = body.owner_user_id;
     const activeChanged = body.active !== undefined && body.active !== doc.active;
     if (body.active !== undefined) doc.active = body.active;
     let reembed = body.title !== undefined && doc.embeddingModel !== null;

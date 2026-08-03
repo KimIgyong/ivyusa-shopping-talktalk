@@ -11,7 +11,10 @@
   "enabled": "Activado",
   "created": "Creado",
   "title_column": "Título",
-  "source": "Fuente",
+  "source": {
+    "knowledge_store": "Base de conocimiento",
+    "google_drive": "Google Drive"
+  },
   "status": "Estado",
   "content": "Contenido",
   "noSources": "Aún no hay fuentes.",
@@ -42,6 +45,49 @@
     "fix": "Corregir",
     "reask": "Preguntar de nuevo",
     "blocked": "La respuesta no se muestra.",
-    "moderationBlocked": "Bloqueado por moderación"
+    "moderationBlocked": "Bloqueado por moderación",
+    "conflicted": "En conflicto",
+    "conflictWarning": "Algunas fuentes se contradicen — resuélvelo en Revisión de conflictos antes de fiarte de esta respuesta."
+  },
+  "sourceColumn": "Origen",
+  "staleBadge": "Revisión pendiente",
+  "sourceUrl": "URL original",
+  "effectiveFrom": "Vigente desde",
+  "reviewInterval": "Revisar cada (días)",
+  "reviewedAt": "Última revisión",
+  "neverReviewed": "nunca",
+  "reviewDue": "Próxima revisión",
+  "markReviewed": "Marcar revisado",
+  "supersededBy": "Sustituido por #{{id}}",
+  "conflicts": {
+    "title": "Revisión de conflictos ({{count}})",
+    "statusPending": "Por revisar",
+    "statusResolved": "Resueltos",
+    "statusDismissed": "Descartados",
+    "rescan": "Volver a escanear",
+    "loading": "Cargando…",
+    "empty": "No se encontraron documentos en conflicto.",
+    "similarity": "Similitud",
+    "detected": "Detectado",
+    "rationale": "Motivo",
+    "effective": "Vigente",
+    "updated": "Actualizado",
+    "stale": "Revisión pendiente",
+    "hidden": "Oculto",
+    "keepA": "Seguir A · ocultar B",
+    "keepB": "Seguir B · ocultar A",
+    "keepBoth": "Mantener ambos",
+    "dismiss": "No es un conflicto",
+    "verdict": {
+      "conflict": "Se contradicen",
+      "duplicate": "Duplicado",
+      "complementary": "Relacionados"
+    },
+    "resolution": {
+      "kept_a": "Resuelto — se mantuvo A",
+      "kept_b": "Resuelto — se mantuvo B",
+      "kept_both": "Resuelto — ambos",
+      "dismissed": "Descartado"
+    }
   }
 }

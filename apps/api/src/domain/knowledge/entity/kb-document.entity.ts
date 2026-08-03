@@ -1,4 +1,11 @@
-import { Column, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  Index,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 import { bigintTransformer } from '../../../global/util/transformers';
 
 /** kb_documents — knowledge base documents for RAG (FR-064). */
@@ -46,6 +53,40 @@ export class KbDocument {
   @Column({ type: 'varchar', length: 16, default: 'pending' })
   status: string; // embedded/pending
 
+  @CreateDateColumn({ name: 'created_at' })
+  createdAt: Date;
+
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
+
+  // --- Provenance & staleness (PLN D7) -------------------------------------
+  // `updated_at` was the only age signal and it moves for any edit, including
+  // one that never revisited the facts. These make "where did this come from"
+  // and "is it due for review" answerable.
+
+  /** Where the content came from — the source document, ticket or page. */
+  @Column({ name: 'source_url', type: 'varchar', length: 512, nullable: true })
+  sourceUrl: string | null;
+
+  /** Staff member accountable for keeping this accurate. */
+  @Column({ name: 'owner_user_id', type: 'bigint', nullable: true, transformer: bigintTransformer })
+  ownerUserId: number | null;
+
+  /** When the policy itself took effect — distinct from when the row was edited. */
+  @Column({ name: 'effective_from', type: 'date', nullable: true })
+  effectiveFrom: string | null;
+
+  /** Review cadence in days; with `reviewedAt` this yields a due date. */
+  @Column({ name: 'review_interval_days', type: 'int', nullable: true })
+  reviewIntervalDays: number | null;
+
+  @Column({ name: 'reviewed_at', type: 'datetime', nullable: true })
+  reviewedAt: Date | null;
+
+  @Column({ name: 'reviewed_by', type: 'bigint', nullable: true, transformer: bigintTransformer })
+  reviewedBy: number | null;
+
+  /** Set when a conflict review picks the other document as the one to follow. */
+  @Column({ name: 'superseded_by', type: 'bigint', nullable: true, transformer: bigintTransformer })
+  supersededBy: number | null;
 }

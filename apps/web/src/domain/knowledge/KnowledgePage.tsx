@@ -13,7 +13,9 @@ import { Pagination } from '@/components/Pagination';
 import { FormRow, Input, Select } from '@/components/Field';
 import { cn } from '@/lib/cn';
 import { KnowledgeQaPanel } from './KnowledgeQaPanel';
+import { ConflictReview } from './ConflictReview';
 import {
+  useMarkReviewed,
   useCategories,
   useSources,
   useCreateSource,
@@ -63,6 +65,7 @@ export function KnowledgePage() {
   const createDocument = useCreateDocument();
   const updateDocument = useUpdateDocument();
   const deleteDocument = useDeleteDocument();
+  const markReviewed = useMarkReviewed();
 
   const categories = useCategories();
   const categoryTotal = (categories.data ?? []).reduce((sum, c) => sum + c.total, 0);
@@ -86,6 +89,9 @@ export function KnowledgePage() {
   const [editTitle, setEditTitle] = useState('');
   const [editCategory, setEditCategory] = useState('');
   const [editContent, setEditContent] = useState('');
+  const [editSourceUrl, setEditSourceUrl] = useState('');
+  const [editEffectiveFrom, setEditEffectiveFrom] = useState('');
+  const [editReviewDays, setEditReviewDays] = useState('');
 
   // Load the fetched document into the edit fields whenever it changes.
   useEffect(() => {
@@ -93,6 +99,11 @@ export function KnowledgePage() {
       setEditTitle(detail.data.title);
       setEditCategory(detail.data.category ?? '');
       setEditContent(detail.data.content ?? '');
+      setEditSourceUrl(detail.data.sourceUrl ?? '');
+      setEditEffectiveFrom(detail.data.effectiveFrom ?? '');
+      setEditReviewDays(
+        detail.data.reviewIntervalDays == null ? '' : String(detail.data.reviewIntervalDays),
+      );
     }
   }, [detail.data]);
 
@@ -118,7 +129,16 @@ export function KnowledgePage() {
     updateDocument.mutate(
       {
         id: detail.data.id,
-        body: { title: editTitle, category: editCategory, content: editContent },
+        body: {
+          title: editTitle,
+          category: editCategory,
+          content: editContent,
+          // Empty input clears the field rather than leaving a stale value —
+          // null is a meaningful state for all three.
+          source_url: editSourceUrl.trim() || null,
+          effective_from: editEffectiveFrom || null,
+          review_interval_days: editReviewDays.trim() === '' ? null : Number(editReviewDays),
+        },
       },
       { onSuccess: () => setEditing(false) },
     );
@@ -233,11 +253,23 @@ export function KnowledgePage() {
         </Button>
       ),
     },
+    {
+      key: 'source',
+      header: t('sourceColumn'),
+      // The field was always in the payload but never rendered, so an admin
+      // could not tell a knowledge-store entry from an imported Drive doc.
+      render: (r) => <Badge tone="gray">{t(`source.${r.source}`, { defaultValue: r.source })}</Badge>,
+    },
     { key: 'status', header: t('status'), render: (r) => <StatusBadge status={r.status} /> },
     {
       key: 'updatedAt',
       header: t('updated'),
-      render: (r) => (r.updatedAt ? new Date(r.updatedAt).toLocaleDateString() : '—'),
+      render: (r) => (
+        <span className="flex items-center gap-1">
+          {r.updatedAt ? new Date(r.updatedAt).toLocaleDateString() : '—'}
+          {r.stale && <Badge tone="warning">{t('staleBadge')}</Badge>}
+        </span>
+      ),
     },
     {
       key: 'actions',
@@ -324,8 +356,11 @@ export function KnowledgePage() {
         </Card>
         </div>
 
-        <div className="xl:sticky xl:top-6 xl:self-start">
+        <div className="space-y-4 xl:sticky xl:top-6 xl:self-start">
           <KnowledgeQaPanel onEditSource={(id) => { setDetailId(id); setEditing(true); }} />
+          {/* Conflict review sits beside QA on purpose: the QA panel is where a
+              contradiction shows up, and this is where it gets settled. */}
+          <ConflictReview onOpenDocument={(id) => setDetailId(id)} />
         </div>
       </div>
 
@@ -447,11 +482,46 @@ export function KnowledgePage() {
                 {detail.data.active === 1 ? t('visible') : t('hidden')}
               </Badge>
               <StatusBadge status={detail.data.status} />
+              <Badge tone="gray">
+                {t(`source.${detail.data.source}`, { defaultValue: detail.data.source })}
+              </Badge>
+              {detail.data.stale && <Badge tone="warning">{t('staleBadge')}</Badge>}
               {detail.data.updatedAt && (
                 <span className="text-xs text-gray-500">
                   {t('updated')}: {new Date(detail.data.updatedAt).toLocaleString()}
                 </span>
               )}
+            </div>
+
+            {/* Review state. `updatedAt` moves for any edit, including one that
+                never revisited the facts, so it cannot answer "is this still
+                true?" — that is what the review stamp is for. */}
+            <div className="flex flex-wrap items-center gap-2 rounded-lg bg-gray-50 p-2 text-xs text-gray-600">
+              <span>
+                {t('reviewedAt')}:{' '}
+                {detail.data.reviewedAt
+                  ? new Date(detail.data.reviewedAt).toLocaleDateString()
+                  : t('neverReviewed')}
+              </span>
+              {detail.data.reviewDueAt && (
+                <span>
+                  {t('reviewDue')}: {new Date(detail.data.reviewDueAt).toLocaleDateString()}
+                </span>
+              )}
+              {detail.data.supersededBy && (
+                <Badge tone="warning">
+                  {t('supersededBy', { id: String(detail.data.supersededBy).slice(0, 8) })}
+                </Badge>
+              )}
+              <Button
+                size="sm"
+                variant="secondary"
+                className="ml-auto"
+                disabled={markReviewed.isPending}
+                onClick={() => markReviewed.mutate(detail.data!.id)}
+              >
+                {t('markReviewed')}
+              </Button>
             </div>
             {editing ? (
               /* Saving re-embeds when the content changed (updateDocument), so a
@@ -474,6 +544,31 @@ export function KnowledgePage() {
                     </datalist>
                   </>
                 </FormRow>
+                <FormRow label={t('sourceUrl')}>
+                  <Input
+                    value={editSourceUrl}
+                    placeholder="https://…"
+                    onChange={(e) => setEditSourceUrl(e.target.value)}
+                  />
+                </FormRow>
+                <div className="grid grid-cols-2 gap-2">
+                  <FormRow label={t('effectiveFrom')}>
+                    <Input
+                      type="date"
+                      value={editEffectiveFrom}
+                      onChange={(e) => setEditEffectiveFrom(e.target.value)}
+                    />
+                  </FormRow>
+                  <FormRow label={t('reviewInterval')}>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={editReviewDays}
+                      placeholder="180"
+                      onChange={(e) => setEditReviewDays(e.target.value)}
+                    />
+                  </FormRow>
+                </div>
                 <FormRow label={t('content')}>
                   <textarea
                     className="h-64 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-primary-500"

@@ -11,7 +11,10 @@
   "enabled": "Enabled",
   "created": "Created",
   "title_column": "Title",
-  "source": "Source",
+  "source": {
+    "knowledge_store": "Knowledge store",
+    "google_drive": "Google Drive"
+  },
   "status": "Status",
   "content": "Content",
   "noSources": "No sources yet.",
@@ -42,6 +45,49 @@
     "fix": "Fix",
     "reask": "Ask again",
     "blocked": "The answer was withheld.",
-    "moderationBlocked": "Blocked by moderation"
+    "moderationBlocked": "Blocked by moderation",
+    "conflicted": "Conflicting",
+    "conflictWarning": "Some sources below contradict each other — settle it in Conflict review before trusting this answer."
+  },
+  "sourceColumn": "Source",
+  "staleBadge": "Review due",
+  "sourceUrl": "Original URL",
+  "effectiveFrom": "Effective from",
+  "reviewInterval": "Review every (days)",
+  "reviewedAt": "Last reviewed",
+  "neverReviewed": "never",
+  "reviewDue": "Next review",
+  "markReviewed": "Mark reviewed",
+  "supersededBy": "Superseded by #{{id}}",
+  "conflicts": {
+    "title": "Conflict review ({{count}})",
+    "statusPending": "Needs review",
+    "statusResolved": "Resolved",
+    "statusDismissed": "Dismissed",
+    "rescan": "Re-scan",
+    "loading": "Loading…",
+    "empty": "No conflicting documents found.",
+    "similarity": "Similarity",
+    "detected": "Detected",
+    "rationale": "Why",
+    "effective": "Effective",
+    "updated": "Updated",
+    "stale": "Review due",
+    "hidden": "Hidden",
+    "keepA": "Follow A · hide B",
+    "keepB": "Follow B · hide A",
+    "keepBoth": "Keep both",
+    "dismiss": "Not a conflict",
+    "verdict": {
+      "conflict": "Contradicts",
+      "duplicate": "Duplicate",
+      "complementary": "Related"
+    },
+    "resolution": {
+      "kept_a": "Resolved — A kept",
+      "kept_b": "Resolved — B kept",
+      "kept_both": "Resolved — both kept",
+      "dismissed": "Dismissed"
+    }
   }
 }

@@ -13,7 +13,7 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { HttpStatus } from '@nestjs/common';
 import { CAPABILITY, Principal } from '@ivy/types';
 import { Paginated } from '../../global/interceptor/transform.interceptor';
-import { buildPagination } from '@ivy/common';
+import { buildPagination, normalizePage } from '@ivy/common';
 import { RequireCapability } from '../../global/decorator/auth.decorator';
 import { CurrentUser } from '../../global/decorator/current-user.decorator';
 import { BusinessException } from '../../global/exception/business.exception';
@@ -25,16 +25,22 @@ import {
   CreateDocumentRequest,
   CreatePostRequest,
   CreateSourceRequest,
+  ListConflictsQuery,
   ListDocumentsQuery,
+  ResolveConflictRequest,
   UpdateDocumentRequest,
   UpdateSourceRequest,
 } from './dto/request/knowledge.request';
+import { KbConflictService } from './kb-conflict.service';
 
 /** Knowledge source & RAG corpus management (FR-064, FR-065). Tenant-scoped. */
 @ApiTags('Knowledge')
 @Controller('knowledge')
 export class KnowledgeController {
-  constructor(private readonly knowledgeService: KnowledgeService) {}
+  constructor(
+    private readonly knowledgeService: KnowledgeService,
+    private readonly conflictService: KbConflictService,
+  ) {}
 
   /** Narrow to a tenant user; knowledge management is tenant-scoped only. */
   private tenantUser(user: Principal): { tenantId: number; userId: number } {
@@ -183,5 +189,57 @@ export class KnowledgeController {
   async deleteDocument(@CurrentUser() user: Principal, @Param('id', ParseIntPipe) id: number) {
     await this.knowledgeService.deleteDocument(this.tenantUser(user).tenantId, id);
     return { deleted: true };
+  }
+
+  @Post('documents/:id/reviewed')
+  @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
+  @ApiOperation({ summary: 'Mark a document reviewed (resets its staleness clock)' })
+  async markReviewed(@CurrentUser() user: Principal, @Param('id', ParseIntPipe) id: number) {
+    const actor = this.tenantUser(user);
+    const doc = await this.knowledgeService.markReviewed(actor.tenantId, id, actor.userId);
+    return KnowledgeMapper.toDocument(doc);
+  }
+
+  // --- Conflict review (PLN S4) --------------------------------------------
+
+  @Get('conflicts')
+  @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
+  @ApiOperation({ summary: 'Conflicting/duplicate document pairs awaiting review' })
+  async listConflicts(@CurrentUser() user: Principal, @Query() query: ListConflictsQuery) {
+    const { page, size } = normalizePage(query.page, query.size);
+    const { items, total } = await this.conflictService.list(
+      this.tenantUser(user).tenantId,
+      query.status,
+      page,
+      size,
+    );
+    return new Paginated(items, buildPagination(page, size, total));
+  }
+
+  @Post('conflicts/scan')
+  @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
+  @ApiOperation({ summary: 'Re-scan the knowledge base for contradicting pairs' })
+  async scanConflicts(@CurrentUser() user: Principal) {
+    return this.conflictService.scan(this.tenantUser(user).tenantId);
+  }
+
+  @Post('conflicts/:id/resolve')
+  @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
+  @ApiOperation({ summary: 'Pick which document to follow; hides the other' })
+  async resolveConflict(
+    @CurrentUser() user: Principal,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: ResolveConflictRequest,
+  ) {
+    const actor = this.tenantUser(user);
+    return this.conflictService.resolve(actor.tenantId, id, body.resolution, actor.userId);
+  }
+
+  @Post('conflicts/:id/dismiss')
+  @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
+  @ApiOperation({ summary: 'Mark a pair as not a conflict (keeps it out of future scans)' })
+  async dismissConflict(@CurrentUser() user: Principal, @Param('id', ParseIntPipe) id: number) {
+    const actor = this.tenantUser(user);
+    return this.conflictService.dismiss(actor.tenantId, id, actor.userId);
   }
 }

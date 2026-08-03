@@ -95,7 +95,15 @@ export function useUpdateDocument() {
   return useMutation({
     mutationFn: (vars: {
       id: string;
-      body: { title?: string; category?: string; content?: string; active?: number };
+      body: {
+        title?: string;
+        category?: string;
+        content?: string;
+        active?: number;
+        source_url?: string | null;
+        effective_from?: string | null;
+        review_interval_days?: number | null;
+      };
     }) => knowledgeService.updateDocument(vars.id, vars.body),
     onSuccess: (_data, vars) => {
       qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'documents'] });
@@ -116,6 +124,74 @@ export function useDeleteDocument() {
       qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'documents'] });
       qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'categories'] });
       toast.success('Document deleted');
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+}
+
+export function useMarkReviewed() {
+  const qc = useQueryClient();
+  const tenantKey = useTenantKey();
+  return useMutation({
+    mutationFn: (id: string) => knowledgeService.markReviewed(id),
+    onSuccess: (_d, id) => {
+      qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'documents'] });
+      qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'document', id] });
+      toast.success('Marked as reviewed');
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+}
+
+/** Conflict review queue (PLN S4). */
+export function useConflicts(params: { status?: string; page: number; size: number }) {
+  const tenantKey = useTenantKey();
+  return useQuery({
+    queryKey: ['knowledge', tenantKey, 'conflicts', params],
+    queryFn: () => knowledgeService.conflicts(params),
+  });
+}
+
+export function useScanConflicts() {
+  const qc = useQueryClient();
+  const tenantKey = useTenantKey();
+  return useMutation({
+    mutationFn: () => knowledgeService.scanConflicts(),
+    onSuccess: (r) => {
+      qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'conflicts'] });
+      // The count matters: "scan finished" with nothing found reads as a
+      // failure otherwise.
+      toast.success(`Scan complete — ${r.conflicts} conflict(s) from ${r.candidates} candidate pair(s)`);
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+}
+
+export function useResolveConflict() {
+  const qc = useQueryClient();
+  const tenantKey = useTenantKey();
+  return useMutation({
+    mutationFn: (vars: { id: string; resolution: 'kept_a' | 'kept_b' | 'kept_both' }) =>
+      knowledgeService.resolveConflict(vars.id, vars.resolution),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'conflicts'] });
+      // Resolving hides a document, so the list and category counts move too.
+      qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'documents'] });
+      qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'categories'] });
+      toast.success('Conflict resolved');
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+}
+
+export function useDismissConflict() {
+  const qc = useQueryClient();
+  const tenantKey = useTenantKey();
+  return useMutation({
+    mutationFn: (id: string) => knowledgeService.dismissConflict(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'conflicts'] });
+      toast.success('Dismissed');
     },
     onError: (err: Error) => toast.error(err.message),
   });

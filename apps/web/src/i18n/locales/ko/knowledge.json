@@ -11,7 +11,10 @@
   "enabled": "활성화",
   "created": "생성일",
   "title_column": "제목",
-  "source": "소스",
+  "source": {
+    "knowledge_store": "지식저장소",
+    "google_drive": "Google Drive"
+  },
   "status": "상태",
   "content": "내용",
   "noSources": "아직 소스가 없습니다.",
@@ -42,6 +45,49 @@
     "fix": "수정",
     "reask": "다시 질문",
     "blocked": "답변이 표시되지 않았습니다.",
-    "moderationBlocked": "모더레이션 차단"
+    "moderationBlocked": "모더레이션 차단",
+    "conflicted": "상충",
+    "conflictWarning": "아래 근거 중 서로 상충하는 문서가 있습니다 — 충돌 검토에서 정리한 뒤 이 답변을 신뢰하세요."
+  },
+  "sourceColumn": "출처",
+  "staleBadge": "검토 기한 도래",
+  "sourceUrl": "원문 URL",
+  "effectiveFrom": "기준일(시행)",
+  "reviewInterval": "검토주기(일)",
+  "reviewedAt": "최종 검토",
+  "neverReviewed": "없음",
+  "reviewDue": "다음 검토",
+  "markReviewed": "검토 완료",
+  "supersededBy": "#{{id}} 로 대체됨",
+  "conflicts": {
+    "title": "지식 충돌 검토 ({{count}}건)",
+    "statusPending": "미검토",
+    "statusResolved": "처리됨",
+    "statusDismissed": "보류/제외",
+    "rescan": "충돌 재탐지",
+    "loading": "불러오는 중…",
+    "empty": "충돌하는 문서를 찾지 못했습니다.",
+    "similarity": "유사도",
+    "detected": "검출",
+    "rationale": "판정 근거",
+    "effective": "기준일",
+    "updated": "최종수정",
+    "stale": "검토 기한 도래",
+    "hidden": "숨김",
+    "keepA": "A 채택 · B 숨김",
+    "keepB": "B 채택 · A 숨김",
+    "keepBoth": "둘 다 유지",
+    "dismiss": "충돌 아님",
+    "verdict": {
+      "conflict": "상충",
+      "duplicate": "중복",
+      "complementary": "보완 관계"
+    },
+    "resolution": {
+      "kept_a": "처리됨 — A 채택",
+      "kept_b": "처리됨 — B 채택",
+      "kept_both": "처리됨 — 둘 다 유지",
+      "dismissed": "충돌 아님으로 처리"
+    }
   }
 }
