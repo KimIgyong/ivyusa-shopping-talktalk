@@ -48,5 +48,19 @@
   "action_contact_support": "Contact support",
   "action_affiliate": "Affiliate",
   "action_my_orders": "My orders",
-  "action_message": "Send a message"
+  "action_message": "Send a message",
+  "ruleType": "Type",
+  "type_word": "Word",
+  "type_phrase": "Phrase",
+  "type_regex": "Regex",
+  "type_context": "Context (LLM)",
+  "scope": "Applies to",
+  "scope_both": "AI + agents",
+  "scope_ai": "AI only",
+  "scope_agent": "Agents only",
+  "mask": "Mask",
+  "rephrase": "Rephrase",
+  "created": "Created",
+  "contextPromptLabel": "Classifier prompt",
+  "contextPromptPlaceholder": "Describe what should be flagged; an LLM will judge each message"
 }

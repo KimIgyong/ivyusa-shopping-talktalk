@@ -16,12 +16,23 @@ export interface AiFunctionSetting {
   availableEngines: AiEngineOption[];
 }
 
+/** Mirrors ModerationMapper (apps/api moderation.mapper.ts). */
 export interface ModerationRule {
   id: string;
-  pattern: string;
-  action: string; // block / flag / warn
-  description?: string;
+  scope: string; // both / ai / agent
+  type: string; // word / phrase / regex / context
+  pattern: string; // pattern, or the classifier prompt for type=context
+  severity?: string;
+  action: string; // block / mask / rephrase / warn
+  isActive?: number;
   createdAt?: string;
+}
+
+export interface CreateModerationRule {
+  scope: string;
+  type: string;
+  pattern_or_prompt: string;
+  action: string;
 }
 
 export interface ScenarioButton {
@@ -66,7 +77,6 @@ export const aiSettingsService = {
   updateConfig: (body: { persona?: string; rules?: string[]; scenario_buttons?: ScenarioButton[] }) =>
     apiPut<AiConfig>('/ai-config', body),
   rules: () => apiGet<ModerationRule[]>('/moderation/rules'),
-  createRule: (body: { pattern: string; action: string; description?: string }) =>
-    apiPost<ModerationRule>('/moderation/rules', body),
+  createRule: (body: CreateModerationRule) => apiPost<ModerationRule>('/moderation/rules', body),
   deleteRule: (id: string) => apiDelete<{ ok: true }>(`/moderation/rules/${id}`),
 };

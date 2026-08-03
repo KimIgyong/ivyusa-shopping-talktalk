@@ -422,6 +422,18 @@ function FunctionRow({
 /* e. Moderation rules (unchanged behaviour)                                  */
 /* -------------------------------------------------------------------------- */
 
+const RULE_SCOPES = ['both', 'ai', 'agent'] as const;
+const RULE_TYPES = ['word', 'phrase', 'regex', 'context'] as const;
+/** warn is intentionally not offered: the pipeline treats it the same as block. */
+const RULE_ACTIONS = ['block', 'mask', 'rephrase'] as const;
+
+const ACTION_TONES: Record<string, 'error' | 'warning' | 'info' | 'gray'> = {
+  block: 'error',
+  warn: 'error', // legacy rows — behaves like block
+  mask: 'info',
+  rephrase: 'warning',
+};
+
 function ModerationSection() {
   const { t } = useTranslation('aiSetting');
   const { t: tc } = useTranslation('common');
@@ -429,31 +441,49 @@ function ModerationSection() {
   const createRule = useCreateRule();
   const deleteRule = useDeleteRule();
   const [open, setOpen] = useState(false);
+  const [scope, setScope] = useState<string>('both');
+  const [type, setType] = useState<string>('word');
   const [pattern, setPattern] = useState('');
-  const [action, setAction] = useState('block');
-  const [description, setDescription] = useState('');
+  const [action, setAction] = useState<string>('block');
+
+  const close = () => {
+    setOpen(false);
+    setScope('both');
+    setType('word');
+    setPattern('');
+    setAction('block');
+  };
 
   const submit = async () => {
     if (!pattern.trim()) return;
-    await createRule.mutateAsync({ pattern, action, description: description || undefined });
-    setPattern('');
-    setDescription('');
-    setAction('block');
-    setOpen(false);
+    await createRule.mutateAsync({ scope, type, pattern_or_prompt: pattern.trim(), action });
+    close();
   };
 
   const columns: Column<ModerationRule>[] = [
-    { key: 'pattern', header: t('pattern'), render: (r) => <span className="font-mono text-xs">{r.pattern}</span> },
+    {
+      key: 'pattern',
+      header: t('pattern'),
+      render: (r) => <span className="break-all font-mono text-xs">{r.pattern}</span>,
+    },
+    {
+      key: 'type',
+      header: t('ruleType'),
+      render: (r) => <Badge tone="gray">{t(`type_${r.type}`, r.type)}</Badge>,
+    },
+    { key: 'scope', header: t('scope'), render: (r) => t(`scope_${r.scope}`, r.scope) },
     {
       key: 'action',
       header: t('action'),
       render: (r) => (
-        <Badge tone={r.action === 'block' ? 'error' : r.action === 'flag' ? 'warning' : 'gray'}>
-          {r.action}
-        </Badge>
+        <Badge tone={ACTION_TONES[r.action] ?? 'gray'}>{t(r.action, r.action)}</Badge>
       ),
     },
-    { key: 'description', header: t('description'), render: (r) => r.description ?? '—' },
+    {
+      key: 'createdAt',
+      header: t('created'),
+      render: (r) => (r.createdAt ? new Date(r.createdAt).toLocaleDateString() : '—'),
+    },
     {
       key: 'actions',
       header: '',
@@ -493,11 +523,11 @@ function ModerationSection() {
 
       <Modal
         open={open}
-        onClose={() => setOpen(false)}
+        onClose={close}
         title={t('addModerationRule')}
         footer={
           <>
-            <Button variant="secondary" onClick={() => setOpen(false)}>
+            <Button variant="secondary" onClick={close}>
               {tc('cancel')}
             </Button>
             <Button onClick={submit} disabled={createRule.isPending || !pattern.trim()}>
@@ -506,18 +536,39 @@ function ModerationSection() {
           </>
         }
       >
-        <FormRow label={t('patternLabel')}>
-          <Input value={pattern} onChange={(e) => setPattern(e.target.value)} placeholder="e.g. \\bbadword\\b" />
+        <FormRow label={t('ruleType')}>
+          <Select value={type} onChange={(e) => setType(e.target.value)}>
+            {RULE_TYPES.map((v) => (
+              <option key={v} value={v}>
+                {t(`type_${v}`)}
+              </option>
+            ))}
+          </Select>
+        </FormRow>
+        <FormRow label={type === 'context' ? t('contextPromptLabel') : t('patternLabel')}>
+          <Input
+            value={pattern}
+            onChange={(e) => setPattern(e.target.value)}
+            placeholder={type === 'context' ? t('contextPromptPlaceholder') : 'e.g. \\bbadword\\b'}
+          />
+        </FormRow>
+        <FormRow label={t('scope')}>
+          <Select value={scope} onChange={(e) => setScope(e.target.value)}>
+            {RULE_SCOPES.map((v) => (
+              <option key={v} value={v}>
+                {t(`scope_${v}`)}
+              </option>
+            ))}
+          </Select>
         </FormRow>
         <FormRow label={t('action')}>
           <Select value={action} onChange={(e) => setAction(e.target.value)}>
-            <option value="block">{t('block')}</option>
-            <option value="flag">{t('flag')}</option>
-            <option value="warn">{t('warn')}</option>
+            {RULE_ACTIONS.map((v) => (
+              <option key={v} value={v}>
+                {t(v)}
+              </option>
+            ))}
           </Select>
-        </FormRow>
-        <FormRow label={t('descriptionOptional')}>
-          <Input value={description} onChange={(e) => setDescription(e.target.value)} />
         </FormRow>
       </Modal>
     </Card>

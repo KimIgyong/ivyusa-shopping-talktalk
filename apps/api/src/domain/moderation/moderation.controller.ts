@@ -7,6 +7,7 @@ import { ContentFilterRule } from './entity/content-filter-rule.entity';
 import { RequireCapability } from '../../global/decorator/auth.decorator';
 import { CurrentUser } from '../../global/decorator/current-user.decorator';
 import { CreateRuleRequest } from './dto/request/moderation.request';
+import { ModerationMapper } from './moderation.mapper';
 import { moderationRulesCacheKey } from './moderation.service';
 import { RedisService } from '../../infrastructure/cache/redis.service';
 
@@ -24,7 +25,8 @@ export class ModerationController {
   @ApiOperation({ summary: 'List content filter rules (tenant)' })
   async list(@CurrentUser() user: Principal) {
     const tenantId = user.actorType === 'user' ? user.tenantId : 0;
-    return this.ruleRepo.find({ where: { tenantId }, order: { id: 'DESC' } });
+    const rules = await this.ruleRepo.find({ where: { tenantId }, order: { id: 'DESC' } });
+    return ModerationMapper.toRuleList(rules);
   }
 
   @Post()
@@ -44,7 +46,7 @@ export class ModerationController {
     });
     const saved = await this.ruleRepo.save(rule);
     await this.redis.del(moderationRulesCacheKey(tenantId));
-    return saved;
+    return ModerationMapper.toRule(saved);
   }
 
   @Delete(':id')
