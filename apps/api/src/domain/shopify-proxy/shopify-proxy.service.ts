@@ -53,6 +53,13 @@ export class ShopifyProxyService {
       customerIdRaw != null && String(customerIdRaw).trim() !== ''
         ? String(customerIdRaw).trim()
         : '';
+    // Observability (kit §"no error in logs ≠ success"): anonymous outcomes are
+    // legitimate 200s, so without this line "logged in on shopify.com but the
+    // widget shows Sign in" is undiagnosable — this records whether Shopify
+    // attached a storefront customer to the signed request (id itself not logged).
+    this.logger.log(
+      `identity: shop=${shop || '?'} logged_in_customer_id=${shopifyCustomerId ? 'present' : 'absent'}`,
+    );
     if (!shop || !shopifyCustomerId) {
       // Signed request, but no logged-in customer — legitimate anonymous visitor.
       return { status: 'ok', result: { authenticated: false } };
