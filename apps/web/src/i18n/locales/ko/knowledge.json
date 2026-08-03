@@ -27,5 +27,21 @@
   "allCategories": "전체 카테고리",
   "categoryPlaceholder": "예: policy_shipping, faq",
   "documentDetail": "문서",
-  "noContent": "(내용 없음)"
+  "noContent": "(내용 없음)",
+  "uncategorized": "미분류",
+  "editReindexHint": "저장하면 문서가 재임베딩되어 검색에 바로 반영됩니다.",
+  "qa": {
+    "title": "지식으로 답변하기",
+    "hint": "이 테넌트의 지식만으로 답합니다. 아래 근거 문서를 확인하고 잘못된 내용은 바로 수정하세요.",
+    "placeholder": "예: 무료배송 기준이 얼마인가요?",
+    "thinking": "지식을 검색하는 중…",
+    "confidence": "신뢰도",
+    "similarity": "유사도",
+    "sources": "사용된 근거 문서",
+    "noSources": "이 질문에 해당하는 문서가 없습니다.",
+    "fix": "수정",
+    "reask": "다시 질문",
+    "blocked": "답변이 표시되지 않았습니다.",
+    "moderationBlocked": "모더레이션 차단"
+  }
 }

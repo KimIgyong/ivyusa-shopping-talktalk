@@ -27,5 +27,21 @@
   "allCategories": "Todas las categorías",
   "categoryPlaceholder": "p. ej. policy_shipping, faq",
   "documentDetail": "Documento",
-  "noContent": "(sin contenido)"
+  "noContent": "(sin contenido)",
+  "uncategorized": "Sin categoría",
+  "editReindexHint": "Al guardar se vuelve a indexar el documento, así la búsqueda refleja el cambio de inmediato.",
+  "qa": {
+    "title": "Preguntar a la base de conocimiento",
+    "hint": "Las respuestas salen solo del conocimiento de este inquilino. Revisa las fuentes y corrige lo que esté mal.",
+    "placeholder": "p. ej. ¿Cuál es el mínimo para envío gratis?",
+    "thinking": "Buscando en el conocimiento…",
+    "confidence": "confianza",
+    "similarity": "coincidencia",
+    "sources": "Fuentes utilizadas",
+    "noSources": "Ningún documento coincide con esta pregunta.",
+    "fix": "Corregir",
+    "reask": "Preguntar de nuevo",
+    "blocked": "La respuesta no se muestra.",
+    "moderationBlocked": "Bloqueado por moderación"
+  }
 }
