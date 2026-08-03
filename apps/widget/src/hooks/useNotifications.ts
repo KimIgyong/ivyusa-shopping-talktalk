@@ -26,11 +26,17 @@ export function useNotifications(
   });
 }
 
-export function useUnreadCount(sessionToken: string | null) {
+/**
+ * Unread badge poll. Gated on `authenticated`: notifications are customer-bound,
+ * so an anonymous session would just collect 401s from /notifications/unread-count
+ * (FIX-Widget-UnreadCount-Anon401-20260803). The query auto-enables the moment the
+ * app-proxy handshake or AuthGate binds a customer and sets `authenticated`.
+ */
+export function useUnreadCount(sessionToken: string | null, authenticated: boolean) {
   return useQuery({
     queryKey: ['unread-count', sessionToken],
     queryFn: () => unreadCount(sessionToken!),
-    enabled: !!sessionToken,
+    enabled: !!sessionToken && authenticated,
     refetchInterval: 30_000,
   });
 }
