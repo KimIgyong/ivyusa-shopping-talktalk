@@ -58,7 +58,9 @@ DTO가 없어 정상. 위젯 로그인(POST, body 토큰)도 영향 없음 — �
 - `npm run typecheck` — 통과
 - staging 배포 후: 헤더-only `GET /api/v1/orders` → 401/E3001(400 아님) 확인, 스토어프런트 위젯 주문 탭 실확인
 
-## 5. 배포
+## 5. 배포 기록
 
 - 스키마 변경 없음(코드만) — staging SQL 선적용 불필요
-- PR: fix/widget-orders-400 → main squash-merge 후 staging 재배포
+- PR **#57** squash-merge → main `97180aa`
+- **staging 배포 완료 2026-08-03**: `deploy-staging.sh` 실행, API 부팅 로그 `successfully started` 확인, 컨테이너 healthy, `/health` ok
+- 배포 후 검증: 헤더-only `GET /orders` · `GET /inquiries` → **404 E3001**(세션 없음 — 정상 도달), 400 E5003 소멸 확인
