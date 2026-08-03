@@ -48,5 +48,19 @@
   "action_contact_support": "Contactar con soporte",
   "action_affiliate": "Afiliado",
   "action_my_orders": "Mis pedidos",
-  "action_message": "Enviar un mensaje"
+  "action_message": "Enviar un mensaje",
+  "ruleType": "Tipo",
+  "type_word": "Palabra",
+  "type_phrase": "Frase",
+  "type_regex": "Regex",
+  "type_context": "Contexto (LLM)",
+  "scope": "Se aplica a",
+  "scope_both": "IA + agentes",
+  "scope_ai": "Solo IA",
+  "scope_agent": "Solo agentes",
+  "mask": "Enmascarar",
+  "rephrase": "Reformular",
+  "created": "Creado",
+  "contextPromptLabel": "Prompt del clasificador",
+  "contextPromptPlaceholder": "Describe qué debe bloquearse; un LLM juzgará cada mensaje"
 }

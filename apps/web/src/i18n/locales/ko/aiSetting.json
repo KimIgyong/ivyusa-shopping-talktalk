@@ -48,5 +48,19 @@
   "action_contact_support": "고객 지원 문의",
   "action_affiliate": "제휴",
   "action_my_orders": "내 주문",
-  "action_message": "메시지 보내기"
+  "action_message": "메시지 보내기",
+  "ruleType": "유형",
+  "type_word": "단어",
+  "type_phrase": "문구",
+  "type_regex": "정규식",
+  "type_context": "문맥(LLM)",
+  "scope": "적용 대상",
+  "scope_both": "AI + 상담원",
+  "scope_ai": "AI만",
+  "scope_agent": "상담원만",
+  "mask": "마스킹",
+  "rephrase": "재작성",
+  "created": "생성일",
+  "contextPromptLabel": "분류 프롬프트",
+  "contextPromptPlaceholder": "차단해야 할 내용을 설명하면 LLM이 메시지를 판정합니다"
 }
