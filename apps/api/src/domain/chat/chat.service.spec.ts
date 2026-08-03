@@ -102,6 +102,11 @@ describe('ChatService consent gate', () => {
       // returns nothing — but the position matters.
       { recentForCustomer: jest.fn(async () => []) } as never,
       sessionService,
+      // Handoff routing sits between session and bus: these suites never reach
+      // an escalation, so the default (page agents, broadcast) is enough.
+      {
+        route: jest.fn(async () => ({ mode: 'agents', targetUserIds: [] })),
+      } as unknown as HandoffRouterService,
       bus,
     );
   };
