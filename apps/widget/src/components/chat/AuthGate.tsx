@@ -3,6 +3,7 @@ import { LogIn, Search } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { guestLookup } from '../../services/orderService';
 import { useStorefrontLogin } from '../../hooks/useStorefrontLogin';
+import { useAnalytics } from '../../lib/analytics';
 import { isAuthError } from '../../lib/errors';
 import { Spinner } from '../ui/Spinner';
 
@@ -17,6 +18,7 @@ export function AuthGate({
 }) {
   const { t } = useTranslation();
   const { canLogin, pending, login, cancel } = useStorefrontLogin();
+  const analytics = useAnalytics();
   const [mode, setMode] = useState<'choice' | 'guest'>('choice');
   const [orderNumber, setOrderNumber] = useState('');
   const [email, setEmail] = useState('');
