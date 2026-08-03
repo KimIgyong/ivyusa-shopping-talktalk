@@ -2,26 +2,7 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { LogIn, Search } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { guestLookup } from '../../services/orderService';
-import { getShopDomain } from '../../hooks/useSession';
-
-/**
- * Storefront sign-in (FIX-Widget-SignIn-Sandbox-20260803). The widget iframe is
- * sandboxed (no modals, no top navigation), so it cannot open the account page
- * itself: embedded, it asks the embed.js loader to navigate the store page
- * ('ivy:signin'); standalone with a known shop it opens the account page in a
- * new tab (allow-popups). Returns false when no sign-in target exists (local
- * dev without ?shop=) so the caller can hide the button.
- */
-function startSignIn(): boolean {
-  if (window.parent !== window) {
-    window.parent.postMessage({ type: 'ivy:signin' }, '*');
-    return true;
-  }
-  const shop = getShopDomain();
-  if (!shop) return false;
-  window.open(`https://${shop}/account/login`, '_blank', 'noopener');
-  return true;
-}
+import { useAnalytics } from '../../lib/analytics';
 
 export function AuthGate({
   sessionToken,
@@ -33,6 +14,7 @@ export function AuthGate({
   onCancel: () => void;
 }) {
   const { t } = useTranslation();
+  const analytics = useAnalytics();
   const [mode, setMode] = useState<'choice' | 'guest'>('choice');
   const [orderNumber, setOrderNumber] = useState('');
   const [email, setEmail] = useState('');
@@ -64,8 +46,10 @@ export function AuthGate({
     setLoading(true);
     try {
       await guestLookup(sessionToken, orderNumber.trim(), email.trim());
+      analytics.orderSearch(true);
       onSuccess();
     } catch (e) {
+      analytics.orderSearch(false);
       setError(e instanceof Error ? e.message : t('common.error'));
     } finally {
       setLoading(false);
