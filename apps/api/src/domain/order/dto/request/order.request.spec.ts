@@ -4,13 +4,13 @@ import { OrderListQuery } from './order.request';
 import { InquiryListQuery } from '../../../inquiry/dto/request/inquiry.request';
 
 /**
- * Regression guard: the widget's api-client lifts the session token into the
- * `X-Session-Token` header and strips it from GET params (PRV-M7/FE-M3), so a
- * widget list request arrives with NO `session_token` in the query. When these
- * query DTOs required it, the global ValidationPipe answered 400 ("session_token
- * must be a string") before `@SessionToken()` ever ran — the widget's Orders tab
- * just showed "Something went wrong". Auth is still enforced: the decorator
- * throws 401 when no token resolves from header, query or path.
+ * Regression for FIX-Widget-Orders-400-20260803: the widget's api-client lifts the
+ * session token into the `X-Session-Token` header and strips it from GET params
+ * (PRV-M7/FE-M3), so a widget list request arrives with NO `session_token` in the
+ * query. When these query DTOs required it, the global ValidationPipe answered 400
+ * ("session_token must be a string") before `@SessionToken()` ever ran — the
+ * widget's Orders tab just showed "Something went wrong". Auth is still enforced:
+ * the decorator throws 401 when no token resolves from header, query or path.
  */
 describe.each([
   ['OrderListQuery', OrderListQuery],

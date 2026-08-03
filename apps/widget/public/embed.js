@@ -272,6 +272,12 @@
     } else if (d.type === 'ivy:login') {
       // Only the widget iframe may trigger the sign-in popup.
       if (e.source === frame.contentWindow) openLoginPopup();
+    } else if (d.type === 'ivy:signin') {
+      // Back-compat with widgets that predate the popup flow: the sandboxed
+      // iframe cannot navigate the store page itself, so do it here.
+      // Storefront-relative so it works with classic and new customer accounts;
+      // after sign-in the app-proxy identity handshake authenticates the widget.
+      window.location.assign('/account/login');
     }
   });
 

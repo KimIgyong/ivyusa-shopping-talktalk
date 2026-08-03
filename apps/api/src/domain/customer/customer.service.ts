@@ -266,6 +266,21 @@ export class CustomerService {
       }
       return dirty ? this.customerRepo.save(existing) : existing;
     }
+    // No email match — the app-proxy identity path may have already created an
+    // email-less row for this Shopify customer (it only has the numeric id).
+    // Adopt that row instead of creating a duplicate: a second row would leave
+    // sessions bound to one customer and orders linked to another
+    // (FIX-Customer-Duplicate-ShopifyId-20260803).
+    if (shopifyCustomerId) {
+      const byShopifyId = await this.customerRepo.findOne({
+        where: { tenantId, shopifyCustomerId },
+      });
+      if (byShopifyId) {
+        byShopifyId.email = email;
+        if (name !== undefined) byShopifyId.name = name;
+        return this.customerRepo.save(byShopifyId);
+      }
+    }
     const customer = this.customerRepo.create({
       tenantId,
       email,
