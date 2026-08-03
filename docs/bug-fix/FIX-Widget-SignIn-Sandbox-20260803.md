@@ -45,4 +45,6 @@ origin 검증(`e.origin !== baseOrigin`)을 그대로 통과해야 하며, `ivy:
 ## 5. 배포 기록
 
 - 스키마 변경 없음 — SQL 선적용 불필요. 스토어 테마가 참조하는 embed.js는 위젯 컨테이너에서 서빙되므로 배포로 함께 갱신
-- PR/커밋/배포: 머지 후 기입
+- PR **#65** squash-merge → main `35ebe98`
+- **staging 배포 완료 2026-08-03**: 서빙 중인 `/widget/embed.js`에 `ivy:signin` 핸들러 포함 확인, API 부팅·healthy
+- 사용자 실확인: Sign in → /account/login 이동 → 복귀 자동 인증 (확인되면 기입)
