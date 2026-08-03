@@ -19,7 +19,18 @@ export interface KnowledgeDocument {
   title: string;
   active: number;
   status: string; // embedded/pending
+  createdAt?: string;
   updatedAt?: string;
+  // Provenance & staleness (PLN D7). `stale`/`reviewDueAt` are derived server-side.
+  sourceUrl?: string | null;
+  ownerUserId?: string | null;
+  effectiveFrom?: string | null;
+  reviewIntervalDays?: number | null;
+  reviewedAt?: string | null;
+  reviewedBy?: string | null;
+  supersededBy?: string | null;
+  stale?: boolean;
+  reviewDueAt?: string | null;
 }
 
 /** Detail adds the LONGTEXT content the list endpoint omits (PERF-9). */
@@ -34,6 +45,12 @@ export interface KnowledgeSource_ {
   category: string | null;
   similarity: number | null;
   snippet: string;
+  /** Origin system: knowledge_store / google_drive. */
+  source?: string | null;
+  /** Past its review cadence. */
+  stale?: boolean;
+  /** Named in an open conflict with another document. */
+  conflicted?: boolean;
 }
 
 export interface KnowledgeAnswer {
@@ -48,6 +65,41 @@ export interface CategoryCount {
   category: string | null;
   total: number;
   active: number;
+}
+
+/** One side of a conflicting pair, as rendered on the review card. */
+export interface ConflictDoc {
+  id: string;
+  title: string;
+  category: string | null;
+  source: string;
+  sourceUrl: string | null;
+  excerpt: string;
+  effectiveFrom: string | null;
+  updatedAt: string | null;
+  reviewedAt: string | null;
+  active: boolean;
+  stale: boolean;
+}
+
+export interface KnowledgeConflict {
+  id: string;
+  similarity: number | null;
+  verdict: string | null; // conflict/duplicate/complementary
+  rationale: string | null;
+  status: string; // pending/resolved/dismissed
+  resolution: string | null;
+  detectedAt: string;
+  resolvedAt: string | null;
+  docA: ConflictDoc | null;
+  docB: ConflictDoc | null;
+}
+
+export interface ScanResult {
+  scanned: number;
+  candidates: number;
+  judged: number;
+  conflicts: number;
 }
 
 export interface DocumentListParams {
@@ -73,10 +125,28 @@ export const knowledgeService = {
     apiPost<KnowledgeDocumentDetail>('/knowledge/documents', body),
   updateDocument: (
     id: string,
-    body: { title?: string; category?: string; content?: string; active?: number },
+    body: {
+      title?: string;
+      category?: string;
+      content?: string;
+      active?: number;
+      // snake_case: request DTOs are snake_case by convention.
+      source_url?: string | null;
+      effective_from?: string | null;
+      review_interval_days?: number | null;
+    },
   ) => apiPatch<KnowledgeDocumentDetail>(`/knowledge/documents/${id}`, body),
+  markReviewed: (id: string) =>
+    apiPost<KnowledgeDocumentDetail>(`/knowledge/documents/${id}/reviewed`, {}),
   deleteDocument: (id: string) => apiDelete<{ deleted: true }>(`/knowledge/documents/${id}`),
   categories: () => apiGet<CategoryCount[]>('/knowledge/categories'),
   ask: (question: string, language: string) =>
     apiPost<KnowledgeAnswer>('/knowledge/ask', { question, language }),
+  conflicts: (params: { status?: string; page: number; size: number }) =>
+    apiGetList<KnowledgeConflict>('/knowledge/conflicts', params),
+  scanConflicts: () => apiPost<ScanResult>('/knowledge/conflicts/scan', {}),
+  resolveConflict: (id: string, resolution: 'kept_a' | 'kept_b' | 'kept_both') =>
+    apiPost<KnowledgeConflict>(`/knowledge/conflicts/${id}/resolve`, { resolution }),
+  dismissConflict: (id: string) =>
+    apiPost<KnowledgeConflict>(`/knowledge/conflicts/${id}/dismiss`, {}),
 };

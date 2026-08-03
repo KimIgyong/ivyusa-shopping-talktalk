@@ -83,6 +83,11 @@ export function KnowledgeQaPanel({ onEditSource }: { onEditSource: (documentId: 
           </div>
 
           <div>
+            {result.sources.some((s) => s.conflicted) && (
+              <p className="mb-2 rounded border border-error/30 bg-error/5 p-2 text-xs text-error">
+                {t('qa.conflictWarning')}
+              </p>
+            )}
             <p className="mb-1.5 text-xs font-medium text-gray-600">{t('qa.sources')}</p>
             {result.sources.length === 0 && (
               <p className="text-xs text-gray-400">{t('qa.noSources')}</p>
@@ -98,6 +103,13 @@ export function KnowledgeQaPanel({ onEditSource }: { onEditSource: (documentId: 
                     <p className="mt-0.5 line-clamp-2 text-[11px] text-gray-500">{s.snippet}</p>
                     <div className="mt-1 flex flex-wrap items-center gap-1">
                       {s.category && <Badge tone="info">{s.category}</Badge>}
+                      {s.source && (
+                        <Badge tone="gray">{t(`source.${s.source}`, { defaultValue: s.source })}</Badge>
+                      )}
+                      {/* A flat ranked list gave no way to tell which of two
+                          disagreeing sources to trust. */}
+                      {s.conflicted && <Badge tone="error">{t('qa.conflicted')}</Badge>}
+                      {s.stale && <Badge tone="warning">{t('staleBadge')}</Badge>}
                       {s.similarity !== null && (
                         <span className="text-[11px] tabular-nums text-gray-400">
                           {t('qa.similarity')} {s.similarity.toFixed(2)}
