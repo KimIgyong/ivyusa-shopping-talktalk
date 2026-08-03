@@ -18,6 +18,7 @@ describe('KbConflictService.scan', () => {
 
   let saved: Array<Partial<KbConflict>>;
   let judgeCalls: number;
+  let embedCalls: number;
 
   const build = (
     opts: {
@@ -26,10 +27,12 @@ describe('KbConflictService.scan', () => {
       judgeText?: string;
       qdrantEnabled?: boolean;
       moderationBlocks?: boolean;
+      stubProvider?: boolean;
     } = {},
   ) => {
     saved = [];
     judgeCalls = 0;
+    embedCalls = 0;
 
     const docRepo = {
       find: jest.fn(async () => docs),
@@ -53,13 +56,16 @@ describe('KbConflictService.scan', () => {
     } as unknown as QdrantService;
 
     const ai = {
-      embed: jest.fn(async () => ({
-        vectors: [[1, 0, 0]],
-        model: 'voyage-4',
-        provider: 'voyage',
-        tokensIn: 1,
-        dimension: 3,
-      })),
+      embed: jest.fn(async (texts: string[]) => {
+        embedCalls += 1;
+        return {
+          vectors: texts.map(() => [1, 0, 0]),
+          model: opts.stubProvider ? 'stub-1' : 'voyage-4',
+          provider: opts.stubProvider ? 'stub' : 'voyage',
+          tokensIn: 1,
+          dimension: 3,
+        };
+      }),
       complete: jest.fn(async () => {
         judgeCalls += 1;
         return {
@@ -135,6 +141,29 @@ describe('KbConflictService.scan', () => {
     const { svc } = build({ moderationBlocks: true });
     await svc.scan(1);
     expect(saved).toHaveLength(0);
+  });
+
+  it('embeds documents in one batched call, not one request per document', async () => {
+    // A 230-document knowledge base was 230 requests, and the adapter does not
+    // retry single-text requests (that guard keeps live chat from stalling on a
+    // rate-limit backoff), so the per-document loop failed en masse the moment
+    // Voyage throttled — observed on staging 2026-08-04.
+    const { svc } = build();
+    await svc.scan(1);
+    expect(embedCalls).toBe(1);
+  });
+
+  it('aborts the scan rather than scanning against stub vectors', async () => {
+    const previous = process.env.VOYAGE_API_KEY;
+    process.env.VOYAGE_API_KEY = 'test-key';
+    try {
+      const { svc } = build({ stubProvider: true });
+      expect(await svc.scan(1)).toMatchObject({ candidates: 0, judged: 0 });
+      expect(saved).toHaveLength(0);
+    } finally {
+      if (previous === undefined) delete process.env.VOYAGE_API_KEY;
+      else process.env.VOYAGE_API_KEY = previous;
+    }
   });
 
   it('does nothing when vector search is unavailable', async () => {
