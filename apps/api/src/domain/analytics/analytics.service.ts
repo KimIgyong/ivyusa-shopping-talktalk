@@ -10,14 +10,21 @@ import { OrderCache } from '../order/entity/order-cache.entity';
 import { Session } from '../session/entity/session.entity';
 import { Customer } from '../customer/entity/customer.entity';
 import { User } from '../user/entity/user.entity';
+import { QuestionStatDaily, STAT_DIMENSION } from './entity/question-stat-daily.entity';
 import { RedisService } from '../../infrastructure/cache/redis.service';
 import { maskPii } from '../../global/util/pii.util';
+import { toDateKey } from '../../global/util/date-range.util';
 
 export interface DashboardKpis {
   activeChats: number;
   todayNotifications: number;
   aiResolutionRate: number;
+  /** Top question topics from the daily snapshots (was: the last 5 message bodies). */
   popularQuestions: string[];
+  /**
+   * Conversations currently waiting for an agent. Named `unresolvedTopN` on the
+   * wire for backward compatibility; it was never a "top N" of anything.
+   */
   unresolvedTopN: number;
   totalConversations: number;
   totalOrders: number;
@@ -75,6 +82,7 @@ export class AnalyticsService {
     @InjectRepository(Session) private readonly sessionRepo: Repository<Session>,
     @InjectRepository(Customer) private readonly customerRepo: Repository<Customer>,
     @InjectRepository(User) private readonly userRepo: Repository<User>,
+    @InjectRepository(QuestionStatDaily) private readonly statRepo: Repository<QuestionStatDaily>,
     private readonly redis: RedisService,
   ) {}
 
@@ -100,22 +108,32 @@ export class AnalyticsService {
       .where('n.created_at >= :start', { start: startOfToday });
     if (tenantId != null) notifQb.andWhere('n.tenant_id = :tenantId', { tenantId });
 
-    // Popular questions: only the body column of the last 50 user messages —
-    // never the full rows (retrieval_trace JSON etc.).
-    const msgQb = this.msgRepo
-      .createQueryBuilder('m')
-      .select('m.body', 'body')
-      .where('m.sender_type = :st', { st: SENDER_TYPE.USER })
-      .orderBy('m.id', 'DESC')
-      .take(50);
-    if (tenantId != null) msgQb.andWhere('m.tenant_id = :tenantId', { tenantId });
+    // Popular questions come from the daily snapshots (last 30 days), using the
+    // similar-question clusters: their labels are representative questions, so
+    // the card reads as questions rather than as classifier labels, and it works
+    // on backfilled history too (the intent lens only fills from new traffic
+    // onward). This used to be the last 50 message bodies de-duplicated — a
+    // recency list labelled as a frequency ranking, and one that put raw
+    // customer text straight onto the dashboard.
+    const trendStart = new Date(Date.now() - 30 * 86_400_000);
+    const popularQb = this.statRepo
+      .createQueryBuilder('s')
+      .select('s.dim_label', 'label')
+      .addSelect('SUM(s.asked)', 'asked')
+      .where('s.dimension = :dim', { dim: STAT_DIMENSION.CLUSTER })
+      .andWhere('s.dim_label IS NOT NULL')
+      .andWhere('s.stat_date >= :from', { from: toDateKey(trendStart) })
+      .groupBy('s.dim_label')
+      .orderBy('asked', 'DESC')
+      .limit(5);
+    if (tenantId != null) popularQb.andWhere('s.tenant_id = :tenantId', { tenantId });
 
     const [
       activeChats,
       todayNotifications,
       totalEnded,
       resolvedEnded,
-      recentBodies,
+      popularRows,
       unresolvedTopN,
       totalConversations,
       totalOrders,
@@ -135,17 +153,15 @@ export class AnalyticsService {
       this.convRepo.count({
         where: { ...tenantWhere, status: CONVERSATION_STATUS.ENDED, escalated: 0 },
       }),
-      msgQb.getRawMany<{ body: string }>(),
+      popularQb.getRawMany<{ label: string | null; asked: string }>(),
       this.convRepo.count({ where: { ...tenantWhere, status: CONVERSATION_STATUS.WAITING } }),
       this.convRepo.count({ where: tenantWhere }),
       this.orderRepo.count({ where: tenantWhere }),
     ]);
 
-    const popularQuestions: string[] = [];
-    for (const m of recentBodies) {
-      if (!popularQuestions.includes(m.body)) popularQuestions.push(m.body);
-      if (popularQuestions.length >= 5) break;
-    }
+    const popularQuestions = popularRows
+      .map((r) => r.label)
+      .filter((l): l is string => !!l);
 
     const kpis: DashboardKpis = {
       activeChats,
@@ -279,6 +295,94 @@ export class AnalyticsService {
         trace: this.readableTrace(m.retrievalTrace),
         createdAt: m.createdAt,
       })),
+    };
+  }
+
+  /**
+   * Question statistics for one lens over a date range (PLN S3). Reads only the
+   * daily snapshots — never the raw messages — so numbers stay stable after the
+   * retention purge removes the conversations behind them.
+   */
+  async questionStats(
+    tenantId: number | null,
+    params: { dimension: string; from: Date; to: Date; limit: number },
+  ): Promise<{
+    top: Array<{
+      key: string;
+      label: string | null;
+      asked: number;
+      escalated: number;
+      noSource: number;
+      escalationRate: number;
+      avgConfidence: number | null;
+    }>;
+    trend: Array<{ date: string; asked: number }>;
+    total: number;
+  }> {
+    const base = () => {
+      const qb = this.statRepo
+        .createQueryBuilder('s')
+        .where('s.dimension = :dimension', { dimension: params.dimension })
+        .andWhere('s.stat_date >= :from', { from: toDateKey(params.from) })
+        .andWhere('s.stat_date <= :to', { to: toDateKey(params.to) });
+      if (tenantId != null) qb.andWhere('s.tenant_id = :tenantId', { tenantId });
+      return qb;
+    };
+
+    const topRows = await base()
+      .select('s.dim_key', 'key')
+      // MAX, not ANY_VALUE: a label can be edited between days and MAX is
+      // deterministic, so the same range always renders the same text.
+      .addSelect('MAX(s.dim_label)', 'label')
+      .addSelect('SUM(s.asked)', 'asked')
+      .addSelect('SUM(s.escalated)', 'escalated')
+      .addSelect('SUM(s.no_source)', 'noSource')
+      // Confidence is a per-day mean, so weight by that day's volume rather
+      // than averaging the averages.
+      .addSelect('SUM(s.avg_confidence * s.asked) / NULLIF(SUM(CASE WHEN s.avg_confidence IS NULL THEN 0 ELSE s.asked END), 0)', 'avgConfidence')
+      .groupBy('s.dim_key')
+      .orderBy('asked', 'DESC')
+      .limit(params.limit)
+      .getRawMany<{
+        key: string;
+        label: string | null;
+        asked: string;
+        escalated: string;
+        noSource: string;
+        avgConfidence: string | null;
+      }>();
+
+    const trendRows = await base()
+      .select('s.stat_date', 'date')
+      .addSelect('SUM(s.asked)', 'asked')
+      .groupBy('s.stat_date')
+      .orderBy('s.stat_date', 'ASC')
+      .getRawMany<{ date: string | Date; asked: string }>();
+
+    const top = topRows.map((r) => {
+      const asked = Number(r.asked);
+      const escalated = Number(r.escalated);
+      return {
+        key: r.key,
+        label: r.label,
+        asked,
+        escalated,
+        noSource: Number(r.noSource),
+        escalationRate: asked > 0 ? escalated / asked : 0,
+        avgConfidence: r.avgConfidence == null ? null : Number(r.avgConfidence),
+      };
+    });
+
+    return {
+      top,
+      trend: trendRows.map((r) => ({
+        date: r.date instanceof Date ? toDateKey(r.date) : String(r.date),
+        asked: Number(r.asked),
+      })),
+      // Total questions in range for this lens. A question counted under two
+      // keywords appears twice here by design — it is the lens total, not a
+      // conversation count.
+      total: trendRows.reduce((sum, r) => sum + Number(r.asked), 0),
     };
   }
 

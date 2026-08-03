@@ -221,7 +221,7 @@ export class ChatService {
     const tenantId = session.tenantId ?? (await this.resolveTenantId());
     const conversation = await this.getOrCreateConversation(session.id);
 
-    await this.persist(tenantId, conversation.id, SENDER_TYPE.USER, text, session.language);
+    const userTurn = await this.persist(tenantId, conversation.id, SENDER_TYPE.USER, text, session.language);
     await this.bus.publish(EVENTS.CJM, {
       tenantId,
       sessionId: session.id,
@@ -252,6 +252,14 @@ export class ChatService {
 
     // Intent + scope check (FN-015): order data requires authentication first.
     const intent = await this.rag.classifyIntent(tenantId, egressText);
+    // Record the label on the turn that produced it. The classifier already
+    // runs on every message and its result was discarded after the
+    // needsOrderData check below, so the intent statistics lens costs no extra
+    // model call — only this write.
+    await this.msgRepo.update(
+      { id: userTurn.id },
+      { intent: intent.intent ?? null, intentConfidence: intent.confidence ?? null },
+    );
     if (intent.needsOrderData && session.customerId == null) {
       const body = sysMsg('authRequired', session.language);
       await this.persist(tenantId, conversation.id, SENDER_TYPE.SYSTEM, body, session.language);

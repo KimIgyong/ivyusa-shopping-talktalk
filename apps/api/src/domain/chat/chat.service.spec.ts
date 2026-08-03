@@ -21,6 +21,7 @@ describe('ChatService consent gate', () => {
   let svc: ChatService;
   let session: Session;
   let msgSave: jest.Mock;
+  let msgUpdate: jest.Mock;
   let convFindOne: jest.Mock;
   let convSave: jest.Mock;
   let busPublish: jest.Mock;
@@ -51,9 +52,13 @@ describe('ChatService consent gate', () => {
 
     convFindOne = jest.fn(async () => conversation);
     convSave = jest.fn(async (c: Conversation) => c);
-    msgSave = jest.fn(async (m: Message) => m);
+    // Hand back an id: the user turn is updated with its intent label after
+    // classification, so persist()'s return value has to be addressable.
+    msgUpdate = jest.fn();
+    let nextMessageId = 100;
+    msgSave = jest.fn(async (m: Message) => ({ ...m, id: m.id ?? nextMessageId++ }) as Message);
     busPublish = jest.fn();
-    ragClassify = jest.fn(async () => ({ needsOrderData: false }));
+    ragClassify = jest.fn(async () => ({ intent: 'shipping_inquiry', needsOrderData: false, confidence: 0.8 }));
     ragAnswer = jest.fn(async () => ({ text: 'AI answer', confidence: 0.9, citations: [] }));
     moderate = jest.fn(async () => ({ decision: MODERATION_DECISION.DELIVERED, text: 'AI answer' }));
 
@@ -67,6 +72,7 @@ describe('ChatService consent gate', () => {
     const msgRepo = {
       save: msgSave,
       create: (m: Partial<Message>) => m,
+      update: msgUpdate,
       find: jest.fn(async () => []),
       findOne: jest.fn(async () => null),
     } as unknown as Repository<Message>;
@@ -176,6 +182,21 @@ describe('ChatService consent gate', () => {
     const persisted = msgSave.mock.calls.map((c) => c[0] as { tenantId?: number | null });
     expect(persisted.length).toBeGreaterThanOrEqual(2); // user turn + AI turn
     for (const m of persisted) expect(m.tenantId).toBe(1);
+  });
+
+  it('records the classified intent on the user turn (no extra model call)', async () => {
+    // classifyIntent already ran on every message and its label was discarded
+    // after the needsOrderData check; the intent statistics lens is that label
+    // being written down, not a new classification pass.
+    session = makeSession(CONSENT_STATE.GRANTED, CONSENT_NOTICE_VERSION);
+    build();
+    await svc.handleUserMessage(session, 'when does my order ship?');
+
+    expect(ragClassify).toHaveBeenCalledTimes(1);
+    expect(msgUpdate).toHaveBeenCalledWith(
+      { id: expect.any(Number) },
+      { intent: 'shipping_inquiry', intentConfidence: 0.8 },
+    );
   });
 
   it('scrubs PII from the AI egress copy while persisting the original (Stage 5)', async () => {

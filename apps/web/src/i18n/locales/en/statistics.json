@@ -1,0 +1,30 @@
+{
+  "title": "Question statistics",
+  "subtitle": "What customers ask, and how well it is answered",
+  "from": "From",
+  "to": "To",
+  "tab": {
+    "intent": "Intent",
+    "document": "Knowledge used",
+    "keyword": "Keywords",
+    "cluster": "Similar questions"
+  },
+  "dimension": {
+    "intent": "Intent",
+    "category": "Category",
+    "document": "Document",
+    "keyword": "Keyword",
+    "cluster": "Question group"
+  },
+  "asked": "Asked",
+  "share": "Share",
+  "escalationRate": "Handoff rate",
+  "noSource": "No source",
+  "avgConfidence": "Avg. confidence",
+  "trendTitle": "Question volume",
+  "noTrend": "No data in this range.",
+  "trendAria": "Question volume over {{count}} days",
+  "empty": "No questions recorded in this range.",
+  "attentionHint": "Flagged rows have a high handoff rate or low confidence — these are the topics worth improving in the knowledge base first.",
+  "snapshotNote": "Figures come from daily snapshots, so they remain available after conversation logs are purged."
+}

@@ -16,3 +16,12 @@ export class ConversationSearchQuery {
   @IsOptional() @IsString() page?: string;
   @IsOptional() @IsString() size?: string;
 }
+
+export class QuestionStatsQuery {
+  /** intent | category | document | keyword | cluster (default: intent). */
+  @IsOptional() @IsString() dimension?: string;
+  @IsOptional() @IsString() from?: string;
+  @IsOptional() @IsString() to?: string;
+  /** Rows in the ranking table; clamped server-side to 1..100. */
+  @IsOptional() @IsString() limit?: string;
+}

@@ -8,8 +8,12 @@ import { OrderCache } from '../order/entity/order-cache.entity';
 import { Session } from '../session/entity/session.entity';
 import { Customer } from '../customer/entity/customer.entity';
 import { User } from '../user/entity/user.entity';
+import { KbDocument } from '../knowledge/entity/kb-document.entity';
 import { AuditModule } from '../audit/audit.module';
+import { QuestionStatDaily } from './entity/question-stat-daily.entity';
+import { QuestionCluster } from './entity/question-cluster.entity';
 import { AnalyticsService } from './analytics.service';
+import { QuestionStatsService } from './question-stats.service';
 import { AnalyticsController } from './analytics.controller';
 
 @Module({
@@ -23,13 +27,16 @@ import { AnalyticsController } from './analytics.controller';
       Session,
       Customer,
       User,
+      KbDocument,
+      QuestionStatDaily,
+      QuestionCluster,
     ]),
     // Reading a transcript is a PII access and is audited like the agent
     // console's equivalent route (PRV-H4).
     AuditModule,
   ],
   controllers: [AnalyticsController],
-  providers: [AnalyticsService],
-  exports: [AnalyticsService],
+  providers: [AnalyticsService, QuestionStatsService],
+  exports: [AnalyticsService, QuestionStatsService],
 })
 export class AnalyticsModule {}

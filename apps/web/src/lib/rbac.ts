@@ -12,6 +12,7 @@ export type Capability =
   | 'users'
   | 'settings'
   | 'work_log'
+  | 'statistics'
   | 'dashboard';
 
 // Label codes mapped to capability groups.
@@ -36,6 +37,7 @@ const RANK_EXTRA: Record<Rank, Capability[]> = {
     'users',
     'settings',
     'work_log',
+    'statistics',
   ],
   director: [
     'dashboard',
@@ -49,8 +51,9 @@ const RANK_EXTRA: Record<Rank, Capability[]> = {
     'ai_settings',
     'settings',
     'work_log',
+    'statistics',
   ],
-  manager: ['dashboard', 'ai_settings'],
+  manager: ['dashboard', 'ai_settings', 'statistics'],
   staff: ['dashboard'],
 };
 

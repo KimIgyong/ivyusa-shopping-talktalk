@@ -1,5 +1,5 @@
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
-import { bigintTransformer } from '../../../global/util/transformers';
+import { bigintTransformer, decimalTransformer } from '../../../global/util/transformers';
 
 /** messages — individual chat messages (FR-011). */
 @Entity('messages')
@@ -31,6 +31,25 @@ export class Message {
 
   @Column({ name: 'retrieval_trace', type: 'json', nullable: true })
   retrievalTrace: unknown | null;
+
+  /**
+   * Intent label from the RAG classifier, persisted for the question-statistics
+   * intent lens. It was already computed on every user turn and discarded after
+   * a single needsOrderData check, so recording it costs no extra model call.
+   */
+  @Column({ type: 'varchar', length: 48, nullable: true })
+  @Index('idx_msg_intent')
+  intent: string | null;
+
+  @Column({
+    name: 'intent_confidence',
+    type: 'decimal',
+    precision: 4,
+    scale: 3,
+    nullable: true,
+    transformer: decimalTransformer,
+  })
+  intentConfidence: number | null;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
