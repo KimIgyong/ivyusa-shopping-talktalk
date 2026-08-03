@@ -1,0 +1,196 @@
+/**
+ * Wire contracts for the widget-facing (storefront) endpoints — the single source
+ * of truth shared by the API mappers and the widget frontend.
+ *
+ * The widget used to hand-maintain its own copy of every shape, with nothing
+ * checking the two against each other. They drifted, silently: an order detail
+ * typed `{ order, items }` against a flat payload crashed the whole widget, and a
+ * tracking stepper typed `{label}[]` against `string[]` rendered blank rows. A
+ * mapper that `implements`/returns these types makes such a drift a compile error.
+ *
+ * These describe the JSON **as it leaves the server**, which is why:
+ *  - ids are `string` — every PK is a MySQL BIGINT with no numeric transformer, so
+ *    the driver hands back a string and that is what serializes.
+ *  - timestamps are ISO `string` — mappers emit `Date`, JSON makes it a string, and
+ *    the client only ever sees the string.
+ * Nullability below is what the entities actually allow, not what is convenient.
+ */
+
+// ---- session -------------------------------------------------------------
+export interface SessionResponse {
+  sessionToken: string;
+  language: string;
+  consentState: string;
+  authenticated: boolean;
+  /** Bound customer's display name; null for guests and until the profile syncs. */
+  customerName: string | null;
+  /** Tenant's privacy-policy link (null when the tenant has not set one). */
+  privacyPolicyUrl: string | null;
+  /** Effective consent-notice version (tenant override ?? platform default). */
+  consentNoticeVersion: string;
+  /** True when a recorded consent references a version other than the effective one. */
+  noticeOutdated: boolean;
+  /** When the consent choice was recorded (ISO 8601), null when never recorded. */
+  consentAt: string | null;
+}
+
+// ---- chat ---------------------------------------------------------------
+export interface ChatCitation {
+  id?: number;
+  title?: string;
+  category?: string | null;
+  source?: string;
+  snippet?: string;
+  url?: string;
+}
+
+/** Scenario follow-up chip (FR-S1). */
+export interface ScenarioFollowUpResponse {
+  id: string;
+  label: string;
+}
+
+export interface ChatMessageResponse {
+  id: string;
+  senderType: string;
+  senderName: string | null;
+  body: string;
+  createdAt: string;
+  /** Present only on a scripted turn that carries chips. */
+  quickReplies?: ScenarioFollowUpResponse[];
+}
+
+export interface ConversationResponse {
+  /** Null until the first message creates a conversation. */
+  conversationId: string | null;
+  status: string;
+  messages: ChatMessageResponse[];
+}
+
+export interface ChatTurnResponse {
+  /**
+   * Null when the turn produced no conversation (consent declined). It used to be
+   * the number 0 for that case; the client's `if (!conversationId)` guard relied on
+   * it being falsy, and `'0'` would not have been — hence null, not a stringified 0.
+   */
+  conversationId: string | null;
+  /** Null in agent/waiting mode — the human reply arrives via polling. */
+  reply: {
+    senderType: string;
+    body: string;
+    citations?: ChatCitation[];
+  } | null;
+  escalate: boolean;
+  needsAuth: boolean;
+}
+
+export interface ScenarioTurnResponse {
+  /**
+   * Null when the turn produced no conversation — same consent-declined case as
+   * ChatTurnResponse above, reached from the scenario-button path. Null rather
+   * than a stringified 0 for the same reason: the client tests it for falsiness.
+   */
+  conversationId: string | null;
+  reply: { senderType: string; body: string };
+  followUps: ScenarioFollowUpResponse[];
+}
+
+// ---- orders -------------------------------------------------------------
+/** Guest lookup result — deliberately smaller than the list item. */
+export interface OrderLookupResponse {
+  id: string;
+  orderNumber: string;
+  statusUi: string | null;
+  total: number | null;
+}
+
+export interface OrderListItemResponse {
+  id: string;
+  orderNumber: string;
+  statusInternal: string | null;
+  statusUi: string | null;
+  total: number | null;
+  currency: string | null;
+  createdAt: string;
+  itemCount: number;
+}
+
+export interface OrderItemResponse {
+  /** Required to review the item (POST /reviews takes order_item_id). */
+  id: string;
+  title: string;
+  optionText: string | null;
+  qty: number;
+  price: number | null;
+}
+
+/** Flat: the order's own fields sit alongside `items` — never `{ order, items }`. */
+export interface OrderDetailResponse {
+  id: string;
+  orderNumber: string;
+  statusInternal: string | null;
+  statusUi: string | null;
+  total: number | null;
+  currency: string | null;
+  createdAt: string;
+  items: OrderItemResponse[];
+}
+
+/**
+ * `steps` are localized LABELS and progress comes from `stepIndex` — there is no
+ * per-step object.
+ */
+export interface TrackingResponse {
+  status: string;
+  carrier: string | null;
+  trackingNumber: string | null;
+  stepIndex: number;
+  steps: string[];
+}
+
+// ---- notifications ------------------------------------------------------
+export interface NotificationResponse {
+  id: string;
+  category: string;
+  title: string;
+  body: string | null;
+  statusBadge: string | null;
+  channel: string;
+  /** Derived server-side from `readAt != null`. */
+  read: boolean;
+  readAt: string | null;
+  createdAt: string;
+}
+
+export interface NotificationPrefResponse {
+  id: string;
+  channel: string;
+  category: string;
+  /** Boolean on the wire; the column is a tinyint. */
+  enabled: boolean;
+}
+
+export interface UnreadCountResponse {
+  count: number;
+}
+
+// ---- affiliate ----------------------------------------------------------
+/** Note: with no affiliate row the endpoint 404s — there is no 'none' status. */
+export interface AffiliateStatusResponse {
+  status: string;
+  linkCode: string | null;
+  commissionRate: number;
+}
+
+// ---- scenario menu ------------------------------------------------------
+export interface ScenarioButtonResponse {
+  /** Action slug (e.g. 'delivery_status'), not a numeric id. */
+  id: string;
+  label: string;
+  action: string;
+  enabled: boolean;
+}
+
+export interface ScenarioConfigResponse {
+  scenarioButtons: ScenarioButtonResponse[];
+}

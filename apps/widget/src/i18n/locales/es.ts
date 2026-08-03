@@ -25,10 +25,20 @@ export const es: Translation = {
   chat: {
     welcome:
       '¡Hola! Te damos la bienvenida a IVY USA. ¿En qué podemos ayudarte hoy? Elige un tema abajo o escribe tu pregunta.',
+    welcomeNamed:
+      '¡Hola {{name}}! Bienvenido de nuevo a IVY USA. ¿En qué podemos ayudarte hoy? Elige un tema abajo o escribe tu pregunta.',
     aiDisclosure:
       'Este chat funciona con IA. Los mensajes que envías son procesados por un proveedor externo de IA en Estados Unidos para generar respuestas.',
     inputPlaceholder: 'Escribe un mensaje…',
     send: 'Enviar',
+    sendFailed: 'Lo sentimos, no se pudo enviar. Inténtalo de nuevo.',
+    connectingAgent: 'Te estamos conectando con un agente de soporte. Espera un momento…',
+    nextActions: {
+      myOrders: 'Mis pedidos',
+      shipping: 'Envío y entrega',
+      returns: 'Devolver o cambiar',
+      agent: 'Hablar con un agente',
+    },
     connectAgent: 'Conectar con un agente',
     consent: {
       title: 'Aviso de privacidad',
@@ -79,6 +89,10 @@ export const es: Translation = {
     email: 'Correo electrónico',
     submit: 'Buscar pedido',
     cancel: 'Cancelar',
+    waiting: 'Esperando a que inicies sesión…',
+    lookupFailed: "No encontramos un pedido con ese número y correo. Revisa ambos e inténtalo de nuevo.",
+    lookupThrottled: 'Demasiados intentos. Espera unos minutos e inténtalo de nuevo.',
+    useGuestInstead: 'Buscar por número de pedido',
   },
 
   contact: {
@@ -109,6 +123,8 @@ export const es: Translation = {
     },
     empty: 'No se encontraron pedidos.',
     ask: 'Preguntar sobre este pedido',
+    askMessage: 'Tengo una pregunta sobre el pedido n.º {{orderNumber}}.',
+    trackingSteps: ['En preparación', 'Enviado', 'En tránsito', 'Entregado'],
     track: 'Rastrear',
     detail: 'Detalle del pedido',
     items: 'Artículos',
@@ -177,6 +193,9 @@ export const es: Translation = {
   common: {
     loading: 'Cargando…',
     error: 'Algo salió mal.',
+    crashTitle: 'Algo falló de nuestro lado.',
+    crashBody:
+      'El resto del widget sigue funcionando. Inténtalo de nuevo o cambia de pestaña y vuelve.',
     retry: 'Reintentar',
     close: 'Cerrar',
   },

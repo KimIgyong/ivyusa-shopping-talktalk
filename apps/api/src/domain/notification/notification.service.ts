@@ -4,6 +4,7 @@ import { IsNull, Repository } from 'typeorm';
 import { Notification } from './entity/notification.entity';
 import { NotificationPref } from './entity/notification-pref.entity';
 import { Session } from '../session/entity/session.entity';
+import { SessionService } from '../session/session.service';
 import { NotifyInput } from './dto/response/notification.response';
 import { EventBusService, EVENTS } from '../../infrastructure/infrastructure.module';
 import { BusinessException } from '../../global/exception/business.exception';
@@ -40,6 +41,7 @@ export class NotificationService implements OnModuleInit {
     @InjectRepository(Notification) private readonly notifRepo: Repository<Notification>,
     @InjectRepository(NotificationPref) private readonly prefRepo: Repository<NotificationPref>,
     @InjectRepository(Session) private readonly sessionRepo: Repository<Session>,
+    private readonly sessionService: SessionService,
     private readonly bus: EventBusService,
     private readonly redis: RedisService,
   ) {}
@@ -152,14 +154,9 @@ export class NotificationService implements OnModuleInit {
     return !transactional;
   }
 
-  /** Resolve the customer behind a session token; throws if unauthenticated. */
-  private async requireCustomerId(token: string): Promise<number> {
-    const session = await this.sessionRepo.findOne({ where: { sessionToken: token } });
-    if (!session) throw new BusinessException(ERROR_CODE.SESSION_NOT_FOUND, HttpStatus.NOT_FOUND);
-    if (session.customerId == null) {
-      throw new BusinessException(ERROR_CODE.UNAUTHORIZED, HttpStatus.UNAUTHORIZED);
-    }
-    return session.customerId;
+  /** Widget-session authorization — single implementation in SessionService. */
+  private requireCustomerId(token: string): Promise<number> {
+    return this.sessionService.requireCustomerId(token);
   }
 
   async list(

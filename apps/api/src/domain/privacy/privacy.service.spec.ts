@@ -59,8 +59,19 @@ describe('PrivacyService.setOptOut / getOptOutStatus (Stage 6 — bulk upsert)',
       stubRepo(), // deviceToken
       stubRepo(), // campaign
       stubRepo(), // tenant
+      // Widget-session authorization is delegated to SessionService (one gate for
+      // every path that touches personal data), so it precedes audit/redis here.
+      {
+        requireCustomer: jest.fn(async () => session),
+        requireCustomerId: jest.fn(async () => session.customerId),
+      } as never,
       audit,
       redis,
+      // Erasure suppression + upstream propagation: not exercised by the opt-out
+      // suites, stubbed so the positional args stay aligned.
+      { record: jest.fn(), isSuppressed: jest.fn(async () => false) } as never,
+      { getShopifyConnection: jest.fn(async () => null) } as never,
+      { requestCustomerErasure: jest.fn() } as never,
     );
   });
 

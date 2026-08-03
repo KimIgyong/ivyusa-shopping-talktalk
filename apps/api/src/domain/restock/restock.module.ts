@@ -1,12 +1,13 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { SessionModule } from '../session/session.module';
 import { RestockSubscription } from './entity/restock-subscription.entity';
 import { Session } from '../session/entity/session.entity';
 import { RestockService } from './restock.service';
 import { RestockController } from './restock.controller';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([RestockSubscription, Session])],
+  imports: [TypeOrmModule.forFeature([RestockSubscription, Session]), SessionModule],
   controllers: [RestockController],
   providers: [RestockService],
   exports: [RestockService],

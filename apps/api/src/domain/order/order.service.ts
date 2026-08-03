@@ -1,10 +1,10 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import {
-  DELIVERY_STEPS,
   FULFILLMENT_STATUS,
   ORDER_STATUS_INTERNAL,
+  deliverySteps,
   fulfillmentStepIndex,
   internalToUiStatus,
 } from '@ivy/types';
@@ -14,7 +14,7 @@ import { OrderCache } from './entity/order-cache.entity';
 import { OrderItem } from './entity/order-item.entity';
 import { Fulfillment } from './entity/fulfillment.entity';
 import { Session } from '../session/entity/session.entity';
-import { sessionCacheKey } from '../session/session.service';
+import { SessionService, sessionCacheKey } from '../session/session.service';
 import { Customer } from '../customer/entity/customer.entity';
 import { OrderMapper } from './order.mapper';
 import { Paginated } from '../../global/interceptor/transform.interceptor';
@@ -45,6 +45,7 @@ export class OrderService {
     private readonly bus: EventBusService,
     private readonly redis: RedisService,
     private readonly webhookSecretService: WebhookSecretService,
+    private readonly sessionService: SessionService,
   ) {}
 
   /** Guest order lookup (FR-019). Rate-limited per email; binds session on success. */
@@ -120,9 +121,11 @@ export class OrderService {
 
   /** Latest fulfillment + delivery stepper for an order (FR-031). */
   async trackingForSession(sessionToken: string, orderId: number) {
-    const customerId = await this.requireCustomerId(sessionToken);
+    // The shared gate returns the session, which we also need for its language —
+    // the stepper labels are customer-facing and must be localized.
+    const session = await this.sessionService.requireCustomer(sessionToken);
     const order = await this.orderRepo.findOne({ where: { id: orderId } });
-    if (!order || order.customerId !== customerId) {
+    if (!order || order.customerId !== session.customerId) {
       throw new BusinessException(ERROR_CODE.ORDER_NOT_FOUND, HttpStatus.NOT_FOUND);
     }
     const fulfillment = await this.fulfillRepo.findOne({
@@ -135,8 +138,39 @@ export class OrderService {
       carrier: fulfillment?.carrier ?? null,
       trackingNumber: fulfillment?.trackingNumber ?? null,
       stepIndex: fulfillmentStepIndex(status),
-      steps: DELIVERY_STEPS,
+      steps: deliverySteps(session.language),
     };
+  }
+
+  /**
+   * Recent orders (with their line items) for a bound customer — the factual
+   * grounding the chat assistant needs to answer "where is my order?" instead of
+   * guessing from the knowledge base. Tenant-scoped on both sides so a session
+   * can never read another store's orders.
+   */
+  async recentForCustomer(
+    tenantId: number,
+    customerId: number,
+    limit = 5,
+  ): Promise<Array<{ order: OrderCache; items: OrderItem[] }>> {
+    const orders = await this.orderRepo.find({
+      where: { tenantId, customerId },
+      order: { createdAt: 'DESC' },
+      take: limit,
+    });
+    if (!orders.length) return [];
+    const items = await this.itemRepo.find({
+      where: { orderId: In(orders.map((o) => o.id)) },
+      order: { id: 'ASC' },
+    });
+    const byOrder = new Map<string, OrderItem[]>();
+    for (const it of items) {
+      const key = String(it.orderId);
+      const list = byOrder.get(key);
+      if (list) list.push(it);
+      else byOrder.set(key, [it]);
+    }
+    return orders.map((order) => ({ order, items: byOrder.get(String(order.id)) ?? [] }));
   }
 
   /** Admin view: all orders for the tenant (paginated). */
@@ -228,13 +262,13 @@ export class OrderService {
     return session;
   }
 
-  /** Resolve bound customer; order data requires auth (POL-001). */
-  private async requireCustomerId(token: string): Promise<number> {
-    const session = await this.loadSession(token);
-    if (session.customerId == null) {
-      throw new BusinessException(ERROR_CODE.UNAUTHORIZED, HttpStatus.UNAUTHORIZED);
-    }
-    return session.customerId;
+  /**
+   * Widget-session authorization — single implementation in SessionService.
+   * `loadSession` above stays for the paths that MUTATE the session (guest bind),
+   * which must not write back a cached copy.
+   */
+  private requireCustomerId(token: string): Promise<number> {
+    return this.sessionService.requireCustomerId(token);
   }
 
   private async enforceLookupLimit(email: string): Promise<void> {

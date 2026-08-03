@@ -1,24 +1,41 @@
+import type {
+  ChatMessageResponse,
+  ConversationResponse,
+  ScenarioFollowUpResponse,
+} from '@ivy/types';
 import { Conversation } from './entity/conversation.entity';
 import { Message } from './entity/message.entity';
 
-/** Entity → camelCase response mapping (static methods, per convention). */
-export interface MessageResponse {
-  id: number;
-  senderType: string;
-  senderName: string | null;
-  body: string;
-  createdAt: Date;
-}
+/**
+ * Response shapes live in `@ivy/types` — the widget imports the same contract.
+ */
+export type MessageResponse = ChatMessageResponse;
+export type { ConversationResponse };
 
-export interface ConversationResponse {
-  conversationId: number;
-  status: string;
-  messages: MessageResponse[];
+/** Chips persisted on the message's trace by ScenarioService, if any. */
+function followUpsOf(m: Message): ScenarioFollowUpResponse[] | undefined {
+  const trace = m.retrievalTrace as { followUps?: unknown } | null;
+  const raw = Array.isArray(trace?.followUps) ? trace.followUps : null;
+  if (!raw?.length) return undefined;
+  const chips = raw.filter(
+    (f): f is { id: string; label: string } =>
+      !!f &&
+      typeof (f as { id?: unknown }).id === 'string' &&
+      typeof (f as { label?: unknown }).label === 'string',
+  );
+  return chips.length ? chips.map((f) => ({ id: f.id, label: f.label })) : undefined;
 }
 
 export class ChatMapper {
   static toMessageResponse(m: Message, senderName: string | null = null): MessageResponse {
-    return { id: m.id, senderType: m.senderType, senderName, body: m.body, createdAt: m.createdAt };
+    return {
+      id: String(m.id),
+      senderType: m.senderType,
+      senderName,
+      body: m.body,
+      createdAt: m.createdAt.toISOString(),
+      quickReplies: followUpsOf(m),
+    };
   }
 
   static toConversationResponse(
@@ -27,7 +44,7 @@ export class ChatMapper {
     senderNames?: Map<string, string>,
   ): ConversationResponse {
     return {
-      conversationId: conversation.id,
+      conversationId: String(conversation.id),
       status: conversation.status,
       messages: messages.map((m) =>
         ChatMapper.toMessageResponse(

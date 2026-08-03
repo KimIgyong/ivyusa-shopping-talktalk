@@ -2,6 +2,10 @@ import { HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CONSENT_STATE, MODERATION_DECISION, SENDER_TYPE } from '@ivy/types';
+import type {
+  ScenarioFollowUpResponse,
+  ScenarioTurnResponse,
+} from '@ivy/types';
 import { Message } from './entity/message.entity';
 import { Session } from '../session/entity/session.entity';
 import { ChatService, sysMsg } from './chat.service';
@@ -10,16 +14,9 @@ import { SessionService } from '../session/session.service';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
 
-export interface ScenarioFollowUp {
-  id: string;
-  label: string;
-}
-
-export interface ScenarioTurnResult {
-  conversationId: number;
-  reply: { senderType: string; body: string };
-  followUps: ScenarioFollowUp[];
-}
+/** Response shapes live in `@ivy/types` — the widget imports the same contract. */
+export type ScenarioFollowUp = ScenarioFollowUpResponse;
+export type ScenarioTurnResult = ScenarioTurnResponse;
 
 type Lang = 'EN' | 'ES' | 'KO';
 
@@ -194,7 +191,9 @@ export class ScenarioService {
     const consent = await this.sessionService.effectiveConsentFor(session.id, session.tenantId);
     if (consent !== CONSENT_STATE.GRANTED) {
       return {
-        conversationId: 0,
+        // No conversation was created — null, not 0: the client guards on falsiness
+        // and a stringified '0' would pass that guard (see ScenarioTurnResponse).
+        conversationId: null,
         reply: { senderType: 'system', body: sysMsg('consentRequired', session.language) },
         followUps: [],
       };
@@ -235,12 +234,14 @@ export class ScenarioService {
         script.utterance[l],
       );
       return {
-        conversationId: conversation.id,
+        conversationId: String(conversation.id),
         reply: { senderType: 'system', body: notice },
         followUps: [],
       };
     }
     const body = moderated.text;
+
+    const followUps = script.followUps.map((f) => ({ id: f.id, label: f.label[l] }));
 
     await this.msgRepo.save(
       this.msgRepo.create({
@@ -248,14 +249,19 @@ export class ScenarioService {
         senderType: SENDER_TYPE.AI,
         body,
         lang: session.language,
-        retrievalTrace: { scenario: action, kind: 'script' },
+        // Persist the follow-up chips alongside the turn. They used to live only in
+        // this response, so re-reading the conversation (switching widget tab, or a
+        // page reload) lost them and left the shopper with no next action. Stored in
+        // retrieval_trace, which already carries this turn's UI metadata — keeps the
+        // chips durable without a schema change.
+        retrievalTrace: { scenario: action, kind: 'script', followUps },
       }),
     );
 
     return {
-      conversationId: conversation.id,
+      conversationId: String(conversation.id),
       reply: { senderType: 'ai', body },
-      followUps: script.followUps.map((f) => ({ id: f.id, label: f.label[l] })),
+      followUps,
     };
   }
 }

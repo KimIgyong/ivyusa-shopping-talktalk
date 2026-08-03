@@ -14,8 +14,14 @@ export class UpdatePrefRequest {
   @IsBoolean() enabled: boolean;
 }
 
+/**
+ * Not currently bound to the controller (it reads the params individually), but
+ * kept consistent with the other widget list queries: `session_token` must stay
+ * optional because `@SessionToken()` takes it from the `X-Session-Token` header
+ * (PRV-M7/FE-M3). Requiring it here would 400 every widget GET if wired up.
+ */
 export class ListNotificationsQuery {
-  @IsString() session_token: string;
+  @IsOptional() @IsString() session_token?: string;
   @IsOptional() @IsString() category?: string;
   @IsOptional() @IsString() page?: string;
   @IsOptional() @IsString() size?: string;

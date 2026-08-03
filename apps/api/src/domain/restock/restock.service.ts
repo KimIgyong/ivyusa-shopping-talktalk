@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Repository } from 'typeorm';
 import { RestockSubscription } from './entity/restock-subscription.entity';
 import { Session } from '../session/entity/session.entity';
+import { SessionService } from '../session/session.service';
 import { EventBusService, EVENTS } from '../../infrastructure/infrastructure.module';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
@@ -14,6 +15,7 @@ export class RestockService {
     @InjectRepository(RestockSubscription)
     private readonly restockRepo: Repository<RestockSubscription>,
     @InjectRepository(Session) private readonly sessionRepo: Repository<Session>,
+    private readonly sessionService: SessionService,
     private readonly bus: EventBusService,
   ) {}
 
@@ -38,13 +40,11 @@ export class RestockService {
   }
 
   async listForSession(sessionToken: string): Promise<RestockSubscription[]> {
-    const session = await this.sessionRepo.findOne({ where: { sessionToken } });
-    if (!session) throw new BusinessException(ERROR_CODE.SESSION_NOT_FOUND, HttpStatus.NOT_FOUND);
-    if (session.customerId == null) {
-      throw new BusinessException(ERROR_CODE.UNAUTHORIZED, HttpStatus.UNAUTHORIZED);
-    }
+    // Shared widget-session gate. Note `subscribe` above deliberately does NOT
+    // use it: a restock alert may be created by an anonymous visitor.
+    const customerId = await this.sessionService.requireCustomerId(sessionToken);
     return this.restockRepo.find({
-      where: { customerId: session.customerId },
+      where: { customerId },
       order: { id: 'DESC' },
     });
   }

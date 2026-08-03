@@ -8,6 +8,7 @@ import { Public } from '../../global/decorator/public.decorator';
 import { RequireCapability } from '../../global/decorator/auth.decorator';
 import { CurrentUser } from '../../global/decorator/current-user.decorator';
 import { Paginated } from '../../global/interceptor/transform.interceptor';
+import type { AffiliateStatusResponse } from '@ivy/types';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
 import { ApplyRequest, ReviewRequest } from './dto/request/affiliate.request';
@@ -41,7 +42,7 @@ export class AffiliateController {
   @Get('affiliate/status')
   @Public()
   @ApiOperation({ summary: 'Get the current affiliate application status (requires auth)' })
-  async status(@SessionToken() token: string) {
+  async status(@SessionToken() token: string): Promise<AffiliateStatusResponse> {
     const affiliate = await this.affiliateService.status(token);
     if (!affiliate) {
       throw new BusinessException(ERROR_CODE.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND);

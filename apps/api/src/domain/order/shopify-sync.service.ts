@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { ORDER_STATUS_INTERNAL, internalToUiStatus } from '@ivy/types';
 import { OrderCache } from './entity/order-cache.entity';
+import { OrderItem } from './entity/order-item.entity';
 import { ShopifyAdminClient, ShopifyOrderDto } from './shopify-admin.client';
 import { TenantService } from '../tenant/tenant.service';
 import { CustomerService } from '../customer/customer.service';
@@ -48,6 +49,7 @@ export class ShopifySyncService {
 
   constructor(
     @InjectRepository(OrderCache) private readonly orderRepo: Repository<OrderCache>,
+    @InjectRepository(OrderItem) private readonly itemRepo: Repository<OrderItem>,
     private readonly client: ShopifyAdminClient,
     private readonly tenantService: TenantService,
     private readonly customerService: CustomerService,
@@ -165,6 +167,9 @@ export class ShopifySyncService {
   /** Map a Shopify order → orders_cache (+ linked customer). Public: reused by webhooks. */
   async upsertOrder(tenantId: number, o: ShopifyOrderDto, prefetched?: OrderCache): Promise<OrderCache> {
     let customerId: number | null = null;
+    // Erased identities come back null. Shopify still holds the address after we
+    // scrub it, so this is the poll that used to undo an erasure minutes later.
+    let identityErased = false;
     const email = o.customer?.email ?? o.email ?? null;
     if (email) {
       const name =
@@ -176,12 +181,20 @@ export class ShopifySyncService {
         name,
         shopifyCustomerId,
       );
-      customerId = customer.id;
+      if (customer) customerId = customer.id;
+      else identityErased = true;
     }
 
     const internal = this.mapStatus(o.financial_status, o.fulfillment_status);
     const shopifyOrderId = String(o.id);
-    const orderNumber = o.order_number != null ? String(o.order_number) : o.name ?? shopifyOrderId;
+    // Store the bare number. Webhooks carry `order_number` (1002) while the
+    // GraphQL sync only has `name` ("#1002"), so the same order flipped format
+    // depending on which path touched it last — that broke guest lookup (an exact
+    // string match against what the shopper types) and made the UI, which adds its
+    // own '#', render "##1002".
+    const orderNumber = (
+      o.order_number != null ? String(o.order_number) : o.name ?? shopifyOrderId
+    ).replace(/^#/, '');
     const total =
       o.total_price != null && o.total_price !== '' && !Number.isNaN(Number(o.total_price))
         ? Number(o.total_price)
@@ -192,13 +205,62 @@ export class ShopifySyncService {
       row = this.orderRepo.create({ shopifyOrderId });
     }
     row.tenantId = tenantId;
-    row.customerId = customerId;
+    // Never downgrade a known link to NULL. A later payload can legitimately carry
+    // no customer/email — Shopify redacts protected customer fields until PCD is
+    // approved, and an orders/updated webhook can arrive minimal — and blindly
+    // assigning `customerId` then unlinked an order the shopper had been seeing,
+    // silently: the order stays in the cache but drops out of "my orders" forever,
+    // with nothing logged. Resolved wins, otherwise keep what we already knew.
+    // Erasure overrides the keep-what-we-knew rule below: the order stays cached for
+    // the merchant's books but must not point at the person who asked to be deleted.
+    row.customerId = identityErased ? null : customerId ?? row.customerId ?? null;
     row.orderNumber = orderNumber;
     row.statusInternal = internal;
     row.statusUi = internalToUiStatus(internal);
     row.total = total;
     row.currency = o.currency ?? row.currency ?? 'USD';
-    return this.orderRepo.save(row);
+    const saved = await this.orderRepo.save(row);
+    await this.syncLineItems(tenantId, saved.id, o);
+    return saved;
+  }
+
+  /**
+   * Mirror the order's line items into order_items so the widget can show WHAT
+   * was bought (FR-020), not just the total. Replace-on-write keeps the cache in
+   * step with edits/refunds that change the cart. `line_items` absent (a payload
+   * that simply doesn't carry them) leaves existing rows untouched; an explicit
+   * empty array clears them. Never fatal: a failure here must not lose the order.
+   */
+  private async syncLineItems(
+    tenantId: number,
+    orderId: number,
+    o: ShopifyOrderDto,
+  ): Promise<void> {
+    if (o.line_items == null) return;
+    try {
+      const rows = o.line_items
+        .map((li) => {
+          const priceRaw = li.price;
+          const price =
+            priceRaw != null && priceRaw !== '' && !Number.isNaN(Number(priceRaw))
+              ? Number(priceRaw)
+              : null;
+          return this.itemRepo.create({
+            tenantId,
+            orderId,
+            productId: li.product_id != null ? String(li.product_id) : null,
+            // Shopify webhooks use `title`; some payloads only carry `name`.
+            title: (li.title ?? li.name ?? '').slice(0, 255) || 'Item',
+            optionText: li.variant_title ? String(li.variant_title).slice(0, 255) : null,
+            qty: li.quantity != null && li.quantity > 0 ? li.quantity : 1,
+            price,
+          });
+        });
+      await this.itemRepo.delete({ orderId });
+      if (rows.length) await this.itemRepo.save(rows);
+    } catch (e) {
+      this.logger.warn(`Line items for order ${orderId} not cached: ${(e as Error).message}`);
+    }
   }
 
   /**

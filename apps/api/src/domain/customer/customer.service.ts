@@ -7,6 +7,7 @@ import { OrderCache } from '../order/entity/order-cache.entity';
 import { CustomerOrderStats } from './customer.mapper';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
+import { ErasureSuppressionService } from '../privacy/erasure-suppression.service';
 
 /** Customer detail shown in the agent console context panel (FR-045). */
 export interface CustomerContext {
@@ -31,6 +32,7 @@ export class CustomerService {
   constructor(
     @InjectRepository(Customer) private readonly customerRepo: Repository<Customer>,
     @InjectRepository(OrderCache) private readonly orderRepo: Repository<OrderCache>,
+    private readonly suppression: ErasureSuppressionService,
   ) {}
 
   async list(
@@ -175,6 +177,11 @@ export class CustomerService {
   /** Create a customer from chat-captured lead fields. Reuses the email row if present. */
   async createFromLead(tenantId: number, lead: CustomerLead): Promise<Customer> {
     const email = lead.email?.trim() || null;
+    // An agent must be told, not silently ignored: this address asked to be erased,
+    // and re-keying it from a chat transcript would rebuild the profile by hand.
+    if (email && (await this.suppression.isSuppressed(tenantId, { email }))) {
+      throw new BusinessException(ERROR_CODE.IDENTITY_ERASED, HttpStatus.CONFLICT);
+    }
     if (email) {
       const existing = await this.customerRepo.findOne({
         where: { tenantId, emailHash: blindIndex(email) ?? '__none__' },
@@ -213,18 +220,42 @@ export class CustomerService {
     return this.customerRepo.save(customer);
   }
 
-  /** Lookup-or-create by email within a tenant. Shared with other modules. */
+  /**
+   * Lookup-or-create by email within a tenant. Shared with other modules.
+   *
+   * Returns null when the identity is on the erasure suppression list — the caller
+   * must then leave whatever it was linking unlinked. Order sync is the reason this
+   * exists: Shopify keeps the address after we scrub it, so without this check the
+   * next poll recreated the shopper and re-linked their orders minutes later.
+   */
   async findOrCreateByEmail(
     tenantId: number,
     email: string,
     name?: string,
     shopifyCustomerId?: string,
-  ): Promise<Customer> {
-    const existing = await this.customerRepo.findOne({
-      where: { tenantId, emailHash: blindIndex(email) ?? '__none__' },
-    });
+  ): Promise<Customer | null> {
+    if (await this.suppression.isSuppressed(tenantId, { email, shopifyCustomerId })) {
+      return null;
+    }
+    // Prefer the email-hash row, but fall back to the Shopify-id row so we merge
+    // (not duplicate) a customer the app-proxy identity path already created with
+    // email:null. Without this, a shopper who opens the widget before their order
+    // history syncs gets a second Customer row, and their historical orders point
+    // to a different id than the proxy-verified session is bound to — so the
+    // logged-in "my orders" list comes back empty.
+    const existing =
+      (await this.customerRepo.findOne({
+        where: { tenantId, emailHash: blindIndex(email) ?? '__none__' },
+      })) ??
+      (shopifyCustomerId
+        ? await this.customerRepo.findOne({ where: { tenantId, shopifyCustomerId } })
+        : null);
     if (existing) {
       let dirty = false;
+      if (existing.email !== email) {
+        existing.email = email; // @BeforeUpdate re-syncs email_hash
+        dirty = true;
+      }
       if (name !== undefined && existing.name !== name) {
         existing.name = name;
         dirty = true;
@@ -264,11 +295,18 @@ export class CustomerService {
    * Lookup-or-create by Shopify customer id within a tenant. Used when a logged-in
    * storefront customer is resolved via the app proxy (we have the numeric Shopify
    * id but not necessarily an email). Reuses the row synced from orders, if any.
+   *
+   * Returns null for a suppressed identity: erasure survives the shopper signing
+   * back into the storefront, so the widget treats them as a fresh anonymous
+   * visitor rather than rebuilding the profile they asked us to delete.
    */
   async findOrCreateByShopifyId(
     tenantId: number,
     shopifyCustomerId: string,
-  ): Promise<Customer> {
+  ): Promise<Customer | null> {
+    if (await this.suppression.isSuppressed(tenantId, { shopifyCustomerId })) {
+      return null;
+    }
     const existing = await this.customerRepo.findOne({
       where: { tenantId, shopifyCustomerId },
     });
@@ -281,5 +319,48 @@ export class CustomerService {
       tier: 'guest',
     });
     return this.customerRepo.save(customer);
+  }
+
+  /**
+   * Best-effort profile backfill for a customer located by Shopify id. The
+   * app-proxy identity path creates the row with name/email null (it only has the
+   * numeric id); once the Admin API can read the customer we fill those in. Only
+   * fills fields still empty — never clobbers a value order-sync or an agent set —
+   * and skips the email when another row in the tenant already owns that address,
+   * so we never mint a duplicate email_hash (the reverse of the findOrCreateByEmail
+   * merge). Returns the (possibly unchanged) row, or null if the id is unknown.
+   *
+   * Also declines for a suppressed identity. Reaching a matching row at all would
+   * mean anonymization missed one, and this method's whole job — writing a name and
+   * email back onto it from the Admin API — is precisely the un-erasure.
+   */
+  async backfillProfileByShopifyId(
+    tenantId: number,
+    shopifyCustomerId: string,
+    profile: { email?: string | null; name?: string | null },
+  ): Promise<Customer | null> {
+    if (await this.suppression.isSuppressed(tenantId, { shopifyCustomerId, email: profile.email })) {
+      return null;
+    }
+    const row = await this.customerRepo.findOne({
+      where: { tenantId, shopifyCustomerId },
+    });
+    if (!row) return null;
+    let dirty = false;
+    if (!row.name && profile.name) {
+      row.name = profile.name;
+      dirty = true;
+    }
+    if (!row.email && profile.email) {
+      const hash = blindIndex(profile.email);
+      const clash = hash
+        ? await this.customerRepo.findOne({ where: { tenantId, emailHash: hash } })
+        : null;
+      if (!clash) {
+        row.email = profile.email; // @BeforeUpdate re-syncs email_hash
+        dirty = true;
+      }
+    }
+    return dirty ? this.customerRepo.save(row) : row;
   }
 }

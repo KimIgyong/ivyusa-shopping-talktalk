@@ -23,7 +23,7 @@ export class SessionController {
   async ensure(@Body() body: EnsureSessionRequest) {
     const s = await this.sessionService.ensure(body.session_token, body.locale, body.shop_domain);
     const notice = await this.sessionService.privacyNotice(s.tenantId);
-    return SessionMapper.toResponse(s, notice);
+    return SessionMapper.toResponse(s, notice, await this.sessionService.customerDisplayName(s));
   }
 
   @Post('consent')

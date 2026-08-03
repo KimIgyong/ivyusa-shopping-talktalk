@@ -33,6 +33,16 @@ interface WidgetState {
   /** Whether the settings/preferences panel overlays the tabs. */
   settingsOpen: boolean;
   authenticated: boolean;
+  /** True while a storefront sign-in popup is in flight (embed brokers it). */
+  authPending: boolean;
+  /** Signed-in shopper's name, once the backend resolves it; null otherwise. */
+  customerName: string | null;
+  /**
+   * Outcome of the storefront identity handshake (embedded only). 'pending' until
+   * the embed loader reports back — the widget must not open a throwaway guest
+   * session while a verified one may still be on its way.
+   */
+  embedIdentity: 'pending' | 'verified' | 'anonymous';
   language: string;
   /** Privacy/analytics consent — gates chat persistence AND GA4 (Consent Mode). */
   consent: ConsentChoice;
@@ -44,6 +54,9 @@ interface WidgetState {
   togglePanel: () => void;
   setSettingsOpen: (open: boolean) => void;
   setAuthenticated: (v: boolean) => void;
+  setAuthPending: (v: boolean) => void;
+  setCustomerName: (n: string | null) => void;
+  setEmbedIdentity: (v: 'pending' | 'verified' | 'anonymous') => void;
   setLanguage: (l: string) => void;
   setConsent: (granted: boolean) => void;
   queueChatMessage: (m: string) => void;
@@ -61,6 +74,9 @@ export const useWidgetStore = create<WidgetState>()((set, get) => ({
   panelOpen: false,
   settingsOpen: false,
   authenticated: false,
+  authPending: false,
+  customerName: null,
+  embedIdentity: 'pending',
   language: 'en',
   consent: readStoredConsent(),
   pendingChatMessage: null,
@@ -73,6 +89,9 @@ export const useWidgetStore = create<WidgetState>()((set, get) => ({
   togglePanel: () => set((s) => ({ panelOpen: !s.panelOpen })),
   setSettingsOpen: (open) => set({ settingsOpen: open }),
   setAuthenticated: (v) => set({ authenticated: v }),
+  setAuthPending: (v) => set({ authPending: v }),
+  setCustomerName: (n) => set({ customerName: n }),
+  setEmbedIdentity: (v) => set({ embedIdentity: v }),
   setLanguage: (l) => set({ language: l }),
   setConsent: (granted) => {
     try {

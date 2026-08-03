@@ -22,7 +22,11 @@ import { Campaign } from '../campaign/entity/campaign.entity';
 import { Tenant } from '../tenant/entity/tenant.entity';
 import { AuditService } from '../audit/audit.service';
 import { RedisService } from '../../infrastructure/cache/redis.service';
-import { sessionCacheKey } from '../session/session.service';
+import { SessionService, sessionCacheKey } from '../session/session.service';
+import { TenantService } from '../tenant/tenant.service';
+import { ShopifyAdminClient } from '../order/shopify-admin.client';
+import { ErasureSuppressionService } from './erasure-suppression.service';
+import { ERASURE_SOURCE, ErasureSource } from './entity/erased-identity.entity';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
 import { maskPii } from '../../global/util/pii.util';
@@ -61,20 +65,19 @@ export class PrivacyService {
     @InjectRepository(DeviceToken) private readonly deviceTokenRepo: Repository<DeviceToken>,
     @InjectRepository(Campaign) private readonly campaignRepo: Repository<Campaign>,
     @InjectRepository(Tenant) private readonly tenantRepo: Repository<Tenant>,
+    private readonly sessionService: SessionService,
     private readonly audit: AuditService,
     private readonly redis: RedisService,
+    private readonly suppression: ErasureSuppressionService,
+    private readonly tenantService: TenantService,
+    private readonly adminClient: ShopifyAdminClient,
   ) {}
 
   // ---- session resolution (widget DSAR/CCPA) ----
 
-  /** Resolve the bound customer from a session token; consumer-rights require auth. */
+  /** Widget-session authorization — single implementation in SessionService. */
   async requireCustomerId(sessionToken: string): Promise<number> {
-    const session = await this.sessionRepo.findOne({ where: { sessionToken } });
-    if (!session) throw new BusinessException(ERROR_CODE.SESSION_NOT_FOUND, HttpStatus.NOT_FOUND);
-    if (session.customerId == null) {
-      throw new BusinessException(ERROR_CODE.UNAUTHORIZED, HttpStatus.UNAUTHORIZED);
-    }
-    return session.customerId;
+    return this.sessionService.requireCustomerId(sessionToken);
   }
 
   /**
@@ -84,27 +87,42 @@ export class PrivacyService {
    * irreversible erasure — only the Shopify App Proxy path is strong enough.
    */
   async requireVerifiedCustomerId(sessionToken: string): Promise<number> {
-    const session = await this.sessionRepo.findOne({ where: { sessionToken } });
-    if (!session) throw new BusinessException(ERROR_CODE.SESSION_NOT_FOUND, HttpStatus.NOT_FOUND);
-    if (session.customerId == null || session.identityLevel !== SESSION_IDENTITY.VERIFIED) {
-      // Explicit 403 on a consumer-rights path — leave a 'denied' trail (Stage 4);
-      // best-effort so an audit failure never masks the rejection itself.
-      try {
-        await this.audit.write({
-          tenantId: session.tenantId ?? null,
-          actorType: 'user',
-          actorId: 0,
-          action: 'dsar.denied',
-          target: session.customerId != null ? `customer:${session.customerId}` : undefined,
-          result: 'denied',
-          metadata: { reason: 'identity_not_verified' },
-        });
-      } catch (err) {
-        this.logger.warn(`dsar.denied audit write failed: ${String(err)}`);
-      }
-      throw new BusinessException(ERROR_CODE.FORBIDDEN, HttpStatus.FORBIDDEN);
+    // The rule itself is delegated so it lives in one place (SessionService is the
+    // single widget-session gate). One deliberate difference from the inline version
+    // this replaced: an *unbound* session now gets 401 (not authenticated) while a
+    // bound-but-guest one still gets 403 — both already read as "sign in first".
+    //
+    // The 'denied' audit trail is kept: a refused consumer-rights request is exactly
+    // the kind a regulator asks about, so it must leave a record either way.
+    try {
+      return await this.sessionService.requireCustomerId(sessionToken, { verified: true });
+    } catch (err) {
+      await this.auditDsarDenied(sessionToken);
+      throw err;
     }
-    return session.customerId;
+  }
+
+  /**
+   * Record a refused DSAR attempt (Stage 4). Best-effort on purpose: an audit
+   * failure must never mask the rejection, and a token that resolves to no session
+   * is a bad token rather than a denied consumer right — nothing to attribute.
+   */
+  private async auditDsarDenied(sessionToken: string): Promise<void> {
+    try {
+      const session = await this.sessionRepo.findOne({ where: { sessionToken } });
+      if (!session) return;
+      await this.audit.write({
+        tenantId: session.tenantId ?? null,
+        actorType: 'user',
+        actorId: 0,
+        action: 'dsar.denied',
+        target: session.customerId != null ? `customer:${session.customerId}` : undefined,
+        result: 'denied',
+        metadata: { reason: 'identity_not_verified' },
+      });
+    } catch (err) {
+      this.logger.warn(`dsar.denied audit write failed: ${String(err)}`);
+    }
   }
 
   // ---- Shopify GDPR webhooks ----
@@ -126,7 +144,8 @@ export class PrivacyService {
   async handleCustomerRedact(email: string | null, shopifyCustomerId: string | null): Promise<void> {
     const customer = await this.findCustomer(email, shopifyCustomerId);
     if (customer) {
-      await this.anonymizeCustomer(customer);
+      // Shopify initiated this one; propagating would bounce it back at the sender.
+      await this.anonymizeCustomer(customer, { source: ERASURE_SOURCE.SHOPIFY });
     }
     await this.audit.write({
       tenantId: customer?.tenantId ?? null,
@@ -180,6 +199,12 @@ export class PrivacyService {
    * deleted by tenant_id (they also carry tenant_id), alongside the order cache.
    */
   private async purgeTenant(tenantId: number): Promise<void> {
+    // Deliberately does NOT add these customers to the erasure suppression list.
+    // shop/redact means the app was uninstalled, not that each shopper objected to
+    // processing — and a merchant who reinstalls has a lawful basis again. Blocking
+    // every past customer forever would quietly break that reinstall. Nothing here
+    // needs the block either: the tenant's orders and sessions are deleted outright,
+    // so there is no link left to re-establish.
     await this.customerRepo.manager.transaction(async (mgr) => {
       // Anonymize customers (keep rows; scrub PII). email_hash is cleared
       // explicitly — .update() bypasses the entity's BeforeUpdate hook (PRV-M6).
@@ -365,7 +390,14 @@ export class PrivacyService {
     }
     const customerId = await this.requireVerifiedCustomerId(sessionToken);
     const customer = await this.customerRepo.findOne({ where: { id: customerId } });
-    if (customer) await this.anonymizeCustomer(customer);
+    // The shopper asked us directly, so the request goes upstream as well — leaving
+    // it in Shopify is what let the next order sync hand their data straight back.
+    if (customer) {
+      await this.anonymizeCustomer(customer, {
+        source: ERASURE_SOURCE.DSAR,
+        propagate: true,
+      });
+    }
     // Machine-executed erasure — 'system' actor, not a phantom admin (Stage 4).
     await this.audit.write({
       tenantId: customer?.tenantId ?? null,
@@ -381,12 +413,10 @@ export class PrivacyService {
 
   /** Toggle external-channel opt-out across all categories (in_app stays on). */
   async setOptOut(sessionToken: string, optOut: boolean): Promise<void> {
-    const session = await this.sessionRepo.findOne({ where: { sessionToken } });
-    if (!session) throw new BusinessException(ERROR_CODE.SESSION_NOT_FOUND, HttpStatus.NOT_FOUND);
-    if (session.customerId == null) {
-      throw new BusinessException(ERROR_CODE.UNAUTHORIZED, HttpStatus.UNAUTHORIZED);
-    }
-    const customerId = session.customerId;
+    // Shared gate; we keep the session because the audit row is attributed to the
+    // consumer's own tenant, not a phantom admin (PRV-M2).
+    const session = await this.sessionService.requireCustomer(sessionToken);
+    const customerId = session.customerId as number;
     const enabled = optOut ? 0 : 1;
 
     // Bulk upsert the full external-channel × category grid in one statement,
@@ -445,9 +475,29 @@ export class PrivacyService {
    * Scrub a single customer's PII while preserving referential rows. Messages are
    * reached via sessions -> conversations (best-effort); orders/inquiries are kept
    * but unlinked; reviews/notifications are redacted in place.
+   *
+   * `source` records who asked. `propagate` sends the erasure upstream to Shopify —
+   * on for a shopper's own DSAR, off when Shopify's own customers/redact webhook
+   * triggered us, which would otherwise bounce the request back at its sender.
    */
-  private async anonymizeCustomer(customer: Customer): Promise<void> {
+  private async anonymizeCustomer(
+    customer: Customer,
+    opts: { source?: ErasureSource; propagate?: boolean } = {},
+  ): Promise<void> {
     const customerId = customer.id;
+    // FIRST, before anything is scrubbed: remember the identity. The scrub below
+    // nulls both the email and the Shopify id, and those are the only things that
+    // can recognise this person when Shopify feeds them back on the next sync. If
+    // this throws we have not destroyed anything yet — the caller fails and can
+    // retry, rather than scrubbing the row and quietly losing the enforcement key.
+    await this.suppression.record(
+      customer.tenantId,
+      { emailHash: customer.emailHash, shopifyCustomerId: customer.shopifyCustomerId },
+      opts.source ?? ERASURE_SOURCE.DSAR,
+    );
+    if (opts.propagate) {
+      await this.propagateErasureToShopify(customer);
+    }
 
     // Redact chat messages reachable from the customer's sessions.
     const sessions = await this.sessionRepo.find({ where: { customerId } });
@@ -503,5 +553,52 @@ export class PrivacyService {
     customer.shopifyCustomerId = null;
     customer.tier = 'guest';
     await this.customerRepo.save(customer);
+  }
+
+  /**
+   * Ask Shopify to erase the customer too (PRV-H2). Scrubbing only our copy leaves
+   * the data alive at the source, which is what let a later sync re-import it.
+   *
+   * Best-effort by design: the shopper's request must not fail because the store's
+   * credential expired or the app lacks `write_customer_data_erasure` (it currently
+   * does — the scope is not requested yet, so this records an access-denied until
+   * the app is reinstalled with it). The suppression list holds the line meanwhile
+   * and is what actually keeps the erasure enforced locally. Every
+   * outcome is audited, because "we asked and Shopify refused" is the answer a
+   * regulator asks for, and silence would be indistinguishable from never asking.
+   */
+  private async propagateErasureToShopify(customer: Customer): Promise<void> {
+    const shopifyCustomerId = customer.shopifyCustomerId;
+    const tenantId = customer.tenantId;
+    if (!shopifyCustomerId || tenantId == null) return;
+
+    let outcome: string;
+    try {
+      const conn = await this.tenantService.getShopifyConnection(tenantId);
+      if (!conn) {
+        outcome = 'skipped: no Shopify connection';
+      } else {
+        const res = await this.adminClient.requestCustomerErasure(
+          conn.shopDomain,
+          conn.token,
+          shopifyCustomerId,
+        );
+        outcome = res.accepted
+          ? 'accepted'
+          : `refused: ${res.userErrors.join('; ') || 'no customerId returned'}`;
+      }
+    } catch (e) {
+      outcome = `failed: ${(e as Error).message}`;
+    }
+    if (!outcome.startsWith('accepted')) {
+      this.logger.warn(`Shopify erasure for customer ${customer.id} — ${outcome}`);
+    }
+    await this.audit.write({
+      tenantId,
+      actorType: 'admin',
+      actorId: 0,
+      action: 'dsar.delete.upstream',
+      target: `customer:${customer.id} ${outcome}`,
+    });
   }
 }

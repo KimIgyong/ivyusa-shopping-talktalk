@@ -45,6 +45,9 @@ export const ERROR_CODE = {
   TENANT_NOT_FOUND: { code: 'E5005', message: 'Unknown shop domain' },
   // Push module (REQ-MobileApp M1)
   PUSH_TOKEN_INVALID: { code: 'E5006', message: 'Invalid push token' },
+  // E5006 was taken by push on main first; this one moved rather than renumbering a
+  // code already shipped to clients.
+  IDENTITY_ERASED: { code: 'E5007', message: 'This person requested erasure of their data' },
 
   // E9xxx — system
   INTERNAL_ERROR: { code: 'E9001', message: 'Internal server error' },

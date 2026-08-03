@@ -1,112 +1,78 @@
+/**
+ * Widget-side view of the API contracts.
+ *
+ * The response shapes are NOT redeclared here — they are imported from
+ * `@ivy/types`, the same file the API mappers return. That is deliberate: this
+ * file used to hand-maintain its own copies, nothing compared the two, and they
+ * drifted into runtime crashes (an order detail typed `{ order, items }` against a
+ * flat payload took the whole widget down). Now a backend shape change that the
+ * widget doesn't expect is a compile error instead.
+ *
+ * Only genuinely client-side concepts are defined locally: the narrowed unions the
+ * UI switches on, and fields that exist solely in local optimistic state.
+ */
+import type {
+  AffiliateStatusResponse,
+  ChatCitation,
+  ChatMessageResponse,
+  ChatTurnResponse,
+  ConversationResponse,
+  NotificationPrefResponse,
+  NotificationResponse,
+  OrderDetailResponse,
+  OrderItemResponse,
+  OrderListItemResponse,
+  OrderLookupResponse,
+  ScenarioButtonResponse,
+  ScenarioFollowUpResponse,
+  ScenarioTurnResponse,
+  SessionResponse,
+  TrackingResponse,
+} from '@ivy/types';
+
+export type { SessionResponse };
+
+/** Narrowed for the UI's sender switch; the wire type is a plain string. */
 export type SenderType = 'user' | 'ai' | 'agent' | 'system';
 
-export type ConsentState = 'pending' | 'granted' | 'declined';
+export type Citation = ChatCitation;
 
-export interface SessionResponse {
-  sessionToken: string;
-  language: string;
-  consentState: ConsentState | string;
-  authenticated: boolean;
-  /** Tenant-configured privacy policy link (null when unset). */
-  privacyPolicyUrl?: string | null;
-  /** Version tag of the consent notice currently in force for this tenant. */
-  consentNoticeVersion?: string;
-  /** True when the stored consent predates the current notice version. */
-  noticeOutdated?: boolean;
-  /** When the current consent choice was recorded (null when pending). */
-  consentAt?: string | null;
-}
+/**
+ * Narrowed for the UI's consent switch. `SessionResponse` is NOT redeclared here —
+ * it comes from `@ivy/types` above, including the privacy-notice fields, so the
+ * consent UI cannot drift from what the session mapper actually sends.
+ */
+export type ConsentState = 'pending' | 'granted' | 'declined';
 
 export interface ConsentResult {
   consentState: ConsentState | string;
   consentVersion: string;
 }
 
-export interface ChatMessage {
-  id: string;
-  senderType: SenderType;
-  /** For agent messages, the display name of the replying agent (FR-066). */
+/**
+ * A thread message: the wire shape plus the bits that only exist locally.
+ * `senderName` is relaxed to optional because optimistic bubbles the widget builds
+ * itself have no agent name — the server always sends the key (possibly null).
+ * `senderType` stays the wire's `string`: server values must be assignable, so it
+ * cannot be narrowed to SenderType here.
+ */
+export interface ChatMessage extends Omit<ChatMessageResponse, 'senderName'> {
   senderName?: string | null;
-  body: string;
-  createdAt: string;
   citations?: Citation[];
+  /** Optimistic bubble still in flight — never sent by the server. */
   pending?: boolean;
-  /** Scenario follow-up chips attached to a scripted reply (FR-S1). */
-  quickReplies?: ScenarioFollowUp[];
 }
 
-export interface Citation {
-  title?: string;
-  url?: string;
-}
+export type Conversation = ConversationResponse;
+export type ChatReply = ChatTurnResponse;
+export type ScenarioFollowUp = ScenarioFollowUpResponse;
+export type ScenarioReply = ScenarioTurnResponse;
 
-export interface Conversation {
-  /** Null until the first message creates a conversation (read-only poll). */
-  conversationId: string | null;
-  status: string;
-  messages: ChatMessage[];
-}
-
-export interface ChatReply {
-  conversationId: string;
-  /** Null when the conversation is in agent mode (agent replies via polling). */
-  reply: {
-    senderType: SenderType;
-    body: string;
-    citations?: Citation[];
-  } | null;
-  escalate: boolean;
-  needsAuth: boolean;
-}
-
-export interface ScenarioFollowUp {
-  id: string;
-  label: string;
-}
-
-export interface ScenarioReply {
-  conversationId: string;
-  reply: { senderType: SenderType; body: string };
-  followUps: ScenarioFollowUp[];
-}
-
-export interface OrderSummary {
-  id: string;
-  orderNumber: string;
-  statusUi: string;
-  total: number;
-  currency: string;
-  itemCount: number;
-  createdAt: string;
-}
-
-export interface OrderItem {
-  id?: string;
-  title: string;
-  optionText?: string;
-  qty: number;
-  price: number;
-}
-
-/** Flat detail payload from GET /orders/:id (OrderMapper.toDetail) — order
- *  fields at the top level with `items` inline; there is no nested `order`. */
-export interface OrderDetail extends OrderSummary {
-  items: OrderItem[];
-}
-
-export interface TrackingStep {
-  label: string;
-  at?: string | null;
-  done?: boolean;
-}
-
-export interface Tracking {
-  status: string;
-  carrier: string;
-  trackingNumber: string;
-  stepIndex: number;
-  steps: TrackingStep[];
-}
+export type OrderSummary = OrderListItemResponse;
+export type OrderItem = OrderItemResponse;
+export type OrderDetail = OrderDetailResponse;
+export type OrderLookupResult = OrderLookupResponse;
+export type Tracking = TrackingResponse;
 
 export type NotificationCategory =
   | 'payment'
@@ -115,30 +81,14 @@ export type NotificationCategory =
   | 'review'
   | string;
 
-export interface NotificationItem {
-  id: string;
-  category: NotificationCategory;
-  title: string;
-  body: string;
-  statusBadge?: string | null;
-  readAt?: string | null;
-  createdAt: string;
-}
+export type NotificationItem = NotificationResponse;
 
 // 'push' = native mobile push (managed from the mobile app; not surfaced in the
 // widget's preference panel — the widget cannot register device tokens).
 export type NotifChannel = 'in_app' | 'email' | 'sms' | 'web_push' | 'push';
+export type NotifPref = NotificationPrefResponse;
 
-export interface NotifPref {
-  channel: NotifChannel;
-  category: NotificationCategory;
-  enabled: boolean;
-}
-
-export interface AffiliateStatus {
-  status: 'none' | 'pending' | 'approved' | 'rejected' | string;
-  commissionRate?: number;
-}
+export type AffiliateStatus = AffiliateStatusResponse;
 
 /** Server-driven scenario action keys (admin-configured). */
 export type ScenarioActionKey =
@@ -150,9 +100,4 @@ export type ScenarioActionKey =
   | 'my_orders'
   | 'message';
 
-export interface ScenarioButton {
-  id: string;
-  label: string;
-  action: ScenarioActionKey | string;
-  enabled: boolean;
-}
+export type ScenarioButton = ScenarioButtonResponse;

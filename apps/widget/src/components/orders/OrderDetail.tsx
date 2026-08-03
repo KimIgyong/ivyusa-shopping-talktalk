@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { ArrowLeft, MessageSquare, Truck, Star } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useWidgetStore } from '../../store/widgetStore';
+import { isAuthError } from '../../lib/errors';
 import { useOrder, useTracking } from '../../hooks/useOrders';
 import { useAnalytics } from '../../lib/analytics';
 import { Badge, toneForStatus } from '../ui/Badge';
@@ -21,25 +23,21 @@ export function OrderDetailView({
   onAsk: (orderNumber: string) => void;
 }) {
   const { t } = useTranslation();
-  const analytics = useAnalytics();
-  const { data, isLoading, isError } = useOrder(orderId, sessionToken);
+  const { data, isLoading, isError, error } = useOrder(orderId, sessionToken);
+  const setAuthenticated = useWidgetStore((s) => s.setAuthenticated);
   const [showTrack, setShowTrack] = useState(false);
   const [reviewItemId, setReviewItemId] = useState<string | null>(null);
   const tracking = useTracking(showTrack ? orderId : null, sessionToken);
 
-  // Consideration signal: an order detail was opened (value attributed).
+  // Session no longer customer-bound → clear the flag; OrdersTab (our parent)
+  // then renders the sign-in prompt instead of us showing a generic error.
+  const authLost = isError && isAuthError(error);
   useEffect(() => {
-    if (data?.order) {
-      analytics.orderView({
-        id: orderId,
-        value: typeof data.order.total === 'number' ? data.order.total : undefined,
-        currency: data.order.currency,
-      });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data?.order?.orderNumber]);
+    if (authLost) setAuthenticated(false);
+  }, [authLost, setAuthenticated]);
 
   if (isLoading) return <Spinner label={t('common.loading')} />;
+  if (authLost) return <Spinner label={t('common.loading')} />; // parent takes over
   if (isError || !data)
     return (
       <p className="py-8 text-center text-sm text-gray-400">
@@ -47,12 +45,11 @@ export function OrderDetailView({
       </p>
     );
 
-  // The API returns the order fields FLAT with `items` inline
-  // (OrderMapper.toDetail) — there is no nested `order` object
-  // (FIX-Widget-OrderDetail-Shape-20260803).
+  // The API returns the order fields FLAT with `items` inline (OrderMapper.toDetail)
+  // — there is no nested `order` object (FIX-Widget-OrderDetail-Shape-20260803).
   const order = data;
   const items = data.items ?? [];
-  const delivered = /deliver|complete/i.test(order.statusUi);
+  const delivered = /deliver|complete/i.test(order.statusUi ?? '');
 
   return (
     <div className="scroll-thin h-full overflow-y-auto p-3">
@@ -132,7 +129,9 @@ export function OrderDetailView({
       )}
       {showTrack && tracking.isLoading && <Spinner />}
 
-      <div className="flex gap-2">
+      {/* Pinned so the actions stay reachable on a long order instead of being
+          pushed below the fold by the item list. */}
+      <div className="sticky bottom-0 -mx-3 flex gap-2 border-t border-gray-100 bg-white px-3 pb-1 pt-2">
         <button
           onClick={() => {
             const next = !showTrack;

@@ -52,7 +52,9 @@ describe('ScenarioService consent gate', () => {
   ])('soft-blocks without persist or AI/moderation call when consent is %s', async (state) => {
     effectiveConsentFor.mockResolvedValue(state);
     const result = await svc.handle(session, 'cancel_refund');
-    expect(result.conversationId).toBe(0);
+    // null, not 0: the wire contract makes conversationId a string, and the client
+    // guards on falsiness — '0' would have passed that guard.
+    expect(result.conversationId).toBeNull();
     expect(result.reply.senderType).toBe('system');
     expect(result.reply.body).toContain('privacy notice');
     expect(result.followUps).toEqual([]);
@@ -66,7 +68,9 @@ describe('ScenarioService consent gate', () => {
   it('proceeds with the scripted turn when consent is GRANTED', async () => {
     effectiveConsentFor.mockResolvedValue(CONSENT_STATE.GRANTED);
     const result = await svc.handle(session, 'cancel_refund');
-    expect(result.conversationId).toBe(42);
+    // String: MySQL BIGINT ids arrive as strings, so the contract carries them as
+    // strings rather than letting the boundary decide.
+    expect(result.conversationId).toBe('42');
     expect(result.reply.senderType).toBe('ai');
     expect(msgSave).toHaveBeenCalledTimes(2); // echoed user turn + script AI turn
     expect(moderate).toHaveBeenCalledTimes(1);

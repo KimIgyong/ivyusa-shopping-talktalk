@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { SessionModule } from '../session/session.module';
 import { Affiliate } from './entity/affiliate.entity';
 import { Session } from '../session/entity/session.entity';
 import { Customer } from '../customer/entity/customer.entity';
@@ -7,7 +8,7 @@ import { AffiliateService } from './affiliate.service';
 import { AffiliateController } from './affiliate.controller';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Affiliate, Session, Customer])],
+  imports: [TypeOrmModule.forFeature([Affiliate, Session, Customer]), SessionModule],
   controllers: [AffiliateController],
   providers: [AffiliateService],
   exports: [AffiliateService],

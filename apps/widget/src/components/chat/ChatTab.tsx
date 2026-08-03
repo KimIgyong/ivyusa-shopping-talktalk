@@ -20,6 +20,7 @@ export function ChatTab() {
   const { t } = useTranslation();
   const sessionToken = useWidgetStore((s) => s.sessionToken);
   const authenticated = useWidgetStore((s) => s.authenticated);
+  const customerName = useWidgetStore((s) => s.customerName);
   const setAuthenticated = useWidgetStore((s) => s.setAuthenticated);
   const setActiveTab = useWidgetStore((s) => s.setActiveTab);
   const setSessionToken = useWidgetStore((s) => s.setSessionToken);
@@ -132,6 +133,27 @@ export function ChatTab() {
     }
   }
 
+  /**
+   * Follow-ups shown when a reply arrives without its own chips (the RAG path has
+   * none). Without this the thread auto-scrolls to a bottom that has nothing to
+   * act on — the scenario menu is far above, out of view — so a shopper who asked
+   * about an order hits a dead end. Ids match handleQuickReply/scenario handling.
+   */
+  const lastMessage = messages[messages.length - 1];
+  const showFallbackActions =
+    !!lastMessage &&
+    lastMessage.senderType !== 'user' &&
+    !lastMessage.quickReplies?.length &&
+    !sending &&
+    !showEscalate &&
+    inline === null;
+  const fallbackActions: { id: string; label: string }[] = [
+    { id: 'my_orders', label: t('chat.nextActions.myOrders') },
+    { id: 'shipping_policy', label: t('chat.nextActions.shipping') },
+    { id: 'return_exchange', label: t('chat.nextActions.returns') },
+    { id: 'agent_connect', label: t('chat.nextActions.agent') },
+  ];
+
   function submitInput(e: React.FormEvent) {
     e.preventDefault();
     if (!input.trim() || sending) return;
@@ -169,12 +191,14 @@ export function ChatTab() {
           />
         )}
 
-        {/* Welcome bubble */}
+        {/* Welcome bubble — greets a signed-in shopper by name when we know it. */}
         <MessageBubble
           message={{
             id: 'welcome',
             senderType: 'ai',
-            body: t('chat.welcome'),
+            body: customerName
+              ? t('chat.welcomeNamed', { name: customerName })
+              : t('chat.welcome'),
             createdAt: new Date().toISOString(),
           }}
         />
@@ -205,6 +229,20 @@ export function ChatTab() {
             )}
           </div>
         ))}
+
+        {showFallbackActions && (
+          <div className="flex flex-wrap gap-1.5 pl-1">
+            {fallbackActions.map((a) => (
+              <button
+                key={a.id}
+                onClick={() => handleQuickReply(a.id, a.label)}
+                className="rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-medium text-gray-600 transition-colors hover:border-primary-300 hover:text-primary-600"
+              >
+                {a.label}
+              </button>
+            ))}
+          </div>
+        )}
 
         {inline === 'auth' && (
           <AuthGate

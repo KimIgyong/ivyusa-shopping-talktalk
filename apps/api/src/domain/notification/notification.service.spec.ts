@@ -39,7 +39,14 @@ describe('NotificationService.isSuppressed / notify (Stage 6 — D-4 fail-closed
       set: jest.fn(),
       available: () => false,
     } as unknown as RedisService;
-    svc = new NotificationService(notifRepo, prefRepo, sessionRepo, bus, redis);
+    // sessionService sits between sessionRepo and bus — it is the shared widget-session
+    // authorization gate. Unused by these suppression suites, but its position matters:
+    // omitting it shifted bus into its slot and redis into bus's.
+    const sessionService = {
+      requireCustomerId: jest.fn(),
+      requireCustomer: jest.fn(),
+    } as never;
+    svc = new NotificationService(notifRepo, prefRepo, sessionRepo, sessionService, bus, redis);
   });
 
   const channelsOf = (rows: Notification[]) => rows.map((r) => r.channel).sort();

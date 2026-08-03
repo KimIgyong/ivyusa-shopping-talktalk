@@ -9,6 +9,13 @@ import i18n, {
   SUPPORTED_LANGUAGES,
 } from '../i18n/i18n';
 
+/**
+ * How long the embedded widget waits for the storefront identity handshake before
+ * falling back to a guest session. Covers the storefront → Shopify → app proxy
+ * round trip (~2s observed) without leaving chat unusable if the proxy is absent.
+ */
+const IDENTITY_WAIT_MS = 5000;
+
 /** True when the user has manually picked a language (persisted to localStorage). */
 function hasManualLanguageOverride(): boolean {
   try {
@@ -58,21 +65,65 @@ function syncStoredConsent(info: ConsentInfo): void {
  * Stores token + authenticated flag in the Zustand store.
  */
 export function useEnsureSession() {
-  const sessionToken = useWidgetStore((s) => s.sessionToken);
+  // Token/auth state is read via getState() inside the effect: this runs once on
+  // mount and must see the live value after the async identity wait, not the
+  // value captured at render time.
   const language = useWidgetStore((s) => s.language);
   const setSessionToken = useWidgetStore((s) => s.setSessionToken);
   const setAuthenticated = useWidgetStore((s) => s.setAuthenticated);
+  const setCustomerName = useWidgetStore((s) => s.setCustomerName);
   const setLanguage = useWidgetStore((s) => s.setLanguage);
   const setConsentInfo = useWidgetStore((s) => s.setConsentInfo);
 
   useEffect(() => {
     let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let unsubscribe: (() => void) | undefined;
+    const embedded = window.parent !== window;
+
+    function start() {
+      if (cancelled) return;
+      // A verified session already arrived from the storefront handshake — it is
+      // customer-bound and carries the shopper's history, so don't open another.
+      if (useWidgetStore.getState().authenticated) return;
+      run();
+    }
+
+    // When embedded, the identity round trip (storefront → Shopify → app) finishes
+    // well after the widget mounts. Opening a guest session immediately meant a
+    // signed-in shopper started on a throwaway session on every page load — which
+    // is where their chat thread went. Wait for the loader's verdict, with a
+    // timeout so a store without the app proxy (or an older embed.js that never
+    // reports) still gets a working guest session.
+    if (embedded && useWidgetStore.getState().embedIdentity === 'pending') {
+      unsubscribe = useWidgetStore.subscribe((s) => {
+        if (s.embedIdentity !== 'pending') {
+          unsubscribe?.();
+          unsubscribe = undefined;
+          start();
+        }
+      });
+      timer = setTimeout(() => {
+        unsubscribe?.();
+        unsubscribe = undefined;
+        start();
+      }, IDENTITY_WAIT_MS);
+      return () => {
+        cancelled = true;
+        if (timer) clearTimeout(timer);
+        unsubscribe?.();
+      };
+    }
+
+    run();
+
+    function run() {
     // Resume hint: the store token is always null at bootstrap; a persisted
     // token (standalone only — embedded loads must not resume a previous
     // customer's session) is passed to ensure for validation, and only the
     // token the backend returns reaches the store/queries.
     const resumeToken =
-      sessionToken ?? (window.parent === window ? getStoredSessionToken() : null);
+      useWidgetStore.getState().sessionToken ?? (embedded ? null : getStoredSessionToken());
     ensureSession(resumeToken, language, getShopDomain())
       .then((res) => {
         if (cancelled) return;
@@ -80,10 +131,11 @@ export function useEnsureSession() {
         // customer-bound token while this anonymous ensure was in flight. Don't
         // clobber it: re-read the live store and bail if already authenticated.
         if (useWidgetStore.getState().authenticated) return;
-        if (res.sessionToken && res.sessionToken !== sessionToken) {
+        if (res.sessionToken && res.sessionToken !== useWidgetStore.getState().sessionToken) {
           setSessionToken(res.sessionToken);
         }
         setAuthenticated(!!res.authenticated);
+        if (res.customerName) setCustomerName(res.customerName);
 
         // Server-side consent is the source of truth for the notice banner
         // (pending / outdated re-prompts regardless of the local cache).
@@ -105,8 +157,12 @@ export function useEnsureSession() {
       .catch(() => {
         /* offline / backend not running — widget still renders */
       });
+    }
+
     return () => {
       cancelled = true;
+      if (timer) clearTimeout(timer);
+      unsubscribe?.();
     };
     // run once on mount
     // eslint-disable-next-line react-hooks/exhaustive-deps

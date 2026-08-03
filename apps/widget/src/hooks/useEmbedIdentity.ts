@@ -11,14 +11,19 @@ import { useWidgetStore } from '../store/widgetStore';
 export function useEmbedIdentity() {
   const setSessionToken = useWidgetStore((s) => s.setSessionToken);
   const setAuthenticated = useWidgetStore((s) => s.setAuthenticated);
+  const setAuthPending = useWidgetStore((s) => s.setAuthPending);
+  const setEmbedIdentity = useWidgetStore((s) => s.setEmbedIdentity);
 
   useEffect(() => {
     if (window.parent === window) return; // not embedded — nothing to do
 
-    // FE-M2 hardening: only adopt an identity token once, from a secure parent
-    // origin. A hostile page can still embed the widget, but it cannot swap the
-    // session mid-conversation, and plain-http embedders (where the token would
-    // travel unencrypted) are refused. localhost is exempt for local dev.
+    // FE-M2 hardening: adopt the passive identity token at most once, from a
+    // secure parent origin. A hostile page can still embed the widget, but it
+    // cannot silently swap the session mid-conversation, and plain-http
+    // embedders (where the token would travel unencrypted) are refused.
+    // localhost is exempt for local dev. The one sanctioned re-adoption is a
+    // user-initiated sign-in (authPending): the shopper clicked "Sign in", so a
+    // fresh customer-bound token from the loader is expected and welcome.
     let adopted = false;
     function isTrustedOrigin(origin: string): boolean {
       try {
@@ -32,17 +37,32 @@ export function useEmbedIdentity() {
 
     function onMessage(e: MessageEvent) {
       if (e.source !== window.parent) return; // only from our embedder frame
-      if (adopted || !isTrustedOrigin(e.origin)) return;
-      const d = (e.data || {}) as { type?: string; token?: string };
+      if (!isTrustedOrigin(e.origin)) return;
+      const d = (e.data || {}) as {
+        type?: string;
+        token?: string;
+        authenticated?: boolean;
+      };
+      const pending = useWidgetStore.getState().authPending;
       if (d.type === 'ivy:session' && d.token) {
+        if (adopted && !pending) return; // block passive re-adoption only
         adopted = true;
         setSessionToken(d.token);
         setAuthenticated(true);
+        setAuthPending(false);
+        setEmbedIdentity('verified');
+      } else if (d.type === 'ivy:identity' && d.authenticated === false) {
+        // Nobody is signed in on the storefront — release useEnsureSession to
+        // open a guest session instead of waiting for one that isn't coming.
+        setEmbedIdentity('anonymous');
+      } else if (d.type === 'ivy:login-cancelled') {
+        // Sign-in popup closed without a completed login — clear the waiting UI.
+        setAuthPending(false);
       }
     }
     window.addEventListener('message', onMessage);
     // Tell the loader we're mounted and ready to receive the identity token.
     window.parent.postMessage({ type: 'ivy:ready' }, '*');
     return () => window.removeEventListener('message', onMessage);
-  }, [setSessionToken, setAuthenticated]);
+  }, [setSessionToken, setAuthenticated, setAuthPending, setEmbedIdentity]);
 }

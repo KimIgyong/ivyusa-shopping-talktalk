@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { SessionModule } from '../session/session.module';
 import { OrderCache } from './entity/order-cache.entity';
 import { OrderItem } from './entity/order-item.entity';
 import { Fulfillment } from './entity/fulfillment.entity';
@@ -20,6 +21,7 @@ import { IntegrationModule } from '../integration/integration.module';
 
 @Module({
   imports: [
+    SessionModule,
     TypeOrmModule.forFeature([OrderCache, OrderItem, Fulfillment, Session, Customer]),
     TenantModule,
     CustomerModule,

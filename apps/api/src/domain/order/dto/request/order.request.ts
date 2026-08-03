@@ -9,7 +9,7 @@ export class GuestLookupRequest {
 
 /**
  * Optional pagination query for widget order lists.
- * `session_token` is optional here: the widget sends it in the X-Session-Token
+* `session_token` is optional here: the widget sends it in the X-Session-Token
  * header (PRV-M7/FE-M3) and @SessionToken() rejects with 401 when absent from
  * both header and query — a required query field would 400 every header-auth call.
  */

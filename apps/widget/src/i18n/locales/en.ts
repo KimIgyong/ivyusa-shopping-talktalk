@@ -23,10 +23,21 @@ export const en = {
   chat: {
     welcome:
       "Hi! Welcome to IVY USA. How can we help you today? Pick a topic below or type your question.",
+    welcomeNamed:
+      'Hi {{name}}! Welcome back to IVY USA. How can we help you today? Pick a topic below or type your question.',
     aiDisclosure:
       'This chat is AI-powered. Messages you send are processed by a third-party AI service provider in the United States to generate responses.',
     inputPlaceholder: 'Type a message…',
     send: 'Send',
+    sendFailed: "Sorry, that didn't go through. Please try again.",
+    connectingAgent: 'You are being connected to a support agent. Please hold on…',
+    /** Fallback follow-ups so a reply never leaves the shopper at a dead end. */
+    nextActions: {
+      myOrders: 'My orders',
+      shipping: 'Shipping & delivery',
+      returns: 'Return or exchange',
+      agent: 'Talk to an agent',
+    },
     connectAgent: 'Connect to an agent',
     consent: {
       title: 'Privacy notice',
@@ -77,6 +88,10 @@ export const en = {
     email: 'Email',
     submit: 'Look up order',
     cancel: 'Cancel',
+    waiting: 'Waiting for you to sign in…',
+    lookupFailed: "We couldn't find an order matching that number and email. Please check both and try again.",
+    lookupThrottled: 'Too many attempts. Please wait a few minutes and try again.',
+    useGuestInstead: 'Look up by order number instead',
   },
 
   contact: {
@@ -107,6 +122,8 @@ export const en = {
     },
     empty: 'No orders found.',
     ask: 'Ask about this order',
+    askMessage: 'I have a question about order #{{orderNumber}}.',
+    trackingSteps: ['Preparing', 'Shipped', 'In transit', 'Delivered'],
     track: 'Track',
     detail: 'Order detail',
     items: 'Items',
@@ -175,6 +192,9 @@ export const en = {
   common: {
     loading: 'Loading…',
     error: 'Something went wrong.',
+    crashTitle: 'Something broke on our side.',
+    crashBody:
+      'The rest of the widget still works. Try again, or switch tabs and come back.',
     retry: 'Retry',
     close: 'Close',
   },

@@ -25,10 +25,20 @@ export const ko: Translation = {
   chat: {
     welcome:
       '안녕하세요! IVY USA에 오신 것을 환영합니다. 무엇을 도와드릴까요? 아래에서 주제를 선택하거나 궁금한 점을 입력해 주세요.',
+    welcomeNamed:
+      '{{name}}님, 안녕하세요! IVY USA에 다시 오신 것을 환영합니다. 무엇을 도와드릴까요? 아래에서 주제를 선택하거나 궁금한 점을 입력해 주세요.',
     aiDisclosure:
       '이 채팅은 AI 기반으로 운영됩니다. 보내신 메시지는 응답 생성을 위해 미국에 있는 외부 AI 서비스 제공업체에서 처리됩니다.',
     inputPlaceholder: '메시지를 입력하세요…',
     send: '보내기',
+    sendFailed: '전송하지 못했습니다. 다시 시도해 주세요.',
+    connectingAgent: '상담원에게 연결하고 있습니다. 잠시만 기다려 주세요…',
+    nextActions: {
+      myOrders: '내 주문',
+      shipping: '배송 안내',
+      returns: '반품/교환',
+      agent: '상담원 연결',
+    },
     connectAgent: '상담원 연결',
     consent: {
       title: '개인정보 처리 안내',
@@ -79,6 +89,10 @@ export const ko: Translation = {
     email: '이메일',
     submit: '주문 조회',
     cancel: '취소',
+    waiting: '로그인을 기다리는 중…',
+    lookupFailed: "입력하신 주문번호와 이메일로 주문을 찾을 수 없습니다. 다시 확인해 주세요.",
+    lookupThrottled: '시도 횟수가 많습니다. 몇 분 후 다시 시도해 주세요.',
+    useGuestInstead: '주문 번호로 조회하기',
   },
 
   contact: {
@@ -109,6 +123,8 @@ export const ko: Translation = {
     },
     empty: '주문 내역이 없습니다.',
     ask: '이 주문에 대해 문의하기',
+    askMessage: '{{orderNumber}}번 주문에 대해 문의드립니다.',
+    trackingSteps: ['발송준비', '배송시작', '배송중', '배송완료'],
     track: '배송 조회',
     detail: '주문 상세',
     items: '상품',
@@ -177,6 +193,9 @@ export const ko: Translation = {
   common: {
     loading: '불러오는 중…',
     error: '문제가 발생했습니다.',
+    crashTitle: '문제가 발생했습니다.',
+    crashBody:
+      '위젯의 다른 기능은 계속 사용할 수 있습니다. 다시 시도하거나 다른 탭으로 이동한 뒤 돌아와 주세요.',
     retry: '다시 시도',
     close: '닫기',
   },

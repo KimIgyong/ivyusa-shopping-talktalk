@@ -7,6 +7,9 @@ import {
   affiliateStatus,
 } from '../../services/miscService';
 import type { AffiliateStatus } from '../../lib/types';
+import { isAuthError } from '../../lib/errors';
+import { AuthGate } from './AuthGate';
+import { useWidgetStore } from '../../store/widgetStore';
 
 export function AffiliateCard({
   sessionToken,
@@ -17,6 +20,8 @@ export function AffiliateCard({
   const steps = t('affiliate.steps', { returnObjects: true }) as string[];
   const [applying, setApplying] = useState(false);
   const [localStatus, setLocalStatus] = useState<string | null>(null);
+  const [needsAuth, setNeedsAuth] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const { data } = useQuery<AffiliateStatus>({
     queryKey: ['affiliate-status', sessionToken],
@@ -26,6 +31,7 @@ export function AffiliateCard({
   });
 
   const status = localStatus ?? data?.status ?? 'none';
+  const setAuthenticated = useWidgetStore((st) => st.setAuthenticated);
 
   async function apply() {
     if (!sessionToken) return;
@@ -33,8 +39,12 @@ export function AffiliateCard({
     try {
       await affiliateApply(sessionToken);
       setLocalStatus('pending');
-    } catch {
-      /* surfaced via disabled state */
+    } catch (e) {
+      // A 401 here just means "not signed in" — the comment used to claim the
+      // disabled state surfaced it, but nothing did: the button stayed enabled and
+      // the click did nothing at all. Show the sign-in card instead.
+      if (isAuthError(e)) setNeedsAuth(true);
+      else setError(t('common.error'));
     } finally {
       setApplying(false);
     }
@@ -63,6 +73,15 @@ export function AffiliateCard({
         </div>
       ) : status === 'pending' ? (
         <p className="text-sm font-medium text-warning">{t('affiliate.pending')}</p>
+      ) : needsAuth ? (
+        <AuthGate
+          sessionToken={sessionToken}
+          onSuccess={() => {
+            setAuthenticated(true);
+            setNeedsAuth(false);
+          }}
+          onCancel={() => setNeedsAuth(false)}
+        />
       ) : (
         <button
           disabled={applying}
@@ -72,6 +91,7 @@ export function AffiliateCard({
           {applying ? t('common.loading') : t('affiliate.apply')}
         </button>
       )}
+      {error && <p className="mt-2 text-xs text-error">{error}</p>}
     </div>
   );
 }

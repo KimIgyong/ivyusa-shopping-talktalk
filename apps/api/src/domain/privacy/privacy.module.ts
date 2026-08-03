@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { SessionModule } from '../session/session.module';
 import { Customer } from '../customer/entity/customer.entity';
 import { Session } from '../session/entity/session.entity';
 import { OrderCache } from '../order/entity/order-cache.entity';
@@ -19,8 +20,11 @@ import { DeviceToken } from '../push/entity/device-token.entity';
 import { Campaign } from '../campaign/entity/campaign.entity';
 import { Tenant } from '../tenant/entity/tenant.entity';
 import { AuditModule } from '../audit/audit.module';
+import { TenantModule } from '../tenant/tenant.module';
+import { ShopifyAdminClient } from '../order/shopify-admin.client';
 import { PrivacyService } from './privacy.service';
 import { RetentionService } from './retention.service';
+import { ErasureSuppressionModule } from './erasure-suppression.module';
 import { PrivacyController, ShopifyComplianceController } from './privacy.controller';
 
 /**
@@ -29,6 +33,7 @@ import { PrivacyController, ShopifyComplianceController } from './privacy.contro
  */
 @Module({
   imports: [
+    SessionModule,
     TypeOrmModule.forFeature([
       Customer,
       Session,
@@ -50,8 +55,13 @@ import { PrivacyController, ShopifyComplianceController } from './privacy.contro
       Tenant,
     ]),
     AuditModule,
+    ErasureSuppressionModule,
+    // For propagating an erasure upstream: the per-tenant Shopify credential and
+    // the Admin API client. The client is stateless (no injected deps), so it is
+    // provided here rather than dragging in the whole OrderModule.
+    TenantModule,
   ],
   controllers: [ShopifyComplianceController, PrivacyController],
-  providers: [PrivacyService, RetentionService],
+  providers: [PrivacyService, RetentionService, ShopifyAdminClient],
 })
 export class PrivacyModule {}

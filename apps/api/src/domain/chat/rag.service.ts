@@ -26,6 +26,13 @@ export interface RagAnswer {
 }
 
 /**
+ * Confidence floor when the answer is grounded in the customer's own order data.
+ * Must stay above ChatService's escalation threshold so a factual order answer is
+ * delivered rather than handed off for lack of a matching help article.
+ */
+const ORDER_CONTEXT_CONFIDENCE = 0.6;
+
+/**
  * Retrieval-Augmented answering (FN-016/017, POL-011/013,
  * PLAN-KB-VectorHybrid-Qdrant W4). Hybrid retrieval: MySQL FULLTEXT (exact
  * keyword leg) + Qdrant dense vectors (semantic leg, cross-lingual ko/en/es),
@@ -33,6 +40,9 @@ export interface RagAnswer {
  * scoped to the tenant are retrieved (Knowledge Store wins; Google Drive
  * supplements). The vector leg degrades silently — Qdrant/embedder failures
  * fall back to FULLTEXT-only, which is the pre-hybrid behavior.
+ *
+ * An answer may additionally be grounded in the signed-in customer's own order
+ * facts, which no KB document can contain — see `answer`'s `orderContext`.
  */
 @Injectable()
 export class RagService {
@@ -207,23 +217,50 @@ export class RagService {
       .getMany();
   }
 
-  async answer(tenantId: number, query: string, language: string): Promise<RagAnswer> {
+  /**
+   * Answer a shopper question from the tenant's knowledge base, optionally
+   * grounded in `orderContext` — the signed-in customer's own order facts, which
+   * the knowledge base cannot contain. Callers must only pass order data for an
+   * authenticated session (see ChatService's auth gate).
+   */
+  async answer(
+    tenantId: number,
+    query: string,
+    language: string,
+    orderContext?: string,
+  ): Promise<RagAnswer> {
     const { chunks, vectorProvider } = await this.retrieveHybrid(tenantId, query);
     const context = chunks.map((c) => `- [${c.category ?? 'general'}] ${c.title}: ${c.snippet}`).join('\n');
-    const confidence = this.confidence(chunks, vectorProvider);
+    const hasOrderContext = !!orderContext?.trim();
+    // Retrieval quality drives confidence, but order facts are authoritative on
+    // their own: an order question answered from the customer's real orders must
+    // not be escalated just because no help article matched.
+    const confidence = Math.max(
+      this.confidence(chunks, vectorProvider),
+      hasOrderContext ? ORDER_CONTEXT_CONFIDENCE : 0,
+    );
 
     // Persona + response rules from the tenant's AI config (FR-047 / FN-040).
     const { persona, rules } = await this.aiConfig.getPersonaRules(tenantId);
     const rulesBlock = rules.length ? `\nResponse rules:\n${rules.map((r) => `- ${r}`).join('\n')}` : '';
+    const orderBlock = hasOrderContext
+      ? `\nCUSTOMER_ORDERS_START\n${orderContext!.trim()}\nCUSTOMER_ORDERS_END`
+      : '';
+    const sourceRule = hasOrderContext
+      ? "Answer ONLY from the context and the customer's own order data below. " +
+        'The order data is authoritative for their order status, items and totals; ' +
+        'never invent order numbers, dates or tracking details that are not listed.'
+      : 'Answer ONLY from the context.';
 
     const res = await this.ai.complete({
       tenantId,
       function: AI_FUNCTION.RAG,
       system:
         `${persona}${rulesBlock}\n` +
-        `Answer ONLY from the context. If the context is insufficient, say you'll connect a ` +
+        `${sourceRule} If the information is insufficient, say you'll connect a ` +
         `human agent. Reply in language code: ${language}.\n` +
-        `CONTEXT_START\n${context || '(no relevant documents found)'}\nCONTEXT_END`,
+        `CONTEXT_START\n${context || '(no relevant documents found)'}\nCONTEXT_END` +
+        orderBlock,
       messages: [{ role: 'user', content: query }],
     });
 

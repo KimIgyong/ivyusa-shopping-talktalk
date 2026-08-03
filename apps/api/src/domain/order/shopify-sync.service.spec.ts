@@ -36,6 +36,15 @@ describe('ShopifySyncService.syncOrders', () => {
         return Promise.resolve(x);
       }),
     };
+    const savedItems: Record<string, unknown>[] = [];
+    const itemRepo = {
+      create: jest.fn((x: Record<string, unknown>) => ({ ...x })),
+      delete: jest.fn().mockResolvedValue(undefined),
+      save: jest.fn((rows: Record<string, unknown>[]) => {
+        savedItems.push(...rows);
+        return Promise.resolve(rows);
+      }),
+    };
     const client = {
       fetchOrders: jest.fn().mockResolvedValue({ orders, nextPageInfo: null }),
     };
@@ -47,12 +56,22 @@ describe('ShopifySyncService.syncOrders', () => {
     };
     const svc = new ShopifySyncService(
       orderRepo as never,
+      itemRepo as never,
       client as never,
       tenantService as never,
       customerService as never,
       integrationService as never,
     );
-    return { svc, saved, orderRepo, client, customerService, integrationService };
+    return {
+      svc,
+      saved,
+      savedItems,
+      orderRepo,
+      itemRepo,
+      client,
+      customerService,
+      integrationService,
+    };
   }
 
   it('upserts each order with mapped status and links customers', async () => {
@@ -125,5 +144,211 @@ describe('ShopifySyncService.syncOrders', () => {
     expect(res.ok).toBe(false);
     expect(res.detail).toContain('401');
     expect(integrationService.upsert).toHaveBeenCalledWith('shopify', 'error', expect.stringContaining('401'));
+  });
+
+  describe('order number normalization', () => {
+    // Webhooks carry order_number (1002); the GraphQL sync only has name ("#1002").
+    // Storing both shapes made the same order flip format, breaking guest lookup
+    // (exact match on what the shopper types) and rendering "##1002" in the UI.
+    it('strips a leading # so both ingest paths agree', async () => {
+      const { svc, saved } = build([
+        { id: 3001, name: '#1002', financial_status: 'paid' },
+        { id: 3002, order_number: 1003, name: '#1003', financial_status: 'paid' },
+      ]);
+      await svc.syncOrders(7);
+      expect(saved.map((o) => o.orderNumber)).toEqual(['1002', '1003']);
+    });
+
+    it('falls back to the Shopify order id when neither is present', async () => {
+      const { svc, saved } = build([{ id: 3003, financial_status: 'paid' }]);
+      await svc.syncOrders(7);
+      expect(saved[0].orderNumber).toBe('3003');
+    });
+  });
+
+  describe('line items (FR-020)', () => {
+    it('caches line items, mapping title/option/qty/price', async () => {
+      const { svc, savedItems, itemRepo } = build([
+        {
+          id: 2001,
+          order_number: 2001,
+          financial_status: 'paid',
+          line_items: [
+            {
+              product_id: 77,
+              variant_id: 88,
+              title: 'Ski Wax',
+              variant_title: 'Special',
+              quantity: 2,
+              price: '24.95',
+            },
+          ],
+        },
+      ]);
+      await svc.syncOrders(7);
+
+      // Replace-on-write: stale rows for the order are cleared first.
+      expect(itemRepo.delete).toHaveBeenCalledWith({ orderId: undefined });
+      expect(savedItems).toHaveLength(1);
+      expect(savedItems[0]).toMatchObject({
+        tenantId: 7,
+        productId: '77',
+        title: 'Ski Wax',
+        optionText: 'Special',
+        qty: 2,
+        price: 24.95,
+      });
+    });
+
+    it('falls back to `name`, defaults qty, and tolerates a missing price', async () => {
+      const { svc, savedItems } = build([
+        {
+          id: 2002,
+          order_number: 2002,
+          financial_status: 'paid',
+          line_items: [{ name: 'Gift Card', quantity: 0, price: null }],
+        },
+      ]);
+      await svc.syncOrders(7);
+      expect(savedItems[0]).toMatchObject({ title: 'Gift Card', qty: 1, price: null });
+    });
+
+    it('leaves cached items untouched when the payload carries no line_items', async () => {
+      const { svc, itemRepo } = build([
+        { id: 2003, order_number: 2003, financial_status: 'paid' },
+      ]);
+      await svc.syncOrders(7);
+      expect(itemRepo.delete).not.toHaveBeenCalled();
+      expect(itemRepo.save).not.toHaveBeenCalled();
+    });
+
+    it('clears cached items when line_items is an explicit empty array', async () => {
+      const { svc, itemRepo } = build([
+        { id: 2004, order_number: 2004, financial_status: 'paid', line_items: [] },
+      ]);
+      await svc.syncOrders(7);
+      expect(itemRepo.delete).toHaveBeenCalled();
+      expect(itemRepo.save).not.toHaveBeenCalled();
+    });
+
+    it('still syncs the order when caching its items fails', async () => {
+      const { svc, saved, itemRepo } = build([
+        {
+          id: 2005,
+          order_number: 2005,
+          financial_status: 'paid',
+          line_items: [{ title: 'X', quantity: 1, price: '1.00' }],
+        },
+      ]);
+      itemRepo.save.mockRejectedValueOnce(new Error('items table locked'));
+      const res = await svc.syncOrders(7);
+      expect(res.ok).toBe(true);
+      expect(res.synced).toBe(1);
+      expect(saved).toHaveLength(1);
+    });
+  });
+
+  describe('customer link', () => {
+    // `upsertOrder` is also the webhook entry point, and a webhook forwards whatever
+    // Shopify sent. A payload with no customer/email is normal: Shopify redacts
+    // protected customer fields until PCD is approved, and an order genuinely may
+    // have no customer. So the incomplete case must never erase what the complete
+    // case established — the order would stay cached but silently vanish from the
+    // shopper's own order list, with nothing logged.
+    it('keeps the existing link when a later payload carries no customer/email', async () => {
+      const { svc, saved, orderRepo, customerService } = build([]);
+      orderRepo.findOne.mockResolvedValue({
+        id: 4,
+        shopifyOrderId: '6667987910830',
+        customerId: 6,
+      } as OrderCache);
+
+      await svc.upsertOrder(2, {
+        id: 6667987910830,
+        order_number: 1001,
+        financial_status: 'paid',
+      });
+
+      expect(customerService.findOrCreateByEmail).not.toHaveBeenCalled();
+      expect(saved[0].customerId).toBe(6);
+    });
+
+    it('leaves a genuinely customer-less order unlinked', async () => {
+      // Shopify's own answer for #1001: customer null, email null. Upstream truth,
+      // not local data loss — it stays NULL rather than being attached to anyone.
+      const { svc, saved } = build([]);
+      await svc.upsertOrder(2, { id: 6667987910830, order_number: 1001, financial_status: 'paid' });
+      expect(saved[0].customerId).toBeNull();
+    });
+
+    it('re-links once a later payload restores the customer', async () => {
+      const { svc, saved, orderRepo } = build([]);
+      orderRepo.findOne.mockResolvedValue({ id: 4, shopifyOrderId: '9', customerId: null } as OrderCache);
+
+      await svc.upsertOrder(2, {
+        id: 9,
+        order_number: 1003,
+        financial_status: 'paid',
+        customer: { id: 8984201134254, email: 'back@example.com' },
+      });
+
+      expect(saved[0].customerId).toBe(42);
+    });
+
+    describe('erased identities (PRV-H2)', () => {
+      // Observed in live data: a shopper was erased, then this very sync read their
+      // email back out of Shopify and re-linked their order. CustomerService now
+      // returns null for a suppressed identity and the order must stay unlinked.
+      it('leaves the order unlinked when the identity was erased', async () => {
+        const { svc, saved, customerService } = build([]);
+        customerService.findOrCreateByEmail.mockResolvedValue(null);
+
+        await svc.upsertOrder(2, {
+          id: 6677415297198,
+          order_number: 1002,
+          financial_status: 'paid',
+          email: 'erased@example.com',
+        });
+
+        expect(saved[0].customerId).toBeNull();
+      });
+
+      it('erasure beats keep-what-we-knew: an existing link is dropped', async () => {
+        // The two rules meet here. Normally an incomplete payload keeps the old link;
+        // an erased identity must override that and unlink, or the order keeps
+        // pointing at the person who asked to be deleted.
+        const { svc, saved, orderRepo, customerService } = build([]);
+        orderRepo.findOne.mockResolvedValue({
+          id: 6,
+          shopifyOrderId: '6677415297198',
+          customerId: 6,
+        } as OrderCache);
+        customerService.findOrCreateByEmail.mockResolvedValue(null);
+
+        await svc.upsertOrder(2, {
+          id: 6677415297198,
+          order_number: 1002,
+          financial_status: 'paid',
+          email: 'erased@example.com',
+        });
+
+        expect(saved[0].customerId).toBeNull();
+      });
+
+      it('still caches the order itself — the merchant keeps their books', async () => {
+        const { svc, saved, customerService } = build([]);
+        customerService.findOrCreateByEmail.mockResolvedValue(null);
+
+        await svc.upsertOrder(2, {
+          id: 6677415297198,
+          order_number: 1002,
+          financial_status: 'paid',
+          total_price: '24.95',
+          email: 'erased@example.com',
+        });
+
+        expect(saved[0]).toMatchObject({ orderNumber: '1002', total: 24.95, tenantId: 2 });
+      });
+    });
   });
 });

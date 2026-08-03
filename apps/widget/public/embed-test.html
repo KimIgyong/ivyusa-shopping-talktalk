@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>IVY Widget — embed test harness (dev only)</title>
+    <style>
+      body { font: 15px/1.5 system-ui, sans-serif; margin: 0; padding: 40px; color: #1f2937; background: #f9fafb; }
+      .wrap { max-width: 720px; }
+      h1 { font-size: 20px; }
+      code { background: #eef; padding: 1px 5px; border-radius: 4px; }
+      .card { background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px 20px; margin: 16px 0; }
+      label { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+      ol { padding-left: 20px; }
+      li { margin: 6px 0; }
+      .popup { text-align: center; padding-top: 60px; }
+      .btn { display: inline-block; margin: 8px; padding: 10px 18px; border-radius: 8px; border: 0; font-size: 15px; cursor: pointer; }
+      .ok { background: #6366f1; color: #fff; }
+      .muted { background: #e5e7eb; color: #374151; }
+      .note { color: #6b7280; font-size: 13px; }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+
+    <script>
+      // ── Popup return leg ──────────────────────────────────────────────
+      // When embed.js opens the sign-in popup it names the window 'ivy_auth_popup'.
+      // We reuse THIS page as the fake storefront login/return page so you can
+      // drive success vs. cancel by hand.
+      if (window.name === 'ivy_auth_popup') {
+        document.getElementById('root').innerHTML =
+          '<div class="popup">' +
+          '<h1>Fake storefront login</h1>' +
+          '<p class="note">This stands in for the store\'s hosted account login.</p>' +
+          '<button class="btn ok" id="done">Complete sign-in →</button>' +
+          '<button class="btn muted" id="abandon">Close without signing in</button>' +
+          '</div>';
+        // "Complete" loads embed.js, whose popup branch posts ivy:auth-popup-done
+        // to the opener and closes — exactly the real return leg. Whether the
+        // opener then treats it as success depends on the opener's toggle below.
+        document.getElementById('done').onclick = function () {
+          var s = document.createElement('script');
+          s.src = './embed.js';
+          document.body.appendChild(s);
+        };
+        // "Abandon" just closes — the opener's closed-poll fallback handles it.
+        document.getElementById('abandon').onclick = function () {
+          window.close();
+        };
+      } else {
+        // ── Main (storefront) page ──────────────────────────────────────
+        document.getElementById('root').innerHTML =
+          '<div class="wrap">' +
+          '<h1>IVY Widget — embed test harness</h1>' +
+          '<p class="note">Dev-only. Simulates a Shopify storefront embedding the widget so you can exercise the popup sign-in flow without a real store.</p>' +
+          '<div class="card">' +
+          '<label><input type="checkbox" id="fakeAuth" /> Next sign-in succeeds ' +
+          '<span class="note">(returns a fake customer-bound token)</span></label>' +
+          '</div>' +
+          '<div class="card"><b>Steps</b><ol>' +
+          '<li>Click the chat bubble (bottom-right) → open the <b>Orders</b> tab.</li>' +
+          '<li>You should see a <b>Sign in</b> button (it is hidden in standalone mode — here it shows because the widget is embedded).</li>' +
+          '<li>Click <b>Sign in</b> → the widget shows a spinner ("Waiting for you to sign in…") and a popup opens.</li>' +
+          '<li>In the popup, click <b>Complete sign-in</b>. With the box above <b>checked</b>, the widget flips to the authenticated Orders view (the order list may show an error — expected, the token is fake). With it <b>unchecked</b>, the spinner clears back to the choice screen (cancel path).</li>' +
+          '<li>Re-open, click Sign in, then in the popup click <b>Close without signing in</b> → the closed-poll fallback should also clear the spinner.</li>' +
+          '<li>Click Sign in, then <b>"Look up by order number instead"</b> under the spinner → switches to the guest form.</li>' +
+          '</ol></div>' +
+          '<p class="note">Reset a run by reloading this page.</p>' +
+          '</div>';
+
+        // Return an authenticated identity only when the box is checked, so you
+        // control success vs. anonymous. This mocks the Shopify App Proxy, which
+        // can't be signed locally.
+        // A real verified token can be injected as #tok=… so the harness can drive
+        // the authenticated screens (orders list/detail) with real data.
+        var realTok = (location.hash.match(/tok=([^&]+)/) || [])[1] || '';
+        window.__IVY_FAKE_AUTH = !!realTok;
+        document.getElementById('fakeAuth').checked = !!realTok;
+        document.getElementById('fakeAuth').addEventListener('change', function (e) {
+          window.__IVY_FAKE_AUTH = e.target.checked;
+        });
+        var origFetch = window.fetch.bind(window);
+        window.fetch = function (url) {
+          if (String(url).indexOf('/apps/ivy/identity') !== -1) {
+            var body = window.__IVY_FAKE_AUTH
+              ? { authenticated: true, sessionToken: realTok || 'FAKE-TEST-TOKEN' }
+              : { authenticated: false };
+            return Promise.resolve(
+              new Response(JSON.stringify(body), {
+                status: 200,
+                headers: { 'content-type': 'application/json' },
+              }),
+            );
+          }
+          return origFetch.apply(null, arguments);
+        };
+
+        // Point the loader at this same dev origin. base-path aware: the harness
+        // may be served at "/" or "/widget/".
+        var baseDir = window.location.pathname.replace(/embed-test\.html.*$/, '');
+        window.IVY_WIDGET_CONFIG = {
+          shop: 'amoeba-9004.myshopify.com',
+          locale: 'en',
+          widgetUrl: window.location.origin + baseDir,
+          proxyPath: '/apps/ivy',
+          // Reuse THIS harness page as the fake login/return page.
+          loginPath: baseDir + 'embed-test.html',
+        };
+        var s = document.createElement('script');
+        s.src = './embed.js';
+        document.body.appendChild(s);
+      }
+    </script>
+  </body>
+</html>

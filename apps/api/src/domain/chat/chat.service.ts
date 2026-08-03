@@ -17,11 +17,15 @@ import { Tenant } from '../tenant/entity/tenant.entity';
 import { User } from '../user/entity/user.entity';
 import { RagService } from './rag.service';
 import { ModerationService } from '../moderation/moderation.service';
+import type { ChatTurnResponse } from '@ivy/types';
+import { OrderService } from '../order/order.service';
 import { SessionService } from '../session/session.service';
 import { EventBusService, EVENTS } from '../../infrastructure/infrastructure.module';
 import { scrubPii } from '../../global/util/pii-scrub.util';
 
 const ESCALATION_CONFIDENCE = 0.45;
+/** Recent orders handed to the assistant as grounding for order questions. */
+const ORDER_CONTEXT_LIMIT = 5;
 
 /**
  * Localized backend-generated conversational strings (en/es/ko) keyed by
@@ -62,13 +66,8 @@ export function sysMsg(key: keyof typeof SYSTEM_MESSAGES, lang: string): string 
   return (set as Record<string, string>)[lang] ?? set.EN;
 }
 
-export interface ChatTurnResult {
-  conversationId: number;
-  /** Null when the conversation is in agent mode (no bot reply; agent answers). */
-  reply: { senderType: string; body: string; citations?: unknown } | null;
-  escalate: boolean;
-  needsAuth: boolean;
-}
+/** Response shape lives in `@ivy/types` — the widget imports the same contract. */
+export type ChatTurnResult = ChatTurnResponse;
 
 export type EscalationReason = 'low_confidence' | 'moderation_blocked' | 'user_request';
 
@@ -98,6 +97,7 @@ export class ChatService {
     @InjectRepository(User) private readonly userRepo: Repository<User>,
     private readonly rag: RagService,
     private readonly moderation: ModerationService,
+    private readonly orderService: OrderService,
     private readonly sessionService: SessionService,
     private readonly bus: EventBusService,
   ) {}
@@ -200,7 +200,7 @@ export class ChatService {
     const consent = await this.sessionService.effectiveConsentFor(session.id, session.tenantId);
     if (consent !== CONSENT_STATE.GRANTED) {
       return {
-        conversationId: 0,
+        conversationId: null,
         reply: { senderType: 'system', body: sysMsg('consentRequired', session.language) },
         escalate: false,
         needsAuth: false,
@@ -227,7 +227,7 @@ export class ChatService {
       conversation.status === CONVERSATION_STATUS.WAITING ||
       conversation.status === CONVERSATION_STATUS.AGENT
     ) {
-      return { conversationId: conversation.id, reply: null, escalate: false, needsAuth: false };
+      return { conversationId: String(conversation.id), reply: null, escalate: false, needsAuth: false };
     }
 
     // PII minimization (PRV Stage 5): the AI provider gets a scrubbed COPY of
@@ -245,11 +245,23 @@ export class ChatService {
     if (intent.needsOrderData && session.customerId == null) {
       const body = sysMsg('authRequired', session.language);
       await this.persist(conversation.id, SENDER_TYPE.SYSTEM, body, session.language);
-      return { conversationId: conversation.id, reply: { senderType: 'system', body }, escalate: false, needsAuth: true };
+      return { conversationId: String(conversation.id), reply: { senderType: 'system', body }, escalate: false, needsAuth: true };
     }
 
-    // RAG answer (FN-016/017).
-    const answer = await this.rag.answer(tenantId, egressText, session.language);
+    // Order questions from a signed-in shopper are answered from their real
+    // orders, not guessed from the knowledge base. Only reached once the gate
+    // above proved the session is bound to a customer.
+    const orderContext =
+      intent.needsOrderData && session.customerId != null
+        ? await this.buildOrderContext(tenantId, session.customerId)
+        : undefined;
+
+    // RAG answer (FN-016/017). The shopper's own words go out scrubbed (Stage 5);
+    // `orderContext` does not, on purpose — we build it ourselves from our own
+    // database, it already excludes every contact field (see buildOrderContext), and
+    // scrubPii would mask the order refs and totals that are the whole point of the
+    // grounding. Minimisation happens at construction here, not by redaction after.
+    const answer = await this.rag.answer(tenantId, egressText, session.language, orderContext);
 
     // Mandatory moderation gate (FR-069).
     const moderated = await this.moderation.moderate({
@@ -262,14 +274,14 @@ export class ChatService {
 
     if (moderated.decision === MODERATION_DECISION.BLOCKED) {
       const body = await this.handoff(conversation.id, session, tenantId, 'moderation_blocked', text);
-      return { conversationId: conversation.id, reply: { senderType: 'system', body }, escalate: true, needsAuth: false };
+      return { conversationId: String(conversation.id), reply: { senderType: 'system', body }, escalate: true, needsAuth: false };
     }
 
     // RAG fallback (FR-S3): no confident answer within the knowledge base →
     // hand off to a human instead of replying, and alert the agents.
     if (answer.confidence < ESCALATION_CONFIDENCE) {
       const body = await this.handoff(conversation.id, session, tenantId, 'low_confidence', text);
-      return { conversationId: conversation.id, reply: { senderType: 'system', body }, escalate: true, needsAuth: false };
+      return { conversationId: String(conversation.id), reply: { senderType: 'system', body }, escalate: true, needsAuth: false };
     }
 
     await this.persist(conversation.id, SENDER_TYPE.AI, moderated.text, session.language, {
@@ -279,7 +291,7 @@ export class ChatService {
     await this.bus.publish(EVENTS.CONVERSATION_LOG, { conversationId: conversation.id, senderType: 'ai' });
 
     return {
-      conversationId: conversation.id,
+      conversationId: String(conversation.id),
       reply: { senderType: 'ai', body: moderated.text, citations: answer.citations },
       escalate: false,
       needsAuth: false,
@@ -341,6 +353,46 @@ export class ChatService {
   }
 
   // ---- helpers ----
+  /**
+   * Compact, factual summary of the customer's recent orders for the RAG prompt.
+   * Deliberately order-only: no email, phone or address is sent to the AI provider
+   * (PRV — minimise PII leaving the system); the shopper is asking about orders,
+   * so order number, dates, status, totals and item titles are what's needed.
+   * Never throws — losing the enrichment must not break the reply.
+   */
+  private async buildOrderContext(
+    tenantId: number,
+    customerId: number,
+  ): Promise<string | undefined> {
+    try {
+      const recent = await this.orderService.recentForCustomer(
+        tenantId,
+        customerId,
+        ORDER_CONTEXT_LIMIT,
+      );
+      if (!recent.length) return undefined;
+      return recent
+        .map(({ order, items }) => {
+          const placed = order.createdAt ? order.createdAt.toISOString().slice(0, 10) : 'unknown';
+          const total =
+            order.total != null ? `${order.total} ${order.currency ?? ''}`.trim() : 'unknown';
+          const lines = items.length
+            ? items
+                .map((i) => `${i.title}${i.optionText ? ` (${i.optionText})` : ''} x${i.qty}`)
+                .join(', ')
+            : 'no item details cached';
+          return (
+            `- Order ${order.orderNumber}: status ${order.statusUi ?? order.statusInternal ?? 'unknown'}` +
+            `, placed ${placed}, total ${total}, items: ${lines}`
+          );
+        })
+        .join('\n');
+    } catch (e) {
+      this.logger.warn(`Order context unavailable for customer ${customerId}: ${(e as Error).message}`);
+      return undefined;
+    }
+  }
+
   private async persist(
     conversationId: number,
     senderType: string,

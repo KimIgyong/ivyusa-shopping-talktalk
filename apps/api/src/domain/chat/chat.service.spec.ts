@@ -97,18 +97,24 @@ describe('ChatService consent gate', () => {
       userRepo,
       { classifyIntent: ragClassify, answer: ragAnswer } as unknown as RagService,
       { moderate } as unknown as ModerationService,
+      // orderService precedes sessionService: it supplies the signed-in shopper's own
+      // order facts for RAG grounding. These suites are about the consent gate, so it
+      // returns nothing — but the position matters.
+      { recentForCustomer: jest.fn(async () => []) } as never,
       sessionService,
       bus,
     );
   };
 
   const expectSoftBlock = (result: {
-    conversationId: number;
+    conversationId: string | null;
     reply: { senderType: string; body: string } | null;
     escalate: boolean;
     needsAuth: boolean;
   }) => {
-    expect(result.conversationId).toBe(0);
+    // null, not 0: the wire contract makes conversationId a string, and the client
+    // guards on falsiness — '0' would have passed that guard.
+    expect(result.conversationId).toBeNull();
     expect(result.reply?.senderType).toBe('system');
     expect(result.reply?.body).toContain('privacy notice');
     expect(result.escalate).toBe(false);
@@ -144,7 +150,9 @@ describe('ChatService consent gate', () => {
     session = makeSession(CONSENT_STATE.GRANTED, CONSENT_NOTICE_VERSION);
     build();
     const result = await svc.handleUserMessage(session, 'hello');
-    expect(result.conversationId).toBe(77);
+    // String: MySQL BIGINT ids arrive as strings, so the contract carries them as
+    // strings rather than letting the boundary decide.
+    expect(result.conversationId).toBe('77');
     expect(result.reply?.senderType).toBe('ai');
     expect(result.reply?.body).toBe('AI answer');
     expect(msgSave).toHaveBeenCalled(); // user turn + AI turn persisted

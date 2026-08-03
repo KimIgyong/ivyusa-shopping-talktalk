@@ -1,10 +1,12 @@
 import { useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   AlertCircle,
   ArrowLeft,
   CheckCircle2,
   Download,
   Loader2,
+  Lock,
   ShieldCheck,
   ShieldOff,
   Trash2,
@@ -15,6 +17,8 @@ import { useWidgetStore } from '../../store/widgetStore';
 import { usePrefs, useSetPref } from '../../hooks/useNotifications';
 import { useOptOutStatus, useSetOptOut } from '../../hooks/usePrivacy';
 import { deleteMyData, exportMyData } from '../../services/privacyService';
+import { AuthGate } from '../chat/AuthGate';
+import { isAuthError } from '../../lib/errors';
 import { setConsent } from '../../services/sessionService';
 import { setStoredConsent } from '../../lib/consent';
 import { formatDate } from '../../lib/format';
@@ -192,7 +196,14 @@ function ConsentSection() {
 export function PreferencesPanel({ onBack }: { onBack: () => void }) {
   const { t } = useTranslation();
   const sessionToken = useWidgetStore((s) => s.sessionToken);
-  const { data, isLoading } = usePrefs(sessionToken);
+  const setSessionToken = useWidgetStore((s) => s.setSessionToken);
+  const setAuthenticated = useWidgetStore((s) => s.setAuthenticated);
+  const setCustomerName = useWidgetStore((s) => s.setCustomerName);
+  const queryClient = useQueryClient();
+  const authenticated = useWidgetStore((s) => s.authenticated);
+  const { data, isLoading, isError, error } = usePrefs(sessionToken);
+  // The server is the authority: a 401 here means the session lost its customer.
+  const authLost = isError && isAuthError(error);
   const setPref = useSetPref(sessionToken);
   const optOutStatus = useOptOutStatus(sessionToken);
   const setOptOut = useSetOptOut(sessionToken);
@@ -238,6 +249,14 @@ export function PreferencesPanel({ onBack }: { onBack: () => void }) {
     try {
       await deleteMyData(sessionToken);
       setDsarNotice(t('privacy.deleteDone'));
+      // Erasure unbinds the customer from every session server-side, so this token
+      // is no longer authenticated. Reset the widget to a signed-out state, or it
+      // keeps greeting the shopper by the name they just asked us to erase and
+      // every read 401s. Sign-in is then offered again as usual.
+      setCustomerName(null);
+      setAuthenticated(false);
+      setSessionToken(null);
+      queryClient.clear();
     } catch (e) {
       setDsarNotice(dsarErrorText(e));
     } finally {
@@ -256,6 +275,38 @@ export function PreferencesPanel({ onBack }: { onBack: () => void }) {
       (x) => x.channel === channel && x.category === category,
     );
     return p?.enabled ?? false;
+  }
+
+  // Below the consent block everything is customer-scoped — preferences, the CCPA
+  // opt-out and the DSAR actions all 401 without a bound customer. Rendering those
+  // controls anyway was worse than an error: the toggles moved, the writes were
+  // rejected, and nothing told the shopper. So offer the way in instead.
+  //
+  // Consent itself stays visible: it is scoped to the SESSION, not the customer, so
+  // an anonymous visitor must still be able to withdraw or re-give it — that is the
+  // entire point of a consent control. Returning early above it would have quietly
+  // taken that away from exactly the visitors most likely to want it.
+  if (!authenticated || authLost) {
+    return (
+      <div className="scroll-thin flex h-full flex-col overflow-y-auto p-3">
+        <button
+          onClick={onBack}
+          className="mb-3 flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" />
+          {t('orders.back')}
+        </button>
+        <ConsentSection />
+        <div className="mt-4 flex flex-1 flex-col items-center justify-center gap-3 border-t border-gray-200 pt-4">
+          <Lock className="h-6 w-6 text-gray-300" />
+          <AuthGate
+            sessionToken={sessionToken}
+            onSuccess={() => setAuthenticated(true)}
+            onCancel={onBack}
+          />
+        </div>
+      </div>
+    );
   }
 
   return (

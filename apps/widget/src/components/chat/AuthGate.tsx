@@ -2,7 +2,9 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { LogIn, Search } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { guestLookup } from '../../services/orderService';
-import { useAnalytics } from '../../lib/analytics';
+import { useStorefrontLogin } from '../../hooks/useStorefrontLogin';
+import { isAuthError } from '../../lib/errors';
+import { Spinner } from '../ui/Spinner';
 
 export function AuthGate({
   sessionToken,
@@ -14,7 +16,7 @@ export function AuthGate({
   onCancel: () => void;
 }) {
   const { t } = useTranslation();
-  const analytics = useAnalytics();
+  const { canLogin, pending, login, cancel } = useStorefrontLogin();
   const [mode, setMode] = useState<'choice' | 'guest'>('choice');
   const [orderNumber, setOrderNumber] = useState('');
   const [email, setEmail] = useState('');
@@ -49,8 +51,18 @@ export function AuthGate({
       analytics.orderSearch(true);
       onSuccess();
     } catch (e) {
-      analytics.orderSearch(false);
-      setError(e instanceof Error ? e.message : t('common.error'));
+      // Backend messages are English by design (the client localizes by code), so
+      // don't surface them raw. A rejected lookup means the pair didn't match —
+      // say that, and keep the rate-limit case distinct so a blocked shopper knows
+      // to wait rather than retyping.
+      const code = (e as { code?: string })?.code;
+      setError(
+        code === 'E1007' // GUEST_LOOKUP_LIMIT
+          ? t('auth.lookupThrottled')
+          : code === 'E5001' || isAuthError(e) // ORDER_NOT_FOUND / unbound session
+            ? t('auth.lookupFailed')
+            : t('common.error'),
+      );
     } finally {
       setLoading(false);
     }
@@ -70,11 +82,24 @@ export function AuthGate({
       </div>
       <p className="mb-3 text-xs text-gray-600">{t('auth.body')}</p>
 
-      {mode === 'choice' ? (
+      {mode === 'choice' && pending ? (
+        <div className="flex flex-col items-center gap-3 py-3">
+          <Spinner label={t('auth.waiting')} />
+          <button
+            onClick={() => {
+              cancel();
+              setMode('guest');
+            }}
+            className="text-xs text-gray-500 underline-offset-2 hover:text-gray-700 hover:underline"
+          >
+            {t('auth.useGuestInstead')}
+          </button>
+        </div>
+      ) : mode === 'choice' ? (
         <div className="flex flex-col gap-2">
-          {(window.parent !== window || !!getShopDomain()) && (
+          {canLogin && (
             <button
-              onClick={startSignIn}
+              onClick={login}
               className="flex items-center justify-center gap-2 rounded-lg bg-primary-500 px-3 py-2 text-sm font-medium text-white hover:bg-primary-600"
             >
               <LogIn className="h-4 w-4" />

@@ -1,10 +1,11 @@
 import { HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { MoreThan, Repository } from 'typeorm';
 import { CJM_STAGE, CONSENT_STATE, ConsentState, SESSION_IDENTITY, SESSION_LANGUAGE } from '@ivy/types';
 import { generateToken } from '@ivy/common';
 import { Session } from './entity/session.entity';
 import { Tenant } from '../tenant/entity/tenant.entity';
+import { Customer } from '../customer/entity/customer.entity';
 import { EventBusService, EVENTS } from '../../infrastructure/infrastructure.module';
 import { RedisService } from '../../infrastructure/cache/redis.service';
 import { BusinessException } from '../../global/exception/business.exception';
@@ -29,6 +30,13 @@ export interface PrivacyNoticeInfo {
 const SESSION_CACHE_TTL_SEC = 30;
 
 /**
+ * How long a verified session stays resumable, measured from its last activity.
+ * Long enough to span a shopping visit (so navigating the store keeps the chat
+ * thread) without resurrecting a conversation from days ago.
+ */
+const SESSION_REUSE_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+/**
  * Redis key for the token→session cache. Exported so the few modules that
  * mutate sessions directly (order guest-bind, agent link, privacy erasure) can
  * invalidate without importing SessionService (avoids module cycles).
@@ -48,6 +56,7 @@ export class SessionService {
   constructor(
     @InjectRepository(Session) private readonly sessionRepo: Repository<Session>,
     @InjectRepository(Tenant) private readonly tenantRepo: Repository<Tenant>,
+    @InjectRepository(Customer) private readonly customerRepo: Repository<Customer>,
     private readonly bus: EventBusService,
     private readonly redis: RedisService,
   ) {}
@@ -77,6 +86,20 @@ export class SessionService {
       eventType: 'session_start',
     });
     return session;
+  }
+
+  /**
+   * Display name of the session's bound customer, or null (guest, or the profile
+   * has not been filled in yet). Tenant-scoped: the customer must belong to the
+   * session's tenant, so a session can never surface another store's shopper.
+   */
+  async customerDisplayName(session: Session): Promise<string | null> {
+    if (session.customerId == null || session.tenantId == null) return null;
+    const customer = await this.customerRepo.findOne({
+      where: { id: session.customerId, tenantId: session.tenantId },
+      select: ['id', 'name'],
+    });
+    return customer?.name?.trim() || null;
   }
 
   /**
@@ -126,6 +149,47 @@ export class SessionService {
     return session;
   }
 
+  /**
+   * Resume the customer's recent verified session, or create one.
+   *
+   * The app proxy re-resolves identity on **every storefront page load**, so
+   * always minting a session gave a signed-in shopper a new session — and, since
+   * conversations hang off `session_id`, a fresh empty chat — each time they
+   * clicked a link. It also piled up rows (16 sessions for one customer in a day).
+   * Reusing the last session inside the activity window keeps the conversation,
+   * escalation state and consent choice intact across navigation.
+   *
+   * The window is rolling: touching the row on reuse extends it, so an active
+   * shopper keeps their thread while a stale one starts clean. Scoped to
+   * tenant+customer+verified — a guest session is never resumed this way, and the
+   * token is only ever handed back after Shopify verified this same customer, so
+   * reuse grants nothing a fresh session wouldn't.
+   */
+  async findOrCreateForCustomer(
+    tenantId: number,
+    customerId: number,
+    locale?: string,
+  ): Promise<Session> {
+    const since = new Date(Date.now() - SESSION_REUSE_WINDOW_MS);
+    const existing = await this.sessionRepo.findOne({
+      where: {
+        tenantId,
+        customerId,
+        identityLevel: SESSION_IDENTITY.VERIFIED,
+        updatedAt: MoreThan(since),
+      },
+      order: { updatedAt: 'DESC' },
+    });
+    if (existing) {
+      // Touch to roll the window forward. Language is left alone on purpose: the
+      // shopper may have picked one in the widget, and the storefront locale must
+      // not silently override that choice on the next page load.
+      await this.sessionRepo.save(existing);
+      return existing;
+    }
+    return this.createForCustomer(tenantId, customerId, locale);
+  }
+
   /** Resolve a tenant by its Shopify shop domain (null when unknown). */
   async findTenantByShop(shopDomain: string): Promise<Tenant | null> {
     return this.tenantRepo.findOne({ where: { shopDomain } });
@@ -144,6 +208,37 @@ export class SessionService {
     const session = await this.loadByToken(token);
     await this.redis.set(sessionCacheKey(token), JSON.stringify(session), SESSION_CACHE_TTL_SEC);
     return session;
+  }
+
+  /**
+   * The one place widget-session authorization is decided (POL-001).
+   *
+   * Every storefront endpoint that touches personal data needs the same two-tier
+   * answer, and it used to be re-implemented per service — six copies of
+   * `requireCustomerId` plus four inline checks. They happened to agree, but
+   * nothing made them agree, which is precisely how a gap gets introduced later.
+   * Routing them all through here also means they finally use the cached lookup.
+   *
+   * - not bound to a customer  → 401 UNAUTHORIZED
+   * - `verified: true` and the binding came from a guest order lookup rather than
+   *   Shopify → 403 FORBIDDEN. Guest identity is weak: enough to read one's own
+   *   orders, never enough to export or erase an account (SEC-C3).
+   */
+  async requireCustomer(token: string, opts?: { verified?: boolean }): Promise<Session> {
+    const session = await this.findByToken(token);
+    if (session.customerId == null) {
+      throw new BusinessException(ERROR_CODE.UNAUTHORIZED, HttpStatus.UNAUTHORIZED);
+    }
+    if (opts?.verified && session.identityLevel !== SESSION_IDENTITY.VERIFIED) {
+      throw new BusinessException(ERROR_CODE.FORBIDDEN, HttpStatus.FORBIDDEN);
+    }
+    return session;
+  }
+
+  /** Shorthand for the common case: the bound customer's id. */
+  async requireCustomerId(token: string, opts?: { verified?: boolean }): Promise<number> {
+    const session = await this.requireCustomer(token, opts);
+    return session.customerId as number;
   }
 
   /** Uncached DB load — used before mutations so we never save a cached copy. */
