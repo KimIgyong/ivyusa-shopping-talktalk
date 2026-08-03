@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { PageHeader } from '@/components/PageHeader';
 import { Card } from '@/components/Card';
@@ -10,7 +10,10 @@ import type { Column } from '@/components/Table';
 import { Modal } from '@/components/Modal';
 import { Pagination } from '@/components/Pagination';
 import { FormRow, Input, Select } from '@/components/Field';
+import { cn } from '@/lib/cn';
+import { KnowledgeQaPanel } from './KnowledgeQaPanel';
 import {
+  useCategories,
   useSources,
   useCreateSource,
   useSetSourceStatus,
@@ -60,8 +63,53 @@ export function KnowledgePage() {
   const updateDocument = useUpdateDocument();
   const deleteDocument = useDeleteDocument();
 
+  const categories = useCategories();
+  const categoryTotal = (categories.data ?? []).reduce((sum, c) => sum + c.total, 0);
+  // Suggest what this tenant actually uses, plus the known taxonomy for a tenant
+  // that has not created anything yet.
+  const categorySuggestions = [
+    ...new Set([
+      ...(categories.data ?? []).map((c) => c.category).filter((c): c is string => !!c),
+      ...CATEGORIES,
+    ]),
+  ];
+  const selectCategory = (value: string) => {
+    setCategory(value);
+    setPage(1);
+  };
+
   const [detailId, setDetailId] = useState<string | null>(null);
   const detail = useDocument(detailId);
+  // Edit mode for the detail modal — also entered directly from a QA source.
+  const [editing, setEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState('');
+  const [editCategory, setEditCategory] = useState('');
+  const [editContent, setEditContent] = useState('');
+
+  // Load the fetched document into the edit fields whenever it changes.
+  useEffect(() => {
+    if (detail.data) {
+      setEditTitle(detail.data.title);
+      setEditCategory(detail.data.category ?? '');
+      setEditContent(detail.data.content ?? '');
+    }
+  }, [detail.data]);
+
+  const closeDetail = () => {
+    setDetailId(null);
+    setEditing(false);
+  };
+
+  const saveEdit = () => {
+    if (!detail.data) return;
+    updateDocument.mutate(
+      {
+        id: detail.data.id,
+        body: { title: editTitle, category: editCategory, content: editContent },
+      },
+      { onSuccess: () => setEditing(false) },
+    );
+  };
 
   const [sourceOpen, setSourceOpen] = useState(false);
   const [sourceName, setSourceName] = useState('');
@@ -201,7 +249,8 @@ export function KnowledgePage() {
     <div>
       <PageHeader title={t('title')} subtitle={t('subtitle')} />
 
-      <div className="space-y-6">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_400px]">
+        <div className="space-y-6">
         <Card
           title={t('sources')}
           action={<Button onClick={() => setSourceOpen(true)}>{t('addSource')}</Button>}
@@ -218,41 +267,53 @@ export function KnowledgePage() {
 
         <Card
           title={t('documents')}
-          action={
-            <div className="flex items-center gap-2">
-              <Select
-                value={category}
-                onChange={(e) => {
-                  setCategory(e.target.value);
-                  setPage(1);
-                }}
-              >
-                <option value="">{t('allCategories')}</option>
-                {CATEGORIES.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </Select>
-              <Button onClick={() => setDocOpen(true)}>{t('addDocument')}</Button>
-            </div>
-          }
+          action={<Button onClick={() => setDocOpen(true)}>{t('addDocument')}</Button>}
         >
-          <Table<KnowledgeDocument>
-            columns={docColumns}
-            data={docList?.items}
-            loading={documents.isLoading}
-            error={documents.error ? (documents.error as Error).message : null}
-            emptyMessage={t('noDocuments')}
-            rowKey={(r) => r.id}
-          />
-          <Pagination
-            page={page}
-            pageSize={PAGE_SIZE}
-            total={docList?.total ?? 0}
-            onPageChange={setPage}
-          />
+          {/* Category navigator (PLN-Knowledge-QA F3) replaces the old dropdown:
+              the whole taxonomy and its sizes are visible at a glance. */}
+          <div className="flex flex-col gap-4 md:flex-row">
+            <nav className="flex shrink-0 flex-row flex-wrap gap-1 md:w-52 md:flex-col md:flex-nowrap">
+              <CategoryLink
+                label={t('allCategories')}
+                count={categoryTotal}
+                selected={category === ''}
+                onSelect={() => selectCategory('')}
+              />
+              {(categories.data ?? []).map((c) => (
+                <CategoryLink
+                  key={c.category ?? 'uncategorized'}
+                  label={c.category ?? t('uncategorized')}
+                  count={c.total}
+                  inactive={c.total - c.active}
+                  selected={category === (c.category ?? '')}
+                  onSelect={() => selectCategory(c.category ?? '')}
+                />
+              ))}
+            </nav>
+
+            <div className="min-w-0 flex-1">
+              <Table<KnowledgeDocument>
+                columns={docColumns}
+                data={docList?.items}
+                loading={documents.isLoading}
+                error={documents.error ? (documents.error as Error).message : null}
+                emptyMessage={t('noDocuments')}
+                rowKey={(r) => r.id}
+              />
+              <Pagination
+                page={page}
+                pageSize={PAGE_SIZE}
+                total={docList?.total ?? 0}
+                onPageChange={setPage}
+              />
+            </div>
+          </div>
         </Card>
+        </div>
+
+        <div className="xl:sticky xl:top-6 xl:self-start">
+          <KnowledgeQaPanel onEditSource={(id) => { setDetailId(id); setEditing(true); }} />
+        </div>
       </div>
 
       <Modal
@@ -314,7 +375,7 @@ export function KnowledgePage() {
               placeholder={t('categoryPlaceholder')}
             />
             <datalist id="kb-categories">
-              {CATEGORIES.map((c) => (
+              {categorySuggestions.map((c) => (
                 <option key={c} value={c} />
               ))}
             </datalist>
@@ -332,21 +393,31 @@ export function KnowledgePage() {
 
       <Modal
         open={detailId !== null}
-        onClose={() => setDetailId(null)}
+        onClose={closeDetail}
         title={detail.data?.title ?? t('documentDetail')}
         footer={
           <>
-            {detail.data && (
-              <Button
-                variant="secondary"
-                disabled={updateDocument.isPending}
-                onClick={() => toggleActive(detail.data)}
-              >
-                {detail.data.active === 1 ? t('deactivate') : t('activate')}
+            {detail.data && !editing && (
+              <>
+                <Button variant="secondary" onClick={() => setEditing(true)}>
+                  {tc('edit')}
+                </Button>
+                <Button
+                  variant="secondary"
+                  disabled={updateDocument.isPending}
+                  onClick={() => toggleActive(detail.data)}
+                >
+                  {detail.data.active === 1 ? t('deactivate') : t('activate')}
+                </Button>
+              </>
+            )}
+            {detail.data && editing && (
+              <Button onClick={saveEdit} disabled={updateDocument.isPending || !editTitle.trim()}>
+                {tc('save')}
               </Button>
             )}
-            <Button variant="ghost" onClick={() => setDetailId(null)}>
-              {tc('close')}
+            <Button variant="ghost" onClick={editing ? () => setEditing(false) : closeDetail}>
+              {editing ? tc('cancel') : tc('close')}
             </Button>
           </>
         }
@@ -369,12 +440,77 @@ export function KnowledgePage() {
                 </span>
               )}
             </div>
-            <div className="max-h-96 overflow-y-auto whitespace-pre-wrap rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm leading-relaxed">
-              {detail.data.content ?? t('noContent')}
-            </div>
+            {editing ? (
+              /* Saving re-embeds when the content changed (updateDocument), so a
+                 corrected source is searchable again straight away. */
+              <div className="space-y-2">
+                <FormRow label={t('title_column')}>
+                  <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} />
+                </FormRow>
+                <FormRow label={t('category')}>
+                  <>
+                    <Input
+                      value={editCategory}
+                      onChange={(e) => setEditCategory(e.target.value)}
+                      list="kb-categories-edit"
+                    />
+                    <datalist id="kb-categories-edit">
+                      {categorySuggestions.map((c) => (
+                        <option key={c} value={c} />
+                      ))}
+                    </datalist>
+                  </>
+                </FormRow>
+                <FormRow label={t('content')}>
+                  <textarea
+                    className="h-64 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-primary-500"
+                    value={editContent}
+                    onChange={(e) => setEditContent(e.target.value)}
+                  />
+                </FormRow>
+                <p className="text-[11px] text-gray-400">{t('editReindexHint')}</p>
+              </div>
+            ) : (
+              <div className="max-h-96 overflow-y-auto whitespace-pre-wrap rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm leading-relaxed">
+                {detail.data.content ?? t('noContent')}
+              </div>
+            )}
           </div>
         ) : null}
       </Modal>
     </div>
+  );
+}
+
+/** One row in the category navigator: name, size, and how many are hidden. */
+function CategoryLink({
+  label,
+  count,
+  inactive,
+  selected,
+  onSelect,
+}: {
+  label: string;
+  count: number;
+  inactive?: number;
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      aria-pressed={selected}
+      className={cn(
+        'flex items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-left text-sm',
+        selected ? 'bg-primary-500/10 font-medium text-primary-600' : 'text-gray-600 hover:bg-gray-50',
+      )}
+    >
+      <span className="truncate">{label}</span>
+      <span className="shrink-0 text-xs tabular-nums text-gray-400">
+        {count}
+        {inactive ? ` (−${inactive})` : ''}
+      </span>
+    </button>
   );
 }

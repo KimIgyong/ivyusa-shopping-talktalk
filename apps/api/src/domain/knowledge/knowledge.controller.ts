@@ -21,6 +21,7 @@ import { ERROR_CODE } from '../../global/constant/error-code.constant';
 import { KnowledgeService } from './knowledge.service';
 import { KnowledgeMapper } from './knowledge.mapper';
 import {
+  AskKnowledgeRequest,
   CreateDocumentRequest,
   CreatePostRequest,
   CreateSourceRequest,
@@ -124,6 +125,24 @@ export class KnowledgeController {
       query,
     );
     return new Paginated(KnowledgeMapper.toDocumentList(items), buildPagination(page, size, total));
+  }
+
+  @Get('categories')
+  @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
+  @ApiOperation({ summary: 'Document counts per category (console category navigator)' })
+  async categories(@CurrentUser() user: Principal) {
+    return this.knowledgeService.categoryCounts(this.tenantUser(user).tenantId);
+  }
+
+  @Post('ask')
+  @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
+  @ApiOperation({ summary: 'Answer a question from the KB and return its source documents' })
+  async ask(@CurrentUser() user: Principal, @Body() body: AskKnowledgeRequest) {
+    return this.knowledgeService.ask(
+      this.tenantUser(user).tenantId,
+      body.question,
+      body.language ?? 'EN',
+    );
   }
 
   @Get('documents/:id')

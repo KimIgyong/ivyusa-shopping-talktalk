@@ -57,6 +57,23 @@ export function useDocument(id: string | null) {
   });
 }
 
+export function useCategories() {
+  const tenantKey = useTenantKey();
+  return useQuery({
+    queryKey: ['knowledge', tenantKey, 'categories'],
+    queryFn: () => knowledgeService.categories(),
+  });
+}
+
+/** Ask the KB a question. A mutation, not a query: it runs on demand only. */
+export function useAskKnowledge() {
+  return useMutation({
+    mutationFn: (vars: { question: string; language: string }) =>
+      knowledgeService.ask(vars.question, vars.language),
+    onError: (err: Error) => toast.error(err.message),
+  });
+}
+
 export function useCreateDocument() {
   const qc = useQueryClient();
   const tenantKey = useTenantKey();
@@ -65,6 +82,7 @@ export function useCreateDocument() {
       knowledgeService.createDocument(body),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'documents'] });
+      qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'categories'] });
       toast.success('Document added');
     },
     onError: (err: Error) => toast.error(err.message),
@@ -81,6 +99,7 @@ export function useUpdateDocument() {
     }) => knowledgeService.updateDocument(vars.id, vars.body),
     onSuccess: (_data, vars) => {
       qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'documents'] });
+      qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'categories'] });
       qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'document', vars.id] });
       toast.success('Document updated');
     },
@@ -95,6 +114,7 @@ export function useDeleteDocument() {
     mutationFn: (id: string) => knowledgeService.deleteDocument(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'documents'] });
+      qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'categories'] });
       toast.success('Document deleted');
     },
     onError: (err: Error) => toast.error(err.message),

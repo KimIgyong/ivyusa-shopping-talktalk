@@ -42,6 +42,12 @@ export class UpdateDocumentRequest {
   @IsOptional() @IsInt() active?: number;
 }
 
+/** Console knowledge QA (PLN-Knowledge-QA-Console F1). */
+export class AskKnowledgeRequest {
+  @IsString() question: string;
+  @IsOptional() @IsString() language?: string; // en/es/ko
+}
+
 // ---- Board posts ----
 
 export class CreatePostRequest {

@@ -27,5 +27,21 @@
   "allCategories": "All categories",
   "categoryPlaceholder": "e.g. policy_shipping, faq",
   "documentDetail": "Document",
-  "noContent": "(no content)"
+  "noContent": "(no content)",
+  "uncategorized": "Uncategorized",
+  "editReindexHint": "Saving re-embeds the document, so search reflects the change immediately.",
+  "qa": {
+    "title": "Ask the knowledge base",
+    "hint": "Answers come only from this tenant's knowledge. Check the sources below and fix any that are wrong.",
+    "placeholder": "e.g. What is the free shipping threshold?",
+    "thinking": "Searching the knowledge base…",
+    "confidence": "confidence",
+    "similarity": "match",
+    "sources": "Sources used",
+    "noSources": "No documents matched this question.",
+    "fix": "Fix",
+    "reask": "Ask again",
+    "blocked": "The answer was withheld.",
+    "moderationBlocked": "Blocked by moderation"
+  }
 }

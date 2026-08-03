@@ -2,7 +2,10 @@ import { HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Not, Repository } from 'typeorm';
 import { normalizePage } from '@ivy/common';
+import { MODERATION_DECISION } from '@ivy/types';
 import { AiGatewayService } from '../../infrastructure/external/ai/ai-gateway.service';
+import { RagService } from '../chat/rag.service';
+import { ModerationService } from '../moderation/moderation.service';
 import { QdrantService } from '../../infrastructure/external/vector/qdrant.service';
 import { KnowledgeSource } from './entity/knowledge-source.entity';
 import { KbDocument } from './entity/kb-document.entity';
@@ -41,6 +44,8 @@ export class KnowledgeService {
     @InjectRepository(KbFile) private readonly fileRepo: Repository<KbFile>,
     private readonly ai: AiGatewayService,
     private readonly qdrant: QdrantService,
+    private readonly rag: RagService,
+    private readonly moderation: ModerationService,
   ) {}
 
   // ---- Sources ----
@@ -115,6 +120,75 @@ export class KnowledgeService {
   /** Full document including LONGTEXT content (list omits it — PERF-9). */
   async getDocument(tenantId: number, id: number): Promise<KbDocument> {
     return this.findDocument(tenantId, id);
+  }
+
+  /**
+   * Category breakdown for the console's category navigator
+   * (PLN-Knowledge-QA-Console F3). One grouped query, tenant-scoped.
+   */
+  async categoryCounts(
+    tenantId: number,
+  ): Promise<Array<{ category: string | null; total: number; active: number }>> {
+    const rows = await this.docRepo
+      .createQueryBuilder('kb')
+      .select('kb.category', 'category')
+      .addSelect('COUNT(*)', 'total')
+      .addSelect('SUM(CASE WHEN kb.active = 1 THEN 1 ELSE 0 END)', 'active')
+      .where('kb.tenantId = :tenantId', { tenantId })
+      .groupBy('kb.category')
+      .orderBy('total', 'DESC')
+      .getRawMany<{ category: string | null; total: string; active: string }>();
+    return rows.map((r) => ({
+      category: r.category,
+      total: Number(r.total),
+      active: Number(r.active ?? 0),
+    }));
+  }
+
+  /**
+   * Answer a question from this tenant's knowledge base and return the source
+   * documents behind it (PLN-Knowledge-QA-Console F1). Admin-facing verification
+   * tool: no conversation or session is created, so nothing lands in the chat
+   * history or the agent queue. The mandatory moderation gate (FR-069/POL-020)
+   * still runs — a blocked answer is reported as blocked rather than shown,
+   * because "this answer would be blocked" is itself the diagnostic.
+   */
+  async ask(
+    tenantId: number,
+    question: string,
+    language = 'EN',
+  ): Promise<{
+    answer: string;
+    confidence: number;
+    blocked: boolean;
+    sources: Array<{
+      id: number;
+      title: string;
+      category: string | null;
+      similarity: number | null;
+      snippet: string;
+    }>;
+  }> {
+    const result = await this.rag.answer(tenantId, question, language.toUpperCase());
+    const moderated = await this.moderation.moderate({
+      tenantId,
+      scope: 'ai',
+      authorType: 'ai',
+      text: result.text,
+    });
+    const blocked = moderated.decision === MODERATION_DECISION.BLOCKED;
+    return {
+      answer: blocked ? '' : moderated.text,
+      confidence: result.confidence,
+      blocked,
+      sources: result.citations.map((c) => ({
+        id: Number(c.id),
+        title: c.title,
+        category: c.category,
+        similarity: c.similarity,
+        snippet: c.snippet,
+      })),
+    };
   }
 
   async createDocument(tenantId: number, body: CreateDocumentRequest): Promise<KbDocument> {

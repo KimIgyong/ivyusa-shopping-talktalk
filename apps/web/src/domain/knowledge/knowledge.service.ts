@@ -27,6 +27,29 @@ export interface KnowledgeDocumentDetail extends KnowledgeDocument {
   content: string | null;
 }
 
+/** KB QA answer with the source documents behind it (PLN-Knowledge-QA F1). */
+export interface KnowledgeSource_ {
+  id: number;
+  title: string;
+  category: string | null;
+  similarity: number | null;
+  snippet: string;
+}
+
+export interface KnowledgeAnswer {
+  answer: string;
+  confidence: number;
+  /** True when moderation would block this answer — the text is withheld. */
+  blocked: boolean;
+  sources: KnowledgeSource_[];
+}
+
+export interface CategoryCount {
+  category: string | null;
+  total: number;
+  active: number;
+}
+
 export interface DocumentListParams {
   page: number;
   size: number;
@@ -53,4 +76,7 @@ export const knowledgeService = {
     body: { title?: string; category?: string; content?: string; active?: number },
   ) => apiPatch<KnowledgeDocumentDetail>(`/knowledge/documents/${id}`, body),
   deleteDocument: (id: string) => apiDelete<{ deleted: true }>(`/knowledge/documents/${id}`),
+  categories: () => apiGet<CategoryCount[]>('/knowledge/categories'),
+  ask: (question: string, language: string) =>
+    apiPost<KnowledgeAnswer>('/knowledge/ask', { question, language }),
 };
