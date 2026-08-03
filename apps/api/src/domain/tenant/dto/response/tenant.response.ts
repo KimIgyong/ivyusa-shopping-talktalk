@@ -1,3 +1,5 @@
+import { WidgetLoginMode } from '@ivy/types';
+
 /** Response DTOs — camelCase. `uuid` is the external tenant identifier. */
 export interface TenantResponse {
   id: number;
@@ -56,6 +58,11 @@ export interface ShopifyTestResponse {
 export interface PrivacyNoticeResponse {
   privacyPolicyUrl: string | null;
   consentNoticeVersion: string | null;
+}
+
+/** Widget behavior settings (PLN-Widget-Login-Redirect-Orders). */
+export interface WidgetSettingsResponse {
+  loginMode: WidgetLoginMode;
 }
 
 /**

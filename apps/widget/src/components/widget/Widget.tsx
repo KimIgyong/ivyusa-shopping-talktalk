@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { MessageCircle, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { useWidgetStore } from '../../store/widgetStore';
+import { useWidgetStore, type TabKey } from '../../store/widgetStore';
 import { useEnsureSession } from '../../hooks/useSession';
 import { useEmbedIdentity } from '../../hooks/useEmbedIdentity';
 import { useSessionProfile } from '../../hooks/useSessionProfile';
@@ -25,6 +25,17 @@ export function Widget() {
   const { data } = useUnreadCount(sessionToken, authenticated);
   const unread = data?.count ?? 0;
   const prevOpen = useRef(panelOpen);
+
+  // Returning from a redirect-mode sign-in: the loader consumed its one-shot
+  // flag and passed ?reopen=<tab>, so bring the widget straight back up where
+  // the shopper left off (orders) instead of making them find it again.
+  useEffect(() => {
+    const reopen = new URLSearchParams(window.location.search).get('reopen');
+    if (reopen === 'orders' || reopen === 'chat' || reopen === 'notifications') {
+      useWidgetStore.getState().setActiveTab(reopen as TabKey);
+      useWidgetStore.getState().setPanelOpen(true);
+    }
+  }, []);
 
   // When embedded in a storefront iframe, tell the embed.js loader to grow/shrink
   // the frame as the panel opens/closes. targetOrigin '*' is safe here — the payload

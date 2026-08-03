@@ -15,6 +15,9 @@ const SHOPIFY = 'shopify';
 const CURSOR_LOOKBACK_MS = 10 * 60_000;
 /** Page cap per run (50 orders each) — bounds a single sync's work. */
 const MAX_PAGES = 10;
+/** Per-customer login backfill: page cap and re-run suppression window. */
+const CUSTOMER_BACKFILL_MAX_PAGES = 2;
+const CUSTOMER_BACKFILL_TTL_MS = 10 * 60_000;
 
 /** Shopify topic → our webhook path (under /api/v1/webhooks/shopify/). */
 const WEBHOOK_TOPICS: Array<{ topic: string; path: string }> = [
@@ -95,6 +98,42 @@ export class ShopifySyncService {
       : `Synced ${synced} order(s) (initial full sync${pageInfo ? ', more pages remain' : ''})`;
     return this.record(true, synced, detail);
   }
+
+  /**
+   * Pull one customer's orders into the cache (login-time backfill). The full
+   * sync + webhooks only cover orders placed after the store connected, so a
+   * customer signing in for the first time would otherwise see an empty "my
+   * orders". Bounded (2 pages = 100 orders) and suppressed per customer for
+   * 10 min — identity resolves on every storefront page load.
+   */
+  async syncOrdersForCustomer(tenantId: number, shopifyCustomerId: string): Promise<number> {
+    const key = `${tenantId}:${shopifyCustomerId}`;
+    const now = Date.now();
+    const last = this.customerBackfillAt.get(key);
+    if (last && now - last < CUSTOMER_BACKFILL_TTL_MS) return 0;
+    if (this.customerBackfillAt.size > 5_000) this.customerBackfillAt.clear(); // cheap bound
+    this.customerBackfillAt.set(key, now);
+
+    const conn = await this.tenantService.getShopifyConnection(tenantId);
+    if (!conn) return 0;
+    let synced = 0;
+    let pages = 0;
+    let pageInfo: string | null = null;
+    do {
+      const page = await this.client.fetchOrders(conn.shopDomain, conn.token, {
+        customerId: pageInfo ? undefined : shopifyCustomerId,
+        pageInfo: pageInfo ?? undefined,
+      });
+      synced += await this.upsertPage(tenantId, page.orders);
+      pageInfo = page.nextPageInfo;
+      pages++;
+    } while (pageInfo && pages < CUSTOMER_BACKFILL_MAX_PAGES);
+    if (synced > 0) this.logger.log(`Backfilled ${synced} order(s) for customer ${key}`);
+    return synced;
+  }
+
+  /** Last backfill instant per `${tenantId}:${shopifyCustomerId}` (see TTL above). */
+  private readonly customerBackfillAt = new Map<string, number>();
 
   /** Upsert one page with the existing rows prefetched in a single IN() query. */
   private async upsertPage(tenantId: number, orders: ShopifyOrderDto[]): Promise<number> {

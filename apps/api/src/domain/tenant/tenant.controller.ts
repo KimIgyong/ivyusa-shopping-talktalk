@@ -12,6 +12,7 @@ import {
   UpdateIntegrationRequest,
   UpdatePrivacyNoticeRequest,
   UpdateShopifySettingsRequest,
+  UpdateWidgetSettingsRequest,
   UpdateTenantStatusRequest,
   UpsertCredentialRequest,
 } from './dto/request/tenant.request';
@@ -73,6 +74,30 @@ export class TenantController {
     }
     const tenant = await this.tenantService.updatePrivacyNotice(user.tenantId, user.userId, body);
     return TenantMapper.toPrivacyNotice(tenant);
+  }
+
+  // NOTE: declared before ':uuid' so 'widget-settings' is not captured as a UUID.
+  @Get('widget-settings')
+  @RequireRank(USER_RANK.MASTER, USER_RANK.DIRECTOR)
+  @ApiOperation({ summary: 'Get this tenant widget behavior settings (sign-in mode)' })
+  async getWidgetSettings(@CurrentUser() user: Principal) {
+    const tenant = await this.tenantService.findById(this.tenantId(user));
+    return TenantMapper.toWidgetSettings(tenant);
+  }
+
+  @Patch('widget-settings')
+  @RequireRank(USER_RANK.MASTER, USER_RANK.DIRECTOR)
+  @ApiOperation({ summary: 'Update this tenant widget sign-in mode (redirect/popup)' })
+  async updateWidgetSettings(
+    @CurrentUser() user: Principal,
+    @Body() body: UpdateWidgetSettingsRequest,
+  ) {
+    // @RequireRank guarantees a tenant user at runtime; narrow for TS.
+    if (user.actorType !== 'user') {
+      throw new BusinessException(ERROR_CODE.FORBIDDEN, HttpStatus.FORBIDDEN);
+    }
+    const tenant = await this.tenantService.updateWidgetSettings(user.tenantId, user.userId, body);
+    return TenantMapper.toWidgetSettings(tenant);
   }
 
   @Get(':uuid')

@@ -1,12 +1,14 @@
 import { Tenant } from './entity/tenant.entity';
 import { IntegrationCredential } from './entity/integration-credential.entity';
 import { IntegrationStatusEntity } from '../integration/entity/integration-status.entity';
+import { WIDGET_LOGIN_MODE } from '@ivy/types';
 import {
   CredentialResponse,
   PrivacyNoticeResponse,
   PublicTenantResponse,
   ShopifySettingsResponse,
   TenantResponse,
+  WidgetSettingsResponse,
 } from './dto/response/tenant.response';
 
 /** Entity -> response mapping. Keeps secrets out of API payloads. */
@@ -40,6 +42,16 @@ export class TenantMapper {
     return {
       privacyPolicyUrl: t.privacyPolicyUrl,
       consentNoticeVersion: t.consentNoticeVersion,
+    };
+  }
+
+  /** Widget behavior settings; anything but an explicit 'popup' reads as redirect. */
+  static toWidgetSettings(t: Tenant): WidgetSettingsResponse {
+    return {
+      loginMode:
+        t.widgetLoginMode === WIDGET_LOGIN_MODE.POPUP
+          ? WIDGET_LOGIN_MODE.POPUP
+          : WIDGET_LOGIN_MODE.REDIRECT,
     };
   }
 

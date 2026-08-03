@@ -573,6 +573,8 @@ CREATE TABLE `tenants` (
   -- consent banner + tenant override of the consent-notice version (NULL = platform default).
   `privacy_policy_url` varchar(512) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `consent_notice_version` varchar(32) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  -- Widget "Sign in" behavior: 'redirect' (whole-tab, default) or 'popup'.
+  `widget_login_mode` varchar(16) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'redirect',
   `created_at` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
   `updated_at` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
   PRIMARY KEY (`id`),

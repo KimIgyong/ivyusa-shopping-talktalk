@@ -74,6 +74,7 @@ export function useEnsureSession() {
   const setCustomerName = useWidgetStore((s) => s.setCustomerName);
   const setLanguage = useWidgetStore((s) => s.setLanguage);
   const setConsentInfo = useWidgetStore((s) => s.setConsentInfo);
+  const setLoginMode = useWidgetStore((s) => s.setLoginMode);
 
   useEffect(() => {
     let cancelled = false;
@@ -127,6 +128,9 @@ export function useEnsureSession() {
     ensureSession(resumeToken, language, getShopDomain())
       .then((res) => {
         if (cancelled) return;
+        // Tenant widget config is safe to adopt regardless of which session wins
+        // below (it keys off the shop, not the session).
+        if (res.widgetLoginMode) setLoginMode(res.widgetLoginMode);
         // The app-proxy handshake (useEmbedIdentity) may have adopted a
         // customer-bound token while this anonymous ensure was in flight. Don't
         // clobber it: re-read the live store and bail if already authenticated.

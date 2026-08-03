@@ -351,4 +351,32 @@ describe('ShopifySyncService.syncOrders', () => {
       });
     });
   });
+
+  describe('syncOrdersForCustomer (login-time backfill)', () => {
+    it('pulls the customer-filtered pages and upserts them', async () => {
+      const { svc, saved, client } = build(sampleOrders);
+      const n = await svc.syncOrdersForCustomer(7, '555');
+      expect(n).toBe(2);
+      expect(saved).toHaveLength(2);
+      expect(client.fetchOrders).toHaveBeenCalledWith(
+        's.myshopify.com',
+        't',
+        expect.objectContaining({ customerId: '555' }),
+      );
+    });
+
+    it('suppresses a repeat backfill for the same customer within the TTL', async () => {
+      const { svc, client } = build(sampleOrders);
+      await svc.syncOrdersForCustomer(7, '556');
+      const again = await svc.syncOrdersForCustomer(7, '556');
+      expect(again).toBe(0);
+      expect(client.fetchOrders).toHaveBeenCalledTimes(1);
+    });
+
+    it('returns 0 without calling the Admin API when the store is not connected', async () => {
+      const { svc, client } = build(sampleOrders, null);
+      expect(await svc.syncOrdersForCustomer(7, '557')).toBe(0);
+      expect(client.fetchOrders).not.toHaveBeenCalled();
+    });
+  });
 });

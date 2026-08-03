@@ -1,8 +1,35 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
+import type { WidgetLoginMode } from '@ivy/types';
 import { settingsService } from './settings.service';
 import type { SaveShopifyBody, UpdateCredentialBody } from './settings.service';
 import { toast } from '@/store/toast-store';
 import { useTenantKey } from '@/lib/use-tenant-key';
+
+export const useWidgetSettings = () => {
+  const tenantKey = useTenantKey();
+  return useQuery({
+    queryKey: ['widget-settings', tenantKey],
+    queryFn: () => settingsService.widgetSettings(),
+  });
+};
+
+export function useSaveWidgetSettings() {
+  const { t } = useTranslation('settings');
+  const qc = useQueryClient();
+  const tenantKey = useTenantKey();
+  return useMutation({
+    mutationFn: (loginMode: WidgetLoginMode) => settingsService.saveWidgetSettings(loginMode),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['widget-settings', tenantKey] });
+      // Success auto-closes; errors stay until dismissed (dev-kit §4.3).
+      toast.success(t('widgetBehavior.saved'));
+    },
+    onError: (e: Error) => {
+      toast.error(e.message || t('widgetBehavior.saveError'), { sticky: true });
+    },
+  });
+}
 
 export const useCredentials = () => {
   const tenantKey = useTenantKey();

@@ -43,6 +43,10 @@ export class Tenant {
   @Column({ name: 'consent_notice_version', type: 'varchar', length: 32, nullable: true })
   consentNoticeVersion: string | null;
 
+  /** Widget "Sign in" behavior: 'redirect' (whole-tab, default) or 'popup'. */
+  @Column({ name: 'widget_login_mode', type: 'varchar', length: 16, default: 'redirect' })
+  widgetLoginMode: string;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 

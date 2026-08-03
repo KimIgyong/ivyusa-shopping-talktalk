@@ -3,6 +3,7 @@ import { SessionService } from '../session/session.service';
 import { CustomerService } from '../customer/customer.service';
 import { TenantService } from '../tenant/tenant.service';
 import { ShopifyAdminClient } from '../order/shopify-admin.client';
+import { ShopifySyncService } from '../order/shopify-sync.service';
 import { verifyShopifyProxySignature } from '../../global/util/shopify-hmac.util';
 
 export interface ProxyIdentityResult {
@@ -31,6 +32,7 @@ export class ShopifyProxyService {
     private readonly customerService: CustomerService,
     private readonly tenantService: TenantService,
     private readonly adminClient: ShopifyAdminClient,
+    private readonly syncService: ShopifySyncService,
   ) {}
 
   async resolveIdentity(query: Record<string, unknown>): Promise<IdentityOutcome> {
@@ -80,6 +82,12 @@ export class ShopifyProxyService {
     if (!customer.email || !customer.name) {
       void this.backfillProfile(tenant.id, shopifyCustomerId);
     }
+    // Pull this customer's order history into the cache so "my orders" is
+    // populated on first sign-in (webhooks only cover orders placed after the
+    // store connected). Fire-and-forget like the profile backfill: the widget
+    // handshake must not wait on the Admin API, and the sync service suppresses
+    // repeat runs per customer (identity resolves on every page load).
+    void this.backfillOrders(tenant.id, shopifyCustomerId);
     const locale = typeof query.locale === 'string' ? query.locale : undefined;
     // Resume the shopper's recent session rather than minting one per page load —
     // conversations hang off the session, so a new one would empty the chat every
@@ -99,6 +107,19 @@ export class ShopifyProxyService {
    * Runs unawaited on the request path, so it self-heals on the next visit once
    * the profile becomes readable.
    */
+  /** Best-effort login-time order backfill — never throws (runs unawaited). */
+  private async backfillOrders(tenantId: number, shopifyCustomerId: string): Promise<void> {
+    try {
+      await this.syncService.syncOrdersForCustomer(tenantId, shopifyCustomerId);
+    } catch (err) {
+      this.logger.debug(
+        `order backfill skipped for ${shopifyCustomerId}: ${
+          err instanceof Error ? err.message : 'unknown'
+        }`,
+      );
+    }
+  }
+
   private async backfillProfile(tenantId: number, shopifyCustomerId: string): Promise<void> {
     try {
       const conn = await this.tenantService.getShopifyConnection(tenantId);

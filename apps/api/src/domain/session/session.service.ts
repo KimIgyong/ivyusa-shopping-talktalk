@@ -1,7 +1,15 @@
 import { HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { MoreThan, Repository } from 'typeorm';
-import { CJM_STAGE, CONSENT_STATE, ConsentState, SESSION_IDENTITY, SESSION_LANGUAGE } from '@ivy/types';
+import {
+  CJM_STAGE,
+  CONSENT_STATE,
+  ConsentState,
+  SESSION_IDENTITY,
+  SESSION_LANGUAGE,
+  WIDGET_LOGIN_MODE,
+  WidgetLoginMode,
+} from '@ivy/types';
 import { generateToken } from '@ivy/common';
 import { Session } from './entity/session.entity';
 import { Tenant } from '../tenant/entity/tenant.entity';
@@ -19,11 +27,13 @@ import { ERROR_CODE } from '../../global/constant/error-code.constant';
  */
 export const CONSENT_NOTICE_VERSION = '2026-07';
 
-/** Tenant-facing privacy-notice view served with /session/ensure. */
+/** Tenant-facing widget config (privacy notice + behavior) served with /session/ensure. */
 export interface PrivacyNoticeInfo {
   privacyPolicyUrl: string | null;
   /** Effective notice version: tenant override ?? platform default. */
   consentNoticeVersion: string;
+  /** How the widget's "Sign in" opens the storefront login. */
+  widgetLoginMode: WidgetLoginMode;
 }
 
 /** TTL for the token→session Redis cache (PERF-11). */
@@ -313,6 +323,10 @@ export class SessionService {
     return {
       privacyPolicyUrl: tenant?.privacyPolicyUrl ?? null,
       consentNoticeVersion: tenant?.consentNoticeVersion ?? CONSENT_NOTICE_VERSION,
+      widgetLoginMode:
+        tenant?.widgetLoginMode === WIDGET_LOGIN_MODE.POPUP
+          ? WIDGET_LOGIN_MODE.POPUP
+          : WIDGET_LOGIN_MODE.REDIRECT,
     };
   }
 

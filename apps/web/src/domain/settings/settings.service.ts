@@ -1,4 +1,5 @@
-import { apiGet, apiPost, apiPut } from '@/lib/api-client';
+import { apiGet, apiPatch, apiPost, apiPut } from '@/lib/api-client';
+import type { WidgetLoginMode } from '@ivy/types';
 
 export interface CredentialStatus {
   provider: string;
@@ -62,8 +63,16 @@ export interface IntegrationTestResult {
   detail: string;
 }
 
+/** Widget behavior settings (sign-in mode) — tenant-scoped. */
+export interface WidgetSettings {
+  loginMode: WidgetLoginMode;
+}
+
 export const settingsService = {
   credentials: () => apiGet<CredentialStatus[]>('/tenants/me/credentials'),
+  widgetSettings: () => apiGet<WidgetSettings>('/tenants/widget-settings'),
+  saveWidgetSettings: (loginMode: WidgetLoginMode) =>
+    apiPatch<WidgetSettings>('/tenants/widget-settings', { login_mode: loginMode }),
   updateCredential: (provider: string, body: UpdateCredentialBody) =>
     apiPut<CredentialStatus>(`/tenants/me/credentials/${provider}`, body),
   shopify: () => apiGet<ShopifySettings>('/tenants/me/shopify'),

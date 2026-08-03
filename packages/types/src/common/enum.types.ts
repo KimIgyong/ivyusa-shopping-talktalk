@@ -30,6 +30,13 @@ export type CustomerTier = (typeof CUSTOMER_TIER)[keyof typeof CUSTOMER_TIER];
 export const CONSENT_STATE = { PENDING: 'pending', GRANTED: 'granted', DECLINED: 'declined' } as const;
 export type ConsentState = (typeof CONSENT_STATE)[keyof typeof CONSENT_STATE];
 
+// How the widget's "Sign in" opens the storefront login (tenant console
+// setting). REDIRECT navigates the whole tab (default — survives popup
+// blockers and Shopify's hosted New Customer Accounts login); POPUP keeps the
+// store page and brokers a popup window.
+export const WIDGET_LOGIN_MODE = { REDIRECT: 'redirect', POPUP: 'popup' } as const;
+export type WidgetLoginMode = (typeof WIDGET_LOGIN_MODE)[keyof typeof WIDGET_LOGIN_MODE];
+
 // Session identity assurance. VERIFIED is minted only via the Shopify App Proxy
 // (Shopify-signed customer identity); GUEST covers order-number+email lookup.
 export const SESSION_IDENTITY = { GUEST: 'guest', VERIFIED: 'verified' } as const;

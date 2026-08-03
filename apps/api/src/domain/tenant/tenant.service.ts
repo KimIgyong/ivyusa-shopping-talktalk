@@ -16,6 +16,7 @@ import {
 import { decryptSecret, encryptSecret } from '../../global/util/crypto.util';
 import {
   UpdatePrivacyNoticeRequest,
+  UpdateWidgetSettingsRequest,
   UpdateShopifySettingsRequest,
 } from './dto/request/tenant.request';
 import { AuditService } from '../audit/audit.service';
@@ -196,6 +197,28 @@ export class TenantService {
       actorId,
       action: 'tenant.privacy_notice_updated',
       target,
+    });
+    return saved;
+  }
+
+  /**
+   * Update this tenant's widget behavior settings (PLN-Widget-Login-Redirect-
+   * Orders). Changes how storefront sign-in opens for every shopper → audited.
+   */
+  async updateWidgetSettings(
+    tenantId: number,
+    actorId: number,
+    dto: UpdateWidgetSettingsRequest,
+  ): Promise<Tenant> {
+    const tenant = await this.findById(tenantId);
+    tenant.widgetLoginMode = dto.login_mode;
+    const saved = await this.tenantRepo.save(tenant);
+    await this.audit.write({
+      tenantId,
+      actorType: 'user',
+      actorId,
+      action: 'tenant.widget_settings_updated',
+      target: saved.widgetLoginMode,
     });
     return saved;
   }
