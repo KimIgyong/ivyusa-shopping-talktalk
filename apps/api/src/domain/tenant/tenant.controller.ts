@@ -1,7 +1,7 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Patch, Post, Put, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Put, Query } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { HttpStatus } from '@nestjs/common';
-import { CAPABILITY, Principal } from '@ivy/types';
+import { CAPABILITY, Principal, USER_RANK } from '@ivy/types';
 import { buildPagination, normalizePage } from '@ivy/common';
 import { TenantService } from './tenant.service';
 import { EcommerceIntegrationService } from './ecommerce-integration.service';
@@ -10,12 +10,14 @@ import {
   CreateTenantRequest,
   ListTenantsQuery,
   UpdateIntegrationRequest,
+  UpdatePrivacyNoticeRequest,
   UpdateShopifySettingsRequest,
   UpdateTenantStatusRequest,
   UpsertCredentialRequest,
 } from './dto/request/tenant.request';
 import { Paginated } from '../../global/interceptor/transform.interceptor';
-import { AdminOnly, RequireCapability } from '../../global/decorator/auth.decorator';
+import { AdminOnly, RequireCapability, RequireRank } from '../../global/decorator/auth.decorator';
+import { Public } from '../../global/decorator/public.decorator';
 import { CurrentUser } from '../../global/decorator/current-user.decorator';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
@@ -34,14 +36,50 @@ export class TenantController {
   async list(@Query() query: ListTenantsQuery) {
     const { page, size } = normalizePage(query.page, query.size);
     const { items, total } = await this.tenantService.list(page, size, query.status);
-    return new Paginated(TenantMapper.toTenantList(items), buildPagination(page, size, total));
+    const counts = await this.tenantService.countUsersByTenant(items.map((t) => Number(t.id)));
+    return new Paginated(TenantMapper.toTenantList(items, counts), buildPagination(page, size, total));
   }
 
-  @Get(':id')
+  @Get('by-slug/:slug')
+  @Public()
+  @ApiOperation({ summary: 'Resolve a tenant login page by slug (display-safe fields only)' })
+  async getBySlug(@Param('slug') slug: string) {
+    const tenant = await this.tenantService.findBySlug(slug);
+    if (!tenant) {
+      throw new BusinessException(ERROR_CODE.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND);
+    }
+    return TenantMapper.toPublicTenant(tenant);
+  }
+
+  // NOTE: declared before ':uuid' so 'privacy-notice' is not captured as a UUID.
+  @Get('privacy-notice')
+  @RequireRank(USER_RANK.MASTER, USER_RANK.DIRECTOR)
+  @ApiOperation({ summary: 'Get this tenant privacy-notice settings (PLN-Privacy-Control-Gap Stage 2)' })
+  async getPrivacyNotice(@CurrentUser() user: Principal) {
+    const tenant = await this.tenantService.findById(this.tenantId(user));
+    return TenantMapper.toPrivacyNotice(tenant);
+  }
+
+  @Patch('privacy-notice')
+  @RequireRank(USER_RANK.MASTER, USER_RANK.DIRECTOR)
+  @ApiOperation({ summary: 'Update this tenant privacy-policy URL / consent-notice version' })
+  async updatePrivacyNotice(
+    @CurrentUser() user: Principal,
+    @Body() body: UpdatePrivacyNoticeRequest,
+  ) {
+    // @RequireRank guarantees a tenant user at runtime; narrow for TS.
+    if (user.actorType !== 'user') {
+      throw new BusinessException(ERROR_CODE.FORBIDDEN, HttpStatus.FORBIDDEN);
+    }
+    const tenant = await this.tenantService.updatePrivacyNotice(user.tenantId, user.userId, body);
+    return TenantMapper.toPrivacyNotice(tenant);
+  }
+
+  @Get(':uuid')
   @AdminOnly()
-  @ApiOperation({ summary: 'Get a tenant by id' })
-  async get(@Param('id', ParseIntPipe) id: number) {
-    const tenant = await this.tenantService.findById(id);
+  @ApiOperation({ summary: 'Get a tenant by UUID' })
+  async get(@Param('uuid') uuid: string) {
+    const tenant = await this.tenantService.getByUuid(uuid);
     return TenantMapper.toTenant(tenant);
   }
 
@@ -49,18 +87,19 @@ export class TenantController {
   @RequireCapability(CAPABILITY.TENANT_APPROVE)
   @ApiOperation({ summary: 'Create (approve) a tenant' })
   async create(@Body() body: CreateTenantRequest) {
-    const tenant = await this.tenantService.create(body.shop_domain, body.name, body.plan);
+    const tenant = await this.tenantService.create(body.shop_domain, body.name, body.plan, body.slug);
     return TenantMapper.toTenant(tenant);
   }
 
-  @Patch(':id/status')
+  @Patch(':uuid/status')
   @AdminOnly()
   @ApiOperation({ summary: 'Update tenant status (applied/active/suspended)' })
   async updateStatus(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('uuid') uuid: string,
     @Body() body: UpdateTenantStatusRequest,
   ) {
-    const tenant = await this.tenantService.updateStatus(id, body.status);
+    const target = await this.tenantService.getByUuid(uuid);
+    const tenant = await this.tenantService.updateStatus(Number(target.id), body.status);
     return TenantMapper.toTenant(tenant);
   }
 

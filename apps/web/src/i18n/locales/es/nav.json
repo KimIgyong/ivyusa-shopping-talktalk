@@ -11,6 +11,7 @@
   "campaigns": "Campañas",
   "users": "Usuarios y etiquetas",
   "settings": "Configuración del inquilino",
+  "privacyNotice": "Aviso de privacidad",
   "overview": "Resumen",
   "tenants": "Inquilinos",
   "aiEngines": "Motores de IA",
@@ -18,5 +19,6 @@
   "toggleSidebar": "Alternar barra lateral",
   "changePassword": "Cambiar contraseña",
   "logout": "Cerrar sesión",
-  "language": "Idioma"
+  "language": "Idioma",
+  "myPage": "Mi página"
 }

@@ -11,6 +11,7 @@
   "campaigns": "캠페인",
   "users": "사용자 및 라벨",
   "settings": "테넌트 설정",
+  "privacyNotice": "개인정보 안내",
   "overview": "개요",
   "tenants": "테넌트",
   "aiEngines": "AI 엔진",
@@ -18,5 +19,6 @@
   "toggleSidebar": "사이드바 전환",
   "changePassword": "비밀번호 변경",
   "logout": "로그아웃",
-  "language": "언어"
+  "language": "언어",
+  "myPage": "마이페이지"
 }

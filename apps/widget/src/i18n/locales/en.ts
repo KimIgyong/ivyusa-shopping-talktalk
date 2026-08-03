@@ -33,6 +33,16 @@ export const en = {
       body: 'Under the CCPA, we process your messages to provide support and use analytics (Google Analytics) to understand traffic and improve the service. Do you consent to continue?',
       accept: 'Accept',
       decline: 'Decline',
+      versionLabel: 'Notice version {{version}}',
+      updated: 'Our privacy notice has changed — please review it and confirm your choice again.',
+      items: 'What we collect: your chat messages, order lookups you request, and basic device info.',
+      purpose: 'Why: to answer your questions and provide customer support.',
+      retention: 'Retention: chat data is kept for up to 365 days, then deleted.',
+      aiProcessor: 'AI: messages are processed by a third-party AI provider in the United States.',
+      policyLink: 'Privacy policy',
+      privacyChoices: 'Privacy choices & my data',
+      saveError: 'We could not save your choice. Please try again.',
+      retry: 'Retry',
     },
     scenarios: {
       delivery: 'Delivery Status',
@@ -135,6 +145,24 @@ export const en = {
 
   privacy: {
     title: 'Privacy & your data',
+    consent: {
+      title: 'Chat & AI consent',
+      state: {
+        granted: 'Consent given',
+        declined: 'Consent withdrawn',
+        pending: 'No choice recorded yet',
+      },
+      grantedAt: 'On {{date}}',
+      version: 'Notice version {{version}}',
+      pendingHint: 'Open the chat tab to review the privacy notice and make your choice.',
+      withdraw: 'Withdraw consent',
+      withdrawConfirm: 'Click again to confirm withdrawal',
+      withdrawHint: 'If you withdraw, chat and AI processing stop until you consent again.',
+      reconsent: 'Give consent again',
+      saved: 'Your consent choice has been saved.',
+      error: 'We could not save your choice. Please try again.',
+      unavailable: 'Consent status is unavailable right now. Please check your connection and reopen the widget.',
+    },
     optOutHint: 'Turns off email, SMS and web-push messaging for your account. In-app notices stay on.',
     export: 'Download my data (JSON)',
     exporting: 'Preparing your export…',
@@ -148,6 +176,7 @@ export const en = {
     loading: 'Loading…',
     error: 'Something went wrong.',
     retry: 'Retry',
+    close: 'Close',
   },
 
   a11y: {

@@ -1,5 +1,5 @@
 import { apiClient } from '../lib/api-client';
-import type { SessionResponse } from '../lib/types';
+import type { ConsentResult, SessionResponse } from '../lib/types';
 
 export function ensureSession(
   sessionToken: string | null,
@@ -16,8 +16,8 @@ export function ensureSession(
 export function setConsent(
   sessionToken: string,
   granted: boolean,
-): Promise<unknown> {
-  return apiClient.post('/session/consent', {
+): Promise<ConsentResult> {
+  return apiClient.post<ConsentResult>('/session/consent', {
     session_token: sessionToken,
     granted,
   });

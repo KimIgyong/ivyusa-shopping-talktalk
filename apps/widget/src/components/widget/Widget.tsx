@@ -18,7 +18,8 @@ export function Widget() {
   const panelOpen = useWidgetStore((s) => s.panelOpen);
   const togglePanel = useWidgetStore((s) => s.togglePanel);
   const sessionToken = useWidgetStore((s) => s.sessionToken);
-  const { data } = useUnreadCount(sessionToken);
+  const authenticated = useWidgetStore((s) => s.authenticated);
+  const { data } = useUnreadCount(sessionToken, authenticated);
   const unread = data?.count ?? 0;
   const prevOpen = useRef(panelOpen);
 

@@ -22,7 +22,26 @@ export interface AiCompletionResult {
   model: string;
 }
 
+/** Embedding request/response (KB vector retrieval — PLAN-KB-VectorHybrid-Qdrant). */
+export interface AiEmbeddingRequest {
+  texts: string[];
+  /** Retrieval asymmetry hint: queries and documents embed differently. */
+  inputType: 'query' | 'document';
+  model?: string;
+  apiKey?: string;
+}
+
+export interface AiEmbeddingResult {
+  vectors: number[][];
+  tokensIn: number;
+  provider: string;
+  model: string;
+  dimension: number;
+}
+
 export interface AiAdapter {
   readonly provider: string;
   complete(req: AiCompletionRequest): Promise<AiCompletionResult>;
+  /** Optional — only embedding-capable adapters (voyage, stub) implement this. */
+  embed?(req: AiEmbeddingRequest): Promise<AiEmbeddingResult>;
 }

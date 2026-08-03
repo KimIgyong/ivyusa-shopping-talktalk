@@ -83,30 +83,54 @@ export class ShopifyOAuthService {
     }
     await this.redis.del(`shopify:oauth:${state}`);
 
-    const token = await this.exchangeCodeForToken(shop, code, c);
+    const grant = await this.exchangeCodeForToken(shop, code, c);
     const tenant = await this.tenantService.upsertByShopDomain(shop);
-    await this.tenantService.upsertCredential(
-      tenant.id,
-      SHOPIFY,
-      JSON.stringify({ accessToken: token }),
-    );
+    await this.tenantService.upsertCredential(tenant.id, SHOPIFY, JSON.stringify(grant));
     this.logger.log(`Shopify OAuth connected shop=${shop} tenant=${tenant.id}`);
     return { shop, tenantId: tenant.id };
   }
 
-  private async exchangeCodeForToken(shop: string, code: string, c: OAuthConfig): Promise<string> {
+  /**
+   * Exchange the authorization code for an offline token. `expiring: '1'` asks for
+   * an expiring offline token (access ~1h + refresh token ~90d) — new Dev Dashboard
+   * apps reject non-expiring tokens on the Admin API. Expiry timestamps are stored
+   * as absolute epoch ms so TenantService can refresh transparently.
+   */
+  private async exchangeCodeForToken(
+    shop: string,
+    code: string,
+    c: OAuthConfig,
+  ): Promise<{
+    accessToken: string;
+    refreshToken?: string;
+    expiresAt?: number;
+    refreshTokenExpiresAt?: number;
+  }> {
     const res = await fetch(`https://${shop}/admin/oauth/access_token`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ client_id: c.apiKey, client_secret: c.apiSecret, code }),
+      body: JSON.stringify({ client_id: c.apiKey, client_secret: c.apiSecret, code, expiring: '1' }),
     });
     if (!res.ok) {
       throw new BusinessException(ERROR_CODE.EXTERNAL_SERVICE_ERROR, HttpStatus.BAD_GATEWAY);
     }
-    const data = (await res.json()) as { access_token?: string };
+    const data = (await res.json()) as {
+      access_token?: string;
+      expires_in?: number | string;
+      refresh_token?: string;
+      refresh_token_expires_in?: number | string;
+    };
     if (!data.access_token) {
       throw new BusinessException(ERROR_CODE.EXTERNAL_SERVICE_ERROR, HttpStatus.BAD_GATEWAY);
     }
-    return data.access_token;
+    const now = Date.now();
+    return {
+      accessToken: data.access_token,
+      ...(data.refresh_token ? { refreshToken: data.refresh_token } : {}),
+      ...(data.expires_in ? { expiresAt: now + Number(data.expires_in) * 1000 } : {}),
+      ...(data.refresh_token_expires_in
+        ? { refreshTokenExpiresAt: now + Number(data.refresh_token_expires_in) * 1000 }
+        : {}),
+    };
   }
 }

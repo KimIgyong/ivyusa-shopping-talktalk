@@ -7,11 +7,19 @@ import { Invitation } from './entity/invitation.entity';
 import { UserService } from './user.service';
 import { UserController } from './user.controller';
 import { JobLabelController } from './job-label.controller';
+import { AdminTenantUserController } from './admin-tenant-user.controller';
 import { AuditModule } from '../audit/audit.module';
+import { AuthModule } from '../auth/auth.module';
+import { TenantModule } from '../tenant/tenant.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([User, JobLabel, UserJobLabel, Invitation]), AuditModule],
-  controllers: [UserController, JobLabelController],
+  imports: [
+    TypeOrmModule.forFeature([User, JobLabel, UserJobLabel, Invitation]),
+    AuditModule,
+    AuthModule, // MfaService (mfa-reset endpoints)
+    TenantModule,
+  ],
+  controllers: [UserController, JobLabelController, AdminTenantUserController],
   providers: [UserService],
   exports: [UserService],
 })

@@ -1,4 +1,4 @@
-import { HttpStatus, Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { BusinessException } from '../../global/exception/business.exception';
@@ -17,7 +17,9 @@ import { Tenant } from '../tenant/entity/tenant.entity';
 import { User } from '../user/entity/user.entity';
 import { RagService } from './rag.service';
 import { ModerationService } from '../moderation/moderation.service';
+import { SessionService } from '../session/session.service';
 import { EventBusService, EVENTS } from '../../infrastructure/infrastructure.module';
+import { scrubPii } from '../../global/util/pii-scrub.util';
 
 const ESCALATION_CONFIDENCE = 0.45;
 
@@ -48,13 +50,14 @@ const SYSTEM_MESSAGES = {
     KO: '관리자에게 전달하여 상담을 이어가겠습니다. 잠시만 기다려 주시면 상담사가 이 대화창에서 답변드릴게요.',
   },
   consentRequired: {
-    EN: 'You declined the privacy notice, so we cannot process chat messages. To use chat, please accept the privacy notice in the consent banner.',
-    ES: 'Rechazaste el aviso de privacidad, por lo que no podemos procesar mensajes de chat. Para usar el chat, acepta el aviso de privacidad en el banner de consentimiento.',
-    KO: '개인정보 처리 안내를 거부하셔서 채팅 메시지를 처리할 수 없습니다. 채팅을 이용하려면 동의 배너에서 개인정보 처리 안내에 동의해 주세요.',
+    EN: 'We cannot process chat messages until you accept the privacy notice. To use chat, please accept the privacy notice in the consent banner.',
+    ES: 'No podemos procesar mensajes de chat hasta que aceptes el aviso de privacidad. Para usar el chat, acepta el aviso de privacidad en el banner de consentimiento.',
+    KO: '개인정보 처리 안내에 동의하시기 전에는 채팅 메시지를 처리할 수 없습니다. 채팅을 이용하려면 동의 배너에서 개인정보 처리 안내에 동의해 주세요.',
   },
 } as const;
 
-function sysMsg(key: keyof typeof SYSTEM_MESSAGES, lang: string): string {
+/** Localized system-turn copy — shared with ScenarioService's consent gate. */
+export function sysMsg(key: keyof typeof SYSTEM_MESSAGES, lang: string): string {
   const set = SYSTEM_MESSAGES[key];
   return (set as Record<string, string>)[lang] ?? set.EN;
 }
@@ -85,6 +88,8 @@ export interface EscalationEvent {
  */
 @Injectable()
 export class ChatService {
+  private readonly logger = new Logger(ChatService.name);
+
   constructor(
     @InjectRepository(Conversation) private readonly convRepo: Repository<Conversation>,
     @InjectRepository(Message) private readonly msgRepo: Repository<Message>,
@@ -93,6 +98,7 @@ export class ChatService {
     @InjectRepository(User) private readonly userRepo: Repository<User>,
     private readonly rag: RagService,
     private readonly moderation: ModerationService,
+    private readonly sessionService: SessionService,
     private readonly bus: EventBusService,
   ) {}
 
@@ -186,9 +192,13 @@ export class ChatService {
   }
 
   async handleUserMessage(session: Session, text: string): Promise<ChatTurnResult> {
-    // Declined consent (PRV-M4): the message is neither persisted nor sent to
-    // the AI — the customer gets a localized pointer back to the consent banner.
-    if (session.consentState === CONSENT_STATE.DECLINED) {
+    // Consent gate (PRV-M4, PLN-Privacy-Control-Gap D-1: fail-closed). Only an
+    // effective GRANTED — fresh (uncached) read, current notice version — lets
+    // the turn proceed; PENDING, DECLINED, and an outdated grant all soft-block:
+    // the message is neither persisted nor sent to the AI, no CJM event fires,
+    // and the customer gets a localized pointer back to the consent banner.
+    const consent = await this.sessionService.effectiveConsentFor(session.id, session.tenantId);
+    if (consent !== CONSENT_STATE.GRANTED) {
       return {
         conversationId: 0,
         reply: { senderType: 'system', body: sysMsg('consentRequired', session.language) },
@@ -220,8 +230,18 @@ export class ChatService {
       return { conversationId: conversation.id, reply: null, escalate: false, needsAuth: false };
     }
 
+    // PII minimization (PRV Stage 5): the AI provider gets a scrubbed COPY of
+    // the message; the persisted original stays intact (agents need it). Only
+    // match counts are logged — never the original text.
+    const { text: egressText, counts: piiCounts } = scrubPii(text);
+    if (Object.keys(piiCounts).length > 0) {
+      this.logger.warn(
+        `PII scrubbed from AI egress (conversation ${conversation.id}): ${JSON.stringify(piiCounts)}`,
+      );
+    }
+
     // Intent + scope check (FN-015): order data requires authentication first.
-    const intent = await this.rag.classifyIntent(tenantId, text);
+    const intent = await this.rag.classifyIntent(tenantId, egressText);
     if (intent.needsOrderData && session.customerId == null) {
       const body = sysMsg('authRequired', session.language);
       await this.persist(conversation.id, SENDER_TYPE.SYSTEM, body, session.language);
@@ -229,7 +249,7 @@ export class ChatService {
     }
 
     // RAG answer (FN-016/017).
-    const answer = await this.rag.answer(tenantId, text, session.language);
+    const answer = await this.rag.answer(tenantId, egressText, session.language);
 
     // Mandatory moderation gate (FR-069).
     const moderated = await this.moderation.moderate({

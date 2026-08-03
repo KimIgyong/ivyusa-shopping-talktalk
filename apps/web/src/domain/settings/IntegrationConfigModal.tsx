@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { INTEGRATION_FIELDS, type EcommerceProvider } from './integration-providers';
-import { Card } from '@/components/Card';
 import { Badge } from '@/components/Badge';
 import { Button } from '@/components/Button';
+import { Modal } from '@/components/Modal';
 import { FormRow, Input } from '@/components/Field';
 import { useIntegration, useSaveIntegration, useTestIntegration } from './settings.hooks';
 
@@ -14,11 +14,20 @@ function fmtDate(value?: string | null): string {
 }
 
 /**
- * Config-driven e-commerce integration card. Renders credential inputs from the
- * shared INTEGRATION_FIELDS schema for the given provider (cafe24/woocommerce/odoo/
- * haravan), with save + connection test. Secret fields are write-only.
+ * Config-driven e-commerce integration settings in a modal. Renders credential
+ * inputs from the shared INTEGRATION_FIELDS schema for the given provider
+ * (cafe24/woocommerce/odoo/haravan), with save + connection test. Secret fields
+ * are write-only.
  */
-export function IntegrationCard({ provider }: { provider: EcommerceProvider }) {
+export function IntegrationConfigModal({
+  provider,
+  open,
+  onClose,
+}: {
+  provider: EcommerceProvider;
+  open: boolean;
+  onClose: () => void;
+}) {
   const { t } = useTranslation('settings');
   const { t: tc } = useTranslation('common');
   const { data, isLoading } = useIntegration(provider);
@@ -70,7 +79,21 @@ export function IntegrationCard({ provider }: { provider: EcommerceProvider }) {
   );
 
   return (
-    <Card title={t(`integrations.${provider}.title`)}>
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={t(`integrations.${provider}.title`)}
+      footer={
+        <>
+          <Button variant="ghost" onClick={onClose}>
+            {tc('close')}
+          </Button>
+          <Button onClick={onSave} disabled={isLoading || save.isPending || requiredMissing}>
+            {save.isPending ? tc('saving') : tc('save')}
+          </Button>
+        </>
+      }
+    >
       <p className="mb-4 text-sm text-gray-500">{t(`integrations.${provider}.subtitle`)}</p>
 
       {specs.map((s) => (
@@ -92,9 +115,6 @@ export function IntegrationCard({ provider }: { provider: EcommerceProvider }) {
       ))}
 
       <div className="mt-4 flex items-center gap-3">
-        <Button onClick={onSave} disabled={isLoading || save.isPending || requiredMissing}>
-          {save.isPending ? tc('saving') : tc('save')}
-        </Button>
         <Button
           variant="secondary"
           onClick={() => test.mutate()}
@@ -121,6 +141,6 @@ export function IntegrationCard({ provider }: { provider: EcommerceProvider }) {
           {t('integrations.lastTested')}: {fmtDate(integ?.lastSyncAt)}
         </div>
       </div>
-    </Card>
+    </Modal>
   );
 }

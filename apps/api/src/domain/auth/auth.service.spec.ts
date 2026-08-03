@@ -3,10 +3,13 @@ import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcryptjs';
 import { Repository } from 'typeorm';
 import { AuthService } from './auth.service';
+import { BusinessException } from '../../global/exception/business.exception';
 import { AdminUser } from './entity/admin-user.entity';
 import { User } from '../user/entity/user.entity';
 import { LoginRateLimitService } from './login-rate-limit.service';
+import { MfaService } from './mfa.service';
 import { RedisService } from '../../infrastructure/cache/redis.service';
+import { AuthTokensResponse } from './dto/response/auth.response';
 
 /** In-memory Redis stand-in with the availability flag the service consults. */
 class FakeRedis {
@@ -92,6 +95,8 @@ describe('AuthService (SEC-M1/SEC-M2)', () => {
       limiter,
       redis as unknown as RedisService,
       { write: jest.fn() } as never,
+      // MFA disabled for these accounts — the step-up branch is covered in mfa.service.spec.
+      { isEnabled: jest.fn(async () => false), consumeLoginCode: jest.fn() } as unknown as MfaService,
     );
   });
 
@@ -147,6 +152,46 @@ describe('AuthService (SEC-M1/SEC-M2)', () => {
     await expect(svc.refresh(tokens.refreshToken)).resolves.toBeDefined();
   });
 
+  it('changePassword rejects a policy-violating new password with E1009 and writes nothing', async () => {
+    const originalHash = user.passwordHash;
+    const reqUser = {
+      actorType: 'user',
+      userId: user.id,
+      tenantId: 1,
+      email: user.email,
+      rank: 'master',
+      labels: [],
+    };
+    // Too short + too few classes + common — service-layer enforcement (DTO bypass).
+    await expect(svc.changePassword(reqUser as never, PASSWORD, 'password1')).rejects.toBeInstanceOf(
+      BusinessException,
+    );
+    await expect(
+      svc.changePassword(reqUser as never, PASSWORD, 'password1'),
+    ).rejects.toMatchObject({
+      errorCode: 'E1009',
+      details: {
+        password: expect.arrayContaining(['min_length', 'char_classes', 'common_password']),
+      },
+    });
+    expect(user.passwordHash).toBe(originalHash);
+    expect(user.passwordChangedAt).toBeNull();
+  });
+
+  it('changePassword rejects reusing the current password (same_as_current)', async () => {
+    const reqUser = {
+      actorType: 'user',
+      userId: user.id,
+      tenantId: 1,
+      email: user.email,
+      rank: 'master',
+      labels: [],
+    };
+    await expect(svc.changePassword(reqUser as never, PASSWORD, PASSWORD)).rejects.toMatchObject({
+      errorCode: 'E1009',
+    });
+  });
+
   it('marks the access token pwd-pending while must-change is set (admin)', async () => {
     admin.mustChangePassword = 1;
     const tokens = await svc.loginAdmin(admin.email, PASSWORD, '203.0.113.7');
@@ -173,5 +218,146 @@ describe('AuthService (SEC-M1/SEC-M2)', () => {
     const tokens = await svc.loginUser(user.email, PASSWORD, '203.0.113.7');
     redis.up = false;
     await expect(svc.refresh(tokens.refreshToken)).resolves.toBeDefined();
+  });
+});
+
+/**
+ * MFA enrollment enforcement (PLN-MFA Stage M3, D-M1/D-M2): MFA_ENFORCE_FROM
+ * drives advisory (grace) vs enforced (mfaPending claim + guard lockout) for
+ * admins and master/director users.
+ */
+describe('AuthService MFA enforcement (M3)', () => {
+  const PAST = '2020-01-01';
+  const FUTURE = '2999-01-01';
+
+  const mkSvc = async (opts: { enforceFrom?: string; enrolled?: boolean; rank?: string }) => {
+    const hash = await bcrypt.hash(PASSWORD, 4);
+    const user = {
+      id: 7,
+      tenantId: 1,
+      email: 'dev@amoeba.group',
+      passwordHash: hash,
+      rank: opts.rank ?? 'master',
+      status: 'active',
+      mustChangePassword: 0,
+      passwordChangedAt: null,
+    } as User;
+    const admin = {
+      id: 3,
+      email: 'admin@amoeba.group',
+      passwordHash: hash,
+      level: 'super_admin',
+      status: 'active',
+      mustChangePassword: 0,
+      passwordChangedAt: null,
+    } as AdminUser;
+    const cfg = {
+      get: (key: string, def?: string) =>
+        ({
+          JWT_REFRESH_SECRET: 'refresh-secret',
+          JWT_REFRESH_TTL: '604800',
+          ...(opts.enforceFrom ? { MFA_ENFORCE_FROM: opts.enforceFrom } : {}),
+        })[key] ?? def,
+    } as unknown as ConfigService;
+    const jwtSvc = new JwtService({ secret: 'access-secret', signOptions: { expiresIn: 900 } });
+    const redis = new FakeRedis();
+    const isEnabled = jest.fn(async () => opts.enrolled ?? false);
+    const repoOf = <T extends object>(row: T) =>
+      ({
+        findOne: jest.fn(async () => row),
+        findOneByOrFail: jest.fn(async () => row),
+        save: jest.fn(async (e: T) => e),
+      }) as unknown as Repository<T>;
+    const svc = new AuthService(
+      repoOf(admin) as Repository<AdminUser>,
+      repoOf(user) as Repository<User>,
+      { findByIds: jest.fn(async () => []) } as never,
+      { find: jest.fn(async () => []) } as never,
+      repoOf({ id: 1 } as never) as never,
+      jwtSvc,
+      cfg,
+      {
+        assertNotLocked: jest.fn(),
+        recordFailure: jest.fn(),
+        recordSuccess: jest.fn(),
+      } as unknown as LoginRateLimitService,
+      redis as unknown as RedisService,
+      { write: jest.fn() } as never,
+      // enrolled=false on the LOGIN paths by construction (challenge already
+      // returned when enabled); isEnabled feeds refresh/change-password lookups.
+      { isEnabled, consumeLoginCode: jest.fn() } as unknown as MfaService,
+    );
+    return { svc, jwtSvc, user, admin, isEnabled };
+  };
+
+  const claims = (jwtSvc: JwtService, token: string) =>
+    jwtSvc.decode(token) as Record<string, unknown>;
+
+  it('no env → no flags, no claim', async () => {
+    const { svc, jwtSvc, user } = await mkSvc({});
+    const t = (await svc.loginUser(user.email, PASSWORD, '203.0.113.7')) as AuthTokensResponse;
+    expect(t.mfaEnrollmentRequired).toBe(false);
+    expect(t.mfaEnforceFrom).toBeNull();
+    expect(t.mfaEnforced).toBe(false);
+    expect(claims(jwtSvc, t.accessToken).mfaPending).toBeUndefined();
+  });
+
+  it('past enforce date + admin not enrolled → enforced + mfaPending claim', async () => {
+    const { svc, jwtSvc, admin } = await mkSvc({ enforceFrom: PAST });
+    const t = (await svc.loginAdmin(admin.email, PASSWORD, '203.0.113.7')) as AuthTokensResponse;
+    expect(t.mfaEnrollmentRequired).toBe(true);
+    expect(t.mfaEnforced).toBe(true);
+    expect(claims(jwtSvc, t.accessToken).mfaPending).toBe(true);
+  });
+
+  it('future enforce date (grace) → advisory flags only, no claim', async () => {
+    const { svc, jwtSvc, user } = await mkSvc({ enforceFrom: FUTURE });
+    const t = (await svc.loginUser(user.email, PASSWORD, '203.0.113.7')) as AuthTokensResponse;
+    expect(t.mfaEnrollmentRequired).toBe(true);
+    expect(t.mfaEnforced).toBe(false);
+    expect(t.mfaEnforceFrom).toContain('2999-01-01');
+    expect(claims(jwtSvc, t.accessToken).mfaPending).toBeUndefined();
+  });
+
+  it('non-required rank (staff) → never flagged even past the date', async () => {
+    const { svc, jwtSvc, user } = await mkSvc({ enforceFrom: PAST, rank: 'staff' });
+    const t = (await svc.loginUser(user.email, PASSWORD, '203.0.113.7')) as AuthTokensResponse;
+    expect(t.mfaEnrollmentRequired).toBe(false);
+    expect(t.mfaEnforced).toBe(false);
+    expect(claims(jwtSvc, t.accessToken).mfaPending).toBeUndefined();
+  });
+
+  it('refresh checks CURRENT enrollment: enrolled account loses the lockout', async () => {
+    const { svc, user, isEnabled } = await mkSvc({ enforceFrom: PAST });
+    // Not enrolled at login (mfaPending pair issued), enrolls right after —
+    // the refresh lookup must observe the NEW state and clear the flags.
+    isEnabled.mockResolvedValueOnce(false); // login challenge check
+    const first = (await svc.loginUser(user.email, PASSWORD, '203.0.113.7')) as AuthTokensResponse;
+    expect(first.mfaEnforced).toBe(true);
+    isEnabled.mockResolvedValue(true); // enrolled between login and refresh
+    const refreshed = await svc.refresh(first.refreshToken);
+    expect(refreshed.mfaEnrollmentRequired).toBe(false);
+    expect(refreshed.mfaEnforced).toBe(false);
+  });
+
+  it('reissueAfterMfaEnroll returns a clean pair (no mfaPending)', async () => {
+    const { svc, jwtSvc } = await mkSvc({ enforceFrom: PAST, enrolled: true });
+    const t = await svc.reissueAfterMfaEnroll({
+      actorType: 'user',
+      userId: 7,
+      tenantId: 1,
+      email: 'dev@amoeba.group',
+      rank: 'master',
+      labels: [],
+    } as never);
+    expect(t.mfaEnforced).toBe(false);
+    expect(claims(jwtSvc, t.accessToken).mfaPending).toBeUndefined();
+  });
+
+  it('unparseable MFA_ENFORCE_FROM → enforcement inactive (fail-open by design, warned)', async () => {
+    const { svc, user } = await mkSvc({ enforceFrom: 'not-a-date' });
+    const t = (await svc.loginUser(user.email, PASSWORD, '203.0.113.7')) as AuthTokensResponse;
+    expect(t.mfaEnrollmentRequired).toBe(false);
+    expect(t.mfaEnforced).toBe(false);
   });
 });

@@ -126,6 +126,14 @@ export class KnowledgeController {
     return new Paginated(KnowledgeMapper.toDocumentList(items), buildPagination(page, size, total));
   }
 
+  @Get('documents/:id')
+  @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
+  @ApiOperation({ summary: 'Get one RAG document with full content' })
+  async getDocument(@CurrentUser() user: Principal, @Param('id', ParseIntPipe) id: number) {
+    const doc = await this.knowledgeService.getDocument(this.tenantUser(user).tenantId, id);
+    return KnowledgeMapper.toDocument(doc);
+  }
+
   @Post('documents')
   @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
   @ApiOperation({ summary: 'Create and embed a RAG document' })

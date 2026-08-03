@@ -1,8 +1,6 @@
 import { create } from 'zustand';
-import {
-  getStoredSessionToken,
-  setStoredSessionToken,
-} from '../lib/api-client';
+import { setStoredSessionToken } from '../lib/api-client';
+import type { ConsentState } from '../lib/types';
 
 export type TabKey = 'notifications' | 'chat' | 'orders';
 export type ConsentChoice = 'granted' | 'denied' | null;
@@ -19,10 +17,21 @@ function readStoredConsent(): ConsentChoice {
   }
 }
 
+/** Server-confirmed consent snapshot (from session/ensure — source of truth). */
+export interface ConsentInfo {
+  state: ConsentState;
+  consentAt: string | null;
+  noticeVersion: string | null;
+  privacyPolicyUrl: string | null;
+  noticeOutdated: boolean;
+}
+
 interface WidgetState {
   sessionToken: string | null;
   activeTab: TabKey;
   panelOpen: boolean;
+  /** Whether the settings/preferences panel overlays the tabs. */
+  settingsOpen: boolean;
   authenticated: boolean;
   language: string;
   /** Privacy/analytics consent — gates chat persistence AND GA4 (Consent Mode). */
@@ -33,6 +42,7 @@ interface WidgetState {
   setActiveTab: (t: TabKey) => void;
   setPanelOpen: (open: boolean) => void;
   togglePanel: () => void;
+  setSettingsOpen: (open: boolean) => void;
   setAuthenticated: (v: boolean) => void;
   setLanguage: (l: string) => void;
   setConsent: (granted: boolean) => void;
@@ -40,19 +50,16 @@ interface WidgetState {
   consumeChatMessage: () => string | null;
 }
 
-/**
- * Embedded on a storefront? Then ignore any persisted token at bootstrap and let
- * the app-proxy handshake (or an anonymous ensure) decide the session each load.
- * This prevents a previous customer's authenticated session — persisted in this
- * widget origin's localStorage — from resuming for a different/logged-out visitor
- * on a shared browser (privacy). The standalone dev app keeps persistence.
- */
-const isEmbedded = typeof window !== 'undefined' && window.parent !== window;
-
 export const useWidgetStore = create<WidgetState>()((set, get) => ({
-  sessionToken: isEmbedded ? null : getStoredSessionToken(),
+  // Always null at bootstrap — a persisted token is only used as a resume hint
+  // for session/ensure (useEnsureSession) and reaches queries after the backend
+  // validates or replaces it. This kills startup 401 noise from stale tokens and,
+  // when embedded, keeps a previous customer's persisted session from resuming
+  // for a different visitor (privacy) — the app-proxy handshake decides instead.
+  sessionToken: null,
   activeTab: 'chat',
   panelOpen: false,
+  settingsOpen: false,
   authenticated: false,
   language: 'en',
   consent: readStoredConsent(),
@@ -64,6 +71,7 @@ export const useWidgetStore = create<WidgetState>()((set, get) => ({
   setActiveTab: (t) => set({ activeTab: t }),
   setPanelOpen: (open) => set({ panelOpen: open }),
   togglePanel: () => set((s) => ({ panelOpen: !s.panelOpen })),
+  setSettingsOpen: (open) => set({ settingsOpen: open }),
   setAuthenticated: (v) => set({ authenticated: v }),
   setLanguage: (l) => set({ language: l }),
   setConsent: (granted) => {

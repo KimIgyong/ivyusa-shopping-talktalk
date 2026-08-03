@@ -33,6 +33,13 @@ export class KbDocument {
   @Column({ name: 'embedding_ref', type: 'varchar', length: 128, nullable: true })
   embeddingRef: string | null;
 
+  /** Model that produced the Qdrant vector — reindex re-embeds on mismatch. */
+  @Column({ name: 'embedding_model', type: 'varchar', length: 64, nullable: true })
+  embeddingModel: string | null;
+
+  @Column({ name: 'embedded_at', type: 'datetime', nullable: true })
+  embeddedAt: Date | null;
+
   @Column({ type: 'tinyint', width: 1, default: 1 })
   active: number;
 

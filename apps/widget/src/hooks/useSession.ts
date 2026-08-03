@@ -1,6 +1,9 @@
 import { useEffect } from 'react';
-import { useWidgetStore } from '../store/widgetStore';
+import { useWidgetStore, type ConsentInfo } from '../store/widgetStore';
 import { ensureSession } from '../services/sessionService';
+import { getStoredSessionToken } from '../lib/api-client';
+import { clearStoredConsent, setStoredConsent } from '../lib/consent';
+import type { SessionResponse } from '../lib/types';
 import i18n, {
   LANG_STORAGE_KEY,
   SUPPORTED_LANGUAGES,
@@ -19,12 +22,35 @@ function hasManualLanguageOverride(): boolean {
  * The Shopify shop domain the embed loader passes in the iframe URL (`?shop=`).
  * Binds the session to the right tenant; absent in local/standalone dev.
  */
-function getShopDomain(): string | undefined {
+export function getShopDomain(): string | undefined {
   try {
     return new URLSearchParams(window.location.search).get('shop') ?? undefined;
   } catch {
     return undefined;
   }
+}
+
+/**
+ * Normalize the session/ensure consent fields into the store snapshot and keep
+ * the localStorage cache in line with the server (server is source of truth).
+ */
+export function consentInfoFromSession(res: SessionResponse): ConsentInfo {
+  const state =
+    res.consentState === 'granted' || res.consentState === 'declined'
+      ? res.consentState
+      : 'pending';
+  return {
+    state,
+    consentAt: res.consentAt ?? null,
+    noticeVersion: res.consentNoticeVersion ?? null,
+    privacyPolicyUrl: res.privacyPolicyUrl ?? null,
+    noticeOutdated: !!res.noticeOutdated,
+  };
+}
+
+function syncStoredConsent(info: ConsentInfo): void {
+  if (info.state === 'pending' || info.noticeOutdated) clearStoredConsent();
+  else setStoredConsent(info.state === 'granted');
 }
 
 /**
@@ -37,10 +63,17 @@ export function useEnsureSession() {
   const setSessionToken = useWidgetStore((s) => s.setSessionToken);
   const setAuthenticated = useWidgetStore((s) => s.setAuthenticated);
   const setLanguage = useWidgetStore((s) => s.setLanguage);
+  const setConsentInfo = useWidgetStore((s) => s.setConsentInfo);
 
   useEffect(() => {
     let cancelled = false;
-    ensureSession(sessionToken, language, getShopDomain())
+    // Resume hint: the store token is always null at bootstrap; a persisted
+    // token (standalone only — embedded loads must not resume a previous
+    // customer's session) is passed to ensure for validation, and only the
+    // token the backend returns reaches the store/queries.
+    const resumeToken =
+      sessionToken ?? (window.parent === window ? getStoredSessionToken() : null);
+    ensureSession(resumeToken, language, getShopDomain())
       .then((res) => {
         if (cancelled) return;
         // The app-proxy handshake (useEmbedIdentity) may have adopted a
@@ -51,6 +84,12 @@ export function useEnsureSession() {
           setSessionToken(res.sessionToken);
         }
         setAuthenticated(!!res.authenticated);
+
+        // Server-side consent is the source of truth for the notice banner
+        // (pending / outdated re-prompts regardless of the local cache).
+        const consentInfo = consentInfoFromSession(res);
+        setConsentInfo(consentInfo);
+        syncStoredConsent(consentInfo);
 
         // Tie default UI language to the backend session, unless the user
         // has manually overridden it.

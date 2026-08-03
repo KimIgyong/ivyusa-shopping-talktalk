@@ -35,6 +35,16 @@ export const es: Translation = {
       body: 'Conforme a la CCPA, procesamos tus mensajes para brindarte soporte y usamos analítica (Google Analytics) para entender el tráfico y mejorar el servicio. ¿Aceptas continuar?',
       accept: 'Aceptar',
       decline: 'Rechazar',
+      versionLabel: 'Versión del aviso {{version}}',
+      updated: 'Nuestro aviso de privacidad ha cambiado — revísalo y confirma tu elección de nuevo.',
+      items: 'Qué recopilamos: tus mensajes de chat, las consultas de pedidos que solicitas y datos básicos del dispositivo.',
+      purpose: 'Para qué: responder tus preguntas y brindarte soporte al cliente.',
+      retention: 'Retención: los datos del chat se conservan hasta 365 días y luego se eliminan.',
+      aiProcessor: 'IA: los mensajes son procesados por un proveedor externo de IA en Estados Unidos.',
+      policyLink: 'Política de privacidad',
+      privacyChoices: 'Opciones de privacidad y mis datos',
+      saveError: 'No pudimos guardar tu elección. Inténtalo de nuevo.',
+      retry: 'Reintentar',
     },
     scenarios: {
       delivery: 'Estado del envío',
@@ -137,6 +147,24 @@ export const es: Translation = {
 
   privacy: {
     title: 'Privacidad y tus datos',
+    consent: {
+      title: 'Consentimiento de chat e IA',
+      state: {
+        granted: 'Consentimiento otorgado',
+        declined: 'Consentimiento retirado',
+        pending: 'Aún no se ha registrado ninguna elección',
+      },
+      grantedAt: 'El {{date}}',
+      version: 'Versión del aviso {{version}}',
+      pendingHint: 'Abre la pestaña de chat para revisar el aviso de privacidad y hacer tu elección.',
+      withdraw: 'Retirar consentimiento',
+      withdrawConfirm: 'Haz clic de nuevo para confirmar la retirada',
+      withdrawHint: 'Si lo retiras, el chat y el procesamiento con IA se detienen hasta que vuelvas a consentir.',
+      reconsent: 'Dar consentimiento de nuevo',
+      saved: 'Tu elección de consentimiento se ha guardado.',
+      error: 'No pudimos guardar tu elección. Inténtalo de nuevo.',
+      unavailable: 'El estado del consentimiento no está disponible ahora. Comprueba tu conexión y vuelve a abrir el widget.',
+    },
     optOutHint: 'Desactiva los mensajes por correo, SMS y push web de tu cuenta. Los avisos en la app siguen activos.',
     export: 'Descargar mis datos (JSON)',
     exporting: 'Preparando tu exportación…',
@@ -150,6 +178,7 @@ export const es: Translation = {
     loading: 'Cargando…',
     error: 'Algo salió mal.',
     retry: 'Reintentar',
+    close: 'Cerrar',
   },
 
   a11y: {

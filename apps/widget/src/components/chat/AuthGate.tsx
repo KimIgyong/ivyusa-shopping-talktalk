@@ -72,13 +72,15 @@ export function AuthGate({
 
       {mode === 'choice' ? (
         <div className="flex flex-col gap-2">
-          <button
-            onClick={() => alert('Sign-in flow opens the storefront account page.')}
-            className="flex items-center justify-center gap-2 rounded-lg bg-primary-500 px-3 py-2 text-sm font-medium text-white hover:bg-primary-600"
-          >
-            <LogIn className="h-4 w-4" />
-            {t('auth.signIn')}
-          </button>
+          {(window.parent !== window || !!getShopDomain()) && (
+            <button
+              onClick={startSignIn}
+              className="flex items-center justify-center gap-2 rounded-lg bg-primary-500 px-3 py-2 text-sm font-medium text-white hover:bg-primary-600"
+            >
+              <LogIn className="h-4 w-4" />
+              {t('auth.signIn')}
+            </button>
+          )}
           <button
             onClick={() => setMode('guest')}
             className="flex items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"

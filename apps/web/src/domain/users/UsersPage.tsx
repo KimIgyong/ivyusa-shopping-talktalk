@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { UserPlus, KeyRound, Copy, Check } from 'lucide-react';
+import { UserPlus, KeyRound, Copy, Check, ShieldOff, AlertTriangle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { PageHeader } from '@/components/PageHeader';
 import { Card } from '@/components/Card';
@@ -17,8 +17,9 @@ import {
   useInviteUser,
   useUpdateUser,
   useIssueTempPassword,
+  useResetUserMfa,
 } from './users.hooks';
-import type { JobLabel, TenantUser } from './users.service';
+import type { JobLabel, TenantUser, UpdateUserBody } from './users.service';
 
 const RANKS = ['master', 'director', 'manager', 'staff'] as const;
 const STATUSES = ['active', 'suspended'] as const;
@@ -67,10 +68,25 @@ export function UsersPage() {
   const inviteUser = useInviteUser();
   const updateUser = useUpdateUser();
   const issueTempPw = useIssueTempPassword();
+  const resetMfa = useResetUserMfa();
 
   // Result of a temp-password issuance / invite — shown once for manual hand-off.
   const [tempResult, setTempResult] = useState<{ email: string; tempPassword: string } | null>(null);
   const [copied, setCopied] = useState(false);
+
+  // Target of a pending MFA reset (confirm dialog).
+  const [mfaResetTarget, setMfaResetTarget] = useState<TenantUser | null>(null);
+
+  const onResetMfa = async () => {
+    if (!mfaResetTarget) return;
+    try {
+      await resetMfa.mutateAsync(mfaResetTarget.id);
+      setMfaResetTarget(null);
+      toast.success(t('mfaResetDone'));
+    } catch {
+      /* error toast handled by the hook; keep the dialog open */
+    }
+  };
 
   const copyTempPw = async () => {
     if (!tempResult) return;
@@ -127,16 +143,23 @@ export function UsersPage() {
   const openEdit = (u: TenantUser) => {
     setEditing(u);
     setEditRank(u.rank);
-    setEditCodes(u.labels ?? []);
+    setEditCodes(u.labelCodes ?? []);
     setEditStatus(u.status ?? 'active');
   };
 
   const onUpdate = async () => {
     if (!editing) return;
-    await updateUser.mutateAsync({
-      id: editing.id,
-      body: { rank: editRank, label_codes: editCodes, status: editStatus },
-    });
+    // Only submit changed fields — each maps to its own endpoint with its own RBAC.
+    const prevCodes = editing.labelCodes ?? [];
+    const codesChanged =
+      prevCodes.length !== editCodes.length || editCodes.some((c) => !prevCodes.includes(c));
+    const body: UpdateUserBody = {};
+    if (editRank !== editing.rank) body.rank = editRank;
+    if (codesChanged) body.label_codes = editCodes;
+    if (editStatus !== (editing.status ?? 'active')) body.status = editStatus;
+    if (Object.keys(body).length > 0) {
+      await updateUser.mutateAsync({ id: editing.id, body });
+    }
     setEditing(null);
   };
 
@@ -147,7 +170,7 @@ export function UsersPage() {
       key: 'labels',
       header: t('labels'),
       render: (u) => {
-        const codes = u.labels ?? [];
+        const codes = u.labelCodes ?? [];
         if (codes.length === 0) return '—';
         return (
           <div className="flex flex-wrap gap-1">
@@ -174,6 +197,16 @@ export function UsersPage() {
           >
             <KeyRound className="mr-1 h-3.5 w-3.5" />
             {t('tempPassword')}
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => setMfaResetTarget(u)}
+            disabled={resetMfa.isPending}
+            title={t('mfaResetTitle')}
+          >
+            <ShieldOff className="mr-1 h-3.5 w-3.5" />
+            {t('mfaReset')}
           </Button>
           <Button variant="secondary" size="sm" onClick={() => openEdit(u)}>
             {tc('edit')}
@@ -315,6 +348,35 @@ export function UsersPage() {
             <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
               {t('tempPwDesc')}
             </p>
+          </div>
+        )}
+      </Modal>
+
+      <Modal
+        open={mfaResetTarget !== null}
+        onClose={() => setMfaResetTarget(null)}
+        title={t('mfaResetTitle')}
+        size="sm"
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setMfaResetTarget(null)}>
+              {tc('cancel')}
+            </Button>
+            <Button variant="danger" onClick={onResetMfa} disabled={resetMfa.isPending}>
+              {t('mfaReset')}
+            </Button>
+          </>
+        }
+      >
+        {mfaResetTarget && (
+          <div className="space-y-3">
+            <p className="text-sm text-gray-600">
+              {t('mfaResetConfirm', { email: mfaResetTarget.email })}
+            </p>
+            <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+              <p>{t('mfaResetWarning')}</p>
+            </div>
           </div>
         )}
       </Modal>

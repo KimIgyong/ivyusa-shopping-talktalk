@@ -1,10 +1,25 @@
 export type SenderType = 'user' | 'ai' | 'agent' | 'system';
 
+export type ConsentState = 'pending' | 'granted' | 'declined';
+
 export interface SessionResponse {
   sessionToken: string;
   language: string;
-  consentState: 'granted' | 'denied' | 'unknown' | string;
+  consentState: ConsentState | string;
   authenticated: boolean;
+  /** Tenant-configured privacy policy link (null when unset). */
+  privacyPolicyUrl?: string | null;
+  /** Version tag of the consent notice currently in force for this tenant. */
+  consentNoticeVersion?: string;
+  /** True when the stored consent predates the current notice version. */
+  noticeOutdated?: boolean;
+  /** When the current consent choice was recorded (null when pending). */
+  consentAt?: string | null;
+}
+
+export interface ConsentResult {
+  consentState: ConsentState | string;
+  consentVersion: string;
 }
 
 export interface ChatMessage {
@@ -73,8 +88,9 @@ export interface OrderItem {
   price: number;
 }
 
-export interface OrderDetail {
-  order: OrderSummary & Record<string, unknown>;
+/** Flat detail payload from GET /orders/:id (OrderMapper.toDetail) — order
+ *  fields at the top level with `items` inline; there is no nested `order`. */
+export interface OrderDetail extends OrderSummary {
   items: OrderItem[];
 }
 
@@ -109,7 +125,9 @@ export interface NotificationItem {
   createdAt: string;
 }
 
-export type NotifChannel = 'in_app' | 'email' | 'sms' | 'web_push';
+// 'push' = native mobile push (managed from the mobile app; not surfaced in the
+// widget's preference panel — the widget cannot register device tokens).
+export type NotifChannel = 'in_app' | 'email' | 'sms' | 'web_push' | 'push';
 
 export interface NotifPref {
   channel: NotifChannel;

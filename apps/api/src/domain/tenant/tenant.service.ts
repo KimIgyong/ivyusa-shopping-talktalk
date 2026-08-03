@@ -1,20 +1,29 @@
+import { randomUUID } from 'crypto';
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { FindOptionsWhere, Repository } from 'typeorm';
 import { Tenant } from './entity/tenant.entity';
 import { IntegrationCredential } from './entity/integration-credential.entity';
+import { User } from '../user/entity/user.entity';
 import { IntegrationStatusEntity } from '../integration/entity/integration-status.entity';
 import { IntegrationService } from '../integration/integration.service';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
+import {
+  RESERVED_TENANT_SLUGS,
+  TENANT_SLUG_PATTERN,
+} from '../../global/constant/reserved-slug.constant';
 import { decryptSecret, encryptSecret } from '../../global/util/crypto.util';
-import { UpdateShopifySettingsRequest } from './dto/request/tenant.request';
+import {
+  UpdatePrivacyNoticeRequest,
+  UpdateShopifySettingsRequest,
+} from './dto/request/tenant.request';
 import { AuditService } from '../audit/audit.service';
 import { ShopifyTestResponse } from './dto/response/tenant.response';
 
 /** provider/name key used for the Shopify credential and integration status. */
 const SHOPIFY = 'shopify';
-const SHOPIFY_API_VERSION = '2024-10';
+const SHOPIFY_API_VERSION = '2026-01';
 
 /**
  * Tenant lifecycle + per-tenant integration credentials (FR-051/FR-060).
@@ -26,6 +35,7 @@ export class TenantService {
     @InjectRepository(Tenant) private readonly tenantRepo: Repository<Tenant>,
     @InjectRepository(IntegrationCredential)
     private readonly credRepo: Repository<IntegrationCredential>,
+    @InjectRepository(User) private readonly userRepo: Repository<User>,
     private readonly integrationService: IntegrationService,
     private readonly audit: AuditService,
   ) {}
@@ -46,6 +56,22 @@ export class TenantService {
     return { items, total };
   }
 
+  /** users-per-tenant counts for the admin tenant list. */
+  async countUsersByTenant(tenantIds: number[]): Promise<Map<number, number>> {
+    const counts = new Map<number, number>();
+    if (!tenantIds.length) return counts;
+    // Raw rows come back as strings (bigint PK / COUNT) — normalize to numbers.
+    const rows = await this.userRepo
+      .createQueryBuilder('u')
+      .select('u.tenant_id', 'tenantId')
+      .addSelect('COUNT(*)', 'cnt')
+      .where('u.tenant_id IN (:...ids)', { ids: tenantIds })
+      .groupBy('u.tenant_id')
+      .getRawMany<{ tenantId: string; cnt: string }>();
+    for (const row of rows) counts.set(Number(row.tenantId), Number(row.cnt));
+    return counts;
+  }
+
   async findById(id: number): Promise<Tenant> {
     const tenant = await this.tenantRepo.findOne({ where: { id } });
     if (!tenant) {
@@ -59,19 +85,35 @@ export class TenantService {
     return this.tenantRepo.findOne({ where: { shopDomain } });
   }
 
+  /** Resolve a tenant by its URL slug (per-tenant login page). */
+  async findBySlug(slug: string): Promise<Tenant | null> {
+    return this.tenantRepo.findOne({ where: { slug } });
+  }
+
+  /** Resolve a tenant by its external UUID (admin API); 404 when unknown. */
+  async getByUuid(uuid: string): Promise<Tenant> {
+    const tenant = await this.tenantRepo.findOne({ where: { uuid } });
+    if (!tenant) {
+      throw new BusinessException(ERROR_CODE.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND);
+    }
+    return tenant;
+  }
+
   /** Tenant ids that have a stored Shopify credential (for scheduled sync). */
   async listShopifyTenantIds(): Promise<number[]> {
     const creds = await this.credRepo.find({ where: { provider: SHOPIFY } });
     return creds.map((c) => c.tenantId).filter((id): id is number => id != null);
   }
 
-  async create(shopDomain: string, name: string, plan: string): Promise<Tenant> {
+  async create(shopDomain: string, name: string, plan: string, slug?: string): Promise<Tenant> {
     const existing = await this.tenantRepo.findOne({ where: { shopDomain } });
     if (existing) {
       throw new BusinessException(ERROR_CODE.DUPLICATE_RESOURCE, HttpStatus.CONFLICT);
     }
     const tenant = this.tenantRepo.create({
+      uuid: randomUUID(),
       shopDomain,
+      slug: await this.resolveSlug(slug, name),
       name,
       plan,
       status: 'applied',
@@ -83,9 +125,88 @@ export class TenantService {
   async upsertByShopDomain(shopDomain: string, name?: string): Promise<Tenant> {
     const existing = await this.tenantRepo.findOne({ where: { shopDomain } });
     if (existing) return existing;
+    // e.g. "acme.myshopify.com" -> slug base "acme"
+    const slug = await this.generateUniqueSlug(name ?? shopDomain.split('.')[0]);
     return this.tenantRepo.save(
-      this.tenantRepo.create({ shopDomain, name: name ?? shopDomain, status: 'active' }),
+      this.tenantRepo.create({
+        uuid: randomUUID(),
+        shopDomain,
+        slug,
+        name: name ?? shopDomain,
+        status: 'active',
+      }),
     );
+  }
+
+  /**
+   * Validate a caller-chosen slug (pattern + reserved words + uniqueness), or
+   * derive one from the tenant name when none was given.
+   */
+  private async resolveSlug(slug: string | undefined, name: string): Promise<string> {
+    if (!slug) return this.generateUniqueSlug(name);
+    if (!TENANT_SLUG_PATTERN.test(slug) || RESERVED_TENANT_SLUGS.includes(slug)) {
+      throw new BusinessException(ERROR_CODE.VALIDATION_FAILED, HttpStatus.BAD_REQUEST);
+    }
+    if (await this.findBySlug(slug)) {
+      throw new BusinessException(ERROR_CODE.DUPLICATE_RESOURCE, HttpStatus.CONFLICT);
+    }
+    return slug;
+  }
+
+  /** Slugify a base string and suffix -2, -3, … until unique and not reserved. */
+  private async generateUniqueSlug(base: string): Promise<string> {
+    const cleaned =
+      base
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .slice(0, 56) || 'shop';
+    let candidate = RESERVED_TENANT_SLUGS.includes(cleaned) ? `${cleaned}-shop` : cleaned;
+    for (let n = 2; await this.findBySlug(candidate); n++) {
+      candidate = `${cleaned}-${n}`;
+    }
+    return candidate;
+  }
+
+  /**
+   * Update this tenant's privacy-notice settings (PLN-Privacy-Control-Gap
+   * Stage 2). PATCH semantics: omitted fields keep their value, null clears
+   * back to the platform default. Privileged + privacy-relevant → audited.
+   */
+  async updatePrivacyNotice(
+    tenantId: number,
+    actorId: number,
+    dto: UpdatePrivacyNoticeRequest,
+  ): Promise<Tenant> {
+    const tenant = await this.findById(tenantId);
+    if (dto.privacy_policy_url !== undefined) {
+      tenant.privacyPolicyUrl = dto.privacy_policy_url?.trim() || null;
+    }
+    if (dto.consent_notice_version !== undefined) {
+      tenant.consentNoticeVersion = dto.consent_notice_version?.trim() || null;
+    }
+    const saved = await this.tenantRepo.save(tenant);
+    // Audit target: the new notice version, else the policy URL's host — never
+    // the full URL (keeps audit rows short and query-string-free).
+    const target =
+      saved.consentNoticeVersion ?? this.safeUrlHost(saved.privacyPolicyUrl) ?? 'cleared';
+    await this.audit.write({
+      tenantId,
+      actorType: 'user',
+      actorId,
+      action: 'tenant.privacy_notice_updated',
+      target,
+    });
+    return saved;
+  }
+
+  private safeUrlHost(url: string | null): string | null {
+    if (!url) return null;
+    try {
+      return new URL(url).host;
+    } catch {
+      return null;
+    }
   }
 
   async updateStatus(id: number, status: string): Promise<Tenant> {
@@ -176,6 +297,8 @@ export class TenantService {
   /**
    * Resolve the shop domain + decrypted Admin API token for a tenant, or null if
    * either is missing. Shared by the connectivity test and the order/customer sync.
+   * Expiring OAuth tokens (accessToken + refreshToken + expiresAt) are refreshed
+   * transparently here; manual custom-app tokens (no refreshToken) pass through.
    */
   async getShopifyConnection(
     tenantId: number,
@@ -184,12 +307,107 @@ export class TenantService {
     const shopDomain = tenant.shopDomain?.trim();
     const cred = await this.credRepo.findOne({ where: { tenantId, provider: SHOPIFY } });
     if (!shopDomain || !cred?.secretEnc) return null;
-    const token = this.extractAccessToken(decryptSecret(cred.secretEnc));
+    const parsed = this.parseShopifyCredential(decryptSecret(cred.secretEnc));
+    if (!parsed) return null;
+    let token = parsed.accessToken;
+    if (parsed.refreshToken && (!parsed.expiresAt || parsed.expiresAt - Date.now() < 120_000)) {
+      const refreshed = await this.refreshShopifyToken(tenantId, shopDomain, parsed, cred);
+      if (!refreshed) return null;
+      token = refreshed;
+    }
     // Shopify tokens are printable ASCII. Reject anything else (e.g. a masked/
     // placeholder value) so it never reaches an HTTP header — which would throw a
     // ByteString error on fetch instead of a clean "invalid token" result.
     if (!token || !/^[\x21-\x7e]+$/.test(token)) return null;
     return { shopDomain, token };
+  }
+
+  /**
+   * Rotate an expiring offline token via grant_type=refresh_token. Single-flight
+   * per tenant — Shopify rotates the refresh token on every use, so a concurrent
+   * second refresh with the old refresh token would be rejected.
+   */
+  private readonly refreshInFlight = new Map<number, Promise<string | null>>();
+
+  private refreshShopifyToken(
+    tenantId: number,
+    shopDomain: string,
+    parsed: { accessToken: string; refreshToken?: string },
+    cred: IntegrationCredential,
+  ): Promise<string | null> {
+    const existing = this.refreshInFlight.get(tenantId);
+    if (existing) return existing;
+    const run = (async (): Promise<string | null> => {
+      const clientId = process.env.SHOPIFY_API_KEY ?? '';
+      const clientSecret = process.env.SHOPIFY_API_SECRET ?? '';
+      if (!clientId || !clientSecret || !parsed.refreshToken) return null;
+      try {
+        const res = await fetch(`https://${shopDomain}/admin/oauth/access_token`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            grant_type: 'refresh_token',
+            client_id: clientId,
+            client_secret: clientSecret,
+            refresh_token: parsed.refreshToken,
+          }),
+        });
+        if (!res.ok) return null;
+        const data = (await res.json()) as {
+          access_token?: string;
+          expires_in?: number | string;
+          refresh_token?: string;
+          refresh_token_expires_in?: number | string;
+        };
+        if (!data.access_token) return null;
+        const now = Date.now();
+        const rotated = {
+          accessToken: data.access_token,
+          ...(data.refresh_token ? { refreshToken: data.refresh_token } : {}),
+          ...(data.expires_in ? { expiresAt: now + Number(data.expires_in) * 1000 } : {}),
+          ...(data.refresh_token_expires_in
+            ? { refreshTokenExpiresAt: now + Number(data.refresh_token_expires_in) * 1000 }
+            : {}),
+        };
+        // Automatic rotation — persist quietly (no audit row; upsertCredential's
+        // audit trail is reserved for operator-initiated set/rotate actions).
+        cred.secretEnc = encryptSecret(JSON.stringify(rotated));
+        await this.credRepo.save(cred);
+        return rotated.accessToken;
+      } catch {
+        return null;
+      }
+    })();
+    this.refreshInFlight.set(tenantId, run);
+    void run.finally(() => this.refreshInFlight.delete(tenantId));
+    return run;
+  }
+
+  /** Parse a stored Shopify credential (JSON blob or raw token string). */
+  private parseShopifyCredential(secret: string): {
+    accessToken: string;
+    refreshToken?: string;
+    expiresAt?: number;
+  } | null {
+    try {
+      const parsed = JSON.parse(secret) as {
+        accessToken?: string;
+        refreshToken?: string;
+        expiresAt?: number;
+      };
+      if (parsed && typeof parsed === 'object') {
+        return parsed.accessToken
+          ? {
+              accessToken: parsed.accessToken,
+              refreshToken: parsed.refreshToken,
+              expiresAt: parsed.expiresAt,
+            }
+          : null;
+      }
+    } catch {
+      /* not JSON — treat the whole value as the raw token */
+    }
+    return secret ? { accessToken: secret } : null;
   }
 
   /**
@@ -207,16 +425,28 @@ export class TenantService {
     try {
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), 5000);
+      // GraphQL — new Dev Dashboard apps are REST-restricted on many endpoints.
       const res = await fetch(
-        `https://${conn.shopDomain}/admin/api/${SHOPIFY_API_VERSION}/shop.json`,
-        { headers: { 'X-Shopify-Access-Token': conn.token }, signal: controller.signal },
+        `https://${conn.shopDomain}/admin/api/${SHOPIFY_API_VERSION}/graphql.json`,
+        {
+          method: 'POST',
+          headers: { 'X-Shopify-Access-Token': conn.token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query: '{ shop { name } }' }),
+          signal: controller.signal,
+        },
       );
       clearTimeout(timer);
       if (!res.ok) {
         return this.recordShopifyTest(false, `Admin API returned ${res.status}`);
       }
-      const data = (await res.json()) as { shop?: { name?: string } };
-      const name = data.shop?.name;
+      const data = (await res.json()) as {
+        data?: { shop?: { name?: string } };
+        errors?: Array<{ message?: string }>;
+      };
+      if (data.errors?.length) {
+        return this.recordShopifyTest(false, `Admin API error: ${data.errors[0]?.message ?? ''}`);
+      }
+      const name = data.data?.shop?.name;
       return this.recordShopifyTest(true, name ? `Connected: ${name}` : 'Connected');
     } catch (e) {
       return this.recordShopifyTest(false, `Connection failed: ${(e as Error).message}`);
@@ -228,14 +458,4 @@ export class TenantService {
     return { ok, detail };
   }
 
-  /** Read the access token from a stored credential (JSON blob or raw token). */
-  private extractAccessToken(secret: string): string | null {
-    try {
-      const parsed = JSON.parse(secret) as { accessToken?: string };
-      if (parsed && typeof parsed === 'object') return parsed.accessToken ?? null;
-    } catch {
-      /* not JSON — treat the whole value as the raw token */
-    }
-    return secret || null;
-  }
 }

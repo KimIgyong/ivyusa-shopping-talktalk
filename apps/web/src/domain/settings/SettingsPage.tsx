@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { PageHeader } from '@/components/PageHeader';
 import { Card } from '@/components/Card';
@@ -10,16 +10,15 @@ import { Modal } from '@/components/Modal';
 import { FormRow, Input } from '@/components/Field';
 import {
   useCredentials,
-  useRegisterShopifyWebhooks,
-  useSaveShopify,
+  useIntegration,
   useShopifySettings,
-  useSyncShopify,
-  useTestShopify,
   useUpdateCredential,
 } from './settings.hooks';
 import type { CredentialStatus } from './settings.service';
-import { ECOMMERCE_PROVIDERS } from './integration-providers';
-import { IntegrationCard } from './IntegrationCard';
+import { ECOMMERCE_PROVIDERS, type EcommerceProvider } from './integration-providers';
+import { ProviderTile } from './ProviderTile';
+import { ShopifyConfigModal } from './ShopifyConfigModal';
+import { IntegrationConfigModal } from './IntegrationConfigModal';
 import { toast } from '@/store/toast-store';
 
 function fmtDate(value?: string | null): string {
@@ -35,6 +34,9 @@ const WIDGET_URL = (
 ).replace(/\/+$/, '');
 
 type InstallMethod = 'appEmbed' | 'scriptTag' | 'manual';
+
+/** Which store's config modal is open: Shopify, an e-commerce provider, or none. */
+type ConfiguringStore = 'shopify' | EcommerceProvider | null;
 
 async function copyToClipboard(text: string): Promise<boolean> {
   try {
@@ -85,16 +87,20 @@ function CodeBlock({ code, label }: { code: string; label: string }) {
   );
 }
 
+type InstallPlatform = 'shopify' | 'cafe24' | 'woocommerce' | 'odoo';
+
 function InstallGuideCard() {
   const { t } = useTranslation('settings');
   const { data } = useShopifySettings();
+  const [platform, setPlatform] = useState<InstallPlatform>('shopify');
   const [method, setMethod] = useState<InstallMethod>('appEmbed');
 
-  const shop = (data?.shopDomain || '').trim() || 'your-store.myshopify.com';
+  const shop = (data?.shopDomain || '').trim() || 'your-store.example.com';
   const hasShop = Boolean((data?.shopDomain || '').trim());
 
-  const manualSnippet =
-    `<!-- IVY USA TalkTalk widget -->\n` +
+  // Generic HTML embed — works on any platform that lets you edit theme HTML.
+  const htmlSnippet =
+    `<!-- ShopTalk widget -->\n` +
     `<script>\n` +
     `  window.IVY_WIDGET_CONFIG = {\n` +
     `    shop: ${JSON.stringify(shop)},\n` +
@@ -112,202 +118,167 @@ function InstallGuideCard() {
     `  }\n` +
     `}`;
 
-  const tabs: { key: InstallMethod; label: string }[] = [
+  const wooSnippet =
+    `// ShopTalk widget — add to your (child) theme's functions.php\n` +
+    `add_action( 'wp_footer', function () { ?>\n` +
+    `  <script>\n` +
+    `    window.IVY_WIDGET_CONFIG = {\n` +
+    `      shop: ${JSON.stringify(shop)},\n` +
+    `      widgetUrl: ${JSON.stringify(WIDGET_URL)}\n` +
+    `    };\n` +
+    `  </script>\n` +
+    `  <script src="${WIDGET_URL}/embed.js" defer></script>\n` +
+    `<?php } );`;
+
+  const platforms: { key: InstallPlatform; label: string }[] = [
+    { key: 'shopify', label: t('shopify.title') },
+    { key: 'cafe24', label: t('integrations.cafe24.title') },
+    { key: 'woocommerce', label: t('integrations.woocommerce.title') },
+    { key: 'odoo', label: t('integrations.odoo.title') },
+  ];
+
+  const methods: { key: InstallMethod; label: string }[] = [
     { key: 'appEmbed', label: t('shopify.install.tabAppEmbed') },
     { key: 'scriptTag', label: t('shopify.install.tabScriptTag') },
     { key: 'manual', label: t('shopify.install.tabManual') },
   ];
 
+  /** Non-Shopify platforms: description + 3 steps + one snippet. */
+  const simpleGuide = (key: Exclude<InstallPlatform, 'shopify'>, code: string) => (
+    <div className="space-y-3 text-sm text-gray-600">
+      <p>{t(`install.${key}.desc`)}</p>
+      <ol className="list-decimal space-y-1 pl-5">
+        <li>{t(`install.${key}.step1`)}</li>
+        <li>{t(`install.${key}.step2`)}</li>
+        <li>{t(`install.${key}.step3`)}</li>
+      </ol>
+      <CodeBlock code={code} label={t('shopify.install.copy')} />
+    </div>
+  );
+
   return (
     <Card title={t('shopify.install.title')}>
-      <p className="mb-1 text-sm text-gray-500">{t('shopify.install.subtitle')}</p>
+      <p className="mb-1 text-sm text-gray-500">{t('install.subtitle')}</p>
       <p className="mb-4 text-xs text-gray-400">
         {hasShop
           ? t('shopify.install.shopHint', { shop })
           : t('shopify.install.shopMissing')}
       </p>
 
-      <div className="mb-4 flex gap-1 border-b border-gray-100">
-        {tabs.map((tab) => (
+      {/* Platform tabs */}
+      <div className="mb-4 flex flex-wrap gap-1 border-b border-gray-100">
+        {platforms.map((p) => (
           <button
-            key={tab.key}
+            key={p.key}
             type="button"
-            onClick={() => setMethod(tab.key)}
+            onClick={() => setPlatform(p.key)}
             className={
               'border-b-2 px-3 py-2 text-sm font-medium transition-colors ' +
-              (method === tab.key
+              (platform === p.key
                 ? 'border-primary-500 text-primary-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700')
             }
           >
-            {tab.label}
+            {p.label}
           </button>
         ))}
       </div>
 
-      {method === 'appEmbed' && (
-        <div className="space-y-2 text-sm text-gray-600">
-          <p>{t('shopify.install.appEmbed.desc')}</p>
-          <ol className="list-decimal space-y-1 pl-5">
-            <li>{t('shopify.install.appEmbed.step1')}</li>
-            <li>{t('shopify.install.appEmbed.step2')}</li>
-            <li>{t('shopify.install.appEmbed.step3')}</li>
-          </ol>
-        </div>
+      {platform === 'shopify' && (
+        <>
+          <div className="mb-4 flex gap-1">
+            {methods.map((tab) => (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => setMethod(tab.key)}
+                className={
+                  'rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ' +
+                  (method === tab.key
+                    ? 'bg-primary-500/10 text-primary-600'
+                    : 'text-gray-500 hover:text-gray-700')
+                }
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {method === 'appEmbed' && (
+            <div className="space-y-2 text-sm text-gray-600">
+              <p>{t('shopify.install.appEmbed.desc')}</p>
+              <ol className="list-decimal space-y-1 pl-5">
+                <li>{t('shopify.install.appEmbed.step1')}</li>
+                <li>{t('shopify.install.appEmbed.step2')}</li>
+                <li>{t('shopify.install.appEmbed.step3')}</li>
+              </ol>
+            </div>
+          )}
+
+          {method === 'scriptTag' && (
+            <div className="space-y-3 text-sm text-gray-600">
+              <p>{t('shopify.install.scriptTag.desc')}</p>
+              <CodeBlock code={scriptTagSnippet} label={t('shopify.install.copy')} />
+              <p className="text-xs text-gray-400">{t('shopify.install.scriptTag.note')}</p>
+            </div>
+          )}
+
+          {method === 'manual' && (
+            <div className="space-y-3 text-sm text-gray-600">
+              <p>{t('shopify.install.manual.desc')}</p>
+              <ol className="list-decimal space-y-1 pl-5">
+                <li>{t('shopify.install.manual.step1')}</li>
+                <li>{t('shopify.install.manual.step2')}</li>
+                <li>{t('shopify.install.manual.step3')}</li>
+              </ol>
+              <CodeBlock code={htmlSnippet} label={t('shopify.install.copy')} />
+            </div>
+          )}
+        </>
       )}
 
-      {method === 'scriptTag' && (
-        <div className="space-y-3 text-sm text-gray-600">
-          <p>{t('shopify.install.scriptTag.desc')}</p>
-          <CodeBlock code={scriptTagSnippet} label={t('shopify.install.copy')} />
-          <p className="text-xs text-gray-400">{t('shopify.install.scriptTag.note')}</p>
-        </div>
-      )}
-
-      {method === 'manual' && (
-        <div className="space-y-3 text-sm text-gray-600">
-          <p>{t('shopify.install.manual.desc')}</p>
-          <ol className="list-decimal space-y-1 pl-5">
-            <li>{t('shopify.install.manual.step1')}</li>
-            <li>{t('shopify.install.manual.step2')}</li>
-            <li>{t('shopify.install.manual.step3')}</li>
-          </ol>
-          <CodeBlock code={manualSnippet} label={t('shopify.install.copy')} />
-        </div>
-      )}
+      {platform === 'cafe24' && simpleGuide('cafe24', htmlSnippet)}
+      {platform === 'woocommerce' && simpleGuide('woocommerce', wooSnippet)}
+      {platform === 'odoo' && simpleGuide('odoo', htmlSnippet)}
     </Card>
   );
 }
 
-function ShopifyCard() {
+/** Shopify summary tile — data comes from the dedicated Shopify settings view. */
+function ShopifyTile({ onConfigure }: { onConfigure: () => void }) {
   const { t } = useTranslation('settings');
-  const { t: tc } = useTranslation('common');
-  const { data, isLoading } = useShopifySettings();
-  const save = useSaveShopify();
-  const test = useTestShopify();
-  const sync = useSyncShopify();
-  const registerWebhooks = useRegisterShopifyWebhooks();
-
-  const [shopDomain, setShopDomain] = useState('');
-  const [accessToken, setAccessToken] = useState('');
-  const [apiKey, setApiKey] = useState('');
-  const [apiSecret, setApiSecret] = useState('');
-
-  // Seed the shop-domain input from the server once loaded.
-  useEffect(() => {
-    if (data) setShopDomain(data.shopDomain ?? '');
-  }, [data]);
-
-  const onSave = async () => {
-    await save.mutateAsync({
-      shop_domain: shopDomain.trim(),
-      access_token: accessToken.trim() || undefined,
-      api_key: apiKey.trim() || undefined,
-      api_secret: apiSecret.trim() || undefined,
-    });
-    // Clear secret inputs after save (never re-shown).
-    setAccessToken('');
-    setApiKey('');
-    setApiSecret('');
-  };
-
-  const integ = data?.integration;
-  const statusTone =
-    integ?.status === 'connected' ? 'success' : integ?.status === 'error' ? 'error' : undefined;
-
+  const { data } = useShopifySettings();
   return (
-    <Card title={t('shopify.title')}>
-      <p className="mb-4 text-sm text-gray-500">{t('shopify.subtitle')}</p>
+    <ProviderTile
+      title={t('shopify.title')}
+      subtitle={data?.shopDomain || t('shopify.shopDomainPlaceholder')}
+      status={data?.integration?.status}
+      configured={data?.credential.configured}
+      lastTested={data?.integration?.lastSyncAt}
+      onConfigure={onConfigure}
+    />
+  );
+}
 
-      <FormRow label={t('shopify.shopDomain')}>
-        <Input
-          value={shopDomain}
-          onChange={(e) => setShopDomain(e.target.value)}
-          placeholder={t('shopify.shopDomainPlaceholder')}
-          autoComplete="off"
-        />
-      </FormRow>
-
-      <FormRow label={t('shopify.accessToken')}>
-        <Input
-          type="password"
-          value={accessToken}
-          onChange={(e) => setAccessToken(e.target.value)}
-          placeholder={
-            data?.credential.configured
-              ? t('shopify.accessTokenConfigured')
-              : t('shopify.accessTokenPlaceholder')
-          }
-          autoComplete="off"
-        />
-      </FormRow>
-
-      <FormRow label={t('shopify.apiKeyOptional')}>
-        <Input
-          type="password"
-          value={apiKey}
-          onChange={(e) => setApiKey(e.target.value)}
-          placeholder={t('shopify.apiKeyPlaceholder')}
-          autoComplete="off"
-        />
-      </FormRow>
-
-      <FormRow label={t('shopify.apiSecretOptional')}>
-        <Input
-          type="password"
-          value={apiSecret}
-          onChange={(e) => setApiSecret(e.target.value)}
-          placeholder={t('shopify.apiSecretPlaceholder')}
-          autoComplete="off"
-        />
-      </FormRow>
-
-      <div className="mt-4 flex items-center gap-3">
-        <Button onClick={onSave} disabled={isLoading || save.isPending || !shopDomain.trim()}>
-          {save.isPending ? tc('saving') : tc('save')}
-        </Button>
-        <Button
-          variant="secondary"
-          onClick={() => test.mutate()}
-          disabled={test.isPending || !data?.credential.configured}
-        >
-          {test.isPending ? t('shopify.testing') : t('shopify.testConnection')}
-        </Button>
-        <Button
-          variant="secondary"
-          onClick={() => sync.mutate()}
-          disabled={sync.isPending || !data?.credential.configured}
-        >
-          {sync.isPending ? t('shopify.syncing') : t('shopify.syncNow')}
-        </Button>
-        <Button
-          variant="secondary"
-          onClick={() => registerWebhooks.mutate()}
-          disabled={registerWebhooks.isPending || !data?.credential.configured}
-        >
-          {registerWebhooks.isPending ? t('shopify.registering') : t('shopify.registerWebhooks')}
-        </Button>
-      </div>
-
-      <div className="mt-4 space-y-1 border-t border-gray-100 pt-4 text-sm">
-        <div className="flex items-center gap-2">
-          <span className="text-gray-500">{t('shopify.connectionStatus')}:</span>
-          {statusTone ? (
-            <Badge tone={statusTone}>{t(`shopify.state.${integ?.status}`)}</Badge>
-          ) : (
-            <Badge>{t('shopify.state.unknown')}</Badge>
-          )}
-        </div>
-        <div className="text-gray-500">
-          {t('shopify.credential')}:{' '}
-          {data?.credential.configured ? t('connected') : t('notSet')}
-        </div>
-        {integ?.detail && <div className="text-gray-500">{integ.detail}</div>}
-        <div className="text-xs text-gray-400">
-          {t('shopify.lastTested')}: {fmtDate(integ?.lastSyncAt)}
-        </div>
-      </div>
-    </Card>
+/** Generic e-commerce provider summary tile (cafe24/woocommerce/odoo/haravan). */
+function EcommerceTile({
+  provider,
+  onConfigure,
+}: {
+  provider: EcommerceProvider;
+  onConfigure: () => void;
+}) {
+  const { t } = useTranslation('settings');
+  const { data } = useIntegration(provider);
+  return (
+    <ProviderTile
+      title={t(`integrations.${provider}.title`)}
+      subtitle={t(`integrations.${provider}.subtitle`)}
+      status={data?.integration?.status}
+      configured={data?.credential.configured}
+      lastTested={data?.integration?.lastSyncAt}
+      onConfigure={onConfigure}
+    />
   );
 }
 
@@ -317,6 +288,7 @@ export function SettingsPage() {
   const { data, isLoading, error } = useCredentials();
   const updateCredential = useUpdateCredential();
 
+  const [configuring, setConfiguring] = useState<ConfiguringStore>(null);
   const [editing, setEditing] = useState<CredentialStatus | null>(null);
   const [apiKey, setApiKey] = useState('');
   const [secret, setSecret] = useState('');
@@ -365,13 +337,18 @@ export function SettingsPage() {
     <div className="space-y-6">
       <PageHeader title={t('title')} subtitle={t('subtitle')} />
 
-      <ShopifyCard />
+      {/* Store integrations as compact cards; each opens its config modal. */}
+      <section>
+        <h2 className="mb-3 text-sm font-semibold text-gray-700">{t('storesTitle')}</h2>
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          <ShopifyTile onConfigure={() => setConfiguring('shopify')} />
+          {ECOMMERCE_PROVIDERS.map((p) => (
+            <EcommerceTile key={p} provider={p} onConfigure={() => setConfiguring(p)} />
+          ))}
+        </div>
+      </section>
 
       <InstallGuideCard />
-
-      {ECOMMERCE_PROVIDERS.map((p) => (
-        <IntegrationCard key={p} provider={p} />
-      ))}
 
       <Card title={t('integrationCredentials')}>
         <Table<CredentialStatus>
@@ -383,6 +360,16 @@ export function SettingsPage() {
           rowKey={(c) => c.provider}
         />
       </Card>
+
+      <ShopifyConfigModal open={configuring === 'shopify'} onClose={() => setConfiguring(null)} />
+      {ECOMMERCE_PROVIDERS.map((p) => (
+        <IntegrationConfigModal
+          key={p}
+          provider={p}
+          open={configuring === p}
+          onClose={() => setConfiguring(null)}
+        />
+      ))}
 
       <Modal
         open={editing !== null}

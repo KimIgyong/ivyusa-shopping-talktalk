@@ -4,12 +4,23 @@ import { bigintTransformer } from '../../../global/util/transformers';
 /** tenants — a tenant = a Shopify shop (FR-051). */
 @Entity('tenants')
 @Unique('uk_tenant_shop', ['shopDomain'])
+@Unique('uk_tenant_slug', ['slug'])
+@Unique('uk_tenant_uuid', ['uuid'])
 export class Tenant {
   @PrimaryGeneratedColumn({ type: 'bigint' })
   id: number;
 
+  // External identifier: admin API/console reference tenants by UUID so the
+  // sequential PK never leaks outside the service (PK stays bigint for FKs).
+  @Column({ type: 'char', length: 36 })
+  uuid: string;
+
   @Column({ name: 'shop_domain', type: 'varchar', length: 255 })
   shopDomain: string;
+
+  // URL-safe unique handle; the tenant login page lives at /<slug>.
+  @Column({ type: 'varchar', length: 64 })
+  slug: string;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
   name: string | null;
@@ -19,6 +30,18 @@ export class Tenant {
 
   @Column({ type: 'varchar', length: 32, nullable: true })
   plan: string | null;
+
+  /** Tenant's public privacy-policy page shown in the widget consent banner. */
+  @Column({ name: 'privacy_policy_url', type: 'varchar', length: 512, nullable: true })
+  privacyPolicyUrl: string | null;
+
+  /**
+   * Tenant override of the consent-notice version; null falls back to the
+   * platform-wide CONSENT_NOTICE_VERSION. Bumping it forces re-consent
+   * (PLN-Privacy-Control-Gap Stage 2).
+   */
+  @Column({ name: 'consent_notice_version', type: 'varchar', length: 32, nullable: true })
+  consentNoticeVersion: string | null;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

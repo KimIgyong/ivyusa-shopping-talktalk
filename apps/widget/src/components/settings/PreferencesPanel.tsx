@@ -1,10 +1,23 @@
-import { useState } from 'react';
-import { ArrowLeft, Download, ShieldOff, Trash2 } from 'lucide-react';
+import { useRef, useState } from 'react';
+import {
+  AlertCircle,
+  ArrowLeft,
+  CheckCircle2,
+  Download,
+  Loader2,
+  ShieldCheck,
+  ShieldOff,
+  Trash2,
+  X,
+} from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useWidgetStore } from '../../store/widgetStore';
 import { usePrefs, useSetPref } from '../../hooks/useNotifications';
 import { useOptOutStatus, useSetOptOut } from '../../hooks/usePrivacy';
 import { deleteMyData, exportMyData } from '../../services/privacyService';
+import { setConsent } from '../../services/sessionService';
+import { setStoredConsent } from '../../lib/consent';
+import { formatDate } from '../../lib/format';
 import { Spinner } from '../ui/Spinner';
 import type {
   NotifChannel,
@@ -45,6 +58,134 @@ function Toggle({
         }`}
       />
     </button>
+  );
+}
+
+/**
+ * Consent withdrawal / re-consent (wireframe 5.2). State comes from the
+ * session/ensure snapshot in the store; changes are only reflected after the
+ * server acknowledged them (fail-closed, same as the chat banner).
+ */
+function ConsentSection() {
+  const { t } = useTranslation();
+  const sessionToken = useWidgetStore((s) => s.sessionToken);
+  const consent = useWidgetStore((s) => s.consent);
+  const updateConsentState = useWidgetStore((s) => s.updateConsentState);
+
+  const [busy, setBusy] = useState(false);
+  const [confirmWithdraw, setConfirmWithdraw] = useState(false);
+  const [notice, setNotice] = useState<{ tone: 'success' | 'error'; text: string } | null>(null);
+  const successTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  async function changeConsent(granted: boolean) {
+    if (!sessionToken || busy) return;
+    // Withdrawing stops chat/AI — require an explicit second click.
+    if (!granted && !confirmWithdraw) {
+      setConfirmWithdraw(true);
+      return;
+    }
+    setBusy(true);
+    setNotice(null);
+    if (successTimer.current) clearTimeout(successTimer.current);
+    try {
+      const res = await setConsent(sessionToken, granted);
+      setStoredConsent(granted);
+      updateConsentState(
+        granted ? 'granted' : 'declined',
+        new Date().toISOString(),
+        res.consentVersion,
+      );
+      // Success notice auto-closes; error notices stay until dismissed.
+      setNotice({ tone: 'success', text: t('privacy.consent.saved') });
+      successTimer.current = setTimeout(() => setNotice(null), 4000);
+    } catch {
+      setNotice({ tone: 'error', text: t('privacy.consent.error') });
+    } finally {
+      setBusy(false);
+      setConfirmWithdraw(false);
+    }
+  }
+
+  return (
+    <div className="mb-4 border-b border-gray-200 pb-4">
+      <div className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-gray-900">
+        <ShieldCheck className="h-4 w-4 shrink-0 text-primary-500" />
+        {t('privacy.consent.title')}
+      </div>
+
+      {!consent ? (
+        <p className="text-[11px] text-gray-400">{t('privacy.consent.unavailable')}</p>
+      ) : (
+        <>
+          <p className="text-xs font-medium text-gray-700">
+            {t(`privacy.consent.state.${consent.state}`)}
+          </p>
+          <p className="mt-0.5 text-[11px] text-gray-400">
+            {consent.consentAt &&
+              t('privacy.consent.grantedAt', { date: formatDate(consent.consentAt) })}
+            {consent.consentAt && consent.noticeVersion && ' · '}
+            {consent.noticeVersion &&
+              t('privacy.consent.version', { version: consent.noticeVersion })}
+          </p>
+
+          {consent.state === 'pending' ? (
+            <p className="mt-2 text-[11px] text-gray-500">
+              {t('privacy.consent.pendingHint')}
+            </p>
+          ) : consent.state === 'granted' ? (
+            <>
+              <button
+                onClick={() => void changeConsent(false)}
+                disabled={!sessionToken || busy}
+                className="mt-2 flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-error hover:bg-gray-50 disabled:opacity-50"
+              >
+                {busy && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                {confirmWithdraw
+                  ? t('privacy.consent.withdrawConfirm')
+                  : t('privacy.consent.withdraw')}
+              </button>
+              <p className="mt-1 text-[11px] text-gray-400">
+                {t('privacy.consent.withdrawHint')}
+              </p>
+            </>
+          ) : (
+            <button
+              onClick={() => void changeConsent(true)}
+              disabled={!sessionToken || busy}
+              className="mt-2 flex items-center gap-1.5 rounded-lg bg-primary-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-primary-600 disabled:opacity-50"
+            >
+              {busy && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+              {t('privacy.consent.reconsent')}
+            </button>
+          )}
+        </>
+      )}
+
+      {notice && (
+        <div
+          role={notice.tone === 'error' ? 'alert' : 'status'}
+          className={`mt-2 flex items-center gap-1.5 text-[11px] ${
+            notice.tone === 'error' ? 'text-error' : 'text-success'
+          }`}
+        >
+          {notice.tone === 'error' ? (
+            <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+          ) : (
+            <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+          )}
+          <span className="flex-1">{notice.text}</span>
+          {notice.tone === 'error' && (
+            <button
+              onClick={() => setNotice(null)}
+              aria-label={t('common.close')}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -126,6 +267,10 @@ export function PreferencesPanel({ onBack }: { onBack: () => void }) {
         <ArrowLeft className="h-3.5 w-3.5" />
         {t('orders.back')}
       </button>
+
+      {/* Consent withdrawal / re-consent — above notification prefs (5.2). */}
+      <ConsentSection />
+
       <div className="mb-3 text-sm font-semibold text-gray-900">
         {t('prefs.title')}
       </div>

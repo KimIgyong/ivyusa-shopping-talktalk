@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { UserCog } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { PageHeader } from '@/components/PageHeader';
 import { Button } from '@/components/Button';
@@ -18,10 +20,12 @@ const PLANS = ['starter', 'growth', 'enterprise'];
 export function TenantsPage() {
   const { t } = useTranslation('tenants');
   const { t: tc } = useTranslation('common');
+  const navigate = useNavigate();
   const [page, setPage] = useState(1);
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
+  const [shopDomain, setShopDomain] = useState('');
   const [plan, setPlan] = useState(PLANS[0]);
 
   const { data, isLoading, error } = useTenants({ page, pageSize: PAGE_SIZE });
@@ -31,12 +35,13 @@ export function TenantsPage() {
   const resetForm = () => {
     setName('');
     setSlug('');
+    setShopDomain('');
     setPlan(PLANS[0]);
   };
 
   const handleCreate = () => {
     createTenant.mutate(
-      { name, slug, plan },
+      { name, shopDomain, plan, slug: slug.trim() || undefined },
       {
         onSuccess: () => {
           setOpen(false);
@@ -48,7 +53,13 @@ export function TenantsPage() {
 
   const columns: Column<Tenant>[] = [
     { key: 'name', header: t('name'), render: (r) => r.name },
-    { key: 'slug', header: t('slug'), render: (r) => r.slug ?? '—' },
+    {
+      key: 'slug',
+      header: t('slug'),
+      // The tenant login page path — what shop staff type after the host name.
+      render: (r) => (r.slug ? <code className="text-xs text-gray-600">/{r.slug}</code> : '—'),
+    },
+    { key: 'shopDomain', header: t('shopDomain'), render: (r) => r.shopDomain ?? '—' },
     {
       key: 'plan',
       header: t('plan'),
@@ -60,26 +71,37 @@ export function TenantsPage() {
     {
       key: 'action',
       header: '',
-      render: (r) =>
-        r.status === 'active' ? (
-          <Button
-            variant="danger"
-            size="sm"
-            disabled={setStatus.isPending}
-            onClick={() => setStatus.mutate({ id: r.id, status: 'suspended' })}
-          >
-            {t('suspend')}
-          </Button>
-        ) : (
+      render: (r) => (
+        <div className="flex justify-end gap-2">
           <Button
             variant="secondary"
             size="sm"
-            disabled={setStatus.isPending}
-            onClick={() => setStatus.mutate({ id: r.id, status: 'active' })}
+            onClick={() => navigate(`/admin/tenants/${r.uuid}/users`)}
           >
-            {t('activate')}
+            <UserCog className="mr-1 h-3.5 w-3.5" />
+            {t('manageUsers')}
           </Button>
-        ),
+          {r.status === 'active' ? (
+            <Button
+              variant="danger"
+              size="sm"
+              disabled={setStatus.isPending}
+              onClick={() => setStatus.mutate({ id: r.uuid, status: 'suspended' })}
+            >
+              {t('suspend')}
+            </Button>
+          ) : (
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={setStatus.isPending}
+              onClick={() => setStatus.mutate({ id: r.uuid, status: 'active' })}
+            >
+              {t('activate')}
+            </Button>
+          )}
+        </div>
+      ),
     },
   ];
 
@@ -116,7 +138,7 @@ export function TenantsPage() {
             </Button>
             <Button
               onClick={handleCreate}
-              disabled={createTenant.isPending || !name || !slug}
+              disabled={createTenant.isPending || !name || !shopDomain}
             >
               {tc('create')}
             </Button>
@@ -127,7 +149,19 @@ export function TenantsPage() {
           <Input value={name} onChange={(e) => setName(e.target.value)} />
         </FormRow>
         <FormRow label={t('slug')}>
-          <Input value={slug} onChange={(e) => setSlug(e.target.value)} />
+          <Input
+            value={slug}
+            onChange={(e) => setSlug(e.target.value.toLowerCase())}
+            placeholder={t('slugPlaceholder')}
+          />
+          <p className="mt-1 text-xs text-gray-400">{t('slugHint')}</p>
+        </FormRow>
+        <FormRow label={t('shopDomain')}>
+          <Input
+            value={shopDomain}
+            onChange={(e) => setShopDomain(e.target.value)}
+            placeholder="example.myshopify.com"
+          />
         </FormRow>
         <FormRow label={t('plan')}>
           <Select value={plan} onChange={(e) => setPlan(e.target.value)}>

@@ -5,6 +5,7 @@ import { ConfigService } from '@nestjs/config';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { IS_PUBLIC_KEY } from '../decorator/public.decorator';
 import { ALLOW_PENDING_PASSWORD_KEY } from '../decorator/allow-pending-password.decorator';
+import { ALLOW_PENDING_MFA_KEY } from '../decorator/allow-pending-mfa.decorator';
 import { BusinessException } from '../exception/business.exception';
 
 const SECRET = 'access-secret';
@@ -48,11 +49,43 @@ describe('JwtAuthGuard — must-change-password lockout (SEC-M2)', () => {
     expect(req.user).toMatchObject({ adminId: 1 });
   });
 
+  it('blocks an mfaPending token on a normal route with 403 E1010 (PLN-MFA M3)', async () => {
+    const token = jwt.sign({ ...principal, mfaPending: true });
+    const { guard, ctx } = ctxWith(token, {});
+    await guard.canActivate(ctx).then(
+      () => {
+        throw new Error('should have been blocked');
+      },
+      (e: BusinessException) => {
+        expect(e.getStatus()).toBe(HttpStatus.FORBIDDEN);
+      },
+    );
+  });
+
+  it('allows an mfaPending token on an @AllowPendingMfa enrollment route', async () => {
+    const token = jwt.sign({ ...principal, mfaPending: true });
+    const { guard, ctx, req } = ctxWith(token, { [ALLOW_PENDING_MFA_KEY]: true });
+    await expect(guard.canActivate(ctx)).resolves.toBe(true);
+    expect(req.user).toMatchObject({ actorType: 'admin' });
+  });
+
   it('passes a normal token through untouched', async () => {
     const token = jwt.sign(principal);
     const { guard, ctx, req } = ctxWith(token, {});
     await expect(guard.canActivate(ctx)).resolves.toBe(true);
     expect(req.user).toMatchObject({ actorType: 'admin' });
+  });
+
+  it('rejects an mfa-purpose step-up token on a normal API route with 401 (PLN-MFA M1)', async () => {
+    const token = jwt.sign({ sub: '1', actorType: 'admin', purpose: 'mfa' }, { expiresIn: 300 });
+    const { guard, ctx } = ctxWith(token, {});
+    await guard.canActivate(ctx).then(
+      () => fail('should have thrown'),
+      (e: BusinessException) => {
+        expect(e.getStatus()).toBe(HttpStatus.UNAUTHORIZED);
+        expect(e.errorCode).toBe('E1001');
+      },
+    );
   });
 
   it('still honors @Public()', async () => {

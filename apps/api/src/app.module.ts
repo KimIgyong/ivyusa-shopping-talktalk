@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ThrottlerModule } from '@nestjs/throttler';
@@ -7,8 +7,10 @@ import { buildTypeOrmOptions } from './global/config/typeorm.config';
 import { GlobalModule } from './global/global.module';
 import { InfrastructureModule } from './infrastructure/infrastructure.module';
 import { AiModule } from './infrastructure/external/ai/ai.module';
+import { VectorModule } from './infrastructure/external/vector/vector.module';
 import { JwtAuthGuard } from './global/guard/jwt-auth.guard';
 import { XffThrottlerGuard } from './global/guard/xff-throttler.guard';
+import { RequestContextMiddleware } from './global/middleware/request-context.middleware';
 
 // Domain modules
 import { AuthModule } from './domain/auth/auth.module';
@@ -19,6 +21,7 @@ import { TenantModule } from './domain/tenant/tenant.module';
 import { UserModule } from './domain/user/user.module';
 import { OrderModule } from './domain/order/order.module';
 import { NotificationModule } from './domain/notification/notification.module';
+import { PushModule } from './domain/push/push.module';
 import { ReviewModule } from './domain/review/review.module';
 import { AffiliateModule } from './domain/affiliate/affiliate.module';
 import { RestockModule } from './domain/restock/restock.module';
@@ -54,6 +57,7 @@ import { ShopifyProxyModule } from './domain/shopify-proxy/shopify-proxy.module'
     GlobalModule,
     InfrastructureModule,
     AiModule,
+    VectorModule,
     // domains
     AuthModule,
     SessionModule,
@@ -66,6 +70,7 @@ import { ShopifyProxyModule } from './domain/shopify-proxy/shopify-proxy.module'
     ShopifyOAuthModule,
     ShopifyProxyModule,
     NotificationModule,
+    PushModule,
     ReviewModule,
     AffiliateModule,
     RestockModule,
@@ -88,4 +93,9 @@ import { ShopifyProxyModule } from './domain/shopify-proxy/shopify-proxy.module'
     { provide: APP_GUARD, useClass: JwtAuthGuard },
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer): void {
+    // Request-context (requestId + client IP) for audit traceability — all routes.
+    consumer.apply(RequestContextMiddleware).forRoutes('*');
+  }
+}

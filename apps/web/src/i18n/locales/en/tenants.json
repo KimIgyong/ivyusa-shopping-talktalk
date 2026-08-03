@@ -2,12 +2,20 @@
   "title": "Tenants",
   "newTenant": "New tenant",
   "name": "Name",
-  "slug": "Slug",
+  "slug": "Login path",
+  "slugPlaceholder": "e.g. ivyusa",
+  "slugHint": "Lowercase letters, numbers and dashes. Leave empty to derive it from the name. Staff sign in at /<path>.",
+  "shopDomain": "Shop domain",
   "plan": "Plan",
   "status": "Status",
   "users": "Users",
   "created": "Created",
   "suspend": "Suspend",
   "activate": "Activate",
-  "empty": "No tenants."
+  "empty": "No tenants.",
+  "manageUsers": "Users",
+  "usersOf": "Users — {{name}}",
+  "usersOfSubtitle": "Invite staff, issue temporary passwords and control access for this tenant.",
+  "usersEmpty": "No users in this tenant yet.",
+  "loginUrl": "Login page"
 }

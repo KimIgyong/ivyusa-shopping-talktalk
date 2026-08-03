@@ -1,5 +1,12 @@
+import { createHash } from 'crypto';
 import { Injectable } from '@nestjs/common';
-import { AiAdapter, AiCompletionRequest, AiCompletionResult } from '../ai-adapter.interface';
+import {
+  AiAdapter,
+  AiCompletionRequest,
+  AiCompletionResult,
+  AiEmbeddingRequest,
+  AiEmbeddingResult,
+} from '../ai-adapter.interface';
 
 /**
  * Deterministic offline adapter so the whole system runs without API keys.
@@ -55,5 +62,38 @@ export class StubAdapter implements AiAdapter {
 
   private estimate(s: string): number {
     return Math.ceil(s.length / 4);
+  }
+
+  /**
+   * Deterministic pseudo-embeddings so the vector pipeline runs without a
+   * Voyage key. Token-hash bag-of-words: shared tokens between query and
+   * document land in the same buckets, so exact-term overlap still retrieves —
+   * NOT semantically meaningful. Dimension matches voyage-4 (1024); vectors
+   * are L2-normalized so dot == cosine, like real Voyage output.
+   */
+  async embed(req: AiEmbeddingRequest): Promise<AiEmbeddingResult> {
+    const dim = 1024;
+    const vectors = req.texts.map((text) => {
+      const v = new Array<number>(dim).fill(0);
+      const tokens = text
+        .toLowerCase()
+        .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+        .split(/\s+/)
+        .filter((t) => t.length > 1);
+      for (const token of tokens) {
+        const h = createHash('sha1').update(token).digest();
+        v[h.readUInt32BE(0) % dim] += 1;
+        v[h.readUInt32BE(4) % dim] += 1;
+      }
+      const norm = Math.sqrt(v.reduce((s, x) => s + x * x, 0)) || 1;
+      return v.map((x) => x / norm);
+    });
+    return {
+      vectors,
+      tokensIn: req.texts.reduce((s, t) => s + this.estimate(t), 0),
+      provider: this.provider,
+      model: 'stub-embed-1',
+      dimension: dim,
+    };
   }
 }

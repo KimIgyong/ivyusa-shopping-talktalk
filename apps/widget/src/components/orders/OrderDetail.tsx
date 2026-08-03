@@ -47,7 +47,11 @@ export function OrderDetailView({
       </p>
     );
 
-  const { order, items } = data;
+  // The API returns the order fields FLAT with `items` inline
+  // (OrderMapper.toDetail) — there is no nested `order` object
+  // (FIX-Widget-OrderDetail-Shape-20260803).
+  const order = data;
+  const items = data.items ?? [];
   const delivered = /deliver|complete/i.test(order.statusUi);
 
   return (

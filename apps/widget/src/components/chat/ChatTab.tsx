@@ -22,6 +22,11 @@ export function ChatTab() {
   const authenticated = useWidgetStore((s) => s.authenticated);
   const setAuthenticated = useWidgetStore((s) => s.setAuthenticated);
   const setActiveTab = useWidgetStore((s) => s.setActiveTab);
+  const setSessionToken = useWidgetStore((s) => s.setSessionToken);
+  const setSettingsOpen = useWidgetStore((s) => s.setSettingsOpen);
+  const consent = useWidgetStore((s) => s.consent);
+  const updateConsentState = useWidgetStore((s) => s.updateConsentState);
+  const language = useWidgetStore((s) => s.language);
   const pendingChatMessage = useWidgetStore((s) => s.pendingChatMessage);
   const consumeChatMessage = useWidgetStore((s) => s.consumeChatMessage);
   // CCPA notice choice — shared store state; also gates GA4 (Consent Mode).
@@ -153,10 +158,14 @@ export function ChatTab() {
         aria-label={t('a11y.messageThread')}
         className="scroll-thin flex-1 space-y-3 overflow-y-auto p-3"
       >
-        {consentChoice === null && (
+        {showConsentBanner && (
           <ConsentBanner
+            version={consent?.noticeVersion}
+            privacyPolicyUrl={consent?.privacyPolicyUrl}
+            noticeOutdated={consent?.noticeOutdated}
             onAccept={() => recordConsent(true)}
             onDecline={() => recordConsent(false)}
+            onOpenPrivacySettings={() => setSettingsOpen(true)}
           />
         )}
 

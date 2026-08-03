@@ -112,7 +112,7 @@ External: Shopify (OAuth/App Proxy/webhooks) · Fulfillment webhook · Klaviyo �
 ### 4.1 Monorepo Structure
 ```
 ivy-talktalk/
-├── apps/{api,web,widget}        # NestJS API · React admin · React widget
+├── apps/{api,web,widget,mobile,pwa} # NestJS API · React admin · React widget · Expo RN app · installable PWA
 ├── packages/{types,common}      # shared enums/response envelope/RBAC matrix/utils
 ├── docker/                      # compose {dev,staging,production} + Dockerfiles + nginx + deploy-*.sh
 ├── env/{backend,frontend}/      # .env.development (committed; staging/prod gitignored)
@@ -128,8 +128,8 @@ ivy-talktalk/
 ### 4.2 Backend Structure (NestJS)
 `apps/api/src/{domain,global,infrastructure,database}`. Each domain module:
 `controller/ · service · entity/ · dto/ (request snake_case, response camelCase) ·
-mapper · {domain}.module.ts` (repository/ optional). **26 domain modules** (incl. privacy,
-health, shopify-oauth, shopify-proxy).
+mapper · {domain}.module.ts` (repository/ optional). **27 domain modules** (incl. privacy,
+health, shopify-oauth, shopify-proxy, push).
 `global/`: config, filter, interceptor (transform, tenant-context, logging), decorator
 (`@Auth/@AdminOnly/@RequireRank/@RequireCapability/@Public/@CurrentUser`), guard (jwt-auth,
 authorization), constant (error codes), util (crypto, transformers, maskPii).
@@ -165,7 +165,7 @@ crossed with job labels (Consult/Accounting/Operations). ACL owner-visibility la
 ## 6. Database Design (데이터베이스 설계)
 
 ### 6.1 Database Information
-Name `db_ivy_talktalk` · MySQL 8 · utf8mb4 / InnoDB · 38 tables / 40 TypeORM entities.
+Name `db_ivy_talktalk` · MySQL 8 · utf8mb4 / InnoDB · 39 tables / 41 TypeORM entities.
 Source of truth for orders = Shopify/Odoo (cached locally). DDL: `sql/01-schema.sql`
 (= `design/chat-widget-schema.sql`); dev/staging build via TypeORM `synchronize`.
 
@@ -181,7 +181,7 @@ Core chat/commerce (19) + tenancy/RBAC (tenants, admin_users, users, job_labels,
 user_job_labels, roles_permissions, integration_credentials, audit_logs) + bootstrap
 (invitations) + knowledge (knowledge_sources, kb_documents, kb_board_posts, kb_files) +
 agent/moderation (agent_profiles, assignments, content_filter_rules, moderation_logs,
-agent_daily_stats) + AI (ai_engines, tenant_ai_settings).
+agent_daily_stats) + AI (ai_engines, tenant_ai_settings) + mobile push (device_tokens).
 
 ### 6.4 Entity Authoring Rules
 Nullable columns specify explicit `type` in `@Column`; `BIGINT` via `bigintTransformer`,
@@ -204,19 +204,27 @@ Base `/api/v1` · Bearer JWT · Swagger `/api/v1/docs`. Widget endpoints are `@P
 ### 7.2 Response Structure
 Global transform interceptor wraps all responses:
 `BaseSingleResponse<T>` `{success,data,error?,timestamp}` and `BaseListResponse<T>`
-`{success,data,pagination,timestamp}` (`@ivy/types`).
+`{success,data,pagination,timestamp}` (`@ivy/types`). Pagination meta
+(`buildPagination` in `@ivy/common`): `{page, size, totalCount, totalPages, hasNext,
+hasPrev}` — field name `size`, not the kit's `limit` (approved deviation, §13);
+`size` caps at 100. Never hand-build the envelope in controllers.
 
 ### 7.3 Error Code System
 `Exxxx`: E1xxx auth · E2xxx user · E3xxx chat · E4xxx agent/AI (E4010/E4011 quota) ·
 E5xxx domain · E9xxx system (`global/constant/error-code.constant.ts`). Backend
-messages English; client localizes by code.
+messages English; client localizes by code. New modules allocate the next free
+block sequentially past the current maximum (dev-kit 01 §2.4). ⚠️ 4xx responses are
+not server-logged by default — rejecting guards should `logger.warn` the reason.
 
 ### 7.4 DTO Case Rules
 Request DTO **snake_case** (class-validator); Response **camelCase** (via Mapper); query params snake_case.
 
 ### 7.5 Key API Endpoints
 `auth/*`, `session/*`, `chat/*` (RAG; guest + logged-in), `orders/*` (+guest-lookup, tracking,
-fulfillment webhook), `notifications/*`, `reviews/affiliate/restock/subscriptions/inquiries`,
+fulfillment webhook), `notifications/*`, `push/register`+`/unregister`+`/vapid-key`
+(device tokens, E5006; delivery behind the PushProvider abstraction — Expo Push for
+the RN app, Web Push/VAPID for the PWA, routed per device row's provider),
+`reviews/affiliate/restock/subscriptions/inquiries`,
 `agent/*` (console), `analytics/*`, `knowledge/*`, `ai-engines`/`ai-settings`,
 `moderation/rules`, `tenants/*` (+`tenants/me/shopify`), `users`/`job-labels` (+temp-password),
 `campaigns`, `cjm/events`, `audit`, `integrations/status`, `health`.
@@ -292,14 +300,37 @@ RabbitMQ `5682`→5672 (host ports remapped off occupied defaults; see `env/back
 ### 11.1 Naming Rules
 Files kebab-case (`*.service.ts`, `*.entity.ts`); classes PascalCase; React components
 PascalCase; hooks `useX`; enums const-object + derived type. DTO request snake_case /
-response camelCase. Full rules: `reference/amoeba_code_convention_v2.md` + `CLAUDE.md`.
+response camelCase. Full rules: **`reference/btbz-dev-kit/01-code-convention.md` (v3.0,
+2026-07-30 — supersedes `reference/amoeba_code_convention_v2.md` where they conflict)**
++ `CLAUDE.md`. Project-specific deviations from the kit are listed in §13.
 
 ### 11.2 Git Branch Strategy
 `production` (prod) · `main` (staging/dev integration, default) · `feature/*` · `hotfix/*`.
-PR + 1 approval on protected branches; squash-merge to `main`.
+PR + 1 approval on protected branches; squash-merge to `main`; `main`→`production` merge
+commit. Solo-dev admin-merge path, schema-PR `## Migration` section (MUST), and shared
+working-directory hygiene: `reference/btbz-dev-kit/03-git-collaboration-standard.md`.
 
 ### 11.3 Commit Messages
 `{type}: {description}` — type ∈ feat|fix|docs|style|refactor|test|chore|hotfix.
+
+### 11.4 Requirements & Documentation Workflow (dev-kit `claude/spec-guide.md`)
+`[요구사항]`-type requests follow **REQ → PLN → 구현 → TCR → RPT**, strictly in order:
+
+| Step | Document | Required content |
+|---|---|---|
+| 1. Analysis | `docs/analysis/REQ-{Topic}-{YYYYMMDD}.md` | AS-IS, TO-BE, gap, user flow, constraints |
+| 2. Plan | `docs/plan/PLN-{Topic}-{YYYYMMDD}.md` | staged plan, side impacts; ⚠️ **ASCII wireframe MUST for any UI change** (backend-only: state "no UI impact"); ⚠️ **user approval required before implementation** |
+| 3. Implement | — | post-approval only |
+| 4. Test cases | `docs/test/TCR-{Topic}-{YYYYMMDD}.md` | unit / integration / edge cases |
+| 5. Report | `docs/implementation/RPT-{Topic}-{YYYYMMDD}.md` | changes, file list, test results, **deploy state (PR#, SHA, per-env deploy/migration)** |
+
+Bug fixes: root cause → fix proposal → minimal change → `docs/bug-fix/FIX-{Topic}-{YYYYMMDD}.md`
+(+ prevention pattern). Conversation logs / daily reports: `docs/log/YYYY-MM-DD/` (gitignored).
+New docs use kit prefixes (REQ/PLN/TCR/RPT/FIX) with this repo's full `YYYYMMDD` dates
+(kit uses `YYMMDD` — accepted variance); legacy `AN-`/`PLAN-`/`TC-` files are historical,
+never renamed. New modules must also update SPEC.md (tables, API, error codes) — §5 of the
+spec-guide: operational values (ports/domains) update CLAUDE.md/SPEC/CONFIG immediately;
+past REQ/PLN/RPT are point-in-time records and stay as written.
 
 ---
 
@@ -316,7 +347,9 @@ verified live; host nginx + Let's Encrypt terminate TLS → docker nginx `:8080`
 `SEED_ON_BOOT=false` on server so in-app password changes persist. **Production**:
 `docker/production/*` templated (restart:always, no host DB/queue ports, `synchronize=false`
 + init-sql migrations) — **not yet deployed** (needs host + `.env.production`). Runbook:
-`docs/guide/STAGING-DEPLOY.md`.
+`docs/guide/STAGING-DEPLOY.md`. Deploy verification (boot log / container age / new-route
+401-vs-404, don't trust exit codes) and the manual-migration runbook:
+`reference/btbz-dev-kit/04-deployment-operations.md` + skill `pre-deploy-check`.
 
 ---
 
@@ -330,6 +363,10 @@ Intentional, design-driven choices — NOT compliance failures:
 | i18n languages | ko/en/vi | en/es/ko | NFR-003 (NA storefront) |
 | FK mapping | `@ManyToOne` relations | scalar FK ids (+indexes) | avoid circular deps, perf |
 | Credential encryption | 3-field `_encrypted/_iv/_tag` | single varbinary `[IV][tag][ct]` | cryptographically equivalent |
+| Pagination field | `limit` (dev-kit v3.0) | `size` (`{page, size, totalCount, totalPages, hasNext, hasPrev}`) | shipped API contract across api/web/widget; rename = breaking change |
+| Auth decorators | `@Auth`/`@Roles`/`OwnEntityGuard` (dev-kit) | `@Auth`/`@AdminOnly`/`@RequireRank`/`@RequireCapability` + `TenantContext` interceptor | RBAC is rank×label×capability here, richer than role hierarchy |
+| Tenancy axis | `ent_id` (법인) | `tenant_id` | tenant = shop, not corporate entity |
+| Soft delete | `{prefix}_deleted_at` | hard-delete + anonymization | GDPR redact/DSAR + retention purge model (§14) |
 
 ## 14. Known Gaps & Remediation Roadmap (갭·개선 로드맵)
 Full evidence: `docs/report/RPT-Standards-Compliance-Audit-20260619.md`.
@@ -365,8 +402,13 @@ Full evidence: `docs/report/RPT-Standards-Compliance-Audit-20260619.md`.
 
 **Remaining — Low (optional)** — e2e HTTP tests (supertest + test DB) and broader service-level coverage; complete OAuth approval on the Shopify Partner side; production host + `.env.production` (deploy pending). **Soft-delete columns: intentionally not added** — the disposal model is hard-delete + anonymization (GDPR `redact`/DSAR `delete` + retention purge), which satisfies POL-003/privacy without an unused `deleted_at` column. Audit roadmap (High/Medium) is otherwise fully closed.
 
+**Resolved (2026-07-31, from btbz-dev-kit adoption)**
+- ~~Staging `DB_SYNCHRONIZE=true` (dev-kit MUST violation)~~ → **flipped to `false` 2026-07-31** while deploying PR #39–#44: migration runbook (kit 04 §3) exercised on staging — `migration_tenant_privacy_notice.sql` + `migration_audit_context.sql` applied to `ivy_mysql_staging` before code deploy, then verified (boot OK, new route 401, zero `Unknown column` errors). Schema changes now require manual SQL pre-apply on staging, same as production.
+
 ## 15. Reference (참조)
-`reference/amoeba_*` (standards) · `README.md` (overview) · `CONFIG.md` (env/config) ·
+`reference/btbz-dev-kit/` (**standards source of truth**, 2026-07-30) ·
+`reference/amoeba_*` (v2 standards — historical, superseded where they conflict) ·
+`README.md` (overview) · `CONFIG.md` (env/config) ·
 `design/` (artifacts) · `docs/PROJECT-ARTIFACT-INDEX.md` (artifact index) ·
 `docs/implementation/RPT-ChatWidget-Implementation-20260618.md` · `docs/guide/STAGING-DEPLOY.md` ·
 `CLAUDE.md` · `.claude/skills/ivy-talktalk-dev/SKILL.md`.

@@ -11,6 +11,7 @@
   "campaigns": "Campaigns",
   "users": "Users & Labels",
   "settings": "Tenant Settings",
+  "privacyNotice": "Privacy Notice",
   "overview": "Overview",
   "tenants": "Tenants",
   "aiEngines": "AI Engines",
@@ -18,5 +19,6 @@
   "toggleSidebar": "Toggle sidebar",
   "changePassword": "Change password",
   "logout": "Log out",
-  "language": "Language"
+  "language": "Language",
+  "myPage": "My Page"
 }
