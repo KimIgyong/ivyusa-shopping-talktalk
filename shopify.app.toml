@@ -9,7 +9,16 @@ application_url = "https://shoptalk.amoeba.site"
 embedded = false
 
 [access_scopes]
-scopes = "read_orders,read_customers,read_fulfillments"
+# What a store actually grants is the INTERSECTION of this list and the scopes in
+# the OAuth authorize URL (built from SHOPIFY_SCOPES, shopify-oauth.service.ts), so
+# both have to be kept in sync — measured on a live store, in both directions:
+#   this file declared read_fulfillments but the install URL asked for only two
+#   scopes  -> two granted; asking for four while the app declared two
+#             -> still two granted, silently, with no error.
+# write_customer_data_erasure is required by customerRequestDataErasure (DSAR
+# propagation). It is not sufficient on its own: the store also demands the staff
+# user hold the "Erase customer data" permission, which no scope can grant.
+scopes = "read_orders,read_customers,read_fulfillments,write_customer_data_erasure"
 use_legacy_install_flow = true
 
 [auth]
