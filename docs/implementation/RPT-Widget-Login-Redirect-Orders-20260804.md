@@ -41,12 +41,31 @@
 
 | 항목 | 값 |
 |---|---|
-| PR | #(작성 예정) `feature/widget-login-redirect` → main, squash |
-| 커밋 | (머지 후 기입) |
-| 마이그레이션 | `sql/migration_widget_login_mode.sql` — 스테이징: **배포 전 선적용 필요** / 프로덕션: 미정 |
-| 스테이징 배포 | 대기 (마이그레이션 → deploy-staging.sh → 검증) |
-| 운영 env | `SHOPIFY_SYNC_INTERVAL_MIN=30` 활성화 예정(체크리스트 C1) |
+| PR | #74 `feature/widget-login-redirect` → main, squash (+ CI 수정 커밋: web에 `@ivy/types` 의존성 선언) |
+| 커밋 | `bfcc0f2` (main) |
+| 마이그레이션 | `sql/migration_widget_login_mode.sql` — 스테이징 **적용 완료** (2026-08-04, 배포 전 선적용) / 프로덕션: 미정 |
+| 스테이징 배포 | **완료** (2026-08-04, deploy-staging.sh) |
+| 운영 env | `SHOPIFY_SYNC_INTERVAL_MIN=30` — REQ 작성 시점 추정과 달리 **이미 설정되어 있었음**(C1 기해결), 변경 없음 |
 
-## 5. 스테이징 검증 기록
+## 5. 스테이징 검증 기록 (2026-08-04)
 
-(배포 후 추기)
+| 체크 | 결과 |
+|---|---|
+| `tenants.widget_login_mode` 컬럼 (`SHOW COLUMNS`) | OK — varchar(16) NOT NULL DEFAULT 'redirect' |
+| API 부팅 로그 `successfully started` | OK |
+| `GET /api/v1/health` | `{"status":"ok"}` |
+| 배포된 embed.js에 `redirectToLogin` 포함 | OK (2건) |
+| `GET /api/v1/tenants/widget-settings` 무인증 | **401** = 라우트 배포됨 |
+| `POST /session/ensure` (ambshop-dev) | `widgetLoginMode: 'redirect'` 반환 확인 |
+
+잔여(사용자 실측 필요 — TCR S1~S7): 실브라우저에서 스토어 로그인을 거치는 시나리오
+(S1 리다이렉트 왕복 + 자동 재오픈, S2 주문 백필 표시, S3 팝업 모드 전환, S6 Shop 로그인)는
+실제 고객 계정 로그인이 필요하므로 수동 검증. 결과는 본 문서에 추기.
+
+## 6. 예방 패턴 (CI 실패에서)
+
+Vite/web 워크스페이스에서 `@ivy/types` 런타임/타입 임포트를 새로 도입할 때:
+1. 해당 워크스페이스 `package.json`에 `"@ivy/types": "*"` 의존성 선언 필수 —
+   없으면 turbo `^build` 의존 그래프에 빠져 CI에서 dist 미빌드로 TS2307.
+2. Vite(rollup) 앱에서는 **타입 전용 임포트만** 사용 — CJS 배럴(`__exportStar`)의
+   런타임 named export는 rollup이 정적으로 해석하지 못한다(값은 리터럴 사용).
