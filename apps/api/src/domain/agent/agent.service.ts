@@ -88,6 +88,36 @@ export class AgentService {
   }
 
   /**
+   * Work-log entry for an agent action (PLN D4). Only reads were audited
+   * before, so the trail could show that someone opened a conversation but not
+   * that they accepted it, replied, or ended it — the actual work.
+   *
+   * Never carries message bodies: the transcript already holds those, and the
+   * audit log has a different retention life. Failures are swallowed for the
+   * same reason as the view audit — a logging outage must not block agent work.
+   */
+  async auditAgentAction(
+    agentUserId: number,
+    tenantId: number,
+    action: string,
+    target: string,
+    metadata?: Record<string, unknown>,
+  ): Promise<void> {
+    try {
+      await this.audit.write({
+        tenantId,
+        actorType: 'user',
+        actorId: agentUserId,
+        action,
+        target,
+        metadata: metadata ?? null,
+      });
+    } catch (err) {
+      this.logger.warn(`agent action audit failed (${action}): ${String(err)}`);
+    }
+  }
+
+  /**
    * Load a conversation and assert it belongs to the caller's tenant (SEC-H1).
    * Every agent-console action keys off a raw conversation id, so this is the
    * single choke point that prevents cross-tenant read/takeover/end.

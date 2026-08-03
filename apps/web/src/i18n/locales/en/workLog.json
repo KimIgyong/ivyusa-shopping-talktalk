@@ -1,0 +1,24 @@
+{
+  "title": "Agent work log",
+  "subtitle": "What each agent did, and when",
+  "time": "Time",
+  "agent": "Agent",
+  "action": "Action",
+  "target": "Target",
+  "result": "Result",
+  "success": "Success",
+  "allActions": "All actions",
+  "from": "From",
+  "to": "To",
+  "empty": "No activity in this range.",
+  "notice": "This log is for operational traceability, not performance review.",
+  "actions": {
+    "agent.conversation_accepted": "Accepted conversation",
+    "agent.message_sent": "Sent reply",
+    "agent.customer_linked": "Linked customer",
+    "agent.customer_created": "Created customer",
+    "agent.conversation_ended": "Ended conversation",
+    "agent.conversation_viewed": "Viewed conversation (PII)",
+    "agent.transcript_viewed": "Viewed transcript (PII)"
+  }
+}

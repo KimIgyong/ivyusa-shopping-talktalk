@@ -10,6 +10,7 @@ import enMypage from './locales/en/mypage.json';
 import enDashboard from './locales/en/dashboard.json';
 import enLivechat from './locales/en/livechat.json';
 import enHistory from './locales/en/history.json';
+import enWorkLog from './locales/en/workLog.json';
 import enAiSetting from './locales/en/aiSetting.json';
 import enKnowledge from './locales/en/knowledge.json';
 import enCustomers from './locales/en/customers.json';
@@ -31,6 +32,7 @@ import esMypage from './locales/es/mypage.json';
 import esDashboard from './locales/es/dashboard.json';
 import esLivechat from './locales/es/livechat.json';
 import esHistory from './locales/es/history.json';
+import esWorkLog from './locales/es/workLog.json';
 import esAiSetting from './locales/es/aiSetting.json';
 import esKnowledge from './locales/es/knowledge.json';
 import esCustomers from './locales/es/customers.json';
@@ -52,6 +54,7 @@ import koMypage from './locales/ko/mypage.json';
 import koDashboard from './locales/ko/dashboard.json';
 import koLivechat from './locales/ko/livechat.json';
 import koHistory from './locales/ko/history.json';
+import koWorkLog from './locales/ko/workLog.json';
 import koAiSetting from './locales/ko/aiSetting.json';
 import koKnowledge from './locales/ko/knowledge.json';
 import koCustomers from './locales/ko/customers.json';
@@ -78,6 +81,7 @@ export const ns = [
   'dashboard',
   'livechat',
   'history',
+  'workLog',
   'aiSetting',
   'knowledge',
   'customers',
@@ -101,6 +105,7 @@ const resources = {
     dashboard: enDashboard,
     livechat: enLivechat,
     history: enHistory,
+    workLog: enWorkLog,
     aiSetting: enAiSetting,
     knowledge: enKnowledge,
     customers: enCustomers,
@@ -122,6 +127,7 @@ const resources = {
     dashboard: esDashboard,
     livechat: esLivechat,
     history: esHistory,
+    workLog: esWorkLog,
     aiSetting: esAiSetting,
     knowledge: esKnowledge,
     customers: esCustomers,
@@ -143,6 +149,7 @@ const resources = {
     dashboard: koDashboard,
     livechat: koLivechat,
     history: koHistory,
+    workLog: koWorkLog,
     aiSetting: koAiSetting,
     knowledge: koKnowledge,
     customers: koCustomers,

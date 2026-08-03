@@ -149,3 +149,27 @@ describe('AuditService.list — filters + actor names', () => {
     expect(items[0].actorName).toBeNull();
   });
 });
+
+describe('AuditService.list — agent work log lens', () => {
+  it("the work log's default view is the audit trail filtered to agent.*", async () => {
+    // The work log is not a second store: one trail, two lenses. A console
+    // action added server-side therefore appears without further wiring.
+    const clauses: string[] = [];
+    const qb = {
+      andWhere: jest.fn((c: string) => {
+        clauses.push(c);
+        return qb;
+      }),
+      orderBy: jest.fn(() => qb),
+      skip: jest.fn(() => qb),
+      take: jest.fn(() => qb),
+      getManyAndCount: jest.fn(async () => [[], 0] as [AuditLog[], number]),
+    };
+    const repo = { createQueryBuilder: jest.fn(() => qb) } as unknown as Repository<AuditLog>;
+    const svc = new AuditService(repo, userRepo(), adminRepo());
+    await svc.list({ tenantId: 1, actionPrefix: 'agent.', page: 1, size: 20 });
+    expect(clauses).toContain('a.action LIKE :prefix');
+    // Tenant scoping is never dropped by the prefix filter.
+    expect(clauses).toContain('a.tenant_id = :tenantId');
+  });
+});

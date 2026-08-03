@@ -108,7 +108,15 @@ export class AgentConsoleController {
     @Param('id', ParseIntPipe) id: number,
     @Body() body: LinkCustomerRequest,
   ) {
-    return this.agentService.linkCustomer(id, tenantOf(user), body.customer_id);
+    const result = await this.agentService.linkCustomer(id, tenantOf(user), body.customer_id);
+    await this.agentService.auditAgentAction(
+      actorIdOf(user),
+      tenantOf(user),
+      'agent.customer_linked',
+      `conversation:${id}`,
+      { customerId: body.customer_id },
+    );
+    return result;
   }
 
   @Post('conversations/:id/create-customer')
@@ -119,11 +127,19 @@ export class AgentConsoleController {
     @Param('id', ParseIntPipe) id: number,
     @Body() body: CreateCustomerRequest,
   ) {
-    return this.agentService.createAndLinkCustomer(id, tenantOf(user), {
+    const result = await this.agentService.createAndLinkCustomer(id, tenantOf(user), {
       name: body.name,
       email: body.email,
       phone: body.phone,
     });
+    // No name/email/phone in the metadata — the audit log is not a PII store.
+    await this.agentService.auditAgentAction(
+      actorIdOf(user),
+      tenantOf(user),
+      'agent.customer_created',
+      `conversation:${id}`,
+    );
+    return result;
   }
 
   @Post('conversations/:id/accept')
@@ -131,6 +147,12 @@ export class AgentConsoleController {
   @ApiOperation({ summary: 'Accept / take over a conversation' })
   async accept(@CurrentUser() user: Principal, @Param('id', ParseIntPipe) id: number) {
     const conversation = await this.agentService.accept(id, actorIdOf(user), tenantOf(user));
+    await this.agentService.auditAgentAction(
+      actorIdOf(user),
+      tenantOf(user),
+      'agent.conversation_accepted',
+      `conversation:${id}`,
+    );
     return { id: conversation.id, status: conversation.status, agentId: conversation.agentId };
   }
 
@@ -144,6 +166,15 @@ export class AgentConsoleController {
   ) {
     const agentId = actorIdOf(user);
     const saved = await this.agentService.sendMessage(id, agentId, tenantOf(user), body.body);
+    // Length only — the message itself lives in the transcript, which has a
+    // different retention life than the audit trail.
+    await this.agentService.auditAgentAction(
+      agentId,
+      tenantOf(user),
+      'agent.message_sent',
+      `conversation:${id}`,
+      { messageId: saved.id, length: saved.body.length },
+    );
     const senderName = await this.agentService.agentName(agentId);
     return toMessageResponse(saved, senderName);
   }
@@ -153,6 +184,13 @@ export class AgentConsoleController {
   @ApiOperation({ summary: 'End the conversation and release the assignment' })
   async end(@CurrentUser() user: Principal, @Param('id', ParseIntPipe) id: number) {
     const conversation = await this.agentService.end(id, tenantOf(user));
+    await this.agentService.auditAgentAction(
+      actorIdOf(user),
+      tenantOf(user),
+      'agent.conversation_ended',
+      `conversation:${id}`,
+      { escalated: conversation.escalated === 1 },
+    );
     return { id: conversation.id, status: conversation.status, endedAt: conversation.endedAt };
   }
 

@@ -92,7 +92,10 @@ export class AnalyticsController {
     await this.auditService.write({
       tenantId,
       ...actorOf(user),
-      action: 'analytics.conversation_viewed',
+      // Named for what the actor did, not the route it came through: the agent
+      // work log filters on the `agent.` prefix, and a transcript read from the
+      // history screen is the same act as one from the agent console.
+      action: 'agent.transcript_viewed',
       target: `conversation:${id}`,
       metadata: { messageCount: (detail.messages as unknown[]).length },
     });
