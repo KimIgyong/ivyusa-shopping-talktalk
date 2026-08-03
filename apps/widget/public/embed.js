@@ -101,6 +101,12 @@
     } else if (d.type === 'ivy:ready') {
       widgetReady = true;
       maybeSendIdentity();
+    } else if (d.type === 'ivy:signin') {
+      // The sandboxed iframe cannot navigate the store page itself; do it here.
+      // Storefront-relative so it works with classic and new customer accounts;
+      // after sign-in the customer lands back on the store and the app-proxy
+      // identity handshake authenticates the widget automatically.
+      window.location.assign('/account/login');
     }
   });
 
