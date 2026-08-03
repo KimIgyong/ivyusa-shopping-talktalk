@@ -21,6 +21,8 @@ export interface OrderListItem {
 }
 
 export interface OrderItemView {
+  /** Serialized as a string (bigint PK) — the widget echoes it back for reviews. */
+  id: string;
   title: string;
   optionText: string | null;
   qty: number;
@@ -68,6 +70,7 @@ export class OrderMapper {
 
   static toItemView(item: OrderItem): OrderItemView {
     return {
+      id: String(item.id),
       title: item.title,
       optionText: item.optionText,
       qty: item.qty,

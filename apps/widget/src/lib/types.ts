@@ -88,8 +88,9 @@ export interface OrderItem {
   price: number;
 }
 
-export interface OrderDetail {
-  order: OrderSummary & Record<string, unknown>;
+/** Flat detail payload from GET /orders/:id (OrderMapper.toDetail) — order
+ *  fields at the top level with `items` inline; there is no nested `order`. */
+export interface OrderDetail extends OrderSummary {
   items: OrderItem[];
 }
 
