@@ -131,3 +131,59 @@ describe('ModerationService.moderate', () => {
     expect(result.text).toContain('▇▇▇');
   });
 });
+
+describe('ModerationService — warn action (regression: warn behaved as block)', () => {
+  it('a warn rule delivers the text instead of emptying it', async () => {
+    // A rule the operator configured as a warning used to return BLOCKED with
+    // an emptied body. On the customer path that silently suppressed any answer
+    // matching the pattern and escalated to a human; on the knowledge conflict
+    // path it discarded 11 of 121 judgements.
+    const ruleRepo = { find: jest.fn(async () => [makeRule({ action: 'warn' })]) };
+    const { service, logRepo } = build(ruleRepo);
+    const result = await service.moderate(baseInput);
+
+    expect(result.decision).toBe(MODERATION_DECISION.DELIVERED);
+    expect(result.text).toBe(baseInput.text);
+    // Still recorded, with the rule that fired — a warning must stay visible.
+    expect(logRepo.save).toHaveBeenCalledWith(
+      expect.objectContaining({ action: 'warn', ruleId: 1, decision: MODERATION_DECISION.DELIVERED }),
+    );
+  });
+
+  it('a later block rule is still evaluated after a warn fires', async () => {
+    // The old code returned on the first match, so a warning sitting earlier in
+    // the list hid every block rule behind it.
+    const ruleRepo = {
+      find: jest.fn(async () => [
+        makeRule({ id: 1, action: 'warn', patternOrPrompt: 'contains' }),
+        makeRule({ id: 2, action: 'block', patternOrPrompt: 'badword' }),
+      ]),
+    };
+    const { service } = build(ruleRepo);
+    const result = await service.moderate(baseInput);
+    expect(result.decision).toBe(MODERATION_DECISION.BLOCKED);
+    expect(result.text).toBe('');
+  });
+
+  it('a warn combined with a mask still edits and delivers', async () => {
+    const ruleRepo = {
+      find: jest.fn(async () => [
+        makeRule({ id: 1, action: 'warn', patternOrPrompt: 'contains' }),
+        makeRule({ id: 2, action: 'mask', patternOrPrompt: 'badword' }),
+      ]),
+    };
+    const { service } = build(ruleRepo);
+    const result = await service.moderate(baseInput);
+    expect(result.decision).toBe(MODERATION_DECISION.EDITED);
+    expect(result.text).toContain('▇▇▇');
+    expect(result.text).not.toContain('badword');
+  });
+
+  it('a block rule is unaffected by this change', async () => {
+    const ruleRepo = { find: jest.fn(async () => [makeRule({ action: 'block' })]) };
+    const { service } = build(ruleRepo);
+    const result = await service.moderate(baseInput);
+    expect(result.decision).toBe(MODERATION_DECISION.BLOCKED);
+    expect(result.text).toBe('');
+  });
+});
