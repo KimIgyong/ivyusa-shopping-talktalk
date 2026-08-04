@@ -63,7 +63,12 @@ export class AgentConsoleController {
   @ApiOperation({ summary: 'List waiting/agent conversations (session queue)' })
   async sessions(@CurrentUser() user: Principal, @Query() query: ListSessionsQuery) {
     const { page, size } = normalizePage(query.page, query.size);
-    const { items, total } = await this.agentService.listSessions(tenantOf(user), page, size);
+    const { items, total } = await this.agentService.listSessions(
+      tenantOf(user),
+      page,
+      size,
+      query.q,
+    );
     return new Paginated(
       items.map(({ conversation, lastMessage, customerName }) =>
         toSessionResponse(conversation, lastMessage, customerName),

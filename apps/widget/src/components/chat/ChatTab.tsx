@@ -10,6 +10,7 @@ import { getStoredConsent, setStoredConsent } from '../../lib/consent';
 import { useAnalytics } from '../../lib/analytics';
 import type { ScenarioButton, ScenarioPostAction } from '../../lib/types';
 import { MessageBubble } from './MessageBubble';
+import { TypingBubble } from './TypingBubble';
 import { ConsentBanner } from './ConsentBanner';
 import { ScenarioMenu, type SubAction } from './ScenarioMenu';
 import { AuthGate } from './AuthGate';
@@ -34,7 +35,14 @@ export function ChatTab() {
   const consumeChatMessage = useWidgetStore((s) => s.consumeChatMessage);
   const analytics = useAnalytics();
 
-  const { messages, send, scenario, sending, escalate } = useChat(sessionToken);
+  const { messages, send, scenario, sending, status, escalate } = useChat(sessionToken);
+  // Reply-pending indicator (PLN-260804): while a send is in flight (the AI
+  // completion runs synchronously server-side), and — once handed off to a
+  // human — for as long as the newest message is the customer's own (the agent
+  // reply arrives via the poll, so "typing…" holds until it lands).
+  const agentMode = status === 'waiting' || status === 'agent';
+  const showTyping =
+    sending || (agentMode && messages[messages.length - 1]?.senderType === 'user');
   const scenarioButtons = useScenario(sessionToken);
 
   // CCPA notice choice — local cache only used until session/ensure reports the
@@ -52,7 +60,7 @@ export function ChatTab() {
       top: scrollRef.current.scrollHeight,
       behavior: 'smooth',
     });
-  }, [messages, inline, showEscalate]);
+  }, [messages, inline, showEscalate, showTyping]);
 
   /**
    * Fail-closed consent recording (ConsentBanner awaits this): the banner only
@@ -286,6 +294,8 @@ export function ChatTab() {
             )}
           </div>
         ))}
+
+        {showTyping && <TypingBubble agent={agentMode} />}
 
         {showFallbackActions && (
           <div className="flex flex-wrap gap-1.5 pl-1">

@@ -42,5 +42,14 @@
   "alarmReasonModeration": "The AI reply was blocked by moderation.",
   "alarmReasonUserRequest": "The customer asked to talk to an agent.",
   "alarmOpen": "Open chat",
-  "alarmDismiss": "Dismiss"
+  "alarmDismiss": "Dismiss",
+  "listSearchPlaceholder": "Search by customer name or email",
+  "listSearchScope": "Matches recent customers only",
+  "createdShort": "Opened",
+  "lastReplyShort": "Last reply",
+  "noReplyYet": "no reply yet",
+  "justNow": "just now",
+  "minutesAgo": "{{n}}m ago",
+  "hoursAgo": "{{n}}h ago",
+  "daysAgo": "{{n}}d ago"
 }

@@ -4,6 +4,9 @@ import { bigintTransformer } from '../../../global/util/transformers';
 /** conversations — chat threads within a session (FR-010). */
 // Agent-console queue scans filter by status (PERF-6).
 @Index('idx_conv_status', ['status'])
+// Queue driving query: tenant + status IN(...) ORDER BY id DESC — this composite
+// makes it an index range scan with no filesort (PLN-260804).
+@Index('idx_conv_tenant_status_id', ['tenantId', 'status', 'id'])
 @Entity('conversations')
 export class Conversation {
   @PrimaryGeneratedColumn({ type: 'bigint' })

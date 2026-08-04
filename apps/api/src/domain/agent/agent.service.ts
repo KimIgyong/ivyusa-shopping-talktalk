@@ -1,6 +1,6 @@
 import { HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { FindOptionsWhere, In, Repository } from 'typeorm';
 import {
   AI_FUNCTION,
   CONSENT_STATE,
@@ -137,6 +137,7 @@ export class AgentService {
     tenantId: number,
     page: number,
     size: number,
+    q?: string,
   ): Promise<{
     items: Array<{
       conversation: Conversation;
@@ -145,8 +146,25 @@ export class AgentService {
     }>;
     total: number;
   }> {
+    const where: FindOptionsWhere<Conversation> = {
+      tenantId,
+      status: In([CONVERSATION_STATUS.WAITING, CONVERSATION_STATUS.AGENT]),
+    };
+    if (q?.trim()) {
+      // Customer name/email filter. Names are encrypted at rest, so matching
+      // reuses the bounded decrypt-then-filter search (PRV-M6 — recent-customer
+      // window; same reach and limits as the agent "link customer" search).
+      const matches = await this.customerService.searchByEmailOrName(tenantId, q, 20);
+      if (matches.length === 0) return { items: [], total: 0 };
+      const sessions = await this.sessionRepo.find({
+        where: { tenantId, customerId: In(matches.map((c) => c.id)) },
+        select: { id: true },
+      });
+      if (sessions.length === 0) return { items: [], total: 0 };
+      where.sessionId = In(sessions.map((s) => s.id));
+    }
     const [conversations, total] = await this.convRepo.findAndCount({
-      where: { tenantId, status: In([CONVERSATION_STATUS.WAITING, CONVERSATION_STATUS.AGENT]) },
+      where,
       order: { id: 'DESC' },
       skip: (page - 1) * size,
       take: size,
@@ -167,6 +185,8 @@ export class AgentService {
     if (ids.length === 0) return new Map();
     const rows = await this.msgRepo
       .createQueryBuilder('m')
+      // Only what the queue row shows — skips the retrieval_trace JSON payload.
+      .select(['m.id', 'm.conversationId', 'm.body', 'm.createdAt'])
       .where(
         'm.id IN (SELECT MAX(id) FROM messages WHERE conversation_id IN (:...ids) GROUP BY conversation_id)',
         { ids },

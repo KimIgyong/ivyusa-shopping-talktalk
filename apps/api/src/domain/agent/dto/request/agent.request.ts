@@ -3,6 +3,8 @@ import { IsEmail, IsInt, IsOptional, IsString, Min, MinLength } from 'class-vali
 export class ListSessionsQuery {
   @IsOptional() @IsString() page?: string;
   @IsOptional() @IsString() size?: string;
+  /** Customer name/email filter (decrypt-then-filter window — see CustomerService). */
+  @IsOptional() @IsString() q?: string;
 }
 
 export class ListStatsQuery {

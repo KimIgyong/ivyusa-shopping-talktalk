@@ -29,6 +29,7 @@ export function toSessionResponse(
     escalated: c.escalated === 1,
     customerName,
     lastMessagePreview: lastMessage ? lastMessage.body.slice(0, 140) : null,
+    lastMessageAt: lastMessage?.createdAt ?? null,
     createdAt: c.createdAt,
   };
 }

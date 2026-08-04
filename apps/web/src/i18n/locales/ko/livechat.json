@@ -42,5 +42,14 @@
   "alarmReasonModeration": "AI 답변이 모더레이션에 의해 차단되었습니다.",
   "alarmReasonUserRequest": "고객이 상담원 연결을 요청했습니다.",
   "alarmOpen": "상담 열기",
-  "alarmDismiss": "닫기"
+  "alarmDismiss": "닫기",
+  "listSearchPlaceholder": "고객명 또는 이메일 검색",
+  "listSearchScope": "최근 고객 범위에서 검색됩니다",
+  "createdShort": "개설",
+  "lastReplyShort": "마지막답변",
+  "noReplyYet": "답변 없음",
+  "justNow": "방금 전",
+  "minutesAgo": "{{n}}분 전",
+  "hoursAgo": "{{n}}시간 전",
+  "daysAgo": "{{n}}일 전"
 }
