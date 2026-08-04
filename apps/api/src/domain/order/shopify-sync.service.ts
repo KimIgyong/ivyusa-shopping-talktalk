@@ -5,6 +5,7 @@ import { ORDER_STATUS_INTERNAL, internalToUiStatus } from '@ivy/types';
 import { OrderCache } from './entity/order-cache.entity';
 import { OrderItem } from './entity/order-item.entity';
 import { ShopifyAdminClient, ShopifyOrderDto } from './shopify-admin.client';
+import { normalizeOrderNumber } from './order-number.util';
 import { TenantService } from '../tenant/tenant.service';
 import { CustomerService } from '../customer/customer.service';
 import { IntegrationService } from '../integration/integration.service';
@@ -187,14 +188,14 @@ export class ShopifySyncService {
 
     const internal = this.mapStatus(o.financial_status, o.fulfillment_status);
     const shopifyOrderId = String(o.id);
-    // Store the bare number. Webhooks carry `order_number` (1002) while the
-    // GraphQL sync only has `name` ("#1002"), so the same order flipped format
-    // depending on which path touched it last — that broke guest lookup (an exact
-    // string match against what the shopper types) and made the UI, which adds its
-    // own '#', render "##1002".
-    const orderNumber = (
-      o.order_number != null ? String(o.order_number) : o.name ?? shopifyOrderId
-    ).replace(/^#/, '');
+    // Store the canonical (bare) number. Webhooks carry `order_number` (1002) while
+    // the GraphQL sync only has `name` ("#1002"), so the same order flipped format
+    // depending on which path touched it last — that broke guest lookup and made the
+    // UI, which adds its own '#', render "##1002". Shared with the lookup side via
+    // normalizeOrderNumber so the two can never drift apart again.
+    const orderNumber = normalizeOrderNumber(
+      o.order_number != null ? o.order_number : o.name ?? shopifyOrderId,
+    );
     const total =
       o.total_price != null && o.total_price !== '' && !Number.isNaN(Number(o.total_price))
         ? Number(o.total_price)

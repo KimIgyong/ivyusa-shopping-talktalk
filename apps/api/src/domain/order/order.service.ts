@@ -25,6 +25,7 @@ import { RedisService } from '../../infrastructure/cache/redis.service';
 import { WebhookSecretService } from '../tenant/webhook-secret.service';
 import { assertWebhookSecret } from '../../global/util/webhook-secret.util';
 import { blindIndex } from '../../global/util/crypto.util';
+import { normalizeOrderNumber } from './order-number.util';
 
 const LOOKUP_MAX_ATTEMPTS = 5;
 const LOOKUP_WINDOW_SEC = 15 * 60;
@@ -58,10 +59,16 @@ export class OrderService {
     }
     await this.enforceLookupLimit(email);
 
+    // Compare against the same canonical form ingest stores. The widget, Shopify's
+    // confirmation email and the admin all render the number as `#1002`, so that is
+    // what shoppers type — and an exact match on the raw input rejected every one of
+    // them with "no order found".
+    const lookupNumber = normalizeOrderNumber(orderNumber);
+
     const order = await this.orderRepo
       .createQueryBuilder('o')
       .innerJoin(Customer, 'c', 'c.id = o.customer_id')
-      .where('o.order_number = :orderNumber', { orderNumber })
+      .where('o.order_number = :orderNumber', { orderNumber: lookupNumber })
       // Email is encrypted — match on the deterministic blind index (PRV-M6).
       .andWhere('c.email_hash = :emailHash', { emailHash: blindIndex(email) ?? '__none__' })
       .andWhere('o.tenant_id = :tenantId', { tenantId: session.tenantId })
