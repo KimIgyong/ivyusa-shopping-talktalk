@@ -36,6 +36,21 @@ export class Tenant {
   privacyPolicyUrl: string | null;
 
   /**
+   * Customer-facing shop origin (e.g. `https://ivyusa.com`).
+   *
+   * Not `shopDomain`: that holds the Shopify admin domain
+   * (`ambshop-dev.myshopify.com`), which shoppers never see, and the second
+   * tenant is on cafe24 rather than Shopify.
+   *
+   * Null until an operator sets it, and that is the safe state: without a known
+   * origin there is no way to tell a tenant's own product URL from an arbitrary
+   * link that arrived in an uploaded CSV, so product citations render without
+   * links rather than pointing customers anywhere.
+   */
+  @Column({ name: 'storefront_url', type: 'varchar', length: 255, nullable: true })
+  storefrontUrl: string | null;
+
+  /**
    * Tenant override of the consent-notice version; null falls back to the
    * platform-wide CONSENT_NOTICE_VERSION. Bumping it forces re-consent
    * (PLN-Privacy-Control-Gap Stage 2).

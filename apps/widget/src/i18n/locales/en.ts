@@ -27,6 +27,7 @@ export const en = {
       'Hi {{name}}! Welcome back to IVY USA. How can we help you today? Pick a topic below or type your question.',
     aiDisclosure:
       'This chat is AI-powered. Messages you send are processed by a third-party AI service provider in the United States to generate responses.',
+    citations: 'Knowledge referenced',
     inputPlaceholder: 'Type a message…',
     send: 'Send',
     sendFailed: "Sorry, that didn't go through. Please try again.",

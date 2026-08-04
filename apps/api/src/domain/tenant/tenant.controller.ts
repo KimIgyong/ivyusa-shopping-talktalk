@@ -12,6 +12,7 @@ import {
   UpdateIntegrationRequest,
   UpdatePrivacyNoticeRequest,
   UpdateShopifySettingsRequest,
+  UpdateStorefrontRequest,
   UpdateWidgetSettingsRequest,
   UpdateTenantStatusRequest,
   UpsertCredentialRequest,
@@ -83,6 +84,26 @@ export class TenantController {
   async getWidgetSettings(@CurrentUser() user: Principal) {
     const tenant = await this.tenantService.findById(this.tenantId(user));
     return TenantMapper.toWidgetSettings(tenant);
+  }
+
+  // Declared before ':uuid' so 'storefront' is not captured as a UUID.
+  @Get('storefront')
+  @RequireRank(USER_RANK.MASTER, USER_RANK.DIRECTOR)
+  @ApiOperation({ summary: 'Get the customer-facing storefront origin' })
+  async getStorefront(@CurrentUser() user: Principal) {
+    return TenantMapper.toStorefront(await this.tenantService.findById(this.tenantId(user)));
+  }
+
+  @Patch('storefront')
+  @RequireRank(USER_RANK.MASTER, USER_RANK.DIRECTOR)
+  @ApiOperation({ summary: 'Set the customer-facing storefront origin (enables product links)' })
+  async updateStorefront(@CurrentUser() user: Principal, @Body() body: UpdateStorefrontRequest) {
+    // @RequireRank guarantees a tenant user at runtime; narrow for TS.
+    if (user.actorType !== 'user') {
+      throw new BusinessException(ERROR_CODE.FORBIDDEN, HttpStatus.FORBIDDEN);
+    }
+    const tenant = await this.tenantService.updateStorefront(user.tenantId, user.userId, body);
+    return TenantMapper.toStorefront(tenant);
   }
 
   @Patch('widget-settings')

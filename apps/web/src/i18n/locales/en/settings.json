@@ -170,5 +170,11 @@
       "step2": "Scroll to the Custom Code section.",
       "step3": "Paste the snippet into the \"end of body\" field and save."
     }
+  },
+  "storefront": {
+    "title": "Storefront",
+    "url": "Shop URL",
+    "hint": "Used to verify product links before showing them to customers. Only links on this origin appear in chat.",
+    "unsetWarning": "Not set — product recommendations will not appear as links in the chat widget."
   }
 }

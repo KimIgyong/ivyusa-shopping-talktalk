@@ -119,6 +119,11 @@ export class UpdatePrivacyNoticeRequest {
  * Widget behavior settings (PLN-Widget-Login-Redirect-Orders): how the widget's
  * "Sign in" opens the storefront login — whole-tab redirect (default) or popup.
  */
+export class UpdateStorefrontRequest {
+  /** Customer-facing shop origin. Empty clears it (and disables product links). */
+  @IsOptional() @IsString() storefront_url?: string | null;
+}
+
 export class UpdateWidgetSettingsRequest {
   @IsIn(Object.values(WIDGET_LOGIN_MODE))
   login_mode: WidgetLoginMode;

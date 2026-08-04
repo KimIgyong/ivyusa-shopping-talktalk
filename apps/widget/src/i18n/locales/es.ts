@@ -29,6 +29,7 @@ export const es: Translation = {
       '¡Hola {{name}}! Bienvenido de nuevo a IVY USA. ¿En qué podemos ayudarte hoy? Elige un tema abajo o escribe tu pregunta.',
     aiDisclosure:
       'Este chat funciona con IA. Los mensajes que envías son procesados por un proveedor externo de IA en Estados Unidos para generar respuestas.',
+    citations: 'Conocimiento consultado',
     inputPlaceholder: 'Escribe un mensaje…',
     send: 'Enviar',
     sendFailed: 'Lo sentimos, no se pudo enviar. Inténtalo de nuevo.',

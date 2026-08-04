@@ -64,6 +64,11 @@ export interface IntegrationTestResult {
 }
 
 /** Widget behavior settings (sign-in mode) — tenant-scoped. */
+/** Customer-facing shop origin; null means product links stay off. */
+export interface Storefront {
+  storefrontUrl: string | null;
+}
+
 export interface WidgetSettings {
   loginMode: WidgetLoginMode;
 }
@@ -71,6 +76,9 @@ export interface WidgetSettings {
 export const settingsService = {
   credentials: () => apiGet<CredentialStatus[]>('/tenants/me/credentials'),
   widgetSettings: () => apiGet<WidgetSettings>('/tenants/widget-settings'),
+  storefront: () => apiGet<Storefront>('/tenants/storefront'),
+  updateStorefront: (storefrontUrl: string) =>
+    apiPatch<Storefront>('/tenants/storefront', { storefront_url: storefrontUrl }),
   saveWidgetSettings: (loginMode: WidgetLoginMode) =>
     apiPatch<WidgetSettings>('/tenants/widget-settings', { login_mode: loginMode }),
   updateCredential: (provider: string, body: UpdateCredentialBody) =>
