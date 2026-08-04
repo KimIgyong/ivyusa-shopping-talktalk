@@ -26,6 +26,16 @@ export class KnowledgeSource {
   @Column({ name: 'config_json', type: 'json', nullable: true })
   configJson: Record<string, unknown> | null;
 
+  @Column({ name: 'last_sync_at', type: 'datetime', nullable: true })
+  lastSyncAt: Date | null;
+
+  /** ok | failed. NULL means this source has never been synced. */
+  @Column({ name: 'last_sync_status', type: 'varchar', length: 16, nullable: true })
+  lastSyncStatus: string | null;
+
+  @Column({ name: 'last_sync_result', type: 'json', nullable: true })
+  lastSyncResult: Record<string, unknown> | null;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 }

@@ -62,7 +62,7 @@ export class KnowledgeController {
   @ApiOperation({ summary: 'List tenant knowledge sources' })
   async listSources(@CurrentUser() user: Principal) {
     const sources = await this.knowledgeService.listSources(this.tenantUser(user).tenantId);
-    return KnowledgeMapper.toSourceList(sources);
+    return KnowledgeMapper.toSourceList(sources, this.knowledgeService.supportedSourceTypes());
   }
 
   @Post('sources')
@@ -70,7 +70,10 @@ export class KnowledgeController {
   @ApiOperation({ summary: 'Create a knowledge source (board/repository/gdrive)' })
   async createSource(@CurrentUser() user: Principal, @Body() body: CreateSourceRequest) {
     const source = await this.knowledgeService.createSource(this.tenantUser(user).tenantId, body);
-    return KnowledgeMapper.toSource(source);
+    return KnowledgeMapper.toSource(
+      source,
+      this.knowledgeService.supportedSourceTypes().includes(source.type),
+    );
   }
 
   @Patch('sources/:id')
@@ -86,7 +89,10 @@ export class KnowledgeController {
       id,
       body,
     );
-    return KnowledgeMapper.toSource(source);
+    return KnowledgeMapper.toSource(
+      source,
+      this.knowledgeService.supportedSourceTypes().includes(source.type),
+    );
   }
 
   @Delete('sources/:id')
@@ -115,6 +121,14 @@ export class KnowledgeController {
       body,
     );
     return KnowledgeMapper.toPost(post);
+  }
+
+  @Post('sources/:id/sync')
+  @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
+  @ApiOperation({ summary: 'Pull a knowledge source into the RAG corpus' })
+  async syncSource(@CurrentUser() user: Principal, @Param('id', ParseIntPipe) id: number) {
+    const actor = this.tenantUser(user);
+    return this.knowledgeService.syncSource(actor.tenantId, id, actor.userId);
   }
 
   @Get('sources/:id/posts')

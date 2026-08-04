@@ -2,12 +2,28 @@ import { apiGet, apiGetList, apiPost, apiPostForm, apiPatch, apiDelete } from '@
 import type { Paginated } from '@/lib/types';
 
 /** Shapes mirror KnowledgeMapper (apps/api knowledge.mapper.ts). */
+export interface SyncResult {
+  fetched: number;
+  created: number;
+  updated: number;
+  skipped: number;
+  hidden: number;
+  failed: number;
+  embedded?: number;
+  embedFailed?: number;
+}
+
 export interface KnowledgeSource {
   id: string;
   type: string; // board/repository/gdrive
   name: string;
   status: string; // active/inactive
   designated: number;
+  /** False when the type has no working adapter yet — shown as "준비중". */
+  supported?: boolean;
+  lastSyncAt?: string | null;
+  lastSyncStatus?: string | null; // ok/failed
+  lastSyncResult?: SyncResult | null;
   createdAt?: string;
 }
 
@@ -162,6 +178,7 @@ export const knowledgeService = {
     apiPost<KnowledgeSource>('/knowledge/sources', body),
   setSourceStatus: (id: string, status: 'active' | 'inactive') =>
     apiPatch<KnowledgeSource>(`/knowledge/sources/${id}`, { status }),
+  syncSource: (id: string) => apiPost<SyncResult>(`/knowledge/sources/${id}/sync`, {}),
   documents: (params: DocumentListParams): Promise<Paginated<KnowledgeDocument>> =>
     apiGetList<KnowledgeDocument>('/knowledge/documents', {
       page: params.page,

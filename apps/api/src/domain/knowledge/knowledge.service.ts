@@ -22,6 +22,7 @@ import {
 import { KbConflictService, isStale } from './kb-conflict.service';
 import { KbRevisionService } from './kb-revision.service';
 import { ProductImportService } from './product-import.service';
+import { SourceSyncService } from './source-sync.service';
 import { REVISION_KIND } from './entity/kb-document-revision.entity';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
@@ -53,12 +54,18 @@ export class KnowledgeService {
     private readonly conflicts: KbConflictService,
     private readonly revisions: KbRevisionService,
     private readonly productImport: ProductImportService,
+    private readonly sourceSync: SourceSyncService,
   ) {}
 
   // ---- Sources ----
 
   async listSources(tenantId: number): Promise<KnowledgeSource[]> {
     return this.sourceRepo.find({ where: { tenantId }, order: { id: 'DESC' } });
+  }
+
+  /** Source types with a working adapter — the console greys out the rest. */
+  supportedSourceTypes(): string[] {
+    return this.sourceSync.supportedTypes();
   }
 
   async createSource(tenantId: number, body: CreateSourceRequest): Promise<KnowledgeSource> {
@@ -536,7 +543,63 @@ export class KnowledgeService {
       body: body.body ?? null,
       authorUserId,
     });
-    return this.postRepo.save(post);
+    const saved = await this.postRepo.save(post);
+    // Writing a post is now the same act as publishing knowledge. Best-effort:
+    // a sync failure must not lose the post the author just wrote.
+    try {
+      await this.syncSource(tenantId, sourceId, authorUserId);
+    } catch (e) {
+      this.logger.warn(`board post ${saved.id} saved but sync failed: ${(e as Error).message}`);
+    }
+    return saved;
+  }
+
+  /**
+   * Pull a source into the knowledge base and embed what changed.
+   *
+   * Two phases like the CSV import: reconcile every item first, then embed the
+   * touched documents in batches. One embedding call per document is the shape
+   * the adapter does not retry (PR #95).
+   */
+  async syncSource(
+    tenantId: number,
+    sourceId: number,
+    actorUserId: number | null,
+  ): Promise<Record<string, unknown>> {
+    const source = await this.findSource(tenantId, sourceId);
+    try {
+      const { result, touchedIds } = await this.sourceSync.sync(tenantId, source, actorUserId);
+      const docs = touchedIds.length
+        ? await this.docRepo.find({ where: { tenantId, id: In(touchedIds) } })
+        : [];
+      const { embedded, failed } = await this.embedDocuments(docs);
+      await this.sourceSync.recordSyncState(source, 'ok', result);
+      await this.revisions.recordAudit(tenantId, 0, 'knowledge.source_synced', actorUserId, {
+        sourceId,
+        type: source.type,
+        ...result,
+        embedded,
+        embedFailed: failed,
+      });
+      this.logger.log(
+        `source ${sourceId} (${source.type}) sync: fetched=${result.fetched} ` +
+          `created=${result.created} updated=${result.updated} skipped=${result.skipped} ` +
+          `hidden=${result.hidden} embedded=${embedded}`,
+      );
+      return { ...result, embedded, embedFailed: failed };
+    } catch (e) {
+      // Record the failure so the console shows a red state instead of a stale
+      // "last synced" timestamp that suggests everything is fine.
+      await this.sourceSync.recordSyncState(source, 'failed', {
+        fetched: 0,
+        created: 0,
+        updated: 0,
+        skipped: 0,
+        hidden: 0,
+        failed: 0,
+      });
+      throw e;
+    }
   }
 
   async listPosts(tenantId: number, sourceId: number): Promise<KbBoardPost[]> {

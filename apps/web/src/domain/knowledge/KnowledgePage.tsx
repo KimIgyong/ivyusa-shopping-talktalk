@@ -22,6 +22,7 @@ import {
   useSources,
   useCreateSource,
   useSetSourceStatus,
+  useSyncSource,
   useDocuments,
   useDocument,
   useCreateDocument,
@@ -61,6 +62,7 @@ export function KnowledgePage() {
   const sources = useSources();
   const createSource = useCreateSource();
   const setSourceStatus = useSetSourceStatus();
+  const syncSource = useSyncSource();
 
   const [page, setPage] = useState(1);
   const [category, setCategory] = useState('');
@@ -236,21 +238,65 @@ export function KnowledgePage() {
     {
       key: 'status',
       header: t('status'),
+      // A type with no adapter says so plainly. Showing it as "Enabled" is what
+      // made operators believe a gdrive source was ingesting when nothing was.
+      render: (r) =>
+        r.supported === false ? (
+          <Badge tone="warning">{t('sourceNotReady')}</Badge>
+        ) : (
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={setSourceStatus.isPending}
+            onClick={() =>
+              setSourceStatus.mutate({
+                id: r.id,
+                status: r.status === 'active' ? 'inactive' : 'active',
+              })
+            }
+          >
+            <Badge tone={r.status === 'active' ? 'success' : 'gray'}>
+              {r.status === 'active' ? tc('enabled') : tc('disabled')}
+            </Badge>
+          </Button>
+        ),
+    },
+    {
+      key: 'lastSync',
+      header: t('lastSync'),
+      render: (r) => {
+        if (!r.lastSyncAt) return <span className="text-gray-400">—</span>;
+        const when = new Date(r.lastSyncAt).toLocaleString();
+        const c = r.lastSyncResult;
+        return (
+          <div className="flex flex-col gap-0.5">
+            <span className={r.lastSyncStatus === 'failed' ? 'text-error' : ''}>{when}</span>
+            {c && (
+              <span className="text-xs text-gray-500">
+                {t('syncCounts', {
+                  created: c.created,
+                  updated: c.updated,
+                  skipped: c.skipped,
+                  hidden: c.hidden,
+                })}
+              </span>
+            )}
+          </div>
+        );
+      },
+    },
+    {
+      key: 'sync',
+      header: t('sync'),
       render: (r) => (
         <Button
           variant="ghost"
           size="sm"
-          disabled={setSourceStatus.isPending}
-          onClick={() =>
-            setSourceStatus.mutate({
-              id: r.id,
-              status: r.status === 'active' ? 'inactive' : 'active',
-            })
-          }
+          disabled={r.supported === false || syncSource.isPending}
+          title={r.supported === false ? t('sourceNotReadyHint') : undefined}
+          onClick={() => syncSource.mutate(r.id)}
         >
-          <Badge tone={r.status === 'active' ? 'success' : 'gray'}>
-            {r.status === 'active' ? tc('enabled') : tc('disabled')}
-          </Badge>
+          ↻
         </Button>
       ),
     },

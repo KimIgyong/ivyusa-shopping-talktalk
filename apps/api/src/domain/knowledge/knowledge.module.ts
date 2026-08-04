@@ -10,6 +10,8 @@ import { KnowledgeService } from './knowledge.service';
 import { KbConflictService } from './kb-conflict.service';
 import { KbRevisionService } from './kb-revision.service';
 import { ProductImportService } from './product-import.service';
+import { SourceSyncService } from './source-sync.service';
+import { BoardAdapter } from './adapters/board.adapter';
 import { AuditModule } from '../audit/audit.module';
 import { KnowledgeController } from './knowledge.controller';
 import { ChatModule } from '../chat/chat.module';
@@ -33,7 +35,14 @@ import { ModerationModule } from '../moderation/moderation.module';
     AuditModule,
   ],
   controllers: [KnowledgeController],
-  providers: [KnowledgeService, KbConflictService, KbRevisionService, ProductImportService],
+  providers: [
+    KnowledgeService,
+    KbConflictService,
+    KbRevisionService,
+    ProductImportService,
+    SourceSyncService,
+    BoardAdapter,
+  ],
   exports: [KnowledgeService, KbConflictService, KbRevisionService],
 })
 export class KnowledgeModule {}

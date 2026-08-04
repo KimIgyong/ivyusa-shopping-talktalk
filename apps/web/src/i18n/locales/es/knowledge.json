@@ -152,5 +152,10 @@
   "importInvalid": "Omitidas",
   "importEmbedded": "Indexados",
   "importRow": "Fila {{n}}",
-  "openProductPage": "Abrir página del producto"
+  "openProductPage": "Abrir página del producto",
+  "sync": "Sincronizar",
+  "lastSync": "Última sincronización",
+  "syncCounts": "{{created}} creados · {{updated}} actualizados · {{skipped}} sin cambios · {{hidden}} ocultos",
+  "sourceNotReady": "No disponible",
+  "sourceNotReadyHint": "Este tipo de fuente aún no puede importar: no hay conector configurado."
 }
