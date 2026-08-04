@@ -120,11 +120,38 @@ append 전용 코칭은 몇 주면 예산을 소진하므로, 유사 규칙이 �
 | 항목 | 값 |
 |---|---|
 | 브랜치 | `feature/agent-coaching-chat` |
-| PR | [#99](https://github.com/KimIgyong/ivyusa-shopping-talktalk/pull/99) |
-| 커밋 SHA | `105a565` (머지 후 squash SHA로 갱신) |
+| PR | [#99](https://github.com/KimIgyong/ivyusa-shopping-talktalk/pull/99) — squash merge |
+| 커밋 SHA | **`0c2d8db`** (main) |
 | 로컬 | ✅ 검증 완료 (검증용 DB 변경은 전부 원복) |
-| 스테이징 | ⬜ 미배포 — **SQL 선적용 필요** |
+| 스테이징 | ✅ **배포 완료 2026-08-04** — 마이그레이션 선적용 → 코드 배포 → 검증 |
 | 프로덕션 | ⬜ (호스트 미확보, 기존 상태) |
+
+### 스테이징 배포 기록 (2026-08-04)
+
+순서: PR 머지 → 서버 `git pull` → **SQL 선적용** → `deploy-staging.sh` → 검증.
+
+| 검증 | 결과 |
+|---|---|
+| 마이그레이션 | ✅ 테이블 3종 생성, `agent_coaching_proposals` 컬럼 스펙 일치 |
+| 부팅 로그 | ✅ `Nest application successfully started` + `AiCoachController {/api/v1/ai-coach}` |
+| 스키마 오류 | ✅ 없음 (`doesn't exist` / `Unknown column` 미검출) |
+| 컨테이너 | ✅ `ivy_api_staging` 재생성 후 healthy |
+| 신규 라우트 | ✅ `GET/POST /api/v1/ai-coach/threads` → **401** (배포됨) |
+| 기존 라우트 회귀 | ✅ `/ai-config` 401, `/health` 200, `/ai-setting` 200 |
+| 프론트 번들 | ✅ lazy 청크 `AiSettingsPage-*.js`에 코칭 클라이언트 코드·문구 포함, i18n 3개 로케일 메인 번들 반영 |
+
+### ⚠️ 배포에서 드러난 것 2건
+
+**D-1. `coach` 엔진 라우팅이 없으면 조용히 stub으로 떨어진다.**
+배포 직후 `tenant_ai_settings`에 tenant 1의 `coach` 행이 없었다. 플랫폼 기본 엔진이 stub(`is_default=1`)이라
+게이트웨이 폴백이 **stub으로 귀결**되고, 그러면 코칭은 제안을 한 건도 만들지 못한 채 "고장난 것처럼" 보인다.
+설계상 의도된 폴백이지만 **실사용 결과가 나쁘다.** 배포 시 tenant 1의 `coach`를 다른 기능과 같은
+엔진 2(Anthropic `claude-opus-4-8`)로 지정해 해소했다. 관리자가 AI functions 섹션에서 바꿀 수 있다.
+→ 신규 테넌트에도 같은 함정이 있다. 시드/온보딩에서 `coach` 기본 라우팅을 넣는 것을 후속 과제로 둔다.
+
+**D-2. PLN W2의 "stub 엔진 경고 배너"를 구현하지 않았다.**
+계획에 있었으나 `CoachPanel.tsx`에 들어가지 않았다. D-1과 정확히 맞물리는 누락이다 — 배너가 있었다면
+운영자가 stub 상태를 즉시 알았을 것이다. **후속 PR에서 반드시 추가**한다.
 
 ### ⚠️ 마이그레이션 (코드 배포 **전** 필수)
 
@@ -149,8 +176,25 @@ SHOW TABLES LIKE 'agent_coaching%';   -- 3개
 
 | # | 항목 | 시점 |
 |---|---|---|
-| 1 | 스테이징 배포 + U-01~U-06 실 LLM 검증 | 배포 직후 |
-| 2 | W3 — 시뮬레이션 버블 [코칭] 연동, `kb_upsert`·`scenario_override` 제안 | 다음 PR |
-| 3 | W4 — 골든 질문 회귀 검증, persona 개정 이력 | 이후 |
-| 4 | 규칙별 성과 측정(사용 횟수·해결률) — Intercom만 보유한 기능, 차별화 여지 | 백로그 |
-| 5 | ESLint 설정 부재(기존 결함) 해소 | 별도 |
+| 1 | **U-01~U-06 실 LLM 검증** — 콘솔 로그인이 필요해 미수행 (아래 참조) | 즉시 |
+| 2 | **D-2 stub 경고 배너 구현** + D-1 시드/온보딩 기본 라우팅 | 다음 PR |
+| 3 | W3 — 시뮬레이션 버블 [코칭] 연동, `kb_upsert`·`scenario_override` 제안 | 다음 PR |
+| 4 | W4 — 골든 질문 회귀 검증, persona 개정 이력 | 이후 |
+| 5 | 규칙별 성과 측정(사용 횟수·해결률) — Intercom만 보유한 기능, 차별화 여지 | 백로그 |
+| 6 | ESLint 설정 부재(기존 결함) 해소 | 별도 |
+
+### 실 LLM 검증이 남은 이유
+
+스테이징 콘솔 계정(`dev@amoeba.group`)의 비밀번호는 최초 로그인 시 변경되어 시드 값·`SEED_PASSWORD`
+모두 통하지 않았고, `secrets/staging-server.md`는 로컬 워크트리·서버 어디에도 없다. `/ai-coach` 전
+라우트가 `AI_SETTINGS_MANAGE`를 요구하므로 **콘솔 로그인 없이는 코칭 턴을 실행할 수 없다.**
+(DB로 비밀번호를 바꾸거나 토큰을 직접 발급하는 우회는 공유 환경의 인증 상태를 건드리므로 하지 않았다.)
+
+확인 방법 — 콘솔에서 `/ai-setting` → **에이전트 코칭** 탭에 다음을 순서대로 입력:
+
+| 입력 | 기대 |
+|---|---|
+| "환불 답변이 너무 딱딱해요. 공감 한 문장으로 시작하게 해주세요." | **응답 규칙 추가** 제안 카드 생성 (U-01) |
+| "환불 기간은 14일이 아니라 30일이야." | **규칙 제안이 나오면 안 된다** — "지식 문서가 필요하다" 안내여야 함 (U-02, 최우선) |
+| 기존 규칙과 겹치는 주제로 코칭 | `rule_add`가 아니라 **`rule_edit`** (U-03) |
+| 기존 규칙과 모순되는 지시 | 카드에 **충돌 경고** 표시 (U-04) |
