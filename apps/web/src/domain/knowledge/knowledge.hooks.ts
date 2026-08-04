@@ -39,6 +39,28 @@ export function useSetSourceStatus() {
   });
 }
 
+export function useSyncSource() {
+  const qc = useQueryClient();
+  const tenantKey = useTenantKey();
+  return useMutation({
+    mutationFn: (id: string) => knowledgeService.syncSource(id),
+    onSuccess: (r) => {
+      qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'sources'] });
+      qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'documents'] });
+      qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'categories'] });
+      // Same reasoning as the CSV import: a bare "synced" hides the rows that
+      // came back but never got indexed.
+      const parts = [`${r.created} created`, `${r.updated} updated`];
+      if (r.skipped) parts.push(`${r.skipped} unchanged`);
+      if (r.hidden) parts.push(`${r.hidden} hidden`);
+      if (r.failed) parts.push(`${r.failed} skipped`);
+      if (r.embedFailed) parts.push(`${r.embedFailed} not indexed`);
+      toast[r.failed || r.embedFailed ? 'error' : 'success'](`Sync: ${parts.join(', ')}`);
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+}
+
 export function useDocuments(params: DocumentListParams) {
   const tenantKey = useTenantKey();
   return useQuery({

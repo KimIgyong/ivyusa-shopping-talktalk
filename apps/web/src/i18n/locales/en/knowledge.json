@@ -152,5 +152,10 @@
   "importInvalid": "Skipped",
   "importEmbedded": "Indexed",
   "importRow": "Row {{n}}",
-  "openProductPage": "Open product page"
+  "openProductPage": "Open product page",
+  "sync": "Sync",
+  "lastSync": "Last sync",
+  "syncCounts": "+{{created}} created · {{updated}} updated · {{skipped}} unchanged · {{hidden}} hidden",
+  "sourceNotReady": "Not available",
+  "sourceNotReadyHint": "This source type cannot ingest yet — no connector is configured."
 }

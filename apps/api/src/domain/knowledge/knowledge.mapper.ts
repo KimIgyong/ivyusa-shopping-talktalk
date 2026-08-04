@@ -16,7 +16,14 @@ function reviewDueAt(d: KbDocument): Date | null {
 
 /** Entity -> camelCase response mapping for the knowledge domain. */
 export class KnowledgeMapper {
-  static toSource(s: KnowledgeSource) {
+  /**
+   * `supported` says whether this source type can actually ingest today.
+   *
+   * Without it the console shows a registered gdrive source as "Enabled" while
+   * nothing whatsoever happens behind it — the exact misreading this field
+   * exists to remove (REQ-260804 §7).
+   */
+  static toSource(s: KnowledgeSource, supported = true) {
     return {
       id: s.id,
       type: s.type,
@@ -24,12 +31,17 @@ export class KnowledgeMapper {
       status: s.status,
       designated: s.designated,
       configJson: s.configJson ?? null,
+      supported,
+      lastSyncAt: s.lastSyncAt ?? null,
+      lastSyncStatus: s.lastSyncStatus ?? null,
+      lastSyncResult: s.lastSyncResult ?? null,
       createdAt: s.createdAt,
     };
   }
 
-  static toSourceList(sources: KnowledgeSource[]) {
-    return sources.map((s) => this.toSource(s));
+  static toSourceList(sources: KnowledgeSource[], supportedTypes: string[] = []) {
+    const supported = new Set(supportedTypes);
+    return sources.map((s) => this.toSource(s, supported.has(s.type)));
   }
 
   static toDocument(d: KbDocument) {

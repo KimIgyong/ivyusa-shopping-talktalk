@@ -152,5 +152,10 @@
   "importInvalid": "건너뜀",
   "importEmbedded": "색인",
   "importRow": "{{n}}행",
-  "openProductPage": "상품 페이지 열기"
+  "openProductPage": "상품 페이지 열기",
+  "sync": "동기화",
+  "lastSync": "마지막 동기화",
+  "syncCounts": "생성 {{created}} · 갱신 {{updated}} · 변경없음 {{skipped}} · 숨김 {{hidden}}",
+  "sourceNotReady": "준비중",
+  "sourceNotReadyHint": "이 소스 유형은 아직 수집할 수 없습니다 — 연동이 준비되지 않았습니다."
 }
