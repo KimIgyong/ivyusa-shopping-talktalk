@@ -55,6 +55,45 @@ export function consentInfoFromSession(res: SessionResponse): ConsentInfo {
   };
 }
 
+/**
+ * Adopt a session's consent state into the store, replaying a version-matching
+ * local choice onto a fresh (always-pending) session via POST /session/consent
+ * instead of re-prompting — see lib/consent.ts. Shared by the anonymous ensure
+ * path and the authenticated profile re-ensure (useSessionProfile): a verified
+ * session minted by the app-proxy sign-in starts just as 'pending' as a guest
+ * one, and skipping it left signed-in shoppers with a hidden banner AND a
+ * consent-blocked chat ("cannot process chat messages until you accept…").
+ */
+export function adoptSessionConsent(res: SessionResponse): void {
+  const { setConsentInfo } = useWidgetStore.getState();
+  const consentInfo = consentInfoFromSession(res);
+  const stored = getStoredConsentRecord();
+  const replay =
+    consentInfo.state === 'pending' &&
+    !consentInfo.noticeOutdated &&
+    stored != null &&
+    stored.version != null &&
+    stored.version === consentInfo.noticeVersion
+      ? stored
+      : null;
+  if (replay) {
+    // Optimistic: hide the banner now; the server session is re-recorded
+    // below. On failure fall back to 'pending' so the banner (fail-closed
+    // recorder) takes over again.
+    setConsentInfo({
+      ...consentInfo,
+      state: replay.state === 'granted' ? 'granted' : 'declined',
+      consentAt: replay.at,
+    });
+    void setConsent(res.sessionToken, replay.state === 'granted').catch(() =>
+      setConsentInfo(consentInfo),
+    );
+  } else {
+    setConsentInfo(consentInfo);
+  }
+  syncStoredConsent(consentInfo);
+}
+
 function syncStoredConsent(info: ConsentInfo): void {
   // A pending state no longer clears the cache: embedded anonymous widgets get
   // a fresh (pending) session every page load, and the cached choice is exactly
@@ -77,7 +116,6 @@ export function useEnsureSession() {
   const setAuthenticated = useWidgetStore((s) => s.setAuthenticated);
   const setCustomerName = useWidgetStore((s) => s.setCustomerName);
   const setLanguage = useWidgetStore((s) => s.setLanguage);
-  const setConsentInfo = useWidgetStore((s) => s.setConsentInfo);
   const setLoginMode = useWidgetStore((s) => s.setLoginMode);
 
   useEffect(() => {
@@ -146,37 +184,10 @@ export function useEnsureSession() {
         if (res.customerName) setCustomerName(res.customerName);
 
         // Server-side consent is the source of truth for the notice banner
-        // (an outdated notice re-prompts regardless of the local cache). One
-        // exception: a brand-new session is always 'pending' even for a shopper
-        // who already chose on a previous page load (embedded anonymous widgets
-        // never resume sessions) — replay a version-matching local choice onto
-        // this session instead of re-asking (see lib/consent.ts).
-        const consentInfo = consentInfoFromSession(res);
-        const stored = getStoredConsentRecord();
-        const replay =
-          consentInfo.state === 'pending' &&
-          !consentInfo.noticeOutdated &&
-          stored != null &&
-          stored.version != null &&
-          stored.version === consentInfo.noticeVersion
-            ? stored
-            : null;
-        if (replay) {
-          // Optimistic: hide the banner now; the server session is re-recorded
-          // below. On failure fall back to 'pending' so the banner (fail-closed
-          // recorder) takes over again.
-          setConsentInfo({
-            ...consentInfo,
-            state: replay.state === 'granted' ? 'granted' : 'declined',
-            consentAt: replay.at,
-          });
-          void setConsent(res.sessionToken, replay.state === 'granted').catch(() => {
-            if (!cancelled) setConsentInfo(consentInfo);
-          });
-        } else {
-          setConsentInfo(consentInfo);
-        }
-        syncStoredConsent(consentInfo);
+        // (an outdated notice re-prompts regardless of the local cache); a
+        // fresh pending session replays a version-matching local choice
+        // instead of re-asking — see adoptSessionConsent below.
+        adoptSessionConsent(res);
 
         // Tie default UI language to the backend session, unless the user
         // has manually overridden it.
