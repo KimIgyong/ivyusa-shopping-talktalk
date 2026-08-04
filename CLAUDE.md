@@ -55,21 +55,29 @@ approval, production host + `.env.production` (deploy pending). Staging runs
 now REQUIRE manual SQL pre-apply from `sql/` on staging before deploying code.
 
 ## 7. Workflow & traceability (dev-kit `claude/spec-guide.md` + `_Structure_v2` §8.2)
+**Doc filename convention (MUST)** — `{PREFIX}-{YYMMDD}-{Topic}.md`: **prefix first, then the
+6-digit date, then the topic**. Prefix sorts by kind and the date sorts chronologically inside
+it, so `ls docs/plan/` reads as a timeline instead of an alphabetical jumble of topics.
+Example: `docs/plan/PLN-260804-Ops-Logs-Stats-KnowledgeConflict.md`.
+⚠️ This is a **deliberate deviation** from the kit's `{PREFIX}-{Topic}-{YYYYMMDD}` (SPEC §13) and
+from the year format. Existing docs keep their old names — never rename (see below).
+
 **Requirements workflow** — a `[요구사항]`/requirements-type request MUST follow, in order:
-1. **REQ** `docs/analysis/REQ-{Topic}-{YYYYMMDD}.md` — AS-IS, TO-BE, gap analysis, user flow, constraints
-2. **PLN** `docs/plan/PLN-{Topic}-{YYYYMMDD}.md` — staged plan + side-impact analysis;
+1. **REQ** `docs/analysis/REQ-{YYMMDD}-{Topic}.md` — AS-IS, TO-BE, gap analysis, user flow, constraints
+2. **PLN** `docs/plan/PLN-{YYMMDD}-{Topic}.md` — staged plan + side-impact analysis;
    ⚠️ **ASCII wireframe REQUIRED for any UI add/change** (backend-only PLN must state "no UI impact");
    ⚠️ **implement only after the user approves the PLN — never auto-start implementation**
 3. **Implementation** (post-approval)
-4. **TCR** `docs/test/TCR-{Topic}-{YYYYMMDD}.md` — unit cases, integration scenarios, edge cases
-5. **RPT** `docs/implementation/RPT-{Topic}-{YYYYMMDD}.md` — what changed, file list, test results,
+4. **TCR** `docs/test/TCR-{YYMMDD}-{Topic}.md` — unit cases, integration scenarios, edge cases
+5. **RPT** `docs/implementation/RPT-{YYMMDD}-{Topic}.md` — what changed, file list, test results,
    **deploy state (PR#, commit SHA, per-env deploy + migration status)** — this feeds memory and prevents re-implementation
 
 **Bug-fix workflow**: root cause from logs/repro (no symptom patching) → proposed fix + impact →
-minimal change → **FIX** `docs/bug-fix/FIX-{Topic}-{YYYYMMDD}.md` incl. prevention pattern
+minimal change → **FIX** `docs/bug-fix/FIX-{YYMMDD}-{Topic}.md` incl. prevention pattern
 (promote generalizable ones to memory / dev-kit). Conversation logs & daily reports go in
-`docs/log/YYYY-MM-DD/` (gitignored). Legacy `AN-`/`PLAN-`/`TC-` files are historical — do not
-rename; new docs use the kit prefixes with this repo's full `YYYYMMDD` dates. When operational
+`docs/log/YYYY-MM-DD/` (gitignored — directory keeps the full date). Legacy `AN-`/`PLAN-`/`TC-`
+files **and every doc named before 2026-08-04** are historical — do not rename; links and PR
+bodies already point at them. When operational
 values change (ports/domains/creds), update `CLAUDE.md`/`SPEC.md`/`CONFIG.md` immediately;
 past REQ/PLN/RPT stay as written. Keep code mapped to design IDs (FR→FN→SCR→TBL→SEQ→T).
 Git: branch `feature/*` from `main`, PR + squash-merge.
