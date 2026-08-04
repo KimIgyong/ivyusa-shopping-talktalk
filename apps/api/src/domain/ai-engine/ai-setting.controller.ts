@@ -36,9 +36,7 @@ export class AiSettingController {
       this.aiEngineService.listEnabled(),
     ]);
     return {
-      settings: settings.map(({ setting, engineName }) =>
-        AiEngineMapper.toSetting(setting, engineName),
-      ),
+      settings: settings.map((view) => AiEngineMapper.toSettingView(view)),
       availableEngines: AiEngineMapper.toEngineOptionList(engines),
     };
   }

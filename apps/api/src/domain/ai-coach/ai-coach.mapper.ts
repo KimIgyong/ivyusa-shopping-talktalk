@@ -25,6 +25,7 @@ export class AiCoachMapper {
       body: m.body,
       citations: m.meta?.citations ?? [],
       blocked: m.meta?.blocked ?? false,
+      provider: m.meta?.provider ?? null,
       refTurn: m.meta?.refTurn ?? null,
       createdAt: m.createdAt,
     };

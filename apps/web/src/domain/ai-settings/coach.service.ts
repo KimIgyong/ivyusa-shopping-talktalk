@@ -29,6 +29,8 @@ export interface CoachMessage {
   body: string;
   citations: CoachCitation[];
   blocked: boolean;
+  /** Provider that actually produced this turn — 'stub' means no real model ran. */
+  provider: string | null;
   refTurn: CoachRefTurn | null;
   createdAt: string;
 }

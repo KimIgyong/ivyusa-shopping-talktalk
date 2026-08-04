@@ -155,6 +155,13 @@
     "toastThreadArchived": "Hilo de entrenamiento archivado.",
     "toastApplied": "Propuesta aplicada a tu configuración de IA.",
     "toastRejected": "Propuesta descartada.",
-    "toastReverted": "Cambio deshecho."
-  }
+    "toastReverted": "Cambio deshecho.",
+    "stubWarningTitle": "Funcionando con el stub integrado.",
+    "stubWarningBody": "Las respuestas son texto predefinido y no se generarán propuestas de cambio. Asigna un motor real a Entrenamiento en funciones de IA."
+  },
+  "effectiveEngine": "En uso actualmente: {{name}}",
+  "routing_inherited": "Heredado",
+  "routing_tenant_default": "Predeterminado del inquilino",
+  "routing_platform_default": "Predeterminado de la plataforma",
+  "routing_none": "Sin motor"
 }

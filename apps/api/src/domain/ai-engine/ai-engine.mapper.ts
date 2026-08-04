@@ -1,5 +1,6 @@
 import { AiEngine } from './entity/ai-engine.entity';
 import { TenantAiSetting } from './entity/tenant-ai-setting.entity';
+import type { AiSettingView } from './ai-setting.service';
 
 /** Entity -> camelCase response mapping. NEVER exposes encrypted API keys. */
 export class AiEngineMapper {
@@ -45,6 +46,26 @@ export class AiEngineMapper {
       engineId: s.engineId,
       engineName,
       params: s.paramsJson ?? null,
+    };
+  }
+
+  /**
+   * A console row for one AI function. `engineId` stays null when the tenant
+   * never chose one — the Select must show "unset" rather than pre-selecting an
+   * inherited engine, or saving the form would silently pin the inheritance in
+   * place. The effective fields describe what runs meanwhile.
+   */
+  static toSettingView(v: AiSettingView) {
+    return {
+      function: v.func,
+      engineId: v.setting?.engineId ?? null,
+      engineName: v.setting ? v.effectiveEngineName : null,
+      params: v.setting?.paramsJson ?? null,
+      effectiveEngineId: v.effectiveEngineId,
+      effectiveEngineName: v.effectiveEngineName,
+      effectiveProvider: v.effectiveProvider,
+      source: v.source,
+      inheritedFrom: v.inheritedFrom ?? null,
     };
   }
 }

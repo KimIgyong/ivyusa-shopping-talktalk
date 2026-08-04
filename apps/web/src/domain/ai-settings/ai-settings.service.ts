@@ -1,6 +1,14 @@
 import { apiGet, apiPut, apiPost, apiDelete } from '@/lib/api-client';
 
-export type AiFunction = 'chat' | 'rag' | 'summary' | 'assist' | 'moderation';
+export type AiFunction = 'chat' | 'rag' | 'summary' | 'assist' | 'moderation' | 'coach';
+
+/** Why a function runs on the engine it runs on (mirrors ROUTING_SOURCE). */
+export type RoutingSource =
+  | 'explicit'
+  | 'inherited'
+  | 'tenant_default'
+  | 'platform_default'
+  | 'none';
 
 export interface AiEngineOption {
   id: string;
@@ -11,9 +19,15 @@ export interface AiEngineOption {
 
 export interface AiFunctionSetting {
   function: AiFunction;
+  /** The tenant's explicit choice; null means never configured. */
   engineId: string | null;
   params?: Record<string, unknown>;
   availableEngines: AiEngineOption[];
+  /** What actually serves this function today, after inheritance/defaults. */
+  effectiveEngineName: string | null;
+  effectiveProvider: string | null;
+  source: RoutingSource;
+  inheritedFrom: string | null;
 }
 
 /** Mirrors ModerationMapper (apps/api moderation.mapper.ts). */
@@ -72,9 +86,17 @@ export interface AiConfig {
   handoffConfig?: HandoffConfig | null;
 }
 
-// Backend returns { settings: [{function, engineId, engineName, params}], availableEngines: [...] }.
+// Backend returns { settings: [{function, engineId, effective*, source, ...}], availableEngines: [...] }.
 interface AiSettingsResponse {
-  settings: { function: AiFunction; engineId: number | string | null; params?: Record<string, unknown> }[];
+  settings: {
+    function: AiFunction;
+    engineId: number | string | null;
+    params?: Record<string, unknown>;
+    effectiveEngineName?: string | null;
+    effectiveProvider?: string | null;
+    source?: RoutingSource;
+    inheritedFrom?: string | null;
+  }[];
   availableEngines: AiEngineOption[];
 }
 
@@ -88,6 +110,10 @@ export const aiSettingsService = {
       engineId: s.engineId == null ? null : String(s.engineId),
       params: s.params,
       availableEngines: d.availableEngines ?? [],
+      effectiveEngineName: s.effectiveEngineName ?? null,
+      effectiveProvider: s.effectiveProvider ?? null,
+      source: s.source ?? 'none',
+      inheritedFrom: s.inheritedFrom ?? null,
     }));
   },
   // engine_id is numeric server-side (@IsInt) — send a number, not the

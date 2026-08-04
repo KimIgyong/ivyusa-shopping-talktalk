@@ -1,15 +1,34 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
+import { AiFunction } from '@ivy/types';
 import { AiEngine } from './entity/ai-engine.entity';
 import { TenantAiSetting } from './entity/tenant-ai-setting.entity';
-import { UpsertAiSettingRequest } from './dto/request/ai-engine.request';
+import { AI_FUNCTIONS, UpsertAiSettingRequest } from './dto/request/ai-engine.request';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
+import {
+  AiGatewayService,
+  ROUTING_SOURCE,
+  RoutingSource,
+} from '../../infrastructure/external/ai/ai-gateway.service';
+
+/** One row of the console's AI-functions table. */
+export interface AiSettingView {
+  func: string;
+  /** The tenant's explicit choice, or null when it has never set one. */
+  setting: TenantAiSetting | null;
+  /** What actually runs today, after inheritance and defaults. */
+  effectiveEngineId: number | null;
+  effectiveEngineName: string | null;
+  effectiveProvider: string | null;
+  source: RoutingSource;
+  inheritedFrom?: string;
+}
 
 /**
  * Per-tenant AI function->engine selection (FR-070). Resolves which engine and
- * params back each AI function (chat/rag/summary/assist/moderation) for a tenant.
+ * params back each AI function for a tenant.
  */
 @Injectable()
 export class AiSettingService {
@@ -17,24 +36,45 @@ export class AiSettingService {
     @InjectRepository(TenantAiSetting)
     private readonly settingRepo: Repository<TenantAiSetting>,
     @InjectRepository(AiEngine) private readonly engineRepo: Repository<AiEngine>,
+    private readonly gateway: AiGatewayService,
   ) {}
 
-  /** Tenant settings joined with engine names. */
-  async list(
-    tenantId: number,
-  ): Promise<{ setting: TenantAiSetting; engineName: string | null }[]> {
-    const settings = await this.settingRepo.find({
-      where: { tenantId },
-      order: { func: 'ASC' },
-    });
-    if (settings.length === 0) return [];
-    const engineIds = [...new Set(settings.map((s) => s.engineId))];
-    const engines = await this.engineRepo.find({ where: { id: In(engineIds) } });
+  /**
+   * Every known AI function, whether or not the tenant has configured it, with
+   * the engine that actually serves it today.
+   *
+   * It used to return only existing rows. A function added after a tenant was
+   * provisioned therefore had no row, so it never appeared in the console and
+   * could not be assigned an engine — while silently running on whatever the
+   * fallback chain landed on (the stub). Listing the full set makes both the
+   * gap and its consequence visible.
+   */
+  async list(tenantId: number): Promise<AiSettingView[]> {
+    const rows = await this.settingRepo.find({ where: { tenantId } });
+    const byFunc = new Map(rows.map((r) => [r.func, r] as const));
+
+    const engineIds = [...new Set(rows.map((r) => r.engineId))];
+    const engines = engineIds.length
+      ? await this.engineRepo.find({ where: { id: In(engineIds) } })
+      : [];
     const nameById = new Map(engines.map((e) => [e.id, e.name] as const));
-    return settings.map((setting) => ({
-      setting,
-      engineName: nameById.get(setting.engineId) ?? null,
-    }));
+
+    return Promise.all(
+      [...AI_FUNCTIONS].map(async (func) => {
+        const setting = byFunc.get(func) ?? null;
+        const routing = await this.gateway.resolveRouting(tenantId, func as AiFunction);
+        return {
+          func,
+          setting,
+          effectiveEngineId: routing.engine?.id ?? null,
+          effectiveEngineName:
+            routing.engine?.name ?? (setting ? (nameById.get(setting.engineId) ?? null) : null),
+          effectiveProvider: routing.engine?.provider ?? null,
+          source: setting ? ROUTING_SOURCE.EXPLICIT : routing.source,
+          inheritedFrom: routing.inheritedFrom,
+        };
+      }),
+    );
   }
 
   /** Upsert the engine assigned to a tenant's AI function. */
