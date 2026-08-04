@@ -124,6 +124,11 @@ export const AI_FUNCTION = {
   ASSIST: 'assist',
   MODERATION: 'moderation',
   EMBEDDING: 'embedding',
+  /**
+   * Admin-facing coaching chat (FR-071). Routed separately from CHAT/RAG so a
+   * tenant can give the channel that writes durable config its own engine.
+   */
+  COACH: 'coach',
 } as const;
 export type AiFunction = (typeof AI_FUNCTION)[keyof typeof AI_FUNCTION];
 

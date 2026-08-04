@@ -22,7 +22,7 @@ import { Fulfillment } from '../domain/order/entity/fulfillment.entity';
 import { Notification } from '../domain/notification/entity/notification.entity';
 import { IntegrationStatusEntity } from '../domain/integration/entity/integration-status.entity';
 
-const AI_FUNCTIONS = ['chat', 'rag', 'summary', 'assist', 'moderation'];
+const AI_FUNCTIONS = ['chat', 'rag', 'summary', 'assist', 'moderation', 'coach'];
 
 export interface SeedOptions {
   /** Bootstrap password for admin@ / dev@ (default from SEED_PASSWORD or 'amb2026!@'). */

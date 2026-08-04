@@ -1,0 +1,204 @@
+import { useEffect, useRef, useState } from 'react';
+import { Info, Plus, Send } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { Button } from '@/components/Button';
+import { Badge } from '@/components/Badge';
+import { Select } from '@/components/Field';
+import { cn } from '@/lib/cn';
+import { toast } from '@/store/toast-store';
+import { coachService, type CoachProposal } from './coach.service';
+import { useCoachThread, useCoachThreads, useCreateCoachThread } from './coach.hooks';
+import { ProposalCard } from './ProposalCard';
+
+/**
+ * Admin↔agent coaching chat (FR-071). The other tab simulates a shopper; this
+ * one talks to the agent about its own behavior and turns the conclusions into
+ * proposals the admin approves.
+ */
+export function CoachPanel() {
+  const { t } = useTranslation('aiSetting');
+  const { t: tc } = useTranslation('common');
+
+  const { data: threads, isLoading: threadsLoading } = useCoachThreads();
+  const createThread = useCreateCoachThread();
+  const [threadId, setThreadId] = useState<number | null>(null);
+  const { data: detail, isLoading: detailLoading, refetch } = useCoachThread(threadId);
+  const [input, setInput] = useState('');
+  const [busy, setBusy] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Land on the most recent thread so the panel is usable without a first click.
+  useEffect(() => {
+    if (threadId === null && threads?.items?.length) setThreadId(threads.items[0].id);
+  }, [threads, threadId]);
+
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
+  }, [detail?.messages.length, busy]);
+
+  async function startThread() {
+    const created = await createThread.mutateAsync(undefined);
+    setThreadId(created.id);
+  }
+
+  async function submit() {
+    const text = input.trim();
+    if (!text || busy) return;
+
+    // No thread yet (first use) — open one, then send into it.
+    let target = threadId;
+    if (target === null) {
+      try {
+        const created = await createThread.mutateAsync(undefined);
+        target = created.id;
+        setThreadId(created.id);
+      } catch {
+        return; // the hook already surfaced the error
+      }
+    }
+
+    setInput('');
+    setBusy(true);
+    try {
+      await coachService.send(target, text);
+      await refetch();
+    } catch (e) {
+      toast.error((e as Error).message);
+      setInput(text); // give the text back rather than losing what they typed
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const messages = detail?.messages ?? [];
+  // Proposals arrive as a flat list; they render under the agent turn that
+  // produced them, which is where their rationale is.
+  const proposalsByMessage = new Map<number, CoachProposal[]>();
+  for (const p of detail?.proposals ?? []) {
+    proposalsByMessage.set(p.messageId, [...(proposalsByMessage.get(p.messageId) ?? []), p]);
+  }
+
+  return (
+    <div>
+      <div className="mb-2 flex items-center gap-2">
+        <Select
+          value={threadId ?? ''}
+          onChange={(e) => setThreadId(e.target.value ? Number(e.target.value) : null)}
+          className="min-w-0 flex-1"
+        >
+          {!threads?.items?.length && <option value="">{t('coach.noThreads')}</option>}
+          {threads?.items?.map((th) => (
+            <option key={th.id} value={th.id}>
+              {th.title || t('coach.untitled')}
+            </option>
+          ))}
+        </Select>
+        <Button
+          size="sm"
+          variant="secondary"
+          disabled={createThread.isPending}
+          onClick={() => void startThread()}
+        >
+          <Plus className="h-4 w-4" /> {t('coach.newThread')}
+        </Button>
+      </div>
+
+      {/* Standing reminder that this channel proposes, never applies. Without it
+          the chat reads as if the agent is learning on its own. */}
+      <p className="mb-2 flex items-start gap-1 rounded-md bg-gray-50 px-2 py-1.5 text-[11px] text-gray-500">
+        <Info className="mt-0.5 h-3 w-3 shrink-0" />
+        {t('coach.approvalNotice')}
+      </p>
+
+      <div
+        ref={scrollRef}
+        className="h-96 space-y-2 overflow-y-auto rounded-lg border border-gray-100 bg-white p-3"
+      >
+        {(threadsLoading || detailLoading) && <p className="text-sm text-gray-400">{tc('loading')}</p>}
+
+        {!threadsLoading && !detailLoading && messages.length === 0 && (
+          <div className="pt-12 text-center">
+            <p className="text-sm text-gray-400">{t('coach.empty')}</p>
+            <p className="mt-2 text-xs text-gray-400">{t('coach.emptyExample')}</p>
+          </div>
+        )}
+
+        {messages.map((m) => (
+          <div key={m.id} className="flex flex-col">
+            {m.refTurn && (
+              <div className="mb-1 rounded-lg border border-gray-200 bg-gray-50 px-2.5 py-2 text-[11px] text-gray-600">
+                <p className="font-semibold text-gray-500">{t('coach.referencedTurn')}</p>
+                <p className="mt-1 whitespace-pre-wrap">
+                  <span className="text-gray-400">{t('coach.refCustomer')} </span>
+                  {m.refTurn.question}
+                </p>
+                <p className="whitespace-pre-wrap">
+                  <span className="text-gray-400">{t('coach.refAgent')} </span>
+                  {m.refTurn.answer}
+                </p>
+                <div className="mt-1 flex flex-wrap gap-1">
+                  {m.refTurn.confidence !== null && (
+                    <Badge tone={m.refTurn.confidence >= 0.45 ? 'success' : 'warning'}>
+                      conf {m.refTurn.confidence.toFixed(2)}
+                    </Badge>
+                  )}
+                  {m.refTurn.citations.map((c) => (
+                    <Badge key={c.id} tone="info">
+                      {c.title.length > 24 ? `${c.title.slice(0, 24)}…` : c.title}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div
+              className={cn(
+                'max-w-[90%] whitespace-pre-wrap rounded-xl px-3 py-2 text-sm',
+                m.role === 'user' ? 'ml-auto bg-primary-500 text-white' : 'mr-auto bg-gray-100 text-gray-800',
+              )}
+            >
+              {m.blocked ? (
+                <span className="text-amber-700">{t('coach.moderationBlocked')}</span>
+              ) : (
+                m.body
+              )}
+            </div>
+
+            {/* Retrieved documents are rendered from the stored citation rows,
+                not from anything the model said about them. */}
+            {m.role === 'agent' && m.citations.length > 0 && (
+              <div className="mr-auto mt-1 flex max-w-[90%] flex-wrap gap-1">
+                {m.citations.map((c) => (
+                  <Badge key={c.id} tone="info">
+                    {c.title.length > 28 ? `${c.title.slice(0, 28)}…` : c.title}
+                  </Badge>
+                ))}
+              </div>
+            )}
+
+            {(proposalsByMessage.get(m.id) ?? []).map((p) => (
+              <ProposalCard key={p.id} proposal={p} />
+            ))}
+          </div>
+        ))}
+
+        {busy && <p className="text-xs text-gray-400">{t('coach.thinking')}</p>}
+      </div>
+
+      <div className="mt-2 flex items-center gap-2">
+        <input
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.nativeEvent.isComposing) void submit();
+          }}
+          placeholder={t('coach.placeholder')}
+          className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-primary-500"
+        />
+        <Button size="sm" onClick={() => void submit()} disabled={busy || !input.trim()}>
+          <Send className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
+  );
+}
