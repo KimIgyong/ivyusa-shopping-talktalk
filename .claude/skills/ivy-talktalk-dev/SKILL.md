@@ -58,15 +58,21 @@ Create under `apps/api/src/domain/{domain}/`:
 `npm run db:up` (MySQL :3316 / Redis :6389 / RabbitMQ :5682) · `npm run db:seed` · `npm run dev` (api :3000, web :5173, widget :5174) · `npm run build` · `npm run typecheck`. If Docker Desktop is flaky, let the daemon settle ~40s before `db:up`; the lighter run is prebuilt `node apps/api/dist/main.js` + `vite`.
 
 ## 6. Workflow, git & deploy (kit 03/04 rules)
+**Doc filenames (MUST)**: `{PREFIX}-{YYMMDD}-{Topic}.md` — prefix first, then the 6-digit date,
+then the topic, so a directory listing reads chronologically per kind
+(`docs/plan/PLN-260804-Ops-Logs-Stats-KnowledgeConflict.md`). Deliberate deviation from the kit's
+`{PREFIX}-{Topic}-{YYYYMMDD}` (SPEC §13). `docs/log/YYYY-MM-DD/` keeps the full date.
+
 `[요구사항]`/requirements-type work follows **REQ → PLN → 구현 → TCR → RPT**, strictly:
-`docs/analysis/REQ-{Topic}-{YYYYMMDD}.md` (AS-IS/TO-BE/gap/flow/constraints) →
+`docs/analysis/REQ-{YYMMDD}-{Topic}.md` (AS-IS/TO-BE/gap/flow/constraints) →
 `docs/plan/PLN-…` — ⚠️ **ASCII wireframe MUST for any UI change** (backend-only: state
 "no UI impact") and ⚠️ **implement only after the user approves the PLN, never auto-start** →
 implementation → `docs/test/TCR-…` (unit/integration/edge) → `docs/implementation/RPT-…`
 (changes, files, tests, **deploy state: PR#, SHA, per-env deploy/migration**).
 Bug fixes: root cause (no symptom patching) → proposal → minimal change →
-`docs/bug-fix/FIX-{Topic}-{YYYYMMDD}.md` + prevention pattern. Legacy `AN-/PLAN-/TC-`
-files are historical — never rename. Map code to design IDs (FR→FN→SCR→TBL→SEQ→T).
+`docs/bug-fix/FIX-{YYMMDD}-{Topic}.md` + prevention pattern. Legacy `AN-/PLAN-/TC-` files and
+anything named before 2026-08-04 are historical — **never rename**.
+Map code to design IDs (FR→FN→SCR→TBL→SEQ→T).
 Git: `feature/*` off `main`, PR + squash-merge; `main`→`production` merge commit;
 commit `{type}: {desc}`.
 - **Schema-change PR** (touches `sql/*.sql` or `*.entity.ts`): PR body MUST have a

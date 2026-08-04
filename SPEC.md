@@ -367,6 +367,7 @@ Intentional, design-driven choices — NOT compliance failures:
 | Auth decorators | `@Auth`/`@Roles`/`OwnEntityGuard` (dev-kit) | `@Auth`/`@AdminOnly`/`@RequireRank`/`@RequireCapability` + `TenantContext` interceptor | RBAC is rank×label×capability here, richer than role hierarchy |
 | Tenancy axis | `ent_id` (법인) | `tenant_id` | tenant = shop, not corporate entity |
 | Soft delete | `{prefix}_deleted_at` | hard-delete + anonymization | GDPR redact/DSAR + retention purge model (§14) |
+| Doc filenames | `{PREFIX}-{Topic}-{YYYYMMDD}.md` | `{PREFIX}-{YYMMDD}-{Topic}.md` (from 2026-08-04) | date before topic makes a directory listing read chronologically per kind; 6-digit year is enough within a project's lifetime. Docs named earlier keep their names — never renamed |
 
 ## 14. Known Gaps & Remediation Roadmap (갭·개선 로드맵)
 Full evidence: `docs/report/RPT-Standards-Compliance-Audit-20260619.md`.
