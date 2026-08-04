@@ -2,7 +2,7 @@ import { Type } from 'class-transformer';
 import { IsIn, IsInt, IsObject, IsOptional, IsString } from 'class-validator';
 
 /** Tenant-selectable AI functions (FR-070). */
-export const AI_FUNCTIONS = ['chat', 'rag', 'summary', 'assist', 'moderation'] as const;
+export const AI_FUNCTIONS = ['chat', 'rag', 'summary', 'assist', 'moderation', 'coach'] as const;
 
 // ---- Platform engine catalog ----
 

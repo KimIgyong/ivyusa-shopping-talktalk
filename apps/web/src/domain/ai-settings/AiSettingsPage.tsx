@@ -9,7 +9,7 @@ import { Modal } from '@/components/Modal';
 import { FormRow, Input, Select, Label } from '@/components/Field';
 import { Table, type Column } from '@/components/Table';
 import { cn } from '@/lib/cn';
-import { PreviewPanel } from './PreviewPanel';
+import { AiStudioPanel } from './AiStudioPanel';
 import { ScenarioReplyEditor } from './ScenarioReplyEditor';
 import { HandoffSection } from './HandoffSection';
 import {
@@ -47,8 +47,9 @@ export function AiSettingsPage() {
     <div>
       <PageHeader title={t('title')} subtitle={t('subtitle')} />
 
-      {/* Settings on the left, live preview pinned on the right (xl+). Below xl
-          the preview drops under the settings so it stays reachable on tablets. */}
+      {/* Settings on the left, the studio (preview + coaching) pinned on the
+          right (xl+). Below xl it drops under the settings so it stays
+          reachable on tablets. */}
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_400px]">
         <div className="space-y-6">
           <PersonaSection />
@@ -59,7 +60,7 @@ export function AiSettingsPage() {
           <HandoffSection />
         </div>
         <div className="xl:sticky xl:top-6 xl:self-start">
-          <PreviewPanel />
+          <AiStudioPanel />
         </div>
       </div>
     </div>

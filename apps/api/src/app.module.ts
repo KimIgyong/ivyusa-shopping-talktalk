@@ -34,6 +34,7 @@ import { IntegrationModule } from './domain/integration/integration.module';
 import { AgentModule } from './domain/agent/agent.module';
 import { AuditModule } from './domain/audit/audit.module';
 import { AiEngineModule } from './domain/ai-engine/ai-engine.module';
+import { AiCoachModule } from './domain/ai-coach/ai-coach.module';
 import { AnalyticsModule } from './domain/analytics/analytics.module';
 import { CustomerModule } from './domain/customer/customer.module';
 import { PrivacyModule } from './domain/privacy/privacy.module';
@@ -83,6 +84,7 @@ import { ShopifyProxyModule } from './domain/shopify-proxy/shopify-proxy.module'
     AgentModule,
     AuditModule,
     AiEngineModule,
+    AiCoachModule,
     AnalyticsModule,
     PrivacyModule,
     HealthModule,

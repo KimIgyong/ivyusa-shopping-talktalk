@@ -36,6 +36,13 @@ export const ERROR_CODE = {
   AGENT_UNAVAILABLE: { code: 'E4003', message: 'No agent available' },
   AI_DAILY_QUOTA: { code: 'E4010', message: 'Daily AI quota exceeded' },
   AI_MONTHLY_QUOTA: { code: 'E4011', message: 'Monthly AI quota exceeded' },
+  // Agent coaching (REQ-260804 / FR-071..073)
+  COACH_THREAD_NOT_FOUND: { code: 'E4012', message: 'Coaching thread not found' },
+  COACH_PROPOSAL_NOT_FOUND: { code: 'E4013', message: 'Coaching proposal not found' },
+  COACH_PROPOSAL_NOT_PENDING: { code: 'E4014', message: 'Coaching proposal is no longer pending' },
+  // The config moved between proposing and applying, so the stored diff no
+  // longer describes the change it claimed to make.
+  COACH_PROPOSAL_STALE: { code: 'E4015', message: 'Target changed since this proposal was made' },
 
   // E5xxx — domain
   ORDER_NOT_FOUND: { code: 'E5001', message: 'Order not found' },
