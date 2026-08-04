@@ -61,6 +61,11 @@ export interface PrivacyNoticeResponse {
 }
 
 /** Widget behavior settings (PLN-Widget-Login-Redirect-Orders). */
+/** Customer-facing shop origin; null disables product links in the widget. */
+export interface StorefrontResponse {
+  storefrontUrl: string | null;
+}
+
 export interface WidgetSettingsResponse {
   loginMode: WidgetLoginMode;
 }

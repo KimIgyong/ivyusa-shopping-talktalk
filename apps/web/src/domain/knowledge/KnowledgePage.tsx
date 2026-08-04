@@ -11,6 +11,7 @@ import type { Column } from '@/components/Table';
 import { Modal } from '@/components/Modal';
 import { Pagination } from '@/components/Pagination';
 import { FormRow, Input, Select } from '@/components/Field';
+import { ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { KnowledgeQaPanel } from './KnowledgeQaPanel';
 import { ConflictReview } from './ConflictReview';
@@ -312,6 +313,25 @@ export function KnowledgePage() {
           {r.stale && <Badge tone="warning">{t('staleBadge')}</Badge>}
         </span>
       ),
+    },
+    {
+      key: 'link',
+      header: '',
+      // Shortcut straight to the shop page. Only documents that carry a URL
+      // show one — policy documents currently have none.
+      render: (r) =>
+        r.sourceUrl ? (
+          <a
+            href={r.sourceUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            title={t('openProductPage')}
+            className="text-gray-400 hover:text-primary-600"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <ExternalLink className="h-4 w-4" />
+          </a>
+        ) : null,
     },
     {
       key: 'actions',
@@ -644,6 +664,17 @@ export function KnowledgePage() {
                 {t(`source.${detail.data.source}`, { defaultValue: detail.data.source })}
               </Badge>
               {detail.data.stale && <Badge tone="warning">{t('staleBadge')}</Badge>}
+              {detail.data.sourceUrl && (
+                <a
+                  href={detail.data.sourceUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-xs text-primary-600 underline"
+                >
+                  <ExternalLink className="h-3.5 w-3.5" />
+                  {t('openProductPage')}
+                </a>
+              )}
               {detail.data.updatedAt && (
                 <span className="text-xs text-gray-500">
                   {t('updated')}: {new Date(detail.data.updatedAt).toLocaleString()}

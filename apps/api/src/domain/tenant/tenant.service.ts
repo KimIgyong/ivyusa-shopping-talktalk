@@ -3,6 +3,7 @@ import { HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { FindOptionsWhere, Repository } from 'typeorm';
 import { Tenant } from './entity/tenant.entity';
+import { normalizeStorefrontUrl } from '../../global/util/storefront-url.util';
 import { IntegrationCredential } from './entity/integration-credential.entity';
 import { User } from '../user/entity/user.entity';
 import { IntegrationStatusEntity } from '../integration/entity/integration-status.entity';
@@ -16,6 +17,7 @@ import {
 import { decryptSecret, encryptSecret } from '../../global/util/crypto.util';
 import {
   UpdatePrivacyNoticeRequest,
+  UpdateStorefrontRequest,
   UpdateWidgetSettingsRequest,
   UpdateShopifySettingsRequest,
 } from './dto/request/tenant.request';
@@ -219,6 +221,41 @@ export class TenantService {
       actorId,
       action: 'tenant.widget_settings_updated',
       target: saved.widgetLoginMode,
+    });
+    return saved;
+  }
+
+  /**
+   * Set the customer-facing storefront origin. This decides which product URLs
+   * are allowed to become clickable links in shoppers' conversations, so a
+   * change is audited like any other trust boundary.
+   *
+   * Rejects anything that is not an http(s) origin rather than storing it and
+   * silently matching nothing later.
+   */
+  async updateStorefront(
+    tenantId: number,
+    actorId: number,
+    dto: UpdateStorefrontRequest,
+  ): Promise<Tenant> {
+    const tenant = await this.findById(tenantId);
+    const raw = dto.storefront_url?.trim();
+    if (raw) {
+      const normalized = normalizeStorefrontUrl(raw);
+      if (!normalized) {
+        throw new BusinessException(ERROR_CODE.VALIDATION_FAILED, HttpStatus.BAD_REQUEST);
+      }
+      tenant.storefrontUrl = normalized;
+    } else {
+      tenant.storefrontUrl = null;
+    }
+    const saved = await this.tenantRepo.save(tenant);
+    await this.audit.write({
+      tenantId,
+      actorType: 'user',
+      actorId,
+      action: 'tenant.storefront_updated',
+      target: saved.storefrontUrl ?? 'cleared',
     });
     return saved;
   }

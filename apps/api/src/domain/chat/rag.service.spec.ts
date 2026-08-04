@@ -3,10 +3,12 @@ import { RagService } from './rag.service';
 /** RagService.classifyIntent — gateway JSON parsing with safe fallback. */
 describe('RagService.classifyIntent', () => {
   const kbRepo = {} as never;
+  // Storefront lookup: unset, so no citation ever gets a link.
+  const tenantRepo = { findOne: jest.fn(async () => null) } as never;
 
   function svc(aiText: string): RagService {
     const ai = { complete: jest.fn().mockResolvedValue({ text: aiText, tokensIn: 0, tokensOut: 0 }) };
-    return new RagService(kbRepo, ai as never);
+    return new RagService(kbRepo, tenantRepo, ai as never);
   }
 
   it('parses a valid intent JSON from the gateway', async () => {
@@ -65,7 +67,14 @@ describe('RagService.answer with order context', () => {
     // about the order-context block, not retrieval.
     const qdrant = { enabled: false, search: jest.fn() };
     const aiConfig = { getPersonaRules: jest.fn().mockResolvedValue({ persona: 'P', rules: [] }) };
-    const svc = new RagService(kbRepo as never, ai as never, qdrant as never, aiConfig as never);
+    const tenantRepo = { findOne: jest.fn(async () => ({ id: 1, storefrontUrl: null })) };
+    const svc = new RagService(
+      kbRepo as never,
+      tenantRepo as never,
+      ai as never,
+      qdrant as never,
+      aiConfig as never,
+    );
     return { svc, ai, qdrant };
   }
 

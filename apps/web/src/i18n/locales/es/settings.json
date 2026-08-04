@@ -170,5 +170,11 @@
       "step2": "Desplázate hasta la sección Código personalizado.",
       "step3": "Pega el fragmento en el campo \"final de body\" y guarda."
     }
+  },
+  "storefront": {
+    "title": "Tienda",
+    "url": "URL de la tienda",
+    "hint": "Se usa para verificar los enlaces de producto antes de mostrarlos a los clientes. Solo aparecen en el chat los enlaces de este origen.",
+    "unsetWarning": "Sin configurar — las recomendaciones de producto no aparecerán como enlaces en el chat."
   }
 }

@@ -16,6 +16,8 @@ import {
   useSaveWidgetSettings,
   useShopifySettings,
   useUpdateCredential,
+  useStorefront,
+  useUpdateStorefront,
   useWidgetSettings,
 } from './settings.hooks';
 import type { CredentialStatus } from './settings.service';
@@ -287,6 +289,48 @@ function EcommerceTile({
 }
 
 /**
+ * Customer-facing shop origin (PLN-260804-Product-Link-Recommendation).
+ *
+ * This is what decides whether a product citation becomes a clickable link in a
+ * shopper's chat. Product URLs arrive in an uploaded CSV, so the server only
+ * links the ones on this origin — until it is set, citations stay plain text.
+ */
+function StorefrontCard() {
+  const { t } = useTranslation('settings');
+  const { t: tc } = useTranslation('common');
+  const { data, isLoading } = useStorefront();
+  const save = useUpdateStorefront();
+  const [value, setValue] = useState<string | null>(null);
+  const current = value ?? data?.storefrontUrl ?? '';
+  const dirty = data != null && current !== (data.storefrontUrl ?? '');
+
+  return (
+    <Card title={t('storefront.title')}>
+      {isLoading ? (
+        <p className="text-sm text-gray-400">{tc('loading')}</p>
+      ) : (
+        <div className="space-y-2">
+          <FormRow label={t('storefront.url')}>
+            <Input
+              value={current}
+              placeholder="https://ivyusa.com"
+              onChange={(e) => setValue(e.target.value)}
+            />
+          </FormRow>
+          <p className="text-xs text-gray-500">{t('storefront.hint')}</p>
+          {!data?.storefrontUrl && (
+            <p className="text-xs text-warning">{t('storefront.unsetWarning')}</p>
+          )}
+          <Button disabled={!dirty || save.isPending} onClick={() => save.mutate(current)}>
+            {tc('save')}
+          </Button>
+        </div>
+      )}
+    </Card>
+  );
+}
+
+/**
  * Widget sign-in behavior (PLN-Widget-Login-Redirect-Orders): whole-tab redirect
  * to the store's hosted login (default) vs a popup window. Delivered to the
  * widget via session/ensure; takes effect on the shopper's next page load.
@@ -395,6 +439,7 @@ export function SettingsPage() {
       <InstallGuideCard />
 
       <WidgetBehaviorCard />
+      <StorefrontCard />
 
       <Card title={t('integrationCredentials')}>
         <Table<CredentialStatus>

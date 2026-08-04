@@ -8,6 +8,7 @@ import {
   PublicTenantResponse,
   ShopifySettingsResponse,
   TenantResponse,
+  StorefrontResponse,
   WidgetSettingsResponse,
 } from './dto/response/tenant.response';
 
@@ -46,6 +47,10 @@ export class TenantMapper {
   }
 
   /** Widget behavior settings; anything but an explicit 'popup' reads as redirect. */
+  static toStorefront(t: Tenant): StorefrontResponse {
+    return { storefrontUrl: t.storefrontUrl };
+  }
+
   static toWidgetSettings(t: Tenant): WidgetSettingsResponse {
     return {
       loginMode:

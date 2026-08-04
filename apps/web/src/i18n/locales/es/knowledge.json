@@ -151,5 +151,6 @@
   "importSkipped": "Sin cambios",
   "importInvalid": "Omitidas",
   "importEmbedded": "Indexados",
-  "importRow": "Fila {{n}}"
+  "importRow": "Fila {{n}}",
+  "openProductPage": "Abrir página del producto"
 }

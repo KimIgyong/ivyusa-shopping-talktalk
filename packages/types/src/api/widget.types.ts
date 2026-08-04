@@ -45,7 +45,10 @@ export interface ChatCitation {
   category?: string | null;
   source?: string;
   snippet?: string;
-  url?: string;
+  /** counsel | product — the widget labels product citations as recommendations. */
+  group?: string;
+  /** Present only for a product on the tenant's own storefront; null otherwise. */
+  url?: string | null;
 }
 
 /** Scenario follow-up chip (FR-S1). */

@@ -167,3 +167,25 @@ export function useTestIntegration(provider: string) {
     },
   });
 }
+
+/** Storefront origin — decides whether product citations become links. */
+export function useStorefront() {
+  const tenantKey = useTenantKey();
+  return useQuery({
+    queryKey: ['storefront', tenantKey],
+    queryFn: () => settingsService.storefront(),
+  });
+}
+
+export function useUpdateStorefront() {
+  const qc = useQueryClient();
+  const tenantKey = useTenantKey();
+  return useMutation({
+    mutationFn: (url: string) => settingsService.updateStorefront(url),
+    onSuccess: (r) => {
+      qc.invalidateQueries({ queryKey: ['storefront', tenantKey] });
+      toast.success(r.storefrontUrl ? 'Storefront saved' : 'Storefront cleared');
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+}

@@ -3,6 +3,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Brackets, In, Repository } from 'typeorm';
 import { AI_FUNCTION } from '@ivy/types';
 import { KbDocument } from '../knowledge/entity/kb-document.entity';
+import { Tenant } from '../tenant/entity/tenant.entity';
+import { normalizeStorefrontUrl, productLinkFor } from '../../global/util/storefront-url.util';
 import { AiGatewayService } from '../../infrastructure/external/ai/ai-gateway.service';
 import { QdrantService } from '../../infrastructure/external/vector/qdrant.service';
 import { AiConfigService } from '../ai-engine/ai-config.service';
@@ -12,6 +14,15 @@ export interface RetrievedChunk {
   title: string;
   category: string | null;
   source: string;
+  /** counsel | product — lets the widget label product recommendations. */
+  group: string;
+  /**
+   * Customer-facing link, or null. Only set for product documents whose
+   * source_url is on the tenant's own storefront: the value arrives in an
+   * operator-uploaded CSV and the widget turns it into a clickable link inside
+   * a shopper's conversation.
+   */
+  url: string | null;
   snippet: string;
   /** Dense similarity (dot, normalized vectors) when the vector leg saw this doc. */
   similarity: number | null;
@@ -72,10 +83,20 @@ export class RagService {
 
   constructor(
     @InjectRepository(KbDocument) private readonly kbRepo: Repository<KbDocument>,
+    @InjectRepository(Tenant) private readonly tenantRepo: Repository<Tenant>,
     private readonly ai: AiGatewayService,
     private readonly qdrant: QdrantService,
     private readonly aiConfig: AiConfigService,
   ) {}
+
+  /** The tenant's storefront origin, or null when nobody has configured one. */
+  private async storefrontFor(tenantId: number): Promise<string | null> {
+    const tenant = await this.tenantRepo.findOne({
+      where: { id: tenantId },
+      select: ['id', 'storefrontUrl'],
+    });
+    return normalizeStorefrontUrl(tenant?.storefrontUrl);
+  }
 
   async retrieve(tenantId: number, query: string, limit = 4): Promise<RetrievedChunk[]> {
     return (await this.retrieveHybrid(tenantId, query, limit)).chunks;
@@ -139,11 +160,14 @@ export class RagService {
       .sort((a, b) => b.rrf - a.rrf)
       .slice(0, limit);
 
+    const storefront = await this.storefrontFor(tenantId);
     const chunks = ranked.map(({ doc, similarity }) => ({
       id: Number(doc.id),
       title: doc.title,
       category: doc.category,
       source: doc.source,
+      group: doc.docGroup,
+      url: productLinkFor(doc.docGroup, doc.sourceUrl, storefront),
       snippet: (doc.content ?? '').slice(0, RagService.SNIPPET_CHARS),
       similarity,
     }));

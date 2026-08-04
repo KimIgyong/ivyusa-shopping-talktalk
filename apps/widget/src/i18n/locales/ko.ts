@@ -29,6 +29,7 @@ export const ko: Translation = {
       '{{name}}님, 안녕하세요! IVY USA에 다시 오신 것을 환영합니다. 무엇을 도와드릴까요? 아래에서 주제를 선택하거나 궁금한 점을 입력해 주세요.',
     aiDisclosure:
       '이 채팅은 AI 기반으로 운영됩니다. 보내신 메시지는 응답 생성을 위해 미국에 있는 외부 AI 서비스 제공업체에서 처리됩니다.',
+    citations: '지식참조',
     inputPlaceholder: '메시지를 입력하세요…',
     send: '보내기',
     sendFailed: '전송하지 못했습니다. 다시 시도해 주세요.',

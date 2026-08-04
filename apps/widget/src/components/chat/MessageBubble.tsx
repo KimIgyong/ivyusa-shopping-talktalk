@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import type { ChatMessage } from '../../lib/types';
 import { formatTime } from '../../lib/format';
 
@@ -15,6 +16,7 @@ function safeHttpUrl(url: string): string | null {
 }
 
 export function MessageBubble({ message }: { message: ChatMessage }) {
+  const { t } = useTranslation();
   const mine = message.senderType === 'user';
   return (
     <div className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
@@ -33,22 +35,33 @@ export function MessageBubble({ message }: { message: ChatMessage }) {
           {message.body}
         </div>
         {message.citations && message.citations.length > 0 && (
-          <ul className="mt-1 space-y-0.5">
-            {message.citations.map((c, i) => {
-              const href = c.url ? safeHttpUrl(c.url) : null;
-              return (
-                <li key={i} className="text-xs text-primary-600">
-                  {href ? (
-                    <a href={href} target="_blank" rel="noopener noreferrer" className="underline">
-                      {c.title || c.url}
-                    </a>
-                  ) : (
-                    c.title || c.url
-                  )}
-                </li>
-              );
-            })}
-          </ul>
+          <div className="mt-1.5 border-t border-gray-200 pt-1.5">
+            <p className="mb-0.5 text-[10px] font-medium text-gray-500">{t('chat.citations')}</p>
+            <ul className="space-y-0.5">
+              {message.citations.map((c, i) => {
+                // The server only fills `url` for a product on this tenant's own
+                // storefront, so anything with a link is a product to recommend
+                // and everything else stays plain reference text.
+                const href = c.url ? safeHttpUrl(c.url) : null;
+                return (
+                  <li key={i} className="text-xs text-primary-600">
+                    {href ? (
+                      <a
+                        href={href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="underline"
+                      >
+                        🛍 {c.title || c.url}
+                      </a>
+                    ) : (
+                      <span className="text-gray-500">· {c.title || c.url}</span>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
         )}
         <div
           className={`mt-0.5 text-[10px] text-gray-400 ${

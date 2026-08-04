@@ -151,5 +151,6 @@
   "importSkipped": "변경없음",
   "importInvalid": "건너뜀",
   "importEmbedded": "색인",
-  "importRow": "{{n}}행"
+  "importRow": "{{n}}행",
+  "openProductPage": "상품 페이지 열기"
 }

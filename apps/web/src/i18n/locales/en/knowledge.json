@@ -151,5 +151,6 @@
   "importSkipped": "Unchanged",
   "importInvalid": "Skipped",
   "importEmbedded": "Indexed",
-  "importRow": "Row {{n}}"
+  "importRow": "Row {{n}}",
+  "openProductPage": "Open product page"
 }
