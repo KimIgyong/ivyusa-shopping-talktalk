@@ -19,11 +19,38 @@ import { liveChatService } from './live-chat.service';
 import type { CustomerContext } from './live-chat.service';
 import { cn } from '@/lib/cn';
 
+function absTime(value: string | undefined | null): string {
+  if (!value) return '';
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? '' : d.toLocaleString();
+}
+
 export function LiveChatPage() {
   const { t } = useTranslation('livechat');
+
+  /** Compact relative time for the queue rows; absolute time goes in the tooltip. */
+  const timeAgo = (value: string | undefined | null): string => {
+    if (!value) return t('noReplyYet');
+    const ms = Date.now() - new Date(value).getTime();
+    if (Number.isNaN(ms) || ms < 0) return t('justNow');
+    const min = Math.floor(ms / 60_000);
+    if (min < 1) return t('justNow');
+    if (min < 60) return t('minutesAgo', { n: min });
+    const h = Math.floor(min / 60);
+    if (h < 24) return t('hoursAgo', { n: h });
+    return t('daysAgo', { n: Math.floor(h / 24) });
+  };
   const [searchParams] = useSearchParams();
   const [selected, setSelected] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
+
+  // Queue search box (customer name/email) — debounced into the list query.
+  const [listQuery, setListQuery] = useState('');
+  const [listSearch, setListSearch] = useState('');
+  useEffect(() => {
+    const timer = setTimeout(() => setListSearch(listQuery), 300);
+    return () => clearTimeout(timer);
+  }, [listQuery]);
 
   // Deep link from the escalation alarm modal: /live-chat?c={conversationId}
   // opens the alerted conversation so the agent continues the thread (FR-S4).
@@ -31,7 +58,7 @@ export function LiveChatPage() {
   useEffect(() => {
     if (deepLink) setSelected(deepLink);
   }, [deepLink]);
-  const { data: sessions, isLoading: sessionsLoading } = useSessions();
+  const { data: sessions, isLoading: sessionsLoading } = useSessions(listSearch);
   const { data: convo, isLoading: convoLoading } = useConversation(selected);
   const { accept, end, send } = useConversationActions(selected);
   const { link, create } = useCustomerActions(selected);
@@ -120,6 +147,18 @@ export function LiveChatPage() {
           <div className="border-b border-gray-100 px-4 py-3 text-sm font-medium text-gray-600">
             {t('sessions')} {sessions ? `(${sessions.length})` : ''}
           </div>
+          <div className="border-b border-gray-100 p-2">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
+              <input
+                value={listQuery}
+                onChange={(e) => setListQuery(e.target.value)}
+                placeholder={t('listSearchPlaceholder')}
+                title={t('listSearchScope')}
+                className="w-full rounded-lg border border-gray-200 py-1.5 pl-8 pr-2 text-xs text-gray-700 outline-none focus:border-primary-400 focus:ring-1 focus:ring-primary-400"
+              />
+            </div>
+          </div>
           {sessionsLoading && (
             <div className="p-6 text-center text-sm text-gray-400">
               <Loader2 className="mx-auto h-5 w-5 animate-spin" />
@@ -144,7 +183,18 @@ export function LiveChatPage() {
                     </span>
                     <StatusBadge status={s.status} />
                   </div>
-                  <p className="mt-1 truncate text-xs text-gray-500">{s.lastMessage ?? '—'}</p>
+                  <p className="mt-1 truncate text-xs text-gray-500">
+                    {s.lastMessagePreview ?? '—'}
+                  </p>
+                  <p
+                    className="mt-0.5 text-[11px] text-gray-400"
+                    title={`${t('createdShort')} ${absTime(s.createdAt)}${
+                      s.lastMessageAt ? ` · ${t('lastReplyShort')} ${absTime(s.lastMessageAt)}` : ''
+                    }`}
+                  >
+                    {t('createdShort')} {timeAgo(s.createdAt)} · {t('lastReplyShort')}{' '}
+                    {timeAgo(s.lastMessageAt)}
+                  </p>
                 </button>
               </li>
             ))}

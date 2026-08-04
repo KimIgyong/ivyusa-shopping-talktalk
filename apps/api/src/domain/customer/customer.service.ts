@@ -127,7 +127,12 @@ export class CustomerService {
   async namesByIds(tenantId: number, ids: number[]): Promise<Map<string, string>> {
     const map = new Map<string, string>();
     if (ids.length === 0) return map;
-    const rows = await this.customerRepo.find({ where: { tenantId, id: In(ids) } });
+    // Only id+name: every selected PII column costs an AES-GCM decrypt per row,
+    // and this list-enrichment path needs nothing but the display name.
+    const rows = await this.customerRepo.find({
+      where: { tenantId, id: In(ids) },
+      select: { id: true, name: true },
+    });
     for (const c of rows) {
       if (c.name) map.set(String(c.id), c.name);
     }

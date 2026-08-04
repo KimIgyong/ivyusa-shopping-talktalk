@@ -33,6 +33,8 @@ export const es: Translation = {
     send: 'Enviar',
     sendFailed: 'Lo sentimos, no se pudo enviar. Inténtalo de nuevo.',
     connectingAgent: 'Te estamos conectando con un agente de soporte. Espera un momento…',
+    typingAi: 'Escribiendo una respuesta…',
+    typingAgent: 'Un agente está escribiendo una respuesta…',
     nextActions: {
       myOrders: 'Mis pedidos',
       shipping: 'Envío y entrega',

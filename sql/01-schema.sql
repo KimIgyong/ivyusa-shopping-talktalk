@@ -206,7 +206,9 @@ CREATE TABLE `conversations` (
   KEY `idx_conv_session` (`session_id`),
   KEY `idx_conv_agent` (`agent_id`),
   KEY `idx_conv_tenant` (`tenant_id`),
-  KEY `idx_conv_status` (`status`)
+  KEY `idx_conv_status` (`status`),
+  -- Agent-queue driving query: tenant + status IN(...) ORDER BY id DESC (PLN-260804).
+  KEY `idx_conv_tenant_status_id` (`tenant_id`, `status`, `id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 DROP TABLE IF EXISTS `customers`;
 CREATE TABLE `customers` (

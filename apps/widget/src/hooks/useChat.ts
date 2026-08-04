@@ -28,6 +28,10 @@ export function useChat(sessionToken: string | null) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [sending, setSending] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
+  // Server-side conversation mode ('ai_active' | 'waiting' | 'agent' | 'ended' |
+  // 'none') — lets the UI say "an agent is typing…" instead of the AI wording
+  // once the thread is handed off.
+  const [status, setStatus] = useState<string>('none');
   // Ref (not state) so the polling queryFn always sees the current value.
   const inFlight = useRef(false);
   // Highest server message id seen — the ?after_id= delta cursor (PERF-1).
@@ -41,6 +45,7 @@ export function useChat(sessionToken: string | null) {
       const after = lastServerId.current;
       const conv = await getConversation(sessionToken!, after);
       if (!inFlight.current) {
+        if (conv.status) setStatus(conv.status);
         if (conv.conversationId != null) setConversationId(String(conv.conversationId));
         const serverMsgs = conv.messages ?? [];
         trackCursor(lastServerId, serverMsgs);
@@ -165,7 +170,7 @@ export function useChat(sessionToken: string | null) {
     });
   }, [conversationId, sessionToken, append, t]);
 
-  return { messages, send, scenario, sending, escalate, append, conversationId };
+  return { messages, send, scenario, sending, status, escalate, append, conversationId };
 }
 
 /**

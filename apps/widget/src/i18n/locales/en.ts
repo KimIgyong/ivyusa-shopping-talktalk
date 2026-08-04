@@ -31,6 +31,8 @@ export const en = {
     send: 'Send',
     sendFailed: "Sorry, that didn't go through. Please try again.",
     connectingAgent: 'You are being connected to a support agent. Please hold on…',
+    typingAi: 'Writing a reply…',
+    typingAgent: 'An agent is writing a reply…',
     /** Fallback follow-ups so a reply never leaves the shopper at a dead end. */
     nextActions: {
       myOrders: 'My orders',

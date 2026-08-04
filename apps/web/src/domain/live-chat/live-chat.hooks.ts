@@ -3,12 +3,14 @@ import { liveChatService } from './live-chat.service';
 import type { CustomerLead } from './live-chat.service';
 import { useTenantKey } from '@/lib/use-tenant-key';
 
-export const useSessions = () => {
+export const useSessions = (q = '') => {
   const tenantKey = useTenantKey();
   return useQuery({
-    queryKey: ['agent', tenantKey, 'sessions'],
-    queryFn: liveChatService.sessions,
-    refetchInterval: 15000,
+    queryKey: ['agent', tenantKey, 'sessions', q],
+    queryFn: () => liveChatService.sessions(q),
+    // 5s (was 15s): a new escalation should surface within a beat, not a
+    // quarter-minute — the endpoint is a few ms (PLN-260804).
+    refetchInterval: 5000,
   });
 };
 
@@ -18,6 +20,9 @@ export const useConversation = (id: string | null) => {
     queryKey: ['agent', tenantKey, 'conversation', id],
     queryFn: () => liveChatService.conversation(id as string),
     enabled: !!id,
+    // The customer keeps typing while the agent watches: without a poll their
+    // new messages only appeared after the agent acted (PLN-260804).
+    refetchInterval: 5000,
   });
 };
 

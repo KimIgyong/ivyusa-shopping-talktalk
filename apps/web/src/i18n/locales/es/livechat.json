@@ -42,5 +42,14 @@
   "alarmReasonModeration": "La respuesta de la IA fue bloqueada por moderación.",
   "alarmReasonUserRequest": "El cliente pidió hablar con un agente.",
   "alarmOpen": "Abrir chat",
-  "alarmDismiss": "Descartar"
+  "alarmDismiss": "Descartar",
+  "listSearchPlaceholder": "Buscar por nombre o email del cliente",
+  "listSearchScope": "Solo coincide con clientes recientes",
+  "createdShort": "Abierta",
+  "lastReplyShort": "Última respuesta",
+  "noReplyYet": "sin respuesta aún",
+  "justNow": "ahora mismo",
+  "minutesAgo": "hace {{n}}m",
+  "hoursAgo": "hace {{n}}h",
+  "daysAgo": "hace {{n}}d"
 }

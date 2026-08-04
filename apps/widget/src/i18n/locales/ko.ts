@@ -33,6 +33,8 @@ export const ko: Translation = {
     send: '보내기',
     sendFailed: '전송하지 못했습니다. 다시 시도해 주세요.',
     connectingAgent: '상담원에게 연결하고 있습니다. 잠시만 기다려 주세요…',
+    typingAi: '답변을 작성 중입니다…',
+    typingAgent: '담당자가 답변을 작성 중입니다…',
     nextActions: {
       myOrders: '내 주문',
       shipping: '배송 안내',

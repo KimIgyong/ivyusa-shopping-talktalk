@@ -1,13 +1,14 @@
 import { apiGet, apiPost } from '@/lib/api-client';
 
+/** Mirrors the API's toSessionResponse — no invented fields (they render as '—'). */
 export interface AgentSession {
   id: string;
-  customerName?: string;
-  channel?: string;
+  customerName?: string | null;
   status?: string;
-  lastMessage?: string;
-  updatedAt?: string;
-  unread?: number;
+  escalated?: boolean;
+  lastMessagePreview?: string | null;
+  lastMessageAt?: string | null;
+  createdAt?: string;
 }
 
 export type MessageSenderType = 'user' | 'agent' | 'ai' | 'system';
@@ -56,7 +57,8 @@ export interface AgentAlert {
 }
 
 export const liveChatService = {
-  sessions: () => apiGet<AgentSession[]>('/agent/sessions'),
+  sessions: (q?: string) =>
+    apiGet<AgentSession[]>('/agent/sessions', q?.trim() ? { q: q.trim() } : undefined),
   conversation: (id: string) => apiGet<ConversationDetail>(`/agent/conversations/${id}`),
   accept: (id: string) => apiPost<ConversationDetail>(`/agent/conversations/${id}/accept`),
   sendMessage: (id: string, body: string) =>
