@@ -120,8 +120,8 @@ append 전용 코칭은 몇 주면 예산을 소진하므로, 유사 규칙이 �
 | 항목 | 값 |
 |---|---|
 | 브랜치 | `feature/agent-coaching-chat` |
-| PR | (아래 6번 참조) |
-| 커밋 SHA | (머지 후 기록) |
+| PR | [#99](https://github.com/KimIgyong/ivyusa-shopping-talktalk/pull/99) |
+| 커밋 SHA | `105a565` (머지 후 squash SHA로 갱신) |
 | 로컬 | ✅ 검증 완료 (검증용 DB 변경은 전부 원복) |
 | 스테이징 | ⬜ 미배포 — **SQL 선적용 필요** |
 | 프로덕션 | ⬜ (호스트 미확보, 기존 상태) |
