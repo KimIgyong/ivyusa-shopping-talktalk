@@ -127,6 +127,10 @@ export class KbConflictService {
         if (otherId === Number(doc.id) || hit.score < CANDIDATE_THRESHOLD) continue;
         const other = byId.get(otherId);
         if (!other) continue; // inactive or another tenant's global doc
+        // Only compare within a group. A product description and a refund
+        // policy are never the same claim, and letting them pair up floods the
+        // review queue the moment a catalogue is imported (PLN-260804 §5).
+        if (other.docGroup !== doc.docGroup) continue;
 
         // Lower id first so a pair is considered once, not once per direction.
         const [a, b] = Number(doc.id) < otherId ? [doc, other] : [other, doc];

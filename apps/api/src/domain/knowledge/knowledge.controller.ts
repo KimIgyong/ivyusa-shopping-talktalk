@@ -8,7 +8,10 @@ import {
   Patch,
   Post,
   Query,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { HttpStatus } from '@nestjs/common';
 import { CAPABILITY, Principal } from '@ivy/types';
@@ -138,8 +141,8 @@ export class KnowledgeController {
   @Get('categories')
   @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
   @ApiOperation({ summary: 'Document counts per category (console category navigator)' })
-  async categories(@CurrentUser() user: Principal) {
-    return this.knowledgeService.categoryCounts(this.tenantUser(user).tenantId);
+  async categories(@CurrentUser() user: Principal, @Query('group') group?: string) {
+    return this.knowledgeService.categoryCounts(this.tenantUser(user).tenantId, group);
   }
 
   @Post('ask')
@@ -150,6 +153,7 @@ export class KnowledgeController {
       this.tenantUser(user).tenantId,
       body.question,
       body.language ?? 'EN',
+      body.group,
     );
   }
 
@@ -190,6 +194,37 @@ export class KnowledgeController {
     const actor = this.tenantUser(user);
     await this.knowledgeService.deleteDocument(actor.tenantId, id, actor.userId);
     return { deleted: true };
+  }
+
+  @Post('documents/import/product')
+  @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
+  @UseInterceptors(
+    FileInterceptor('file', {
+      // Memory storage on purpose: the catalogue export is ~300KB and container
+      // disk does not survive a redeploy. The raw file is not retained — the
+      // audit entry and the import summary carry the traceability.
+      limits: { fileSize: 5 * 1024 * 1024, files: 1 },
+    }),
+  )
+  @ApiOperation({ summary: 'Import a product catalogue CSV into the ProductInfo group' })
+  async importProducts(
+    @CurrentUser() user: Principal,
+    @UploadedFile() file?: { originalname: string; mimetype: string; size: number; buffer: Buffer },
+  ) {
+    const actor = this.tenantUser(user);
+    if (!file) throw new BusinessException(ERROR_CODE.VALIDATION_FAILED, HttpStatus.BAD_REQUEST);
+    // Browsers label .csv inconsistently (text/csv, application/vnd.ms-excel,
+    // sometimes text/plain), so the extension is the reliable check and the
+    // parser rejects anything that is not tabular anyway.
+    if (!/\.csv$/i.test(file.originalname)) {
+      throw new BusinessException(ERROR_CODE.VALIDATION_FAILED, HttpStatus.BAD_REQUEST);
+    }
+    return this.knowledgeService.importProductCsv(
+      actor.tenantId,
+      file.buffer.toString('utf8'),
+      actor.userId,
+      file.originalname,
+    );
   }
 
   // --- Revision history (PLN T3) -------------------------------------------

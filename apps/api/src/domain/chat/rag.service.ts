@@ -53,6 +53,14 @@ export class RagService {
   private static readonly RRF_K = 60;
   /** POL-013 nudge: knowledge_store outranks google_drive on near-ties. */
   private static readonly SOURCE_BONUS = 0.0005;
+  /**
+   * Nudge toward the caller's preferred document group (PLN-260804 D3).
+   * Deliberately a bonus, not a filter: a product question can still need the
+   * return policy, so the other group must stay reachable. Larger than
+   * SOURCE_BONUS so group preference outranks provenance, small enough that it
+   * cannot invert a clear RRF gap.
+   */
+  private static readonly GROUP_BONUS = 0.002;
   private static readonly SNIPPET_CHARS = 800;
   /**
    * Vector hits below this dot score are discarded. Qdrant always returns the
@@ -77,6 +85,7 @@ export class RagService {
     tenantId: number,
     query: string,
     limit = 4,
+    preferGroup?: string,
   ): Promise<{ chunks: RetrievedChunk[]; vectorProvider: string | null }> {
     const [ftDocs, vec] = await Promise.all([
       this.retrieveFulltext(tenantId, query, RagService.LEG_LIMIT),
@@ -122,7 +131,10 @@ export class RagService {
       .filter((e): e is { doc: KbDocument; rrf: number; similarity: number | null } => !!e.doc)
       .map((e) => ({
         ...e,
-        rrf: e.rrf + (e.doc.source === 'knowledge_store' ? RagService.SOURCE_BONUS : 0),
+        rrf:
+          e.rrf +
+          (e.doc.source === 'knowledge_store' ? RagService.SOURCE_BONUS : 0) +
+          (preferGroup && e.doc.docGroup === preferGroup ? RagService.GROUP_BONUS : 0),
       }))
       .sort((a, b) => b.rrf - a.rrf)
       .slice(0, limit);
@@ -228,8 +240,12 @@ export class RagService {
     query: string,
     language: string,
     orderContext?: string,
+    preferGroup?: string,
   ): Promise<RagAnswer> {
-    const { chunks, vectorProvider } = await this.retrieveHybrid(tenantId, query);
+    // The caller decides the group preference; RAG only applies it. Keeping the
+    // judgement out of here means the chat path can use its intent label and
+    // the console can pass an explicit choice, without RAG knowing about either.
+    const { chunks, vectorProvider } = await this.retrieveHybrid(tenantId, query, 4, preferGroup);
     const context = chunks.map((c) => `- [${c.category ?? 'general'}] ${c.title}: ${c.snippet}`).join('\n');
     const hasOrderContext = !!orderContext?.trim();
     // Retrieval quality drives confidence, but order facts are authoritative on
@@ -298,7 +314,7 @@ export class RagService {
   async classifyIntent(
     tenantId: number,
     query: string,
-  ): Promise<{ intent: string; needsOrderData: boolean; confidence: number }> {
+  ): Promise<{ intent: string; needsOrderData: boolean; confidence: number; fallback?: boolean }> {
     const res = await this.ai.complete({
       tenantId,
       function: AI_FUNCTION.CHAT,
@@ -310,7 +326,11 @@ export class RagService {
     try {
       return JSON.parse(res.text);
     } catch {
-      return { intent: 'product_inquiry', needsOrderData: false, confidence: 0.5 };
+      // The fallback label is 'product_inquiry', so an unparseable response
+      // would otherwise read as a confident product question and bias
+      // retrieval toward the product group. Mark it so callers can tell the
+      // difference between "classified as product" and "classification failed".
+      return { intent: 'product_inquiry', needsOrderData: false, confidence: 0.5, fallback: true };
     }
   }
 }

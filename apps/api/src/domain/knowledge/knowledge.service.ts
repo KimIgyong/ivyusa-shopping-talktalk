@@ -8,7 +8,7 @@ import { RagService } from '../chat/rag.service';
 import { ModerationService } from '../moderation/moderation.service';
 import { QdrantService } from '../../infrastructure/external/vector/qdrant.service';
 import { KnowledgeSource } from './entity/knowledge-source.entity';
-import { KbDocument } from './entity/kb-document.entity';
+import { DOC_GROUP, KbDocument } from './entity/kb-document.entity';
 import { KbBoardPost } from './entity/kb-board-post.entity';
 import { KbFile } from './entity/kb-file.entity';
 import {
@@ -21,6 +21,7 @@ import {
 } from './dto/request/knowledge.request';
 import { KbConflictService, isStale } from './kb-conflict.service';
 import { KbRevisionService } from './kb-revision.service';
+import { ProductImportService } from './product-import.service';
 import { REVISION_KIND } from './entity/kb-document-revision.entity';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
@@ -51,6 +52,7 @@ export class KnowledgeService {
     private readonly moderation: ModerationService,
     private readonly conflicts: KbConflictService,
     private readonly revisions: KbRevisionService,
+    private readonly productImport: ProductImportService,
   ) {}
 
   // ---- Sources ----
@@ -98,6 +100,7 @@ export class KnowledgeService {
     const where: Record<string, unknown> = { tenantId };
     if (query.source_id !== undefined) where.sourceId = Number(query.source_id);
     if (query.category !== undefined) where.category = query.category;
+    if (query.group !== undefined) where.docGroup = query.group;
     const [items, total] = await this.docRepo.findAndCount({
       // PERF-9: the list never renders the LONGTEXT body — skip it so a page
       // of documents doesn't drag megabytes of content off disk. Detail/edit
@@ -112,6 +115,8 @@ export class KnowledgeService {
         'embeddingRef',
         'active',
         'status',
+        'docGroup',
+        'externalKey',
         'updatedAt',
         'reviewedAt',
         'reviewIntervalDays',
@@ -137,17 +142,25 @@ export class KnowledgeService {
    */
   async categoryCounts(
     tenantId: number,
-  ): Promise<Array<{ category: string | null; total: number; active: number }>> {
-    const rows = await this.docRepo
+    group?: string,
+  ): Promise<Array<{ group: string; category: string | null; total: number; active: number }>> {
+    // Grouped by (group, category) so the console can show per-group totals and
+    // a category list scoped to the selected group from one query.
+    const qb = this.docRepo
       .createQueryBuilder('kb')
-      .select('kb.category', 'category')
+      .select('kb.doc_group', 'grp')
+      .addSelect('kb.category', 'category')
       .addSelect('COUNT(*)', 'total')
       .addSelect('SUM(CASE WHEN kb.active = 1 THEN 1 ELSE 0 END)', 'active')
-      .where('kb.tenantId = :tenantId', { tenantId })
-      .groupBy('kb.category')
+      .where('kb.tenantId = :tenantId', { tenantId });
+    if (group) qb.andWhere('kb.doc_group = :group', { group });
+    const rows = await qb
+      .groupBy('kb.doc_group')
+      .addGroupBy('kb.category')
       .orderBy('total', 'DESC')
-      .getRawMany<{ category: string | null; total: string; active: string }>();
+      .getRawMany<{ grp: string; category: string | null; total: string; active: string }>();
     return rows.map((r) => ({
+      group: r.grp,
       category: r.category,
       total: Number(r.total),
       active: Number(r.active ?? 0),
@@ -166,6 +179,7 @@ export class KnowledgeService {
     tenantId: number,
     question: string,
     language = 'EN',
+    preferGroup?: string,
   ): Promise<{
     answer: string;
     confidence: number;
@@ -184,7 +198,13 @@ export class KnowledgeService {
       conflicted: boolean;
     }>;
   }> {
-    const result = await this.rag.answer(tenantId, question, language.toUpperCase());
+    const result = await this.rag.answer(
+      tenantId,
+      question,
+      language.toUpperCase(),
+      undefined,
+      preferGroup,
+    );
     const moderated = await this.moderation.moderate({
       tenantId,
       scope: 'ai',
@@ -249,6 +269,7 @@ export class KnowledgeService {
       source: body.source ?? 'knowledge_store',
       sourceId: body.source_id ?? null,
       category: body.category,
+      docGroup: body.doc_group ?? DOC_GROUP.COUNSEL,
       title: body.title,
       content: body.content,
       active: 1,
@@ -294,6 +315,38 @@ export class KnowledgeService {
         .catch((e) => this.logger.warn(`qdrant setActive(${saved.id}) failed: ${e.message}`));
     }
     return saved;
+  }
+
+  /**
+   * Import a product catalogue CSV (PLN-260804 P3).
+   *
+   * Two phases on purpose: every row is upserted as `pending` first, then the
+   * touched documents are embedded in batches. Embedding inside the row loop
+   * would issue one single-text call per product — the shape the adapter does
+   * not retry, and the one that failed under rate limiting (PR #95).
+   */
+  async importProductCsv(
+    tenantId: number,
+    csv: string,
+    actorUserId: number,
+    filename: string,
+  ): Promise<Record<string, unknown>> {
+    const { result, touchedIds } = await this.productImport.importCsv(tenantId, csv, actorUserId);
+    const docs = await this.productImport.pendingByIds(tenantId, touchedIds);
+    const { embedded, failed } = await this.embedDocuments(docs);
+
+    await this.revisions.recordAudit(tenantId, 0, 'knowledge.products_imported', actorUserId, {
+      filename,
+      ...result,
+      embedded,
+      embedFailed: failed,
+    });
+    this.logger.log(
+      `product import "${filename}": parsed=${result.parsed} created=${result.created} ` +
+        `updated=${result.updated} skipped=${result.skipped} invalid=${result.invalid} ` +
+        `embedded=${embedded} embedFailed=${failed}`,
+    );
+    return { ...result, embedded, embedFailed: failed };
   }
 
   /**
@@ -386,24 +439,19 @@ export class KnowledgeService {
   private static readonly REINDEX_BATCH = 64;
 
   /**
-   * Rebuild the vector index from MySQL (npm run kb:reindex). Re-embeds
-   * pending docs and docs whose stored embedding_model differs from the
-   * current one; `force` re-embeds everything. Embeds in batches (a per-doc
-   * call per row trips free-tier Voyage rate limits). When a Voyage key is
-   * configured, a stub fallback result is counted as FAILURE — mixing stub
-   * pseudo-vectors into a voyage collection would corrupt the vector space.
+   * Embed a specific set of documents in batches and mirror them into Qdrant.
+   *
+   * Extracted from reindexAll so bulk imports use the same path: creating
+   * documents one at a time issues one single-text embedding call each, and the
+   * adapter deliberately does not retry those (the guard that keeps live chat
+   * from stalling on a rate-limit backoff), so a per-document loop dies
+   * wholesale the moment the provider throttles — observed 2026-08-04 (PR #95).
+   *
+   * A stub-provider result while a real key is configured is a failure, not a
+   * usable vector: stub pseudo-vectors share no space with real ones and would
+   * corrupt the collection.
    */
-  async reindexAll(opts: { force?: boolean } = {}): Promise<{ scanned: number; embedded: number; failed: number }> {
-    const currentModel = (await this.ai.embed(['probe'], 'document')).model;
-    const docs = opts.force
-      ? await this.docRepo.find()
-      : await this.docRepo.find({
-          where: [
-            { status: 'pending' },
-            { embeddingModel: IsNull() },
-            { embeddingModel: Not(currentModel) },
-          ],
-        });
+  async embedDocuments(docs: KbDocument[]): Promise<{ embedded: number; failed: number }> {
     const realKeySet = !!process.env.VOYAGE_API_KEY;
     let embedded = 0;
     let failed = 0;
@@ -438,16 +486,37 @@ export class KnowledgeService {
             embedded++;
           } catch (e) {
             failed++;
-            this.logger.warn(`reindex upsert(${doc.id}) failed: ${(e as Error).message}`);
+            this.logger.warn(`embed upsert(${doc.id}) failed: ${(e as Error).message}`);
           }
         }
       } catch (e) {
         failed += batch.length;
-        this.logger.warn(
-          `reindex batch ${i}-${i + batch.length - 1} failed: ${(e as Error).message}`,
-        );
+        this.logger.warn(`embed batch ${i}-${i + batch.length - 1} failed: ${(e as Error).message}`);
       }
     }
+    return { embedded, failed };
+  }
+
+  /**
+   * Rebuild the vector index from MySQL (npm run kb:reindex). Re-embeds
+   * pending docs and docs whose stored embedding_model differs from the
+   * current one; `force` re-embeds everything. Embeds in batches (a per-doc
+   * call per row trips free-tier Voyage rate limits). When a Voyage key is
+   * configured, a stub fallback result is counted as FAILURE — mixing stub
+   * pseudo-vectors into a voyage collection would corrupt the vector space.
+   */
+  async reindexAll(opts: { force?: boolean } = {}): Promise<{ scanned: number; embedded: number; failed: number }> {
+    const currentModel = (await this.ai.embed(['probe'], 'document')).model;
+    const docs = opts.force
+      ? await this.docRepo.find()
+      : await this.docRepo.find({
+          where: [
+            { status: 'pending' },
+            { embeddingModel: IsNull() },
+            { embeddingModel: Not(currentModel) },
+          ],
+        });
+    const { embedded, failed } = await this.embedDocuments(docs);
     return { scanned: docs.length, embedded, failed };
   }
 

@@ -57,11 +57,13 @@ export function useDocument(id: string | null) {
   });
 }
 
-export function useCategories() {
+export function useCategories(group?: string) {
   const tenantKey = useTenantKey();
   return useQuery({
-    queryKey: ['knowledge', tenantKey, 'categories'],
-    queryFn: () => knowledgeService.categories(),
+    // group is part of the key: without it, switching groups would serve the
+    // previous group's category counts from cache.
+    queryKey: ['knowledge', tenantKey, 'categories', group ?? 'all'],
+    queryFn: () => knowledgeService.categories(group),
   });
 }
 
@@ -260,6 +262,27 @@ export function useRestoreRevision() {
       qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'document', vars.documentId] });
       qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'revisions', vars.documentId] });
       toast.success('Restored');
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+}
+
+/** Product catalogue CSV import (PLN-260804 P3). */
+export function useImportProducts() {
+  const qc = useQueryClient();
+  const tenantKey = useTenantKey();
+  return useMutation({
+    mutationFn: (file: File) => knowledgeService.importProducts(file),
+    onSuccess: (r) => {
+      qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'documents'] });
+      qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'categories'] });
+      // Report what happened, not just that it finished: "imported" with 144
+      // rows silently skipped reads as success when it is not.
+      const parts = [`${r.created} created`, `${r.updated} updated`];
+      if (r.skipped) parts.push(`${r.skipped} unchanged`);
+      if (r.invalid) parts.push(`${r.invalid} skipped`);
+      if (r.embedFailed) parts.push(`${r.embedFailed} not indexed`);
+      toast[r.invalid || r.embedFailed ? 'error' : 'success'](`Import: ${parts.join(', ')}`);
     },
     onError: (err: Error) => toast.error(err.message),
   });

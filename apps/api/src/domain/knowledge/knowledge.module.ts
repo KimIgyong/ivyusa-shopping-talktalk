@@ -9,6 +9,7 @@ import { KbDocumentRevision } from './entity/kb-document-revision.entity';
 import { KnowledgeService } from './knowledge.service';
 import { KbConflictService } from './kb-conflict.service';
 import { KbRevisionService } from './kb-revision.service';
+import { ProductImportService } from './product-import.service';
 import { AuditModule } from '../audit/audit.module';
 import { KnowledgeController } from './knowledge.controller';
 import { ChatModule } from '../chat/chat.module';
@@ -32,7 +33,7 @@ import { ModerationModule } from '../moderation/moderation.module';
     AuditModule,
   ],
   controllers: [KnowledgeController],
-  providers: [KnowledgeService, KbConflictService, KbRevisionService],
+  providers: [KnowledgeService, KbConflictService, KbRevisionService, ProductImportService],
   exports: [KnowledgeService, KbConflictService, KbRevisionService],
 })
 export class KnowledgeModule {}

@@ -1,4 +1,4 @@
-import { apiGet, apiGetList, apiPost, apiPatch, apiDelete } from '@/lib/api-client';
+import { apiGet, apiGetList, apiPost, apiPostForm, apiPatch, apiDelete } from '@/lib/api-client';
 import type { Paginated } from '@/lib/types';
 
 /** Shapes mirror KnowledgeMapper (apps/api knowledge.mapper.ts). */
@@ -19,6 +19,9 @@ export interface KnowledgeDocument {
   title: string;
   active: number;
   status: string; // embedded/pending
+  /** counsel | product */
+  docGroup?: string;
+  externalKey?: string | null;
   createdAt?: string;
   updatedAt?: string;
   // Provenance & staleness (PLN D7). `stale`/`reviewDueAt` are derived server-side.
@@ -62,9 +65,22 @@ export interface KnowledgeAnswer {
 }
 
 export interface CategoryCount {
+  /** counsel | product */
+  group: string;
   category: string | null;
   total: number;
   active: number;
+}
+
+export interface ProductImportResult {
+  parsed: number;
+  created: number;
+  updated: number;
+  skipped: number;
+  invalid: number;
+  embedded: number;
+  embedFailed: number;
+  errors: Array<{ row: number; reason: string }>;
 }
 
 /** One side of a conflicting pair, as rendered on the review card. */
@@ -137,6 +153,7 @@ export interface DocumentListParams {
   page: number;
   size: number;
   category?: string;
+  group?: string;
 }
 
 export const knowledgeService = {
@@ -150,6 +167,7 @@ export const knowledgeService = {
       page: params.page,
       size: params.size,
       ...(params.category ? { category: params.category } : {}),
+      ...(params.group ? { group: params.group } : {}),
     }),
   document: (id: string) => apiGet<KnowledgeDocumentDetail>(`/knowledge/documents/${id}`),
   createDocument: (body: { title: string; category: string; content: string; source_id?: number }) =>
@@ -170,7 +188,15 @@ export const knowledgeService = {
   markReviewed: (id: string) =>
     apiPost<KnowledgeDocumentDetail>(`/knowledge/documents/${id}/reviewed`, {}),
   deleteDocument: (id: string) => apiDelete<{ deleted: true }>(`/knowledge/documents/${id}`),
-  categories: () => apiGet<CategoryCount[]>('/knowledge/categories'),
+  categories: (group?: string) =>
+    apiGet<CategoryCount[]>('/knowledge/categories', group ? { group } : undefined),
+  importProducts: (file: File) => {
+    const form = new FormData();
+    form.append('file', file);
+    // Left to the browser on purpose: setting Content-Type by hand drops the
+    // multipart boundary and the server sees an empty body.
+    return apiPostForm<ProductImportResult>('/knowledge/documents/import/product', form);
+  },
   ask: (question: string, language: string) =>
     apiPost<KnowledgeAnswer>('/knowledge/ask', { question, language }),
   conflicts: (params: { status?: string; page: number; size: number }) =>
