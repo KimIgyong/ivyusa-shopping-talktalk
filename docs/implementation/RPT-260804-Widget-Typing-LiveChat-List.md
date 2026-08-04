@@ -37,10 +37,19 @@
 
 | 항목 | 값 |
 |---|---|
-| PR | #(작성 예정) `feature/typing-livechat-list` → main, squash |
-| 마이그레이션 | `sql/migration_conv_list_index.sql` — 스테이징 배포 전 선적용 필요 / 프로덕션 미정 |
-| 스테이징 배포 | 예정 |
+| PR | #107 `feature/typing-livechat-list` → main, squash |
+| 커밋 | `4ac855e` (main) |
+| 마이그레이션 | `sql/migration_conv_list_index.sql` — 스테이징 **선적용 완료**(SHOW INDEX 확인) / 프로덕션 미정 |
+| 스테이징 배포 | **완료** (2026-08-04, deploy-staging.sh; API 부팅·health OK) |
 
-## 5. 스테이징 검증 기록
+## 5. 스테이징 검증 기록 (2026-08-04)
 
-(배포 후 추기)
+| 체크 | 결과 |
+|---|---|
+| `idx_conv_tenant_status_id` 인덱스 | OK (tenant_id, status, id) |
+| API 부팅 `successfully started` / `GET /health` | OK |
+| `GET /agent/sessions?q=` 무인증 | **401** = 라우트 배포됨 |
+| 배포된 위젯 번들에 typing 인디케이터 포함 | OK (`typingAgent` 2건) |
+
+잔여(실브라우저 실측 — TCR S1~S8): 위젯 전송 인디케이터, 상담사 모드 유지,
+목록 시간/검색/5초 갱신, 열린 대화방 자동 갱신 — 사용자 확인 대기, 결과 본 문서 추기.
