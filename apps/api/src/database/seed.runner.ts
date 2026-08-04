@@ -22,7 +22,17 @@ import { Fulfillment } from '../domain/order/entity/fulfillment.entity';
 import { Notification } from '../domain/notification/entity/notification.entity';
 import { IntegrationStatusEntity } from '../domain/integration/entity/integration-status.entity';
 
-const AI_FUNCTIONS = ['chat', 'rag', 'summary', 'assist', 'moderation', 'coach'];
+/**
+ * Functions given an explicit stub row at bootstrap.
+ *
+ * 'coach' is deliberately absent. Seeding it would pin coaching to the stub
+ * forever: once a row exists, the gateway stops inheriting, so a tenant that
+ * later points chat/rag at a real provider would keep getting canned stub text
+ * from the coaching channel with nothing in the console to explain it. Left
+ * unset, coach inherits rag→chat (FUNCTION_INHERITS in ai-gateway.service) and
+ * the settings page shows it as inherited.
+ */
+const AI_FUNCTIONS = ['chat', 'rag', 'summary', 'assist', 'moderation'];
 
 export interface SeedOptions {
   /** Bootstrap password for admin@ / dev@ (default from SEED_PASSWORD or 'amb2026!@'). */

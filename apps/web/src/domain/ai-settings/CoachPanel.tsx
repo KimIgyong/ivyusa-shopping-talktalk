@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Info, Plus, Send } from 'lucide-react';
+import { AlertTriangle, Info, Plus, Send } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/Button';
 import { Badge } from '@/components/Badge';
@@ -8,6 +8,7 @@ import { cn } from '@/lib/cn';
 import { toast } from '@/store/toast-store';
 import { coachService, type CoachProposal } from './coach.service';
 import { useCoachThread, useCoachThreads, useCreateCoachThread } from './coach.hooks';
+import { useAiSettings } from './ai-settings.hooks';
 import { ProposalCard } from './ProposalCard';
 
 /**
@@ -20,6 +21,7 @@ export function CoachPanel() {
   const { t: tc } = useTranslation('common');
 
   const { data: threads, isLoading: threadsLoading } = useCoachThreads();
+  const { data: aiSettings } = useAiSettings();
   const createThread = useCreateCoachThread();
   const [threadId, setThreadId] = useState<number | null>(null);
   const { data: detail, isLoading: detailLoading, refetch } = useCoachThread(threadId);
@@ -71,6 +73,14 @@ export function CoachPanel() {
   }
 
   const messages = detail?.messages ?? [];
+
+  // Two independent ways coaching ends up on the stub, and the operator needs
+  // to know about both: the engine is configured that way, or a real engine was
+  // configured and failed at request time (bad key), which the gateway hides by
+  // degrading to the stub. Configuration alone would miss the second.
+  const coachSetting = aiSettings?.find((s) => s.function === 'coach');
+  const lastAgentProvider = [...messages].reverse().find((m) => m.role === 'agent')?.provider;
+  const onStub = coachSetting?.effectiveProvider === 'stub' || lastAgentProvider === 'stub';
   // Proposals arrive as a flat list; they render under the agent turn that
   // produced them, which is where their rationale is.
   const proposalsByMessage = new Map<number, CoachProposal[]>();
@@ -109,6 +119,16 @@ export function CoachPanel() {
         <Info className="mt-0.5 h-3 w-3 shrink-0" />
         {t('coach.approvalNotice')}
       </p>
+
+      {onStub && (
+        <p className="mb-2 flex items-start gap-1 rounded-md bg-amber-50 px-2 py-1.5 text-[11px] text-amber-800">
+          <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
+          <span>
+            <span className="font-semibold">{t('coach.stubWarningTitle')}</span>{' '}
+            {t('coach.stubWarningBody')}
+          </span>
+        </p>
+      )}
 
       <div
         ref={scrollRef}

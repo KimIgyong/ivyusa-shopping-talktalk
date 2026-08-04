@@ -21,6 +21,13 @@ export interface CoachingMessageMeta {
   citations?: Array<{ id: number; title: string; similarity: number | null }>;
   /** True when the moderation gate blocked the reply (text is then empty). */
   blocked?: boolean;
+  /**
+   * The provider that actually produced this turn. Configuration says what
+   * SHOULD run; this says what did. The gateway degrades to the stub on any
+   * adapter error, so a bad API key looks exactly like a working setup until
+   * you compare these two.
+   */
+  provider?: string;
   /** The customer/preview turn under discussion, if one was attached. */
   refTurn?: {
     messageId: number;

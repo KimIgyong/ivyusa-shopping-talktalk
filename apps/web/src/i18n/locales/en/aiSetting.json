@@ -155,6 +155,13 @@
     "toastThreadArchived": "Coaching thread archived.",
     "toastApplied": "Proposal applied to your AI configuration.",
     "toastRejected": "Proposal dismissed.",
-    "toastReverted": "Change undone."
-  }
+    "toastReverted": "Change undone.",
+    "stubWarningTitle": "Running on the built-in stub.",
+    "stubWarningBody": "Replies are canned text and no change proposals will be produced. Assign a real engine to Coaching under AI functions."
+  },
+  "effectiveEngine": "Currently served by: {{name}}",
+  "routing_inherited": "Inherited",
+  "routing_tenant_default": "Tenant default",
+  "routing_platform_default": "Platform default",
+  "routing_none": "No engine"
 }

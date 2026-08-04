@@ -219,7 +219,7 @@ export class AiCoachService {
         threadId: thread.id,
         role: COACHING_ROLE.AGENT,
         body: blocked ? '' : moderated.text,
-        meta: { citations, blocked },
+        meta: { citations, blocked, provider: completion.provider },
       }),
     );
 

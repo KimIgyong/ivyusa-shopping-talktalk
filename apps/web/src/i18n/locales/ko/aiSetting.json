@@ -155,6 +155,13 @@
     "toastThreadArchived": "코칭 스레드를 보관했습니다.",
     "toastApplied": "제안을 AI 설정에 반영했습니다.",
     "toastRejected": "제안을 무시했습니다.",
-    "toastReverted": "변경을 되돌렸습니다."
-  }
+    "toastReverted": "변경을 되돌렸습니다.",
+    "stubWarningTitle": "내장 stub 엔진으로 동작 중입니다.",
+    "stubWarningBody": "응답이 정해진 문구이며 변경 제안이 생성되지 않습니다. AI 기능 섹션에서 코칭에 실제 엔진을 지정하세요."
+  },
+  "effectiveEngine": "현재 사용 중: {{name}}",
+  "routing_inherited": "상속됨",
+  "routing_tenant_default": "테넌트 기본",
+  "routing_platform_default": "플랫폼 기본",
+  "routing_none": "엔진 없음"
 }

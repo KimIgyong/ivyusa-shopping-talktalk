@@ -24,6 +24,40 @@ export interface GatewayRequest {
   maxTokens?: number;
 }
 
+/** Where a function's engine came from — shown in the console so an unset function is visible. */
+export const ROUTING_SOURCE = {
+  /** The tenant assigned this engine to this function explicitly. */
+  EXPLICIT: 'explicit',
+  /** Unset; borrowed from a related function (see FUNCTION_INHERITS). */
+  INHERITED: 'inherited',
+  TENANT_DEFAULT: 'tenant_default',
+  PLATFORM_DEFAULT: 'platform_default',
+  NONE: 'none',
+} as const;
+export type RoutingSource = (typeof ROUTING_SOURCE)[keyof typeof ROUTING_SOURCE];
+
+export interface ResolvedRouting {
+  engine: AiEngine | null;
+  source: RoutingSource;
+  /** The function it was borrowed from, when source is 'inherited'. */
+  inheritedFrom?: AiFunction;
+}
+
+/**
+ * Functions that borrow another function's engine when they have no row of
+ * their own, in preference order.
+ *
+ * Without this, a function added after a tenant was provisioned has no setting,
+ * so resolution walks past it to the platform default — which is the stub. A
+ * tenant running Anthropic for every customer conversation would silently get
+ * canned stub text on the new function and no indication why. Coaching is a
+ * conversational function, so the engine already trusted with customer
+ * conversations is a far better default than "no engine at all".
+ */
+const FUNCTION_INHERITS: Partial<Record<AiFunction, AiFunction[]>> = {
+  coach: ['rag', 'chat'],
+};
+
 /**
  * AI Provider Gateway (FR-070 / FN-053). Resolves the engine for a
  * (tenant, function) pair via tenant_ai_settings → ai_engines, dispatches to the
@@ -50,7 +84,7 @@ export class AiGatewayService {
   }
 
   async complete(req: GatewayRequest): Promise<AiCompletionResult> {
-    const engine = await this.resolveEngine(req.tenantId, req.function);
+    const { engine } = await this.resolveRouting(req.tenantId, req.function);
     const params = (await this.resolveParams(req.tenantId, req.function)) ?? {};
     const adapter = this.adapters.get(engine?.provider ?? 'stub') ?? this.adapters.get('stub')!;
 
@@ -95,17 +129,44 @@ export class AiGatewayService {
     return stub.embed!({ texts, inputType });
   }
 
-  private async resolveEngine(tenantId: number, fn: AiFunction): Promise<AiEngine | null> {
-    const setting = await this.settingRepo.findOne({ where: { tenantId, func: fn } });
-    if (setting) {
-      const e = await this.engineRepo.findOne({ where: { id: setting.engineId } });
-      if (e && e.status === 'enabled') return e;
+  /**
+   * Which engine actually backs a (tenant, function) pair, and why.
+   *
+   * Public because the console needs to show the effective engine for functions
+   * the tenant never configured — the fallback used to be invisible, which is
+   * how a function could run on the stub while the settings page showed nothing
+   * at all for it.
+   */
+  async resolveRouting(tenantId: number, fn: AiFunction): Promise<ResolvedRouting> {
+    const own = await this.enabledEngineFor(tenantId, fn);
+    if (own) return { engine: own, source: ROUTING_SOURCE.EXPLICIT };
+
+    for (const donor of FUNCTION_INHERITS[fn] ?? []) {
+      const borrowed = await this.enabledEngineFor(tenantId, donor);
+      if (borrowed) {
+        return { engine: borrowed, source: ROUTING_SOURCE.INHERITED, inheritedFrom: donor };
+      }
     }
-    // fall back to a tenant default, then platform default
-    return (
-      (await this.engineRepo.findOne({ where: { tenantId, isDefault: 1, status: 'enabled' } })) ??
-      (await this.engineRepo.findOne({ where: { isDefault: 1, status: 'enabled' } }))
-    );
+
+    const tenantDefault = await this.engineRepo.findOne({
+      where: { tenantId, isDefault: 1, status: 'enabled' },
+    });
+    if (tenantDefault) return { engine: tenantDefault, source: ROUTING_SOURCE.TENANT_DEFAULT };
+
+    const platformDefault = await this.engineRepo.findOne({
+      where: { isDefault: 1, status: 'enabled' },
+    });
+    return platformDefault
+      ? { engine: platformDefault, source: ROUTING_SOURCE.PLATFORM_DEFAULT }
+      : { engine: null, source: ROUTING_SOURCE.NONE };
+  }
+
+  /** The enabled engine a function is explicitly assigned, if any. */
+  private async enabledEngineFor(tenantId: number, fn: AiFunction): Promise<AiEngine | null> {
+    const setting = await this.settingRepo.findOne({ where: { tenantId, func: fn } });
+    if (!setting) return null;
+    const engine = await this.engineRepo.findOne({ where: { id: setting.engineId } });
+    return engine && engine.status === 'enabled' ? engine : null;
   }
 
   private async resolveParams(tenantId: number, fn: AiFunction): Promise<Record<string, unknown> | null> {

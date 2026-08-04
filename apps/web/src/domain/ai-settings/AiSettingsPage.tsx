@@ -28,7 +28,7 @@ import type {
   ScenarioOverride,
 } from './ai-settings.service';
 
-const FUNCTION_KEYS = new Set(['chat', 'rag', 'summary', 'assist', 'moderation']);
+const FUNCTION_KEYS = new Set(['chat', 'rag', 'summary', 'assist', 'moderation', 'coach']);
 
 const SCENARIO_ACTIONS = [
   'delivery_status',
@@ -404,9 +404,23 @@ function FunctionRow({
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-sm font-medium text-gray-800">{label}</p>
-          <p className="text-xs text-gray-400">
-            {t('enginesAvailable', { count: setting.availableEngines.length })}
-          </p>
+          {/* An unset function still runs on something. Saying which, and why,
+              is what keeps a silent stub fallback from looking like nothing. */}
+          {setting.source !== 'explicit' ? (
+            <p className="text-xs text-gray-500">
+              <Badge tone={setting.effectiveProvider === 'stub' ? 'warning' : 'gray'}>
+                {t(`routing_${setting.source}`)}
+              </Badge>{' '}
+              {t('effectiveEngine', { name: setting.effectiveEngineName ?? '—' })}
+              {setting.inheritedFrom && FUNCTION_KEYS.has(setting.inheritedFrom)
+                ? ` (${t(`functions.${setting.inheritedFrom}`)})`
+                : ''}
+            </p>
+          ) : (
+            <p className="text-xs text-gray-400">
+              {t('enginesAvailable', { count: setting.availableEngines.length })}
+            </p>
+          )}
         </div>
         <div className="w-64">
           <Label>{t('selectEngine')}</Label>
