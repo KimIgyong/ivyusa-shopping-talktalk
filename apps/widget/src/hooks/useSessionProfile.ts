@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useWidgetStore } from '../store/widgetStore';
 import { ensureSession } from '../services/sessionService';
+import { adoptSessionConsent } from './useSession';
 
 /**
  * Pulls the signed-in shopper's display name once a session becomes
@@ -31,8 +32,15 @@ export function useSessionProfile() {
     let cancelled = false;
     ensureSession(sessionToken, language)
       .then((res) => {
-        // Only adopt the name; the token/auth state is owned by the paths above.
-        if (!cancelled && res.customerName) setCustomerName(res.customerName);
+        if (cancelled) return;
+        // Adopt the name; token/auth state stays owned by the paths above.
+        if (res.customerName) setCustomerName(res.customerName);
+        // This re-ensure is the ONLY /session/ensure a storefront-signed-in
+        // widget makes (useEnsureSession bails once authenticated), so the
+        // verified session's consent state must be adopted — and a pending one
+        // replayed from the local choice — here, or the shopper sees no banner
+        // while the server still blocks chat as consent-pending.
+        adoptSessionConsent(res);
       })
       .catch(() => {
         /* offline or session gone — greeting simply stays generic */
