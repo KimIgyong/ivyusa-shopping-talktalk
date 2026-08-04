@@ -88,6 +88,51 @@
       "kept_b": "처리됨 — B 채택",
       "kept_both": "처리됨 — 둘 다 유지",
       "dismissed": "충돌 아님으로 처리"
+    },
+    "failedTitle": "판정하지 못한 쌍 {{count}}건",
+    "failure": {
+      "model_error": "모델 호출 실패",
+      "parse_fail": "응답 파싱 실패",
+      "bad_verdict": "허용 외 판정값"
+    },
+    "attempts": "시도 {{n}}회",
+    "retriesExhausted": "자동 재시도 중단",
+    "retry": "재시도",
+    "collapse": "접기",
+    "expandMore": "{{n}}건 더 보기",
+    "rationaleWithheld": "모더레이션 규칙에 걸려 판정 근거를 표시하지 않습니다. 판정 자체는 유효하니 아래 두 문서를 직접 비교해 주세요.",
+    "statusFailed": "판정 실패",
+    "more": "더보기",
+    "rejudge": "이 쌍 재판정"
+  },
+  "editing": "편집 중",
+  "detailTab": {
+    "content": "내용",
+    "history": "수정 이력"
+  },
+  "history": {
+    "loading": "이력을 불러오는 중…",
+    "empty": "아직 기록된 변경이 없습니다.",
+    "view": "보기",
+    "restore": "되돌리기",
+    "systemActor": "—",
+    "compare": "rev {{n}} 과 현재 버전 비교",
+    "restoreNote": "되돌리기는 새 이력으로 기록되며 기존 이력은 지워지지 않습니다.",
+    "kind": {
+      "baseline": "기록 이전 상태",
+      "create": "생성",
+      "update": "수정",
+      "restore": "되돌림",
+      "delete": "삭제"
+    },
+    "field": {
+      "title": "제목",
+      "category": "카테고리",
+      "content": "본문",
+      "sourceUrl": "원문 URL",
+      "effectiveFrom": "기준일",
+      "reviewIntervalDays": "검토주기",
+      "active": "노출 여부"
     }
   }
 }

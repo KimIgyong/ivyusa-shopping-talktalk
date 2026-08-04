@@ -4,14 +4,17 @@ import { In, Repository } from 'typeorm';
 import { AI_FUNCTION, MODERATION_DECISION } from '@ivy/types';
 import { KbDocument } from './entity/kb-document.entity';
 import {
+  CONFLICT_FAILURE,
   CONFLICT_RESOLUTION,
   CONFLICT_STATUS,
   CONFLICT_VERDICT,
   KbConflict,
+  MAX_JUDGE_ATTEMPTS,
 } from './entity/kb-conflict.entity';
 import { QdrantService } from '../../infrastructure/external/vector/qdrant.service';
 import { AiGatewayService } from '../../infrastructure/external/ai/ai-gateway.service';
 import { ModerationService } from '../moderation/moderation.service';
+import { AuditService } from '../audit/audit.service';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
 
@@ -37,7 +40,19 @@ export interface ScanResult {
   candidates: number;
   judged: number;
   conflicts: number;
+  /** Pairs stored without a verdict because the model never produced one. */
+  failed: number;
+  /** Judged pairs whose explanation the moderation gate suppressed. */
+  withheld: number;
 }
+
+/**
+ * Outcome of one judgement. A moderation block is a success with the rationale
+ * withheld, not a failure — the verdict is an enum and cannot violate a rule.
+ */
+type Judgement =
+  | { ok: true; verdict: string; rationale: string | null; withheld: boolean }
+  | { ok: false; reason: string };
 
 /**
  * Knowledge conflict detection (PLN D5), in three stages:
@@ -59,6 +74,7 @@ export class KbConflictService {
     private readonly qdrant: QdrantService,
     private readonly ai: AiGatewayService,
     private readonly moderation: ModerationService,
+    private readonly audit: AuditService,
   ) {}
 
   /**
@@ -67,7 +83,7 @@ export class KbConflictService {
    * costs nothing and a reviewer's "not a conflict" decision sticks.
    */
   async scan(tenantId: number): Promise<ScanResult> {
-    const result: ScanResult = { scanned: 0, candidates: 0, judged: 0, conflicts: 0 };
+    const result: ScanResult = { scanned: 0, candidates: 0, judged: 0, conflicts: 0, failed: 0, withheld: 0 };
     if (!this.qdrant.enabled) {
       this.logger.warn('conflict scan skipped: vector search unavailable');
       return result;
@@ -77,9 +93,16 @@ export class KbConflictService {
     result.scanned = docs.length;
     if (docs.length < 2) return result;
 
-    const known = await this.knownPairs(tenantId);
+    // Pairs already recorded are skipped — except failed ones still inside the
+    // retry budget, which are re-judged and updated in place. Without storing
+    // failures at all, the same pairs were re-judged on every scan forever
+    // (11 wasted model calls per run, measured on staging).
+    const { skip, retryable } = await this.knownPairs(tenantId);
     const byId = new Map(docs.map((d) => [Number(d.id), d]));
-    const pairs = new Map<string, { a: KbDocument; b: KbDocument; score: number }>();
+    const pairs = new Map<
+      string,
+      { a: KbDocument; b: KbDocument; score: number; existing?: KbConflict }
+    >();
 
     // Embed in batches, not one call per document: a 230-document knowledge
     // base is 230 requests otherwise, and the adapter deliberately does not
@@ -108,27 +131,52 @@ export class KbConflictService {
         // Lower id first so a pair is considered once, not once per direction.
         const [a, b] = Number(doc.id) < otherId ? [doc, other] : [other, doc];
         const key = `${a.id}:${b.id}`;
-        if (known.has(key) || pairs.has(key)) continue;
-        pairs.set(key, { a, b, score: hit.score });
+        if (skip.has(key) || pairs.has(key)) continue;
+        pairs.set(key, { a, b, score: hit.score, existing: retryable.get(key) });
       }
     }
     result.candidates = pairs.size;
 
-    for (const { a, b, score } of [...pairs.values()].slice(0, MAX_JUDGEMENTS_PER_SCAN)) {
+    for (const { a, b, score, existing } of [...pairs.values()].slice(0, MAX_JUDGEMENTS_PER_SCAN)) {
       const judgement = await this.judge(tenantId, a, b);
-      if (!judgement) continue;
+      const attempts = (existing?.attempts ?? 0) + 1;
+      const base = {
+        ...(existing ? { id: existing.id } : {}),
+        tenantId,
+        docAId: Number(a.id),
+        docBId: Number(b.id),
+        similarity: score,
+        attempts,
+        lastAttemptAt: new Date(),
+      };
+
+      if (!judgement.ok) {
+        result.failed += 1;
+        await this.conflictRepo.save(
+          this.conflictRepo.create({
+            ...base,
+            verdict: null,
+            rationale: null,
+            rationaleWithheld: 0,
+            status: CONFLICT_STATUS.FAILED,
+            failureReason: judgement.reason,
+          }),
+        );
+        continue;
+      }
+
       result.judged += 1;
       if (judgement.verdict === CONFLICT_VERDICT.CONFLICT) result.conflicts += 1;
+      if (judgement.withheld) result.withheld += 1;
 
       await this.conflictRepo.save(
         this.conflictRepo.create({
-          tenantId,
-          docAId: Number(a.id),
-          docBId: Number(b.id),
-          similarity: score,
+          ...base,
           verdict: judgement.verdict,
           rationale: judgement.rationale,
+          rationaleWithheld: judgement.withheld ? 1 : 0,
           status: CONFLICT_STATUS.PENDING,
+          failureReason: null,
         }),
       );
     }
@@ -162,11 +210,7 @@ export class KbConflictService {
    * Returns null when the answer is unusable — an unparseable reply or one the
    * moderation gate blocks — rather than queueing a pair with no explanation.
    */
-  private async judge(
-    tenantId: number,
-    a: KbDocument,
-    b: KbDocument,
-  ): Promise<{ verdict: string; rationale: string } | null> {
+  private async judge(tenantId: number, a: KbDocument, b: KbDocument): Promise<Judgement> {
     const excerpt = (d: KbDocument) => `${d.title}\n${(d.content ?? '').slice(0, EXCERPT_CHARS)}`;
     let raw: string;
     try {
@@ -185,23 +229,32 @@ export class KbConflictService {
       });
       raw = res.text;
     } catch (e) {
-      this.logger.warn(`conflict judge failed for ${a.id}/${b.id}: ${(e as Error).message}`);
-      return null;
+      this.logger.warn(`conflict judge: model call failed for ${a.id}/${b.id}: ${(e as Error).message}`);
+      return { ok: false, reason: CONFLICT_FAILURE.MODEL_ERROR };
     }
 
     let parsed: { verdict?: string; rationale?: string };
     try {
       parsed = JSON.parse(raw);
     } catch {
-      // The stub adapter and a rate-limited provider both land here; a pair
-      // with no verdict is worse than no row at all.
-      return null;
+      this.logger.warn(
+        `conflict judge: unparseable response for ${a.id}/${b.id}: "${String(raw).slice(0, 120)}"`,
+      );
+      return { ok: false, reason: CONFLICT_FAILURE.PARSE_FAIL };
     }
     const allowed: string[] = Object.values(CONFLICT_VERDICT);
-    if (!parsed.verdict || !allowed.includes(parsed.verdict)) return null;
+    if (!parsed.verdict || !allowed.includes(parsed.verdict)) {
+      this.logger.warn(
+        `conflict judge: verdict outside the allowed set for ${a.id}/${b.id}: ${JSON.stringify(parsed.verdict)}`,
+      );
+      return { ok: false, reason: CONFLICT_FAILURE.BAD_VERDICT };
+    }
 
-    // The rationale is model-generated text shown in the console, so it goes
-    // through the same non-bypassable gate as any other AI output (POL-020).
+    // The rationale is model-generated text shown in the console, so it still
+    // goes through the gate (POL-020). A block withholds the sentence — it does
+    // NOT discard the verdict, which is an enum and cannot violate a rule.
+    // Doing so lost 11 of 121 judgements on staging over ordinary analytical
+    // prose (REQ-260804 §1-1).
     const rationale = (parsed.rationale ?? '').slice(0, 1000);
     const moderated = await this.moderation.moderate({
       tenantId,
@@ -209,9 +262,12 @@ export class KbConflictService {
       authorType: 'ai',
       text: rationale,
     });
-    if (moderated.decision === MODERATION_DECISION.BLOCKED) return null;
+    if (moderated.decision === MODERATION_DECISION.BLOCKED) {
+      this.logger.warn(`conflict judge: rationale withheld by moderation for ${a.id}/${b.id}`);
+      return { ok: true, verdict: parsed.verdict, rationale: null, withheld: true };
+    }
 
-    return { verdict: parsed.verdict, rationale: moderated.text };
+    return { ok: true, verdict: parsed.verdict, rationale: moderated.text, withheld: false };
   }
 
   /** Pending/resolved pairs with both documents hydrated for the review screen. */
@@ -243,6 +299,11 @@ export class KbConflictService {
         similarity: r.similarity,
         verdict: r.verdict,
         rationale: r.rationale,
+        rationaleWithheld: r.rationaleWithheld === 1,
+        failureReason: r.failureReason,
+        attempts: r.attempts,
+        retriesLeft: Math.max(MAX_JUDGE_ATTEMPTS - r.attempts, 0),
+        lastAttemptAt: r.lastAttemptAt,
         status: r.status,
         resolution: r.resolution,
         detectedAt: r.detectedAt,
@@ -263,7 +324,11 @@ export class KbConflictService {
       category: doc.category,
       source: doc.source,
       sourceUrl: doc.sourceUrl,
-      excerpt: (doc.content ?? '').slice(0, 400),
+      // Full text, not a 400-character excerpt: the point of this screen is
+      // comparing the two documents, and a contradiction past the cut was
+      // invisible. Average is 242 chars, longest 914 — the client collapses
+      // anything tall rather than the server truncating it.
+      content: doc.content ?? '',
       effectiveFrom: doc.effectiveFrom,
       updatedAt: doc.updatedAt,
       reviewedAt: doc.reviewedAt,
@@ -301,7 +366,11 @@ export class KbConflictService {
     conflict.resolution = resolution;
     conflict.resolvedBy = userId;
     conflict.resolvedAt = new Date();
-    return this.conflictRepo.save(conflict);
+    const saved = await this.conflictRepo.save(conflict);
+    await this.auditConflict(tenantId, conflict, 'knowledge.conflict_resolved', userId, {
+      resolution,
+    });
+    return saved;
   }
 
   /** "Not actually a conflict" — kept so the scan does not re-raise the pair. */
@@ -311,7 +380,33 @@ export class KbConflictService {
     conflict.status = CONFLICT_STATUS.DISMISSED;
     conflict.resolvedBy = userId;
     conflict.resolvedAt = new Date();
-    return this.conflictRepo.save(conflict);
+    const saved = await this.conflictRepo.save(conflict);
+    await this.auditConflict(tenantId, conflict, 'knowledge.conflict_dismissed', userId);
+    return saved;
+  }
+
+  /** Hiding a document because of a conflict is a knowledge change like any
+   * other, so it belongs in the same trail as an edit. Best-effort: a logging
+   * failure must not undo a decision already written. */
+  private async auditConflict(
+    tenantId: number,
+    conflict: KbConflict,
+    action: string,
+    userId: number,
+    metadata: Record<string, unknown> = {},
+  ): Promise<void> {
+    try {
+      await this.audit.write({
+        tenantId,
+        actorType: 'user',
+        actorId: userId,
+        action,
+        target: `kb_conflict:${conflict.id}`,
+        metadata: { docAId: conflict.docAId, docBId: conflict.docBId, ...metadata },
+      });
+    } catch (e) {
+      this.logger.warn(`conflict audit failed (${action}): ${(e as Error).message}`);
+    }
   }
 
   /** Conflicts touching any of these documents — used to flag QA answer sources. */
@@ -331,12 +426,66 @@ export class KbConflictService {
     return flagged;
   }
 
-  private async knownPairs(tenantId: number): Promise<Set<string>> {
-    const rows = await this.conflictRepo.find({
-      where: { tenantId },
-      select: ['docAId', 'docBId'],
-    });
-    return new Set(rows.map((r) => `${r.docAId}:${r.docBId}`));
+  /**
+   * Split recorded pairs into "never look at these again" and "failed but still
+   * within the retry budget". A reviewer's dismissal must stick, and a pair the
+   * model keeps choking on must stop consuming a call on every scan (PLN E5).
+   */
+  private async knownPairs(
+    tenantId: number,
+  ): Promise<{ skip: Set<string>; retryable: Map<string, KbConflict> }> {
+    const rows = await this.conflictRepo.find({ where: { tenantId } });
+    const skip = new Set<string>();
+    const retryable = new Map<string, KbConflict>();
+    for (const r of rows) {
+      const key = `${r.docAId}:${r.docBId}`;
+      if (r.status === CONFLICT_STATUS.FAILED && r.attempts < MAX_JUDGE_ATTEMPTS) {
+        retryable.set(key, r);
+      } else {
+        skip.add(key);
+      }
+    }
+    return { skip, retryable };
+  }
+
+  /**
+   * Re-judge a pair against the documents' current contents, after an edit.
+   * Without this a corrected document still showed the old verdict, and the
+   * only way to refresh it was a full scan — which re-embeds every document
+   * and skips already-recorded pairs anyway.
+   */
+  async rejudge(tenantId: number, conflictId: number): Promise<KbConflict> {
+    return this.retry(tenantId, conflictId);
+  }
+
+  /**
+   * Re-judge one pair regardless of its attempt budget — the operator asked for
+   * it, having presumably fixed whatever caused the failure.
+   */
+  async retry(tenantId: number, conflictId: number): Promise<KbConflict> {
+    const conflict = await this.conflictRepo.findOne({ where: { id: conflictId, tenantId } });
+    if (!conflict) throw new BusinessException(ERROR_CODE.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND);
+
+    const [a, b] = await Promise.all([
+      this.docRepo.findOne({ where: { id: conflict.docAId, tenantId } }),
+      this.docRepo.findOne({ where: { id: conflict.docBId, tenantId } }),
+    ]);
+    if (!a || !b) throw new BusinessException(ERROR_CODE.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND);
+
+    const judgement = await this.judge(tenantId, a, b);
+    conflict.attempts += 1;
+    conflict.lastAttemptAt = new Date();
+    if (judgement.ok) {
+      conflict.verdict = judgement.verdict;
+      conflict.rationale = judgement.rationale;
+      conflict.rationaleWithheld = judgement.withheld ? 1 : 0;
+      conflict.status = CONFLICT_STATUS.PENDING;
+      conflict.failureReason = null;
+    } else {
+      conflict.status = CONFLICT_STATUS.FAILED;
+      conflict.failureReason = judgement.reason;
+    }
+    return this.conflictRepo.save(conflict);
   }
 }
 

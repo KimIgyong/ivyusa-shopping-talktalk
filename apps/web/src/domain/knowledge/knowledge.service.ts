@@ -74,7 +74,7 @@ export interface ConflictDoc {
   category: string | null;
   source: string;
   sourceUrl: string | null;
-  excerpt: string;
+  content: string;
   effectiveFrom: string | null;
   updatedAt: string | null;
   reviewedAt: string | null;
@@ -85,9 +85,16 @@ export interface ConflictDoc {
 export interface KnowledgeConflict {
   id: string;
   similarity: number | null;
-  verdict: string | null; // conflict/duplicate/complementary
+  verdict: string | null; // conflict/duplicate/complementary — null when failed
   rationale: string | null;
-  status: string; // pending/resolved/dismissed
+  /** Verdict stands; the moderation gate suppressed its explanation. */
+  rationaleWithheld?: boolean;
+  /** model_error | parse_fail | bad_verdict — set only when status is failed. */
+  failureReason?: string | null;
+  attempts?: number;
+  retriesLeft?: number;
+  lastAttemptAt?: string | null;
+  status: string; // pending/resolved/dismissed/failed
   resolution: string | null;
   detectedAt: string;
   resolvedAt: string | null;
@@ -100,6 +107,30 @@ export interface ScanResult {
   candidates: number;
   judged: number;
   conflicts: number;
+  failed: number;
+  withheld: number;
+}
+
+export interface DocumentRevision {
+  id: string;
+  revisionNo: number;
+  title: string;
+  category: string | null;
+  changedFields: string[];
+  /** baseline | create | update | restore | delete */
+  changeKind: string;
+  actorUserId: string | null;
+  restoredFrom: number | null;
+  createdAt: string;
+}
+
+/** Detail adds the snapshotted body; lists omit it. */
+export interface DocumentRevisionDetail extends DocumentRevision {
+  content: string | null;
+  sourceUrl: string | null;
+  effectiveFrom: string | null;
+  reviewIntervalDays: number | null;
+  active: number;
 }
 
 export interface DocumentListParams {
@@ -149,4 +180,17 @@ export const knowledgeService = {
     apiPost<KnowledgeConflict>(`/knowledge/conflicts/${id}/resolve`, { resolution }),
   dismissConflict: (id: string) =>
     apiPost<KnowledgeConflict>(`/knowledge/conflicts/${id}/dismiss`, {}),
+  retryConflict: (id: string) =>
+    apiPost<KnowledgeConflict>(`/knowledge/conflicts/${id}/retry`, {}),
+  rejudgeConflict: (id: string) =>
+    apiPost<KnowledgeConflict>(`/knowledge/conflicts/${id}/rejudge`, {}),
+  revisions: (documentId: string) =>
+    apiGet<DocumentRevision[]>(`/knowledge/documents/${documentId}/revisions`),
+  revision: (documentId: string, revisionId: string) =>
+    apiGet<DocumentRevisionDetail>(`/knowledge/documents/${documentId}/revisions/${revisionId}`),
+  restoreRevision: (documentId: string, revisionId: string) =>
+    apiPost<KnowledgeDocumentDetail>(
+      `/knowledge/documents/${documentId}/revisions/${revisionId}/restore`,
+      {},
+    ),
 };

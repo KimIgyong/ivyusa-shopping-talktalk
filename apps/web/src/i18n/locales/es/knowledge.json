@@ -88,6 +88,51 @@
       "kept_b": "Resuelto — se mantuvo B",
       "kept_both": "Resuelto — ambos",
       "dismissed": "Descartado"
+    },
+    "failedTitle": "{{count}} par(es) no se pudieron evaluar",
+    "failure": {
+      "model_error": "Fallo en la llamada al modelo",
+      "parse_fail": "Respuesta no interpretable",
+      "bad_verdict": "Veredicto inválido"
+    },
+    "attempts": "intento {{n}}",
+    "retriesExhausted": "reintento automático detenido",
+    "retry": "Reintentar",
+    "collapse": "Contraer",
+    "expandMore": "Ver {{n}} más",
+    "rationaleWithheld": "Una regla de moderación suprimió la explicación. El veredicto se mantiene: compara los dos documentos abajo.",
+    "statusFailed": "Sin evaluar",
+    "more": "Más",
+    "rejudge": "Reevaluar este par"
+  },
+  "editing": "Editando",
+  "detailTab": {
+    "content": "Contenido",
+    "history": "Historial de cambios"
+  },
+  "history": {
+    "loading": "Cargando historial…",
+    "empty": "Aún no hay cambios registrados.",
+    "view": "Ver",
+    "restore": "Restaurar",
+    "systemActor": "—",
+    "compare": "rev {{n}} comparada con la versión actual",
+    "restoreNote": "La restauración se registra como una nueva revisión; no se borra nada del historial.",
+    "kind": {
+      "baseline": "Antes del registro",
+      "create": "Creado",
+      "update": "Editado",
+      "restore": "Restaurado",
+      "delete": "Eliminado"
+    },
+    "field": {
+      "title": "título",
+      "category": "categoría",
+      "content": "cuerpo",
+      "sourceUrl": "URL de origen",
+      "effectiveFrom": "fecha de vigencia",
+      "reviewIntervalDays": "intervalo de revisión",
+      "active": "visibilidad"
     }
   }
 }

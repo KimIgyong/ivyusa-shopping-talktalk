@@ -2,6 +2,7 @@ import { KnowledgeSource } from './entity/knowledge-source.entity';
 import { KbDocument } from './entity/kb-document.entity';
 import { KbBoardPost } from './entity/kb-board-post.entity';
 import { isStale } from './kb-conflict.service';
+import { KbDocumentRevision } from './entity/kb-document-revision.entity';
 
 /** When this document next falls due for review, or null if no cadence is set. */
 function reviewDueAt(d: KbDocument): Date | null {
@@ -75,5 +76,34 @@ export class KnowledgeMapper {
 
   static toPostList(posts: KbBoardPost[]) {
     return posts.map((p) => this.toPost(p));
+  }
+
+  /** History row. `content` is omitted from lists — a page of them would drag
+   * every past body along for a table that only shows who/when/what. */
+  static toRevision(r: KbDocumentRevision, withContent = false) {
+    return {
+      id: r.id,
+      revisionNo: r.revisionNo,
+      title: r.title,
+      category: r.category,
+      changedFields: r.changedFields ?? [],
+      changeKind: r.changeKind,
+      actorUserId: r.actorUserId,
+      restoredFrom: r.restoredFrom,
+      createdAt: r.createdAt,
+      ...(withContent
+        ? {
+            content: r.content,
+            sourceUrl: r.sourceUrl,
+            effectiveFrom: r.effectiveFrom,
+            reviewIntervalDays: r.reviewIntervalDays,
+            active: r.active,
+          }
+        : {}),
+    };
+  }
+
+  static toRevisionList(rows: KbDocumentRevision[]) {
+    return rows.map((r) => this.toRevision(r));
   }
 }

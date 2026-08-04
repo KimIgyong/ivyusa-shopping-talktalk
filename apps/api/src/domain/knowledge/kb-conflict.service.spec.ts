@@ -6,6 +6,7 @@ import { KbConflict } from './entity/kb-conflict.entity';
 import { QdrantService } from '../../infrastructure/external/vector/qdrant.service';
 import { AiGatewayService } from '../../infrastructure/external/ai/ai-gateway.service';
 import { ModerationService } from '../moderation/moderation.service';
+import { AuditService } from '../audit/audit.service';
 
 const doc = (id: number, title: string, content: string): KbDocument =>
   ({ id, tenantId: 1, title, content, active: 1, source: 'knowledge_store' }) as KbDocument;
@@ -28,6 +29,7 @@ describe('KbConflictService.scan', () => {
       qdrantEnabled?: boolean;
       moderationBlocks?: boolean;
       stubProvider?: boolean;
+      judgeThrows?: boolean;
     } = {},
   ) => {
     saved = [];
@@ -68,6 +70,7 @@ describe('KbConflictService.scan', () => {
       }),
       complete: jest.fn(async () => {
         judgeCalls += 1;
+        if (opts.judgeThrows) throw new Error('provider 500');
         return {
           text:
             opts.judgeText ??
@@ -83,7 +86,12 @@ describe('KbConflictService.scan', () => {
       })),
     } as unknown as ModerationService;
 
-    return { svc: new KbConflictService(docRepo, conflictRepo, qdrant, ai, moderation), docRepo };
+    const audit = { write: jest.fn(async () => undefined) } as unknown as AuditService;
+    return {
+      svc: new KbConflictService(docRepo, conflictRepo, qdrant, ai, moderation, audit),
+      docRepo,
+      audit,
+    };
   };
 
   it('queues a contradicting pair with the model verdict and rationale', async () => {
@@ -124,23 +132,73 @@ describe('KbConflictService.scan', () => {
     expect(judgeCalls).toBe(0);
   });
 
-  it('stores nothing when the verdict is unparseable (stub adapter, rate limit)', async () => {
+  it('records an unparseable response as a failed pair instead of silently dropping it', async () => {
+    // Dropping it meant the same pair was re-judged on every scan, forever, with
+    // nothing on screen to say why it never appeared (measured: 11 pairs, ~11
+    // wasted model calls per run).
     const { svc } = build({ judgeText: 'I think these are similar.' });
     const r = await svc.scan(1);
     expect(r.judged).toBe(0);
-    expect(saved).toHaveLength(0);
+    expect(r.failed).toBe(1);
+    expect(saved[0]).toMatchObject({
+      status: 'failed',
+      failureReason: 'parse_fail',
+      verdict: null,
+      attempts: 1,
+    });
   });
 
-  it('rejects a verdict outside the allowed set', async () => {
+  it('records a verdict outside the allowed set as a failed pair', async () => {
     const { svc } = build({ judgeText: '{"verdict":"maybe","rationale":"unsure"}' });
     await svc.scan(1);
-    expect(saved).toHaveLength(0);
+    expect(saved[0]).toMatchObject({ status: 'failed', failureReason: 'bad_verdict' });
   });
 
-  it('drops a rationale the moderation gate blocks (POL-020)', async () => {
+  it('records a model error as a failed pair', async () => {
+    const { svc } = build({ judgeThrows: true });
+    const r = await svc.scan(1);
+    expect(r.failed).toBe(1);
+    expect(saved[0]).toMatchObject({ status: 'failed', failureReason: 'model_error' });
+  });
+
+  it('keeps the verdict and withholds only the rationale when moderation blocks it', async () => {
+    // The verdict is a three-value enum and cannot violate a content rule.
+    // Discarding the whole judgement over its explanatory sentence lost the
+    // "these two contradict" signal entirely (REQ-260804 §1-1).
     const { svc } = build({ moderationBlocks: true });
-    await svc.scan(1);
-    expect(saved).toHaveLength(0);
+    const r = await svc.scan(1);
+    expect(r.judged).toBe(1);
+    expect(r.withheld).toBe(1);
+    expect(r.failed).toBe(0);
+    expect(saved[0]).toMatchObject({
+      status: 'pending',
+      verdict: 'conflict',
+      rationale: null,
+      rationaleWithheld: 1,
+    });
+  });
+
+  it('re-judges a failed pair while it has retries left, and stops after the budget', async () => {
+    const withinBudget = build({
+      known: [{ id: 9, docAId: 10, docBId: 20, status: 'failed', attempts: 1 }],
+      judgeText: '{"verdict":"duplicate","rationale":"same content"}',
+    });
+    const r1 = await withinBudget.svc.scan(1);
+    expect(r1.candidates).toBe(1);
+    // Updates the existing row rather than inserting a duplicate pair.
+    expect(saved[0]).toMatchObject({ id: 9, status: 'pending', verdict: 'duplicate', attempts: 2 });
+
+    const exhausted = build({
+      known: [{ id: 9, docAId: 10, docBId: 20, status: 'failed', attempts: 3 }],
+    });
+    const r2 = await exhausted.svc.scan(1);
+    expect(r2.candidates).toBe(0);
+  });
+
+  it('never re-judges a pair a reviewer dismissed, however it was stored', async () => {
+    const { svc } = build({ known: [{ docAId: 10, docBId: 20, status: 'dismissed', attempts: 1 }] });
+    expect((await svc.scan(1)).candidates).toBe(0);
+    expect(judgeCalls).toBe(0);
   });
 
   it('embeds documents in one batched call, not one request per document', async () => {
@@ -179,6 +237,20 @@ describe('KbConflictService.scan', () => {
     expect(docRepo.update).toHaveBeenCalledWith(
       { id: 20, tenantId: 1 },
       { active: 0, supersededBy: 10 },
+    );
+  });
+
+  it('records who resolved a conflict and how', async () => {
+    // Hiding a document because of a conflict is a knowledge change like any
+    // other; it belongs in the same trail as an edit.
+    const { svc, audit } = build();
+    await svc.resolve(1, 1, 'kept_a', 7);
+    expect(audit.write).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'knowledge.conflict_resolved',
+        actorId: 7,
+        metadata: expect.objectContaining({ resolution: 'kept_a' }),
+      }),
     );
   });
 
