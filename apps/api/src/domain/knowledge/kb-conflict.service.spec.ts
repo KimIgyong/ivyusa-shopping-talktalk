@@ -8,8 +8,8 @@ import { AiGatewayService } from '../../infrastructure/external/ai/ai-gateway.se
 import { ModerationService } from '../moderation/moderation.service';
 import { AuditService } from '../audit/audit.service';
 
-const doc = (id: number, title: string, content: string): KbDocument =>
-  ({ id, tenantId: 1, title, content, active: 1, source: 'knowledge_store' }) as KbDocument;
+const doc = (id: number, title: string, content: string, docGroup = 'counsel'): KbDocument =>
+  ({ id, tenantId: 1, title, content, active: 1, source: 'knowledge_store', docGroup }) as KbDocument;
 
 describe('KbConflictService.scan', () => {
   const docs = [
@@ -30,6 +30,7 @@ describe('KbConflictService.scan', () => {
       moderationBlocks?: boolean;
       stubProvider?: boolean;
       judgeThrows?: boolean;
+      docs?: KbDocument[];
     } = {},
   ) => {
     saved = [];
@@ -37,7 +38,7 @@ describe('KbConflictService.scan', () => {
     embedCalls = 0;
 
     const docRepo = {
-      find: jest.fn(async () => docs),
+      find: jest.fn(async () => opts.docs ?? docs),
       update: jest.fn(),
       findOne: jest.fn(async () => docs[0]),
     } as unknown as Repository<KbDocument>;
@@ -115,6 +116,19 @@ describe('KbConflictService.scan', () => {
     await svc.scan(1);
     expect(saved).toHaveLength(1);
     expect(Number(saved[0].docAId)).toBeLessThan(Number(saved[0].docBId));
+  });
+
+  it('never pairs documents from different groups', async () => {
+    // A product description and a refund policy are never the same claim, and
+    // pairing them floods the queue the moment a catalogue is imported.
+    const mixed = [
+      doc(10, 'Shipping fee', 'Free shipping over $29.99.', 'counsel'),
+      doc(20, 'Collagen mask', 'Free shipping over $19.99.', 'product'),
+    ];
+    const { svc } = build({ docs: mixed });
+    const r = await svc.scan(1);
+    expect(r.candidates).toBe(0);
+    expect(saved).toHaveLength(0);
   });
 
   it('ignores neighbours below the candidate threshold', async () => {

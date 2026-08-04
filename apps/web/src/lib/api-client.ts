@@ -94,6 +94,16 @@ export const apiPost = async <T>(url: string, data?: unknown): Promise<T> => {
   return res.data;
 };
 
+/**
+ * Multipart POST. The Content-Type header is deliberately left unset: the
+ * browser has to add the multipart boundary itself, and setting it by hand
+ * produces a request the server parses as an empty body.
+ */
+export const apiPostForm = async <T>(url: string, form: FormData): Promise<T> => {
+  const res = await http.post<T>(url, form);
+  return res.data;
+};
+
 export const apiPut = async <T>(url: string, data?: unknown): Promise<T> => {
   const res = await http.put<T>(url, data);
   return res.data;

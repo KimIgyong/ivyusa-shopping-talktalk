@@ -8,6 +8,15 @@ import {
 } from 'typeorm';
 import { bigintTransformer } from '../../../global/util/transformers';
 
+/** Top-level document groups (PLN-260804 D2). */
+export const DOC_GROUP = {
+  /** Support/policy knowledge — everything that predates the split. */
+  COUNSEL: 'counsel',
+  /** Product catalogue knowledge. */
+  PRODUCT: 'product',
+} as const;
+export type DocGroup = (typeof DOC_GROUP)[keyof typeof DOC_GROUP];
+
 /** kb_documents — knowledge base documents for RAG (FR-064). */
 // FULLTEXT for the RAG retriever (PERF-2); ngram parser so ko (CJK) tokenizes.
 @Index('ft_kb_title_content', ['title', 'content'], { fulltext: true, parser: 'ngram' })
@@ -26,6 +35,28 @@ export class KbDocument {
   @Column({ name: 'source_id', type: 'bigint', nullable: true, transformer: bigintTransformer })
   @Index('idx_kb_source')
   sourceId: number | null;
+
+  /**
+   * Top-level grouping above `category` (PLN-260804 D2). Closed set: a free
+   * string would let a typo split a group in two.
+   *
+   * Named doc_group because `group` is a MySQL reserved word.
+   */
+  @Column({ name: 'doc_group', type: 'varchar', length: 16, default: 'counsel' })
+  @Index('idx_kb_group')
+  docGroup: string;
+
+  /**
+   * Stable key from the origin system — the Shopify `Handle` for imported
+   * products. Unique per (tenant, group), and NULL repeats freely under a
+   * MySQL UNIQUE index, so hand-written documents stay unconstrained.
+   *
+   * 255, not 128: Shopify handles are slugified product titles and the supplied
+   * catalogue peaks at 185 characters. The average is 63, which is what made
+   * 128 look sufficient — the maximum is the number that matters here.
+   */
+  @Column({ name: 'external_key', type: 'varchar', length: 255, nullable: true })
+  externalKey: string | null;
 
   @Column({ type: 'varchar', length: 64, nullable: true })
   @Index('idx_kb_category')

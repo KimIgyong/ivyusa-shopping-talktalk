@@ -17,7 +17,21 @@ describe('RagService.classifyIntent', () => {
 
   it('falls back to product_inquiry when the gateway returns non-JSON', async () => {
     const res = await svc('not json at all').classifyIntent(1, 'hello');
-    expect(res).toEqual({ intent: 'product_inquiry', needsOrderData: false, confidence: 0.5 });
+    expect(res).toEqual({
+      intent: 'product_inquiry',
+      needsOrderData: false,
+      confidence: 0.5,
+      // Flagged so callers can tell "classified as a product question" from
+      // "classification failed" — the fallback label is itself product-shaped,
+      // and without this it would bias group-preferred retrieval (PLN-260804 D3).
+      fallback: true,
+    });
+  });
+
+  it('does not flag a real classification as a fallback', async () => {
+    const res = await svc('{"intent":"order_status","needsOrderData":true,"confidence":0.9}')
+      .classifyIntent(1, 'where is my order');
+    expect(res.fallback).toBeUndefined();
   });
 });
 

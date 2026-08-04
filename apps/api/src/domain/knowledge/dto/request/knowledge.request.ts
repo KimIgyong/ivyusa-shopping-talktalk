@@ -23,12 +23,16 @@ export class UpdateSourceRequest {
 export class ListDocumentsQuery {
   @IsOptional() @IsString() source_id?: string;
   @IsOptional() @IsString() category?: string;
+  /** counsel | product — omit for all groups. */
+  @IsOptional() @IsString() group?: string;
   @IsOptional() @IsString() page?: string;
   @IsOptional() @IsString() size?: string;
 }
 
 export class CreateDocumentRequest {
   @IsOptional() @IsInt() source_id?: number;
+  /** counsel (default) | product. */
+  @IsOptional() @IsString() doc_group?: string;
   @IsOptional() @IsString() source?: string; // knowledge_store/google_drive
   @IsString() category: string;
   @IsString() title: string;
@@ -65,6 +69,8 @@ export class ResolveConflictRequest {
 export class AskKnowledgeRequest {
   @IsString() question: string;
   @IsOptional() @IsString() language?: string; // en/es/ko
+  /** Bias retrieval toward one group; omit for no preference. */
+  @IsOptional() @IsString() group?: string;
 }
 
 // ---- Board posts ----

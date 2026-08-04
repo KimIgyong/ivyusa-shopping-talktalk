@@ -134,5 +134,22 @@
       "reviewIntervalDays": "검토주기",
       "active": "노출 여부"
     }
-  }
+  },
+  "importProducts": "상품 CSV 가져오기",
+  "import": "가져오기",
+  "group": {
+    "all": "전체",
+    "counsel": "CounselInfo",
+    "product": "ProductInfo"
+  },
+  "importRequiredColumns": "필수 컬럼: Product Name · Handle · Detail",
+  "importUpsertHint": "기존 상품은 Handle 기준으로 갱신됩니다 — 중복 생성되지 않습니다.",
+  "importPriceNote": "가격은 지식으로 저장하지 않습니다 — 낡은 가격이 답변에 남으면 오답이 됩니다.",
+  "importParsed": "파싱",
+  "importCreated": "생성",
+  "importUpdated": "갱신",
+  "importSkipped": "변경없음",
+  "importInvalid": "건너뜀",
+  "importEmbedded": "색인",
+  "importRow": "{{n}}행"
 }

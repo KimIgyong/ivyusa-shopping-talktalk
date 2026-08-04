@@ -134,5 +134,22 @@
       "reviewIntervalDays": "review interval",
       "active": "visibility"
     }
-  }
+  },
+  "importProducts": "Import product CSV",
+  "import": "Import",
+  "group": {
+    "all": "All",
+    "counsel": "CounselInfo",
+    "product": "ProductInfo"
+  },
+  "importRequiredColumns": "Required columns: Product Name · Handle · Detail",
+  "importUpsertHint": "Existing products are matched by Handle and updated — no duplicates.",
+  "importPriceNote": "Price is not stored as knowledge: a stale price in an answer is worse than none.",
+  "importParsed": "Parsed",
+  "importCreated": "Created",
+  "importUpdated": "Updated",
+  "importSkipped": "Unchanged",
+  "importInvalid": "Skipped",
+  "importEmbedded": "Indexed",
+  "importRow": "Row {{n}}"
 }

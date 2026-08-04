@@ -24,6 +24,7 @@ import {
   useDocuments,
   useDocument,
   useCreateDocument,
+  useImportProducts,
   useUpdateDocument,
   useDeleteDocument,
 } from './knowledge.hooks';
@@ -62,19 +63,53 @@ export function KnowledgePage() {
 
   const [page, setPage] = useState(1);
   const [category, setCategory] = useState('');
-  const documents = useDocuments({ page, size: PAGE_SIZE, category: category || undefined });
+  // '' = all groups. Switching groups clears the category, which belongs to the
+  // group that was selected.
+  const [group, setGroup] = useState('');
+  const documents = useDocuments({
+    page,
+    size: PAGE_SIZE,
+    category: category || undefined,
+    group: group || undefined,
+  });
   const createDocument = useCreateDocument();
   const updateDocument = useUpdateDocument();
   const deleteDocument = useDeleteDocument();
   const markReviewed = useMarkReviewed();
 
+  // Always fetched ungrouped: the tab counts need every group, and the category
+  // list is derived from the same rows.
   const categories = useCategories();
-  const categoryTotal = (categories.data ?? []).reduce((sum, c) => sum + c.total, 0);
+  const allCounts = categories.data ?? [];
+  const groupTotals = allCounts.reduce<Record<string, number>>((acc, c) => {
+    acc[c.group] = (acc[c.group] ?? 0) + c.total;
+    return acc;
+  }, {});
+  const visibleCounts = group ? allCounts.filter((c) => c.group === group) : allCounts;
+  // Same category name can appear under two groups; merge for display.
+  const mergedCategories = Object.values(
+    visibleCounts.reduce<Record<string, { category: string | null; total: number; active: number }>>(
+      (acc, c) => {
+        const k = c.category ?? '';
+        acc[k] = acc[k]
+          ? { ...acc[k], total: acc[k].total + c.total, active: acc[k].active + c.active }
+          : { category: c.category, total: c.total, active: c.active };
+        return acc;
+      },
+      {},
+    ),
+  ).sort((a, b) => b.total - a.total);
+  const categoryTotal = visibleCounts.reduce((sum, c) => sum + c.total, 0);
+  const selectGroup = (value: string) => {
+    setGroup(value);
+    setCategory('');
+    setPage(1);
+  };
   // Suggest what this tenant actually uses, plus the known taxonomy for a tenant
   // that has not created anything yet.
   const categorySuggestions = [
     ...new Set([
-      ...(categories.data ?? []).map((c) => c.category).filter((c): c is string => !!c),
+      ...allCounts.map((c) => c.category).filter((c): c is string => !!c),
       ...CATEGORIES,
     ]),
   ];
@@ -150,6 +185,10 @@ export function KnowledgePage() {
   const [sourceOpen, setSourceOpen] = useState(false);
   const [sourceName, setSourceName] = useState('');
   const [sourceType, setSourceType] = useState(SOURCE_TYPES[0]);
+
+  const [importOpen, setImportOpen] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const importProducts = useImportProducts();
 
   const [docOpen, setDocOpen] = useState(false);
   const [docTitle, setDocTitle] = useState('');
@@ -315,8 +354,39 @@ export function KnowledgePage() {
 
         <Card
           title={t('documents')}
-          action={<Button onClick={() => setDocOpen(true)}>{t('addDocument')}</Button>}
+          action={
+            <div className="flex gap-2">
+              <Button variant="secondary" onClick={() => setImportOpen(true)}>
+                {t('importProducts')}
+              </Button>
+              <Button onClick={() => setDocOpen(true)}>{t('addDocument')}</Button>
+            </div>
+          }
         >
+          {/* Group tabs sit above the category navigator: ProductInfo and
+              CounselInfo answer different kinds of question, and mixing their
+              category lists made neither readable. */}
+          <div className="mb-3 flex flex-wrap gap-1 border-b border-gray-200">
+            {[
+              { key: '', label: t('group.all'), count: Object.values(groupTotals).reduce((a, b) => a + b, 0) },
+              { key: 'counsel', label: t('group.counsel'), count: groupTotals.counsel ?? 0 },
+              { key: 'product', label: t('group.product'), count: groupTotals.product ?? 0 },
+            ].map((g) => (
+              <button
+                key={g.key || 'all'}
+                type="button"
+                onClick={() => selectGroup(g.key)}
+                className={`-mb-px border-b-2 px-3 py-2 text-sm ${
+                  group === g.key
+                    ? 'border-primary-600 font-medium text-primary-700'
+                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                {g.label} <span className="ml-1 tabular-nums text-xs text-gray-400">{g.count}</span>
+              </button>
+            ))}
+          </div>
+
           {/* Category navigator (PLN-Knowledge-QA F3) replaces the old dropdown:
               the whole taxonomy and its sizes are visible at a glance. */}
           <div className="flex flex-col gap-4 md:flex-row">
@@ -327,7 +397,7 @@ export function KnowledgePage() {
                 selected={category === ''}
                 onSelect={() => selectCategory('')}
               />
-              {(categories.data ?? []).map((c) => (
+              {mergedCategories.map((c) => (
                 <CategoryLink
                   key={c.category ?? 'uncategorized'}
                   label={c.category ?? t('uncategorized')}
@@ -366,6 +436,68 @@ export function KnowledgePage() {
           <ConflictReview onOpenDocument={(id) => setDetailId(id)} />
         </div>
       </div>
+
+      <Modal
+        open={importOpen}
+        onClose={() => {
+          setImportOpen(false);
+          setImportFile(null);
+          importProducts.reset();
+        }}
+        title={t('importProducts')}
+        footer={
+          <>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setImportOpen(false);
+                setImportFile(null);
+                importProducts.reset();
+              }}
+            >
+              {tc('close')}
+            </Button>
+            <Button
+              disabled={!importFile || importProducts.isPending}
+              onClick={() => importFile && importProducts.mutate(importFile)}
+            >
+              {importProducts.isPending ? tc('loading') : t('import')}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-3 text-sm">
+          <input
+            type="file"
+            accept=".csv,text/csv"
+            onChange={(e) => setImportFile(e.target.files?.[0] ?? null)}
+            className="block w-full text-sm text-gray-700 file:mr-3 file:rounded-lg file:border-0 file:bg-primary-600 file:px-3 file:py-2 file:text-sm file:text-white"
+          />
+          <p className="text-xs text-gray-500">{t('importRequiredColumns')}</p>
+          <p className="text-xs text-gray-500">{t('importUpsertHint')}</p>
+          <p className="text-xs text-warning">{t('importPriceNote')}</p>
+
+          {importProducts.data && (
+            <dl className="grid grid-cols-3 gap-2 rounded-lg bg-gray-50 p-3 text-xs">
+              <Stat label={t('importParsed')} value={importProducts.data.parsed} />
+              <Stat label={t('importCreated')} value={importProducts.data.created} />
+              <Stat label={t('importUpdated')} value={importProducts.data.updated} />
+              <Stat label={t('importSkipped')} value={importProducts.data.skipped} />
+              <Stat label={t('importInvalid')} value={importProducts.data.invalid} />
+              <Stat label={t('importEmbedded')} value={importProducts.data.embedded} />
+            </dl>
+          )}
+          {(importProducts.data?.errors.length ?? 0) > 0 && (
+            <ul className="max-h-40 space-y-1 overflow-y-auto rounded border border-warning/40 bg-amber-50 p-2 text-xs">
+              {importProducts.data!.errors.slice(0, 20).map((e, i) => (
+                <li key={i}>
+                  {t('importRow', { n: e.row })}: {e.reason}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </Modal>
 
       <Modal
         open={sourceOpen}
@@ -648,5 +780,14 @@ function CategoryLink({
         {inactive ? ` (−${inactive})` : ''}
       </span>
     </button>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: number }) {
+  return (
+    <div>
+      <dt className="text-gray-500">{label}</dt>
+      <dd className="tabular-nums font-medium text-gray-800">{value}</dd>
+    </div>
   );
 }

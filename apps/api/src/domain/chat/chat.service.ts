@@ -12,6 +12,7 @@ import {
 } from '@ivy/types';
 import { Conversation } from './entity/conversation.entity';
 import { Message } from './entity/message.entity';
+import { DOC_GROUP } from '../knowledge/entity/kb-document.entity';
 import { Session } from '../session/entity/session.entity';
 import { Tenant } from '../tenant/entity/tenant.entity';
 import { User } from '../user/entity/user.entity';
@@ -279,7 +280,19 @@ export class ChatService {
     // database, it already excludes every contact field (see buildOrderContext), and
     // scrubPii would mask the order refs and totals that are the whole point of the
     // grounding. Minimisation happens at construction here, not by redaction after.
-    const answer = await this.rag.answer(tenantId, egressText, session.language, orderContext);
+    // Group preference (PLN-260804 D3): a product-ish intent nudges retrieval
+    // toward the product catalogue. A fallback label carries no information —
+    // the classifier's failure value happens to be 'product_inquiry' — so it
+    // yields no preference at all.
+    const preferGroup =
+      !intent.fallback && /product/i.test(intent.intent ?? '') ? DOC_GROUP.PRODUCT : undefined;
+    const answer = await this.rag.answer(
+      tenantId,
+      egressText,
+      session.language,
+      orderContext,
+      preferGroup,
+    );
 
     // Mandatory moderation gate (FR-069).
     const moderated = await this.moderation.moderate({

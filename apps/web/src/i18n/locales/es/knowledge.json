@@ -134,5 +134,22 @@
       "reviewIntervalDays": "intervalo de revisión",
       "active": "visibilidad"
     }
-  }
+  },
+  "importProducts": "Importar CSV de productos",
+  "import": "Importar",
+  "group": {
+    "all": "Todos",
+    "counsel": "CounselInfo",
+    "product": "ProductInfo"
+  },
+  "importRequiredColumns": "Columnas requeridas: Product Name · Handle · Detail",
+  "importUpsertHint": "Los productos existentes se identifican por Handle y se actualizan — sin duplicados.",
+  "importPriceNote": "El precio no se guarda como conocimiento: un precio desactualizado en una respuesta es peor que ninguno.",
+  "importParsed": "Analizadas",
+  "importCreated": "Creados",
+  "importUpdated": "Actualizados",
+  "importSkipped": "Sin cambios",
+  "importInvalid": "Omitidas",
+  "importEmbedded": "Indexados",
+  "importRow": "Fila {{n}}"
 }
