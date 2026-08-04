@@ -88,6 +88,51 @@
       "kept_b": "Resolved — B kept",
       "kept_both": "Resolved — both kept",
       "dismissed": "Dismissed"
+    },
+    "failedTitle": "{{count}} pair(s) could not be judged",
+    "failure": {
+      "model_error": "Model call failed",
+      "parse_fail": "Unparseable response",
+      "bad_verdict": "Invalid verdict"
+    },
+    "attempts": "attempt {{n}}",
+    "retriesExhausted": "auto-retry stopped",
+    "retry": "Retry",
+    "collapse": "Collapse",
+    "expandMore": "Show {{n}} more",
+    "rationaleWithheld": "The explanation was suppressed by a moderation rule. The verdict stands — compare the two documents below.",
+    "statusFailed": "Unjudged",
+    "more": "More",
+    "rejudge": "Re-judge this pair"
+  },
+  "editing": "Editing",
+  "detailTab": {
+    "content": "Content",
+    "history": "Change history"
+  },
+  "history": {
+    "loading": "Loading history…",
+    "empty": "No changes recorded yet.",
+    "view": "View",
+    "restore": "Restore",
+    "systemActor": "—",
+    "compare": "rev {{n}} compared with the current version",
+    "restoreNote": "Restoring is recorded as a new revision; nothing in the history is erased.",
+    "kind": {
+      "baseline": "Before tracking",
+      "create": "Created",
+      "update": "Edited",
+      "restore": "Restored",
+      "delete": "Deleted"
+    },
+    "field": {
+      "title": "title",
+      "category": "category",
+      "content": "body",
+      "sourceUrl": "source URL",
+      "effectiveFrom": "effective date",
+      "reviewIntervalDays": "review interval",
+      "active": "visibility"
     }
   }
 }

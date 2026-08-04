@@ -73,12 +73,22 @@ export class ModerationService {
       const rules = await this.activeRules(input.tenantId, input.scope);
 
       let working = input.text;
+      let warnedRuleId: number | undefined;
       for (const rule of rules) {
         const hit = this.matches(rule, working);
         if (!hit) continue;
         const action = rule.action;
-        if (action === MODERATION_ACTION.BLOCK || action === MODERATION_ACTION.WARN) {
+        if (action === MODERATION_ACTION.BLOCK) {
           return this.finalize(input, MODERATION_DECISION.BLOCKED, action, '', rule.id);
+        }
+        if (action === MODERATION_ACTION.WARN) {
+          // A warning records the hit and lets the text through. It used to
+          // return BLOCKED with an emptied body, so a rule an operator
+          // configured as a warning silently suppressed the message — and,
+          // because it returned immediately, it also hid any later block/mask
+          // rule from ever being evaluated.
+          warnedRuleId ??= rule.id;
+          continue;
         }
         if (action === MODERATION_ACTION.MASK) {
           working = this.mask(rule, working);
@@ -96,7 +106,10 @@ export class ModerationService {
       }
 
       const decision = working === input.text ? MODERATION_DECISION.DELIVERED : MODERATION_DECISION.EDITED;
-      return this.finalize(input, decision, decision === MODERATION_DECISION.EDITED ? 'mask' : 'pass', working);
+      // A warn that fired but changed nothing is still logged, with its rule,
+      // so "this nearly tripped a rule" stays visible in moderation_logs.
+      const action = decision === MODERATION_DECISION.EDITED ? 'mask' : warnedRuleId ? 'warn' : 'pass';
+      return this.finalize(input, decision, action, working, warnedRuleId);
     } catch (e) {
       this.logger.error(`Moderation failed, blocking (fail-safe): ${(e as Error).message}`);
       return this.finalize(input, MODERATION_DECISION.BLOCKED, 'block', '');

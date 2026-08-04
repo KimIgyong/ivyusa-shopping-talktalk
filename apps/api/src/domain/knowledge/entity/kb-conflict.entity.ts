@@ -19,7 +19,21 @@ export const CONFLICT_STATUS = {
   PENDING: 'pending',
   RESOLVED: 'resolved',
   DISMISSED: 'dismissed',
+  /** The model never produced a usable verdict — kept out of the review queue. */
+  FAILED: 'failed',
 } as const;
+
+/** Why a judgement could not be stored. A moderation block is NOT one of these:
+ * the verdict survives and only the rationale is withheld (PLN E9). */
+export const CONFLICT_FAILURE = {
+  MODEL_ERROR: 'model_error',
+  PARSE_FAIL: 'parse_fail',
+  BAD_VERDICT: 'bad_verdict',
+} as const;
+export type ConflictFailure = (typeof CONFLICT_FAILURE)[keyof typeof CONFLICT_FAILURE];
+
+/** Attempts after which the scan stops retrying a pair on its own (PLN E5). */
+export const MAX_JUDGE_ATTEMPTS = 3;
 
 export const CONFLICT_RESOLUTION = {
   KEPT_A: 'kept_a',
@@ -80,6 +94,26 @@ export class KbConflict {
 
   @Column({ name: 'resolved_at', type: 'datetime', nullable: true })
   resolvedAt: Date | null;
+
+  /** Set only when `status = failed`; null for judged pairs. */
+  @Column({ name: 'failure_reason', type: 'varchar', length: 24, nullable: true })
+  failureReason: string | null;
+
+  /** Judgement attempts so far. The scan gives up at MAX_JUDGE_ATTEMPTS. */
+  @Column({ type: 'int', default: 1 })
+  attempts: number;
+
+  /**
+   * The verdict stands but the moderation gate suppressed its explanation.
+   * Losing the whole "these two contradict" signal over one sentence was the
+   * defect this replaces — the verdict is a three-value enum and cannot itself
+   * violate a content rule.
+   */
+  @Column({ name: 'rationale_withheld', type: 'tinyint', width: 1, default: 0 })
+  rationaleWithheld: number;
+
+  @Column({ name: 'last_attempt_at', type: 'datetime', nullable: true })
+  lastAttemptAt: Date | null;
 
   @CreateDateColumn({ name: 'detected_at' })
   detectedAt: Date;

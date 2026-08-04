@@ -20,6 +20,8 @@ import {
   UpdateSourceRequest,
 } from './dto/request/knowledge.request';
 import { KbConflictService, isStale } from './kb-conflict.service';
+import { KbRevisionService } from './kb-revision.service';
+import { REVISION_KIND } from './entity/kb-document-revision.entity';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
 
@@ -48,6 +50,7 @@ export class KnowledgeService {
     private readonly rag: RagService,
     private readonly moderation: ModerationService,
     private readonly conflicts: KbConflictService,
+    private readonly revisions: KbRevisionService,
   ) {}
 
   // ---- Sources ----
@@ -229,10 +232,18 @@ export class KnowledgeService {
     const doc = await this.findDocument(tenantId, id);
     doc.reviewedAt = new Date();
     doc.reviewedBy = userId;
-    return this.docRepo.save(doc);
+    const saved = await this.docRepo.save(doc);
+    // Audit only — nothing about the content changed, so a snapshot would just
+    // duplicate the previous revision.
+    await this.revisions.recordAudit(tenantId, id, 'knowledge.document_reviewed', userId);
+    return saved;
   }
 
-  async createDocument(tenantId: number, body: CreateDocumentRequest): Promise<KbDocument> {
+  async createDocument(
+    tenantId: number,
+    body: CreateDocumentRequest,
+    actorUserId: number | null = null,
+  ): Promise<KbDocument> {
     const doc = this.docRepo.create({
       tenantId,
       source: body.source ?? 'knowledge_store',
@@ -245,6 +256,7 @@ export class KnowledgeService {
       embeddingRef: null,
     });
     const saved = await this.docRepo.save(doc);
+    await this.revisions.record(tenantId, saved, null, REVISION_KIND.CREATE, actorUserId);
     return this.embed(saved);
   }
 
@@ -252,8 +264,11 @@ export class KnowledgeService {
     tenantId: number,
     id: number,
     body: UpdateDocumentRequest,
+    actorUserId: number | null = null,
   ): Promise<KbDocument> {
     const doc = await this.findDocument(tenantId, id);
+    // Snapshot the pre-edit state before the entity is mutated in place.
+    const before = { ...doc } as KbDocument;
     if (body.title !== undefined) doc.title = body.title;
     if (body.category !== undefined) doc.category = body.category;
     // Provenance/staleness fields (PLN D7). `null` is meaningful — clearing a
@@ -270,6 +285,7 @@ export class KnowledgeService {
       reembed = true;
     }
     const saved = await this.docRepo.save(doc);
+    await this.revisions.record(tenantId, saved, before, REVISION_KIND.UPDATE, actorUserId);
     if (reembed) return this.embed(saved);
     if (activeChanged && this.qdrant.enabled) {
       // Visibility toggle only — flip the Qdrant payload flag, no re-embedding.
@@ -280,8 +296,30 @@ export class KnowledgeService {
     return saved;
   }
 
-  async deleteDocument(tenantId: number, id: number): Promise<void> {
-    await this.findDocument(tenantId, id);
+  /**
+   * Roll a document back to an earlier revision. Re-embeds when the body
+   * actually moved, so retrieval matches what the console now shows.
+   */
+  async restoreRevision(
+    tenantId: number,
+    documentId: number,
+    revisionId: number,
+    actorUserId: number,
+  ): Promise<KbDocument> {
+    const { doc, contentChanged } = await this.revisions.restore(
+      tenantId,
+      documentId,
+      revisionId,
+      actorUserId,
+    );
+    return contentChanged ? this.embed(doc) : doc;
+  }
+
+  async deleteDocument(tenantId: number, id: number, actorUserId: number | null = null): Promise<void> {
+    const doc = await this.findDocument(tenantId, id);
+    // Record before deleting: documents are hard-deleted here, so this is the
+    // last chance to preserve what the document said.
+    await this.revisions.record(tenantId, doc, null, REVISION_KIND.DELETE, actorUserId);
     await this.docRepo.delete({ id, tenantId });
     if (this.qdrant.enabled) {
       this.qdrant

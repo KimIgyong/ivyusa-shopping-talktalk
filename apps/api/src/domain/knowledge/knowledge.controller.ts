@@ -32,6 +32,7 @@ import {
   UpdateSourceRequest,
 } from './dto/request/knowledge.request';
 import { KbConflictService } from './kb-conflict.service';
+import { KbRevisionService } from './kb-revision.service';
 
 /** Knowledge source & RAG corpus management (FR-064, FR-065). Tenant-scoped. */
 @ApiTags('Knowledge')
@@ -40,6 +41,7 @@ export class KnowledgeController {
   constructor(
     private readonly knowledgeService: KnowledgeService,
     private readonly conflictService: KbConflictService,
+    private readonly revisionService: KbRevisionService,
   ) {}
 
   /** Narrow to a tenant user; knowledge management is tenant-scoped only. */
@@ -163,7 +165,8 @@ export class KnowledgeController {
   @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
   @ApiOperation({ summary: 'Create and embed a RAG document' })
   async createDocument(@CurrentUser() user: Principal, @Body() body: CreateDocumentRequest) {
-    const doc = await this.knowledgeService.createDocument(this.tenantUser(user).tenantId, body);
+    const actor = this.tenantUser(user);
+    const doc = await this.knowledgeService.createDocument(actor.tenantId, body, actor.userId);
     return KnowledgeMapper.toDocument(doc);
   }
 
@@ -175,11 +178,8 @@ export class KnowledgeController {
     @Param('id', ParseIntPipe) id: number,
     @Body() body: UpdateDocumentRequest,
   ) {
-    const doc = await this.knowledgeService.updateDocument(
-      this.tenantUser(user).tenantId,
-      id,
-      body,
-    );
+    const actor = this.tenantUser(user);
+    const doc = await this.knowledgeService.updateDocument(actor.tenantId, id, body, actor.userId);
     return KnowledgeMapper.toDocument(doc);
   }
 
@@ -187,8 +187,49 @@ export class KnowledgeController {
   @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
   @ApiOperation({ summary: 'Delete a RAG document' })
   async deleteDocument(@CurrentUser() user: Principal, @Param('id', ParseIntPipe) id: number) {
-    await this.knowledgeService.deleteDocument(this.tenantUser(user).tenantId, id);
+    const actor = this.tenantUser(user);
+    await this.knowledgeService.deleteDocument(actor.tenantId, id, actor.userId);
     return { deleted: true };
+  }
+
+  // --- Revision history (PLN T3) -------------------------------------------
+
+  @Get('documents/:id/revisions')
+  @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
+  @ApiOperation({ summary: 'Change history for a document (newest first)' })
+  async listRevisions(@CurrentUser() user: Principal, @Param('id', ParseIntPipe) id: number) {
+    const rows = await this.revisionService.list(this.tenantUser(user).tenantId, id);
+    return KnowledgeMapper.toRevisionList(rows);
+  }
+
+  @Get('documents/:id/revisions/:revisionId')
+  @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
+  @ApiOperation({ summary: 'One revision including its full content' })
+  async getRevision(
+    @CurrentUser() user: Principal,
+    @Param('id', ParseIntPipe) id: number,
+    @Param('revisionId', ParseIntPipe) revisionId: number,
+  ) {
+    const rev = await this.revisionService.get(this.tenantUser(user).tenantId, id, revisionId);
+    return KnowledgeMapper.toRevision(rev, true);
+  }
+
+  @Post('documents/:id/revisions/:revisionId/restore')
+  @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
+  @ApiOperation({ summary: 'Roll the document back to a revision (recorded as a new revision)' })
+  async restoreRevision(
+    @CurrentUser() user: Principal,
+    @Param('id', ParseIntPipe) id: number,
+    @Param('revisionId', ParseIntPipe) revisionId: number,
+  ) {
+    const actor = this.tenantUser(user);
+    const doc = await this.knowledgeService.restoreRevision(
+      actor.tenantId,
+      id,
+      revisionId,
+      actor.userId,
+    );
+    return KnowledgeMapper.toDocument(doc);
   }
 
   @Post('documents/:id/reviewed')
@@ -233,6 +274,20 @@ export class KnowledgeController {
   ) {
     const actor = this.tenantUser(user);
     return this.conflictService.resolve(actor.tenantId, id, body.resolution, actor.userId);
+  }
+
+  @Post('conflicts/:id/retry')
+  @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
+  @ApiOperation({ summary: 'Re-judge a pair the model failed on (ignores the attempt budget)' })
+  async retryConflict(@CurrentUser() user: Principal, @Param('id', ParseIntPipe) id: number) {
+    return this.conflictService.retry(this.tenantUser(user).tenantId, id);
+  }
+
+  @Post('conflicts/:id/rejudge')
+  @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
+  @ApiOperation({ summary: 'Re-judge a pair against the current document contents' })
+  async rejudgeConflict(@CurrentUser() user: Principal, @Param('id', ParseIntPipe) id: number) {
+    return this.conflictService.rejudge(this.tenantUser(user).tenantId, id);
   }
 
   @Post('conflicts/:id/dismiss')

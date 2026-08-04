@@ -161,7 +161,12 @@ export function useScanConflicts() {
       qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'conflicts'] });
       // The count matters: "scan finished" with nothing found reads as a
       // failure otherwise.
-      toast.success(`Scan complete — ${r.conflicts} conflict(s) from ${r.candidates} candidate pair(s)`);
+      // Report failures too: "scan complete" with pairs quietly dropped reads
+      // as success when it is not.
+      const parts = [`${r.conflicts} conflict(s) from ${r.candidates} candidate pair(s)`];
+      if (r.failed > 0) parts.push(`${r.failed} unjudged`);
+      if (r.withheld > 0) parts.push(`${r.withheld} rationale(s) withheld`);
+      toast.success(`Scan complete — ${parts.join(', ')}`);
     },
     onError: (err: Error) => toast.error(err.message),
   });
@@ -192,6 +197,69 @@ export function useDismissConflict() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'conflicts'] });
       toast.success('Dismissed');
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+}
+
+export function useRetryConflict() {
+  const qc = useQueryClient();
+  const tenantKey = useTenantKey();
+  return useMutation({
+    mutationFn: (id: string) => knowledgeService.retryConflict(id),
+    onSuccess: (c) => {
+      qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'conflicts'] });
+      toast[c.status === 'failed' ? 'error' : 'success'](
+        c.status === 'failed' ? `Still failing (${c.failureReason})` : 'Judged',
+      );
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+}
+
+export function useRejudgeConflict() {
+  const qc = useQueryClient();
+  const tenantKey = useTenantKey();
+  return useMutation({
+    mutationFn: (id: string) => knowledgeService.rejudgeConflict(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'conflicts'] });
+      toast.success('Re-judged');
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+}
+
+/** Change history for one document (PLN T3). */
+export function useRevisions(documentId: string | null) {
+  const tenantKey = useTenantKey();
+  return useQuery({
+    queryKey: ['knowledge', tenantKey, 'revisions', documentId],
+    queryFn: () => knowledgeService.revisions(documentId as string),
+    enabled: !!documentId,
+  });
+}
+
+export function useRevision(documentId: string | null, revisionId: string | null) {
+  const tenantKey = useTenantKey();
+  return useQuery({
+    queryKey: ['knowledge', tenantKey, 'revision', documentId, revisionId],
+    queryFn: () => knowledgeService.revision(documentId as string, revisionId as string),
+    enabled: !!documentId && !!revisionId,
+  });
+}
+
+export function useRestoreRevision() {
+  const qc = useQueryClient();
+  const tenantKey = useTenantKey();
+  return useMutation({
+    mutationFn: (vars: { documentId: string; revisionId: string }) =>
+      knowledgeService.restoreRevision(vars.documentId, vars.revisionId),
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'documents'] });
+      qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'document', vars.documentId] });
+      qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'revisions', vars.documentId] });
+      toast.success('Restored');
     },
     onError: (err: Error) => toast.error(err.message),
   });

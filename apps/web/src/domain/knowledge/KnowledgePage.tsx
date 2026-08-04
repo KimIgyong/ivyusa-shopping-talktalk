@@ -14,6 +14,7 @@ import { FormRow, Input, Select } from '@/components/Field';
 import { cn } from '@/lib/cn';
 import { KnowledgeQaPanel } from './KnowledgeQaPanel';
 import { ConflictReview } from './ConflictReview';
+import { RevisionHistory } from './RevisionHistory';
 import {
   useMarkReviewed,
   useCategories,
@@ -83,6 +84,7 @@ export function KnowledgePage() {
   };
 
   const [detailId, setDetailId] = useState<string | null>(null);
+  const [detailTab, setDetailTab] = useState<'content' | 'history'>('content');
   const detail = useDocument(detailId);
   // Edit mode for the detail modal — also entered directly from a QA source.
   const [editing, setEditing] = useState(false);
@@ -122,6 +124,7 @@ export function KnowledgePage() {
   const closeDetail = () => {
     setDetailId(null);
     setEditing(false);
+    setDetailTab('content');
   };
 
   const saveEdit = () => {
@@ -476,6 +479,29 @@ export function KnowledgePage() {
           <p className="py-6 text-center text-sm text-error">{(detail.error as Error).message}</p>
         ) : detail.data ? (
           <div className="space-y-3">
+            <div className="flex gap-1 border-b border-gray-200">
+              {(['content', 'history'] as const).map((tab) => (
+                <button
+                  key={tab}
+                  type="button"
+                  onClick={() => setDetailTab(tab)}
+                  className={`-mb-px border-b-2 px-3 py-1.5 text-sm ${
+                    detailTab === tab
+                      ? 'border-primary-600 font-medium text-primary-700'
+                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  {t(`detailTab.${tab}`)}
+                </button>
+              ))}
+            </div>
+            {detailTab === 'history' ? (
+              <RevisionHistory
+                documentId={detail.data.id}
+                currentContent={detail.data.content ?? ''}
+              />
+            ) : (
+            <>
             <div className="flex flex-wrap items-center gap-2">
               {detail.data.category && <Badge tone="info">{detail.data.category}</Badge>}
               <Badge tone={detail.data.active === 1 ? 'success' : 'warning'}>
@@ -582,6 +608,8 @@ export function KnowledgePage() {
               <div className="max-h-96 overflow-y-auto whitespace-pre-wrap rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm leading-relaxed">
                 {detail.data.content ?? t('noContent')}
               </div>
+            )}
+            </>
             )}
           </div>
         ) : null}
