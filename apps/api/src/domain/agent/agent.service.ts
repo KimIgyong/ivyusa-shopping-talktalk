@@ -30,6 +30,9 @@ import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
 import { UpsertProfileRequest } from './dto/request/agent.request';
 
+/** How long a generated briefing is reused for the same newest message. */
+const BRIEFING_CACHE_TTL_SEC = 900;
+
 /** Localized generic copy for the agent-reply push (session.language EN/ES/KO). */
 const AGENT_REPLY_COPY = {
   EN: { title: 'New reply from support', body: 'You have a new reply from support.' },
@@ -251,6 +254,15 @@ export class AgentService {
   /** AI briefing for an agent picking up a conversation (FR-045). */
   async briefing(tenantId: number, messages: Message[]): Promise<string> {
     if (messages.length === 0) return '';
+    // The console re-reads the open thread every few seconds, and this used to
+    // run a fresh model call each time — seconds of latency per poll and a bill
+    // for summarizing an unchanged transcript. Keyed by the newest message id,
+    // so a real new turn (and only that) regenerates it (FIX-260806-Console).
+    const cacheKey = `agent:briefing:${messages[0]?.conversationId}:${messages[messages.length - 1]?.id}`;
+    if (this.redis.available()) {
+      const hit = await this.redis.get(cacheKey);
+      if (hit != null) return hit;
+    }
     const transcript = messages.map((m) => `${m.senderType}: ${m.body}`).join('\n');
     try {
       const res = await this.aiGateway.complete({
@@ -260,7 +272,9 @@ export class AgentService {
           'Summarize the conversation: summary, intent, sentiment, recommended action. Reply concisely.',
         messages: [{ role: 'user', content: transcript }],
       });
-      return res.text ?? '';
+      const text = res.text ?? '';
+      if (this.redis.available()) await this.redis.set(cacheKey, text, BRIEFING_CACHE_TTL_SEC);
+      return text;
     } catch (e) {
       this.logger.warn(`Briefing failed: ${(e as Error).message}`);
       return '';

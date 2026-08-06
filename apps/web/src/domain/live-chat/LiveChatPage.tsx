@@ -123,11 +123,17 @@ export function LiveChatPage() {
 
   const onSend = async () => {
     const body = draft.trim();
-    if (!body || !selected) return;
+    // `send.isPending` guard: the button is disabled while a reply is in flight,
+    // but Enter was not — and an agent reply can take seconds (moderation +
+    // delivery), so a second Enter sent the same answer twice, which for an
+    // off-hours thread meant two emails to the customer (FIX-260806-Console).
+    if (!body || !selected || send.isPending) return;
+    // Clear optimistically for the same reason; restored below if the send fails.
+    setDraft('');
     try {
       await send.mutateAsync(body);
-      setDraft('');
     } catch (e) {
+      setDraft(body);
       const err = e as Error & { status?: number };
       if (err.status === 422) {
         toast.warning(t('messageBlocked'));
