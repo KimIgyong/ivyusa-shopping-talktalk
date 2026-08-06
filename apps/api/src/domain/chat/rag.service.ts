@@ -265,11 +265,22 @@ export class RagService {
     language: string,
     orderContext?: string,
     preferGroup?: string,
+    retrievalQuery?: string,
   ): Promise<RagAnswer> {
     // The caller decides the group preference; RAG only applies it. Keeping the
     // judgement out of here means the chat path can use its intent label and
     // the console can pass an explicit choice, without RAG knowing about either.
-    const { chunks, vectorProvider } = await this.retrieveHybrid(tenantId, query, 4, preferGroup);
+    //
+    // `retrievalQuery` lets the caller search with more words than the model is
+    // asked to answer — chat passes the previous turns so a follow-up that only
+    // makes sense in context ("and for my young son?") still retrieves the topic
+    // it refers to. The model still sees just `query` (FIX-260806 A2).
+    const { chunks, vectorProvider } = await this.retrieveHybrid(
+      tenantId,
+      retrievalQuery?.trim() || query,
+      4,
+      preferGroup,
+    );
     const context = chunks.map((c) => `- [${c.category ?? 'general'}] ${c.title}: ${c.snippet}`).join('\n');
     const hasOrderContext = !!orderContext?.trim();
     // Retrieval quality drives confidence, but order facts are authoritative on

@@ -1,6 +1,6 @@
 import { HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { In, LessThan, Repository } from 'typeorm';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
 import {
@@ -28,6 +28,10 @@ import { scrubPii } from '../../global/util/pii-scrub.util';
 const ESCALATION_CONFIDENCE = 0.45;
 /** Recent orders handed to the assistant as grounding for order questions. */
 const ORDER_CONTEXT_LIMIT = 5;
+/** Earlier customer turns folded into the retrieval query (FIX-260806 A2). */
+const RETRIEVAL_CONTEXT_TURNS = 2;
+/** Per-turn cap on that borrowed context, so one long message can't drown the query. */
+const RETRIEVAL_CONTEXT_CHARS = 200;
 
 /**
  * Localized backend-generated conversational strings (en/es/ko) keyed by
@@ -231,15 +235,22 @@ export class ChatService {
       eventType: 'chat_message',
     });
 
-    // Agent mode (FR-S4): once the thread is waiting for / handled by a human,
-    // the bot stays silent — the message is persisted for the agent console and
-    // the customer receives agent replies via conversation polling.
-    if (
-      conversation.status === CONVERSATION_STATUS.WAITING ||
-      conversation.status === CONVERSATION_STATUS.AGENT
-    ) {
+    // Agent mode (FR-S4): once a human owns the thread the bot stays silent —
+    // the message is persisted for the agent console and the customer receives
+    // agent replies via conversation polling.
+    //
+    // A merely QUEUED thread (waiting, nobody assigned) is different: it can sit
+    // there for hours, and staying silent meant every further question vanished
+    // without a word — the shopper watched an indicator and gave up
+    // (FIX-260806 A1). So the bot keeps helping until an agent takes over; the
+    // escalation, the alert and the WAITING state all stand.
+    const humanOwnsThread =
+      conversation.status === CONVERSATION_STATUS.AGENT ||
+      (conversation.status === CONVERSATION_STATUS.WAITING && conversation.agentId != null);
+    if (humanOwnsThread) {
       return { conversationId: String(conversation.id), reply: null, escalate: false, needsAuth: false };
     }
+    const queued = conversation.status === CONVERSATION_STATUS.WAITING;
 
     // PII minimization (PRV Stage 5): the AI provider gets a scrubbed COPY of
     // the message; the persisted original stays intact (agents need it). Only
@@ -292,6 +303,11 @@ export class ChatService {
       session.language,
       orderContext,
       preferGroup,
+      // Retrieval-only context (FIX-260806 A2): a follow-up like "and for my
+      // young son?" carries none of the words its own topic is indexed under,
+      // so searching on it alone scored off-topic and escalated a question the
+      // knowledge base could answer.
+      await this.retrievalQueryFor(conversation.id, userTurn.id, egressText),
     );
 
     // Mandatory moderation gate (FR-069).
@@ -303,7 +319,14 @@ export class ChatService {
       text: answer.text,
     });
 
+    // Already queued: the agents have been paged and the customer has seen the
+    // handoff notice, so a second one per message would be noise and a duplicate
+    // alert. Stay silent for this turn — the widget keeps showing the queued
+    // state — rather than escalating what is already escalated.
     if (moderated.decision === MODERATION_DECISION.BLOCKED) {
+      if (queued) {
+        return { conversationId: String(conversation.id), reply: null, escalate: false, needsAuth: false };
+      }
       const body = await this.handoff(conversation.id, session, tenantId, 'moderation_blocked', text);
       return { conversationId: String(conversation.id), reply: { senderType: 'system', body }, escalate: true, needsAuth: false };
     }
@@ -311,6 +334,9 @@ export class ChatService {
     // RAG fallback (FR-S3): no confident answer within the knowledge base →
     // hand off to a human instead of replying, and alert the agents.
     if (answer.confidence < ESCALATION_CONFIDENCE) {
+      if (queued) {
+        return { conversationId: String(conversation.id), reply: null, escalate: false, needsAuth: false };
+      }
       const body = await this.handoff(conversation.id, session, tenantId, 'low_confidence', text);
       return { conversationId: String(conversation.id), reply: { senderType: 'system', body }, escalate: true, needsAuth: false };
     }
@@ -332,6 +358,38 @@ export class ChatService {
       escalate: false,
       needsAuth: false,
     };
+  }
+
+  /**
+   * Search text for this turn: the shopper's earlier questions prepended to the
+   * current one (FIX-260806 A2). Retrieval only — the model is still asked the
+   * current message alone. A follow-up carries none of the vocabulary its topic
+   * is indexed under ("thanks, and recomend my young son." after a skincare
+   * question), so searching on it alone scored off-topic and escalated a
+   * question the catalogue could answer. PII is scrubbed here too: this text
+   * reaches the embedding provider.
+   */
+  private async retrievalQueryFor(
+    conversationId: number,
+    currentTurnId: number,
+    current: string,
+  ): Promise<string> {
+    const previous = await this.msgRepo.find({
+      where: {
+        conversationId,
+        senderType: SENDER_TYPE.USER,
+        id: LessThan(currentTurnId),
+      },
+      order: { id: 'DESC' },
+      take: RETRIEVAL_CONTEXT_TURNS,
+      select: { id: true, body: true },
+    });
+    if (previous.length === 0) return current;
+    const history = previous
+      .reverse()
+      .map((m) => scrubPii(m.body).text.trim().slice(0, RETRIEVAL_CONTEXT_CHARS))
+      .filter(Boolean);
+    return [...history, current].join('\n');
   }
 
   /**
