@@ -271,11 +271,17 @@ export class ChatService {
       return { conversationId: String(conversation.id), reply: null, escalate: false, needsAuth: false };
     }
     const queued = conversation.status === CONVERSATION_STATUS.WAITING;
-    // They are typing in the widget again, so replies belong here — stop mailing
-    // the thread until it is handed off outside business hours once more.
+    // They are typing in the widget again — but that only means replies belong
+    // here if somebody is actually on shift to write one. A shopper who follows
+    // up five minutes later is still off hours, and clearing the channel then
+    // quietly cancelled the email delivery their answer depends on (found in
+    // staging verification, PLN-260806 S2).
     if (conversation.replyChannel === 'email') {
-      conversation.replyChannel = null;
-      await this.convRepo.update({ id: conversation.id }, { replyChannel: null });
+      const route = await this.handoffRouter.route(tenantId, session.language);
+      if (route.mode !== 'email') {
+        conversation.replyChannel = null;
+        await this.convRepo.update({ id: conversation.id }, { replyChannel: null });
+      }
     }
 
     // PII minimization (PRV Stage 5): the AI provider gets a scrubbed COPY of
