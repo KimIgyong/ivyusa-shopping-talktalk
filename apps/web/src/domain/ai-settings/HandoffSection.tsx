@@ -37,6 +37,11 @@ export function HandoffSection() {
   const [days, setDays] = useState<number[]>([1, 2, 3, 4, 5]);
   const [start, setStart] = useState('09:00');
   const [end, setEnd] = useState('18:00');
+  // One break window (lunch) is what tenants actually configure; the stored
+  // shape is a list so a second one needs no schema change (PLN-260806 D2).
+  const [breakOn, setBreakOn] = useState(false);
+  const [breakStart, setBreakStart] = useState('12:00');
+  const [breakEnd, setBreakEnd] = useState('13:00');
   const [email, setEmail] = useState('');
   const [notice, setNotice] = useState<Partial<Record<ScenarioLang, string>>>({});
   const [lang, setLang] = useState<ScenarioLang>('KO');
@@ -51,6 +56,12 @@ export function HandoffSection() {
       setDays(h.businessHours.days ?? [1, 2, 3, 4, 5]);
       setStart(h.businessHours.start || '09:00');
       setEnd(h.businessHours.end || '18:00');
+      const firstBreak = h.businessHours.breaks?.[0];
+      if (firstBreak) {
+        setBreakOn(true);
+        setBreakStart(firstBreak.start || '12:00');
+        setBreakEnd(firstBreak.end || '13:00');
+      }
     }
     setEmail(h.offHours?.email ?? '');
     setNotice(h.offHours?.notice ?? {});
@@ -67,7 +78,19 @@ export function HandoffSection() {
   const save = () => {
     const handoff: HandoffConfig = {
       assigneeUserIds: assignees.map(Number).filter(Number.isFinite),
-      ...(hoursOn ? { businessHours: { timezone, days, start, end } } : {}),
+      ...(hoursOn
+        ? {
+            businessHours: {
+              timezone,
+              days,
+              start,
+              end,
+              // Written even when empty: the console owns the whole config
+              // object, so omitting the key would silently drop a stored break.
+              breaks: breakOn ? [{ start: breakStart, end: breakEnd }] : [],
+            },
+          }
+        : {}),
       ...(email.trim() || Object.keys(notice).length
         ? { offHours: { email: email.trim() || undefined, notice } }
         : {}),
@@ -142,6 +165,38 @@ export function HandoffSection() {
                     <Label>{t('handoff.end')}</Label>
                     <Input type="time" value={end} onChange={(e) => setEnd(e.target.value)} />
                   </div>
+                </div>
+                <div className="flex flex-wrap items-end gap-3">
+                  <label className="flex items-center gap-2 pb-2 text-sm text-gray-700">
+                    <input
+                      type="checkbox"
+                      checked={breakOn}
+                      onChange={(e) => setBreakOn(e.target.checked)}
+                      className="h-4 w-4 rounded border-gray-300 text-primary-500 focus:ring-primary-500"
+                    />
+                    {t('handoff.useBreak')}
+                  </label>
+                  {breakOn && (
+                    <>
+                      <div className="w-28">
+                        <Label>{t('handoff.breakStart')}</Label>
+                        <Input
+                          type="time"
+                          value={breakStart}
+                          onChange={(e) => setBreakStart(e.target.value)}
+                        />
+                      </div>
+                      <div className="w-28">
+                        <Label>{t('handoff.breakEnd')}</Label>
+                        <Input
+                          type="time"
+                          value={breakEnd}
+                          onChange={(e) => setBreakEnd(e.target.value)}
+                        />
+                      </div>
+                      <p className="pb-2 text-xs text-gray-400">{t('handoff.breakHint')}</p>
+                    </>
+                  )}
                 </div>
                 <div>
                   <Label>{t('handoff.days')}</Label>

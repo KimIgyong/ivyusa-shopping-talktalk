@@ -74,7 +74,14 @@ export interface ScenarioOverride {
 /** Escalation routing (PLN-AiSetting W3). */
 export interface HandoffConfig {
   assigneeUserIds?: number[];
-  businessHours?: { timezone: string; days: number[]; start: string; end: string };
+  businessHours?: {
+    timezone: string;
+    days: number[];
+    start: string;
+    end: string;
+    /** Windows inside the shift when nobody is on duty (lunch) — off-hours routing. */
+    breaks?: Array<{ start: string; end: string }>;
+  };
   offHours?: { email?: string; notice?: Partial<Record<ScenarioLang, string>> };
 }
 

@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Repository } from 'typeorm';
 import { AgentAlert } from './entity/agent-alert.entity';
-import { EventBusService, EVENTS } from '../../infrastructure/infrastructure.module';
+import { EventBusService, EVENTS, MailerService } from '../../infrastructure/infrastructure.module';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
 
@@ -41,6 +41,7 @@ export class AgentAlertService implements OnModuleInit {
     @InjectRepository(AgentAlert) private readonly alertRepo: Repository<AgentAlert>,
     private readonly bus: EventBusService,
     private readonly config: ConfigService,
+    private readonly mailer: MailerService,
   ) {}
 
   onModuleInit(): void {
@@ -139,42 +140,14 @@ export class AgentAlertService implements OnModuleInit {
     }
   }
 
-  /**
-   * SMTP email (SMTP_HOST/PORT/USER/PASS, ALERT_EMAIL_FROM/TO; empty =
-   * disabled). nodemailer is loaded lazily so the API still boots and
-   * typechecks when the dependency has not been installed yet.
-   */
+  /** Escalation summary to the ops mailbox (or the off-hours override). */
   private async notifyEmail(alert: AgentAlert, overrideTo?: string): Promise<void> {
-    const host = this.config.get<string>('SMTP_HOST');
     const to = overrideTo ?? this.config.get<string>('ALERT_EMAIL_TO');
-    if (!host || !to) return;
-    try {
-      const nodemailer = (await import('nodemailer' as string).catch(() => null)) as {
-        createTransport: (opts: unknown) => { sendMail: (mail: unknown) => Promise<unknown> };
-      } | null;
-      if (!nodemailer) {
-        this.logger.warn('Email alert skipped: nodemailer not installed (run npm install)');
-        return;
-      }
-      const transport = nodemailer.createTransport({
-        host,
-        port: Number(this.config.get<string>('SMTP_PORT') ?? 587),
-        secure: Number(this.config.get<string>('SMTP_PORT') ?? 587) === 465,
-        auth: this.config.get<string>('SMTP_USER')
-          ? {
-              user: this.config.get<string>('SMTP_USER'),
-              pass: this.config.get<string>('SMTP_PASS'),
-            }
-          : undefined,
-      });
-      await transport.sendMail({
-        from: this.config.get<string>('ALERT_EMAIL_FROM') ?? 'noreply@ivyusa.local',
-        to,
-        subject: `[IVY Chat] Escalation — conversation #${alert.conversationId}`,
-        text: this.summary(alert),
-      });
-    } catch (e) {
-      this.logger.warn(`Email alert failed: ${(e as Error).message}`);
-    }
+    if (!to) return;
+    await this.mailer.send({
+      to,
+      subject: `[IVY Chat] Escalation — conversation #${alert.conversationId}`,
+      text: this.summary(alert),
+    });
   }
 }

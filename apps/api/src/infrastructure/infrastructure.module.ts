@@ -1,16 +1,18 @@
 import { Global, Module } from '@nestjs/common';
 import { RedisService } from './cache/redis.service';
 import { EventBusService } from './queue/event-bus.service';
+import { MailerService } from './external/mailer.service';
 
 // Re-export infra services so domains can import them from this barrel.
 export { RedisService } from './cache/redis.service';
 export { EventBusService } from './queue/event-bus.service';
+export { MailerService } from './external/mailer.service';
 
 /** Global infrastructure: cache + event bus, available to every domain module. */
 @Global()
 @Module({
-  providers: [RedisService, EventBusService],
-  exports: [RedisService, EventBusService],
+  providers: [RedisService, EventBusService, MailerService],
+  exports: [RedisService, EventBusService, MailerService],
 })
 export class InfrastructureModule {}
 

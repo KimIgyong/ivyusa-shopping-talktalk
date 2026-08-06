@@ -251,7 +251,7 @@ export class ScenarioService {
       );
       return {
         conversationId: String(conversation.id),
-        reply: { senderType: 'system', body: notice },
+        reply: { senderType: 'system', body: notice.body },
         followUps: [],
       };
     }

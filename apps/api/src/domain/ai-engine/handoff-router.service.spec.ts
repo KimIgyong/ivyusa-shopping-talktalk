@@ -110,3 +110,48 @@ describe('HandoffRouterService', () => {
     expect(route.mode).toBe('agents');
   });
 });
+
+/**
+ * Breaks (lunch) carve holes in the shift (PLN-260806): nobody is at the
+ * console, so a question then must take the off-hours route rather than promise
+ * a live agent. 16:30Z = 12:30 New York (EDT), inside the 12:00–13:00 break.
+ */
+describe('HandoffRouterService — breaks inside the shift', () => {
+  const offHours = { email: 'cs@example.com' };
+  const withBreak = (breaks: Array<{ start: string; end: string }>): HandoffConfig => ({
+    businessHours: { ...HOURS!, breaks },
+    offHours,
+  });
+
+  it('routes to email during the break', async () => {
+    const route = await at('2026-08-06T16:30:00Z', () =>
+      routerFor(withBreak([{ start: '12:00', end: '13:00' }])).route(1, 'EN'),
+    );
+    expect(route.mode).toBe('email');
+    expect(route.email).toBe('cs@example.com');
+  });
+
+  it('routes to agents on either side of the break', async () => {
+    const before = await at('2026-08-06T15:30:00Z', () =>
+      routerFor(withBreak([{ start: '12:00', end: '13:00' }])).route(1, 'EN'),
+    );
+    const after = await at('2026-08-06T17:30:00Z', () =>
+      routerFor(withBreak([{ start: '12:00', end: '13:00' }])).route(1, 'EN'),
+    );
+    expect(before.mode).toBe('agents');
+    expect(after.mode).toBe('agents');
+  });
+
+  it('ignores a malformed or empty break instead of closing the shift', async () => {
+    for (const breaks of [
+      [{ start: '', end: '13:00' }],
+      [{ start: '12:00', end: '12:00' }],
+      [],
+    ]) {
+      const route = await at('2026-08-06T16:30:00Z', () =>
+        routerFor(withBreak(breaks)).route(1, 'EN'),
+      );
+      expect(route.mode).toBe('agents');
+    }
+  });
+});

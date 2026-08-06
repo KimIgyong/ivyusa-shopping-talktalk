@@ -97,6 +97,11 @@ export interface ChatTurnResponse {
   } | null;
   escalate: boolean;
   needsAuth: boolean;
+  /**
+   * Off-hours handoff with no address on file: the widget asks for one so the
+   * agent's reply has somewhere to go (PLN-260806).
+   */
+  needsContactEmail?: boolean;
 }
 
 /** Post-reply navigation the widget performs after a scripted answer (FR-003). */

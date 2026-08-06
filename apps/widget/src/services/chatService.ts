@@ -22,6 +22,11 @@ export function sendMessage(
   });
 }
 
+/** Store the address for an off-hours email reply (PLN-260806). */
+export function saveContactEmail(sessionToken: string, email: string): Promise<unknown> {
+  return apiClient.post('/chat/contact-email', { session_token: sessionToken, email });
+}
+
 export function escalate(sessionToken: string, conversationId: string): Promise<unknown> {
   return apiClient.post('/chat/escalate', {
     session_token: sessionToken,

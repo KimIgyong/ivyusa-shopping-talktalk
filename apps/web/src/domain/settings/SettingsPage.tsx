@@ -10,6 +10,9 @@ import { Modal } from '@/components/Modal';
 import { FormRow, Input, Select } from '@/components/Field';
 // Type-only: @ivy/types ships CJS whose runtime exports Rollup cannot see.
 import type { WidgetLoginMode } from '@ivy/types';
+// Live-support routing lives here now (PLN-260806 D1); the editor itself stays
+// in the ai-settings domain because it saves through the same AI-config API.
+import { HandoffSection } from '../ai-settings/HandoffSection';
 import {
   useCredentials,
   useIntegration,
@@ -439,6 +442,9 @@ export function SettingsPage() {
       <InstallGuideCard />
 
       <WidgetBehaviorCard />
+
+      {/* Live-support routing: business hours, break, off-hours mailbox. */}
+      <HandoffSection />
       <StorefrontCard />
 
       <Card title={t('integrationCredentials')}>
