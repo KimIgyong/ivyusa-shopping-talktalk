@@ -30,6 +30,9 @@ import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
 import { UpsertProfileRequest } from './dto/request/agent.request';
 
+/** Identical agent reply inside this window counts as a double submission. */
+const DUPLICATE_REPLY_WINDOW_MS = 10_000;
+
 /** How long a generated briefing is reused for the same newest message. */
 const BRIEFING_CACHE_TTL_SEC = 900;
 
@@ -323,6 +326,22 @@ export class AgentService {
       );
       throw new BusinessException(ERROR_CODE.CONSENT_REQUIRED, HttpStatus.FORBIDDEN);
     }
+    // Idempotency net (FIX-260806-Console): the console's own guards are the
+    // first defence, but a duplicate here is not just a repeated bubble — for an
+    // off-hours thread it mails the customer the same answer twice. Re-sending
+    // the identical text within a few seconds returns the message already
+    // stored instead of creating a second one.
+    const recent = await this.msgRepo.findOne({
+      where: { conversationId, senderType: SENDER_TYPE.AGENT, senderId: agentId, body },
+      order: { id: 'DESC' },
+    });
+    if (recent && Date.now() - new Date(recent.createdAt).getTime() < DUPLICATE_REPLY_WINDOW_MS) {
+      this.logger.warn(
+        `duplicate agent reply suppressed: conversation=${conversationId} agent=${agentId}`,
+      );
+      return recent;
+    }
+
     const moderated = await this.moderation.moderate({
       tenantId,
       scope: 'agent',

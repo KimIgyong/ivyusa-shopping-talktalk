@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Send, Sparkles, User, UserPlus, Search, Loader2, CheckCircle2, XCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -43,6 +43,8 @@ export function LiveChatPage() {
   const [searchParams] = useSearchParams();
   const [selected, setSelected] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
+  /** In-flight latch for the reply send — see onSend. */
+  const sendingRef = useRef(false);
 
   // Queue search box (customer name/email) — debounced into the list query.
   const [listQuery, setListQuery] = useState('');
@@ -123,12 +125,12 @@ export function LiveChatPage() {
 
   const onSend = async () => {
     const body = draft.trim();
-    // `send.isPending` guard: the button is disabled while a reply is in flight,
-    // but Enter was not — and an agent reply can take seconds (moderation +
-    // delivery), so a second Enter sent the same answer twice, which for an
-    // off-hours thread meant two emails to the customer (FIX-260806-Console).
-    if (!body || !selected || send.isPending) return;
-    // Clear optimistically for the same reason; restored below if the send fails.
+    // Ref, not `send.isPending`: two handler calls in the same tick both read the
+    // render's stale value and both get through. This flips synchronously.
+    if (!body || !selected || sendingRef.current) return;
+    sendingRef.current = true;
+    // Clear before awaiting: a reply takes seconds (moderation + mail), and the
+    // text sitting in the box was half of how it got sent twice.
     setDraft('');
     try {
       await send.mutateAsync(body);
@@ -140,6 +142,8 @@ export function LiveChatPage() {
       } else {
         toast.error(err.message || t('sendFailed'));
       }
+    } finally {
+      sendingRef.current = false;
     }
   };
 
@@ -294,7 +298,13 @@ export function LiveChatPage() {
                 <input
                   value={draft}
                   onChange={(e) => setDraft(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && onSend()}
+                  onKeyDown={(e) => {
+                    // Korean/Japanese IME: the Enter that commits a composition
+                    // fires keydown as well, so a single press produced two
+                    // sends 65ms apart — and two emails to the customer.
+                    if (e.key !== 'Enter' || e.nativeEvent.isComposing) return;
+                    void onSend();
+                  }}
                   placeholder={t('replyPlaceholder')}
                   className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />

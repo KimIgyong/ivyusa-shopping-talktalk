@@ -9,7 +9,12 @@ import { Message } from '../chat/entity/message.entity';
  * agent's reply.
  */
 describe('AgentService.sendMessage — off-hours email delivery', () => {
-  function build(opts: { replyChannel?: string | null; customerId?: number | null; email?: string | null } = {}) {
+  function build(opts: {
+    replyChannel?: string | null;
+    customerId?: number | null;
+    email?: string | null;
+    recentIdentical?: { id: number; createdAt: Date } | null;
+  } = {}) {
     const conversation = {
       id: 77,
       tenantId: 1,
@@ -28,6 +33,8 @@ describe('AgentService.sendMessage — off-hours email delivery', () => {
           return { ...m, id: saved.length } as Message;
         }),
         create: (m: Partial<Message>) => m,
+        // The duplicate-submission lookup; null = nothing identical stored.
+        findOne: jest.fn(async () => opts.recentIdentical ?? null),
       } as never,
       {} as never, // userRepo
       {
@@ -82,5 +89,23 @@ describe('AgentService.sendMessage — off-hours email delivery', () => {
     const { svc, send } = build({ email: null });
     await svc.sendMessage(77, 9, 1, 'here you go');
     expect(send).not.toHaveBeenCalled();
+  });
+
+  it('suppresses an identical reply sent again seconds later (no second email)', async () => {
+    const { svc, send, saved } = build({
+      recentIdentical: { id: 99, createdAt: new Date() },
+    });
+    const res = await svc.sendMessage(77, 9, 1, '내일 발송됩니다.');
+    expect(res.id).toBe(99); // the stored reply, not a new one
+    expect(saved).toHaveLength(0);
+    expect(send).not.toHaveBeenCalled();
+  });
+
+  it('still sends the same text once the window has passed', async () => {
+    const { svc, send } = build({
+      recentIdentical: { id: 99, createdAt: new Date(Date.now() - 60_000) },
+    });
+    await svc.sendMessage(77, 9, 1, '내일 발송됩니다.');
+    expect(send).toHaveBeenCalledTimes(1);
   });
 });
