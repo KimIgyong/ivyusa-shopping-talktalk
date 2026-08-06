@@ -74,7 +74,27 @@
 ## 6. 기록
 
 - 1차(표시 정정 + citations 영속화): **PR #111 `8232844`**, 스테이징 배포 완료
-- 2차(A1 대기 중 AI 응답 + A2 검색 맥락): PR #(기입 예정)
+- 2차(A1 대기 중 AI 응답 + A2 검색 맥락): **PR #112 `57e525c`**, 스테이징 배포 완료
 - 관련: PR #107(타이핑 인디케이터 도입), PR #106(상품 링크 기능)
 - 테스트: `chat.mapper.spec.ts` citations 3케이스 + `chat.service.queued.spec.ts` 7케이스,
   apps/api **51 suites / 533 tests PASS**, typecheck·build·실부팅 확인
+
+## 7. 스테이징 실검증 (2026-08-06, 배포본 `57e525c`)
+
+실제 위젯 API로 대화를 생성해 확인 (`/session/ensure` → `/session/consent` → `/chat/message` → `/chat/conversation`).
+
+| 시나리오 | 결과 |
+|---|---|
+| **T1** 문제의 질문 `십대 남자용 스킨케어 제품 추천해줘` (ko) | **AI 정상 답변**(한국어), 인용 4건 전부 상품 링크. 예: `lagom-cellup-ph-cure-foam-cleanser`, `jmsolution-teatree-trouble-clear-toner-pads` |
+| **T1-b** 대화 이력 재조회 | `citations=4 / product_links=4` — **폴링·새로고침 후에도 상품 링크 유지**(PR #111 검증) |
+| **T2** 사고를 유발했던 후속 질문 `thanks, and recomend my young son.` | **에스컬레이션 없이 AI 답변**, `status=ai_active` 유지 → **A2 효과 확인**(종전 low_confidence 핸드오프) |
+| **T3** 무의미 질문으로 에스컬레이션 유발 → `status=waiting` | 핸드오프 안내 정상 |
+| **T3-b** 대기 상태에서 상품 질문 | **AI가 정상 답변**(상품 링크 4건), `status=waiting` 유지(상담사 대기 그대로) → **A1 효과 확인**(종전 무응답) |
+
+### 7-1. 후속 개선 후보 (신규 발견, 미조치)
+
+인용 목록이 **답변 본문에 언급되지 않은 상품까지 포함**한다. 인용은 검색 상위 4개 청크를
+그대로 노출하기 때문 — 예: 답변은 `LAGOM Cellup pH Cure Foam Cleanser`를 추천했는데 링크에는
+컨실러·나이트크림이 함께 붙는다. 쇼퍼에게는 "왜 이 링크?"로 보이므로,
+① 답변 본문에 실제 등장한 상품만 남기거나 ② 유사도 하한을 적용해 저관련 인용을 잘라내는
+방안을 다음 작업으로 제안한다.
