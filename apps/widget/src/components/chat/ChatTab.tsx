@@ -36,13 +36,20 @@ export function ChatTab() {
   const analytics = useAnalytics();
 
   const { messages, send, scenario, sending, status, escalate } = useChat(sessionToken);
-  // Reply-pending indicator (PLN-260804): while a send is in flight (the AI
-  // completion runs synchronously server-side), and — once handed off to a
-  // human — for as long as the newest message is the customer's own (the agent
-  // reply arrives via the poll, so "typing…" holds until it lands).
-  const agentMode = status === 'waiting' || status === 'agent';
-  const showTyping =
-    sending || (agentMode && messages[messages.length - 1]?.senderType === 'user');
+  // Reply-pending indicator (PLN-260804, corrected by FIX-260806).
+  //  · sending  → the AI completion runs synchronously inside the send request.
+  //  · agent    → a human took the thread; their reply arrives via the poll.
+  //  · waiting  → handed off but nobody has picked it up. This is NOT someone
+  //    typing: the bot deliberately stays silent in this state, so an animated
+  //    "an agent is writing…" made a queued thread look like an imminent reply
+  //    and left the shopper watching dots indefinitely.
+  const waitMode: 'ai' | 'agent' | 'queued' | null = sending
+    ? 'ai'
+    : status === 'agent' && messages[messages.length - 1]?.senderType === 'user'
+      ? 'agent'
+      : status === 'waiting'
+        ? 'queued'
+        : null;
   const scenarioButtons = useScenario(sessionToken);
 
   // CCPA notice choice — local cache only used until session/ensure reports the
@@ -60,7 +67,7 @@ export function ChatTab() {
       top: scrollRef.current.scrollHeight,
       behavior: 'smooth',
     });
-  }, [messages, inline, showEscalate, showTyping]);
+  }, [messages, inline, showEscalate, waitMode]);
 
   /**
    * Fail-closed consent recording (ConsentBanner awaits this): the banner only
@@ -295,7 +302,7 @@ export function ChatTab() {
           </div>
         ))}
 
-        {showTyping && <TypingBubble agent={agentMode} />}
+        {waitMode && <TypingBubble mode={waitMode} />}
 
         {showFallbackActions && (
           <div className="flex flex-wrap gap-1.5 pl-1">

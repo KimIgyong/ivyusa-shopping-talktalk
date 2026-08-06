@@ -36,6 +36,7 @@ export const ko: Translation = {
     connectingAgent: '상담원에게 연결하고 있습니다. 잠시만 기다려 주세요…',
     typingAi: '답변을 작성 중입니다…',
     typingAgent: '담당자가 답변을 작성 중입니다…',
+    waitingForAgent: '상담사 연결을 기다리는 중입니다. 답변이 등록되면 여기에 표시됩니다.',
     nextActions: {
       myOrders: '내 주문',
       shipping: '배송 안내',

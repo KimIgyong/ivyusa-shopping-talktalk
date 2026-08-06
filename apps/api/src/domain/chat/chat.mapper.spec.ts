@@ -55,3 +55,43 @@ describe('ChatMapper.toMessageResponse — follow-up chips', () => {
     expect(ChatMapper.toMessageResponse(msg({ followUps: 'bogus' })).quickReplies).toBeUndefined();
   });
 });
+
+/**
+ * Citations (product links included) only rode on the send response, so the
+ * next poll replaced the bubble with the stored row and the 🛍 link vanished
+ * after ~5s — and never came back on reload (FIX-260806).
+ */
+describe('ChatMapper.toMessageResponse — citations', () => {
+  function msg(trace: unknown): Message {
+    return {
+      id: 9,
+      senderType: 'ai',
+      body: 'Here are two options.',
+      createdAt: new Date('2026-08-06T00:00:00Z'),
+      retrievalTrace: trace,
+    } as Message;
+  }
+
+  it('serves the citations persisted on the AI turn', () => {
+    const res = ChatMapper.toMessageResponse(
+      msg({
+        citations: [
+          { id: 250, title: 'Moisturizing Cream', group: 'product', url: 'https://ivyusa.com/products/x' },
+        ],
+      }),
+    );
+    expect(res.citations).toEqual([
+      { id: 250, title: 'Moisturizing Cream', group: 'product', url: 'https://ivyusa.com/products/x' },
+    ]);
+  });
+
+  it('omits citations when the turn has none', () => {
+    expect(ChatMapper.toMessageResponse(msg({ kind: 'rag' })).citations).toBeUndefined();
+    expect(ChatMapper.toMessageResponse(msg(null)).citations).toBeUndefined();
+  });
+
+  it('tolerates a malformed citations value', () => {
+    expect(ChatMapper.toMessageResponse(msg({ citations: 'bogus' })).citations).toBeUndefined();
+    expect(ChatMapper.toMessageResponse(msg({ citations: [null, 'x'] })).citations).toBeUndefined();
+  });
+});
