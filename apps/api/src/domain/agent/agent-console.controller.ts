@@ -62,16 +62,20 @@ export class AgentConsoleController {
   @RequireCapability(CAPABILITY.CONVERSATION_HANDLE)
   @ApiOperation({ summary: 'List waiting/agent conversations (session queue)' })
   async sessions(@CurrentUser() user: Principal, @Query() query: ListSessionsQuery) {
-    const { page, size } = normalizePage(query.page, query.size);
+    // 50, not the platform default 20: the list now includes live AI threads,
+    // and a console that silently truncates the queue is worse than a long one.
+    const { page, size } = normalizePage(query.page, query.size ?? '50');
+    const scope = query.status === 'queue' || query.status === 'ended' ? query.status : 'all';
     const { items, total } = await this.agentService.listSessions(
       tenantOf(user),
       page,
       size,
       query.q,
+      scope,
     );
     return new Paginated(
-      items.map(({ conversation, lastMessage, customerName }) =>
-        toSessionResponse(conversation, lastMessage, customerName),
+      items.map(({ conversation, lastMessage, contact }) =>
+        toSessionResponse(conversation, lastMessage, contact),
       ),
       buildPagination(page, size, total),
     );
