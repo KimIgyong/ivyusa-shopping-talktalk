@@ -34,6 +34,24 @@ import { IntegrationStatusEntity } from '../domain/integration/entity/integratio
  */
 const AI_FUNCTIONS = ['chat', 'rag', 'summary', 'assist', 'moderation'];
 
+/**
+ * Output ceiling per function. Left unset the gateway falls back to 1024 for
+ * everything, which is both too much for the JSON-only calls and — for a
+ * channel that rewrites a whole message — the only thing standing between a
+ * long reply and a truncated one. Providers bill actual output tokens, so
+ * these are truncation guards, not a cost lever.
+ *
+ * `moderation` stays high on purpose: the same engine runs the `rephrase`
+ * action, which rewrites a full outbound message, not a verdict.
+ */
+const AI_FUNCTION_MAX_TOKENS: Record<string, number> = {
+  chat: 512, // intent classification + KB conflict verdict — JSON only
+  rag: 1024, // the customer-facing answer
+  summary: 512,
+  assist: 512, // agent briefing
+  moderation: 1024, // verdict JSON *and* full-message rephrase
+};
+
 export interface SeedOptions {
   /** Bootstrap password for admin@ / dev@ (default from SEED_PASSWORD or 'amb2026!@'). */
   password?: string;
@@ -124,7 +142,14 @@ export async function runSeed(ds: DataSource, opts: SeedOptions = {}): Promise<v
   const settingRepo = ds.getRepository(TenantAiSetting);
   for (const fn of AI_FUNCTIONS) {
     if (!(await settingRepo.findOne({ where: { tenantId: tenant.id, func: fn } }))) {
-      await settingRepo.save(settingRepo.create({ tenantId: tenant.id, func: fn, engineId: stub.id, paramsJson: { temperature: 0.3 } }));
+      await settingRepo.save(
+        settingRepo.create({
+          tenantId: tenant.id,
+          func: fn,
+          engineId: stub.id,
+          paramsJson: { temperature: 0.3, max_tokens: AI_FUNCTION_MAX_TOKENS[fn] ?? 1024 },
+        }),
+      );
     }
   }
 
