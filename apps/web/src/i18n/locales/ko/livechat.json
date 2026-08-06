@@ -51,5 +51,10 @@
   "justNow": "방금 전",
   "minutesAgo": "{{n}}분 전",
   "hoursAgo": "{{n}}시간 전",
-  "daysAgo": "{{n}}일 전"
+  "daysAgo": "{{n}}일 전",
+  "scope": {
+    "all": "전체",
+    "queue": "상담 필요",
+    "ended": "종료"
+  }
 }

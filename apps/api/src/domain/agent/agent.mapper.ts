@@ -21,13 +21,15 @@ export function toAlertResponse(a: AgentAlert) {
 export function toSessionResponse(
   c: Conversation,
   lastMessage: Message | null,
-  customerName: string | null = null,
+  contact: { name: string | null; email: string | null } = { name: null, email: null },
 ) {
   return {
     id: c.id,
     status: c.status,
     escalated: c.escalated === 1,
-    customerName,
+    customerName: contact.name,
+    // Fallback identity for a shopper who only ever left an address.
+    customerEmail: contact.email,
     lastMessagePreview: lastMessage ? lastMessage.body.slice(0, 140) : null,
     lastMessageAt: lastMessage?.createdAt ?? null,
     createdAt: c.createdAt,

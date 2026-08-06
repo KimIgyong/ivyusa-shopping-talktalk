@@ -51,5 +51,10 @@
   "justNow": "ahora mismo",
   "minutesAgo": "hace {{n}}m",
   "hoursAgo": "hace {{n}}h",
-  "daysAgo": "hace {{n}}d"
+  "daysAgo": "hace {{n}}d",
+  "scope": {
+    "all": "Todas",
+    "queue": "Requiere agente",
+    "ended": "Finalizadas"
+  }
 }

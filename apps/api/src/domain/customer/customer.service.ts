@@ -135,6 +135,27 @@ export class CustomerService {
     return row?.email?.trim() || null;
   }
 
+  /**
+   * Contact fields keyed by String(id), for lists that must identify a customer.
+   * Two decrypts per row (name + email) instead of one — the console list needs
+   * a fallback when a shopper left only an address (PLN-260807).
+   */
+  async contactsByIds(
+    tenantId: number,
+    ids: number[],
+  ): Promise<Map<string, { name: string | null; email: string | null }>> {
+    const map = new Map<string, { name: string | null; email: string | null }>();
+    if (ids.length === 0) return map;
+    const rows = await this.customerRepo.find({
+      where: { tenantId, id: In(ids) },
+      select: { id: true, name: true, email: true },
+    });
+    for (const c of rows) {
+      map.set(String(c.id), { name: c.name?.trim() || null, email: c.email?.trim() || null });
+    }
+    return map;
+  }
+
   /** Display names keyed by String(id), for enriching lists that reference customers. */
   async namesByIds(tenantId: number, ids: number[]): Promise<Map<string, string>> {
     const map = new Map<string, string>();

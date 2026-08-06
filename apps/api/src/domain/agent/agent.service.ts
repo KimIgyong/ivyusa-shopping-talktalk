@@ -162,24 +162,46 @@ export class AgentService {
     return conversation;
   }
 
-  /** Session queue: conversations awaiting/handled by an agent (tenant-scoped). */
+  /**
+   * Conversation list for the console (tenant-scoped).
+   *
+   * `scope` decides what a conversation list even means here. It used to be the
+   * agent queue only — waiting/agent — which meant the thread a shopper was
+   * having *right now* with the bot never appeared, and "the newest
+   * conversation is missing" was the correct reading of it (PLN-260807).
+   * Ordering follows the last message, not the conversation id, so an old
+   * thread that is still active sorts above a newer idle one.
+   */
   async listSessions(
     tenantId: number,
     page: number,
     size: number,
     q?: string,
+    scope: 'all' | 'queue' | 'ended' = 'all',
   ): Promise<{
     items: Array<{
       conversation: Conversation;
       lastMessage: Message | null;
-      customerName: string | null;
+      contact: { name: string | null; email: string | null };
     }>;
     total: number;
   }> {
-    const where: FindOptionsWhere<Conversation> = {
-      tenantId,
-      status: In([CONVERSATION_STATUS.WAITING, CONVERSATION_STATUS.AGENT]),
-    };
+    const statuses =
+      scope === 'queue'
+        ? [CONVERSATION_STATUS.WAITING, CONVERSATION_STATUS.AGENT]
+        : scope === 'ended'
+          ? [CONVERSATION_STATUS.ENDED]
+          : [
+              CONVERSATION_STATUS.AI_ACTIVE,
+              CONVERSATION_STATUS.WAITING,
+              CONVERSATION_STATUS.AGENT,
+            ];
+
+    const qb = this.convRepo
+      .createQueryBuilder('c')
+      .where('c.tenant_id = :tenantId', { tenantId })
+      .andWhere('c.status IN (:...statuses)', { statuses });
+
     if (q?.trim()) {
       // Customer name/email filter. Names are encrypted at rest, so matching
       // reuses the bounded decrypt-then-filter search (PRV-M6 — recent-customer
@@ -191,21 +213,28 @@ export class AgentService {
         select: { id: true },
       });
       if (sessions.length === 0) return { items: [], total: 0 };
-      where.sessionId = In(sessions.map((s) => s.id));
+      qb.andWhere('c.session_id IN (:...sessionIds)', {
+        sessionIds: sessions.map((sn) => sn.id),
+      });
     }
-    const [conversations, total] = await this.convRepo.findAndCount({
-      where,
-      order: { id: 'DESC' },
-      skip: (page - 1) * size,
-      take: size,
-    });
-    const customerNameByConv = await this.customerNamesByConversation(conversations);
+
+    // Correlated MAX(id) rather than a grouped derived table: idx_msg_conv makes
+    // it an index lookup per candidate row, and the whole messages table never
+    // has to be aggregated to sort a page of conversations.
+    const [conversations, total] = await qb
+      .orderBy('(SELECT MAX(m.id) FROM messages m WHERE m.conversation_id = c.id)', 'DESC')
+      .addOrderBy('c.id', 'DESC')
+      .skip((page - 1) * size)
+      .take(size)
+      .getManyAndCount();
+
+    const contactByConv = await this.contactsByConversation(conversations);
     // Batched last-message lookup (PERF-7) — one query instead of one per row.
     const lastByConv = await this.lastMessagesByConversation(conversations.map((c) => c.id));
     const items = conversations.map((conversation) => ({
       conversation,
       lastMessage: lastByConv.get(String(conversation.id)) ?? null,
-      customerName: customerNameByConv.get(String(conversation.id)) ?? null,
+      contact: contactByConv.get(String(conversation.id)) ?? { name: null, email: null },
     }));
     return { items, total };
   }
@@ -225,14 +254,20 @@ export class AgentService {
     return new Map(rows.map((m) => [String(m.conversationId), m]));
   }
 
-  /** Map conversation id -> linked customer name (via session.customer_id). */
-  private async customerNamesByConversation(
+  /**
+   * Map conversation id -> the linked customer's contact fields (via
+   * session.customer_id). The email is carried too: a shopper who only left an
+   * address for an off-hours reply has no name, and "Session 93" tells the
+   * agent nothing about who is waiting (PLN-260807 D3).
+   */
+  private async contactsByConversation(
     conversations: Conversation[],
-  ): Promise<Map<string, string>> {
-    const result = new Map<string, string>();
+  ): Promise<Map<string, { name: string | null; email: string | null }>> {
+    const result = new Map<string, { name: string | null; email: string | null }>();
     if (conversations.length === 0) return result;
     const sessions = await this.sessionRepo.find({
       where: { id: In(conversations.map((c) => c.sessionId)) },
+      select: { id: true, customerId: true },
     });
     const custBySession = new Map(sessions.map((s) => [String(s.id), s.customerId]));
     const tenantId = conversations.find((c) => c.tenantId != null)?.tenantId ?? null;
@@ -240,11 +275,11 @@ export class AgentService {
       .map((s) => s.customerId)
       .filter((id): id is number => id != null);
     if (tenantId == null || customerIds.length === 0) return result;
-    const names = await this.customerService.namesByIds(tenantId, customerIds);
+    const contacts = await this.customerService.contactsByIds(tenantId, customerIds);
     for (const c of conversations) {
       const custId = custBySession.get(String(c.sessionId));
-      const name = custId != null ? names.get(String(custId)) : undefined;
-      if (name) result.set(String(c.id), name);
+      const contact = custId != null ? contacts.get(String(custId)) : undefined;
+      if (contact) result.set(String(c.id), contact);
     }
     return result;
   }

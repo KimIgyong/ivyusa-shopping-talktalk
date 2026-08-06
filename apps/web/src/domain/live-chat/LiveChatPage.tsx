@@ -19,6 +19,22 @@ import { liveChatService } from './live-chat.service';
 import type { CustomerContext } from './live-chat.service';
 import { cn } from '@/lib/cn';
 
+/** HH:mm for a message bubble; empty when the row carries no timestamp. */
+function clockTime(value: string | undefined | null): string {
+  if (!value) return '';
+  const d = new Date(value);
+  return Number.isNaN(d.getTime())
+    ? ''
+    : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+/** Local calendar day, used to decide where a date separator belongs. */
+function dayKey(value: string | undefined | null): string {
+  if (!value) return '';
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString();
+}
+
 function absTime(value: string | undefined | null): string {
   if (!value) return '';
   const d = new Date(value);
@@ -46,6 +62,10 @@ export function LiveChatPage() {
   /** In-flight latch for the reply send — see onSend. */
   const sendingRef = useRef(false);
 
+  // 'all' by default: the queue-only view is what hid the conversation a shopper
+  // was having right now with the bot (PLN-260807 D1).
+  const [scope, setScope] = useState<'all' | 'queue' | 'ended'>('all');
+
   // Queue search box (customer name/email) — debounced into the list query.
   const [listQuery, setListQuery] = useState('');
   const [listSearch, setListSearch] = useState('');
@@ -60,7 +80,7 @@ export function LiveChatPage() {
   useEffect(() => {
     if (deepLink) setSelected(deepLink);
   }, [deepLink]);
-  const { data: sessions, isLoading: sessionsLoading } = useSessions(listSearch);
+  const { data: sessions, isLoading: sessionsLoading } = useSessions(listSearch, scope);
   const { data: convo, isLoading: convoLoading } = useConversation(selected);
   const { accept, end, send } = useConversationActions(selected);
   const { link, create } = useCustomerActions(selected);
@@ -157,6 +177,23 @@ export function LiveChatPage() {
           <div className="border-b border-gray-100 px-4 py-3 text-sm font-medium text-gray-600">
             {t('sessions')} {sessions ? `(${sessions.length})` : ''}
           </div>
+          <div className="flex gap-1 border-b border-gray-100 px-2 pt-2">
+            {(['all', 'queue', 'ended'] as const).map((key) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setScope(key)}
+                className={cn(
+                  'rounded-full border px-2.5 py-1 text-xs',
+                  scope === key
+                    ? 'border-primary-400 bg-primary-500/10 text-primary-700'
+                    : 'border-gray-200 text-gray-500 hover:bg-gray-50',
+                )}
+              >
+                {t(`scope.${key}`)}
+              </button>
+            ))}
+          </div>
           <div className="border-b border-gray-100 p-2">
             <div className="relative">
               <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
@@ -187,12 +224,21 @@ export function LiveChatPage() {
                     selected === s.id && 'bg-primary-500/5',
                   )}
                 >
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-800">
-                      {s.customerName ?? t('sessionLabel', { id: s.id.slice(0, 6) })}
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="truncate text-sm font-medium text-gray-800">
+                      {s.customerName ||
+                        s.customerEmail ||
+                        t('sessionLabel', { id: s.id.slice(0, 6) })}
                     </span>
                     <StatusBadge status={s.status} />
                   </div>
+                  {/* Keep the session label visible even when we can name the
+                      shopper — agents refer to threads by it. */}
+                  {(s.customerName || s.customerEmail) && (
+                    <p className="text-[11px] text-gray-400">
+                      {t('sessionLabel', { id: s.id.slice(0, 6) })}
+                    </p>
+                  )}
                   <p className="mt-1 truncate text-xs text-gray-500">
                     {s.lastMessagePreview ?? '—'}
                   </p>
@@ -258,10 +304,30 @@ export function LiveChatPage() {
                 {convoLoading && (
                   <Loader2 className="mx-auto h-5 w-5 animate-spin text-gray-400" />
                 )}
-                {convo?.messages?.map((m) => {
+                {convo?.messages?.map((m, i) => {
                   const outbound = m.senderType === 'agent' || m.senderType === 'ai';
+                  const day = dayKey(m.createdAt);
+                  const showDay = day && day !== dayKey(convo.messages[i - 1]?.createdAt);
                   return (
-                    <div key={m.id} className={cn('flex', outbound ? 'justify-end' : 'justify-start')}>
+                    <div key={m.id}>
+                      {showDay && (
+                        <div className="my-2 flex items-center gap-2">
+                          <span className="h-px flex-1 bg-gray-100" />
+                          <span className="text-[11px] text-gray-400">{day}</span>
+                          <span className="h-px flex-1 bg-gray-100" />
+                        </div>
+                      )}
+                      <div
+                        className={cn(
+                          'flex items-end gap-1.5',
+                          outbound ? 'justify-end' : 'justify-start',
+                        )}
+                      >
+                        {outbound && (
+                          <span className="shrink-0 text-[11px] text-gray-400">
+                            {clockTime(m.createdAt)}
+                          </span>
+                        )}
                       <div
                         className={cn(
                           'max-w-[75%] rounded-lg px-3 py-2 text-sm',
@@ -285,6 +351,12 @@ export function LiveChatPage() {
                           </span>
                         )}
                         {m.body}
+                      </div>
+                        {!outbound && (
+                          <span className="shrink-0 text-[11px] text-gray-400">
+                            {clockTime(m.createdAt)}
+                          </span>
+                        )}
                       </div>
                     </div>
                   );

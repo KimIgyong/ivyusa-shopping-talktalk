@@ -4,6 +4,8 @@ import { apiGet, apiPost } from '@/lib/api-client';
 export interface AgentSession {
   id: string;
   customerName?: string | null;
+  /** Shown when the shopper left an address but no name (off-hours capture). */
+  customerEmail?: string | null;
   status?: string;
   escalated?: boolean;
   lastMessagePreview?: string | null;
@@ -57,8 +59,11 @@ export interface AgentAlert {
 }
 
 export const liveChatService = {
-  sessions: (q?: string) =>
-    apiGet<AgentSession[]>('/agent/sessions', q?.trim() ? { q: q.trim() } : undefined),
+  sessions: (q?: string, status?: string) =>
+    apiGet<AgentSession[]>('/agent/sessions', {
+      ...(q?.trim() ? { q: q.trim() } : {}),
+      ...(status && status !== 'all' ? { status } : {}),
+    }),
   conversation: (id: string) => apiGet<ConversationDetail>(`/agent/conversations/${id}`),
   accept: (id: string) => apiPost<ConversationDetail>(`/agent/conversations/${id}/accept`),
   sendMessage: (id: string, body: string) =>

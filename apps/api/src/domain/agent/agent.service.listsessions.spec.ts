@@ -13,9 +13,20 @@ describe('AgentService.listSessions', () => {
     customers?: Array<{ id: number }>;
     sessions?: Array<{ id: number }>;
   }) {
-    const convRepo = {
-      findAndCount: jest.fn().mockResolvedValue([opts.conversations ?? [], (opts.conversations ?? []).length]),
-    };
+    const getManyAndCount = jest
+      .fn()
+      .mockResolvedValue([opts.conversations ?? [], (opts.conversations ?? []).length]);
+    const wheres: string[] = [];
+    const qb = {
+      where: jest.fn(function (this: unknown) { return qb; }),
+      andWhere: jest.fn((clause: string) => { wheres.push(clause); return qb; }),
+      orderBy: jest.fn(() => qb),
+      addOrderBy: jest.fn(() => qb),
+      skip: jest.fn(() => qb),
+      take: jest.fn(() => qb),
+      getManyAndCount,
+    } as Record<string, unknown>;
+    const convRepo = { createQueryBuilder: jest.fn(() => qb), wheres, getManyAndCount };
     const msgRepo = {
       createQueryBuilder: jest.fn(() => ({
         select: jest.fn().mockReturnThis(),
@@ -26,7 +37,7 @@ describe('AgentService.listSessions', () => {
     const sessionRepo = { find: jest.fn().mockResolvedValue(opts.sessions ?? []) };
     const customerService = {
       searchByEmailOrName: jest.fn().mockResolvedValue(opts.customers ?? []),
-      namesByIds: jest.fn().mockResolvedValue(new Map()),
+      contactsByIds: jest.fn().mockResolvedValue(new Map()),
     };
     const svc = new AgentService(
       convRepo as never,
@@ -52,9 +63,7 @@ describe('AgentService.listSessions', () => {
     const res = await svc.listSessions(1, 1, 20);
     expect(res.total).toBe(2);
     expect(customerService.searchByEmailOrName).not.toHaveBeenCalled();
-    expect(convRepo.findAndCount).toHaveBeenCalledWith(
-      expect.objectContaining({ where: expect.not.objectContaining({ sessionId: expect.anything() }) }),
-    );
+    expect(convRepo.wheres.some((w: string) => w.includes('session_id'))).toBe(false);
   });
 
   it('with q, filters by the matched customers sessions', async () => {
@@ -66,9 +75,7 @@ describe('AgentService.listSessions', () => {
     const res = await svc.listSessions(1, 1, 20, 'kim');
     expect(customerService.searchByEmailOrName).toHaveBeenCalledWith(1, 'kim', 20);
     expect(sessionRepo.find).toHaveBeenCalled();
-    expect(convRepo.findAndCount).toHaveBeenCalledWith(
-      expect.objectContaining({ where: expect.objectContaining({ sessionId: expect.anything() }) }),
-    );
+    expect(convRepo.wheres.some((w: string) => w.includes('session_id'))).toBe(true);
     expect(res.total).toBe(1);
   });
 
@@ -76,8 +83,55 @@ describe('AgentService.listSessions', () => {
     const { svc, convRepo } = build({ customers: [] });
     const res = await svc.listSessions(1, 1, 20, 'nobody');
     expect(res).toEqual({ items: [], total: 0 });
-    expect(convRepo.findAndCount).not.toHaveBeenCalled();
+    expect(convRepo.getManyAndCount).not.toHaveBeenCalled();
   });
+});
+
+describe('listSessions — scope', () => {
+  it.each([
+    ['all', ['ai_active', 'waiting', 'agent']],
+    ['queue', ['waiting', 'agent']],
+    ['ended', ['ended']],
+  ])('%s selects the right statuses', async (scope, expected) => {
+    const { svc, convRepo } = buildScope();
+    await svc.listSessions(1, 1, 50, undefined, scope as 'all' | 'queue' | 'ended');
+    expect(convRepo.statuses).toEqual(expected);
+  });
+
+  function buildScope() {
+    let statuses: string[] = [];
+    const qb: Record<string, unknown> = {
+      where: jest.fn(() => qb),
+      andWhere: jest.fn((_c: string, params?: { statuses?: string[] }) => {
+        if (params?.statuses) statuses = params.statuses;
+        return qb;
+      }),
+      orderBy: jest.fn(() => qb),
+      addOrderBy: jest.fn(() => qb),
+      skip: jest.fn(() => qb),
+      take: jest.fn(() => qb),
+      getManyAndCount: jest.fn(async () => [[], 0]),
+    };
+    const convRepo = { createQueryBuilder: () => qb, get statuses() { return statuses; } };
+    const svc = new AgentService(
+      convRepo as never,
+      { createQueryBuilder: () => ({ select: () => ({ where: () => ({ getMany: async () => [] }) }) }) } as never,
+      {} as never,
+      { find: jest.fn(async () => []) } as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      { contactsByIds: jest.fn(async () => new Map()) } as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+    );
+    return { svc, convRepo };
+  }
 });
 
 describe('toSessionResponse', () => {
@@ -86,7 +140,7 @@ describe('toSessionResponse', () => {
     const res = toSessionResponse(
       { id: 1, status: 'waiting', escalated: 0, createdAt: new Date() } as Conversation,
       { body: 'hello there', createdAt: at } as Message,
-      'Kim',
+      { name: 'Kim', email: null },
     );
     expect(res.lastMessageAt).toBe(at);
     expect(res.lastMessagePreview).toBe('hello there');
