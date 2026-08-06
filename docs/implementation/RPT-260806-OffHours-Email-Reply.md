@@ -56,8 +56,9 @@
 | S2 이메일 저장 | **PASS** — 확인 메시지, 고객 생성·세션 바인딩, `conversations.reply_channel='email'` |
 | S6 휴게시간 라우팅 | **PASS** — 업무시간(09–18) 내부이지만 휴게 구간이라 오프아워 경로로 처리 |
 | SMTP 실전송 | **PASS** — 스테이징 컨테이너에서 Gmail 250 OK (`dev@amoeba.group` 수신) |
+| 오프아워 접수 알림 메일 | **PASS(수신 확인)** — 사용자가 `[IVY Chat] Escalation — conversation #93` 수신 확인(2026-08-06). 에스컬레이션 → AgentAlertService → MailerService → SMTP → 실제 배달까지 전 구간 실증 |
 | S4 채널 해제 규칙 | **결함 발견 → 수정 후 PASS** (아래) |
-| S3 상담사 답변 이메일 | **미검증** — 콘솔 로그인 필요. 대화 #93이 `reply_channel='email'` + 고객 이메일 보유 상태로 대기 중이라 콘솔에서 답변하면 즉시 확인 가능 |
+| S3 상담사 답변 이메일 | **미검증(잔여 1건)** — 콘솔 로그인 필요. 대화 #93이 `reply_channel='email'` + 고객 이메일 보유 상태로 대기 중. 발송 수단(MailerService→SMTP)은 위 항목으로 실증됐고 `AgentService` 분기는 단위 테스트 3건으로 덮여 있어, 남은 것은 콘솔 답변 시의 배선 확인뿐 |
 | S7 콘솔 설정 화면 | 코드·빌드 검증 완료, 화면 실조작 미실시 |
 
 ### 5-1. 검증에서 발견·수정한 결함 (PR #119 `c6b555e`)
