@@ -184,3 +184,70 @@ describe('ChatService — queued threads', () => {
     expect(retrievalQuery).toBe(query);
   });
 });
+
+/**
+ * The email channel must outlive a follow-up sent while still off hours — the
+ * first implementation cleared it on any customer message, which cancelled the
+ * delivery the shopper had just been promised (caught in staging).
+ */
+describe('ChatService — off-hours reply channel', () => {
+  function build(routeMode: 'agents' | 'email') {
+    const conversation = {
+      id: 77,
+      tenantId: 1,
+      sessionId: 5,
+      status: CONVERSATION_STATUS.WAITING,
+      agentId: null,
+      replyChannel: 'email',
+    } as Conversation;
+    const session = {
+      id: 5,
+      sessionToken: 'tok',
+      tenantId: 1,
+      customerId: 9,
+      language: 'KO',
+    } as Session;
+    const convUpdate = jest.fn();
+    const svc = new ChatService(
+      {
+        findOne: jest.fn(async () => conversation),
+        update: convUpdate,
+        create: (c: Partial<Conversation>) => c,
+        save: jest.fn(),
+      } as never,
+      {
+        save: jest.fn(async (m: Message) => ({ ...m, id: 1 }) as Message),
+        create: (m: Partial<Message>) => m,
+        update: jest.fn(),
+        find: jest.fn(async () => []),
+      } as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {
+        classifyIntent: jest.fn(async () => ({ intent: 'x', needsOrderData: false, confidence: 0.9 })),
+        answer: jest.fn(async () => ({ text: 'ok', confidence: 0.9, citations: [] })),
+      } as never,
+      { moderate: jest.fn(async () => ({ decision: MODERATION_DECISION.DELIVERED, text: 'ok' })) } as never,
+      {} as never,
+      { effectiveConsentFor: jest.fn(async () => CONSENT_STATE.GRANTED) } as never,
+      { route: jest.fn(async () => ({ mode: routeMode, targetUserIds: [] })) } as never,
+      { publish: jest.fn() } as never,
+      { contactEmail: jest.fn(async () => 'shopper@example.com') } as never,
+      { del: jest.fn() } as never,
+    );
+    return { svc, session, convUpdate };
+  }
+
+  it('keeps mailing the thread when the follow-up is still off hours', async () => {
+    const { svc, session, convUpdate } = build('email');
+    await svc.handleUserMessage(session, 'any update?');
+    expect(convUpdate).not.toHaveBeenCalledWith({ id: 77 }, { replyChannel: null });
+  });
+
+  it('hands the thread back to the widget once agents are on shift', async () => {
+    const { svc, session, convUpdate } = build('agents');
+    await svc.handleUserMessage(session, 'any update?');
+    expect(convUpdate).toHaveBeenCalledWith({ id: 77 }, { replyChannel: null });
+  });
+});
