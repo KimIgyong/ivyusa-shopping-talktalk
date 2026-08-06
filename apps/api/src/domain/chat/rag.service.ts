@@ -44,6 +44,35 @@ export interface RagAnswer {
 const ORDER_CONTEXT_CONFIDENCE = 0.6;
 
 /**
+ * The model's bookkeeping line naming the context items it used ("CITED: 1,3").
+ * Deliberately forgiving — a stray bullet, bold marker or trailing period must
+ * still be recognised, because a marker we fail to match is a marker the
+ * customer would read in the chat bubble.
+ */
+const CITED_LINE = /^[\s>*_`-]*cited\s*:?\s*([\d,\s]*)[\s.*_`-]*$/gim;
+
+/**
+ * Split the answer text from that marker. Returns the customer-facing text and
+ * the 1-based item numbers, or `cited: null` when the model wrote no marker at
+ * all — the caller then keeps every citation rather than dropping them.
+ */
+export function splitCitedMarker(raw: string): { text: string; cited: number[] | null } {
+  let found = false;
+  const cited = new Set<number>();
+  const text = raw
+    .replace(CITED_LINE, (_match, list: string) => {
+      found = true;
+      for (const part of list.split(',')) {
+        const n = Number(part.trim());
+        if (Number.isInteger(n) && n > 0) cited.add(n);
+      }
+      return '';
+    })
+    .trim();
+  return { text, cited: found ? [...cited] : null };
+}
+
+/**
  * Retrieval-Augmented answering (FN-016/017, POL-011/013,
  * PLAN-KB-VectorHybrid-Qdrant W4). Hybrid retrieval: MySQL FULLTEXT (exact
  * keyword leg) + Qdrant dense vectors (semantic leg, cross-lingual ko/en/es),
@@ -281,7 +310,10 @@ export class RagService {
       4,
       preferGroup,
     );
-    const context = chunks.map((c) => `- [${c.category ?? 'general'}] ${c.title}: ${c.snippet}`).join('\n');
+    // Numbered so the model can name the items it actually used (see CITED_LINE).
+    const context = chunks
+      .map((c, i) => `[${i + 1}] [${c.category ?? 'general'}] ${c.title}: ${c.snippet}`)
+      .join('\n');
     const hasOrderContext = !!orderContext?.trim();
     // Retrieval quality drives confidence, but order facts are authoritative on
     // their own: an order question answered from the customer's real orders must
@@ -310,15 +342,28 @@ export class RagService {
         `${persona}${rulesBlock}\n` +
         `${sourceRule} If the information is insufficient, apologize briefly and ` +
         `offer to connect a human agent. Reply in language code: ${language}.\n` +
+        `The context items are numbered. After your reply, on its own final line, ` +
+        `write "CITED:" followed by the numbers of the items your answer actually ` +
+        `used, comma separated (write "CITED:" with nothing after it if you used ` +
+        `none). That line is internal bookkeeping: never mention it, never number ` +
+        `or refer to the context items in the visible reply.\n` +
         `CONTEXT_START\n${context || '(no relevant documents found)'}\nCONTEXT_END` +
         orderBlock,
       messages: [{ role: 'user', content: query }],
     });
 
+    // Show only what the answer stands on. The retrieved set is the top matches,
+    // so recommending one cleanser used to surface a concealer and a night cream
+    // next to it as "referenced" products (FIX-260806 §7-1). Matching the answer
+    // text against titles cannot do this — replies are localized while the
+    // catalogue titles are English — so the model reports which items it used.
+    const { text, cited } = splitCitedMarker(res.text);
     return {
-      text: res.text,
+      text,
       confidence,
-      citations: chunks,
+      // No marker (older/odd model output) → keep every citation, i.e. exactly
+      // the previous behavior, rather than silently dropping all the links.
+      citations: cited ? chunks.filter((_, i) => cited.includes(i + 1)) : chunks,
       tokensIn: res.tokensIn,
       tokensOut: res.tokensOut,
     };

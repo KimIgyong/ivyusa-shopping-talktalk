@@ -1,4 +1,4 @@
-import { RagService } from './rag.service';
+import { RagService, splitCitedMarker } from './rag.service';
 
 /** RagService.classifyIntent — gateway JSON parsing with safe fallback. */
 describe('RagService.classifyIntent', () => {
@@ -119,5 +119,45 @@ describe('RagService.answer with order context', () => {
     const system = ai.complete.mock.calls[0][0].system as string;
     expect(system).not.toContain('CUSTOMER_ORDERS_START');
     expect(res.confidence).toBeLessThan(0.45);
+  });
+});
+
+/**
+ * Citations used to list every retrieved chunk, so a reply recommending one
+ * cleanser showed a concealer and a night cream beside it as "referenced"
+ * products (FIX-260806 §7-1). Text-matching the reply against titles cannot fix
+ * that — replies are localized, the catalogue is English — so the model reports
+ * which numbered items it used and the marker is stripped before anyone sees it.
+ */
+describe('splitCitedMarker', () => {
+  it('takes the numbers and removes the line from the visible answer', () => {
+    const res = splitCitedMarker('Try the foam cleanser.\n\nCITED: 1, 3');
+    expect(res.cited).toEqual([1, 3]);
+    expect(res.text).toBe('Try the foam cleanser.');
+  });
+
+  it('reports no marker as null so the caller keeps every citation', () => {
+    const res = splitCitedMarker('Here is an answer with no bookkeeping line.');
+    expect(res.cited).toBeNull();
+    expect(res.text).toBe('Here is an answer with no bookkeeping line.');
+  });
+
+  it('treats an empty marker as "used nothing"', () => {
+    const res = splitCitedMarker('Sorry, I am not sure.\nCITED:');
+    expect(res.cited).toEqual([]);
+    expect(res.text).toBe('Sorry, I am not sure.');
+  });
+
+  it('tolerates decoration and trailing punctuation around the marker', () => {
+    for (const marker of ['**CITED: 2**', '- cited: 2 .', '> CITED 2']) {
+      const res = splitCitedMarker(`답변입니다.\n${marker}`);
+      expect(res.cited).toEqual([2]);
+      expect(res.text).toBe('답변입니다.');
+    }
+  });
+
+  it('ignores junk inside the marker instead of citing item 0', () => {
+    const res = splitCitedMarker('Answer.\nCITED: 0, 2,');
+    expect(res.cited).toEqual([2]);
   });
 });
