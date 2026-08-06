@@ -34,6 +34,12 @@ export interface HandoffConfig {
     days: number[]; // 0=Sun … 6=Sat
     start: string; // 'HH:mm'
     end: string; // 'HH:mm'
+    /**
+     * Windows inside the shift when nobody is at the console (lunch, standup).
+     * Treated exactly like off hours, so the shopper is told about the email
+     * reply instead of waiting for someone who is away.
+     */
+    breaks?: Array<{ start: string; end: string }>;
   };
   /** Where to send the conversation outside business hours. */
   offHours?: {

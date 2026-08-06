@@ -11,13 +11,14 @@ import { useAnalytics } from '../../lib/analytics';
 import type { ScenarioButton, ScenarioPostAction } from '../../lib/types';
 import { MessageBubble } from './MessageBubble';
 import { TypingBubble } from './TypingBubble';
+import { ContactEmailCard } from './ContactEmailCard';
 import { ConsentBanner } from './ConsentBanner';
 import { ScenarioMenu, type SubAction } from './ScenarioMenu';
 import { AuthGate } from './AuthGate';
 import { ContactCard } from './ContactCard';
 import { AffiliateCard } from './AffiliateCard';
 
-type Inline = 'auth' | 'contact' | 'affiliate' | null;
+type Inline = 'auth' | 'contact' | 'affiliate' | 'contactEmail' | null;
 
 export function ChatTab() {
   const { t } = useTranslation();
@@ -105,6 +106,9 @@ export function ChatTab() {
     const res = await send(text);
     setShowEscalate(res.escalate);
     if (res.needsAuth && !authenticated) setInline('auth');
+    // Handed off outside business hours and we hold no address: the reply has
+    // to travel by email, so ask before the shopper walks away (PLN-260806).
+    else if (res.needsContactEmail) setInline('contactEmail');
   }
 
   // Auto-send a message queued from another tab (e.g. "Ask about this order").
@@ -327,6 +331,9 @@ export function ChatTab() {
             }}
             onCancel={() => setInline(null)}
           />
+        )}
+        {inline === 'contactEmail' && (
+          <ContactEmailCard sessionToken={sessionToken} onSaved={() => setInline(null)} />
         )}
         {inline === 'contact' && (
           <ContactCard

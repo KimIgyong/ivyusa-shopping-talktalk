@@ -13,6 +13,8 @@ import type { ChatMessage, ChatReply, ScenarioPostAction } from '../lib/types';
 export interface SendResult {
   escalate: boolean;
   needsAuth: boolean;
+  /** Off-hours handoff with no address on file — ask the shopper for one. */
+  needsContactEmail?: boolean;
 }
 
 const POLL_MS = 5000;
@@ -90,7 +92,11 @@ export function useChat(sessionToken: string | null) {
             citations: res.reply.citations,
           });
         }
-        return { escalate: res.escalate, needsAuth: res.needsAuth };
+        return {
+          escalate: res.escalate,
+          needsAuth: res.needsAuth,
+          needsContactEmail: res.needsContactEmail,
+        };
       } catch (e) {
         // Not signed in is a state, not a failure: report it as needsAuth so the
         // caller shows the sign-in card instead of a dead-end error bubble.

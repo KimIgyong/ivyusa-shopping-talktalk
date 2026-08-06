@@ -11,7 +11,7 @@ import { Table, type Column } from '@/components/Table';
 import { cn } from '@/lib/cn';
 import { AiStudioPanel } from './AiStudioPanel';
 import { ScenarioReplyEditor } from './ScenarioReplyEditor';
-import { HandoffSection } from './HandoffSection';
+import { Link } from 'react-router-dom';
 import {
   useAiSettings,
   useUpdateAiSetting,
@@ -57,7 +57,7 @@ export function AiSettingsPage() {
           <ScenarioButtonsSection />
           <AiFunctionsSection />
           <ModerationSection />
-          <HandoffSection />
+          <HandoffMovedNotice />
         </div>
         <div className="xl:sticky xl:top-6 xl:self-start">
           <AiStudioPanel />
@@ -622,6 +622,25 @@ function ModerationSection() {
           </Select>
         </FormRow>
       </Modal>
+    </Card>
+  );
+}
+
+/**
+ * Live-support routing (business hours, break, off-hours mailbox) moved to the
+ * tenant Settings page — it is an operations setting, not AI tuning, and two
+ * editors over one config object drift apart (PLN-260806 D1).
+ */
+function HandoffMovedNotice() {
+  const { t } = useTranslation('aiSetting');
+  return (
+    <Card title={t('handoff.title')}>
+      <p className="text-sm text-gray-500">
+        {t('handoff.movedToSettings')}{' '}
+        <Link to="/settings" className="text-primary-600 underline underline-offset-2">
+          {t('handoff.openSettings')}
+        </Link>
+      </p>
     </Card>
   );
 }

@@ -20,9 +20,10 @@ import { RagService } from './rag.service';
 import { ModerationService } from '../moderation/moderation.service';
 import type { ChatTurnResponse } from '@ivy/types';
 import { OrderService } from '../order/order.service';
-import { SessionService } from '../session/session.service';
+import { SessionService, sessionCacheKey } from '../session/session.service';
+import { CustomerService } from '../customer/customer.service';
 import { HandoffRouterService } from '../ai-engine/handoff-router.service';
-import { EventBusService, EVENTS } from '../../infrastructure/infrastructure.module';
+import { EventBusService, EVENTS, RedisService } from '../../infrastructure/infrastructure.module';
 import { scrubPii } from '../../global/util/pii-scrub.util';
 
 const ESCALATION_CONFIDENCE = 0.45;
@@ -59,6 +60,16 @@ const SYSTEM_MESSAGES = {
     ES: 'No encontré una respuesta segura en nuestro contenido de ayuda, así que lo estoy remitiendo a nuestro equipo de soporte para continuar la conversación. Un agente responderá aquí en breve.',
     KO: '관리자에게 전달하여 상담을 이어가겠습니다. 잠시만 기다려 주시면 상담사가 이 대화창에서 답변드릴게요.',
   },
+  offHoursNeedEmail: {
+    EN: "We're outside our support hours right now. Leave the email address you'd like the answer sent to and our team will reply there as soon as they're back.",
+    ES: 'Ahora mismo estamos fuera del horario de atención. Déjanos el correo al que quieres recibir la respuesta y nuestro equipo te escribirá en cuanto vuelva.',
+    KO: '지금은 상담 가능 시간이 아니에요. 회신받으실 이메일을 남겨주시면 업무 시간에 담당자가 이메일로 답변드릴게요.',
+  },
+  contactEmailSaved: {
+    EN: "Thanks — we'll send the answer to that address.",
+    ES: 'Gracias, enviaremos la respuesta a esa dirección.',
+    KO: '감사합니다. 해당 주소로 답변을 보내드릴게요.',
+  },
   consentRequired: {
     EN: 'We cannot process chat messages until you accept the privacy notice. To use chat, please accept the privacy notice in the consent banner.',
     ES: 'No podemos procesar mensajes de chat hasta que aceptes el aviso de privacidad. Para usar el chat, acepta el aviso de privacidad en el banner de consentimiento.',
@@ -76,6 +87,13 @@ export function sysMsg(key: keyof typeof SYSTEM_MESSAGES, lang: string): string 
 export type ChatTurnResult = ChatTurnResponse;
 
 export type EscalationReason = 'low_confidence' | 'moderation_blocked' | 'user_request';
+
+/** What a handoff tells the caller: the notice shown, and whether we still need an address. */
+export interface HandoffOutcome {
+  body: string;
+  /** True off hours when we hold no email for this shopper — the widget asks. */
+  needsContactEmail: boolean;
+}
 
 /** Payload published on EVENTS.ESCALATION (consumed by AgentAlertService). */
 export interface EscalationEvent {
@@ -111,6 +129,8 @@ export class ChatService {
     private readonly sessionService: SessionService,
     private readonly handoffRouter: HandoffRouterService,
     private readonly bus: EventBusService,
+    private readonly customerService: CustomerService,
+    private readonly redis: RedisService,
   ) {}
 
   async getOrCreateConversation(sessionId: number): Promise<Conversation> {
@@ -251,6 +271,12 @@ export class ChatService {
       return { conversationId: String(conversation.id), reply: null, escalate: false, needsAuth: false };
     }
     const queued = conversation.status === CONVERSATION_STATUS.WAITING;
+    // They are typing in the widget again, so replies belong here — stop mailing
+    // the thread until it is handed off outside business hours once more.
+    if (conversation.replyChannel === 'email') {
+      conversation.replyChannel = null;
+      await this.convRepo.update({ id: conversation.id }, { replyChannel: null });
+    }
 
     // PII minimization (PRV Stage 5): the AI provider gets a scrubbed COPY of
     // the message; the persisted original stays intact (agents need it). Only
@@ -327,8 +353,14 @@ export class ChatService {
       if (queued) {
         return { conversationId: String(conversation.id), reply: null, escalate: false, needsAuth: false };
       }
-      const body = await this.handoff(conversation.id, session, tenantId, 'moderation_blocked', text);
-      return { conversationId: String(conversation.id), reply: { senderType: 'system', body }, escalate: true, needsAuth: false };
+      const handoff = await this.handoff(conversation.id, session, tenantId, 'moderation_blocked', text);
+      return {
+        conversationId: String(conversation.id),
+        reply: { senderType: 'system', body: handoff.body },
+        escalate: true,
+        needsAuth: false,
+        needsContactEmail: handoff.needsContactEmail,
+      };
     }
 
     // RAG fallback (FR-S3): no confident answer within the knowledge base →
@@ -337,8 +369,14 @@ export class ChatService {
       if (queued) {
         return { conversationId: String(conversation.id), reply: null, escalate: false, needsAuth: false };
       }
-      const body = await this.handoff(conversation.id, session, tenantId, 'low_confidence', text);
-      return { conversationId: String(conversation.id), reply: { senderType: 'system', body }, escalate: true, needsAuth: false };
+      const handoff = await this.handoff(conversation.id, session, tenantId, 'low_confidence', text);
+      return {
+        conversationId: String(conversation.id),
+        reply: { senderType: 'system', body: handoff.body },
+        escalate: true,
+        needsAuth: false,
+        needsContactEmail: handoff.needsContactEmail,
+      };
     }
 
     await this.persist(tenantId, conversation.id, SENDER_TYPE.AI, moderated.text, session.language, {
@@ -403,18 +441,32 @@ export class ChatService {
     tenantId: number,
     reason: EscalationReason,
     preview: string,
-  ): Promise<string> {
+  ): Promise<HandoffOutcome> {
     // Routing decides both who gets paged and what the customer is told:
     // outside business hours the message goes to a mailbox and the shopper is
     // told to expect an email reply instead of a live agent (PLN-AiSetting W3).
     const route = await this.handoffRouter.route(tenantId, session.language);
-    const body = route.mode === 'email' && route.notice ? route.notice : sysMsg('handoff', session.language);
+    // Off hours the answer travels by email, so we need somewhere to send it.
+    // Without an address on file the widget asks for one (PLN-260806) and the
+    // notice says so, instead of promising a reply we cannot deliver.
+    const needsContactEmail =
+      route.mode === 'email' && !(await this.hasContactEmail(tenantId, session));
+    const body = needsContactEmail
+      ? sysMsg('offHoursNeedEmail', session.language)
+      : route.mode === 'email' && route.notice
+        ? route.notice
+        : sysMsg('handoff', session.language);
     await this.persist(tenantId, conversationId, SENDER_TYPE.SYSTEM, body, session.language, { reason });
     // Preview sandbox: show the real handoff notice but never page the agents —
     // no WAITING flip (the bot keeps answering for iterative testing), no alert
     // fan-out, no console-queue entry.
-    if (session.channel === 'preview') return body;
+    if (session.channel === 'preview') return { body, needsContactEmail: false };
     await this.markWaiting(conversationId);
+    // Remember how this thread must be answered: an agent replying tomorrow has
+    // no one in the widget to read it (see AgentService.sendMessage).
+    if (route.mode === 'email') {
+      await this.convRepo.update({ id: conversationId }, { replyChannel: 'email' });
+    }
     const event: EscalationEvent = {
       tenantId,
       conversationId,
@@ -425,7 +477,40 @@ export class ChatService {
       offHoursEmail: route.mode === 'email' ? route.email : undefined,
     };
     await this.bus.publish(EVENTS.ESCALATION, event);
-    return body;
+    return { body, needsContactEmail };
+  }
+
+  /**
+   * Store the address an off-hours shopper wants their answer sent to
+   * (PLN-260806). Runs through the lead path so the erasure-suppression check
+   * and encrypted storage apply exactly as they do for an agent-entered
+   * address, and binds the session so the reply can find the customer.
+   * Consent-gated: collecting an address is processing personal data.
+   */
+  async saveContactEmail(session: Session, email: string): Promise<{ body: string }> {
+    const consent = await this.sessionService.effectiveConsentFor(session.id, session.tenantId);
+    if (consent !== CONSENT_STATE.GRANTED) {
+      throw new BusinessException(ERROR_CODE.CONSENT_REQUIRED, HttpStatus.FORBIDDEN);
+    }
+    const tenantId = session.tenantId ?? (await this.resolveTenantId());
+    const customer = await this.customerService.createFromLead(tenantId, { email });
+    if (session.customerId !== customer.id) {
+      await this.sessionRepo.update({ id: session.id }, { customerId: customer.id });
+      // The token→session cache would otherwise keep serving the unbound row.
+      await this.redis.del(sessionCacheKey(session.sessionToken));
+    }
+    const conversation = await this.findOpenConversation(session.id);
+    const body = sysMsg('contactEmailSaved', session.language);
+    if (conversation) {
+      await this.persist(tenantId, conversation.id, SENDER_TYPE.SYSTEM, body, session.language);
+    }
+    return { body };
+  }
+
+  /** Do we already hold an address to send this shopper's answer to? */
+  private async hasContactEmail(tenantId: number, session: Session): Promise<boolean> {
+    if (session.customerId == null) return false;
+    return !!(await this.customerService.contactEmail(tenantId, session.customerId));
   }
 
   /** Explicit "talk to an agent" request from the widget (FR-015). */

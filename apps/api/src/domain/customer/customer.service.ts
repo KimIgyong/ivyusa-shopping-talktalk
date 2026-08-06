@@ -123,6 +123,18 @@ export class CustomerService {
     };
   }
 
+  /**
+   * The customer's contact address, or null when we hold none. Tenant-scoped:
+   * an off-hours reply must never be mailed to another store's shopper.
+   */
+  async contactEmail(tenantId: number, customerId: number): Promise<string | null> {
+    const row = await this.customerRepo.findOne({
+      where: { id: customerId, tenantId },
+      select: { id: true, email: true },
+    });
+    return row?.email?.trim() || null;
+  }
+
   /** Display names keyed by String(id), for enriching lists that reference customers. */
   async namesByIds(tenantId: number, ids: number[]): Promise<Map<string, string>> {
     const map = new Map<string, string>();

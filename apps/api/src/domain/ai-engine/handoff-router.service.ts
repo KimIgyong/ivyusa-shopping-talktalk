@@ -84,14 +84,27 @@ export class HandoffRouterService {
     const now = (Number(get('hour')) % 24) * 60 + Number(get('minute'));
 
     const days = hours.days?.length ? hours.days : [0, 1, 2, 3, 4, 5, 6];
-    if (start <= end) {
-      return days.includes(dayIndex) && now >= start && now < end;
+    const onShift = (() => {
+      if (start <= end) {
+        return days.includes(dayIndex) && now >= start && now < end;
+      }
+      // Overnight window: the tail after midnight belongs to the previous day's shift.
+      const prevDay = (dayIndex + 6) % 7;
+      return (days.includes(dayIndex) && now >= start) || (days.includes(prevDay) && now < end);
+    })();
+    if (!onShift) return false;
+
+    // Breaks (lunch, standup) carve holes in the shift: nobody is at the console,
+    // so the shopper should get the email-reply route rather than a promise of a
+    // live agent. A malformed entry is ignored, never treated as "closed".
+    for (const b of hours.breaks ?? []) {
+      const from = this.minutes(b?.start);
+      const to = this.minutes(b?.end);
+      if (from == null || to == null || from === to) continue;
+      const inBreak = from < to ? now >= from && now < to : now >= from || now < to;
+      if (inBreak) return false;
     }
-    // Overnight window: the tail after midnight belongs to the previous day's shift.
-    const prevDay = (dayIndex + 6) % 7;
-    return (
-      (days.includes(dayIndex) && now >= start) || (days.includes(prevDay) && now < end)
-    );
+    return true;
   }
 
   private minutes(hhmm: string | undefined): number | null {

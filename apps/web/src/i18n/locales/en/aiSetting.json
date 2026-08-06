@@ -117,7 +117,13 @@
     "offHoursEmail": "Off-hours email",
     "offHoursNotice": "Off-hours message to the customer",
     "noticePlaceholder": "Leave blank to use the default wording",
-    "emailWarning": "Without an email, off-hours escalations still page agents."
+    "emailWarning": "Without an email, off-hours escalations still page agents.",
+    "useBreak": "Break (nobody on duty)",
+    "breakStart": "Break from",
+    "breakEnd": "Break to",
+    "breakHint": "Questions during the break are routed like off hours.",
+    "movedToSettings": "Business hours and off-hours routing now live in tenant Settings.",
+    "openSettings": "Open Settings"
   },
   "coach": {
     "title": "Agent coaching",

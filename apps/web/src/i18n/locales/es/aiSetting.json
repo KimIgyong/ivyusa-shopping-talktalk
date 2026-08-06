@@ -117,7 +117,13 @@
     "offHoursEmail": "Correo fuera de horario",
     "offHoursNotice": "Mensaje al cliente fuera de horario",
     "noticePlaceholder": "Déjalo vacío para usar el texto predeterminado",
-    "emailWarning": "Sin correo, las escaladas fuera de horario siguen avisando a los agentes."
+    "emailWarning": "Sin correo, las escaladas fuera de horario siguen avisando a los agentes.",
+    "useBreak": "Descanso (nadie de guardia)",
+    "breakStart": "Descanso desde",
+    "breakEnd": "Descanso hasta",
+    "breakHint": "Las consultas durante el descanso se enrutan como fuera de horario.",
+    "movedToSettings": "El horario y el enrutamiento fuera de horario ahora están en Configuración.",
+    "openSettings": "Abrir Configuración"
   },
   "coach": {
     "title": "Entrenamiento del agente",

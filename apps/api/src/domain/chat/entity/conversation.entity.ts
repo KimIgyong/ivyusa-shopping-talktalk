@@ -33,6 +33,15 @@ export class Conversation {
   @Index('idx_conv_agent')
   agentId: number | null;
 
+  /**
+   * How the shopper expects to hear back. 'email' is set when the handoff
+   * happened outside business hours — nobody is in the widget to read a reply,
+   * so an agent's answer is mailed to them as well (PLN-260806). Cleared when
+   * they write again from the widget.
+   */
+  @Column({ name: 'reply_channel', type: 'varchar', length: 16, nullable: true })
+  replyChannel: string | null;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 

@@ -4,7 +4,7 @@ import { SkipThrottle } from '@nestjs/throttler';
 import { ChatService } from './chat.service';
 import { ScenarioService } from './scenario.service';
 import { ChatMapper } from './chat.mapper';
-import { SendMessageRequest, EscalateRequest, ScenarioRequest } from './dto/request/chat.request';
+import { SendMessageRequest, EscalateRequest, ScenarioRequest, ContactEmailRequest } from './dto/request/chat.request';
 import { SessionService } from '../session/session.service';
 import { Public } from '../../global/decorator/public.decorator';
 import { SessionToken } from '../../global/decorator/session-token.decorator';
@@ -33,6 +33,14 @@ export class ChatController {
   async message(@Body() body: SendMessageRequest) {
     const session = await this.sessionService.findByToken(body.session_token);
     return this.chatService.handleUserMessage(session, body.message);
+  }
+
+  @Post('contact-email')
+  @Public()
+  @ApiOperation({ summary: 'Save the address for an off-hours email reply (PLN-260806)' })
+  async contactEmail(@Body() body: ContactEmailRequest) {
+    const session = await this.sessionService.findByToken(body.session_token);
+    return this.chatService.saveContactEmail(session, body.email);
   }
 
   @Get('conversation')

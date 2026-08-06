@@ -117,7 +117,13 @@
     "offHoursEmail": "근무시간 외 전달 이메일",
     "offHoursNotice": "근무시간 외 고객 안내 문구",
     "noticePlaceholder": "비워두면 기본 문구를 사용합니다",
-    "emailWarning": "이메일이 없으면 근무시간 외에도 상담원에게 알림이 갑니다."
+    "emailWarning": "이메일이 없으면 근무시간 외에도 상담원에게 알림이 갑니다.",
+    "useBreak": "휴게시간(담당자 부재)",
+    "breakStart": "휴게 시작",
+    "breakEnd": "휴게 종료",
+    "breakHint": "휴게시간 문의는 오프아워와 동일하게 처리됩니다.",
+    "movedToSettings": "업무시간·오프아워 라우팅 설정은 테넌트 설정 메뉴로 이동했습니다.",
+    "openSettings": "설정 열기"
   },
   "coach": {
     "title": "에이전트 코칭",

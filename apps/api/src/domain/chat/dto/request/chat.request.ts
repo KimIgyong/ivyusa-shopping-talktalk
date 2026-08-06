@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { IsInt, IsString, MinLength } from 'class-validator';
+import { IsEmail, IsInt, IsString, MaxLength, MinLength } from 'class-validator';
 
 /** Request DTOs — snake_case (amoeba_code_convention). */
 export class SendMessageRequest {
@@ -16,4 +16,10 @@ export class EscalateRequest {
 export class ScenarioRequest {
   @IsString() session_token: string;
   @IsString() @MinLength(1) action: string;
+}
+
+/** Address an off-hours shopper wants the answer sent to (PLN-260806). */
+export class ContactEmailRequest {
+  @IsString() session_token: string;
+  @IsEmail() @MaxLength(255) email: string;
 }

@@ -23,7 +23,7 @@ import {
 } from '../customer/customer.service';
 import { AiGatewayService } from '../../infrastructure/external/ai/ai-gateway.service';
 import { AuditService } from '../audit/audit.service';
-import { EventBusService, EVENTS } from '../../infrastructure/infrastructure.module';
+import { EventBusService, EVENTS, MailerService } from '../../infrastructure/infrastructure.module';
 import { RedisService } from '../../infrastructure/cache/redis.service';
 import { SessionService, sessionCacheKey } from '../session/session.service';
 import { BusinessException } from '../../global/exception/business.exception';
@@ -35,6 +35,29 @@ const AGENT_REPLY_COPY = {
   EN: { title: 'New reply from support', body: 'You have a new reply from support.' },
   ES: { title: 'Nueva respuesta de soporte', body: 'Tienes una nueva respuesta de soporte.' },
   KO: { title: '상담 답변 도착', body: '상담원 답변이 도착했습니다.' },
+} as const;
+
+/**
+ * Localized wrapper for an agent reply mailed to a shopper whose thread was
+ * handed off outside business hours (PLN-260806). `note` is written back into
+ * the transcript so agents can see the answer already went out by email.
+ */
+const REPLY_EMAIL_COPY = {
+  EN: {
+    subject: '[IVY USA] A reply to your question',
+    footer: 'You can continue the conversation any time in the chat on our store.',
+    note: 'This reply was emailed to the customer.',
+  },
+  ES: {
+    subject: '[IVY USA] Respuesta a tu consulta',
+    footer: 'Puedes continuar la conversación cuando quieras en el chat de nuestra tienda.',
+    note: 'Esta respuesta se envió por correo al cliente.',
+  },
+  KO: {
+    subject: '[IVY USA] 문의하신 내용에 대한 답변',
+    footer: '추가 문의는 스토어의 채팅에서 언제든 이어가실 수 있어요.',
+    note: '이 답변은 고객 이메일로 발송되었습니다.',
+  },
 } as const;
 
 /**
@@ -61,6 +84,7 @@ export class AgentService {
     private readonly redis: RedisService,
     private readonly sessionService: SessionService,
     private readonly bus: EventBusService,
+    private readonly mailer: MailerService,
   ) {}
 
   /**
@@ -309,7 +333,49 @@ export class AgentService {
       }),
     );
     await this.notifyCustomerOfReply(conversation.sessionId, tenantId);
+    await this.mailReplyIfOffHoursThread(conversation, tenantId, moderated.text);
     return saved;
+  }
+
+  /**
+   * Off-hours threads are answered by email (PLN-260806). The shopper was told
+   * so when they wrote — nobody is sitting in the widget hours later — so the
+   * agent's (already moderated) reply goes to their address as well, and the
+   * conversation keeps a note so the next agent can see it left the building.
+   * Best-effort throughout: a mail problem must not fail the reply.
+   */
+  private async mailReplyIfOffHoursThread(
+    conversation: Conversation,
+    tenantId: number,
+    body: string,
+  ): Promise<void> {
+    if (conversation.replyChannel !== 'email') return;
+    try {
+      const session = await this.sessionRepo.findOne({ where: { id: conversation.sessionId } });
+      if (!session?.customerId) return;
+      const to = await this.customerService.contactEmail(tenantId, session.customerId);
+      if (!to) return;
+      const copy =
+        REPLY_EMAIL_COPY[session.language as keyof typeof REPLY_EMAIL_COPY] ?? REPLY_EMAIL_COPY.EN;
+      const sent = await this.mailer.send({
+        to,
+        subject: copy.subject,
+        text: `${body}\n\n---\n${copy.footer}`,
+      });
+      if (!sent) return;
+      await this.msgRepo.save(
+        this.msgRepo.create({
+          tenantId,
+          conversationId: conversation.id,
+          senderType: SENDER_TYPE.SYSTEM,
+          body: copy.note,
+          lang: session.language,
+          retrievalTrace: null,
+        }),
+      );
+    } catch (e) {
+      this.logger.warn(`Off-hours reply email skipped: ${(e as Error).message}`);
+    }
   }
 
   /**
