@@ -1,4 +1,5 @@
 import type {
+  ChatCitation,
   ChatMessageResponse,
   ConversationResponse,
   ScenarioFollowUpResponse,
@@ -26,6 +27,20 @@ function followUpsOf(m: Message): ScenarioFollowUpResponse[] | undefined {
   return chips.length ? chips.map((f) => ({ id: f.id, label: f.label })) : undefined;
 }
 
+/**
+ * Knowledge references persisted on an AI turn's trace. Serving them with the
+ * thread is what keeps a product recommendation clickable: the send response
+ * carried them, but the next poll replaced that bubble with the stored row, so
+ * the link disappeared after ~5s and never came back on reload.
+ */
+function citationsOf(m: Message): ChatCitation[] | undefined {
+  const trace = m.retrievalTrace as { citations?: unknown } | null;
+  const raw = Array.isArray(trace?.citations) ? trace.citations : null;
+  if (!raw?.length) return undefined;
+  const cites = raw.filter((c): c is ChatCitation => !!c && typeof c === 'object');
+  return cites.length ? cites : undefined;
+}
+
 export class ChatMapper {
   static toMessageResponse(m: Message, senderName: string | null = null): MessageResponse {
     return {
@@ -35,6 +50,7 @@ export class ChatMapper {
       body: m.body,
       createdAt: m.createdAt.toISOString(),
       quickReplies: followUpsOf(m),
+      citations: citationsOf(m),
     };
   }
 

@@ -36,6 +36,7 @@ export const es: Translation = {
     connectingAgent: 'Te estamos conectando con un agente de soporte. Espera un momento…',
     typingAi: 'Escribiendo una respuesta…',
     typingAgent: 'Un agente está escribiendo una respuesta…',
+    waitingForAgent: 'Esperando a un agente de soporte: su respuesta aparecerá aquí.',
     nextActions: {
       myOrders: 'Mis pedidos',
       shipping: 'Envío y entrega',

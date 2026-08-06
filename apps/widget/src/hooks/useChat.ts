@@ -183,14 +183,21 @@ function reconcile(local: ChatMessage[], server: ChatMessage[]): ChatMessage[] {
   if (server.length === 0) return local;
   if (server.length < countServerKnown(local)) return local; // stale poll
   const lastWithChips = [...local].reverse().find((m) => m.quickReplies?.length);
-  return server.map((m) =>
-    !m.quickReplies?.length &&
-    lastWithChips &&
-    m.body === lastWithChips.body &&
-    m.senderType === lastWithChips.senderType
-      ? { ...m, quickReplies: lastWithChips.quickReplies }
-      : m,
-  );
+  const lastWithCites = [...local].reverse().find((m) => m.citations?.length);
+  const sameBubble = (a: ChatMessage, b: ChatMessage) =>
+    a.body === b.body && a.senderType === b.senderType;
+  return server.map((m) => {
+    const merged = { ...m };
+    if (!merged.quickReplies?.length && lastWithChips && sameBubble(merged, lastWithChips)) {
+      merged.quickReplies = lastWithChips.quickReplies;
+    }
+    // Citations now ride on the server row too; this only covers a turn stored
+    // before they were served (otherwise the product link would vanish here).
+    if (!merged.citations?.length && lastWithCites && sameBubble(merged, lastWithCites)) {
+      merged.citations = lastWithCites.citations;
+    }
+    return merged;
+  });
 }
 
 function countServerKnown(local: ChatMessage[]): number {

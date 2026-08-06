@@ -65,6 +65,12 @@ export interface ChatMessageResponse {
   createdAt: string;
   /** Present only on a scripted turn that carries chips. */
   quickReplies?: ScenarioFollowUpResponse[];
+  /**
+   * Knowledge references behind an AI answer, including product-page links.
+   * Served from the persisted turn so they survive the poll reconcile and a
+   * reload — the send response alone made them vanish within one poll.
+   */
+  citations?: ChatCitation[];
 }
 
 export interface ConversationResponse {

@@ -34,6 +34,7 @@ export const en = {
     connectingAgent: 'You are being connected to a support agent. Please hold on…',
     typingAi: 'Writing a reply…',
     typingAgent: 'An agent is writing a reply…',
+    waitingForAgent: 'Waiting for a support agent — their reply will appear here.',
     /** Fallback follow-ups so a reply never leaves the shopper at a dead end. */
     nextActions: {
       myOrders: 'My orders',
