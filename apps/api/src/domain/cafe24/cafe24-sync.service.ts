@@ -60,11 +60,6 @@ export class Cafe24SyncService {
           limit: PAGE_LIMIT,
           offset,
         });
-        this.logger.debug(
-          `cafe24 sync page ${pages}: ${orders.length} order(s); first member_id=${
-            orders[0]?.member_id ?? 'null'
-          } member_email=${orders[0]?.member_email ? 'set' : 'null'}`,
-        );
         for (const o of orders) {
           try {
             await this.upsertOrder(tenantId, o, conn, memberCache);

@@ -159,48 +159,25 @@ export class Cafe24AdminClient {
 
   /**
    * Resolve a storefront member (member_id, from an order) to their front
-   * `user_identifier` + contact profile via the Admin API (PLN-260808 P-A2, J1).
-   * The admin customers resource filters only by member_id/cellphone and returns the
-   * same client-scoped `user_identifier` the customer-auth flow produces — so order
-   * sync can stamp it onto the customer, letting a later sign-in match. Returns null
-   * (never throws to the caller's happy path) when unmatched. Requires mall.read_customer.
+   * `user_identifier` + contact profile (PLN-260808 P-A2, J1). The identifier lives
+   * on the PRIVACY resource — /customers omits it — so this reads /customersprivacy,
+   * which returns the same client-scoped user_identifier the customer-auth flow
+   * yields. Order sync stamps it onto the customer, letting a later sign-in match by
+   * the server-verified identifier (no client-supplied member_id, so unspoofable).
+   * Requires mall.read_personal; returns null (never throws) when unmatched/unscoped.
    */
   async fetchCustomerByMemberId(
     mallId: string,
     accessToken: string,
     memberId: string,
   ): Promise<{ userIdentifier: string | null; email: string | null; name: string | null } | null> {
-    // PROBE: (1) /customers with fields opt-in for user_identifier; (2) /customersprivacy.
-    const qs = new URLSearchParams({
-      member_id: memberId,
-      limit: '1',
-      fields: 'member_id,user_identifier,email,name,cellphone',
-    });
-    const body = await this.request<{ customers?: Array<Record<string, unknown>> }>(
+    const body = await this.request<{ customersprivacy?: Array<Record<string, unknown>> }>(
       mallId,
       accessToken,
       'GET',
-      `/customers?${qs.toString()}`,
+      `/customersprivacy?member_id=${encodeURIComponent(memberId)}&limit=1`,
     );
-    const c = body.customers?.[0];
-    this.logger.debug(
-      `PROBE customers?fields keys=[${c ? Object.keys(c).join(',') : 'none'}] uid=${
-        c && typeof c.user_identifier === 'string' ? 'PRESENT' : 'absent'
-      }`,
-    );
-    try {
-      const pv = await this.request<{ customersprivacy?: Array<Record<string, unknown>> } & {
-        customers?: Array<Record<string, unknown>>;
-      }>(mallId, accessToken, 'GET', `/customersprivacy?member_id=${encodeURIComponent(memberId)}&limit=1`);
-      const p = pv.customersprivacy?.[0] ?? pv.customers?.[0];
-      this.logger.debug(
-        `PROBE customersprivacy keys=[${p ? Object.keys(p).join(',') : 'none'}] uid=${
-          p && typeof p.user_identifier === 'string' ? 'PRESENT' : 'absent'
-        }`,
-      );
-    } catch (e) {
-      this.logger.debug(`PROBE customersprivacy failed: ${(e as Error).message}`);
-    }
+    const c = body.customersprivacy?.[0];
     if (!c) return null;
     return {
       userIdentifier: typeof c.user_identifier === 'string' ? c.user_identifier : null,

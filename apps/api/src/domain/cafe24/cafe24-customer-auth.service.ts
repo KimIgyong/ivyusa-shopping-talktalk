@@ -17,7 +17,48 @@ interface CustomerAuthState {
   tenantId: number;
   mallId: string;
   returnUrl: string;
+  popup?: boolean; // sign-in ran in a widget-opened popup — post the ticket to the opener
 }
+
+/**
+ * Hands the one-time sign-in ticket back to the storefront two ways, shared by both
+ * callback routes:
+ *  - redirect (top-window flow): navigate the tab back with `#ivy_ticket`
+ *  - popup (in-widget flow): post the ticket to the opener (targeted at the mall
+ *    origin, so no other page can read it) and close the popup — the storefront page
+ *    and the widget never navigate.
+ * On any failure the shopper is bounced back to where they came from.
+ */
+export const cafe24TicketDelivery = {
+  bounceBack(): string {
+    return (
+      '<!doctype html><meta charset="utf-8"><title>Sign-in</title>' +
+      '<script>try{history.length>1?history.back():location.replace("/")}catch(e){location.replace("/")}</script>'
+    );
+  },
+  deliver(
+    res: { redirect(url: string): void; status(c: number): { type(t: string): { send(b: string): void } } },
+    out: { returnUrl: string; ticket: string; popup: boolean },
+  ): void {
+    if (out.popup) {
+      let origin = '*';
+      try {
+        origin = new URL(out.returnUrl).origin;
+      } catch {
+        /* keep '*' — the ticket is one-time + server-scoped anyway */
+      }
+      const html =
+        '<!doctype html><meta charset="utf-8"><title>Sign-in</title>' +
+        '<script>try{if(window.opener)window.opener.postMessage(' +
+        `{type:"ivy:cafe24-ticket",ticket:${JSON.stringify(out.ticket)}},${JSON.stringify(origin)}` +
+        ');}catch(e){}window.close();</script><p>You can close this window.</p>';
+      res.status(200).type('html').send(html);
+      return;
+    }
+    const sep = out.returnUrl.includes('#') ? '&' : '#';
+    res.redirect(`${out.returnUrl}${sep}ivy_ticket=${encodeURIComponent(out.ticket)}`);
+  },
+};
 
 /**
  * Cafe24 storefront member sign-in (PLN-260808 P-A2). Cafe24 has no Shopify-style
@@ -87,7 +128,7 @@ export class Cafe24CustomerAuthService {
   }
 
   /** Build the customer authorize URL for a storefront host. Called @Public. */
-  async start(host: string, returnUrl: string): Promise<string> {
+  async start(host: string, returnUrl: string, popup = false): Promise<string> {
     Cafe24TokenService.appConfig(); // E5010 if the app isn't configured
     const mallId = this.mallIdFromHost(host);
     if (!mallId) {
@@ -101,7 +142,7 @@ export class Cafe24CustomerAuthService {
     const state = randomBytes(16).toString('hex');
     await this.redis.set(
       `cafe24:cust:state:${state}`,
-      JSON.stringify({ tenantId, mallId, returnUrl: safeReturn } satisfies CustomerAuthState),
+      JSON.stringify({ tenantId, mallId, returnUrl: safeReturn, popup } satisfies CustomerAuthState),
       STATE_TTL_SEC,
     );
     const { clientId } = Cafe24TokenService.appConfig();
@@ -120,7 +161,9 @@ export class Cafe24CustomerAuthService {
    * read the verified identifier, bind a session, and hand back a one-time ticket
    * plus the storefront URL to return to. Never returns the session token in the URL.
    */
-  async handleCallback(query: Record<string, string>): Promise<{ returnUrl: string; ticket: string }> {
+  async handleCallback(
+    query: Record<string, string>,
+  ): Promise<{ returnUrl: string; ticket: string; popup: boolean }> {
     const code = query.code ?? '';
     const state = query.state ?? '';
     if (!code || !state) {
@@ -154,7 +197,7 @@ export class Cafe24CustomerAuthService {
     this.logger.log(
       `customer-auth ok tenant=${parsed.tenantId} mall=${parsed.mallId} customer=${customer.id}`,
     );
-    return { returnUrl: parsed.returnUrl, ticket };
+    return { returnUrl: parsed.returnUrl, ticket, popup: parsed.popup === true };
   }
 
   /** Redeem a one-time ticket for the widget session token. Deletes on read. */
