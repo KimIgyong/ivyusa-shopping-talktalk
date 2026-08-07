@@ -3,7 +3,10 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
 import { Public } from '../../global/decorator/public.decorator';
 import { Cafe24OAuthService } from './cafe24-oauth.service';
-import { Cafe24CustomerAuthService } from './cafe24-customer-auth.service';
+import {
+  Cafe24CustomerAuthService,
+  cafe24TicketDelivery,
+} from './cafe24-customer-auth.service';
 
 /**
  * Cafe24 OAuth callback (path B). Public — Cafe24 redirects the browser here with
@@ -17,10 +20,6 @@ import { Cafe24CustomerAuthService } from './cafe24-customer-auth.service';
 @ApiTags('Auth')
 @Controller('auth/cafe24')
 export class Cafe24OAuthController {
-  private static readonly BOUNCE_BACK =
-    '<!doctype html><meta charset="utf-8"><title>Sign-in</title>' +
-    '<script>try{history.length>1?history.back():location.replace("/")}catch(e){location.replace("/")}</script>';
-
   constructor(
     private readonly oauthService: Cafe24OAuthService,
     private readonly customerAuthService: Cafe24CustomerAuthService,
@@ -30,14 +29,13 @@ export class Cafe24OAuthController {
   @Public()
   @ApiOperation({ summary: 'Cafe24 OAuth callback — admin install or member sign-in (by state)' })
   async callback(@Query() query: Record<string, string>, @Res() res: Response): Promise<void> {
-    // Storefront member sign-in (P-A2): bind a session, bounce back with a ticket.
+    // Storefront member sign-in (P-A2): bind a session, hand back a ticket — via
+    // #fragment (top-window flow) or postMessage to the opener (in-widget popup).
     if (await this.customerAuthService.isCustomerAuthState(query.state ?? '')) {
       try {
-        const { returnUrl, ticket } = await this.customerAuthService.handleCallback(query);
-        const sep = returnUrl.includes('#') ? '&' : '#';
-        res.redirect(`${returnUrl}${sep}ivy_ticket=${encodeURIComponent(ticket)}`);
+        cafe24TicketDelivery.deliver(res, await this.customerAuthService.handleCallback(query));
       } catch {
-        res.status(200).type('html').send(Cafe24OAuthController.BOUNCE_BACK);
+        res.status(200).type('html').send(cafe24TicketDelivery.bounceBack());
       }
       return;
     }
