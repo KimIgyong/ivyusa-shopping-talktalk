@@ -106,10 +106,15 @@
   // verified logged_in_customer_id, letting the backend hand us a customer-bound
   // session token. Override with IVY_WIDGET_CONFIG.proxyPath if you use another.
   var proxyBase = String(cfg.proxyPath || '/apps/ivy').replace(/\/+$/, '');
-  // Storefront sign-in entrypoint. `/customer_authentication/login` is the
-  // canonical path that works for both classic and New Customer Accounts (it
-  // redirects to the store's hosted account login). Override if the store differs.
-  var loginPath = String(cfg.loginPath || '/customer_authentication/login');
+  // Storefront sign-in entrypoint. Platform-specific — the login page and its
+  // return-URL parameter differ per commerce platform, so both are configurable:
+  //   Cafe24 (classic mall): loginPath '/member/login.html', loginReturnParam 'returnUrl'
+  //   Shopify (hosted login): loginPath '/account/login',     loginReturnParam 'return_url'
+  // Cafe24 has no credential-login API and its member session lives on the mall
+  // origin (unreadable from this cross-origin iframe), so login must happen in the
+  // top window here, then the reopen flag brings the widget back up (PLN-260807).
+  var loginPath = String(cfg.loginPath || '/account/login');
+  var loginReturnParam = String(cfg.loginReturnParam || 'return_url');
   var identity = null; // resolved { authenticated, sessionToken } from the proxy
   var identityResolved = false; // the proxy answered (either way) — see below
   var widgetReady = false; // set once the widget iframe posts ivy:ready
@@ -235,16 +240,20 @@
   // so this loader runs again in the popup. Every part is same-origin and
   // loader-derived — no caller/URL input flows in, so there's no open redirect.
   function buildLoginUrl() {
+    // Return the shopper to the page they were on, so the reopen flag can bring the
+    // widget back up on the orders tab. Only the platform-correct return param is
+    // sent (Cafe24 classic wants `returnUrl`, not `return_to`); extra query, if any,
+    // comes from cfg.loginExtraQuery.
     var returnTo = window.location.pathname + window.location.search;
-    return (
+    var url =
       window.location.origin +
       loginPath +
-      '?return_to=' +
-      encodeURIComponent(returnTo) +
-      '&locale=' +
-      encodeURIComponent(locale) +
-      '&ui_hint=full'
-    );
+      (loginPath.indexOf('?') >= 0 ? '&' : '?') +
+      loginReturnParam +
+      '=' +
+      encodeURIComponent(returnTo);
+    if (cfg.loginExtraQuery) url += '&' + String(cfg.loginExtraQuery).replace(/^[?&]/, '');
+    return url;
   }
 
   // Redirect-mode sign-in: navigate this whole tab to the store's login page.
@@ -341,10 +350,9 @@
       }
     } else if (d.type === 'ivy:signin') {
       // Back-compat with widgets that predate the popup flow: the sandboxed
-      // iframe cannot navigate the store page itself, so do it here.
-      // Storefront-relative so it works with classic and new customer accounts;
-      // after sign-in the app-proxy identity handshake authenticates the widget.
-      window.location.assign('/account/login');
+      // iframe cannot navigate the store page itself, so do it here. Uses the same
+      // platform-configured login URL as the modern flow (not a hardcoded path).
+      redirectToLogin();
     }
   });
 
