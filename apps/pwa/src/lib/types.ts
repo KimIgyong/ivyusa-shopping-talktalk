@@ -109,6 +109,48 @@ export interface ProductDetail extends ProductSummary {
   description?: string | null;
 }
 
+// Engagement (F2 — PLN-260807-IvyusaApp-Revamp A-4/A-5/A-6/A-8).
+
+export type SaveList = 'wish' | 'later';
+
+export interface SaveItem {
+  id: string;
+  list: SaveList;
+  productHandle: string;
+  createdAt: string;
+  /** Joined catalog card; null when the product left the catalog. */
+  product?: ProductSummary | null;
+}
+
+export interface NudgeCreated {
+  code: string;
+  /** Public card URL (…/app/nudge/:code) to hand to the OS share sheet. */
+  url: string;
+}
+
+/** Public nudge card (GET /nudges/:code — no session). */
+export interface NudgeCard {
+  message: string | null;
+  senderName: string | null;
+  createdAt: string;
+  product: ProductSummary | null;
+}
+
+export interface AffiliateStatus {
+  status: string;
+  linkCode: string | null;
+  commissionRate: number | null;
+}
+
+export interface ReviewCreated {
+  id: string;
+  orderItemId: string;
+  rating: number;
+  body: string | null;
+  status: string;
+  createdAt: string;
+}
+
 export type NotificationCategory = 'payment' | 'shipping' | 'event' | 'review' | 'chat' | string;
 
 export interface NotificationItem {

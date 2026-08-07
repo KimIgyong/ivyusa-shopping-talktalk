@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpStatus, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, HttpStatus, Param, Patch, Post, Query } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CAPABILITY, Principal } from '@ivy/types';
 import { buildPagination, normalizePage } from '@ivy/common';
@@ -10,12 +10,13 @@ import { CurrentUser } from '../../global/decorator/current-user.decorator';
 import { Paginated } from '../../global/interceptor/transform.interceptor';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
-import { CreateReviewRequest } from './dto/request/review.request';
+import { CreateReviewRequest, UpdateReviewStatusRequest } from './dto/request/review.request';
 import { SessionToken } from '../../global/decorator/session-token.decorator';
 
 function toResponse(r: Review) {
   return {
     id: r.id,
+    customerId: r.customerId,
     orderItemId: r.orderItemId,
     rating: r.rating,
     body: r.body,
@@ -62,6 +63,22 @@ export class ReviewController {
     const { page: p, size: s } = normalizePage(page, size);
     const [items, total] = await this.reviewService.listAll(this.tenantId(user), p, s);
     return new Paginated(items.map(toResponse), buildPagination(p, s, total));
+  }
+
+  @Patch('admin/reviews/:id')
+  @RequireCapability(CAPABILITY.MODULE_OPERATIONS)
+  @ApiOperation({ summary: 'Hide or unhide a review (tenant admin, D3)' })
+  async adminSetStatus(
+    @CurrentUser() user: Principal,
+    @Param('id') id: string,
+    @Body() body: UpdateReviewStatusRequest,
+  ) {
+    const review = await this.reviewService.updateStatus(
+      this.tenantId(user),
+      Number(id),
+      body.status,
+    );
+    return toResponse(review);
   }
 
   private tenantId(user: Principal): number {

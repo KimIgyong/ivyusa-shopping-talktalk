@@ -123,6 +123,29 @@ export interface ProductDetail extends ProductSummary {
   publishedAt: string | null;
 }
 
+export type SaveList = 'wish' | 'later';
+
+export interface SaveItem {
+  id: string;
+  list: SaveList;
+  note: string | null;
+  productHandle: string;
+  createdAt: string;
+  /** Catalog join — null when the product left the catalog. */
+  product: ProductSummary | null;
+}
+
+export interface NudgeCreated {
+  code: string;
+  /** Public PWA card URL to put in the share sheet. */
+  url: string;
+}
+
+export interface AffiliateStatus {
+  status: string;
+  linkCode: string | null;
+}
+
 export interface NotifPref {
   id: string;
   channel: string;

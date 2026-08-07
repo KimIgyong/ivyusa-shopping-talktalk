@@ -1,0 +1,22 @@
+{
+  "title": "Reviews",
+  "subtitle": "Customer product reviews — hide abusive ones from storefront surfaces",
+  "id": "ID",
+  "customer": "Customer",
+  "orderItem": "Order item",
+  "rating": "Rating",
+  "ratingOf": "{{rating}} of 5 stars",
+  "body": "Review",
+  "status": "Status",
+  "created": "Created",
+  "hide": "Hide",
+  "unhide": "Unhide",
+  "toastHidden": "Review hidden",
+  "toastUnhidden": "Review visible again",
+  "toastError": "Could not update the review",
+  "empty": "No reviews yet.",
+  "statuses": {
+    "submitted": "Submitted",
+    "hidden": "Hidden"
+  }
+}

@@ -690,4 +690,35 @@ CREATE TABLE IF NOT EXISTS `products_cache` (
 
 
 
+-- 2026-08-07: engagement — saves + nudges (PLN-260807-IvyusaApp-Revamp F2).
+-- Personal data (free-text note/message): wired into DSAR export, customer
+-- erasure, and shop_redact tenant purge. See sql/migration_engagement.sql.
+CREATE TABLE IF NOT EXISTS `product_saves` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `tenant_id` bigint DEFAULT NULL,
+  `customer_id` bigint NOT NULL,
+  `product_handle` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `list` varchar(16) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `note` varchar(280) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `created_at` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_save` (`customer_id`,`product_handle`,`list`),
+  KEY `idx_save_tenant` (`tenant_id`),
+  KEY `idx_save_customer` (`customer_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `nudges` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `tenant_id` bigint DEFAULT NULL,
+  `customer_id` bigint NOT NULL,
+  `product_handle` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `message` varchar(280) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `code` varchar(16) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `views` int NOT NULL DEFAULT '0',
+  `created_at` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_nudge_code` (`code`),
+  KEY `idx_nudge_tenant` (`tenant_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 SET FOREIGN_KEY_CHECKS = 1;

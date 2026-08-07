@@ -1,12 +1,27 @@
 import React, { useState } from 'react';
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  Image,
+  Modal,
+  Pressable,
+  ScrollView,
+  Share,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { getProduct, subscribeRestock } from '../../src/services/productService';
+import { addSave, removeSave } from '../../src/services/saveService';
+import { createNudge } from '../../src/services/nudgeService';
+import { getAffiliateStatus } from '../../src/services/affiliateService';
+import { useSaves } from '../../src/hooks/useSaves';
 import { useSession } from '../../src/store/session-context';
 import { useToast } from '../../src/components/Toast';
+import { ApiError } from '../../src/lib/api-client';
+import type { SaveList } from '../../src/lib/types';
 
 export default function ProductDetailScreen() {
   const { t } = useTranslation();
@@ -14,7 +29,11 @@ export default function ProductDetailScreen() {
   const { handle } = useLocalSearchParams<{ handle: string }>();
   const { token } = useSession();
   const toast = useToast();
+  const qc = useQueryClient();
   const [subscribing, setSubscribing] = useState(false);
+  const [togglingList, setTogglingList] = useState<SaveList | null>(null);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [nudging, setNudging] = useState(false);
 
   const productQuery = useQuery({
     queryKey: ['product', handle, token],
@@ -22,7 +41,26 @@ export default function ProductDetailScreen() {
     queryFn: () => getProduct(handle!, token!),
   });
 
+  const savesQuery = useSaves();
+
+  const affiliateQuery = useQuery({
+    queryKey: ['affiliate-status', token],
+    enabled: !!token,
+    queryFn: async () => {
+      try {
+        return await getAffiliateStatus(token!);
+      } catch (e) {
+        // 404 = never applied; 401 = anonymous session — both mean "not an affiliate".
+        if (e instanceof ApiError && (e.status === 404 || e.status === 401)) return null;
+        throw e;
+      }
+    },
+  });
+
   const product = productQuery.data;
+  const saves = savesQuery.data;
+  const isSaved = (list: SaveList) =>
+    !!saves?.items.some((s) => s.list === list && s.productHandle === handle);
 
   const onBuy = () => {
     if (!product) return;
@@ -41,6 +79,64 @@ export default function ProductDetailScreen() {
       setSubscribing(false);
     }
   };
+
+  const onToggleSave = async (list: SaveList) => {
+    if (!token || !product || togglingList) return;
+    if (saves && !saves.bound) {
+      toast.show(t('save.needLogin'), 'error');
+      return;
+    }
+    const active = isSaved(list);
+    setTogglingList(list);
+    try {
+      if (active) await removeSave(token, product.handle, list);
+      else await addSave(token, product.handle, list);
+      toast.show(t(active ? 'save.removed' : 'save.saved'));
+      await qc.invalidateQueries({ queryKey: ['saves', token] });
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 401) toast.show(t('save.needLogin'), 'error');
+      else toast.show(t('save.failed'), 'error');
+    } finally {
+      setTogglingList(null);
+    }
+  };
+
+  /** SNS 홍보하기 (A-6) — UTM link; approved affiliates get their ?ref= code appended. */
+  const onPromote = async () => {
+    if (!product) return;
+    setShareOpen(false);
+    const affiliate = affiliateQuery.data;
+    let url = `${product.productUrl}?utm_source=shoptalk_app&utm_medium=share`;
+    if (affiliate && affiliate.status === 'approved' && affiliate.linkCode) {
+      url += `&ref=${encodeURIComponent(affiliate.linkCode)}`;
+    }
+    try {
+      await Share.share({ message: product.title, url });
+    } catch {
+      toast.show(t('share.failed'), 'error');
+    }
+  };
+
+  /** 조르기 (A-5) — mint the public card, then hand its URL to the OS share sheet. */
+  const onNudge = async () => {
+    if (!token || !product || nudging) return;
+    setNudging(true);
+    try {
+      const nudge = await createNudge(token, product.handle);
+      setShareOpen(false);
+      await Share.share({
+        message: `${t('share.nudgeMessage', { title: product.title })} ${nudge.url}`,
+      });
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 401) toast.show(t('save.needLogin'), 'error');
+      else toast.show(t('share.failed'), 'error');
+    } finally {
+      setNudging(false);
+    }
+  };
+
+  const wished = isSaved('wish');
+  const savedLater = isSaved('later');
 
   return (
     <ScrollView style={styles.container}>
@@ -65,21 +161,82 @@ export default function ProductDetailScreen() {
               <Text style={styles.description}>{product.description}</Text>
             ) : null}
 
+            <View style={styles.actionRow}>
+              <Pressable
+                style={[styles.actionBtn, wished && styles.actionBtnActive, togglingList === 'wish' && styles.btnDisabled]}
+                onPress={() => void onToggleSave('wish')}
+                disabled={!!togglingList}
+              >
+                <Ionicons
+                  name={wished ? 'heart' : 'heart-outline'}
+                  size={18}
+                  color={wished ? '#e11d48' : '#6366F1'}
+                />
+                <Text style={styles.actionText}>{t('save.wish')}</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.actionBtn, savedLater && styles.actionBtnActive, togglingList === 'later' && styles.btnDisabled]}
+                onPress={() => void onToggleSave('later')}
+                disabled={!!togglingList}
+              >
+                <Ionicons
+                  name={savedLater ? 'archive' : 'archive-outline'}
+                  size={18}
+                  color="#6366F1"
+                />
+                <Text style={styles.actionText}>{t('save.later')}</Text>
+              </Pressable>
+            </View>
+
             <Pressable style={styles.buyBtn} onPress={onBuy}>
               <Ionicons name="cart-outline" size={18} color="#fff" />
               <Text style={styles.buyText}>{t('product.buy')}</Text>
             </Pressable>
-            <Pressable
-              style={[styles.restockBtn, subscribing && styles.btnDisabled]}
-              onPress={() => void onRestock()}
-              disabled={subscribing}
-            >
-              <Ionicons name="notifications-outline" size={18} color="#6366F1" />
-              <Text style={styles.restockText}>{t('product.restock')}</Text>
-            </Pressable>
+            <View style={styles.actionRow}>
+              <Pressable
+                style={[styles.actionBtn, subscribing && styles.btnDisabled]}
+                onPress={() => void onRestock()}
+                disabled={subscribing}
+              >
+                <Ionicons name="notifications-outline" size={18} color="#6366F1" />
+                <Text style={styles.actionText}>{t('product.restock')}</Text>
+              </Pressable>
+              <Pressable style={styles.actionBtn} onPress={() => setShareOpen(true)}>
+                <Ionicons name="share-outline" size={18} color="#6366F1" />
+                <Text style={styles.actionText}>{t('share.title')}</Text>
+              </Pressable>
+            </View>
           </View>
         </>
       )}
+
+      <Modal
+        visible={shareOpen}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShareOpen(false)}
+      >
+        <Pressable style={styles.sheetBackdrop} onPress={() => setShareOpen(false)}>
+          <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
+            <Text style={styles.sheetTitle}>{t('share.title')}</Text>
+            <Pressable style={styles.sheetOption} onPress={() => void onPromote()}>
+              <Ionicons name="megaphone-outline" size={20} color="#6366F1" />
+              <Text style={styles.sheetOptionText}>{t('share.promote')}</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.sheetOption, nudging && styles.btnDisabled]}
+              onPress={() => void onNudge()}
+              disabled={nudging}
+            >
+              <Ionicons name="gift-outline" size={20} color="#6366F1" />
+              <Text style={styles.sheetOptionText}>{t('share.nudge')}</Text>
+            </Pressable>
+            <Pressable style={styles.sheetCancel} onPress={() => setShareOpen(false)}>
+              <Text style={styles.sheetCancelText}>{t('common.cancel')}</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </ScrollView>
   );
 }
@@ -94,18 +251,9 @@ const styles = StyleSheet.create({
   vendor: { fontSize: 13, color: '#6b7280', marginTop: 4 },
   price: { fontSize: 18, fontWeight: '700', color: '#111827', marginTop: 8 },
   description: { fontSize: 14, color: '#374151', marginTop: 12, lineHeight: 21 },
-  buyBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: '#6366F1',
-    borderRadius: 10,
-    paddingVertical: 13,
-    marginTop: 20,
-  },
-  buyText: { color: '#fff', fontSize: 15, fontWeight: '700' },
-  restockBtn: {
+  actionRow: { flexDirection: 'row', gap: 10, marginTop: 10 },
+  actionBtn: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -115,8 +263,39 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#6366F1',
     paddingVertical: 13,
+  },
+  actionBtnActive: { backgroundColor: '#eef2ff' },
+  actionText: { color: '#6366F1', fontSize: 14, fontWeight: '700' },
+  buyBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#6366F1',
+    borderRadius: 10,
+    paddingVertical: 13,
     marginTop: 10,
   },
-  restockText: { color: '#6366F1', fontSize: 15, fontWeight: '700' },
+  buyText: { color: '#fff', fontSize: 15, fontWeight: '700' },
   btnDisabled: { opacity: 0.6 },
+  sheetBackdrop: { flex: 1, backgroundColor: 'rgba(17,24,39,0.45)', justifyContent: 'flex-end' },
+  sheet: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    padding: 16,
+    paddingBottom: 28,
+  },
+  sheetTitle: { fontSize: 15, fontWeight: '700', color: '#111827', marginBottom: 8 },
+  sheetOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
+  },
+  sheetOptionText: { fontSize: 15, color: '#111827', fontWeight: '600' },
+  sheetCancel: { alignItems: 'center', paddingVertical: 14, marginTop: 4 },
+  sheetCancelText: { fontSize: 15, color: '#6b7280', fontWeight: '600' },
 });
