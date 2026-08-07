@@ -103,6 +103,16 @@ export class RagService {
   private static readonly GROUP_BONUS = 0.002;
   private static readonly SNIPPET_CHARS = 800;
   /**
+   * Documents handed to the model per answer. Was 4, which is too few for this
+   * KB: the policy import splits one topic across several short sections
+   * (`2.1.3 Shipping Rates`, `2.2.4 Return Shipment Deadline`, …), so a
+   * multi-part question ("how do I return an item and get a refund?") retrieved
+   * one fragment, answered partially, and offered a human agent for the rest —
+   * measured on staging 2026-08-07. Six covers those fan-outs while staying
+   * under LEG_LIMIT, so fusion still has candidates to rank.
+   */
+  private static readonly TOP_K = 6;
+  /**
    * Vector hits below this dot score are discarded. Qdrant always returns the
    * nearest neighbors, so without a floor an off-topic query pads the context
    * with irrelevant docs and suppresses escalation. Near-zero cutoff is safe
@@ -127,7 +137,11 @@ export class RagService {
     return normalizeStorefrontUrl(tenant?.storefrontUrl);
   }
 
-  async retrieve(tenantId: number, query: string, limit = 4): Promise<RetrievedChunk[]> {
+  async retrieve(
+    tenantId: number,
+    query: string,
+    limit = RagService.TOP_K,
+  ): Promise<RetrievedChunk[]> {
     return (await this.retrieveHybrid(tenantId, query, limit)).chunks;
   }
 
@@ -307,7 +321,7 @@ export class RagService {
     const { chunks, vectorProvider } = await this.retrieveHybrid(
       tenantId,
       retrievalQuery?.trim() || query,
-      4,
+      RagService.TOP_K,
       preferGroup,
     );
     // Numbered so the model can name the items it actually used (see CITED_LINE).
