@@ -56,8 +56,11 @@ export class ShopifyWebhookService {
     }
 
     const status = this.mapFulfillmentStatus(payload.shipment_status);
-    await this.orderService.handleFulfillmentWebhook(
-      order.id,
+    // The request is already HMAC-verified in ShopifyOrderWebhookController, so skip
+    // the generic X-Webhook-Secret gate (which the Shopify payload never carries) and
+    // apply the update directly.
+    await this.orderService.applyFulfillment(
+      order,
       status,
       payload.tracking_number ?? undefined,
       payload.tracking_company ?? undefined,

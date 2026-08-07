@@ -8,7 +8,10 @@ describe('ShopifyWebhookService', () => {
       findByShopDomain: jest.fn().mockResolvedValue(opts.tenant ?? null),
     };
     const syncService = { upsertOrder: jest.fn().mockResolvedValue(undefined) };
-    const orderService = { handleFulfillmentWebhook: jest.fn().mockResolvedValue(undefined) };
+    const orderService = {
+      applyFulfillment: jest.fn().mockResolvedValue(undefined),
+      handleFulfillmentWebhook: jest.fn().mockResolvedValue(undefined),
+    };
     const svc = new ShopifyWebhookService(
       orderRepo as never,
       tenantService as never,
@@ -38,20 +41,24 @@ describe('ShopifyWebhookService', () => {
       [null, 'shipped'],
     ];
     for (const [shipment, expected] of cases) {
-      const { svc, orderService } = build({ tenant: { id: 7 }, order: { id: 42 } });
+      const order = { id: 42 };
+      const { svc, orderService } = build({ tenant: { id: 7 }, order });
       await svc.handleFulfillment('ivyusa.myshopify.com', {
         order_id: 900001,
         shipment_status: shipment,
         tracking_number: 'TN1',
         tracking_company: 'UPS',
       });
-      expect(orderService.handleFulfillmentWebhook).toHaveBeenCalledWith(42, expected, 'TN1', 'UPS');
+      // Applies via the already-HMAC-verified path (passes the order entity), never
+      // through the generic X-Webhook-Secret-gated handleFulfillmentWebhook.
+      expect(orderService.applyFulfillment).toHaveBeenCalledWith(order, expected, 'TN1', 'UPS');
+      expect(orderService.handleFulfillmentWebhook).not.toHaveBeenCalled();
     }
   });
 
   it('ignores a fulfillment for an uncached order', async () => {
     const { svc, orderService } = build({ tenant: { id: 7 }, order: null });
     await svc.handleFulfillment('ivyusa.myshopify.com', { order_id: 900001, shipment_status: 'delivered' });
-    expect(orderService.handleFulfillmentWebhook).not.toHaveBeenCalled();
+    expect(orderService.applyFulfillment).not.toHaveBeenCalled();
   });
 });
