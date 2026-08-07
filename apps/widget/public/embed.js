@@ -106,15 +106,20 @@
   // verified logged_in_customer_id, letting the backend hand us a customer-bound
   // session token. Override with IVY_WIDGET_CONFIG.proxyPath if you use another.
   var proxyBase = String(cfg.proxyPath || '/apps/ivy').replace(/\/+$/, '');
-  // Storefront sign-in entrypoint. Platform-specific — the login page and its
-  // return-URL parameter differ per commerce platform, so both are configurable:
-  //   Cafe24 (classic mall): loginPath '/member/login.html', loginReturnParam 'returnUrl'
-  //   Shopify (hosted login): loginPath '/account/login',     loginReturnParam 'return_url'
+  // Storefront sign-in entrypoint. The login page + its return-URL parameter differ
+  // per commerce platform, auto-detected from the storefront host so it works with
+  // no per-mall config (cfg.loginPath / cfg.loginReturnParam still override, e.g. a
+  // Cafe24 mall on a custom domain):
+  //   Cafe24 classic mall (*.cafe24.com): /member/login.html?returnUrl=<page>
+  //   Shopify (*.myshopify.com / other):  /account/login?return_url=<page>
   // Cafe24 has no credential-login API and its member session lives on the mall
   // origin (unreadable from this cross-origin iframe), so login must happen in the
   // top window here, then the reopen flag brings the widget back up (PLN-260807).
-  var loginPath = String(cfg.loginPath || '/account/login');
-  var loginReturnParam = String(cfg.loginReturnParam || 'return_url');
+  var isCafe24Host = /(^|\.)cafe24\.com$/.test((window.location.hostname || '').toLowerCase());
+  var loginPath = String(cfg.loginPath || (isCafe24Host ? '/member/login.html' : '/account/login'));
+  var loginReturnParam = String(
+    cfg.loginReturnParam || (isCafe24Host ? 'returnUrl' : 'return_url'),
+  );
   var identity = null; // resolved { authenticated, sessionToken } from the proxy
   var identityResolved = false; // the proxy answered (either way) — see below
   var widgetReady = false; // set once the widget iframe posts ivy:ready
