@@ -1,5 +1,5 @@
 import { DOC_GROUP } from '../../entity/kb-document.entity';
-import { IsIn, IsInt, IsObject, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsIn, IsInt, IsObject, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
 
 /** Knowledge source ingestion modes (FR-064). */
 export const KNOWLEDGE_SOURCE_TYPES = ['board', 'repository', 'gdrive'] as const;
@@ -85,4 +85,10 @@ export class AskKnowledgeRequest {
 export class CreatePostRequest {
   @IsString() title: string;
   @IsOptional() @IsString() body?: string;
+}
+
+/** Usage guide body for one product type (PLN-260807 P2). */
+export class SaveUsageGuideRequest {
+  @IsString() @MaxLength(255) title: string;
+  @IsString() @MinLength(20) @MaxLength(20000) content: string;
 }

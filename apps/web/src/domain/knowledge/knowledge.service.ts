@@ -1,4 +1,4 @@
-import { apiGet, apiGetList, apiPost, apiPostForm, apiPatch, apiDelete } from '@/lib/api-client';
+import { apiGet, apiGetList, apiPost, apiPostForm, apiPatch, apiPut, apiDelete } from '@/lib/api-client';
 import type { Paginated } from '@/lib/types';
 
 /** Shapes mirror KnowledgeMapper (apps/api knowledge.mapper.ts). */
@@ -106,6 +106,15 @@ export interface CatalogSyncPreview {
 export interface CatalogSyncResult extends Omit<CatalogSyncPreview, 'heldSamples' | 'familySamples'> {
   embedded: number;
   embedFailed: number;
+}
+
+/** One product type's usage guide and how many products it serves (PLN-260807 P2). */
+export interface UsageGuide {
+  key: string;
+  productCount: number;
+  documentId: string | null;
+  title: string | null;
+  updatedAt: string | null;
 }
 
 /** Live state of the async conversion (PLN-260807 P1 / RPT-260808 D3). */
@@ -261,6 +270,12 @@ export const knowledgeService = {
   syncCatalog: () => apiPost<CatalogSyncJob>('/knowledge/documents/import/catalog', {}),
   catalogSyncStatus: () =>
     apiGet<CatalogSyncJob | null>('/knowledge/documents/import/catalog/status'),
+  usageGuides: () => apiGet<UsageGuide[]>('/knowledge/usage-guides'),
+  saveUsageGuide: (key: string, body: { title: string; content: string }) =>
+    apiPut<{ id: string; embedded: number; embedFailed: number }>(
+      `/knowledge/usage-guides/${key}`,
+      body,
+    ),
   ask: (question: string, language: string) =>
     apiPost<KnowledgeAnswer>('/knowledge/ask', { question, language }),
   conflicts: (params: { status?: string; page: number; size: number }) =>

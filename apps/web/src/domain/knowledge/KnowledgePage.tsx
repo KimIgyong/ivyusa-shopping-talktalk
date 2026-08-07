@@ -9,6 +9,8 @@ import { StatusBadge } from '@/components/StatusBadge';
 import { Table } from '@/components/Table';
 import type { Column } from '@/components/Table';
 import { Modal } from '@/components/Modal';
+import { knowledgeService } from './knowledge.service';
+import type { UsageGuide } from './knowledge.service';
 import { Progress } from '@/components/Progress';
 import { Pagination } from '@/components/Pagination';
 import { FormRow, Input, Select } from '@/components/Field';
@@ -32,6 +34,8 @@ import {
   useSyncCatalog,
   useCatalogSyncStatus,
   useCatalogSyncCompletion,
+  useUsageGuides,
+  useSaveUsageGuide,
   useUpdateDocument,
   useDeleteDocument,
 } from './knowledge.hooks';
@@ -207,6 +211,27 @@ export function KnowledgePage() {
   const job = catalogJob.data ?? null;
   const jobRunning = job?.status === 'running';
   useCatalogSyncCompletion(job);
+
+  const usageGuides = useUsageGuides();
+  const saveUsageGuide = useSaveUsageGuide();
+  const [guideKey, setGuideKey] = useState<string | null>(null);
+  const [guideTitle, setGuideTitle] = useState('');
+  const [guideBody, setGuideBody] = useState('');
+  const openGuide = async (g: UsageGuide) => {
+    setGuideKey(g.key);
+    setGuideTitle(g.title ?? t(`usageType_${g.key}`));
+    setGuideBody('');
+    // Editing starts from what is stored — a blank box would let a save
+    // silently replace a written guide with whatever is typed next.
+    if (g.documentId) {
+      try {
+        const doc = await knowledgeService.document(g.documentId);
+        setGuideBody(doc.content ?? '');
+      } catch {
+        setGuideBody('');
+      }
+    }
+  };
   // A run with nothing to create or update would still spend a round trip and
   // read as if something happened; the button says so instead.
   const nothingToApply =
@@ -439,6 +464,54 @@ export function KnowledgePage() {
           />
         </Card>
 
+        {/* Usage guides (PLN-260807 P2). The storefront publishes no usage text
+            at all — 31 of 2,275 products carry any — so these ten guides are
+            where "how do I apply this?" gets answered. Types with no guide are
+            listed on purpose: a gap nobody can see is a gap nobody fills. */}
+        <Card title={t('usageGuides')}>
+          <p className="mb-2 text-xs text-gray-500">{t('usageGuidesHint')}</p>
+          <Table<UsageGuide>
+            columns={[
+              {
+                key: 'key',
+                header: t('usageType'),
+                render: (g) => <span className="font-medium">{t(`usageType_${g.key}`)}</span>,
+              },
+              {
+                key: 'productCount',
+                header: t('usageProducts'),
+                render: (g) => (
+                  <span className="tabular-nums">{g.productCount.toLocaleString()}</span>
+                ),
+              },
+              {
+                key: 'state',
+                header: t('usageState'),
+                render: (g) =>
+                  g.documentId ? (
+                    <Badge tone="success">{t('usageWritten')}</Badge>
+                  ) : (
+                    <Badge tone="warning">{t('usageMissing')}</Badge>
+                  ),
+              },
+              {
+                key: 'action',
+                header: '',
+                render: (g) => (
+                  <Button variant="ghost" onClick={() => void openGuide(g)}>
+                    {g.documentId ? t('usageEdit') : t('usageWrite')}
+                  </Button>
+                ),
+              },
+            ]}
+            data={usageGuides.data}
+            loading={usageGuides.isLoading}
+            error={usageGuides.error ? (usageGuides.error as Error).message : null}
+            emptyMessage={t('noUsageGuides')}
+            rowKey={(g) => g.key}
+          />
+        </Card>
+
         <Card
           title={t('documents')}
           action={
@@ -526,6 +599,48 @@ export function KnowledgePage() {
           <ConflictReview onOpenDocument={(id) => setDetailId(id)} />
         </div>
       </div>
+
+      {/* Usage guide editor (PLN-260807 P2). */}
+      <Modal
+        open={guideKey !== null}
+        onClose={() => setGuideKey(null)}
+        title={guideKey ? t(`usageType_${guideKey}`) : ''}
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setGuideKey(null)}>
+              {tc('close')}
+            </Button>
+            <Button
+              disabled={guideBody.trim().length < 20 || saveUsageGuide.isPending}
+              onClick={() =>
+                guideKey &&
+                saveUsageGuide.mutate(
+                  { key: guideKey, title: guideTitle.trim(), content: guideBody.trim() },
+                  { onSuccess: () => setGuideKey(null) },
+                )
+              }
+            >
+              {saveUsageGuide.isPending ? tc('loading') : tc('save')}
+            </Button>
+          </>
+        }
+      >
+        <p className="mb-3 rounded-lg bg-blue-50 px-3 py-2 text-xs text-blue-800">
+          {t('usageGuideHelp')}
+        </p>
+        <FormRow label={t('title_column')}>
+          <Input value={guideTitle} onChange={(e) => setGuideTitle(e.target.value)} />
+        </FormRow>
+        <FormRow label={t('content')}>
+          <textarea
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-primary-500"
+            rows={12}
+            value={guideBody}
+            onChange={(e) => setGuideBody(e.target.value)}
+            placeholder={t('usageGuidePlaceholder')}
+          />
+        </FormRow>
+      </Modal>
 
       {/* Catalogue → knowledge (PLN-260807 P1). Preview first: the run rewrites
           the product half of the knowledge base and issues embedding calls, so
