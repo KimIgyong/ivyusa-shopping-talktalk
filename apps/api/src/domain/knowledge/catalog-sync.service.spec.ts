@@ -94,6 +94,44 @@ describe('CatalogSyncService', () => {
       expect(saved[0].externalKey).toBe('a-long');
     });
 
+    it('elects the member that already has a hand-written document', async () => {
+      // Otherwise the family gets a new generated document while the curated
+      // one covers the same product from the sidelines — two documents
+      // competing for one question. 14 of 144 curated docs hit this on staging.
+      const members = [
+        product({
+          handle: 'shade-a',
+          title: 'Same Polish Family Name Here',
+          description: 'z'.repeat(400),
+          productUrl: 'https://ivyusa.com/products/shade-a',
+        }),
+        product({
+          handle: 'shade-b',
+          title: 'Same Polish Family Name Here',
+          description: 'z'.repeat(100),
+          productUrl: 'https://ivyusa.com/products/shade-b',
+        }),
+      ];
+      const curated = {
+        id: 3,
+        externalKey: 'shade-b',
+        source: 'knowledge_store',
+        title: 'Curated polish guide',
+        content: 'How to use: ...',
+        category: 'KISS',
+        sourceUrl: 'https://ivyusa.com/products/shade-b',
+        active: 1,
+        status: 'embedded',
+      };
+      const { svc, saved } = build(members, [curated]);
+
+      const { counts } = await svc.sync(1, 9);
+
+      // shade-a has the longer description but shade-b carries the curated doc.
+      expect(counts).toMatchObject({ families: 1, created: 0, curatedKept: 1 });
+      expect(saved).toHaveLength(0);
+    });
+
     it('keeps genuinely different products apart', async () => {
       const { svc, saved } = build([
         product({ handle: 'serum', title: 'IVY Vita C Brightening Serum 30ml' }),
