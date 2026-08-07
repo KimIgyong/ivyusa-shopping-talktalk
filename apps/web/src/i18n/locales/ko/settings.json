@@ -176,5 +176,18 @@
     "url": "상점 주소",
     "hint": "고객에게 보여줄 상품 링크를 검증하는 기준입니다. 이 주소의 링크만 채팅에 노출됩니다.",
     "unsetWarning": "미설정 — 채팅 위젯에 상품추천 링크가 표시되지 않습니다."
+  },
+  "cafe24": {
+    "oauth": {
+      "title": "Cafe24 (OAuth)",
+      "hint": "Cafe24 몰을 OAuth로 연결하면 주문이 ShopTalk에 동기화됩니다.",
+      "status": "상태",
+      "mallId": "몰 ID",
+      "connect": "Cafe24 연결",
+      "syncNow": "지금 동기화",
+      "connectedToast": "Cafe24 연결됨: {{mall}}",
+      "connectFailed": "Cafe24 연결 실패",
+      "syncFailed": "Cafe24 동기화 실패"
+    }
   }
 }

@@ -176,5 +176,18 @@
     "url": "Shop URL",
     "hint": "Used to verify product links before showing them to customers. Only links on this origin appear in chat.",
     "unsetWarning": "Not set — product recommendations will not appear as links in the chat widget."
+  },
+  "cafe24": {
+    "oauth": {
+      "title": "Cafe24 (OAuth)",
+      "hint": "Connect your Cafe24 mall via OAuth so orders sync into ShopTalk.",
+      "status": "Status",
+      "mallId": "Mall ID",
+      "connect": "Connect Cafe24",
+      "syncNow": "Sync now",
+      "connectedToast": "Cafe24 connected: {{mall}}",
+      "connectFailed": "Cafe24 connection failed",
+      "syncFailed": "Cafe24 sync failed"
+    }
   }
 }

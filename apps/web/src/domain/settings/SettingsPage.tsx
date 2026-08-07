@@ -28,6 +28,7 @@ import { ECOMMERCE_PROVIDERS, type EcommerceProvider } from './integration-provi
 import { ProviderTile } from './ProviderTile';
 import { ShopifyConfigModal } from './ShopifyConfigModal';
 import { IntegrationConfigModal } from './IntegrationConfigModal';
+import { Cafe24ConnectCard } from './Cafe24ConnectCard';
 import { toast } from '@/store/toast-store';
 
 function fmtDate(value?: string | null): string {
@@ -438,6 +439,8 @@ export function SettingsPage() {
           ))}
         </div>
       </section>
+
+      <Cafe24ConnectCard />
 
       <InstallGuideCard />
 

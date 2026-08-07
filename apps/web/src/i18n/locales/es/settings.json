@@ -176,5 +176,18 @@
     "url": "URL de la tienda",
     "hint": "Se usa para verificar los enlaces de producto antes de mostrarlos a los clientes. Solo aparecen en el chat los enlaces de este origen.",
     "unsetWarning": "Sin configurar — las recomendaciones de producto no aparecerán como enlaces en el chat."
+  },
+  "cafe24": {
+    "oauth": {
+      "title": "Cafe24 (OAuth)",
+      "hint": "Conecta tu tienda Cafe24 por OAuth para sincronizar los pedidos en ShopTalk.",
+      "status": "Estado",
+      "mallId": "ID de tienda",
+      "connect": "Conectar Cafe24",
+      "syncNow": "Sincronizar ahora",
+      "connectedToast": "Cafe24 conectado: {{mall}}",
+      "connectFailed": "Fallo al conectar Cafe24",
+      "syncFailed": "Fallo al sincronizar Cafe24"
+    }
   }
 }

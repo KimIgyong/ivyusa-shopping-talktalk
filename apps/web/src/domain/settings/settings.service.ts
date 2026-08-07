@@ -95,4 +95,15 @@ export const settingsService = {
     apiPut<IntegrationSettings>(`/tenants/me/integrations/${provider}`, { config }),
   testIntegration: (provider: string) =>
     apiPost<IntegrationTestResult>(`/tenants/me/integrations/${provider}/test`),
+  // Cafe24 OAuth (PLN-260807 P-A1): begin the flow (returns the authorize URL the
+  // browser navigates to) and run an on-demand order sync.
+  connectCafe24: (mallId: string) =>
+    apiPost<{ authorizeUrl: string }>('/tenants/me/cafe24/connect', { mall_id: mallId }),
+  syncCafe24: () => apiPost<Cafe24SyncResult>('/tenants/me/cafe24/sync'),
 };
+
+export interface Cafe24SyncResult {
+  ok: boolean;
+  synced: number;
+  detail: string;
+}
