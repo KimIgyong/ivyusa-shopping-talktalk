@@ -58,10 +58,13 @@ skips the gate that never applied to it.
 - `jest src/domain/order` — 37 passed (5 suites).
 
 ## Deploy state
-- PR: #TBD · SHA: TBD
-- Staging (`shoptalk.amoeba.site`): TBD — no schema change (no migration).
-- Post-deploy verify: re-fulfill a dev-store order → `fulfillments/create -> 201` in the
-  API log; confirm tracking#/carrier persists and the shipping notification fires.
+- PR: #132 (squash-merged to main) · SHA: `7cf2f3b`
+- Staging (`shoptalk.amoeba.site`): deployed 2026-08-07 — boot OK, `applyFulfillment`
+  present in running dist, health OK. No schema change (no migration).
+- Post-deploy verify: an HMAC-signed `fulfillments/update` that previously returned **401**
+  now returns **201** (`{"received":true}`) and writes the fulfillment row (test row
+  cleaned up afterward). The generic `/webhooks/fulfillment` route is unchanged. Real
+  Shopify retry confirmation pending the next delivery (Shopify backs off between retries).
 
 ## Prevention pattern
 A shared service method must not couple **authentication** to **application logic**. When a
