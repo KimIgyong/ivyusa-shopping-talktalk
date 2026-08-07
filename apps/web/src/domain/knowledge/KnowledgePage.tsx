@@ -9,6 +9,7 @@ import { StatusBadge } from '@/components/StatusBadge';
 import { Table } from '@/components/Table';
 import type { Column } from '@/components/Table';
 import { Modal } from '@/components/Modal';
+import { Progress } from '@/components/Progress';
 import { Pagination } from '@/components/Pagination';
 import { FormRow, Input, Select } from '@/components/Field';
 import { ExternalLink } from 'lucide-react';
@@ -29,6 +30,8 @@ import {
   useImportProducts,
   useCatalogSyncPreview,
   useSyncCatalog,
+  useCatalogSyncStatus,
+  useCatalogSyncCompletion,
   useUpdateDocument,
   useDeleteDocument,
 } from './knowledge.hooks';
@@ -198,6 +201,12 @@ export function KnowledgePage() {
   const [catalogOpen, setCatalogOpen] = useState(false);
   const catalogPreview = useCatalogSyncPreview(catalogOpen);
   const syncCatalog = useSyncCatalog();
+  // Poll while the dialog is open OR a run is still in flight, so closing the
+  // dialog does not orphan a job the operator started.
+  const catalogJob = useCatalogSyncStatus(catalogOpen || syncCatalog.isSuccess);
+  const job = catalogJob.data ?? null;
+  const jobRunning = job?.status === 'running';
+  useCatalogSyncCompletion(job);
   // A run with nothing to create or update would still spend a round trip and
   // read as if something happened; the button says so instead.
   const nothingToApply =
@@ -540,12 +549,14 @@ export function KnowledgePage() {
             >
               {tc('close')}
             </Button>
-            {!syncCatalog.data && (
+            {job?.status !== 'succeeded' && (
               <Button
-                disabled={!catalogPreview.data || syncCatalog.isPending || nothingToApply}
+                disabled={
+                  !catalogPreview.data || syncCatalog.isPending || jobRunning || nothingToApply
+                }
                 onClick={() => syncCatalog.mutate()}
               >
-                {syncCatalog.isPending ? t('catalogRunning') : t('catalogRun')}
+                {syncCatalog.isPending || jobRunning ? t('catalogRunning') : t('catalogRun')}
               </Button>
             )}
           </>
@@ -557,7 +568,7 @@ export function KnowledgePage() {
             <p className="text-red-600">{(catalogPreview.error as Error).message}</p>
           )}
 
-          {catalogPreview.data && !syncCatalog.data && (
+          {catalogPreview.data && !job && (
             <>
               <p className="text-gray-700">
                 {t('catalogSyncIntro', { scanned: catalogPreview.data.scanned })}
@@ -627,27 +638,55 @@ export function KnowledgePage() {
             </>
           )}
 
-          {syncCatalog.data && (
-            <div className="space-y-2">
-              <p className="font-medium text-gray-800">{t('catalogDone')}</p>
-              <dl className="divide-y divide-gray-100 rounded-lg border border-gray-200">
-                {[
-                  ['catalogCreated', syncCatalog.data.created],
-                  ['catalogUpdated', syncCatalog.data.updated],
-                  ['catalogCuratedKept', syncCatalog.data.curatedKept],
-                  ['catalogHeld', syncCatalog.data.held],
-                  ['importEmbedded', syncCatalog.data.embedded],
-                ].map(([key, value]) => (
-                  <div key={key as string} className="flex justify-between px-3 py-1.5">
-                    <dt className="text-gray-600">{t(key as string)}</dt>
-                    <dd className="font-medium tabular-nums">{value as number}</dd>
-                  </div>
-                ))}
-              </dl>
-              {syncCatalog.data.embedFailed > 0 && (
+          {job && (
+            <div className="space-y-3">
+              {/* Progress, not a spinner: the run is minutes long and the
+                  operator needs to see it move (RPT-260808 D3). */}
+              {job.status === 'running' && (
+                <div className="space-y-2">
+                  <Progress
+                    label={t('catalogPhaseWriting')}
+                    done={job.written}
+                    total={job.writeTotal}
+                  />
+                  <Progress
+                    label={t('catalogPhaseEmbedding')}
+                    done={job.embedded}
+                    total={job.embedTotal}
+                  />
+                  <p className="text-xs text-gray-500">{t('catalogKeepOpenHint')}</p>
+                </div>
+              )}
+
+              {job.status === 'failed' && (
                 <p className="text-red-600">
-                  {t('catalogNotIndexed')}: {syncCatalog.data.embedFailed}
+                  {t('catalogFailed')}: {job.error}
                 </p>
+              )}
+
+              {job.status === 'succeeded' && job.result && (
+                <>
+                  <p className="font-medium text-gray-800">{t('catalogDone')}</p>
+                  <dl className="divide-y divide-gray-100 rounded-lg border border-gray-200">
+                    {[
+                      ['catalogCreated', job.result.created],
+                      ['catalogUpdated', job.result.updated],
+                      ['catalogCuratedKept', job.result.curatedKept],
+                      ['catalogHeld', job.result.held],
+                      ['importEmbedded', job.result.embedded],
+                    ].map(([key, value]) => (
+                      <div key={key as string} className="flex justify-between px-3 py-1.5">
+                        <dt className="text-gray-600">{t(key as string)}</dt>
+                        <dd className="font-medium tabular-nums">{value as number}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                  {job.result.embedFailed > 0 && (
+                    <p className="text-red-600">
+                      {t('catalogNotIndexed')}: {job.result.embedFailed}
+                    </p>
+                  )}
+                </>
               )}
             </div>
           )}

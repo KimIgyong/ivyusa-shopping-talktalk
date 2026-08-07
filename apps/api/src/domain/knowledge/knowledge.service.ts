@@ -341,10 +341,14 @@ export class KnowledgeService {
   async syncProductCatalog(
     tenantId: number,
     actorUserId: number,
+    report?: {
+      write: (done: number, total: number) => void;
+      embed: (done: number, total: number) => void;
+    },
   ): Promise<Record<string, unknown>> {
-    const { counts, touchedIds } = await this.catalogSync.sync(tenantId, actorUserId);
+    const { counts, touchedIds } = await this.catalogSync.sync(tenantId, actorUserId, report?.write);
     const docs = await this.productImport.pendingByIds(tenantId, touchedIds);
-    const { embedded, failed } = await this.embedDocuments(docs);
+    const { embedded, failed } = await this.embedDocuments(docs, report?.embed);
 
     await this.revisions.recordAudit(tenantId, 0, 'knowledge.catalog_synced', actorUserId, {
       ...counts,
@@ -493,11 +497,15 @@ export class KnowledgeService {
    * usable vector: stub pseudo-vectors share no space with real ones and would
    * corrupt the collection.
    */
-  async embedDocuments(docs: KbDocument[]): Promise<{ embedded: number; failed: number }> {
+  async embedDocuments(
+    docs: KbDocument[],
+    onBatch?: (done: number, total: number) => void,
+  ): Promise<{ embedded: number; failed: number }> {
     const realKeySet = !!process.env.VOYAGE_API_KEY;
     let embedded = 0;
     let failed = 0;
     for (let i = 0; i < docs.length; i += KnowledgeService.REINDEX_BATCH) {
+      onBatch?.(i, docs.length);
       const batch = docs.slice(i, i + KnowledgeService.REINDEX_BATCH);
       const texts = batch.map((d) =>
         `${d.title}\n${d.content ?? ''}`.slice(0, KnowledgeService.EMBED_MAX_CHARS),

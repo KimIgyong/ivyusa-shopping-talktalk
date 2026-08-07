@@ -177,5 +177,9 @@
   "catalogRunning": "Sincronizando…",
   "catalogDone": "Sincronización completa",
   "catalogNotIndexed": "no indexado",
-  "catalogNothingToDo": "No hay cambios que aplicar."
+  "catalogNothingToDo": "No hay cambios que aplicar.",
+  "catalogPhaseWriting": "Creando documentos",
+  "catalogPhaseEmbedding": "Indexando",
+  "catalogKeepOpenHint": "Tarda unos minutos. Puede cerrar este diálogo: el proceso continúa y al reabrirlo verá su progreso.",
+  "catalogFailed": "Error de sincronización"
 }

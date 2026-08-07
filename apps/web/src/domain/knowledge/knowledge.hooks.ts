@@ -1,6 +1,7 @@
+import { useEffect, useRef } from 'react';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { knowledgeService } from './knowledge.service';
-import type { DocumentListParams } from './knowledge.service';
+import type { CatalogSyncJob, DocumentListParams } from './knowledge.service';
 import { toast } from '@/store/toast-store';
 import { useTenantKey } from '@/lib/use-tenant-key';
 
@@ -308,23 +309,60 @@ export function useCatalogSyncPreview(enabled: boolean) {
   });
 }
 
-/** Run the catalogue conversion (PLN-260807 P1). */
+/**
+ * Live progress of the conversion. Polls only while a run is in flight — the
+ * job is minutes long, so the console must show movement rather than a spinner
+ * that used to end in a 504 (RPT-260808 D3).
+ */
+export function useCatalogSyncStatus(enabled: boolean) {
+  const tenantKey = useTenantKey();
+  return useQuery({
+    queryKey: ['knowledge', tenantKey, 'catalog-status'],
+    queryFn: () => knowledgeService.catalogSyncStatus(),
+    enabled,
+    refetchInterval: (q) => (q.state.data?.status === 'running' ? 2000 : false),
+    staleTime: 0,
+    gcTime: 0,
+  });
+}
+
+/** Start the catalogue conversion (PLN-260807 P1). Returns once the job is queued. */
 export function useSyncCatalog() {
   const qc = useQueryClient();
   const tenantKey = useTenantKey();
   return useMutation({
     mutationFn: () => knowledgeService.syncCatalog(),
-    onSuccess: (r) => {
-      qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'documents'] });
-      qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'categories'] });
-      const parts = [`${r.created} created`, `${r.updated} updated`];
-      if (r.curatedKept) parts.push(`${r.curatedKept} curated kept`);
-      if (r.held) parts.push(`${r.held} held`);
-      if (r.embedFailed) parts.push(`${r.embedFailed} not indexed`);
-      toast[r.embedFailed ? 'error' : 'success'](`Catalog sync: ${parts.join(', ')}`);
+    onSuccess: () => {
+      // Nothing has changed yet — the run has only started. The status poll
+      // reports the outcome, and invalidation happens when it finishes.
+      qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'catalog-status'] });
     },
     onError: (err: Error) => toast.error(err.message),
   });
+}
+
+/** Refresh the document lists once a run finishes, and say how it went. */
+export function useCatalogSyncCompletion(job: CatalogSyncJob | null | undefined) {
+  const qc = useQueryClient();
+  const tenantKey = useTenantKey();
+  const seen = useRef<string | null>(null);
+  useEffect(() => {
+    if (!job || job.status === 'running' || seen.current === job.id) return;
+    seen.current = job.id;
+    if (job.status === 'failed') {
+      toast.error(job.error ?? 'Catalog sync failed');
+      return;
+    }
+    if (job.status !== 'succeeded' || !job.result) return;
+    qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'documents'] });
+    qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'categories'] });
+    const r = job.result;
+    const parts = [`${r.created} created`, `${r.updated} updated`];
+    if (r.curatedKept) parts.push(`${r.curatedKept} curated kept`);
+    if (r.held) parts.push(`${r.held} held`);
+    if (r.embedFailed) parts.push(`${r.embedFailed} not indexed`);
+    toast[r.embedFailed ? 'error' : 'success'](`Catalog sync: ${parts.join(', ')}`);
+  }, [job, qc, tenantKey]);
 }
 
 /** Product catalogue CSV import (PLN-260804 P3). */

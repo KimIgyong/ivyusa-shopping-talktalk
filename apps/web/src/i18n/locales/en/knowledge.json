@@ -177,5 +177,9 @@
   "catalogRunning": "Syncing…",
   "catalogDone": "Sync complete",
   "catalogNotIndexed": "not indexed",
-  "catalogNothingToDo": "Nothing to apply."
+  "catalogNothingToDo": "Nothing to apply.",
+  "catalogPhaseWriting": "Writing documents",
+  "catalogPhaseEmbedding": "Indexing",
+  "catalogKeepOpenHint": "This takes a few minutes. You can close this dialog — the run continues, and reopening shows its progress.",
+  "catalogFailed": "Sync failed"
 }
