@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
   FlatList,
-  Image,
   Pressable,
   RefreshControl,
   StyleSheet,
@@ -14,13 +13,32 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { guestLookup, listOrders } from '../../src/services/orderService';
+import { listJourney } from '../../src/services/journeyService';
+import { addDiaryNote, listDiaryNotes, removeDiaryNote } from '../../src/services/diaryService';
 import { useRemoveSave, useSaves } from '../../src/hooks/useSaves';
+import { ProductRailCard } from '../../src/components/ProductRail';
 import { useSession } from '../../src/store/session-context';
 import { useToast } from '../../src/components/Toast';
 import { ApiError } from '../../src/lib/api-client';
-import type { OrderSummary, SaveItem } from '../../src/lib/types';
+import type { DiaryNote, JourneyEvent, OrderSummary, SaveItem } from '../../src/lib/types';
 
-/** 마이 — orders + 찜/보관함 rails (F2); diary arrives in F3. */
+/** Journey event → diary-row icon + i18n label key. product_view is skipped (too noisy). */
+const JOURNEY_ROW: Record<string, { icon: string; key: string }> = {
+  wish_added: { icon: '♡', key: 'journey.wish' },
+  save_added: { icon: '📥', key: 'journey.save' },
+  nudge_sent: { icon: '💝', key: 'journey.nudge' },
+  order_created: { icon: '🛒', key: 'journey.order' },
+  shipment_update: { icon: '📦', key: 'journey.shipment' },
+  review_submitted: { icon: '⭐', key: 'journey.review' },
+  chat_message: { icon: '💬', key: 'journey.chat' },
+  session_start: { icon: '👋', key: 'journey.session' },
+};
+
+type TimelineRow =
+  | { kind: 'event'; id: string; icon: string; label: string; createdAt: string }
+  | { kind: 'note'; id: string; noteId: string; body: string; createdAt: string };
+
+/** 마이 — 주문 + 다이어리(타임라인+메모, F3) + 찜/보관함 rails. */
 export default function MyScreen() {
   const { t } = useTranslation();
   const router = useRouter();
@@ -30,6 +48,8 @@ export default function MyScreen() {
   const [orderNumber, setOrderNumber] = useState('');
   const [email, setEmail] = useState('');
   const [looking, setLooking] = useState(false);
+  const [memo, setMemo] = useState('');
+  const [savingMemo, setSavingMemo] = useState(false);
 
   const ordersQuery = useQuery({
     queryKey: ['orders', token],
@@ -63,6 +83,82 @@ export default function MyScreen() {
 
   const orders = ordersQuery.data ?? [];
 
+  // Diary — journey timeline (401 = anonymous session → sign-in hint) + free-form notes.
+  const journeyQuery = useQuery({
+    queryKey: ['journey', token],
+    enabled: !!token,
+    queryFn: async () => {
+      try {
+        return { bound: true, events: await listJourney(token!, { page: 1, size: 30 }) };
+      } catch (e) {
+        if (e instanceof ApiError && e.status === 401) return { bound: false, events: [] };
+        throw e;
+      }
+    },
+  });
+  const diaryQuery = useQuery({
+    queryKey: ['diary', token],
+    enabled: !!token,
+    queryFn: async () => {
+      try {
+        return await listDiaryNotes(token!);
+      } catch (e) {
+        if (e instanceof ApiError && e.status === 401) return [];
+        throw e;
+      }
+    },
+  });
+
+  const journeyEvents: JourneyEvent[] = journeyQuery.data?.events ?? [];
+  const diaryNotes: DiaryNote[] = diaryQuery.data ?? [];
+  const timeline: TimelineRow[] = [
+    ...journeyEvents.flatMap<TimelineRow>((e) => {
+      const row = JOURNEY_ROW[e.eventType];
+      if (!row) return []; // product_view (and unknown types): skipped
+      const p = e.payload ?? {};
+      const label = t(row.key, {
+        handle: p.handle ?? '',
+        orderNumber: p.orderNumber ?? '',
+        status: p.status ?? '',
+      }).trim();
+      return [{ kind: 'event', id: `j-${e.id}`, icon: row.icon, label, createdAt: e.createdAt }];
+    }),
+    ...diaryNotes.map<TimelineRow>((n) => ({
+      kind: 'note',
+      id: `d-${n.id}`,
+      noteId: n.id,
+      body: n.body,
+      createdAt: n.createdAt,
+    })),
+  ].sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt));
+
+  const saveMemo = async () => {
+    if (!token || !memo.trim()) return;
+    setSavingMemo(true);
+    try {
+      await addDiaryNote(token, memo.trim());
+      toast.show(t('my.diarySaved'));
+      setMemo('');
+      await qc.invalidateQueries({ queryKey: ['diary', token] });
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 401) toast.show(t('save.needLogin'), 'error');
+      else toast.show(t('my.diaryFailed'), 'error');
+    } finally {
+      setSavingMemo(false);
+    }
+  };
+
+  const deleteMemo = async (noteId: string) => {
+    if (!token) return;
+    try {
+      await removeDiaryNote(token, noteId);
+      toast.show(t('my.diaryDeleted'));
+      await qc.invalidateQueries({ queryKey: ['diary', token] });
+    } catch {
+      toast.show(t('my.diaryFailed'), 'error');
+    }
+  };
+
   const savesQuery = useSaves();
   const removeSaved = useRemoveSave();
   const saves = savesQuery.data;
@@ -86,6 +182,57 @@ export default function MyScreen() {
       }
       ListFooterComponent={
         <>
+          <Text style={styles.section}>{t('my.diary')}</Text>
+          {journeyQuery.data && !journeyQuery.data.bound ? (
+            <Text style={styles.hint}>{t('save.needLogin')}</Text>
+          ) : (
+            <>
+              <View style={styles.diaryComposer}>
+                <TextInput
+                  style={styles.diaryInput}
+                  placeholder={t('my.diaryPlaceholder')}
+                  value={memo}
+                  onChangeText={setMemo}
+                  multiline
+                />
+                <Pressable
+                  style={[styles.cta, styles.diaryCta, (savingMemo || !memo.trim()) && styles.ctaDisabled]}
+                  onPress={saveMemo}
+                  disabled={savingMemo || !memo.trim()}
+                >
+                  <Text style={styles.ctaText}>{t('my.diarySave')}</Text>
+                </Pressable>
+              </View>
+              {timeline.length === 0 ? (
+                <Text style={styles.railEmpty}>
+                  {journeyQuery.isLoading || diaryQuery.isLoading
+                    ? t('common.loading')
+                    : t('my.diaryEmpty')}
+                </Text>
+              ) : (
+                <View style={styles.timeline}>
+                  {timeline.map((row) => (
+                    <View key={row.id} style={styles.diaryRow}>
+                      <Text style={styles.diaryIcon}>{row.kind === 'note' ? '📝' : row.icon}</Text>
+                      <View style={styles.diaryBody}>
+                        <Text style={styles.diaryLabel}>
+                          {row.kind === 'note' ? row.body : row.label}
+                        </Text>
+                        <Text style={styles.diaryDate}>
+                          {new Date(row.createdAt).toLocaleDateString()}
+                        </Text>
+                      </View>
+                      {row.kind === 'note' ? (
+                        <Pressable hitSlop={8} onPress={() => void deleteMemo(row.noteId)}>
+                          <Ionicons name="trash-outline" size={16} color="#6b7280" />
+                        </Pressable>
+                      ) : null}
+                    </View>
+                  ))}
+                </View>
+              )}
+            </>
+          )}
           {saves && !saves.bound ? (
             <>
               <Text style={styles.section}>
@@ -154,7 +301,7 @@ function OrderRow({ order, onPress }: { order: OrderSummary; onPress: () => void
   );
 }
 
-/** Horizontal saved-products rail — home-rail card style + a small remove button. */
+/** Horizontal saved-products rail — shared rail card + a small remove button. */
 function SaveRail({
   items,
   emptyText,
@@ -177,30 +324,14 @@ function SaveRail({
       keyExtractor={(s) => s.id}
       contentContainerStyle={styles.rail}
       renderItem={({ item }) => (
-        <Pressable style={styles.card} onPress={() => onOpen(item.productHandle)}>
-          {item.product?.imageUrl ? (
-            <Image
-              source={{ uri: item.product.imageUrl }}
-              style={styles.cardImage}
-              resizeMode="cover"
-            />
-          ) : (
-            <View style={[styles.cardImage, styles.cardImageEmpty]}>
-              <Ionicons name="image-outline" size={28} color="#9ca3af" />
-            </View>
-          )}
-          <Text style={styles.cardTitle} numberOfLines={2}>
-            {item.product?.title ?? item.productHandle}
-          </Text>
-          {item.product ? (
-            <Text style={styles.cardPrice}>
-              {item.product.currency} {item.product.price}
-            </Text>
-          ) : null}
-          <Pressable style={styles.cardRemove} hitSlop={8} onPress={() => onRemove(item)}>
-            <Ionicons name="close" size={14} color="#6b7280" />
-          </Pressable>
-        </Pressable>
+        <ProductRailCard
+          title={item.product?.title ?? item.productHandle}
+          price={item.product?.price}
+          currency={item.product?.currency}
+          imageUrl={item.product?.imageUrl}
+          onPress={() => onOpen(item.productHandle)}
+          onRemove={() => onRemove(item)}
+        />
       )}
     />
   );
@@ -237,32 +368,47 @@ const styles = StyleSheet.create({
   hint: { color: '#6b7280', fontSize: 13, marginHorizontal: 16, marginTop: 8 },
   rail: { paddingHorizontal: 12, paddingTop: 10 },
   railEmpty: { color: '#6b7280', fontSize: 13, marginHorizontal: 16, marginTop: 8 },
-  card: {
-    width: 140,
+  diaryComposer: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    marginHorizontal: 12,
+    marginTop: 10,
+    gap: 8,
+  },
+  diaryInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
     backgroundColor: '#fff',
+    maxHeight: 96,
+  },
+  diaryCta: { paddingHorizontal: 16 },
+  timeline: {
+    backgroundColor: '#fff',
+    marginHorizontal: 12,
+    marginTop: 10,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#e5e7eb',
-    padding: 10,
-    marginRight: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
   },
-  cardImage: { width: '100%', aspectRatio: 1, borderRadius: 8, backgroundColor: '#f3f4f6' },
-  cardImageEmpty: { alignItems: 'center', justifyContent: 'center' },
-  cardTitle: { fontSize: 13, color: '#111827', marginTop: 8, minHeight: 34 },
-  cardPrice: { fontSize: 14, fontWeight: '700', color: '#111827', marginTop: 4 },
-  cardRemove: {
-    position: 'absolute',
-    top: 6,
-    right: 6,
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
+  diaryRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    paddingVertical: 10,
+    gap: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#e5e7eb',
   },
+  diaryIcon: { fontSize: 16, width: 24, textAlign: 'center' },
+  diaryBody: { flex: 1 },
+  diaryLabel: { fontSize: 13, color: '#111827' },
+  diaryDate: { fontSize: 11, color: '#9ca3af', marginTop: 2 },
   lookupCard: {
     backgroundColor: '#fff',
     margin: 12,

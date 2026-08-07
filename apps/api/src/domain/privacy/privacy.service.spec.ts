@@ -61,6 +61,7 @@ describe('PrivacyService.setOptOut / getOptOutStatus (Stage 6 — bulk upsert)',
       stubRepo(), // tenant
       stubRepo(), // productSave (F2 engagement)
       stubRepo(), // nudge (F2 engagement)
+      stubRepo(), // diaryNote (F3 diary)
       // Widget-session authorization is delegated to SessionService (one gate for
       // every path that touches personal data), so it precedes audit/redis here.
       {

@@ -721,4 +721,19 @@ CREATE TABLE IF NOT EXISTS `nudges` (
   KEY `idx_nudge_tenant` (`tenant_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- 2026-08-07: diary_notes — shopping-diary free memos (PLN-260807-IvyusaApp-Revamp F3, A-7).
+-- Private customer memos (no CJM emit); free-text personal data — wired into DSAR
+-- export, customer erasure, and shop_redact tenant purge. See sql/migration_diary.sql.
+CREATE TABLE IF NOT EXISTS `diary_notes` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `tenant_id` bigint DEFAULT NULL,
+  `customer_id` bigint NOT NULL,
+  `body` varchar(1000) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `product_handle` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `created_at` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  PRIMARY KEY (`id`),
+  KEY `idx_diary_tenant` (`tenant_id`),
+  KEY `idx_diary_customer` (`customer_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 SET FOREIGN_KEY_CHECKS = 1;

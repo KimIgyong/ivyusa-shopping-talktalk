@@ -11,6 +11,7 @@ import OrderDetailPage from './pages/OrderDetailPage';
 import AlertsPage from './pages/AlertsPage';
 import SettingsPage from './pages/SettingsPage';
 import SavesPage from './pages/SavesPage';
+import DiaryPage from './pages/DiaryPage';
 import NudgePage from './pages/NudgePage';
 
 function Shell() {
@@ -22,6 +23,10 @@ function Shell() {
       <header className="header">
         <h1 className="header-title">{t('app.title')}</h1>
         <div className="header-actions">
+          {/* 다이어리 entry lives in the header (F3 — 마이 허브가 없는 PWA에서는 아이콘 진입). */}
+          <Link className="header-icon-link" to="/diary" aria-label={t('diary.title')}>
+            📖
+          </Link>
           {/* 찜/보관함 entry lives in the header (F2 — not a 6th nav tab). */}
           <Link className="header-icon-link" to="/saves" aria-label={t('save.title')}>
             ♡
@@ -87,6 +92,7 @@ export default function App() {
         <Route path="/alerts" element={<AlertsPage />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/saves" element={<SavesPage />} />
+        <Route path="/diary" element={<DiaryPage />} />
         {/* Public nudge card — must render without a session (recipient has no app). */}
         <Route path="/nudge/:code" element={<NudgePage />} />
         <Route path="*" element={<Navigate to="/chat" replace />} />

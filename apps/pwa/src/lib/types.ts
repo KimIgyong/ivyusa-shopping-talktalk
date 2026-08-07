@@ -151,6 +151,27 @@ export interface ReviewCreated {
   createdAt: string;
 }
 
+// Diary + journey (F3 — PLN-260807-IvyusaApp-Revamp A-7/A-10).
+
+/** Customer journey event (GET /me/journey — cjm_events projection). */
+export interface JourneyEvent {
+  id: string;
+  /** Awareness/Browse/Inquiry/Purchase/Delivery/Post */
+  stage: string;
+  eventType: string;
+  /** handle / orderNumber etc. recorded by the emitting hook. */
+  payload?: Record<string, unknown> | null;
+  createdAt: string;
+}
+
+/** Free-form diary memo (diary_notes). */
+export interface DiaryNote {
+  id: string;
+  body: string;
+  productHandle?: string | null;
+  createdAt: string;
+}
+
 export type NotificationCategory = 'payment' | 'shipping' | 'event' | 'review' | 'chat' | string;
 
 export interface NotificationItem {

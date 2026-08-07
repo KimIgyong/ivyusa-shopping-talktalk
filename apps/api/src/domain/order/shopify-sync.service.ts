@@ -1,13 +1,14 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
-import { ORDER_STATUS_INTERNAL, internalToUiStatus } from '@ivy/types';
+import { CJM_STAGE, ORDER_STATUS_INTERNAL, internalToUiStatus } from '@ivy/types';
 import { OrderCache } from './entity/order-cache.entity';
 import { OrderItem } from './entity/order-item.entity';
 import { ShopifyAdminClient, ShopifyOrderDto } from './shopify-admin.client';
 import { TenantService } from '../tenant/tenant.service';
 import { CustomerService } from '../customer/customer.service';
 import { IntegrationService } from '../integration/integration.service';
+import { EventBusService, EVENTS } from '../../infrastructure/infrastructure.module';
 
 const SHOPIFY = 'shopify';
 /** Overlap subtracted from the last_sync_at cursor — upserts are idempotent, so
@@ -57,6 +58,7 @@ export class ShopifySyncService {
     private readonly tenantService: TenantService,
     private readonly customerService: CustomerService,
     private readonly integrationService: IntegrationService,
+    private readonly bus: EventBusService,
   ) {}
 
   async syncOrders(tenantId: number): Promise<ShopifySyncResult> {
@@ -240,6 +242,7 @@ export class ShopifySyncService {
         : null;
 
     let row = prefetched ?? (await this.orderRepo.findOne({ where: { shopifyOrderId } }));
+    const isNew = !row;
     if (!row) {
       row = this.orderRepo.create({ shopifyOrderId });
     }
@@ -260,6 +263,22 @@ export class ShopifySyncService {
     row.currency = o.currency ?? row.currency ?? 'USD';
     const saved = await this.orderRepo.save(row);
     await this.syncLineItems(tenantId, saved.id, o);
+
+    // Journey breadcrumb (PLN-260807 F3, A-7): only a genuinely NEW cached order
+    // with a known customer — orders/updated webhooks and re-sync passes hit the
+    // same upsert, and re-emitting would fake repeat purchases on the timeline.
+    // Fire-and-forget: a bus hiccup must never fail the webhook/sync path.
+    if (isNew && saved.customerId != null) {
+      void this.bus
+        .publish(EVENTS.CJM, {
+          tenantId,
+          customerId: saved.customerId,
+          stage: CJM_STAGE.PURCHASE,
+          eventType: 'order_created',
+          payload: { orderNumber: saved.orderNumber },
+        })
+        .catch((e) => this.logger.warn(`order_created CJM emit failed: ${(e as Error).message}`));
+    }
     return saved;
   }
 

@@ -19,6 +19,7 @@ import { Subscription } from '../subscription/entity/subscription.entity';
 import { RestockSubscription } from '../restock/entity/restock-subscription.entity';
 import { ProductSave } from '../save/entity/product-save.entity';
 import { Nudge } from '../nudge/entity/nudge.entity';
+import { DiaryNote } from '../diary/entity/diary-note.entity';
 import { DeviceToken } from '../push/entity/device-token.entity';
 import { Campaign } from '../campaign/entity/campaign.entity';
 import { Tenant } from '../tenant/entity/tenant.entity';
@@ -69,6 +70,7 @@ export class PrivacyService {
     @InjectRepository(Tenant) private readonly tenantRepo: Repository<Tenant>,
     @InjectRepository(ProductSave) private readonly productSaveRepo: Repository<ProductSave>,
     @InjectRepository(Nudge) private readonly nudgeRepo: Repository<Nudge>,
+    @InjectRepository(DiaryNote) private readonly diaryRepo: Repository<DiaryNote>,
     private readonly sessionService: SessionService,
     private readonly audit: AuditService,
     private readonly redis: RedisService,
@@ -228,6 +230,7 @@ export class PrivacyService {
       await mgr.getRepository(RestockSubscription).delete({ tenantId });
       await mgr.getRepository(ProductSave).delete({ tenantId });
       await mgr.getRepository(Nudge).delete({ tenantId });
+      await mgr.getRepository(DiaryNote).delete({ tenantId });
       await mgr.getRepository(DeviceToken).delete({ tenantId });
       await mgr.getRepository(Inquiry).delete({ tenantId });
       await mgr.getRepository(CjmEvent).delete({ tenantId });
@@ -251,7 +254,7 @@ export class PrivacyService {
     const customerId = await this.requireVerifiedCustomerId(sessionToken);
     const customer = await this.customerRepo.findOne({ where: { id: customerId } });
 
-    const [orders, notifications, reviews, inquiries, cjmEvents, subscriptions, restocks, prefs, affiliates, saves, nudges] =
+    const [orders, notifications, reviews, inquiries, cjmEvents, subscriptions, restocks, prefs, affiliates, saves, nudges, diaryNotes] =
       await Promise.all([
         this.orderRepo.find({ where: { customerId } }),
         this.notificationRepo.find({ where: { customerId } }),
@@ -264,6 +267,7 @@ export class PrivacyService {
         this.affiliateRepo.find({ where: { customerId } }),
         this.productSaveRepo.find({ where: { customerId } }),
         this.nudgeRepo.find({ where: { customerId } }),
+        this.diaryRepo.find({ where: { customerId } }),
       ]);
 
     // Chat transcripts — the most sensitive free-text PII — via sessions → conversations.
@@ -366,6 +370,11 @@ export class PrivacyService {
         message: n.message,
         createdAt: n.createdAt,
         views: n.views,
+      })),
+      diaryNotes: diaryNotes.map((d) => ({
+        body: d.body,
+        productHandle: d.productHandle,
+        createdAt: d.createdAt,
       })),
       notificationPrefs: prefs.map((p) => ({
         channel: p.channel,
@@ -549,6 +558,8 @@ export class PrivacyService {
     // messages — both are the person's own expression. Delete outright.
     await this.productSaveRepo.delete({ customerId });
     await this.nudgeRepo.delete({ customerId });
+    // Diary memos (F3): private free text — same treatment.
+    await this.diaryRepo.delete({ customerId });
 
     // Reviews: null out free-text body.
     await this.reviewRepo.update({ customerId }, { body: null });
