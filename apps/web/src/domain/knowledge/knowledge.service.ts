@@ -88,6 +88,26 @@ export interface CategoryCount {
   active: number;
 }
 
+/** Dry-run plan for the storefront catalogue → knowledge conversion (PLN-260807 P1). */
+export interface CatalogSyncPreview {
+  scanned: number;
+  families: number;
+  absorbed: number;
+  created: number;
+  updated: number;
+  curatedKept: number;
+  unchanged: number;
+  held: number;
+  heldSamples: Array<{ handle: string; title: string }>;
+  familySamples: Array<{ representative: string; absorbed: number; variants: string[] }>;
+}
+
+/** What a catalogue sync actually did. */
+export interface CatalogSyncResult extends Omit<CatalogSyncPreview, 'heldSamples' | 'familySamples'> {
+  embedded: number;
+  embedFailed: number;
+}
+
 export interface ProductImportResult {
   parsed: number;
   created: number;
@@ -221,6 +241,9 @@ export const knowledgeService = {
     // multipart boundary and the server sees an empty body.
     return apiPostForm<ProductImportResult>('/knowledge/documents/import/product', form);
   },
+  previewCatalogSync: () =>
+    apiGet<CatalogSyncPreview>('/knowledge/documents/import/catalog/preview'),
+  syncCatalog: () => apiPost<CatalogSyncResult>('/knowledge/documents/import/catalog', {}),
   ask: (question: string, language: string) =>
     apiPost<KnowledgeAnswer>('/knowledge/ask', { question, language }),
   conflicts: (params: { status?: string; page: number; size: number }) =>

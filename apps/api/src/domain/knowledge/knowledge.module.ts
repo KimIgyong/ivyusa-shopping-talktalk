@@ -11,6 +11,7 @@ import { KnowledgeService } from './knowledge.service';
 import { KbConflictService } from './kb-conflict.service';
 import { KbRevisionService } from './kb-revision.service';
 import { ProductImportService } from './product-import.service';
+import { CatalogSyncService } from './catalog-sync.service';
 import { SourceSyncService } from './source-sync.service';
 import { BoardAdapter } from './adapters/board.adapter';
 import { AuditModule } from '../audit/audit.module';
@@ -44,6 +45,7 @@ import { ModerationModule } from '../moderation/moderation.module';
     KbConflictService,
     KbRevisionService,
     ProductImportService,
+    CatalogSyncService,
     SourceSyncService,
     BoardAdapter,
   ],

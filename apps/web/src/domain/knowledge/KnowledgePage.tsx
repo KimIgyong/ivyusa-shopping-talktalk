@@ -27,6 +27,8 @@ import {
   useDocument,
   useCreateDocument,
   useImportProducts,
+  useCatalogSyncPreview,
+  useSyncCatalog,
   useUpdateDocument,
   useDeleteDocument,
 } from './knowledge.hooks';
@@ -192,6 +194,16 @@ export function KnowledgePage() {
   const [importOpen, setImportOpen] = useState(false);
   const [importFile, setImportFile] = useState<File | null>(null);
   const importProducts = useImportProducts();
+
+  const [catalogOpen, setCatalogOpen] = useState(false);
+  const catalogPreview = useCatalogSyncPreview(catalogOpen);
+  const syncCatalog = useSyncCatalog();
+  // A run with nothing to create or update would still spend a round trip and
+  // read as if something happened; the button says so instead.
+  const nothingToApply =
+    !!catalogPreview.data &&
+    catalogPreview.data.created === 0 &&
+    catalogPreview.data.updated === 0;
 
   const [docOpen, setDocOpen] = useState(false);
   const [docTitle, setDocTitle] = useState('');
@@ -422,6 +434,9 @@ export function KnowledgePage() {
           title={t('documents')}
           action={
             <div className="flex gap-2">
+              <Button variant="secondary" onClick={() => setCatalogOpen(true)}>
+                {t('syncCatalog')}
+              </Button>
               <Button variant="secondary" onClick={() => setImportOpen(true)}>
                 {t('importProducts')}
               </Button>
@@ -502,6 +517,142 @@ export function KnowledgePage() {
           <ConflictReview onOpenDocument={(id) => setDetailId(id)} />
         </div>
       </div>
+
+      {/* Catalogue → knowledge (PLN-260807 P1). Preview first: the run rewrites
+          the product half of the knowledge base and issues embedding calls, so
+          a human sees the plan — including which products merged — before it
+          lands. */}
+      <Modal
+        open={catalogOpen}
+        onClose={() => {
+          setCatalogOpen(false);
+          syncCatalog.reset();
+        }}
+        title={t('catalogSyncTitle')}
+        footer={
+          <>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setCatalogOpen(false);
+                syncCatalog.reset();
+              }}
+            >
+              {tc('close')}
+            </Button>
+            {!syncCatalog.data && (
+              <Button
+                disabled={!catalogPreview.data || syncCatalog.isPending || nothingToApply}
+                onClick={() => syncCatalog.mutate()}
+              >
+                {syncCatalog.isPending ? t('catalogRunning') : t('catalogRun')}
+              </Button>
+            )}
+          </>
+        }
+      >
+        <div className="space-y-3 text-sm">
+          {catalogPreview.isPending && <p className="text-gray-500">{tc('loading')}</p>}
+          {catalogPreview.error && (
+            <p className="text-red-600">{(catalogPreview.error as Error).message}</p>
+          )}
+
+          {catalogPreview.data && !syncCatalog.data && (
+            <>
+              <p className="text-gray-700">
+                {t('catalogSyncIntro', { scanned: catalogPreview.data.scanned })}
+              </p>
+              <dl className="divide-y divide-gray-100 rounded-lg border border-gray-200">
+                {[
+                  ['catalogCreated', catalogPreview.data.created],
+                  ['catalogUpdated', catalogPreview.data.updated],
+                  ['catalogCuratedKept', catalogPreview.data.curatedKept],
+                  ['catalogAbsorbed', catalogPreview.data.absorbed],
+                  ['catalogUnchanged', catalogPreview.data.unchanged],
+                  ['catalogHeld', catalogPreview.data.held],
+                ].map(([key, value]) => (
+                  <div key={key as string} className="flex justify-between px-3 py-1.5">
+                    <dt className="text-gray-600">{t(key as string)}</dt>
+                    <dd className="font-medium tabular-nums">{value as number}</dd>
+                  </div>
+                ))}
+              </dl>
+              <p className="text-xs text-gray-500">
+                {t('catalogEmbedEstimate', {
+                  batches: Math.ceil(
+                    (catalogPreview.data.created + catalogPreview.data.updated) / 64,
+                  ),
+                })}
+              </p>
+              <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                {t('catalogCuratedHint')}
+              </p>
+
+              {catalogPreview.data.familySamples.length > 0 && (
+                <details className="rounded-lg border border-gray-200 px-3 py-2">
+                  <summary className="cursor-pointer text-gray-700">
+                    {t('catalogMergeSamples')}
+                  </summary>
+                  <ul className="mt-2 space-y-2">
+                    {catalogPreview.data.familySamples.map((f) => (
+                      <li key={f.representative} className="text-xs">
+                        <span className="font-medium text-gray-800">{f.representative}</span>
+                        <span className="ml-1 text-gray-500">
+                          {t('catalogMergedInto', { count: f.absorbed })}
+                        </span>
+                        <ul className="mt-0.5 list-disc pl-5 text-gray-500">
+                          {f.variants.map((v) => (
+                            <li key={v}>{v}</li>
+                          ))}
+                        </ul>
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+              )}
+
+              {catalogPreview.data.held > 0 && (
+                <details className="rounded-lg border border-gray-200 px-3 py-2">
+                  <summary className="cursor-pointer text-gray-700">{t('catalogHeldList')}</summary>
+                  <p className="mt-1 text-xs text-gray-500">{t('catalogHeldHint')}</p>
+                  <ul className="mt-1 list-disc pl-5 text-xs text-gray-600">
+                    {catalogPreview.data.heldSamples.map((h) => (
+                      <li key={h.handle}>{h.title}</li>
+                    ))}
+                  </ul>
+                </details>
+              )}
+
+              {nothingToApply && <p className="text-gray-500">{t('catalogNothingToDo')}</p>}
+            </>
+          )}
+
+          {syncCatalog.data && (
+            <div className="space-y-2">
+              <p className="font-medium text-gray-800">{t('catalogDone')}</p>
+              <dl className="divide-y divide-gray-100 rounded-lg border border-gray-200">
+                {[
+                  ['catalogCreated', syncCatalog.data.created],
+                  ['catalogUpdated', syncCatalog.data.updated],
+                  ['catalogCuratedKept', syncCatalog.data.curatedKept],
+                  ['catalogHeld', syncCatalog.data.held],
+                  ['importEmbedded', syncCatalog.data.embedded],
+                ].map(([key, value]) => (
+                  <div key={key as string} className="flex justify-between px-3 py-1.5">
+                    <dt className="text-gray-600">{t(key as string)}</dt>
+                    <dd className="font-medium tabular-nums">{value as number}</dd>
+                  </div>
+                ))}
+              </dl>
+              {syncCatalog.data.embedFailed > 0 && (
+                <p className="text-red-600">
+                  {t('catalogNotIndexed')}: {syncCatalog.data.embedFailed}
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+      </Modal>
 
       <Modal
         open={importOpen}

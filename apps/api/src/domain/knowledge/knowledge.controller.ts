@@ -241,6 +241,21 @@ export class KnowledgeController {
     );
   }
 
+  @Get('documents/import/catalog/preview')
+  @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
+  @ApiOperation({ summary: 'Dry run: what a catalogue sync would create, update and hold back' })
+  async previewCatalogSync(@CurrentUser() user: Principal) {
+    return this.knowledgeService.previewCatalogSync(this.tenantUser(user).tenantId);
+  }
+
+  @Post('documents/import/catalog')
+  @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
+  @ApiOperation({ summary: 'Convert the storefront catalogue into ProductInfo knowledge' })
+  async syncCatalog(@CurrentUser() user: Principal) {
+    const actor = this.tenantUser(user);
+    return this.knowledgeService.syncProductCatalog(actor.tenantId, actor.userId);
+  }
+
   // --- Revision history (PLN T3) -------------------------------------------
 
   @Get('documents/:id/revisions')

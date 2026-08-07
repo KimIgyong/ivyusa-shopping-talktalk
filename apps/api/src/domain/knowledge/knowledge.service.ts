@@ -22,6 +22,7 @@ import {
 import { KbConflictService, isStale } from './kb-conflict.service';
 import { KbRevisionService } from './kb-revision.service';
 import { ProductImportService } from './product-import.service';
+import { CatalogSyncPreview, CatalogSyncService } from './catalog-sync.service';
 import { SourceSyncService } from './source-sync.service';
 import { REVISION_KIND } from './entity/kb-document-revision.entity';
 import { BusinessException } from '../../global/exception/business.exception';
@@ -54,6 +55,7 @@ export class KnowledgeService {
     private readonly conflicts: KbConflictService,
     private readonly revisions: KbRevisionService,
     private readonly productImport: ProductImportService,
+    private readonly catalogSync: CatalogSyncService,
     private readonly sourceSync: SourceSyncService,
   ) {}
 
@@ -323,6 +325,38 @@ export class KnowledgeService {
         .catch((e) => this.logger.warn(`qdrant setActive(${saved.id}) failed: ${e.message}`));
     }
     return saved;
+  }
+
+  /** Dry run of the catalogue → knowledge conversion (PLN-260807 P1). */
+  async previewCatalogSync(tenantId: number): Promise<CatalogSyncPreview> {
+    return this.catalogSync.preview(tenantId);
+  }
+
+  /**
+   * Convert the storefront catalogue into product knowledge, then embed what
+   * changed in batches — same two-phase shape as the CSV import, for the same
+   * reason (single-text embedding calls are not retried and die under rate
+   * limiting, PR #95).
+   */
+  async syncProductCatalog(
+    tenantId: number,
+    actorUserId: number,
+  ): Promise<Record<string, unknown>> {
+    const { counts, touchedIds } = await this.catalogSync.sync(tenantId, actorUserId);
+    const docs = await this.productImport.pendingByIds(tenantId, touchedIds);
+    const { embedded, failed } = await this.embedDocuments(docs);
+
+    await this.revisions.recordAudit(tenantId, 0, 'knowledge.catalog_synced', actorUserId, {
+      ...counts,
+      embedded,
+      embedFailed: failed,
+    });
+    this.logger.log(
+      `catalog sync: scanned=${counts.scanned} families=${counts.families} ` +
+        `created=${counts.created} updated=${counts.updated} curatedKept=${counts.curatedKept} ` +
+        `unchanged=${counts.unchanged} held=${counts.held} embedded=${embedded} embedFailed=${failed}`,
+    );
+    return { ...counts, embedded, embedFailed: failed };
   }
 
   /**
