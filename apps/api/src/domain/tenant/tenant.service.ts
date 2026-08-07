@@ -108,6 +108,11 @@ export class TenantService {
     return creds.map((c) => c.tenantId).filter((id): id is number => id != null);
   }
 
+  async listCafe24TenantIds(): Promise<number[]> {
+    const creds = await this.credRepo.find({ where: { provider: 'cafe24' } });
+    return creds.map((c) => c.tenantId).filter((id): id is number => id != null);
+  }
+
   async create(shopDomain: string, name: string, plan: string, slug?: string): Promise<Tenant> {
     const existing = await this.tenantRepo.findOne({ where: { shopDomain } });
     if (existing) {
