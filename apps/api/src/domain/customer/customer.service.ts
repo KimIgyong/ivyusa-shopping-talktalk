@@ -406,18 +406,37 @@ export class CustomerService {
   ): Promise<Customer | null> {
     if (await this.suppression.isSuppressed(tenantId, { email })) return null;
     const emailHash = blindIndex(email) ?? '__none__';
-    const existing =
-      (await this.customerRepo.findOne({ where: { tenantId, emailHash } })) ??
-      (userIdentifier
-        ? await this.customerRepo.findOne({ where: { tenantId, cafe24UserIdentifier: userIdentifier } })
-        : null);
+    const idRow = userIdentifier
+      ? await this.customerRepo.findOne({ where: { tenantId, cafe24UserIdentifier: userIdentifier } })
+      : null;
+    const emailRow = await this.customerRepo.findOne({ where: { tenantId, emailHash } });
+
+    // Two distinct rows — the sign-in created an identifier row (session-bound, no
+    // orders) and order sync created an email row (orders, no identifier). Merge the
+    // order row INTO the session row so "my orders" resolves, then drop the now-empty
+    // duplicate. Order rows are the only reference an order-synced customer carries
+    // (it never chatted), so repointing orders_cache is a complete merge.
+    if (idRow && emailRow && idRow.id !== emailRow.id) {
+      await this.orderRepo.update(
+        { tenantId, customerId: emailRow.id },
+        { customerId: idRow.id },
+      );
+      idRow.email = email; // @BeforeUpdate re-syncs email_hash
+      if (name != null) idRow.name = name;
+      else if (!idRow.name && emailRow.name) idRow.name = emailRow.name;
+      const merged = await this.customerRepo.save(idRow);
+      await this.customerRepo.remove(emailRow);
+      return merged;
+    }
+
+    const existing = idRow ?? emailRow;
     if (existing) {
       let dirty = false;
       if (existing.email !== email) {
         existing.email = email; // @BeforeUpdate re-syncs email_hash
         dirty = true;
       }
-      if (name !== undefined && existing.name !== name) {
+      if (name != null && existing.name !== name) {
         existing.name = name;
         dirty = true;
       }
