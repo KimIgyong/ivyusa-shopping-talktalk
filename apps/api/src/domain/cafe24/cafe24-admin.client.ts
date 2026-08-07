@@ -170,7 +170,12 @@ export class Cafe24AdminClient {
     accessToken: string,
     memberId: string,
   ): Promise<{ userIdentifier: string | null; email: string | null; name: string | null } | null> {
-    const qs = new URLSearchParams({ member_id: memberId, limit: '1' });
+    // PROBE: (1) /customers with fields opt-in for user_identifier; (2) /customersprivacy.
+    const qs = new URLSearchParams({
+      member_id: memberId,
+      limit: '1',
+      fields: 'member_id,user_identifier,email,name,cellphone',
+    });
     const body = await this.request<{ customers?: Array<Record<string, unknown>> }>(
       mallId,
       accessToken,
@@ -178,12 +183,25 @@ export class Cafe24AdminClient {
       `/customers?${qs.toString()}`,
     );
     const c = body.customers?.[0];
-    if (!c) return null;
     this.logger.debug(
-      `cafe24 customer(member_id=${memberId}) keys=[${Object.keys(c).join(',')}] uid=${
-        typeof c.user_identifier === 'string' ? 'present' : String(c.user_identifier)
+      `PROBE customers?fields keys=[${c ? Object.keys(c).join(',') : 'none'}] uid=${
+        c && typeof c.user_identifier === 'string' ? 'PRESENT' : 'absent'
       }`,
     );
+    try {
+      const pv = await this.request<{ customersprivacy?: Array<Record<string, unknown>> } & {
+        customers?: Array<Record<string, unknown>>;
+      }>(mallId, accessToken, 'GET', `/customersprivacy?member_id=${encodeURIComponent(memberId)}&limit=1`);
+      const p = pv.customersprivacy?.[0] ?? pv.customers?.[0];
+      this.logger.debug(
+        `PROBE customersprivacy keys=[${p ? Object.keys(p).join(',') : 'none'}] uid=${
+          p && typeof p.user_identifier === 'string' ? 'PRESENT' : 'absent'
+        }`,
+      );
+    } catch (e) {
+      this.logger.debug(`PROBE customersprivacy failed: ${(e as Error).message}`);
+    }
+    if (!c) return null;
     return {
       userIdentifier: typeof c.user_identifier === 'string' ? c.user_identifier : null,
       email: typeof c.email === 'string' ? c.email : null,
