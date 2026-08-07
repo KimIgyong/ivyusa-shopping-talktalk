@@ -1,6 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Send, Sparkles, User, UserPlus, Search, Loader2, CheckCircle2, XCircle } from 'lucide-react';
+import {
+  Send,
+  Sparkles,
+  User,
+  UserPlus,
+  Search,
+  Loader2,
+  CheckCircle2,
+  XCircle,
+  RefreshCw,
+  BookPlus,
+} from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { PageHeader } from '@/components/PageHeader';
 import { Button } from '@/components/Button';
@@ -11,12 +22,15 @@ import { Input, FormRow } from '@/components/Field';
 import { toast } from '@/store/toast-store';
 import {
   useSessions,
+  useBriefing,
   useConversation,
   useConversationActions,
   useCustomerActions,
 } from './live-chat.hooks';
+import { KnowledgeCaptureModal } from './KnowledgeCaptureModal';
+import { useAuthStore } from '@/store/auth-store';
 import { liveChatService } from './live-chat.service';
-import type { CustomerContext } from './live-chat.service';
+import type { ChatMessage, CustomerContext } from './live-chat.service';
 import { cn } from '@/lib/cn';
 
 /** HH:mm for a message bubble; empty when the row carries no timestamp. */
@@ -81,7 +95,47 @@ export function LiveChatPage() {
     if (deepLink) setSelected(deepLink);
   }, [deepLink]);
   const { data: sessions, isLoading: sessionsLoading } = useSessions(listSearch, scope);
-  const { data: convo, isLoading: convoLoading } = useConversation(selected);
+  const { data: convo, isLoading: convoLoading, isFetching: convoFetching, refetch: refetchConvo } =
+    useConversation(selected);
+  const { data: briefingData, isLoading: briefingLoading } = useBriefing(selected);
+  // KB writes belong to knowledge owners; an agent handling the chat does not
+  // automatically get to publish knowledge (PLN-260807 D3). Mirrors the server
+  // rule — knowledge_source.manage is granted to master/director — so the
+  // button never appears where the API would answer 403.
+  const principal = useAuthStore((s) => s.principal);
+  const canManageKnowledge =
+    principal?.actorType === 'user' &&
+    (principal.rank === 'master' || principal.rank === 'director');
+  // Q/A pair an agent picked to turn into a knowledge document.
+  const [capture, setCapture] = useState<{ question: string; answer: string } | null>(null);
+  // Older blocks the agent pulled in, kept outside React Query: the 5s poll owns
+  // the recent tail, this owns history, and mixing them in one cache entry would
+  // let a poll wipe what was scrolled back to.
+  const [older, setOlder] = useState<ChatMessage[]>([]);
+  const [olderHasMore, setOlderHasMore] = useState(true);
+  const [loadingOlder, setLoadingOlder] = useState(false);
+  useEffect(() => {
+    setOlder([]);
+    setOlderHasMore(true);
+  }, [selected]);
+
+  const messages = [...older, ...(convo?.messages ?? [])];
+  const hasOlder = older.length ? olderHasMore : !!convo?.hasMore;
+
+  const loadOlder = async () => {
+    const oldest = messages[0]?.id;
+    if (!selected || !oldest || loadingOlder) return;
+    setLoadingOlder(true);
+    try {
+      const res = await liveChatService.conversation(selected, oldest);
+      setOlder((prev) => [...res.messages, ...prev]);
+      setOlderHasMore(!!res.hasMore);
+    } catch (e) {
+      toast.error((e as Error).message || t('sendFailed'));
+    } finally {
+      setLoadingOlder(false);
+    }
+  };
   const { accept, end, send } = useConversationActions(selected);
   const { link, create } = useCustomerActions(selected);
 
@@ -277,6 +331,16 @@ export function LiveChatPage() {
                   <Button
                     size="sm"
                     variant="secondary"
+                    title={t('syncHint')}
+                    onClick={() => void refetchConvo()}
+                    disabled={convoFetching}
+                  >
+                    <RefreshCw className={cn('h-4 w-4', convoFetching && 'animate-spin')} />
+                    {t('sync')}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
                     onClick={() => accept.mutate()}
                     disabled={accept.isPending}
                   >
@@ -304,10 +368,22 @@ export function LiveChatPage() {
                 {convoLoading && (
                   <Loader2 className="mx-auto h-5 w-5 animate-spin text-gray-400" />
                 )}
-                {convo?.messages?.map((m, i) => {
+                {hasOlder && (
+                  <div className="flex justify-center">
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => void loadOlder()}
+                      disabled={loadingOlder}
+                    >
+                      {loadingOlder ? t('loading', { ns: 'common' }) : t('loadOlder')}
+                    </Button>
+                  </div>
+                )}
+                {messages.map((m, i) => {
                   const outbound = m.senderType === 'agent' || m.senderType === 'ai';
                   const day = dayKey(m.createdAt);
-                  const showDay = day && day !== dayKey(convo.messages[i - 1]?.createdAt);
+                  const showDay = day && day !== dayKey(messages[i - 1]?.createdAt);
                   return (
                     <div key={m.id}>
                       {showDay && (
@@ -351,6 +427,25 @@ export function LiveChatPage() {
                           </span>
                         )}
                         {m.body}
+                        {m.senderType === 'ai' && canManageKnowledge && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setCapture({
+                                // The customer turn this answer replied to.
+                                question:
+                                  [...messages]
+                                    .slice(0, i)
+                                    .reverse()
+                                    .find((p) => p.senderType === 'user')?.body ?? '',
+                                answer: m.body,
+                              })
+                            }
+                            className="mt-1 flex items-center gap-1 text-[11px] text-primary-600 underline-offset-2 hover:underline"
+                          >
+                            <BookPlus className="h-3 w-3" /> {t('knowledge.action')}
+                          </button>
+                        )}
                       </div>
                         {!outbound && (
                           <span className="shrink-0 text-[11px] text-gray-400">
@@ -361,7 +456,7 @@ export function LiveChatPage() {
                     </div>
                   );
                 })}
-                {convo && convo.messages.length === 0 && !convoLoading && (
+                {convo && messages.length === 0 && !convoLoading && (
                   <p className="text-center text-sm text-gray-400">{t('noMessages')}</p>
                 )}
               </div>
@@ -399,9 +494,11 @@ export function LiveChatPage() {
               <Sparkles className="h-4 w-4 text-primary-500" /> {t('aiBriefing')}
             </div>
             <p className="text-sm text-gray-600">
-              {selected
-                ? convo?.briefing ?? t('noBriefing')
-                : t('selectConversation')}
+              {!selected
+                ? t('selectConversation')
+                : briefingLoading
+                  ? t('briefingLoading')
+                  : briefingData?.briefing || t('noBriefing')}
             </p>
           </div>
 
@@ -458,6 +555,14 @@ export function LiveChatPage() {
       </div>
 
       {/* Match an existing customer to this chat (FR-057). */}
+      <KnowledgeCaptureModal
+        open={!!capture}
+        question={capture?.question ?? ''}
+        answer={capture?.answer ?? ''}
+        conversationId={selected}
+        onClose={() => setCapture(null)}
+      />
+
       <Modal
         open={matchOpen}
         onClose={() => setMatchOpen(false)}

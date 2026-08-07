@@ -1,4 +1,5 @@
-import { IsIn, IsInt, IsObject, IsOptional, IsString } from 'class-validator';
+import { DOC_GROUP } from '../../entity/kb-document.entity';
+import { IsIn, IsInt, IsObject, IsOptional, IsString, MaxLength } from 'class-validator';
 
 /** Knowledge source ingestion modes (FR-064). */
 export const KNOWLEDGE_SOURCE_TYPES = ['board', 'repository', 'gdrive'] as const;
@@ -31,12 +32,18 @@ export class ListDocumentsQuery {
 
 export class CreateDocumentRequest {
   @IsOptional() @IsInt() source_id?: number;
-  /** counsel (default) | product. */
-  @IsOptional() @IsString() doc_group?: string;
+  /** counsel (default) | product — a closed set, so reject anything else. */
+  @IsOptional() @IsIn(Object.values(DOC_GROUP)) doc_group?: string;
   @IsOptional() @IsString() source?: string; // knowledge_store/google_drive
   @IsString() category: string;
   @IsString() title: string;
   @IsString() content: string;
+  /**
+   * Where this knowledge came from — e.g. the live-chat conversation an agent
+   * wrote a model answer from (PLN-260807). Provenance matters when someone
+   * later asks why a document says what it says.
+   */
+  @IsOptional() @IsString() @MaxLength(512) source_url?: string;
 }
 
 export class UpdateDocumentRequest {

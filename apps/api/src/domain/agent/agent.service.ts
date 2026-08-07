@@ -1,6 +1,6 @@
 import { HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { FindOptionsWhere, In, Repository } from 'typeorm';
+import { FindOptionsWhere, In, LessThan, Repository } from 'typeorm';
 import {
   AI_FUNCTION,
   CONSENT_STATE,
@@ -29,6 +29,11 @@ import { SessionService, sessionCacheKey } from '../session/session.service';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
 import { UpsertProfileRequest } from './dto/request/agent.request';
+
+/** Transcript page size for the console (PLN-260807 D2). */
+const MESSAGE_PAGE_SIZE = 30;
+/** Messages the briefing summarises — the tail is what an agent needs oriented. */
+const BRIEFING_WINDOW = 50;
 
 /** Identical agent reply inside this window counts as a double submission. */
 const DUPLICATE_REPLY_WINDOW_MS = 10_000;
@@ -284,9 +289,29 @@ export class AgentService {
     return result;
   }
 
-  async listMessages(conversationId: number, tenantId: number): Promise<Message[]> {
+  /**
+   * A page of the transcript, newest-anchored (PLN-260807). The console used to
+   * receive every message a conversation ever had; it asks for the recent tail
+   * and walks backwards with `beforeId` when the agent scrolls.
+   * Returned ascending (oldest → newest) so the caller renders it directly.
+   */
+  async listMessages(
+    conversationId: number,
+    tenantId: number,
+    opts: { limit?: number; beforeId?: number } = {},
+  ): Promise<{ messages: Message[]; hasMore: boolean }> {
     await this.requireConversation(conversationId, tenantId);
-    return this.msgRepo.find({ where: { conversationId }, order: { id: 'ASC' } });
+    const limit = Math.min(Math.max(opts.limit ?? MESSAGE_PAGE_SIZE, 1), 200);
+    const where: FindOptionsWhere<Message> = { conversationId };
+    if (opts.beforeId != null) where.id = LessThan(opts.beforeId);
+    // limit + 1 is the cheapest "is there another page" probe.
+    const rows = await this.msgRepo.find({
+      where,
+      order: { id: 'DESC' },
+      take: limit + 1,
+    });
+    const hasMore = rows.length > limit;
+    return { messages: rows.slice(0, limit).reverse(), hasMore };
   }
 
   /** AI briefing for an agent picking up a conversation (FR-045). */

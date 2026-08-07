@@ -36,8 +36,9 @@ export interface ConversationDetail {
   conversationId?: number;
   status?: string;
   assignedTo?: string | null;
-  briefing?: string;
   messages: ChatMessage[];
+  /** Older messages exist before the first one returned (PLN-260807). */
+  hasMore?: boolean;
   customer?: CustomerContext | null;
 }
 
@@ -64,7 +65,14 @@ export const liveChatService = {
       ...(q?.trim() ? { q: q.trim() } : {}),
       ...(status && status !== 'all' ? { status } : {}),
     }),
-  conversation: (id: string) => apiGet<ConversationDetail>(`/agent/conversations/${id}`),
+  conversation: (id: string, beforeId?: string) =>
+    apiGet<ConversationDetail>(
+      `/agent/conversations/${id}`,
+      beforeId ? { before_id: beforeId } : undefined,
+    ),
+  // Separate call on purpose: it runs a summarisation model, and the transcript
+  // must not wait for it (PLN-260807 D1).
+  briefing: (id: string) => apiGet<{ briefing: string }>(`/agent/conversations/${id}/briefing`),
   accept: (id: string) => apiPost<ConversationDetail>(`/agent/conversations/${id}/accept`),
   sendMessage: (id: string, body: string) =>
     apiPost<ChatMessage>(`/agent/conversations/${id}/message`, { body }),

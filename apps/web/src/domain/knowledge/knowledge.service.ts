@@ -187,7 +187,14 @@ export const knowledgeService = {
       ...(params.group ? { group: params.group } : {}),
     }),
   document: (id: string) => apiGet<KnowledgeDocumentDetail>(`/knowledge/documents/${id}`),
-  createDocument: (body: { title: string; category: string; content: string; source_id?: number }) =>
+  createDocument: (body: {
+    title: string;
+    category: string;
+    content: string;
+    source_id?: number;
+    /** Where the answer came from (e.g. the conversation it was written from). */
+    source_url?: string;
+  }) =>
     apiPost<KnowledgeDocumentDetail>('/knowledge/documents', body),
   updateDocument: (
     id: string,

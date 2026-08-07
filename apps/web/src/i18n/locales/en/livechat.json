@@ -56,5 +56,22 @@
     "all": "All",
     "queue": "Needs agent",
     "ended": "Ended"
+  },
+  "sync": "Sync",
+  "syncHint": "Fetch the latest messages now",
+  "loadOlder": "Load earlier messages",
+  "briefingLoading": "Summarising…",
+  "knowledge": {
+    "action": "Save as knowledge",
+    "title": "Save as knowledge",
+    "question": "Customer question",
+    "aiAnswer": "What the assistant answered",
+    "docTitle": "Title",
+    "category": "Category",
+    "bestAnswer": "Model answer",
+    "hint": "Saved answers are indexed immediately and used for similar questions.",
+    "save": "Save as knowledge",
+    "saved": "Saved to the knowledge base.",
+    "saveFailed": "Could not save the knowledge document."
   }
 }

@@ -9,6 +9,13 @@ export class ListSessionsQuery {
   @IsOptional() @IsString() status?: string;
 }
 
+/** Transcript paging for the console (PLN-260807): recent tail, then older blocks. */
+export class ConversationQuery {
+  @IsOptional() @IsString() limit?: string;
+  /** Load the block older than this message id. */
+  @IsOptional() @IsString() before_id?: string;
+}
+
 export class ListStatsQuery {
   @IsOptional() @IsString() page?: string;
   @IsOptional() @IsString() size?: string;
