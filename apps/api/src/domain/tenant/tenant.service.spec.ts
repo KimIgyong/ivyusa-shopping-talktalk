@@ -35,6 +35,8 @@ describe('TenantService.updatePrivacyNotice', () => {
       tenantRepo,
       {} as Repository<IntegrationCredential>,
       {} as Repository<User>,
+      // ContentFilterRule repo — count>0 so any seedDefaultModeration call no-ops.
+      { count: jest.fn(async () => 1), save: jest.fn(), create: jest.fn() } as never,
       {} as IntegrationService,
       { write: auditWrite } as unknown as AuditService,
     );

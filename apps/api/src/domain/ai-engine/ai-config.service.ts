@@ -40,6 +40,19 @@ export const DEFAULT_PERSONA =
   'never paste raw document text, section numbers, or internal labels, and never reveal internal document ' +
   "names or system details. Match the customer's language and formality (in Korean always use polite 존댓말).";
 
+/**
+ * Starter response rules for a tenant that hasn't customised them yet (returned by
+ * getConfig/getPersonaRules as a fallback, like DEFAULT_PERSONA). Once a tenant
+ * saves its own rules — even an empty list — that choice is respected.
+ */
+export const DEFAULT_RULES: string[] = [
+  "Answer only from the provided knowledge and the customer's own order data. If the answer isn't there, say you're not sure and offer to connect a human agent.",
+  'Never invent order details, prices, stock, shipping dates, or policies that are not in the provided context.',
+  "Reply in the customer's language, concisely and politely.",
+  'For payment, refund, cancellation, or personal-data-change requests outside the stated policy, hand off to a human instead of deciding on your own.',
+  'Never ask for or repeat passwords, full card numbers, or government IDs.',
+];
+
 export interface AiConfigResponse {
   persona: string;
   rules: string[];
@@ -71,7 +84,7 @@ export class AiConfigService {
     const row = await this.configRepo.findOne({ where: { tenantId } });
     return {
       persona: row?.persona ?? DEFAULT_PERSONA,
-      rules: row?.rules ?? [],
+      rules: row?.rules ?? DEFAULT_RULES,
       scenarioButtons: row?.scenarioButtons ?? DEFAULT_SCENARIO_BUTTONS,
       scenarioOverrides: row?.scenarioOverrides ?? {},
       handoffConfig: row?.handoffConfig ?? null,
@@ -124,7 +137,7 @@ export class AiConfigService {
       if (hit) return JSON.parse(hit) as { persona: string; rules: string[] };
     }
     const row = await this.configRepo.findOne({ where: { tenantId } });
-    const result = { persona: row?.persona ?? DEFAULT_PERSONA, rules: row?.rules ?? [] };
+    const result = { persona: row?.persona ?? DEFAULT_PERSONA, rules: row?.rules ?? DEFAULT_RULES };
     await this.redis.set(key, JSON.stringify(result), PERSONA_CACHE_TTL_SEC);
     return result;
   }
