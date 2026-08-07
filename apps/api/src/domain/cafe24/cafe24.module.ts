@@ -4,12 +4,15 @@ import { OrderCache } from '../order/entity/order-cache.entity';
 import { IntegrationCredential } from '../tenant/entity/integration-credential.entity';
 import { TenantModule } from '../tenant/tenant.module';
 import { CustomerModule } from '../customer/customer.module';
+import { SessionModule } from '../session/session.module';
 import { Cafe24AdminClient } from './cafe24-admin.client';
 import { Cafe24TokenService } from './cafe24-token.service';
 import { Cafe24OAuthService } from './cafe24-oauth.service';
 import { Cafe24SyncService } from './cafe24-sync.service';
+import { Cafe24CustomerAuthService } from './cafe24-customer-auth.service';
 import { ScheduledCafe24SyncService } from './scheduled-cafe24-sync.service';
 import { Cafe24OAuthController } from './cafe24-oauth.controller';
+import { Cafe24CustomerAuthController } from './cafe24-customer-auth.controller';
 import { Cafe24Controller } from './cafe24.controller';
 
 /**
@@ -21,13 +24,15 @@ import { Cafe24Controller } from './cafe24.controller';
     TypeOrmModule.forFeature([OrderCache, IntegrationCredential]),
     TenantModule,
     CustomerModule,
+    SessionModule,
   ],
-  controllers: [Cafe24OAuthController, Cafe24Controller],
+  controllers: [Cafe24OAuthController, Cafe24CustomerAuthController, Cafe24Controller],
   providers: [
     Cafe24AdminClient,
     Cafe24TokenService,
     Cafe24OAuthService,
     Cafe24SyncService,
+    Cafe24CustomerAuthService,
     ScheduledCafe24SyncService,
   ],
   exports: [Cafe24TokenService, Cafe24AdminClient],
