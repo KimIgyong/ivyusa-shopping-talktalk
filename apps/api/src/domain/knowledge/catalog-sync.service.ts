@@ -82,8 +82,8 @@ export class CatalogSyncService {
 
   /** Dry run — reports what `sync` would do and writes nothing. */
   async preview(tenantId: number): Promise<CatalogSyncPreview> {
-    const { families, held, products } = await this.plan(tenantId);
     const byKey = await this.existingByKey(tenantId);
+    const { families, held, products } = await this.plan(tenantId, this.curatedHandles(byKey));
 
     const counts = this.emptyCounts(products.length, families.length, held.length);
     for (const family of families) {
@@ -125,8 +125,8 @@ export class CatalogSyncService {
     tenantId: number,
     actorUserId: number,
   ): Promise<{ counts: CatalogSyncCounts; touchedIds: number[] }> {
-    const { families, held, products } = await this.plan(tenantId);
     const byKey = await this.existingByKey(tenantId);
+    const { families, held, products } = await this.plan(tenantId, this.curatedHandles(byKey));
     const counts = this.emptyCounts(products.length, families.length, held.length);
     const touchedIds: number[] = [];
 
@@ -199,6 +199,7 @@ export class CatalogSyncService {
   /** Group the catalogue into families and set aside rows with nothing to say. */
   private async plan(
     tenantId: number,
+    curatedHandles: Set<string>,
   ): Promise<{ families: Family[]; held: ProductCache[]; products: ProductCache[] }> {
     const products = await this.productRepo.find({ where: { tenantId } });
     const held: ProductCache[] = [];
@@ -218,18 +219,26 @@ export class CatalogSyncService {
     const families = [...groups.entries()].map(([key, members]) => ({
       key,
       members,
-      representative: this.pickRepresentative(members),
+      representative: this.pickRepresentative(members, curatedHandles),
     }));
     return { families, held, products };
   }
 
   /**
-   * Longest description wins — it is the one with the most for an answer to
-   * stand on. Ties break on handle so the same catalogue always elects the same
-   * representative and a re-run does not churn documents.
+   * A member that already has a hand-written document wins outright, then the
+   * longest description, then handle order so a re-run elects the same one.
+   *
+   * The curated rule is not cosmetic. Elect a different shade of the same
+   * polish and the family gets a NEW generated document while the curated one
+   * — the version carrying usage steps — sits beside it covering the same
+   * product, and retrieval now has two documents competing for the same
+   * question. Measured on staging: 14 of 144 curated documents were not the
+   * elected representative of their family.
    */
-  private pickRepresentative(members: ProductCache[]): ProductCache {
+  private pickRepresentative(members: ProductCache[], curatedHandles: Set<string>): ProductCache {
     return [...members].sort((a, b) => {
+      const curated = Number(curatedHandles.has(b.handle)) - Number(curatedHandles.has(a.handle));
+      if (curated !== 0) return curated;
       const diff = (b.description?.length ?? 0) - (a.description?.length ?? 0);
       return diff !== 0 ? diff : a.handle.localeCompare(b.handle);
     })[0];
@@ -292,6 +301,11 @@ export class CatalogSyncService {
   private async existingByKey(tenantId: number): Promise<Map<string, KbDocument>> {
     const docs = await this.docRepo.find({ where: { tenantId, docGroup: DOC_GROUP.PRODUCT } });
     return new Map(docs.filter((d) => d.externalKey).map((d) => [d.externalKey!, d]));
+  }
+
+  /** Handles whose document was written by a human, not by this converter. */
+  private curatedHandles(byKey: Map<string, KbDocument>): Set<string> {
+    return new Set([...byKey.values()].filter((d) => !this.ownsDocument(d)).map((d) => d.externalKey!));
   }
 
   /** Whether this converter may rewrite the document's body. */
