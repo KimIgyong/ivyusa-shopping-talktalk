@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common';
 import { OpenAiAdapter } from './openai.adapter';
 
 /**
@@ -134,6 +135,25 @@ describe('OpenAiAdapter', () => {
 
     await expect(adapter.complete(base)).rejects.toThrow('OpenAI API error 429');
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('never logs the key the provider quoted back in its error', async () => {
+    // Observed on staging: OpenAI's 401 body repeats the rejected key verbatim.
+    const logged: string[] = [];
+    const spy = jest
+      .spyOn(Logger.prototype, 'error')
+      .mockImplementation((m: unknown) => void logged.push(String(m)));
+    fetchMock.mockResolvedValueOnce({
+      ok: false,
+      status: 401,
+      text: async () => '{"message":"Incorrect API key provided: sk-test. You can find..."}',
+    });
+
+    await expect(adapter.complete(base)).rejects.toThrow('OpenAI API error 401');
+
+    expect(logged.join('\n')).not.toContain('sk-test');
+    expect(logged.join('\n')).toContain('Incorrect API key provided');
+    spy.mockRestore();
   });
 
   it('refuses to call the API without a key', async () => {
