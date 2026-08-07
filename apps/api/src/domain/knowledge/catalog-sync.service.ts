@@ -10,15 +10,21 @@ import { REVISION_KIND } from './entity/kb-document-revision.entity';
 export const CATALOG_SOURCE = 'product_catalog';
 
 /**
- * Words of the normalized title that identify a variant family.
+ * A variant suffix is announced by a dash: "… Nail Polish Core Colors - Aphrodite".
  *
- * Chosen by measuring the live catalogue (2,275 products): splitting on the
- * en dash caught only 41 families, a 28-character prefix is hostage to title
- * length, and five words folds 1,038 rows into 256 families — 41 shades of one
- * nail polish, 30 designs of one press-on set — with no false merges in the
- * largest groups (REQ-260807 §1).
+ * Only titles that carry one are folded. An earlier rule — the first five
+ * normalized words — folded more rows but merged whole product LINES: the five
+ * KISS "Pure Glow Vita Bright" products (cleanser, toner, moisturizer, eye
+ * patches, serum) collapsed into one document titled after the serum, and four
+ * real products became unreachable. Measured against the live catalogue, this
+ * rule folds 444 rows and leaves only two suspect groups, both genuine size
+ * variants of one dressing.
+ *
+ * `in` is deliberately not a separator, though "Press-On Nails in Amiable"
+ * reads like one: it would also split "2 in 1 Curling Iron" and "All In One
+ * Lamination Kit" (4 such titles in the catalogue).
  */
-const FAMILY_KEY_WORDS = 5;
+const VARIANT_SEPARATOR = /\s[–—-]\s/;
 
 /** Variant names listed in the body before it collapses to "and N more". */
 const MAX_LISTED_VARIANTS = 20;
@@ -244,13 +250,24 @@ export class CatalogSyncService {
     })[0];
   }
 
+  /**
+   * The family a title belongs to: the part before its variant separator, or
+   * the whole title when it has none. Identical titles therefore still fold —
+   * the storefront carries 30 rows literally named "Gold Finger Solid Color
+   * Nails" — while two different products never merge just because they share
+   * an opening phrase.
+   */
   private familyKey(title: string): string {
-    return title
+    const [head, ...rest] = title.split(VARIANT_SEPARATOR);
+    return this.normalize(rest.length ? head : title);
+  }
+
+  private normalize(text: string): string {
+    return text
       .toLowerCase()
       .replace(/[^a-z0-9가-힣\s]/g, ' ')
       .split(/\s+/)
       .filter(Boolean)
-      .slice(0, FAMILY_KEY_WORDS)
       .join(' ');
   }
 

@@ -72,7 +72,7 @@ describe('CatalogSyncService', () => {
       const many = Array.from({ length: 30 }, (_, i) =>
         product({
           handle: `gold-finger-${i}`,
-          title: `Gold Finger Glitzy 3D Press-On Nails in Design ${String(i).padStart(2, '0')}`,
+          title: `Gold Finger Glitzy 3D Press-On Nails - Design ${String(i).padStart(2, '0')}`,
           description: 'Salon-quality press-on nails with a glossy 3D finish and adhesive tabs.',
         }),
       );
@@ -130,6 +130,35 @@ describe('CatalogSyncService', () => {
       // shade-a has the longer description but shade-b carries the curated doc.
       expect(counts).toMatchObject({ families: 1, created: 0, curatedKept: 1 });
       expect(saved).toHaveLength(0);
+    });
+
+    it('does not merge a product line that shares an opening phrase', async () => {
+      // The rule this replaced folded these five into one document titled
+      // after the serum, and four real products stopped being reachable.
+      const line = ['Gel Cleanser', 'Facial Toner', 'Moisturizer', 'Eye Patches', 'Serum'].map((kind) =>
+        product({
+          handle: `kiss-pure-glow-${kind.toLowerCase().replace(/ /g, '-')}`,
+          title: `KISS New York Pure Glow Vita Bright ${kind}`,
+          description: `Vitamin-rich ${kind.toLowerCase()} for dull, uneven skin tone and dryness.`,
+        }),
+      );
+      const { svc } = build(line);
+
+      const { counts } = await svc.sync(1, 9);
+
+      expect(counts).toMatchObject({ families: 5, created: 5, absorbed: 0 });
+    });
+
+    it('folds rows whose titles are identical', async () => {
+      // 30 rows on the live storefront are literally the same title.
+      const dupes = Array.from({ length: 3 }, (_, i) =>
+        product({ handle: `gold-finger-solid-${i}`, title: 'Gold Finger Solid Color Nails' }),
+      );
+      const { svc } = build(dupes);
+
+      const { counts } = await svc.sync(1, 9);
+
+      expect(counts).toMatchObject({ families: 1, created: 1, absorbed: 2 });
     });
 
     it('keeps genuinely different products apart', async () => {
