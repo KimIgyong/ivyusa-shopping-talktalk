@@ -241,10 +241,14 @@ export class ShopifySyncService {
         ? Number(o.total_price)
         : null;
 
-    let row = prefetched ?? (await this.orderRepo.findOne({ where: { shopifyOrderId } }));
+    let row =
+      prefetched ??
+      (await this.orderRepo.findOne({
+        where: { tenantId, provider: SHOPIFY, shopifyOrderId },
+      }));
     const isNew = !row;
     if (!row) {
-      row = this.orderRepo.create({ shopifyOrderId });
+      row = this.orderRepo.create({ provider: SHOPIFY, shopifyOrderId });
     }
     row.tenantId = tenantId;
     // Never downgrade a known link to NULL. A later payload can legitimately carry

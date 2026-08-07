@@ -59,18 +59,26 @@ export type SenderType = (typeof SENDER_TYPE)[keyof typeof SENDER_TYPE];
 
 // ---- Orders (POL-014 taxonomy) ----
 export const ORDER_STATUS_INTERNAL = {
+  // Cafe24 N00(입금전) — the shopper hasn't paid yet. Shopify orders never carry
+  // this (they enter the cache already paid); it only appears on channels that
+  // expose a pre-payment stage (PLN-260807 §3.3).
+  PENDING_PAYMENT: 'pending_payment',
   PAID: 'paid',
   PREPARING: 'preparing',
   SHIPPING: 'shipping',
   DELIVERED: 'delivered',
+  // Cafe24 C00(취소신청) — a cancel was requested; off the main fulfilment flow.
+  CANCEL_REQUESTED: 'cancel_requested',
 } as const;
 export type OrderStatusInternal = (typeof ORDER_STATUS_INTERNAL)[keyof typeof ORDER_STATUS_INTERNAL];
 
 export const ORDER_STATUS_UI = {
+  PENDING_PAYMENT: 'Pending payment',
   CONFIRMED: 'Confirmed',
   IN_TRANSIT: 'In Transit',
   DELIVERED: 'Delivered',
   REVIEW: 'Review',
+  CANCEL_REQUESTED: 'Cancel requested',
 } as const;
 export type OrderStatusUi = (typeof ORDER_STATUS_UI)[keyof typeof ORDER_STATUS_UI];
 

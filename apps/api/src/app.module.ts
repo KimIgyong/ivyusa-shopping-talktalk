@@ -44,6 +44,7 @@ import { CustomerModule } from './domain/customer/customer.module';
 import { PrivacyModule } from './domain/privacy/privacy.module';
 import { HealthModule } from './domain/health/health.module';
 import { ShopifyOAuthModule } from './domain/shopify-oauth/shopify-oauth.module';
+import { Cafe24Module } from './domain/cafe24/cafe24.module';
 import { ShopifyProxyModule } from './domain/shopify-proxy/shopify-proxy.module';
 
 @Module({
@@ -74,6 +75,7 @@ import { ShopifyProxyModule } from './domain/shopify-proxy/shopify-proxy.module'
     OrderModule,
     ProductModule,
     ShopifyOAuthModule,
+    Cafe24Module,
     ShopifyProxyModule,
     NotificationModule,
     PushModule,

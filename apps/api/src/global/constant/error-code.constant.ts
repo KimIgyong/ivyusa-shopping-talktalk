@@ -55,6 +55,12 @@ export const ERROR_CODE = {
   // E5006 was taken by push on main first; this one moved rather than renumbering a
   // code already shipped to clients.
   IDENTITY_ERASED: { code: 'E5007', message: 'This person requested erasure of their data' },
+  // E5010-E5014 — Cafe24 integration (PLN-260807).
+  CAFE24_APP_NOT_CONFIGURED: { code: 'E5010', message: 'Cafe24 app is not configured' },
+  CAFE24_OAUTH_STATE_INVALID: { code: 'E5011', message: 'Invalid or expired Cafe24 OAuth state' },
+  CAFE24_TOKEN_EXCHANGE_FAILED: { code: 'E5012', message: 'Cafe24 token exchange failed' },
+  CAFE24_NOT_CONNECTED: { code: 'E5013', message: 'Cafe24 store is not connected' },
+  CAFE24_API_ERROR: { code: 'E5014', message: 'Cafe24 API error' },
 
   // E9xxx — system
   INTERNAL_ERROR: { code: 'E9001', message: 'Internal server error' },
