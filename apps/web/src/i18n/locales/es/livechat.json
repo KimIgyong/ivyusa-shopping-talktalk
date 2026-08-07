@@ -56,5 +56,22 @@
     "all": "Todas",
     "queue": "Requiere agente",
     "ended": "Finalizadas"
+  },
+  "sync": "Sincronizar",
+  "syncHint": "Traer los mensajes más recientes ahora",
+  "loadOlder": "Cargar mensajes anteriores",
+  "briefingLoading": "Resumiendo…",
+  "knowledge": {
+    "action": "Guardar como conocimiento",
+    "title": "Guardar como conocimiento",
+    "question": "Pregunta del cliente",
+    "aiAnswer": "Respuesta del asistente",
+    "docTitle": "Título",
+    "category": "Categoría",
+    "bestAnswer": "Respuesta modelo",
+    "hint": "Las respuestas guardadas se indexan de inmediato y se usan en preguntas similares.",
+    "save": "Guardar como conocimiento",
+    "saved": "Guardado en la base de conocimiento.",
+    "saveFailed": "No se pudo guardar el documento."
   }
 }

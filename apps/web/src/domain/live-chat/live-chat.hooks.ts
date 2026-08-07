@@ -26,6 +26,20 @@ export const useConversation = (id: string | null) => {
   });
 };
 
+/**
+ * AI briefing, fetched apart from the transcript so a slow model call never
+ * delays the messages (PLN-260807). No polling: it only changes with new turns.
+ */
+export const useBriefing = (id: string | null) => {
+  const tenantKey = useTenantKey();
+  return useQuery({
+    queryKey: ['agent', tenantKey, 'briefing', id],
+    queryFn: () => liveChatService.briefing(id as string),
+    enabled: !!id,
+    staleTime: 60_000,
+  });
+};
+
 /** New escalation alerts for the alarm modal (FR-S3) — 10s poll. */
 export const useAgentAlerts = (enabled = true) => {
   const tenantKey = useTenantKey();

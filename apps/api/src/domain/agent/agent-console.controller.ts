@@ -11,6 +11,7 @@ import {
   AgentMessageRequest,
   CreateCustomerRequest,
   LinkCustomerRequest,
+  ConversationQuery,
   ListSessionsQuery,
   ListStatsQuery,
   UpsertProfileRequest,
@@ -90,23 +91,41 @@ export class AgentConsoleController {
 
   @Get('conversations/:id')
   @RequireCapability(CAPABILITY.CONVERSATION_HANDLE)
-  @ApiOperation({ summary: 'Conversation messages + AI briefing (FR-045)' })
-  async conversation(@CurrentUser() user: Principal, @Param('id', ParseIntPipe) id: number) {
+  @ApiOperation({ summary: 'Conversation messages (recent page; older via before_id)' })
+  async conversation(
+    @CurrentUser() user: Principal,
+    @Param('id', ParseIntPipe) id: number,
+    @Query() query: ConversationQuery,
+  ) {
     const tenantId = tenantOf(user);
-    const messages = await this.agentService.listMessages(id, tenantId);
+    // The briefing is NOT computed here any more (PLN-260807 D1): it is a model
+    // call, and waiting for it kept a two-message conversation on screen for
+    // 6-8 seconds. The console fetches it separately, after the transcript.
+    const { messages, hasMore } = await this.agentService.listMessages(id, tenantId, {
+      limit: query.limit != null ? Number(query.limit) : undefined,
+      beforeId: query.before_id != null ? Number(query.before_id) : undefined,
+    });
     // PII-access audit (PRV-H4): the agent sees the transcript + customer panel.
     await this.agentService.auditConversationView(actorIdOf(user), tenantId, id);
     const names = await this.agentService.resolveSenderNames(messages);
-    const briefing = await this.agentService.briefing(tenantId, messages);
     const customer = await this.agentService.customerContext(id, tenantId);
     return {
       conversationId: id,
       messages: messages.map((m) =>
         toMessageResponse(m, m.senderId != null ? names.get(String(m.senderId)) ?? null : null),
       ),
-      briefing,
+      hasMore,
       customer,
     };
+  }
+
+  @Get('conversations/:id/briefing')
+  @RequireCapability(CAPABILITY.CONVERSATION_HANDLE)
+  @ApiOperation({ summary: 'AI briefing for a conversation (FR-045) — loaded separately' })
+  async briefing(@CurrentUser() user: Principal, @Param('id', ParseIntPipe) id: number) {
+    const tenantId = tenantOf(user);
+    const { messages } = await this.agentService.listMessages(id, tenantId, { limit: 50 });
+    return { briefing: await this.agentService.briefing(tenantId, messages) };
   }
 
   @Post('conversations/:id/link-customer')

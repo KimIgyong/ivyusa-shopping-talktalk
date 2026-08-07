@@ -279,6 +279,7 @@ export class KnowledgeService {
       docGroup: body.doc_group ?? DOC_GROUP.COUNSEL,
       title: body.title,
       content: body.content,
+      sourceUrl: body.source_url ?? null,
       active: 1,
       status: 'pending',
       embeddingRef: null,

@@ -102,8 +102,13 @@ export function useCreateDocument() {
   const qc = useQueryClient();
   const tenantKey = useTenantKey();
   return useMutation({
-    mutationFn: (body: { title: string; category: string; content: string; source_id?: number }) =>
-      knowledgeService.createDocument(body),
+    mutationFn: (body: {
+      title: string;
+      category: string;
+      content: string;
+      source_id?: number;
+      source_url?: string;
+    }) => knowledgeService.createDocument(body),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'documents'] });
       qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'categories'] });

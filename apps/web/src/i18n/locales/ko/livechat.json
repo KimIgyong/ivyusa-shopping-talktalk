@@ -56,5 +56,22 @@
     "all": "전체",
     "queue": "상담 필요",
     "ended": "종료"
+  },
+  "sync": "싱크",
+  "syncHint": "최근 대화를 지금 바로 가져옵니다",
+  "loadOlder": "이전 대화 더보기",
+  "briefingLoading": "요약 생성 중…",
+  "knowledge": {
+    "action": "지식으로 저장",
+    "title": "지식으로 저장",
+    "question": "고객 질문",
+    "aiAnswer": "AI가 한 답변",
+    "docTitle": "제목",
+    "category": "분류",
+    "bestAnswer": "모범답안",
+    "hint": "저장한 답변은 즉시 색인되어 유사한 질문에 사용됩니다.",
+    "save": "지식으로 저장",
+    "saved": "지식으로 저장했습니다.",
+    "saveFailed": "지식 문서를 저장하지 못했습니다."
   }
 }
