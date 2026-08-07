@@ -71,6 +71,7 @@ export interface Storefront {
 
 export interface WidgetSettings {
   loginMode: WidgetLoginMode;
+  timezone: string | null;
 }
 
 export const settingsService = {
@@ -79,8 +80,11 @@ export const settingsService = {
   storefront: () => apiGet<Storefront>('/tenants/storefront'),
   updateStorefront: (storefrontUrl: string) =>
     apiPatch<Storefront>('/tenants/storefront', { storefront_url: storefrontUrl }),
-  saveWidgetSettings: (loginMode: WidgetLoginMode) =>
-    apiPatch<WidgetSettings>('/tenants/widget-settings', { login_mode: loginMode }),
+  saveWidgetSettings: (loginMode: WidgetLoginMode, timezone?: string | null) =>
+    apiPatch<WidgetSettings>('/tenants/widget-settings', {
+      login_mode: loginMode,
+      ...(timezone !== undefined ? { timezone } : {}),
+    }),
   updateCredential: (provider: string, body: UpdateCredentialBody) =>
     apiPut<CredentialStatus>(`/tenants/me/credentials/${provider}`, body),
   shopify: () => apiGet<ShopifySettings>('/tenants/me/shopify'),

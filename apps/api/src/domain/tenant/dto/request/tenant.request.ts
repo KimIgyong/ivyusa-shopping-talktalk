@@ -127,4 +127,11 @@ export class UpdateStorefrontRequest {
 export class UpdateWidgetSettingsRequest {
   @IsIn(Object.values(WIDGET_LOGIN_MODE))
   login_mode: WidgetLoginMode;
+
+  // IANA timezone (e.g. 'Asia/Seoul'); drives the default widget language. Empty
+  // string / null clears it. Optional so a login-mode-only update leaves it intact.
+  @IsOptional()
+  @IsString()
+  @Matches(/^$|^[A-Za-z]+\/[A-Za-z_+-]+$/)
+  timezone?: string | null;
 }

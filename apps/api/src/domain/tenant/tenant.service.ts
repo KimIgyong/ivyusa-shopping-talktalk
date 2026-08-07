@@ -252,13 +252,14 @@ export class TenantService {
   ): Promise<Tenant> {
     const tenant = await this.findById(tenantId);
     tenant.widgetLoginMode = dto.login_mode;
+    if (dto.timezone !== undefined) tenant.timezone = dto.timezone?.trim() || null;
     const saved = await this.tenantRepo.save(tenant);
     await this.audit.write({
       tenantId,
       actorType: 'user',
       actorId,
       action: 'tenant.widget_settings_updated',
-      target: saved.widgetLoginMode,
+      target: `${saved.widgetLoginMode}${saved.timezone ? ` · ${saved.timezone}` : ''}`,
     });
     return saved;
   }

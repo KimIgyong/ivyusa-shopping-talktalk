@@ -42,7 +42,10 @@
     "redirectHint": "Clicking \"Sign in\" takes the shopper to the store's login page in the same tab; after signing in they return and the widget reopens on their orders.",
     "popupHint": "Clicking \"Sign in\" opens the store's login page in a popup window. Popup blockers may interfere; if the login stays on shopify.com the shopper must close the popup manually.",
     "saved": "Widget settings saved.",
-    "saveError": "Failed to save widget settings."
+    "saveError": "Failed to save widget settings.",
+    "timezone": "Default language by timezone",
+    "tzUnset": "Not set (English default)",
+    "timezoneHint": "Sets the widget's default language when the shopper hasn't chosen one — Asia/Seoul → Korean, America/New_York → English."
   },
   "shopify": {
     "title": "Shopify connection",

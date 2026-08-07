@@ -19,7 +19,8 @@ export function useSaveWidgetSettings() {
   const qc = useQueryClient();
   const tenantKey = useTenantKey();
   return useMutation({
-    mutationFn: (loginMode: WidgetLoginMode) => settingsService.saveWidgetSettings(loginMode),
+    mutationFn: (v: { loginMode: WidgetLoginMode; timezone?: string | null }) =>
+      settingsService.saveWidgetSettings(v.loginMode, v.timezone),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['widget-settings', tenantKey] });
       // Success auto-closes; errors stay until dismissed (dev-kit §4.3).
