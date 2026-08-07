@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { AiAdapter, AiCompletionRequest, AiCompletionResult } from '../ai-adapter.interface';
+import { redactSecrets } from '../../../../global/util/secret-redact.util';
 
 /**
  * Anthropic Claude adapter (default real provider). Uses the Messages API via
@@ -37,7 +38,11 @@ export class AnthropicAdapter implements AiAdapter {
     });
     if (!res.ok) {
       const detail = await res.text().catch(() => '');
-      this.logger.error(`Anthropic error ${res.status}: ${detail.slice(0, 300)}`);
+      // Anthropic does not echo the key today, but the body is provider-controlled
+      // text: redact before it reaches the log, same as the OpenAI path.
+      this.logger.error(
+        `Anthropic error ${res.status}: ${redactSecrets(detail, apiKey).slice(0, 300)}`,
+      );
       throw new Error(`Anthropic API error ${res.status}`);
     }
     const data: any = await res.json();

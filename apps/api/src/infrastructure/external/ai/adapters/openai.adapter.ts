@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { AiAdapter, AiCompletionRequest, AiCompletionResult } from '../ai-adapter.interface';
+import { redactSecrets } from '../../../../global/util/secret-redact.util';
 
 /** Body fields the API may reject per model; each has a documented fallback. */
 type Negotiable = 'temperature' | 'max_completion_tokens';
@@ -80,7 +81,10 @@ export class OpenAiAdapter implements AiAdapter {
       const detail = await res.text().catch(() => '');
       const field = res.status === 400 ? this.rejectedField(detail, body, settled) : null;
       if (!field) {
-        this.logger.error(`OpenAI error ${res.status}: ${detail.slice(0, 300)}`);
+        // A 401 body quotes the rejected key verbatim — never log it raw.
+        this.logger.error(
+          `OpenAI error ${res.status}: ${redactSecrets(detail, apiKey).slice(0, 300)}`,
+        );
         throw new Error(`OpenAI API error ${res.status}`);
       }
       settled.add(field);
