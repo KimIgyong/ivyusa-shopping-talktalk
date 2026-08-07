@@ -5,6 +5,7 @@ import { DOC_GROUP, KbDocument } from './entity/kb-document.entity';
 import { KbRevisionService } from './kb-revision.service';
 import { REVISION_KIND } from './entity/kb-document-revision.entity';
 import { parseCsvRecords } from './csv.util';
+import { PRODUCT_STATUS, ProductCache } from '../product/entity/product-cache.entity';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
 
@@ -42,6 +43,7 @@ export class ProductImportService {
   constructor(
     @InjectRepository(KbDocument) private readonly docRepo: Repository<KbDocument>,
     private readonly revisions: KbRevisionService,
+    @InjectRepository(ProductCache) private readonly productRepo: Repository<ProductCache>,
   ) {}
 
   async importCsv(
@@ -74,6 +76,13 @@ export class ProductImportService {
     });
     const byKey = new Map(existing.filter((d) => d.externalKey).map((d) => [d.externalKey!, d]));
 
+    // Catalog bridge (PLN-260807 F1): active only when the file carries the
+    // OPTIONAL display columns — preloaded once so 5k rows don't issue 5k lookups.
+    const hasCatalogColumns = headers.includes('Price(USD)') || headers.includes('Image URL');
+    const catalogByHandle = hasCatalogColumns
+      ? new Map((await this.productRepo.find({ where: { tenantId } })).map((p) => [p.handle, p]))
+      : null;
+
     const touchedIds: number[] = [];
     const seenKeys = new Set<string>();
 
@@ -94,6 +103,16 @@ export class ProductImportService {
         continue;
       }
       seenKeys.add(handle);
+
+      // Feed price/image into the display catalog (products_cache). Isolated:
+      // a catalog hiccup must never fail the KB import it rides along with.
+      if (catalogByHandle) {
+        try {
+          await this.bridgeCatalogRow(tenantId, handle, name, rec, catalogByHandle);
+        } catch (e) {
+          this.logger.warn(`catalog bridge failed for "${handle}": ${(e as Error).message}`);
+        }
+      }
 
       const content = this.buildBody(rec);
       const category = rec['Brand'] || rec['Category'] || null;
@@ -169,6 +188,44 @@ export class ProductImportService {
     if (rec['How to Use']) parts.push(`\nHow to use:\n${rec['How to Use']}`);
     if (rec['Tags']) parts.push(`\nTags: ${rec['Tags']}`);
     return parts.join('\n').trim();
+  }
+
+  /**
+   * Upsert the display-catalog row (products_cache) from the OPTIONAL CSV
+   * columns `Price(USD)` / `Image URL` (PLN-260807 F1). The storefront sync
+   * remains the catalog's source of truth for everything else — this only sets
+   * what the sync can also set, plus creates a minimal row when none exists yet
+   * (title from `Product Name`, URL from `Product URL`, category from `Category`).
+   */
+  private async bridgeCatalogRow(
+    tenantId: number,
+    handle: string,
+    name: string,
+    rec: Record<string, string>,
+    catalogByHandle: Map<string, ProductCache>,
+  ): Promise<void> {
+    const priceRaw = rec['Price(USD)'];
+    const price = priceRaw && Number.isFinite(Number(priceRaw)) ? Number(priceRaw) : null;
+    const imageRaw = rec['Image URL'];
+    const imageUrl = imageRaw && /^https?:\/\//i.test(imageRaw) ? imageRaw.slice(0, 1024) : null;
+    if (price == null && imageUrl == null) return;
+
+    let row = catalogByHandle.get(handle);
+    if (!row) {
+      const url = rec['Product URL'];
+      row = this.productRepo.create({
+        tenantId,
+        handle,
+        title: name.slice(0, 255),
+        productUrl: url && /^https?:\/\//i.test(url) ? url.slice(0, 1024) : null,
+        category: rec['Category'] ? rec['Category'].slice(0, 128) : null,
+        status: PRODUCT_STATUS.ACTIVE,
+      });
+    }
+    if (price != null) row.price = price;
+    if (imageUrl != null) row.imageUrl = imageUrl;
+    const saved = await this.productRepo.save(row);
+    catalogByHandle.set(handle, saved);
   }
 
   /** Products no longer present in the file — reported, never auto-deleted. */

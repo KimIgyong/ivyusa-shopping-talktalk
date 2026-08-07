@@ -6,6 +6,7 @@ import { KbBoardPost } from './entity/kb-board-post.entity';
 import { KbFile } from './entity/kb-file.entity';
 import { KbConflict } from './entity/kb-conflict.entity';
 import { KbDocumentRevision } from './entity/kb-document-revision.entity';
+import { ProductCache } from '../product/entity/product-cache.entity';
 import { KnowledgeService } from './knowledge.service';
 import { KbConflictService } from './kb-conflict.service';
 import { KbRevisionService } from './kb-revision.service';
@@ -26,6 +27,9 @@ import { ModerationModule } from '../moderation/moderation.module';
       KbFile,
       KbConflict,
       KbDocumentRevision,
+      // Repository only — the CSV import's optional Price/Image bridge writes
+      // into the display catalog (PLN-260807 F1). No ProductModule import.
+      ProductCache,
     ]),
     // RagService answers the console's knowledge questions; Chat does not depend
     // on Knowledge, so this stays acyclic.

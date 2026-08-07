@@ -20,6 +20,7 @@ import { ModerationModule } from './domain/moderation/moderation.module';
 import { TenantModule } from './domain/tenant/tenant.module';
 import { UserModule } from './domain/user/user.module';
 import { OrderModule } from './domain/order/order.module';
+import { ProductModule } from './domain/product/product.module';
 import { NotificationModule } from './domain/notification/notification.module';
 import { PushModule } from './domain/push/push.module';
 import { ReviewModule } from './domain/review/review.module';
@@ -68,6 +69,7 @@ import { ShopifyProxyModule } from './domain/shopify-proxy/shopify-proxy.module'
     UserModule,
     CustomerModule,
     OrderModule,
+    ProductModule,
     ShopifyOAuthModule,
     ShopifyProxyModule,
     NotificationModule,

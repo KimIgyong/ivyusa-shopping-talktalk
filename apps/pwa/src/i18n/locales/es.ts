@@ -1,7 +1,13 @@
 export default {
   app: { title: 'ShopTalk' },
   header: { shop: 'Tienda' },
-  tabs: { chat: 'Chat', orders: 'Pedidos', alerts: 'Avisos', settings: 'Ajustes' },
+  tabs: {
+    chat: 'Chat',
+    products: 'Productos',
+    orders: 'Pedidos',
+    alerts: 'Avisos',
+    settings: 'Ajustes',
+  },
   common: {
     loading: 'Cargando…',
     error: 'Algo salió mal',
@@ -26,6 +32,20 @@ export default {
     consentFailed: 'No se pudo guardar tu consentimiento',
     escalated: 'Un agente te atenderá en breve.',
     sendFailed: 'No se pudo enviar el mensaje',
+  },
+  products: {
+    title: 'Productos',
+    search: 'Buscar productos…',
+    all: 'Todos',
+    empty: 'No se encontraron productos.',
+    loadMore: 'Ver más',
+  },
+  product: {
+    buy: 'Comprar en la tienda',
+    restock: 'Aviso de reposición',
+    restockOk: 'Aviso activado: te avisaremos cuando vuelva a haber stock',
+    restockFailed: 'No se pudo activar el aviso de reposición',
+    notFound: 'Producto no encontrado.',
   },
   orders: {
     title: 'Pedidos',

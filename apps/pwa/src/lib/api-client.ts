@@ -5,6 +5,24 @@ interface Envelope<T> {
   success: boolean;
   data: T;
   error?: { code: string; message: string } | null;
+  /** Present on list responses only (BaseListResponse). */
+  pagination?: PaginationMeta;
+}
+
+/** List pagination meta (mirrors @ivy/types PaginationMeta). */
+export interface PaginationMeta {
+  page: number;
+  size: number;
+  totalCount: number;
+  totalPages: number;
+  hasNext: boolean;
+  hasPrev: boolean;
+}
+
+/** Paginated list result — `request()` alone would strip the pagination sibling. */
+export interface ListResult<T> {
+  items: T[];
+  pagination: PaginationMeta | null;
 }
 
 export class ApiError extends Error {
@@ -28,11 +46,11 @@ function buildQuery(query?: Query): string {
   return parts.length ? `?${parts.join('&')}` : '';
 }
 
-async function request<T>(
+async function fetchEnvelope<T>(
   method: 'GET' | 'POST' | 'PUT' | 'DELETE',
   path: string,
   opts: { query?: Query; body?: unknown; sessionToken?: string } = {},
-): Promise<T> {
+): Promise<Envelope<T>> {
   const headers: Record<string, string> = { 'content-type': 'application/json' };
   // Token travels in X-Session-Token, never the URL (PRV-M7 parity with widget).
   if (opts.sessionToken) headers['x-session-token'] = opts.sessionToken;
@@ -53,12 +71,26 @@ async function request<T>(
     const err = envelope.error ?? { code: 'E9001', message: `HTTP ${res.status}` };
     throw new ApiError(err.code, err.message, res.status);
   }
+  return envelope;
+}
+
+async function request<T>(
+  method: 'GET' | 'POST' | 'PUT' | 'DELETE',
+  path: string,
+  opts: { query?: Query; body?: unknown; sessionToken?: string } = {},
+): Promise<T> {
+  const envelope = await fetchEnvelope<T>(method, path, opts);
   return envelope.data;
 }
 
 export const apiClient = {
   get: <T>(path: string, sessionToken?: string, query?: Query) =>
     request<T>('GET', path, { sessionToken, query }),
+  /** Paginated list GET — keeps the envelope's `pagination` sibling. */
+  getList: async <T>(path: string, sessionToken?: string, query?: Query): Promise<ListResult<T>> => {
+    const envelope = await fetchEnvelope<T[]>('GET', path, { sessionToken, query });
+    return { items: envelope.data ?? [], pagination: envelope.pagination ?? null };
+  },
   post: <T>(path: string, body?: unknown, sessionToken?: string) =>
     request<T>('POST', path, { sessionToken, body }),
   put: <T>(path: string, body?: unknown, sessionToken?: string) =>

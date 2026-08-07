@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Redirect, Tabs } from 'expo-router';
+import { Pressable } from 'react-native';
+import { Redirect, Tabs, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { isOnboarded } from '../../src/lib/storage';
@@ -7,6 +8,7 @@ import { useUnreadBadge } from '../../src/hooks/useNotifications';
 
 export default function TabsLayout() {
   const { t } = useTranslation();
+  const router = useRouter();
   const [onboarded, setOnboarded] = useState<boolean | null>(null);
   const unread = useUnreadBadge();
 
@@ -27,9 +29,17 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: t('tabs.shop'),
-          headerShown: false,
-          tabBarIcon: ({ color, size }) => <Ionicons name="storefront-outline" color={color} size={size} />,
+          title: t('tabs.home'),
+          headerTitle: t('home.title'),
+          tabBarIcon: ({ color, size }) => <Ionicons name="home-outline" color={color} size={size} />,
+        }}
+      />
+      <Tabs.Screen
+        name="products"
+        options={{
+          title: t('tabs.products'),
+          headerTitle: t('products.title'),
+          tabBarIcon: ({ color, size }) => <Ionicons name="pricetags-outline" color={color} size={size} />,
         }}
       />
       <Tabs.Screen
@@ -40,10 +50,21 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="orders"
+        name="my"
         options={{
-          title: t('tabs.orders'),
-          tabBarIcon: ({ color, size }) => <Ionicons name="cube-outline" color={color} size={size} />,
+          title: t('tabs.my'),
+          headerTitle: t('my.title'),
+          headerRight: () => (
+            <Pressable
+              onPress={() => router.push('/settings')}
+              hitSlop={8}
+              style={{ marginRight: 16 }}
+              accessibilityLabel={t('my.settings')}
+            >
+              <Ionicons name="settings-outline" size={22} color="#111827" />
+            </Pressable>
+          ),
+          tabBarIcon: ({ color, size }) => <Ionicons name="person-outline" color={color} size={size} />,
         }}
       />
       <Tabs.Screen
@@ -52,13 +73,6 @@ export default function TabsLayout() {
           title: t('tabs.alerts'),
           tabBarBadge: unread > 0 ? unread : undefined,
           tabBarIcon: ({ color, size }) => <Ionicons name="notifications-outline" color={color} size={size} />,
-        }}
-      />
-      <Tabs.Screen
-        name="settings"
-        options={{
-          title: t('tabs.settings'),
-          tabBarIcon: ({ color, size }) => <Ionicons name="settings-outline" color={color} size={size} />,
         }}
       />
     </Tabs>

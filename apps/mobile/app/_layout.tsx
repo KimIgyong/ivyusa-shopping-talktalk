@@ -22,7 +22,7 @@ export default function RootLayout() {
       const data = resp.notification.request.content.data as { category?: string } | undefined;
       const category = data?.category;
       if (category === 'chat') router.push('/(tabs)/chat');
-      else if (category === 'shipping' || category === 'payment') router.push('/(tabs)/orders');
+      else if (category === 'shipping' || category === 'payment') router.push('/(tabs)/my');
       else router.push('/(tabs)/alerts');
     });
     return () => sub.remove();
@@ -35,6 +35,9 @@ export default function RootLayout() {
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="(tabs)" />
             <Stack.Screen name="onboarding" />
+            <Stack.Screen name="shop" options={{ headerShown: true, title: '' }} />
+            <Stack.Screen name="product/[handle]" options={{ headerShown: true, title: '' }} />
+            <Stack.Screen name="settings" options={{ headerShown: true, title: '' }} />
             <Stack.Screen name="order/[id]" options={{ headerShown: true, title: '' }} />
           </Stack>
         </ToastProvider>

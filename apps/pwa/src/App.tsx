@@ -4,6 +4,8 @@ import { STOREFRONT_URL } from './lib/config';
 import { useUnreadBadge } from './hooks/useNotifications';
 import { InstallBanner } from './components/InstallBanner';
 import ChatPage from './pages/ChatPage';
+import ProductsPage from './pages/ProductsPage';
+import ProductDetailPage from './pages/ProductDetailPage';
 import OrdersPage from './pages/OrdersPage';
 import OrderDetailPage from './pages/OrderDetailPage';
 import AlertsPage from './pages/AlertsPage';
@@ -33,6 +35,7 @@ function Shell() {
       </main>
       <nav className="bottom-nav">
         <NavItem to="/chat" icon="💬" label={t('tabs.chat')} />
+        <NavItem to="/products" icon="🛍" label={t('tabs.products')} />
         <NavItem to="/orders" icon="📦" label={t('tabs.orders')} />
         <NavItem to="/alerts" icon="🔔" label={t('tabs.alerts')} badge={unread} />
         <NavItem to="/settings" icon="⚙️" label={t('tabs.settings')} />
@@ -69,6 +72,8 @@ export default function App() {
       <Route element={<Shell />}>
         <Route index element={<Navigate to="/chat" replace />} />
         <Route path="/chat" element={<ChatPage />} />
+        <Route path="/products" element={<ProductsPage />} />
+        <Route path="/products/:handle" element={<ProductDetailPage />} />
         <Route path="/orders" element={<OrdersPage />} />
         <Route path="/orders/:id" element={<OrderDetailPage />} />
         <Route path="/alerts" element={<AlertsPage />} />

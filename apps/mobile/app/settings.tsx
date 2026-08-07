@@ -1,20 +1,21 @@
 import React from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import Constants from 'expo-constants';
+import { Stack } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { getPrefs, setPref } from '../../src/services/notificationService';
+import { getPrefs, setPref } from '../src/services/notificationService';
 import {
   deleteData,
   exportData,
   getOptOutStatus,
   setOptOut,
-} from '../../src/services/privacyService';
-import { useSession } from '../../src/store/session-context';
-import { useToast } from '../../src/components/Toast';
-import { ApiError } from '../../src/lib/api-client';
-import { SUPPORTED_LANGUAGES, type AppLanguage } from '../../src/lib/config';
-import type { NotifPref } from '../../src/lib/types';
+} from '../src/services/privacyService';
+import { useSession } from '../src/store/session-context';
+import { useToast } from '../src/components/Toast';
+import { ApiError } from '../src/lib/api-client';
+import { SUPPORTED_LANGUAGES, type AppLanguage } from '../src/lib/config';
+import type { NotifPref } from '../src/lib/types';
 
 const LANGUAGE_LABELS: Record<AppLanguage, string> = { en: 'English', es: 'Español', ko: '한국어' };
 
@@ -120,6 +121,7 @@ export default function SettingsScreen() {
 
   return (
     <ScrollView style={styles.container}>
+      <Stack.Screen options={{ title: t('settings.title') }} />
       <Text style={styles.section}>{t('settings.language')}</Text>
       <View style={styles.card}>
         <View style={styles.langRow}>
