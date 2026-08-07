@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Campaign } from './entity/campaign.entity';
 import { Customer } from '../customer/entity/customer.entity';
+import { ProductCache } from '../product/entity/product-cache.entity';
 import { CreateCampaignRequest, UpdateCampaignRequest } from './dto/request/campaign.request';
 import { EventBusService, EVENTS } from '../../infrastructure/infrastructure.module';
 import { NotificationService } from '../notification/notification.service';
@@ -12,6 +13,19 @@ import { AuditService } from '../audit/audit.service';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
 
+/**
+ * Optional deep-link carried in `campaigns.content.link` (PLN-260807 F4, A-9).
+ * - product: `handle` must exist in the tenant's products_cache; dispatch resolves
+ *   the catalog row's product_url and passes the handle through for app routing.
+ * - url: an https:// URL delivered as-is.
+ * Flow: content.link → notifications.link_url → push data.url/productHandle → client route.
+ */
+interface CampaignLink {
+  type: 'product' | 'url';
+  handle?: string;
+  url?: string;
+}
+
 /** Marketing campaigns (FR-045) — tenant admin authoring + dispatch. */
 @Injectable()
 export class CampaignService implements OnModuleInit {
@@ -20,6 +34,7 @@ export class CampaignService implements OnModuleInit {
   constructor(
     @InjectRepository(Campaign) private readonly campaignRepo: Repository<Campaign>,
     @InjectRepository(Customer) private readonly customerRepo: Repository<Customer>,
+    @InjectRepository(ProductCache) private readonly productRepo: Repository<ProductCache>,
     private readonly bus: EventBusService,
     private readonly notifications: NotificationService,
     private readonly moderation: ModerationService,
@@ -66,6 +81,10 @@ export class CampaignService implements OnModuleInit {
 
   async send(tenantId: number, id: number): Promise<Campaign> {
     const campaign = await this.requireCampaign(tenantId, id);
+    // Validate the deep-link here (admin-facing request) so a bad handle/url
+    // surfaces as a 400 instead of failing silently inside the bus consumer.
+    const link = this.campaignLink(campaign.content);
+    if (link) await this.validateLink(tenantId, link);
     campaign.status = 'sent';
     campaign.sentAt = new Date();
     const saved = await this.campaignRepo.save(campaign);
@@ -126,6 +145,11 @@ export class CampaignService implements OnModuleInit {
       return;
     }
 
+    // Resolve the deep-link once for the whole fan-out (A-9). Product links use
+    // the catalog row's storefront URL; the handle also rides along so the app
+    // can route to its native product-detail screen instead of the web URL.
+    const { linkUrl, productHandle } = await this.resolveLink(campaign.tenantId, campaign.content);
+
     const customers = await this.customerRepo.find({ where: { tenantId: campaign.tenantId } });
     let externalDelivered = 0;
     let inAppOnly = 0;
@@ -141,6 +165,8 @@ export class CampaignService implements OnModuleInit {
             category: 'event',
             title: modTitle.text,
             body: modBody ? modBody.text : null,
+            linkUrl,
+            productHandle,
           }),
         ),
       );
@@ -164,6 +190,57 @@ export class CampaignService implements OnModuleInit {
       target: `campaign:${campaignId}`,
       metadata: { externalDelivered, inAppOnly },
     });
+  }
+
+  /** Extract the typed deep-link from the content JSON (absent/malformed → null). */
+  private campaignLink(content: Record<string, unknown> | null): CampaignLink | null {
+    const link = content?.link;
+    if (!link || typeof link !== 'object') return null;
+    return link as CampaignLink;
+  }
+
+  /**
+   * Admin-facing link validation (send-time). 4xx are not server-logged by
+   * default, so rejections warn here for traceability.
+   */
+  private async validateLink(tenantId: number, link: CampaignLink): Promise<void> {
+    if (link.type === 'product') {
+      const handle = typeof link.handle === 'string' ? link.handle.trim() : '';
+      const exists = handle
+        ? await this.productRepo.findOne({ where: { tenantId, handle } })
+        : null;
+      if (!exists) {
+        this.logger.warn(`campaign link rejected: unknown product handle '${handle}' (tenant ${tenantId})`);
+        throw new BusinessException(ERROR_CODE.VALIDATION_FAILED, HttpStatus.BAD_REQUEST);
+      }
+      return;
+    }
+    if (link.type === 'url') {
+      if (typeof link.url !== 'string' || !link.url.startsWith('https://')) {
+        this.logger.warn(`campaign link rejected: non-https url (tenant ${tenantId})`);
+        throw new BusinessException(ERROR_CODE.VALIDATION_FAILED, HttpStatus.BAD_REQUEST);
+      }
+      return;
+    }
+    this.logger.warn(`campaign link rejected: unknown type '${String((link as { type?: unknown }).type)}'`);
+    throw new BusinessException(ERROR_CODE.VALIDATION_FAILED, HttpStatus.BAD_REQUEST);
+  }
+
+  /** Dispatch-time link resolution: product → catalog product_url; url → as-is. */
+  private async resolveLink(
+    tenantId: number,
+    content: Record<string, unknown> | null,
+  ): Promise<{ linkUrl: string | null; productHandle: string | null }> {
+    const link = this.campaignLink(content);
+    if (!link) return { linkUrl: null, productHandle: null };
+    if (link.type === 'product' && link.handle) {
+      const row = await this.productRepo.findOne({ where: { tenantId, handle: link.handle } });
+      return { linkUrl: row?.productUrl ?? null, productHandle: link.handle };
+    }
+    if (link.type === 'url' && typeof link.url === 'string') {
+      return { linkUrl: link.url, productHandle: link.handle ?? null };
+    }
+    return { linkUrl: null, productHandle: null };
   }
 
   /** Campaign content is a JSON blob — surface its text field (or a dump) as the notification body. */

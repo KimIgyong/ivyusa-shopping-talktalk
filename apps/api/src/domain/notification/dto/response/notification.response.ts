@@ -11,4 +11,11 @@ export interface NotifyInput {
   body?: string | null;
   statusBadge?: string | null;
   channel?: string | null;
+  /** Deep-link target persisted on the row (campaign product/url — A-9). */
+  linkUrl?: string | null;
+  /**
+   * Catalog handle for client-side product routing. NOT persisted — pass-through
+   * onto the PUSH_DISPATCH payload only (the app prefers /products/:handle).
+   */
+  productHandle?: string | null;
 }

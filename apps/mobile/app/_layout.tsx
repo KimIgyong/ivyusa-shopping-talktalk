@@ -6,6 +6,7 @@ import * as Notifications from 'expo-notifications';
 import { SessionProvider } from '../src/store/session-context';
 import { ToastProvider } from '../src/components/Toast';
 import { configureForegroundNotifications } from '../src/lib/push';
+import { openNotificationLink } from '../src/lib/deeplink';
 
 configureForegroundNotifications();
 
@@ -16,10 +17,20 @@ const queryClient = new QueryClient({
 export default function RootLayout() {
   const router = useRouter();
 
-  // Push tap → deep link by category (PLN-MobileApp M4).
+  // Push tap → deep link: product/URL (F4 A-9) first, then category (PLN-MobileApp M4).
   useEffect(() => {
     const sub = Notifications.addNotificationResponseReceivedListener((resp) => {
-      const data = resp.notification.request.content.data as { category?: string } | undefined;
+      const data = resp.notification.request.content.data as
+        | { category?: string; url?: string; productHandle?: string }
+        | undefined;
+      if (data?.productHandle) {
+        router.push(`/product/${data.productHandle}`);
+        return;
+      }
+      if (data?.url) {
+        openNotificationLink(router, data.url);
+        return;
+      }
       const category = data?.category;
       if (category === 'chat') router.push('/(tabs)/chat');
       else if (category === 'shipping' || category === 'payment') router.push('/(tabs)/my');

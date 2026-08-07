@@ -1,8 +1,10 @@
 import React from 'react';
 import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { useRouter } from 'expo-router';
 import { useMarkRead, useNotificationList } from '../../src/hooks/useNotifications';
 import { useToast } from '../../src/components/Toast';
+import { openNotificationLink } from '../../src/lib/deeplink';
 import type { NotificationItem } from '../../src/lib/types';
 
 const CATEGORY_ICON: Record<string, string> = {
@@ -15,17 +17,21 @@ const CATEGORY_ICON: Record<string, string> = {
 
 export default function AlertsScreen() {
   const { t } = useTranslation();
+  const router = useRouter();
   const listQuery = useNotificationList();
   const markRead = useMarkRead();
   const toast = useToast();
 
   const onPress = async (item: NotificationItem) => {
-    if (item.read) return;
-    try {
-      await markRead(item.id);
-    } catch {
-      toast.show(t('alerts.markReadFailed'), 'error');
+    // Mark read first (existing behavior), then follow the deep link if any (F4 A-9).
+    if (!item.read) {
+      try {
+        await markRead(item.id);
+      } catch {
+        toast.show(t('alerts.markReadFailed'), 'error');
+      }
     }
+    if (item.linkUrl) openNotificationLink(router, item.linkUrl);
   };
 
   return (

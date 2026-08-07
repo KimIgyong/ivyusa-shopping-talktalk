@@ -2,6 +2,7 @@
   "title": "Campañas",
   "subtitle": "Cree y envíe campañas salientes",
   "newCampaign": "Nueva campaña",
+  "editCampaign": "Editar campaña",
   "name": "Nombre",
   "channel": "Canal",
   "status": "Estado",
@@ -9,6 +10,18 @@
   "sent": "Enviado",
   "created": "Creado",
   "send": "Enviar",
+  "edit": "Editar",
   "message": "Mensaje",
-  "empty": "Aún no hay campañas."
+  "empty": "Aún no hay campañas.",
+  "link": "Enlace",
+  "linkNone": "Ninguno",
+  "linkProduct": "Producto",
+  "linkUrl": "URL",
+  "linkProductHandle": "Identificador del producto",
+  "linkProductHelp": "Se verifica contra el catálogo de productos al enviar la campaña.",
+  "linkUrlField": "URL del enlace (https)",
+  "linkUrlHelp": "Debe comenzar con https://.",
+  "toastCreated": "Campaña creada",
+  "toastUpdated": "Campaña actualizada",
+  "toastSent": "Campaña enviada"
 }

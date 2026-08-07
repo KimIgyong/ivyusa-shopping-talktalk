@@ -165,6 +165,54 @@ describe('PushService (REQ-MobileApp M1 + PLN-PWA P1 — registration + dispatch
     expect(messages[0].data).toMatchObject({ category: 'shipping', notificationId: 5 });
   });
 
+  it('dispatch: linkUrl/productHandle land in message data as url/productHandle (A-9)', async () => {
+    tokenRows.push({
+      token: 'ExponentPushToken[a]',
+      provider: 'expo',
+      customerId: 42,
+      tenantId: 1,
+      revokedAt: null,
+    } as DeviceToken);
+    await svc.dispatch({
+      notificationId: 9,
+      tenantId: 1,
+      customerId: 42,
+      category: 'event',
+      title: 'New product',
+      body: null,
+      statusBadge: null,
+      linkUrl: 'https://shop.example.com/products/apple-jam',
+      productHandle: 'apple-jam',
+    });
+    const messages = sendMock.mock.calls[0][0] as unknown as Array<{ data: Record<string, unknown> }>;
+    expect(messages[0].data).toMatchObject({
+      url: 'https://shop.example.com/products/apple-jam',
+      productHandle: 'apple-jam',
+    });
+  });
+
+  it('dispatch: without a link the data keys stay undefined (dropped from JSON)', async () => {
+    tokenRows.push({
+      token: 'ExponentPushToken[a]',
+      provider: 'expo',
+      customerId: 42,
+      tenantId: 1,
+      revokedAt: null,
+    } as DeviceToken);
+    await svc.dispatch({
+      notificationId: 10,
+      tenantId: 1,
+      customerId: 42,
+      category: 'shipping',
+      title: 't',
+      body: null,
+      statusBadge: null,
+    });
+    const messages = sendMock.mock.calls[0][0] as unknown as Array<{ data: Record<string, unknown> }>;
+    expect(messages[0].data.url).toBeUndefined();
+    expect(messages[0].data.productHandle).toBeUndefined();
+  });
+
   it('dispatch: routes each device row through its own provider (expo + webpush)', async () => {
     tokenRows.push(
       { token: 'ExponentPushToken[a]', provider: 'expo', customerId: 42, tenantId: 1, revokedAt: null } as DeviceToken,

@@ -89,6 +89,8 @@ export class NotificationService implements OnModuleInit {
           title: input.title,
           body: input.body ?? null,
           statusBadge: input.statusBadge ?? null,
+          linkUrl: input.linkUrl ?? null,
+          productHandle: input.productHandle ?? null,
         });
       } else {
         // email/sms/web_push delivery is still mocked — row only.
@@ -117,6 +119,7 @@ export class NotificationService implements OnModuleInit {
         title: input.title,
         body: input.body ?? null,
         statusBadge: input.statusBadge ?? null,
+        linkUrl: input.linkUrl ?? null,
         channel,
         readAt: null,
       }),
