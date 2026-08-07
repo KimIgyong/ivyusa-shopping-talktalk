@@ -7,6 +7,7 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Put,
   Query,
   UploadedFile,
   UseInterceptors,
@@ -34,6 +35,7 @@ import {
   ResolveConflictRequest,
   UpdateDocumentRequest,
   UpdateSourceRequest,
+  SaveUsageGuideRequest,
 } from './dto/request/knowledge.request';
 import { KbConflictService } from './kb-conflict.service';
 import { KbRevisionService } from './kb-revision.service';
@@ -272,6 +274,30 @@ export class KnowledgeController {
   @ApiOperation({ summary: 'Progress of the running (or most recent) catalogue conversion' })
   async catalogSyncStatus(@CurrentUser() user: Principal) {
     return this.jobService.get(this.tenantUser(user).tenantId);
+  }
+
+  @Get('usage-guides')
+  @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
+  @ApiOperation({ summary: 'Usage guides per product type, with coverage and write state' })
+  async usageGuides(@CurrentUser() user: Principal) {
+    return this.knowledgeService.listUsageGuides(this.tenantUser(user).tenantId);
+  }
+
+  @Put('usage-guides/:key')
+  @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
+  @ApiOperation({ summary: 'Write or rewrite the usage guide for a product type' })
+  async saveUsageGuide(
+    @CurrentUser() user: Principal,
+    @Param('key') key: string,
+    @Body() body: SaveUsageGuideRequest,
+  ) {
+    const actor = this.tenantUser(user);
+    return this.knowledgeService.saveUsageGuide(
+      actor.tenantId,
+      key,
+      { title: body.title, content: body.content },
+      actor.userId,
+    );
   }
 
   // --- Revision history (PLN T3) -------------------------------------------

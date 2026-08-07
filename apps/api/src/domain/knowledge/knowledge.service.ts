@@ -23,6 +23,7 @@ import { KbConflictService, isStale } from './kb-conflict.service';
 import { KbRevisionService } from './kb-revision.service';
 import { ProductImportService } from './product-import.service';
 import { CatalogSyncPreview, CatalogSyncService } from './catalog-sync.service';
+import { UsageGuideService, UsageGuideSummary } from './usage-guide.service';
 import { SourceSyncService } from './source-sync.service';
 import { REVISION_KIND } from './entity/kb-document-revision.entity';
 import { BusinessException } from '../../global/exception/business.exception';
@@ -56,6 +57,7 @@ export class KnowledgeService {
     private readonly revisions: KbRevisionService,
     private readonly productImport: ProductImportService,
     private readonly catalogSync: CatalogSyncService,
+    private readonly usageGuides: UsageGuideService,
     private readonly sourceSync: SourceSyncService,
   ) {}
 
@@ -325,6 +327,34 @@ export class KnowledgeService {
         .catch((e) => this.logger.warn(`qdrant setActive(${saved.id}) failed: ${e.message}`));
     }
     return saved;
+  }
+
+  /** Usage guides per product type, written or not (PLN-260807 P2). */
+  async listUsageGuides(tenantId: number): Promise<UsageGuideSummary[]> {
+    return this.usageGuides.list(tenantId);
+  }
+
+  /**
+   * Write one usage guide and index it immediately — it is a single document,
+   * so the batch path buys nothing and the operator expects it searchable by
+   * the time the dialog closes.
+   */
+  async saveUsageGuide(
+    tenantId: number,
+    typeKey: string,
+    input: { title: string; content: string },
+    actorUserId: number,
+  ): Promise<Record<string, unknown>> {
+    const doc = await this.usageGuides.upsert(tenantId, typeKey, input, actorUserId);
+    const { embedded, failed } = await this.embedDocuments([doc]);
+    await this.revisions.recordAudit(
+      tenantId,
+      Number(doc.id),
+      'knowledge.usage_guide_saved',
+      actorUserId,
+      { typeKey, embedded, embedFailed: failed },
+    );
+    return { id: String(doc.id), typeKey, embedded, embedFailed: failed };
   }
 
   /** Dry run of the catalogue → knowledge conversion (PLN-260807 P1). */

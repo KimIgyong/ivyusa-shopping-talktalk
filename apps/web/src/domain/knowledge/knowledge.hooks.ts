@@ -365,6 +365,32 @@ export function useCatalogSyncCompletion(job: CatalogSyncJob | null | undefined)
   }, [job, qc, tenantKey]);
 }
 
+/** Usage guides per product type, written or not (PLN-260807 P2). */
+export function useUsageGuides() {
+  const tenantKey = useTenantKey();
+  return useQuery({
+    queryKey: ['knowledge', tenantKey, 'usage-guides'],
+    queryFn: () => knowledgeService.usageGuides(),
+  });
+}
+
+/** Write one usage guide. It is indexed on save, so the toast can promise it. */
+export function useSaveUsageGuide() {
+  const qc = useQueryClient();
+  const tenantKey = useTenantKey();
+  return useMutation({
+    mutationFn: (v: { key: string; title: string; content: string }) =>
+      knowledgeService.saveUsageGuide(v.key, { title: v.title, content: v.content }),
+    onSuccess: (r) => {
+      qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'usage-guides'] });
+      qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'documents'] });
+      if (r.embedFailed) toast.error('Saved, but not indexed — retry to make it searchable');
+      else toast.success('Usage guide saved');
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+}
+
 /** Product catalogue CSV import (PLN-260804 P3). */
 export function useImportProducts() {
   const qc = useQueryClient();
