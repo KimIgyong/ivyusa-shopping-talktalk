@@ -2,6 +2,7 @@
   "title": "캠페인",
   "subtitle": "발신 캠페인을 생성하고 발송하세요",
   "newCampaign": "새 캠페인",
+  "editCampaign": "캠페인 수정",
   "name": "이름",
   "channel": "채널",
   "status": "상태",
@@ -9,6 +10,18 @@
   "sent": "발송됨",
   "created": "생성일",
   "send": "발송",
+  "edit": "수정",
   "message": "메시지",
-  "empty": "아직 캠페인이 없습니다."
+  "empty": "아직 캠페인이 없습니다.",
+  "link": "링크",
+  "linkNone": "없음",
+  "linkProduct": "상품",
+  "linkUrl": "URL",
+  "linkProductHandle": "상품 핸들",
+  "linkProductHelp": "캠페인 발송 시 상품 카탈로그와 대조해 확인합니다.",
+  "linkUrlField": "링크 URL (https)",
+  "linkUrlHelp": "https:// 로 시작해야 합니다.",
+  "toastCreated": "캠페인이 생성되었습니다",
+  "toastUpdated": "캠페인이 수정되었습니다",
+  "toastSent": "캠페인이 발송되었습니다"
 }

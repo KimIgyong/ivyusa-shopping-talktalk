@@ -1,7 +1,7 @@
 /* ShopTalk PWA service worker (plain JS — not typechecked, see tsconfig include).
  * Scope: /app/ only. NEVER intercepts /api/ requests (network always). */
 
-const SHELL_CACHE = 'shoptalk-shell-v1';
+const SHELL_CACHE = 'shoptalk-shell-v2';
 const SHELL_URL = '/app/';
 
 self.addEventListener('install', (event) => {
@@ -81,8 +81,15 @@ self.addEventListener('push', (event) => {
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   const data = event.notification.data || {};
+
+  // Campaign deep links (F4 A-9): product handle → in-app detail; absolute URL →
+  // open directly (external allowed); else fall back to the category mapping.
   let url = '/app/alerts';
-  if (data.category === 'chat') url = '/app/chat';
+  if (data.productHandle) url = '/app/products/' + encodeURIComponent(data.productHandle);
+  else if (data.url) {
+    event.waitUntil(self.clients.openWindow(data.url));
+    return;
+  } else if (data.category === 'chat') url = '/app/chat';
   else if (data.category === 'shipping' || data.category === 'payment') url = '/app/orders';
 
   event.waitUntil(

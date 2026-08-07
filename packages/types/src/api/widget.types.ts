@@ -183,6 +183,8 @@ export interface NotificationResponse {
   title: string;
   body: string | null;
   statusBadge: string | null;
+  /** Deep-link target (campaign product/url — A-9); client routes on tap. */
+  linkUrl: string | null;
   channel: string;
   /** Derived server-side from `readAt != null`. */
   read: boolean;

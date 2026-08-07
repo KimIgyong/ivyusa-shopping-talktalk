@@ -33,6 +33,10 @@ export class Notification {
   @Column({ name: 'status_badge', type: 'varchar', length: 24, nullable: true })
   statusBadge: string | null;
 
+  /** Deep-link target (campaign product/url — PLN-260807 F4, A-9). Client routes on tap. */
+  @Column({ name: 'link_url', type: 'varchar', length: 1024, nullable: true })
+  linkUrl: string | null;
+
   @Column({ type: 'varchar', length: 16, default: 'in_app' })
   channel: string;
 

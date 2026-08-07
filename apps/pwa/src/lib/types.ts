@@ -184,6 +184,8 @@ export interface NotificationItem {
   read: boolean;
   readAt?: string | null;
   createdAt: string;
+  /** F4 (A-9) — campaign deep link: storefront/product URL or external URL. */
+  linkUrl?: string | null;
 }
 
 export interface NotifPref {

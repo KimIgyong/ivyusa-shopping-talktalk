@@ -427,6 +427,7 @@ CREATE TABLE `notifications` (
   `title` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
   `body` text COLLATE utf8mb4_unicode_ci,
   `status_badge` varchar(24) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `link_url` varchar(1024) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `channel` varchar(16) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'in_app',
   `read_at` datetime DEFAULT NULL,
   `created_at` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),

@@ -106,6 +106,36 @@ describe('NotificationService.isSuppressed / notify (Stage 6 — D-4 fail-closed
     );
   });
 
+  it('linkUrl persists on every row and rides the PUSH_DISPATCH payload with productHandle (A-9)', async () => {
+    const rows = await svc.notify({
+      tenantId: 7,
+      customerId: 1,
+      category: 'shipping',
+      title: 't',
+      channel: 'push',
+      linkUrl: 'https://shop.example.com/products/apple-jam',
+      productHandle: 'apple-jam',
+    });
+    expect(channelsOf(rows)).toEqual(['in_app', 'push']);
+    for (const r of rows) expect(r.linkUrl).toBe('https://shop.example.com/products/apple-jam');
+    expect(busPublish).toHaveBeenCalledWith(
+      'push.dispatch',
+      expect.objectContaining({
+        linkUrl: 'https://shop.example.com/products/apple-jam',
+        productHandle: 'apple-jam',
+      }),
+    );
+  });
+
+  it('no linkUrl: rows and push payload carry null link fields (A-9 default)', async () => {
+    const rows = await svc.notify({ tenantId: 7, customerId: 1, category: 'shipping', title: 't', channel: 'push' });
+    for (const r of rows) expect(r.linkUrl).toBeNull();
+    expect(busPublish).toHaveBeenCalledWith(
+      'push.dispatch',
+      expect.objectContaining({ linkUrl: null, productHandle: null }),
+    );
+  });
+
   it('tenantId is stamped on created rows (detached-handler G4 fix)', async () => {
     const rows = await svc.notify({ tenantId: 7, customerId: 1, category: 'payment', title: 't' });
     for (const r of rows) expect(r.tenantId).toBe(7);

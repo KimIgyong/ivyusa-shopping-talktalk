@@ -2,6 +2,7 @@
   "title": "Campaigns",
   "subtitle": "Create and send outbound campaigns",
   "newCampaign": "New campaign",
+  "editCampaign": "Edit campaign",
   "name": "Name",
   "channel": "Channel",
   "status": "Status",
@@ -9,6 +10,18 @@
   "sent": "Sent",
   "created": "Created",
   "send": "Send",
+  "edit": "Edit",
   "message": "Message",
-  "empty": "No campaigns yet."
+  "empty": "No campaigns yet.",
+  "link": "Link",
+  "linkNone": "None",
+  "linkProduct": "Product",
+  "linkUrl": "URL",
+  "linkProductHandle": "Product handle",
+  "linkProductHelp": "Checked against the product catalog when the campaign is sent.",
+  "linkUrlField": "Link URL (https)",
+  "linkUrlHelp": "Must start with https://.",
+  "toastCreated": "Campaign created",
+  "toastUpdated": "Campaign updated",
+  "toastSent": "Campaign sent"
 }

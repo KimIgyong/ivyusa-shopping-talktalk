@@ -35,6 +35,10 @@ export interface PushDispatchPayload {
   title: string;
   body: string | null;
   statusBadge: string | null;
+  /** Deep-link target the client opens on tap (campaign product/url — A-9). */
+  linkUrl?: string | null;
+  /** Catalog handle for the app's product-detail route (preferred over linkUrl). */
+  productHandle?: string | null;
 }
 
 interface PendingReceipt {
@@ -161,6 +165,10 @@ export class PushService implements OnModuleInit, OnModuleDestroy {
         category: payload.category,
         notificationId: payload.notificationId,
         statusBadge: payload.statusBadge,
+        // Deep-link routing (A-9): app/SW prefer productHandle (/products/:handle),
+        // fall back to url. undefined keys are dropped from the JSON payload.
+        url: payload.linkUrl ?? undefined,
+        productHandle: payload.productHandle ?? undefined,
       },
     });
     const tickets: PushTicket[] = [];
