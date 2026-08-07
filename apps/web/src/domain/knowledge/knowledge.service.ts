@@ -108,6 +108,21 @@ export interface CatalogSyncResult extends Omit<CatalogSyncPreview, 'heldSamples
   embedFailed: number;
 }
 
+/** Live state of the async conversion (PLN-260807 P1 / RPT-260808 D3). */
+export interface CatalogSyncJob {
+  id: string;
+  status: 'idle' | 'running' | 'succeeded' | 'failed';
+  phase: 'planning' | 'writing' | 'embedding' | 'done';
+  written: number;
+  writeTotal: number;
+  embedded: number;
+  embedTotal: number;
+  result: CatalogSyncResult | null;
+  error: string | null;
+  startedAt: string;
+  finishedAt: string | null;
+}
+
 export interface ProductImportResult {
   parsed: number;
   created: number;
@@ -243,7 +258,9 @@ export const knowledgeService = {
   },
   previewCatalogSync: () =>
     apiGet<CatalogSyncPreview>('/knowledge/documents/import/catalog/preview'),
-  syncCatalog: () => apiPost<CatalogSyncResult>('/knowledge/documents/import/catalog', {}),
+  syncCatalog: () => apiPost<CatalogSyncJob>('/knowledge/documents/import/catalog', {}),
+  catalogSyncStatus: () =>
+    apiGet<CatalogSyncJob | null>('/knowledge/documents/import/catalog/status'),
   ask: (question: string, language: string) =>
     apiPost<KnowledgeAnswer>('/knowledge/ask', { question, language }),
   conflicts: (params: { status?: string; page: number; size: number }) =>

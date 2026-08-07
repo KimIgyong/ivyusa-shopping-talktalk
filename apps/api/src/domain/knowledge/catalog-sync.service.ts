@@ -130,13 +130,16 @@ export class CatalogSyncService {
   async sync(
     tenantId: number,
     actorUserId: number,
+    onWrite?: (done: number, total: number) => void,
   ): Promise<{ counts: CatalogSyncCounts; touchedIds: number[] }> {
     const byKey = await this.existingByKey(tenantId);
     const { families, held, products } = await this.plan(tenantId, this.curatedHandles(byKey));
     const counts = this.emptyCounts(products.length, families.length, held.length);
     const touchedIds: number[] = [];
 
+    let processed = 0;
     for (const family of families) {
+      onWrite?.(processed++, families.length);
       const doc = this.buildDoc(family);
       const found = byKey.get(family.representative.handle);
 

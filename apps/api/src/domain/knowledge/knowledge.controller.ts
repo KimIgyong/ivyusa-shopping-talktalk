@@ -13,11 +13,12 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { HttpStatus } from '@nestjs/common';
+import { HttpCode, HttpStatus } from '@nestjs/common';
 import { CAPABILITY, Principal } from '@ivy/types';
 import { Paginated } from '../../global/interceptor/transform.interceptor';
 import { buildPagination, normalizePage } from '@ivy/common';
 import { RequireCapability } from '../../global/decorator/auth.decorator';
+import { CatalogSyncJobService } from './catalog-sync-job.service';
 import { CurrentUser } from '../../global/decorator/current-user.decorator';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
@@ -45,6 +46,7 @@ export class KnowledgeController {
     private readonly knowledgeService: KnowledgeService,
     private readonly conflictService: KbConflictService,
     private readonly revisionService: KbRevisionService,
+    private readonly jobService: CatalogSyncJobService,
   ) {}
 
   /** Narrow to a tenant user; knowledge management is tenant-scoped only. */
@@ -248,12 +250,28 @@ export class KnowledgeController {
     return this.knowledgeService.previewCatalogSync(this.tenantUser(user).tenantId);
   }
 
+  /**
+   * Starts the conversion and returns at once. The run takes minutes — held
+   * open it hit nginx's 60-second header timeout and the operator saw a 504
+   * for work that had actually succeeded (RPT-260808 D3). Progress is read
+   * from the status route below.
+   */
   @Post('documents/import/catalog')
+  @HttpCode(HttpStatus.ACCEPTED)
   @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
-  @ApiOperation({ summary: 'Convert the storefront catalogue into ProductInfo knowledge' })
+  @ApiOperation({ summary: 'Start the catalogue → ProductInfo conversion (async)' })
   async syncCatalog(@CurrentUser() user: Principal) {
     const actor = this.tenantUser(user);
-    return this.knowledgeService.syncProductCatalog(actor.tenantId, actor.userId);
+    return this.jobService.start(actor.tenantId, (report) =>
+      this.knowledgeService.syncProductCatalog(actor.tenantId, actor.userId, report),
+    );
+  }
+
+  @Get('documents/import/catalog/status')
+  @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
+  @ApiOperation({ summary: 'Progress of the running (or most recent) catalogue conversion' })
+  async catalogSyncStatus(@CurrentUser() user: Principal) {
+    return this.jobService.get(this.tenantUser(user).tenantId);
   }
 
   // --- Revision history (PLN T3) -------------------------------------------
