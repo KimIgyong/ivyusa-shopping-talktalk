@@ -99,3 +99,97 @@ describe('CustomerService.findOrCreateByEmail (duplicate prevention)', () => {
     expect(rows).toHaveLength(1);
   });
 });
+
+/**
+ * PLN-260808 P-A2: Cafe24 sign-in creates an identifier row (session-bound, no
+ * orders); order sync created an email row (orders, no identifier). linkCafe24Customer
+ * must MERGE the order row into the session row so "my orders" resolves — never leave
+ * the session bound to a row that holds none of the shopper's orders.
+ */
+describe('CustomerService.linkCafe24Customer (identity↔orders merge)', () => {
+  let svc: CustomerService;
+  let rows: Customer[];
+  let orderUpdate: jest.Mock;
+
+  function makeRepo(): Repository<Customer> {
+    return {
+      findOne: jest.fn(async ({ where }: { where: Partial<Customer> }) => {
+        return (
+          rows.find((r) => Object.entries(where).every(([k, v]) => (r as never)[k] === v)) ?? null
+        );
+      }),
+      create: jest.fn((e: Partial<Customer>) => Object.assign(new Customer(), e)),
+      save: jest.fn(async (e: Customer) => {
+        e.syncEmailHash();
+        if (!rows.includes(e)) {
+          e.id = rows.length + 1;
+          rows.push(e);
+        }
+        return e;
+      }),
+      remove: jest.fn(async (e: Customer) => {
+        rows = rows.filter((r) => r !== e);
+        return e;
+      }),
+    } as unknown as Repository<Customer>;
+  }
+
+  beforeEach(() => {
+    rows = [];
+    orderUpdate = jest.fn(async () => ({ affected: 1 }));
+    const orderRepo = { update: orderUpdate } as unknown as Repository<OrderCache>;
+    svc = new CustomerService(makeRepo(), orderRepo, {
+      isSuppressed: async () => false,
+    } as unknown as ErasureSuppressionService);
+  });
+
+  it('merges the order-synced email row into the session-bound identifier row', async () => {
+    const emailRow = Object.assign(new Customer(), {
+      id: 12,
+      tenantId: 3,
+      email: 'shopper@example.com',
+      name: '홍길동',
+      cafe24UserIdentifier: null,
+    });
+    emailRow.syncEmailHash();
+    const idRow = Object.assign(new Customer(), {
+      id: 15,
+      tenantId: 3,
+      email: null,
+      emailHash: null,
+      name: null,
+      cafe24UserIdentifier: 'UID-C7b8',
+    });
+    rows.push(emailRow, idRow);
+
+    const result = await svc.linkCafe24Customer(3, 'shopper@example.com', undefined, 'UID-C7b8');
+
+    // Session row (15) wins, gains the email + name; orders repointed 12 → 15; dup gone.
+    expect(result?.id).toBe(15);
+    expect(result?.email).toBe('shopper@example.com');
+    expect(result?.name).toBe('홍길동');
+    expect(orderUpdate).toHaveBeenCalledWith(
+      { tenantId: 3, customerId: 12 },
+      { customerId: 15 },
+    );
+    expect(rows.map((r) => r.id)).toEqual([15]);
+  });
+
+  it('just stamps email/name when only the identifier row exists (no prior orders)', async () => {
+    const idRow = Object.assign(new Customer(), {
+      id: 15,
+      tenantId: 3,
+      email: null,
+      emailHash: null,
+      name: null,
+      cafe24UserIdentifier: 'UID-X',
+    });
+    rows.push(idRow);
+
+    const result = await svc.linkCafe24Customer(3, 'new@example.com', 'New Buyer', 'UID-X');
+    expect(result?.id).toBe(15);
+    expect(result?.email).toBe('new@example.com');
+    expect(orderUpdate).not.toHaveBeenCalled();
+    expect(rows).toHaveLength(1);
+  });
+});
