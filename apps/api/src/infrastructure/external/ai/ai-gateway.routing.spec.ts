@@ -32,7 +32,14 @@ function gatewayWith(settings: Array<{ func: string; engineId: number }>, engine
     },
   };
   const adapter = { provider: 'stub', complete: async () => ({}) } as never;
-  return new AiGatewayService(engineRepo as never, settingRepo as never, adapter, adapter, adapter);
+  return new AiGatewayService(
+    engineRepo as never,
+    settingRepo as never,
+    adapter,
+    adapter,
+    adapter,
+    adapter,
+  );
 }
 
 describe('AiGatewayService.resolveRouting', () => {

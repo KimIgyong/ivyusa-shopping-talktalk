@@ -13,6 +13,7 @@ import {
 } from './ai-adapter.interface';
 import { StubAdapter } from './adapters/stub.adapter';
 import { AnthropicAdapter } from './adapters/anthropic.adapter';
+import { OpenAiAdapter } from './adapters/openai.adapter';
 import { VoyageAdapter } from './adapters/voyage.adapter';
 
 export interface GatewayRequest {
@@ -74,11 +75,13 @@ export class AiGatewayService {
     @InjectRepository(TenantAiSetting) private readonly settingRepo: Repository<TenantAiSetting>,
     stub: StubAdapter,
     anthropic: AnthropicAdapter,
+    openai: OpenAiAdapter,
     voyage: VoyageAdapter,
   ) {
     this.adapters = new Map<string, AiAdapter>([
       [stub.provider, stub],
       [anthropic.provider, anthropic],
+      [openai.provider, openai],
       [voyage.provider, voyage],
     ]);
   }
