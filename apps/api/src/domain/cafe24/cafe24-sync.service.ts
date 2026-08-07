@@ -44,6 +44,12 @@ export class Cafe24SyncService {
     const startDate = start.toISOString().slice(0, 10);
     const endDate = end.toISOString().slice(0, 10);
 
+    // Per-run cache: one member places many orders, and the member→user_identifier
+    // admin lookup is rate-limited — resolve each member_id at most once per sync.
+    const memberCache = new Map<
+      string,
+      { userIdentifier: string | null; email: string | null; name: string | null } | null
+    >();
     let synced = 0;
     let pages = 0;
     try {
@@ -56,7 +62,7 @@ export class Cafe24SyncService {
         });
         for (const o of orders) {
           try {
-            await this.upsertOrder(tenantId, o);
+            await this.upsertOrder(tenantId, o, conn, memberCache);
             synced++;
           } catch (e) {
             this.logger.warn(`Skipped Cafe24 order ${o.order_id}: ${(e as Error).message}`);
@@ -71,14 +77,56 @@ export class Cafe24SyncService {
     return { ok: true, synced, detail: `Synced ${synced} order(s) (${startDate}~${endDate})` };
   }
 
-  /** Map a Cafe24 order → orders_cache (+ email-linked customer). Idempotent. */
-  private async upsertOrder(tenantId: number, o: Cafe24Order): Promise<void> {
+  /** Map a Cafe24 order → orders_cache (+ member-linked customer). Idempotent. */
+  private async upsertOrder(
+    tenantId: number,
+    o: Cafe24Order,
+    conn: { mallId: string; accessToken: string },
+    memberCache: Map<
+      string,
+      { userIdentifier: string | null; email: string | null; name: string | null } | null
+    >,
+  ): Promise<void> {
     let customerId: number | null = null;
-    const email = o.member_email ?? null;
+    // Resolve the member's user_identifier (J1 join key) + profile from member_id,
+    // once per member per run. Falls back to the order's own email when the lookup
+    // yields nothing (guest checkout, or read_customer not yet granted).
+    let profile: { userIdentifier: string | null; email: string | null; name: string | null } | null =
+      null;
+    const memberId = o.member_id?.trim() || null;
+    if (memberId) {
+      if (!memberCache.has(memberId)) {
+        try {
+          memberCache.set(
+            memberId,
+            await this.client.fetchCustomerByMemberId(conn.mallId, conn.accessToken, memberId),
+          );
+        } catch (e) {
+          memberCache.set(memberId, null);
+          this.logger.debug(`member lookup failed member_id=${memberId}: ${(e as Error).message}`);
+        }
+      }
+      profile = memberCache.get(memberId) ?? null;
+    }
+    const email = o.member_email ?? profile?.email ?? null;
+    const name = o.billing_name ?? profile?.name ?? undefined;
+    const userIdentifier = profile?.userIdentifier ?? null;
     if (email) {
-      const name = o.billing_name ?? undefined;
-      const customer = await this.customerService.findOrCreateByEmail(tenantId, email, name);
+      // Stamps the user_identifier onto the customer and merges any identifier-only
+      // row the sign-in created, so the widget's session inherits these orders.
+      const customer = await this.customerService.linkCafe24Customer(
+        tenantId,
+        email,
+        name,
+        userIdentifier,
+      );
       if (customer) customerId = customer.id;
+    } else if (userIdentifier) {
+      const customer = await this.customerService.findOrCreateByCafe24Identifier(
+        tenantId,
+        userIdentifier,
+      );
+      customerId = customer.id;
     }
 
     const internal = this.client.deriveInternalStatus(o.items);
