@@ -17,6 +17,7 @@ import enKnowledge from './locales/en/knowledge.json';
 import enCustomers from './locales/en/customers.json';
 import enOrders from './locales/en/orders.json';
 import enCampaigns from './locales/en/campaigns.json';
+import enReviews from './locales/en/reviews.json';
 import enUsers from './locales/en/users.json';
 import enSettings from './locales/en/settings.json';
 import enTenants from './locales/en/tenants.json';
@@ -40,6 +41,7 @@ import esKnowledge from './locales/es/knowledge.json';
 import esCustomers from './locales/es/customers.json';
 import esOrders from './locales/es/orders.json';
 import esCampaigns from './locales/es/campaigns.json';
+import esReviews from './locales/es/reviews.json';
 import esUsers from './locales/es/users.json';
 import esSettings from './locales/es/settings.json';
 import esTenants from './locales/es/tenants.json';
@@ -63,6 +65,7 @@ import koKnowledge from './locales/ko/knowledge.json';
 import koCustomers from './locales/ko/customers.json';
 import koOrders from './locales/ko/orders.json';
 import koCampaigns from './locales/ko/campaigns.json';
+import koReviews from './locales/ko/reviews.json';
 import koUsers from './locales/ko/users.json';
 import koSettings from './locales/ko/settings.json';
 import koTenants from './locales/ko/tenants.json';
@@ -91,6 +94,7 @@ export const ns = [
   'customers',
   'orders',
   'campaigns',
+  'reviews',
   'users',
   'settings',
   'tenants',
@@ -116,6 +120,7 @@ const resources = {
     customers: enCustomers,
     orders: enOrders,
     campaigns: enCampaigns,
+    reviews: enReviews,
     users: enUsers,
     settings: enSettings,
     tenants: enTenants,
@@ -139,6 +144,7 @@ const resources = {
     customers: esCustomers,
     orders: esOrders,
     campaigns: esCampaigns,
+    reviews: esReviews,
     users: esUsers,
     settings: esSettings,
     tenants: esTenants,
@@ -162,6 +168,7 @@ const resources = {
     customers: koCustomers,
     orders: koOrders,
     campaigns: koCampaigns,
+    reviews: koReviews,
     users: koUsers,
     settings: koSettings,
     tenants: koTenants,

@@ -1,6 +1,13 @@
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
 import { bigintTransformer } from '../../../global/util/transformers';
 
+/** Review lifecycle: console operators may hide (and unhide) abusive reviews (D3). */
+export const REVIEW_STATUS = {
+  SUBMITTED: 'submitted',
+  HIDDEN: 'hidden',
+} as const;
+export type ReviewStatus = (typeof REVIEW_STATUS)[keyof typeof REVIEW_STATUS];
+
 /** reviews — product reviews per order item (FR-040). */
 @Entity('reviews')
 export class Review {
@@ -26,7 +33,7 @@ export class Review {
   body: string | null;
 
   @Column({ type: 'varchar', length: 16, default: 'submitted' })
-  status: string;
+  status: string; // submitted | hidden
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

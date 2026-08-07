@@ -17,6 +17,8 @@ import { CjmEvent } from '../cjm/entity/cjm-event.entity';
 import { Affiliate } from '../affiliate/entity/affiliate.entity';
 import { Subscription } from '../subscription/entity/subscription.entity';
 import { RestockSubscription } from '../restock/entity/restock-subscription.entity';
+import { ProductSave } from '../save/entity/product-save.entity';
+import { Nudge } from '../nudge/entity/nudge.entity';
 import { DeviceToken } from '../push/entity/device-token.entity';
 import { Campaign } from '../campaign/entity/campaign.entity';
 import { Tenant } from '../tenant/entity/tenant.entity';
@@ -65,6 +67,8 @@ export class PrivacyService {
     @InjectRepository(DeviceToken) private readonly deviceTokenRepo: Repository<DeviceToken>,
     @InjectRepository(Campaign) private readonly campaignRepo: Repository<Campaign>,
     @InjectRepository(Tenant) private readonly tenantRepo: Repository<Tenant>,
+    @InjectRepository(ProductSave) private readonly productSaveRepo: Repository<ProductSave>,
+    @InjectRepository(Nudge) private readonly nudgeRepo: Repository<Nudge>,
     private readonly sessionService: SessionService,
     private readonly audit: AuditService,
     private readonly redis: RedisService,
@@ -222,6 +226,8 @@ export class PrivacyService {
       await mgr.getRepository(Affiliate).delete({ tenantId });
       await mgr.getRepository(Subscription).delete({ tenantId });
       await mgr.getRepository(RestockSubscription).delete({ tenantId });
+      await mgr.getRepository(ProductSave).delete({ tenantId });
+      await mgr.getRepository(Nudge).delete({ tenantId });
       await mgr.getRepository(DeviceToken).delete({ tenantId });
       await mgr.getRepository(Inquiry).delete({ tenantId });
       await mgr.getRepository(CjmEvent).delete({ tenantId });
@@ -245,7 +251,7 @@ export class PrivacyService {
     const customerId = await this.requireVerifiedCustomerId(sessionToken);
     const customer = await this.customerRepo.findOne({ where: { id: customerId } });
 
-    const [orders, notifications, reviews, inquiries, cjmEvents, subscriptions, restocks, prefs, affiliates] =
+    const [orders, notifications, reviews, inquiries, cjmEvents, subscriptions, restocks, prefs, affiliates, saves, nudges] =
       await Promise.all([
         this.orderRepo.find({ where: { customerId } }),
         this.notificationRepo.find({ where: { customerId } }),
@@ -256,6 +262,8 @@ export class PrivacyService {
         this.restockRepo.find({ where: { customerId } }),
         this.prefRepo.find({ where: { customerId } }),
         this.affiliateRepo.find({ where: { customerId } }),
+        this.productSaveRepo.find({ where: { customerId } }),
+        this.nudgeRepo.find({ where: { customerId } }),
       ]);
 
     // Chat transcripts — the most sensitive free-text PII — via sessions → conversations.
@@ -346,6 +354,18 @@ export class PrivacyService {
         channel: r.channel,
         createdAt: r.createdAt,
         notifiedAt: r.notifiedAt,
+      })),
+      productSaves: saves.map((s) => ({
+        list: s.list,
+        productHandle: s.productHandle,
+        note: s.note,
+        createdAt: s.createdAt,
+      })),
+      nudges: nudges.map((n) => ({
+        productHandle: n.productHandle,
+        message: n.message,
+        createdAt: n.createdAt,
+        views: n.views,
       })),
       notificationPrefs: prefs.map((p) => ({
         channel: p.channel,
@@ -525,6 +545,10 @@ export class PrivacyService {
     await this.restockRepo.delete({ customerId });
     await this.affiliateRepo.delete({ customerId });
     await this.deviceTokenRepo.delete({ customerId });
+    // Engagement rows (F2): saves carry free-text notes, nudges free-text
+    // messages — both are the person's own expression. Delete outright.
+    await this.productSaveRepo.delete({ customerId });
+    await this.nudgeRepo.delete({ customerId });
 
     // Reviews: null out free-text body.
     await this.reviewRepo.update({ customerId }, { body: null });

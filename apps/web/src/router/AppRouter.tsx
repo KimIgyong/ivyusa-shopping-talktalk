@@ -20,6 +20,7 @@ const KnowledgePage = lazy(() => import('@/domain/knowledge/KnowledgePage').then
 const CustomersPage = lazy(() => import('@/domain/customers/CustomersPage').then((m) => ({ default: m.CustomersPage })));
 const OrdersPage = lazy(() => import('@/domain/orders/OrdersPage').then((m) => ({ default: m.OrdersPage })));
 const CampaignsPage = lazy(() => import('@/domain/campaigns/CampaignsPage').then((m) => ({ default: m.CampaignsPage })));
+const ReviewsPage = lazy(() => import('@/domain/reviews/ReviewsPage').then((m) => ({ default: m.ReviewsPage })));
 const UsersPage = lazy(() => import('@/domain/users/UsersPage').then((m) => ({ default: m.UsersPage })));
 const SettingsPage = lazy(() => import('@/domain/settings/SettingsPage').then((m) => ({ default: m.SettingsPage })));
 const PrivacyNoticePage = lazy(() => import('@/domain/privacy-notice/PrivacyNoticePage').then((m) => ({ default: m.PrivacyNoticePage })));
@@ -63,6 +64,7 @@ const router = createBrowserRouter([
       { path: '/customers', element: <CustomersPage /> },
       { path: '/orders', element: <OrdersPage /> },
       { path: '/campaigns', element: <CampaignsPage /> },
+      { path: '/reviews', element: <ReviewsPage /> },
       { path: '/users', element: <UsersPage /> },
       { path: '/settings', element: <SettingsPage /> },
       { path: '/privacy-notice', element: <PrivacyNoticePage /> },

@@ -1,0 +1,22 @@
+{
+  "title": "Reseñas",
+  "subtitle": "Reseñas de productos de clientes — oculte las abusivas de la tienda",
+  "id": "ID",
+  "customer": "Cliente",
+  "orderItem": "Artículo del pedido",
+  "rating": "Calificación",
+  "ratingOf": "{{rating}} de 5 estrellas",
+  "body": "Reseña",
+  "status": "Estado",
+  "created": "Creado",
+  "hide": "Ocultar",
+  "unhide": "Mostrar",
+  "toastHidden": "Reseña ocultada",
+  "toastUnhidden": "Reseña visible de nuevo",
+  "toastError": "No se pudo actualizar la reseña",
+  "empty": "Aún no hay reseñas.",
+  "statuses": {
+    "submitted": "Enviada",
+    "hidden": "Oculta"
+  }
+}

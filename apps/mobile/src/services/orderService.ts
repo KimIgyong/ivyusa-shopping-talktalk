@@ -24,3 +24,20 @@ export function getOrder(id: string, sessionToken: string): Promise<OrderDetail>
 export function getTracking(id: string, sessionToken: string): Promise<Tracking> {
   return apiClient.get<Tracking>(`/orders/${id}/tracking`, sessionToken);
 }
+
+/**
+ * Review submission (F2/A-8) — order_item_id is numeric on the API side
+ * (OrderDetail.items[].id). 403 = not your item, 422 = blocked by moderation.
+ */
+export function submitReview(
+  sessionToken: string,
+  orderItemId: number,
+  rating: number,
+  body?: string,
+): Promise<unknown> {
+  return apiClient.post(
+    '/reviews',
+    { session_token: sessionToken, order_item_id: orderItemId, rating, body },
+    sessionToken,
+  );
+}

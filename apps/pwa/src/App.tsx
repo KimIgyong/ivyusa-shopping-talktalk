@@ -1,4 +1,4 @@
-import { Navigate, NavLink, Outlet, Route, Routes } from 'react-router-dom';
+import { Link, Navigate, NavLink, Outlet, Route, Routes } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { STOREFRONT_URL } from './lib/config';
 import { useUnreadBadge } from './hooks/useNotifications';
@@ -10,6 +10,8 @@ import OrdersPage from './pages/OrdersPage';
 import OrderDetailPage from './pages/OrderDetailPage';
 import AlertsPage from './pages/AlertsPage';
 import SettingsPage from './pages/SettingsPage';
+import SavesPage from './pages/SavesPage';
+import NudgePage from './pages/NudgePage';
 
 function Shell() {
   const { t } = useTranslation();
@@ -19,15 +21,21 @@ function Shell() {
     <div className="shell">
       <header className="header">
         <h1 className="header-title">{t('app.title')}</h1>
-        {/* Storefront must open top-level in a NEW TAB — Shopify forbids iframing (C1). */}
-        <a
-          className="btn btn-outline btn-sm header-shop"
-          href={STOREFRONT_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          🛍 {t('header.shop')} ↗
-        </a>
+        <div className="header-actions">
+          {/* 찜/보관함 entry lives in the header (F2 — not a 6th nav tab). */}
+          <Link className="header-icon-link" to="/saves" aria-label={t('save.title')}>
+            ♡
+          </Link>
+          {/* Storefront must open top-level in a NEW TAB — Shopify forbids iframing (C1). */}
+          <a
+            className="btn btn-outline btn-sm header-shop"
+            href={STOREFRONT_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            🛍 {t('header.shop')} ↗
+          </a>
+        </div>
       </header>
       <InstallBanner />
       <main className="content">
@@ -78,6 +86,9 @@ export default function App() {
         <Route path="/orders/:id" element={<OrderDetailPage />} />
         <Route path="/alerts" element={<AlertsPage />} />
         <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/saves" element={<SavesPage />} />
+        {/* Public nudge card — must render without a session (recipient has no app). */}
+        <Route path="/nudge/:code" element={<NudgePage />} />
         <Route path="*" element={<Navigate to="/chat" replace />} />
       </Route>
     </Routes>

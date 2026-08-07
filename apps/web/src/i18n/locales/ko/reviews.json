@@ -1,0 +1,22 @@
+{
+  "title": "리뷰",
+  "subtitle": "고객 상품 리뷰 — 부적절한 리뷰를 스토어 노출에서 숨기세요",
+  "id": "ID",
+  "customer": "고객",
+  "orderItem": "주문 아이템",
+  "rating": "별점",
+  "ratingOf": "5점 만점에 {{rating}}점",
+  "body": "리뷰",
+  "status": "상태",
+  "created": "작성일",
+  "hide": "숨김",
+  "unhide": "해제",
+  "toastHidden": "리뷰를 숨겼습니다",
+  "toastUnhidden": "리뷰를 다시 표시합니다",
+  "toastError": "리뷰를 변경하지 못했습니다",
+  "empty": "아직 리뷰가 없습니다.",
+  "statuses": {
+    "submitted": "게시됨",
+    "hidden": "숨김"
+  }
+}

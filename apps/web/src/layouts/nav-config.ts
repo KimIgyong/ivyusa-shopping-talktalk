@@ -9,6 +9,7 @@ import {
   Users,
   ShoppingCart,
   Megaphone,
+  Star,
   UserCog,
   Settings,
   Building2,
@@ -38,6 +39,8 @@ export const TENANT_NAV: NavItem[] = [
   { to: '/customers', labelKey: 'customers', icon: Users, capability: 'customers' },
   { to: '/orders', labelKey: 'orders', icon: ShoppingCart, capability: 'orders' },
   { to: '/campaigns', labelKey: 'campaigns', icon: Megaphone, capability: 'campaigns' },
+  // Review moderation console (D3) — same operations group as the API's MODULE_OPERATIONS gate.
+  { to: '/reviews', labelKey: 'reviews', icon: Star, capability: 'reviews' },
   { to: '/users', labelKey: 'users', icon: UserCog, capability: 'users' },
   { to: '/settings', labelKey: 'settings', icon: Settings, capability: 'settings' },
   // Consent notice config — same master/director gate as tenant settings.

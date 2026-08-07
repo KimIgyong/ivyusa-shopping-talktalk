@@ -16,6 +16,8 @@ import { CjmEvent } from '../cjm/entity/cjm-event.entity';
 import { Affiliate } from '../affiliate/entity/affiliate.entity';
 import { Subscription } from '../subscription/entity/subscription.entity';
 import { RestockSubscription } from '../restock/entity/restock-subscription.entity';
+import { ProductSave } from '../save/entity/product-save.entity';
+import { Nudge } from '../nudge/entity/nudge.entity';
 import { DeviceToken } from '../push/entity/device-token.entity';
 import { Campaign } from '../campaign/entity/campaign.entity';
 import { Tenant } from '../tenant/entity/tenant.entity';
@@ -50,6 +52,8 @@ import { PrivacyController, ShopifyComplianceController } from './privacy.contro
       Affiliate,
       Subscription,
       RestockSubscription,
+      ProductSave,
+      Nudge,
       DeviceToken,
       Campaign,
       Tenant,

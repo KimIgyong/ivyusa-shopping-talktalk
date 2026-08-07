@@ -6,6 +6,7 @@ export type Capability =
   | 'orders'
   | 'customers'
   | 'campaigns'
+  | 'reviews'
   | 'knowledge'
   | 'affiliates'
   | 'ai_settings'
@@ -18,7 +19,7 @@ export type Capability =
 // Label codes mapped to capability groups.
 const LABEL_CAPS: Record<string, Capability[]> = {
   consult: ['live_chat', 'history'],
-  operations: ['orders', 'customers', 'campaigns', 'knowledge'],
+  operations: ['orders', 'customers', 'campaigns', 'reviews', 'knowledge'],
   accounting: ['affiliates'],
 };
 
@@ -31,6 +32,7 @@ const RANK_EXTRA: Record<Rank, Capability[]> = {
     'orders',
     'customers',
     'campaigns',
+    'reviews',
     'knowledge',
     'affiliates',
     'ai_settings',
@@ -46,6 +48,7 @@ const RANK_EXTRA: Record<Rank, Capability[]> = {
     'orders',
     'customers',
     'campaigns',
+    'reviews',
     'knowledge',
     'affiliates',
     'ai_settings',
