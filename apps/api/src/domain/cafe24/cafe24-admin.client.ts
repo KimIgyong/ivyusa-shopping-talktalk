@@ -179,6 +179,11 @@ export class Cafe24AdminClient {
     );
     const c = body.customers?.[0];
     if (!c) return null;
+    this.logger.debug(
+      `cafe24 customer(member_id=${memberId}) keys=[${Object.keys(c).join(',')}] uid=${
+        typeof c.user_identifier === 'string' ? 'present' : String(c.user_identifier)
+      }`,
+    );
     return {
       userIdentifier: typeof c.user_identifier === 'string' ? c.user_identifier : null,
       email: typeof c.email === 'string' ? c.email : null,
