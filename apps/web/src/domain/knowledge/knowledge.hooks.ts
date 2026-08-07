@@ -294,6 +294,39 @@ export function useRestoreRevision() {
   });
 }
 
+/** Dry run of the catalogue → knowledge conversion (PLN-260807 P1). */
+export function useCatalogSyncPreview(enabled: boolean) {
+  const tenantKey = useTenantKey();
+  return useQuery({
+    queryKey: ['knowledge', tenantKey, 'catalog-preview'],
+    queryFn: () => knowledgeService.previewCatalogSync(),
+    // Only while the dialog is open, and never from cache: the plan is only
+    // meaningful against the catalogue as it stands right now.
+    enabled,
+    staleTime: 0,
+    gcTime: 0,
+  });
+}
+
+/** Run the catalogue conversion (PLN-260807 P1). */
+export function useSyncCatalog() {
+  const qc = useQueryClient();
+  const tenantKey = useTenantKey();
+  return useMutation({
+    mutationFn: () => knowledgeService.syncCatalog(),
+    onSuccess: (r) => {
+      qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'documents'] });
+      qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'categories'] });
+      const parts = [`${r.created} created`, `${r.updated} updated`];
+      if (r.curatedKept) parts.push(`${r.curatedKept} curated kept`);
+      if (r.held) parts.push(`${r.held} held`);
+      if (r.embedFailed) parts.push(`${r.embedFailed} not indexed`);
+      toast[r.embedFailed ? 'error' : 'success'](`Catalog sync: ${parts.join(', ')}`);
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+}
+
 /** Product catalogue CSV import (PLN-260804 P3). */
 export function useImportProducts() {
   const qc = useQueryClient();
