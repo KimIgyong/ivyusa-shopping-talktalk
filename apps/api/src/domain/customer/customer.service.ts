@@ -359,6 +359,84 @@ export class CustomerService {
     return this.customerRepo.save(customer);
   }
 
+  /** The customer bound to a verified Cafe24 member identifier, or null. */
+  async findByCafe24Identifier(
+    tenantId: number,
+    userIdentifier: string,
+  ): Promise<Customer | null> {
+    return this.customerRepo.findOne({ where: { tenantId, cafe24UserIdentifier: userIdentifier } });
+  }
+
+  /**
+   * Lookup-or-create by Cafe24 member identifier (PLN-260808 P-A2). Called from the
+   * customer-auth callback, where we hold the server-verified `user_identifier` but
+   * not necessarily an email — the row is enriched later when order sync links the
+   * same identifier to an address. Mirrors findOrCreateByShopifyId: an email-less row
+   * here converges with the order-synced row via linkCafe24Customer, never duplicates.
+   */
+  async findOrCreateByCafe24Identifier(
+    tenantId: number,
+    userIdentifier: string,
+  ): Promise<Customer> {
+    const existing = await this.findByCafe24Identifier(tenantId, userIdentifier);
+    if (existing) return existing;
+    const customer = this.customerRepo.create({
+      tenantId,
+      email: null,
+      name: null,
+      cafe24UserIdentifier: userIdentifier,
+      tier: 'guest',
+    });
+    return this.customerRepo.save(customer);
+  }
+
+  /**
+   * Order-sync convergence for Cafe24 (PLN-260808 P-A2): attach email/name to the
+   * member's row and stamp the `user_identifier` so the customer-auth session and
+   * the email-synced orders land on ONE row. Adopts an identifier-only row created
+   * earlier by the auth path (the reverse of findOrCreateByEmail's shopify merge),
+   * so "my orders" is never split across two customers. Returns null for a
+   * suppressed (erased) address.
+   */
+  async linkCafe24Customer(
+    tenantId: number,
+    email: string,
+    name: string | undefined,
+    userIdentifier: string | null,
+  ): Promise<Customer | null> {
+    if (await this.suppression.isSuppressed(tenantId, { email })) return null;
+    const emailHash = blindIndex(email) ?? '__none__';
+    const existing =
+      (await this.customerRepo.findOne({ where: { tenantId, emailHash } })) ??
+      (userIdentifier
+        ? await this.customerRepo.findOne({ where: { tenantId, cafe24UserIdentifier: userIdentifier } })
+        : null);
+    if (existing) {
+      let dirty = false;
+      if (existing.email !== email) {
+        existing.email = email; // @BeforeUpdate re-syncs email_hash
+        dirty = true;
+      }
+      if (name !== undefined && existing.name !== name) {
+        existing.name = name;
+        dirty = true;
+      }
+      if (userIdentifier && existing.cafe24UserIdentifier !== userIdentifier) {
+        existing.cafe24UserIdentifier = userIdentifier;
+        dirty = true;
+      }
+      return dirty ? this.customerRepo.save(existing) : existing;
+    }
+    const customer = this.customerRepo.create({
+      tenantId,
+      email,
+      name: name ?? null,
+      cafe24UserIdentifier: userIdentifier ?? null,
+      tier: 'guest',
+    });
+    return this.customerRepo.save(customer);
+  }
+
   /**
    * Best-effort profile backfill for a customer located by Shopify id. The
    * app-proxy identity path creates the row with name/email null (it only has the

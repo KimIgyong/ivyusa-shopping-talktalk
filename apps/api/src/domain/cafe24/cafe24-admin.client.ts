@@ -156,6 +156,35 @@ export class Cafe24AdminClient {
     return body.orders ?? [];
   }
 
+  /**
+   * Resolve a verified Cafe24 member (user_identifier) to their contact profile via
+   * the Admin API (PLN-260808 P-A2, J1). One targeted, PII-minimal lookup — the join
+   * that lets a customer-auth session inherit the shopper's email-synced orders.
+   * The admin query field for the front identifier is env-overridable
+   * (CAFE24_CUSTOMER_ID_QUERY) so the exact name is confirmed on staging without a
+   * code change. Returns null (never throws to the caller's happy path) when unmatched.
+   */
+  async fetchCustomerByIdentifier(
+    mallId: string,
+    accessToken: string,
+    userIdentifier: string,
+  ): Promise<{ email: string | null; name: string | null } | null> {
+    const field = process.env.CAFE24_CUSTOMER_ID_QUERY ?? 'user_identifier';
+    const qs = new URLSearchParams({ [field]: userIdentifier, limit: '1' });
+    const body = await this.request<{ customers?: Array<Record<string, unknown>> }>(
+      mallId,
+      accessToken,
+      'GET',
+      `/customers?${qs.toString()}`,
+    );
+    const c = body.customers?.[0];
+    if (!c) return null;
+    return {
+      email: typeof c.email === 'string' ? c.email : null,
+      name: typeof c.name === 'string' ? c.name : null,
+    };
+  }
+
   /** Connectivity probe — the store resource (cheap, no PII). */
   async getStore(mallId: string, accessToken: string): Promise<{ shop_name?: string } | null> {
     const body = await this.request<{ store?: { shop_name?: string } }>(

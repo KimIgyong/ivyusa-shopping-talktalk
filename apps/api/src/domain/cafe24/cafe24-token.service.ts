@@ -55,6 +55,22 @@ export class Cafe24TokenService {
     }
   }
 
+  /**
+   * Map a Cafe24 mall id → the tenant that connected it. Used by the @Public
+   * customer-auth start endpoint, where the storefront host is the only signal.
+   * mall_id lives inside the AES-encrypted credential, so this scans+decrypts Cafe24
+   * rows (few per deployment); returns null when no tenant owns the mall.
+   */
+  async findTenantIdByMallId(mallId: string): Promise<number | null> {
+    const creds = await this.credRepo.find({ where: { provider: CAFE24 } });
+    for (const c of creds) {
+      if (!c.secretEnc) continue;
+      const parsed = this.parseCredential(decryptSecret(c.secretEnc));
+      if (parsed?.mallId === mallId) return c.tenantId;
+    }
+    return null;
+  }
+
   /** Resolve mall + a valid access token for a tenant, or null if not connected. */
   async getConnection(tenantId: number): Promise<{ mallId: string; accessToken: string } | null> {
     const cred = await this.credRepo.findOne({ where: { tenantId, provider: CAFE24 } });

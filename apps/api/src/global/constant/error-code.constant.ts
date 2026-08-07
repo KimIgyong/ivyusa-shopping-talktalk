@@ -61,6 +61,11 @@ export const ERROR_CODE = {
   CAFE24_TOKEN_EXCHANGE_FAILED: { code: 'E5012', message: 'Cafe24 token exchange failed' },
   CAFE24_NOT_CONNECTED: { code: 'E5013', message: 'Cafe24 store is not connected' },
   CAFE24_API_ERROR: { code: 'E5014', message: 'Cafe24 API error' },
+  // E5015-E5018 — Cafe24 customer (member) authentication (PLN-260808 P-A2).
+  CAFE24_CUSTOMER_STATE_INVALID: { code: 'E5015', message: 'Invalid or expired Cafe24 customer-auth state' },
+  CAFE24_CUSTOMER_TOKEN_FAILED: { code: 'E5016', message: 'Cafe24 customer token exchange failed' },
+  CAFE24_CUSTOMER_IDENTIFIER_FAILED: { code: 'E5017', message: 'Cafe24 customer identifier lookup failed' },
+  CAFE24_CUSTOMER_TICKET_INVALID: { code: 'E5018', message: 'Invalid or expired Cafe24 sign-in ticket' },
 
   // E9xxx — system
   INTERNAL_ERROR: { code: 'E9001', message: 'Internal server error' },
