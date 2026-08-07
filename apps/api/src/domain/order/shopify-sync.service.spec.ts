@@ -54,6 +54,7 @@ describe('ShopifySyncService.syncOrders', () => {
       upsert: jest.fn().mockResolvedValue(undefined),
       findByName: jest.fn().mockResolvedValue(null),
     };
+    const publish = jest.fn(async () => undefined);
     const svc = new ShopifySyncService(
       orderRepo as never,
       itemRepo as never,
@@ -61,6 +62,7 @@ describe('ShopifySyncService.syncOrders', () => {
       tenantService as never,
       customerService as never,
       integrationService as never,
+      { publish } as never,
     );
     return {
       svc,
@@ -71,6 +73,7 @@ describe('ShopifySyncService.syncOrders', () => {
       client,
       customerService,
       integrationService,
+      publish,
     };
   }
 
@@ -349,6 +352,57 @@ describe('ShopifySyncService.syncOrders', () => {
 
         expect(saved[0]).toMatchObject({ orderNumber: '1002', total: 24.95, tenantId: 2 });
       });
+    });
+  });
+
+  describe('order_created journey emit (PLN-260807 F3, A-7)', () => {
+    it('emits Purchase/order_created for a NEW cached order with a known customer', async () => {
+      const { svc, publish } = build([]);
+      await svc.upsertOrder(7, {
+        id: 5001,
+        order_number: 1010,
+        financial_status: 'paid',
+        customer: { id: 5, email: 'a@x.com' },
+      });
+      expect(publish).toHaveBeenCalledWith('cjm.event', {
+        tenantId: 7,
+        customerId: 42,
+        stage: 'Purchase',
+        eventType: 'order_created',
+        payload: { orderNumber: '1010' },
+      });
+    });
+
+    it('does NOT re-emit when the order row already existed (orders/updated)', async () => {
+      const { svc, publish, orderRepo } = build([]);
+      orderRepo.findOne.mockResolvedValue({
+        id: 4,
+        shopifyOrderId: '5001',
+        customerId: 42,
+      } as OrderCache);
+      await svc.upsertOrder(7, {
+        id: 5001,
+        order_number: 1010,
+        financial_status: 'paid',
+        customer: { id: 5, email: 'a@x.com' },
+      });
+      expect(publish).not.toHaveBeenCalled();
+    });
+
+    it('does NOT re-emit for a prefetched existing row (sync page path)', async () => {
+      const { svc, publish } = build([]);
+      await svc.upsertOrder(
+        7,
+        { id: 5001, order_number: 1010, financial_status: 'paid', customer: { id: 5, email: 'a@x.com' } },
+        { id: 4, shopifyOrderId: '5001', customerId: 42 } as OrderCache,
+      );
+      expect(publish).not.toHaveBeenCalled();
+    });
+
+    it('does NOT emit when the new order has no resolvable customer', async () => {
+      const { svc, publish } = build([]);
+      await svc.upsertOrder(7, { id: 5002, order_number: 1011, financial_status: 'paid' });
+      expect(publish).not.toHaveBeenCalled();
     });
   });
 

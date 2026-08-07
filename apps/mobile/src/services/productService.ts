@@ -14,6 +14,14 @@ export function listProducts(
   });
 }
 
+/** AI 추천 v1 (A-10) — rule-based + KB RAG join; server falls back to new arrivals on cold start. */
+export function listRecommendations(
+  sessionToken: string,
+  size?: number,
+): Promise<ProductSummary[]> {
+  return apiClient.get<ProductSummary[]>('/products/recommendations', sessionToken, { size });
+}
+
 export function listProductCategories(sessionToken: string): Promise<string[]> {
   return apiClient.get<string[]>('/products/categories', sessionToken);
 }

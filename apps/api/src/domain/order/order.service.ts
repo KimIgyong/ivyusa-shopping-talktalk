@@ -2,6 +2,7 @@ import { HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import {
+  CJM_STAGE,
   FULFILLMENT_STATUS,
   ORDER_STATUS_INTERNAL,
   deliverySteps,
@@ -265,6 +266,14 @@ export class OrderService {
       title: 'Shipping update',
       body: `Your order ${order.orderNumber} is now ${statusUi ?? status}.`,
       statusBadge: statusUi,
+    });
+    // Journey breadcrumb (PLN-260807 F3, A-7): the diary timeline's Delivery stage.
+    await this.bus.publish(EVENTS.CJM, {
+      tenantId: order.tenantId,
+      customerId: order.customerId,
+      stage: CJM_STAGE.DELIVERY,
+      eventType: 'shipment_update',
+      payload: { orderNumber: order.orderNumber, status },
     });
 
     return { received: true };

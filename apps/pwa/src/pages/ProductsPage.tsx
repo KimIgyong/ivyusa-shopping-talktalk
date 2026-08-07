@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { listCategories, listProducts } from '../services/productService';
+import { listCategories, listProducts, listRecommendations } from '../services/productService';
 import { useSession } from '../store/session-context';
 import type { ProductSummary } from '../lib/types';
 
@@ -28,6 +28,13 @@ export default function ProductsPage() {
     queryFn: () => listCategories(token!),
   });
 
+  // AI recommendation rail (F3, A-10) — hidden entirely when the server returns nothing.
+  const recsQuery = useQuery({
+    queryKey: ['productRecommendations', token],
+    enabled: !!token,
+    queryFn: () => listRecommendations(token!, 8),
+  });
+
   const productsQuery = useInfiniteQuery({
     queryKey: ['products', token, q, category],
     enabled: !!token,
@@ -48,9 +55,25 @@ export default function ProductsPage() {
 
   const items = productsQuery.data?.pages.flatMap((p) => p.items) ?? [];
   const categories = categoriesQuery.data ?? [];
+  const recommendations = recsQuery.data ?? [];
 
   return (
     <div className="page">
+      {recommendations.length > 0 && (
+        <section aria-label={t('products.recommended')}>
+          <h3 className="section-heading">✨ {t('products.recommended')}</h3>
+          <div className="product-rail">
+            {recommendations.map((p) => (
+              <ProductCard
+                key={p.handle}
+                product={p}
+                onClick={() => navigate(`/products/${encodeURIComponent(p.handle)}`)}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
       <input
         className="input"
         type="search"

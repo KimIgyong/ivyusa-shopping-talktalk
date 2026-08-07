@@ -26,6 +26,7 @@ import { PushModule } from './domain/push/push.module';
 import { ReviewModule } from './domain/review/review.module';
 import { SaveModule } from './domain/save/save.module';
 import { NudgeModule } from './domain/nudge/nudge.module';
+import { DiaryModule } from './domain/diary/diary.module';
 import { AffiliateModule } from './domain/affiliate/affiliate.module';
 import { RestockModule } from './domain/restock/restock.module';
 import { SubscriptionModule } from './domain/subscription/subscription.module';
@@ -79,6 +80,7 @@ import { ShopifyProxyModule } from './domain/shopify-proxy/shopify-proxy.module'
     ReviewModule,
     SaveModule,
     NudgeModule,
+    DiaryModule,
     AffiliateModule,
     RestockModule,
     SubscriptionModule,

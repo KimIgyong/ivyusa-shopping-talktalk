@@ -141,6 +141,34 @@ export interface NudgeCreated {
   url: string;
 }
 
+// F3 (A-7) — customer journey timeline + diary notes.
+
+export type JourneyEventType =
+  | 'product_view'
+  | 'wish_added'
+  | 'save_added'
+  | 'nudge_sent'
+  | 'order_created'
+  | 'shipment_update'
+  | 'review_submitted'
+  | 'chat_message'
+  | 'session_start';
+
+export interface JourneyEvent {
+  id: string;
+  stage: string;
+  eventType: JourneyEventType;
+  payload: { handle?: string; orderNumber?: string; status?: string } | null;
+  createdAt: string;
+}
+
+export interface DiaryNote {
+  id: string;
+  body: string;
+  productHandle: string | null;
+  createdAt: string;
+}
+
 export interface AffiliateStatus {
   status: string;
   linkCode: string | null;

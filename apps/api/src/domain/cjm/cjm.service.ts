@@ -42,6 +42,24 @@ export class CjmService implements OnModuleInit {
     );
   }
 
+  /**
+   * The customer's OWN journey timeline (GET /me/journey — PLN-260807 F3, A-7).
+   * Scoped by customerId only: the caller resolved it from a bound session, and
+   * a customer belongs to exactly one tenant, so no cross-tenant path exists.
+   */
+  async listForCustomer(
+    customerId: number,
+    page: number,
+    size: number,
+  ): Promise<[CjmEvent[], number]> {
+    return this.cjmRepo.findAndCount({
+      where: { customerId },
+      order: { id: 'DESC' },
+      skip: (page - 1) * size,
+      take: size,
+    });
+  }
+
   async list(
     tenantId: number,
     stage: string | undefined,
