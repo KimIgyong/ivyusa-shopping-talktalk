@@ -229,9 +229,10 @@ export class Cafe24CustomerAuthService {
    */
   private async backfillOrders(tenantId: number, mallId: string): Promise<void> {
     try {
-      // Cafe24's orders search caps the window at 6 months, so keep the login
-      // backfill within it (a single-window pull; older history isn't E2E-critical).
-      const lookback = Math.min(Number(process.env.CAFE24_LOGIN_SYNC_LOOKBACK_DAYS ?? 180), 180);
+      // Cafe24's orders search caps a single query's date range at 3 months, so keep
+      // the login backfill within it (older history isn't E2E-critical; a windowed
+      // multi-quarter pull can come later if needed).
+      const lookback = Math.min(Number(process.env.CAFE24_LOGIN_SYNC_LOOKBACK_DAYS ?? 90), 90);
       await this.syncService.syncOrders(tenantId, lookback);
     } catch (err) {
       this.logger.debug(
