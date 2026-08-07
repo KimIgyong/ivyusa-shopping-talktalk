@@ -187,7 +187,13 @@ export class OrderService {
     return new Paginated(items, buildPagination(p, s, total));
   }
 
-  /** Fulfillment webhook (FR-021): upsert fulfillment, sync order status, notify. */
+  /**
+   * Fulfillment webhook (FR-021) for the generic provider route
+   * (`POST /webhooks/fulfillment`): authenticate the caller against the order's
+   * tenant secret, then apply the update. The Shopify fulfillment webhook does NOT
+   * go through here — it is HMAC-verified in ShopifyOrderWebhookController and calls
+   * `applyFulfillment` directly (its request carries no `X-Webhook-Secret`).
+   */
   async handleFulfillmentWebhook(
     orderId: number,
     status: string,
@@ -206,6 +212,23 @@ export class OrderService {
     );
     assertWebhookSecret(providedSecret, expected);
 
+    return this.applyFulfillment(order, status, trackingNumber, carrier);
+  }
+
+  /**
+   * Apply a fulfillment update to an already-authenticated order: upsert the
+   * fulfillment row, sync order status, emit events + a shipping notification.
+   * The CALLER owns authentication — the generic route asserts the per-tenant
+   * `X-Webhook-Secret`; the Shopify path is HMAC-verified in its controller. Never
+   * expose this on an HTTP route directly.
+   */
+  async applyFulfillment(
+    order: OrderCache,
+    status: string,
+    trackingNumber?: string,
+    carrier?: string,
+  ) {
+    const orderId = order.id;
     let fulfillment = await this.fulfillRepo.findOne({ where: { orderId } });
     if (fulfillment) {
       fulfillment.status = status;
