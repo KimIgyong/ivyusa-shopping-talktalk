@@ -82,7 +82,7 @@ export class SessionService {
       this.sessionRepo.create({
         sessionToken: generateToken(),
         tenantId: tenant.id,
-        language: this.resolveLanguage(locale),
+        language: this.resolveLanguage(locale, tenant.timezone),
         consentState: CONSENT_STATE.PENDING,
         customerId: null,
         identityLevel: SESSION_IDENTITY.GUEST,
@@ -373,10 +373,26 @@ export class SessionService {
     await this.sessionRepo.update({ id: sessionId }, { customerId });
   }
 
-  private resolveLanguage(locale?: string): string {
+  /**
+   * Resolve a session's UI language. An explicit non-English locale (es/ko) is
+   * always honoured; when the shopper gives no clear preference, the tenant's
+   * configured timezone decides the default (요구사항: Asia/Seoul → Korean,
+   * America/New_York → English). Falls back to English when neither applies.
+   */
+  private resolveLanguage(locale?: string, timezone?: string | null): string {
     const l = (locale ?? '').toLowerCase();
     if (l.startsWith('es')) return SESSION_LANGUAGE.ES;
     if (l.startsWith('ko')) return SESSION_LANGUAGE.KO;
-    return SESSION_LANGUAGE.EN;
+    // No explicit non-English preference (en / empty / unknown) → tenant default.
+    return this.languageForTimezone(timezone) ?? SESSION_LANGUAGE.EN;
+  }
+
+  /** Default UI language for a tenant's IANA timezone, or null if unmapped. */
+  private languageForTimezone(timezone?: string | null): string | null {
+    const tz = (timezone ?? '').trim().toLowerCase();
+    if (!tz) return null;
+    if (tz === 'asia/seoul') return SESSION_LANGUAGE.KO;
+    if (tz.startsWith('america/')) return SESSION_LANGUAGE.EN;
+    return null; // unmapped timezone → caller falls back to English
   }
 }

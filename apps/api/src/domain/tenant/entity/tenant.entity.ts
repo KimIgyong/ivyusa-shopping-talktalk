@@ -62,6 +62,11 @@ export class Tenant {
   @Column({ name: 'widget_login_mode', type: 'varchar', length: 16, default: 'redirect' })
   widgetLoginMode: string;
 
+  // IANA timezone (e.g. 'Asia/Seoul', 'America/New_York'). Drives the default
+  // widget language when the shopper hasn't picked one (Seoul → ko, US → en).
+  @Column({ type: 'varchar', length: 40, nullable: true })
+  timezone: string | null;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 

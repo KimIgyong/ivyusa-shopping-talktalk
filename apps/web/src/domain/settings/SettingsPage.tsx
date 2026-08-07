@@ -361,8 +361,10 @@ function WidgetBehaviorCard() {
   const save = useSaveWidgetSettings();
   // Local pick, if any; otherwise whatever is stored (redirect until loaded).
   const [picked, setPicked] = useState<WidgetLoginMode | null>(null);
+  const [tzPicked, setTzPicked] = useState<string | null>(null);
   const value: WidgetLoginMode = picked ?? data?.loginMode ?? 'redirect';
-  const dirty = data != null && value !== data.loginMode;
+  const tz = tzPicked ?? data?.timezone ?? '';
+  const dirty = data != null && (value !== data.loginMode || tz !== (data.timezone ?? ''));
 
   return (
     <Card title={t('widgetBehavior.title')}>
@@ -381,7 +383,18 @@ function WidgetBehaviorCard() {
         <p className="mb-4 text-xs text-gray-400">
           {value === 'popup' ? t('widgetBehavior.popupHint') : t('widgetBehavior.redirectHint')}
         </p>
-        <Button onClick={() => save.mutate(value)} disabled={!dirty || save.isPending}>
+        <FormRow label={t('widgetBehavior.timezone')}>
+          <Select value={tz} disabled={isLoading} onChange={(e) => setTzPicked(e.target.value)}>
+            <option value="">{t('widgetBehavior.tzUnset')}</option>
+            <option value="Asia/Seoul">Asia/Seoul — 한국어</option>
+            <option value="America/New_York">America/New_York — English</option>
+          </Select>
+        </FormRow>
+        <p className="mb-4 text-xs text-gray-400">{t('widgetBehavior.timezoneHint')}</p>
+        <Button
+          onClick={() => save.mutate({ loginMode: value, timezone: tz })}
+          disabled={!dirty || save.isPending}
+        >
           {save.isPending ? tc('saving') : tc('save')}
         </Button>
       </div>

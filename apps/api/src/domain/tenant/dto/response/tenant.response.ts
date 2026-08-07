@@ -68,6 +68,7 @@ export interface StorefrontResponse {
 
 export interface WidgetSettingsResponse {
   loginMode: WidgetLoginMode;
+  timezone: string | null;
 }
 
 /**
