@@ -92,6 +92,23 @@ export interface Tracking {
   steps: TrackingStep[];
 }
 
+// Product catalog (F1 — PLN-260807-IvyusaApp-Revamp A-3, products_cache).
+
+export interface ProductSummary {
+  handle: string;
+  title: string;
+  vendor?: string | null;
+  price: number;
+  currency: string;
+  imageUrl?: string | null;
+  productUrl: string;
+  category?: string | null;
+}
+
+export interface ProductDetail extends ProductSummary {
+  description?: string | null;
+}
+
 export type NotificationCategory = 'payment' | 'shipping' | 'event' | 'review' | 'chat' | string;
 
 export interface NotificationItem {

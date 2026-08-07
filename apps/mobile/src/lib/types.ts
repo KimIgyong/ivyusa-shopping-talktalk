@@ -106,6 +106,23 @@ export interface NotificationItem {
   createdAt: string;
 }
 
+export interface ProductSummary {
+  handle: string;
+  title: string;
+  vendor: string;
+  price: number;
+  currency: string;
+  imageUrl: string | null;
+  productUrl: string;
+  category: string | null;
+}
+
+export interface ProductDetail extends ProductSummary {
+  description: string | null;
+  tags: string[];
+  publishedAt: string | null;
+}
+
 export interface NotifPref {
   id: string;
   channel: string;

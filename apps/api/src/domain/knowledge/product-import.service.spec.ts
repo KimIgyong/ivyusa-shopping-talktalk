@@ -2,6 +2,7 @@ import { Repository } from 'typeorm';
 import { ProductImportService } from './product-import.service';
 import { KbDocument } from './entity/kb-document.entity';
 import { KbRevisionService } from './kb-revision.service';
+import { ProductCache } from '../product/entity/product-cache.entity';
 
 const HEADER = 'Product Name,Brand,Category,SKU,Price(USD),Product URL,Image URL,Detail,How to Use,Tags,Handle';
 const row = (over: Partial<Record<string, string>> = {}) => {
@@ -25,10 +26,12 @@ const row = (over: Partial<Record<string, string>> = {}) => {
 describe('ProductImportService.importCsv', () => {
   let saved: KbDocument[];
   let recorded: string[];
+  let savedProducts: ProductCache[];
 
-  const build = (existing: Partial<KbDocument>[] = []) => {
+  const build = (existing: Partial<KbDocument>[] = [], existingProducts: Partial<ProductCache>[] = []) => {
     saved = [];
     recorded = [];
+    savedProducts = [];
     let nextId = 900;
     const docRepo = {
       find: jest.fn(async () => existing as KbDocument[]),
@@ -45,7 +48,17 @@ describe('ProductImportService.importCsv', () => {
         return null;
       }),
     } as unknown as KbRevisionService;
-    return new ProductImportService(docRepo, revisions);
+    let nextProductId = 500;
+    const productRepo = {
+      find: jest.fn(async () => existingProducts as ProductCache[]),
+      create: (p: Partial<ProductCache>) => p as ProductCache,
+      save: jest.fn(async (p: ProductCache) => {
+        const withId = { ...p, id: p.id ?? nextProductId++ } as ProductCache;
+        savedProducts.push(withId);
+        return withId;
+      }),
+    } as unknown as Repository<ProductCache>;
+    return new ProductImportService(docRepo, revisions, productRepo);
   };
 
   it('creates a ProductInfo document keyed by Handle', async () => {
@@ -183,6 +196,69 @@ describe('ProductImportService.importCsv', () => {
     const { touchedIds } = await svc.importCsv(1, `${HEADER}\n${row()}\n${row({ handle: 'b' })}`, 7);
     expect(touchedIds).toHaveLength(2);
     expect(saved.every((d) => d.status === 'pending')).toBe(true);
+  });
+
+  describe('catalog bridge (products_cache, PLN-260807 F1)', () => {
+    it('creates a minimal catalog row carrying price/image/url/category', async () => {
+      const svc = build();
+      await svc.importCsv(1, `${HEADER}\n${row()}`, 7);
+      expect(savedProducts).toHaveLength(1);
+      expect(savedProducts[0]).toMatchObject({
+        tenantId: 1,
+        handle: 'super-collagen-mask',
+        title: 'Arocell Super Collagen Mask',
+        price: 12.56,
+        imageUrl: 'https://cdn.shopify.com/x.jpg',
+        productUrl: 'https://ivyusa.com/products/super-collagen-mask',
+        category: 'Skin Care Masks & Peels',
+        status: 'active',
+      });
+    });
+
+    it('updates only price/image on an existing catalog row', async () => {
+      const svc = build([], [
+        {
+          id: 3,
+          tenantId: 1,
+          handle: 'super-collagen-mask',
+          title: 'Synced title',
+          vendor: 'Arocell',
+          price: 9.99,
+          imageUrl: null,
+        },
+      ]);
+      await svc.importCsv(1, `${HEADER}\n${row()}`, 7);
+      expect(savedProducts).toHaveLength(1);
+      // Storefront-synced fields stay untouched; only the bridged pair moves.
+      expect(savedProducts[0]).toMatchObject({
+        id: 3,
+        title: 'Synced title',
+        vendor: 'Arocell',
+        price: 12.56,
+        imageUrl: 'https://cdn.shopify.com/x.jpg',
+      });
+    });
+
+    it('does nothing when the file has neither optional column', async () => {
+      const svc = build();
+      await svc.importCsv(1, 'Product Name,Handle,Detail\nA,a-1,Body', 7);
+      expect(savedProducts).toHaveLength(0);
+    });
+
+    it('ignores a non-numeric price and a non-http image URL', async () => {
+      const svc = build();
+      await svc.importCsv(1, `${HEADER}\n${row({ price: 'TBD', image: 'ftp://x/y.jpg' })}`, 7);
+      expect(savedProducts).toHaveLength(0);
+    });
+
+    it('a catalog failure never fails the KB import', async () => {
+      const svc = build();
+      const repo = (svc as unknown as { productRepo: { save: jest.Mock } }).productRepo;
+      repo.save.mockRejectedValue(new Error('catalog table locked'));
+      const { result } = await svc.importCsv(1, `${HEADER}\n${row()}`, 7);
+      expect(result).toMatchObject({ created: 1, invalid: 0 });
+      expect(saved).toHaveLength(1);
+    });
   });
 
   it('reports products missing from the file without deleting them', async () => {

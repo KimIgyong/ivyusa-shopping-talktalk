@@ -1,7 +1,13 @@
 export default {
   app: { title: 'ShopTalk' },
   header: { shop: '쇼핑하기' },
-  tabs: { chat: '상담', orders: '주문', alerts: '알림', settings: '설정' },
+  tabs: {
+    chat: '상담',
+    products: '상품',
+    orders: '주문',
+    alerts: '알림',
+    settings: '설정',
+  },
   common: {
     loading: '불러오는 중…',
     error: '문제가 발생했습니다',
@@ -26,6 +32,20 @@ export default {
     consentFailed: '동의 저장에 실패했습니다',
     escalated: '상담원이 곧 연결됩니다.',
     sendFailed: '메시지 전송에 실패했습니다',
+  },
+  products: {
+    title: '상품',
+    search: '상품 검색…',
+    all: '전체',
+    empty: '상품이 없습니다.',
+    loadMore: '더 보기',
+  },
+  product: {
+    buy: '스토어에서 구매하기',
+    restock: '재입고 알림',
+    restockOk: '재입고 알림을 신청했습니다',
+    restockFailed: '재입고 알림 신청에 실패했습니다',
+    notFound: '상품을 찾을 수 없습니다.',
   },
   orders: {
     title: '주문 내역',

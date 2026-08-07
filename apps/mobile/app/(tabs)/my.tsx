@@ -17,7 +17,8 @@ import { useToast } from '../../src/components/Toast';
 import { ApiError } from '../../src/lib/api-client';
 import type { OrderSummary } from '../../src/lib/types';
 
-export default function OrdersScreen() {
+/** 마이 — orders section (moved from the former Orders tab); diary/wish arrive in F2/F3. */
+export default function MyScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const { token } = useSession();
@@ -67,6 +68,7 @@ export default function OrdersScreen() {
       refreshControl={
         <RefreshControl refreshing={ordersQuery.isRefetching} onRefresh={() => void ordersQuery.refetch()} />
       }
+      ListHeaderComponent={<Text style={styles.section}>{t('my.orders')}</Text>}
       renderItem={({ item }) => <OrderRow order={item} onPress={() => router.push(`/order/${item.id}`)} />}
       ListEmptyComponent={
         <View style={styles.emptyWrap}>
@@ -118,6 +120,13 @@ function OrderRow({ order, onPress }: { order: OrderSummary; onPress: () => void
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f9fafb' },
+  section: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#6b7280',
+    marginTop: 16,
+    marginHorizontal: 16,
+  },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
