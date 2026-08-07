@@ -112,6 +112,8 @@ Copy the `.example` to the real filename on the server and fill in secrets — t
 | `AI_DEFAULT_PROVIDER` | stub | stub | anthropic | gateway default adapter |
 | `ANTHROPIC_API_KEY` | — | optional | **required** | real provider key |
 | `ANTHROPIC_MODEL` | claude-opus-4-8 | claude-opus-4-8 | claude-opus-4-8 | |
+| `OPENAI_API_KEY` | — | optional | optional | fallback route; per-engine key in the console wins |
+| `OPENAI_MODEL` | gpt-4o-mini | gpt-4o-mini | gpt-4o-mini | used when the engine row names no model |
 | `CONVERSATION_LOG_RETENTION_DAYS` | 365 | 90 | 365 | POL-003 retention purge |
 | `KB_STORAGE_DIR` | ./storage/kb | — | — | local KB uploads (dev) |
 | `SEED_ON_BOOT` | — | true→false after 1st boot | true→false after 1st boot | idempotent bootstrap seed at startup |
