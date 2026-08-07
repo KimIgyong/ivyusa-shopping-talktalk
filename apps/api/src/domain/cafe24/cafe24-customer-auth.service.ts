@@ -43,11 +43,21 @@ export class Cafe24CustomerAuthService {
     private readonly syncService: Cafe24SyncService,
   ) {}
 
+  // Cafe24 validates redirect_uri against ONE registered value per app, so both the
+  // admin install and this customer flow share the already-registered callback
+  // (/auth/cafe24/callback); that controller dispatches by state. Overridable, and
+  // /public/.../callback still works if a second URI is ever registered.
   private redirectUri(): string {
     return (
       process.env.CAFE24_CUSTOMER_REDIRECT_URI ??
-      'https://shoptalk.amoeba.site/api/v1/public/cafe24/customer-auth/callback'
+      process.env.CAFE24_REDIRECT_URI ??
+      'https://shoptalk.amoeba.site/api/v1/auth/cafe24/callback'
     );
+  }
+
+  /** True when `state` belongs to an in-flight customer-auth (vs an admin install). */
+  async isCustomerAuthState(state: string): Promise<boolean> {
+    return state ? !!(await this.redis.get(`cafe24:cust:state:${state}`)) : false;
   }
   private scopes(): string {
     return process.env.CAFE24_CUSTOMER_SCOPES ?? 'mall.read_customer_identifier';
