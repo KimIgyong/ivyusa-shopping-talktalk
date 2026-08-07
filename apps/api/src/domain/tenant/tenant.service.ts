@@ -7,6 +7,8 @@ import { normalizeStorefrontUrl } from '../../global/util/storefront-url.util';
 import { IntegrationCredential } from './entity/integration-credential.entity';
 import { User } from '../user/entity/user.entity';
 import { IntegrationStatusEntity } from '../integration/entity/integration-status.entity';
+import { ContentFilterRule } from '../moderation/entity/content-filter-rule.entity';
+import { DEFAULT_MODERATION_RULES } from '../moderation/moderation.defaults';
 import { IntegrationService } from '../integration/integration.service';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
@@ -39,6 +41,8 @@ export class TenantService {
     @InjectRepository(IntegrationCredential)
     private readonly credRepo: Repository<IntegrationCredential>,
     @InjectRepository(User) private readonly userRepo: Repository<User>,
+    @InjectRepository(ContentFilterRule)
+    private readonly cfrRepo: Repository<ContentFilterRule>,
     private readonly integrationService: IntegrationService,
     private readonly audit: AuditService,
   ) {}
@@ -126,7 +130,34 @@ export class TenantService {
       plan,
       status: 'applied',
     });
-    return this.tenantRepo.save(tenant);
+    const saved = await this.tenantRepo.save(tenant);
+    await this.seedDefaultModeration(saved.id);
+    return saved;
+  }
+
+  /**
+   * Seed a new tenant's starter moderation rules (issue-2 fix). Idempotent — only
+   * runs when the tenant has none, so it never clobbers a tenant that deleted them
+   * on purpose. Response-rule defaults come from AiConfigService.DEFAULT_RULES (a
+   * read-time fallback), so only moderation — which is stored as rows — is seeded.
+   */
+  private async seedDefaultModeration(tenantId: number): Promise<void> {
+    const existing = await this.cfrRepo.count({ where: { tenantId } });
+    if (existing > 0) return;
+    await this.cfrRepo.save(
+      DEFAULT_MODERATION_RULES.map((r) =>
+        this.cfrRepo.create({
+          tenantId,
+          scope: r.scope,
+          type: r.type,
+          patternOrPrompt: r.patternOrPrompt,
+          lang: r.lang,
+          severity: r.severity,
+          action: r.action,
+          isActive: 1,
+        }),
+      ),
+    );
   }
 
   /** Find-or-create a tenant by shop domain (used by the Shopify OAuth callback). */
@@ -135,7 +166,7 @@ export class TenantService {
     if (existing) return existing;
     // e.g. "acme.myshopify.com" -> slug base "acme"
     const slug = await this.generateUniqueSlug(name ?? shopDomain.split('.')[0]);
-    return this.tenantRepo.save(
+    const saved = await this.tenantRepo.save(
       this.tenantRepo.create({
         uuid: randomUUID(),
         shopDomain,
@@ -144,6 +175,8 @@ export class TenantService {
         status: 'active',
       }),
     );
+    await this.seedDefaultModeration(saved.id);
+    return saved;
   }
 
   /**
