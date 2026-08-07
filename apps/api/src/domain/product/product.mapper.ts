@@ -19,6 +19,7 @@ export function toProductCardResponse(p: ProductCache): ProductCardResponse {
 export function toProductDetailResponse(p: ProductCache): ProductDetailResponse {
   return {
     ...toProductCardResponse(p),
+    sku: p.sku,
     description: p.description,
     tags: p.tags,
     publishedAt: p.publishedAt ? p.publishedAt.toISOString() : null,

@@ -14,6 +14,8 @@ export interface ProductCardResponse {
 
 /** Full detail view (product screen). */
 export interface ProductDetailResponse extends ProductCardResponse {
+  /** Storefront SKU — agents match a chat against stock/order lines (PLN-260807 P0). */
+  sku: string | null;
   description: string | null;
   tags: string | null;
   publishedAt: string | null;

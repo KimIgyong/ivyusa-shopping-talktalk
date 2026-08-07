@@ -30,7 +30,7 @@ interface StorefrontProduct {
   vendor?: string | null;
   product_type?: string | null;
   tags?: string[] | string | null;
-  variants?: Array<{ price?: string | number | null }>;
+  variants?: Array<{ price?: string | number | null; sku?: string | null }>;
   images?: Array<{ src?: string | null }>;
 }
 
@@ -241,6 +241,7 @@ export class ProductSyncService implements OnModuleInit, OnModuleDestroy {
       tags: this.joinTags(raw.tags),
       description: stripHtml(raw.body_html),
       price: this.firstVariantPrice(raw),
+      sku: this.firstVariantSku(raw),
       imageUrl: raw.images?.[0]?.src ? String(raw.images[0].src).slice(0, 1024) : null,
       productUrl: `${origin}/products/${handle}`.slice(0, 1024),
       publishedAt: this.parseDate(raw.published_at),
@@ -274,6 +275,19 @@ export class ProductSyncService implements OnModuleInit, OnModuleDestroy {
   private firstVariantPrice(raw: StorefrontProduct): number | null {
     const price = Number(raw.variants?.[0]?.price);
     return Number.isFinite(price) ? price : null;
+  }
+
+  /**
+   * First non-empty variant SKU — not `variants[0].sku`. A product whose first
+   * variant is a placeholder ("Default Title" with no SKU) still carries real
+   * codes on the variants that follow, and taking position 0 would drop them.
+   */
+  private firstVariantSku(raw: StorefrontProduct): string | null {
+    for (const v of raw.variants ?? []) {
+      const sku = typeof v?.sku === 'string' ? v.sku.trim() : '';
+      if (sku) return sku.slice(0, 64);
+    }
+    return null;
   }
 
   private parseDate(value: string | null | undefined): Date | null {

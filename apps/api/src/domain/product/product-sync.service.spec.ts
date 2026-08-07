@@ -19,7 +19,7 @@ describe('ProductSyncService.syncTenant', () => {
     vendor: 'IVY',
     product_type: 'Serum',
     tags: ['vitamin', 'glow'],
-    variants: [{ price: '25.00' }, { price: '99.00' }],
+    variants: [{ price: '25.00' }, { price: '99.00', sku: 'IVY-VITC-2' }],
     images: [{ src: 'https://cdn.shopify.com/serum.jpg' }],
     ...over,
   });
@@ -96,12 +96,36 @@ describe('ProductSyncService.syncTenant', () => {
       tags: 'vitamin, glow',
       description: "Bright & glowy skin",
       price: 25,
+      sku: 'IVY-VITC-2',
       imageUrl: 'https://cdn.shopify.com/serum.jpg',
       productUrl: 'https://ivyusa.com/products/vita-c-serum',
       status: 'active',
     });
     expect(saved[0].publishedAt?.toISOString()).toBe('2026-08-01T00:00:00.000Z');
     expect(saved[0].syncedAt).toBeInstanceOf(Date);
+  });
+
+  it('takes the first NON-EMPTY variant sku, not variants[0]', async () => {
+    // A placeholder first variant ("Default Title", no code) is common; taking
+    // position 0 would drop the real SKU sitting on the next variant.
+    mockFetch([[product({ variants: [{ price: '9.00', sku: '  ' }, { price: '9.00', sku: 'REAL-1' }] })]]);
+    const { svc, saved } = build();
+    await svc.syncTenant(tenant);
+    expect(saved[0].sku).toBe('REAL-1');
+  });
+
+  it('nulls sku when no variant carries one (29 of 2,275 live products)', async () => {
+    mockFetch([[product({ variants: [{ price: '9.00' }, { price: '9.00', sku: null }] })]]);
+    const { svc, saved } = build();
+    await svc.syncTenant(tenant);
+    expect(saved[0].sku).toBeNull();
+  });
+
+  it('caps an over-long sku at the column width', async () => {
+    mockFetch([[product({ variants: [{ price: '9.00', sku: 'S'.repeat(80) }] })]]);
+    const { svc, saved } = build();
+    await svc.syncTenant(tenant);
+    expect(saved[0].sku).toHaveLength(64);
   });
 
   it('accepts tags as a comma string and nulls out missing price/image', async () => {
