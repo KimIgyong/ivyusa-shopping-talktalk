@@ -119,6 +119,21 @@ function InstallGuideCard() {
     `</script>\n` +
     `<script src="${WIDGET_URL}/embed.js" defer></script>`;
 
+  // Cafe24 classic mall: point sign-in at the mall's own login page (no login API;
+  // login happens in the top window, then the widget reopens) — PLN-260807.
+  const cafe24Snippet =
+    `<!-- ShopTalk widget (Cafe24) -->\n` +
+    `<script>\n` +
+    `  window.IVY_WIDGET_CONFIG = {\n` +
+    `    shop: ${JSON.stringify(shop)},\n` +
+    `    locale: "ko",\n` +
+    `    widgetUrl: ${JSON.stringify(WIDGET_URL)},\n` +
+    `    loginPath: "/member/login.html",\n` +
+    `    loginReturnParam: "returnUrl"\n` +
+    `  };\n` +
+    `</script>\n` +
+    `<script src="${WIDGET_URL}/embed.js" defer></script>`;
+
   const scriptTagSnippet =
     `POST https://${shop}/admin/api/2024-10/script_tags.json\n` +
     `{\n` +
@@ -247,7 +262,7 @@ function InstallGuideCard() {
         </>
       )}
 
-      {platform === 'cafe24' && simpleGuide('cafe24', htmlSnippet)}
+      {platform === 'cafe24' && simpleGuide('cafe24', cafe24Snippet)}
       {platform === 'woocommerce' && simpleGuide('woocommerce', wooSnippet)}
       {platform === 'odoo' && simpleGuide('odoo', htmlSnippet)}
     </Card>
