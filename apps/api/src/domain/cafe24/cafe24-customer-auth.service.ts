@@ -6,7 +6,7 @@ import { CustomerService } from '../customer/customer.service';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
 import { Cafe24TokenService } from './cafe24-token.service';
-import { Cafe24AdminClient, cafe24AuthHost } from './cafe24-admin.client';
+import { cafe24AuthHost } from './cafe24-admin.client';
 import { Cafe24SyncService } from './cafe24-sync.service';
 
 const STATE_TTL_SEC = 600;
@@ -39,7 +39,6 @@ export class Cafe24CustomerAuthService {
     private readonly sessionService: SessionService,
     private readonly customerService: CustomerService,
     private readonly tokenService: Cafe24TokenService,
-    private readonly adminClient: Cafe24AdminClient,
     private readonly syncService: Cafe24SyncService,
   ) {}
 
@@ -144,7 +143,7 @@ export class Cafe24CustomerAuthService {
     // Enrich the identifier-keyed row with the shopper's email + order history so
     // "my orders" populates. Fire-and-forget (never blocks the sign-in handshake),
     // exactly like the Shopify app-proxy identity path.
-    void this.backfillOrders(parsed.tenantId, parsed.mallId, userIdentifier);
+    void this.backfillOrders(parsed.tenantId, parsed.mallId);
 
     const session = await this.sessionService.findOrCreateForCustomer(
       parsed.tenantId,
@@ -221,33 +220,17 @@ export class Cafe24CustomerAuthService {
   }
 
   /**
-   * Best-effort: map the verified member (user_identifier) to their email via the
-   * Admin API and link it onto the row, then pull their orders (J1 join). Never
-   * throws — the sign-in already succeeded; on any hiccup the shopper is
-   * authenticated but "my orders" stays empty until the next order sync.
+   * Best-effort order backfill on sign-in. Order sync itself resolves each order's
+   * member_id → user_identifier (admin) and stamps/merges it onto the customer
+   * (J1 join), so a wide-window sync here enriches this member's row — including
+   * older orders — and the session (bound by user_identifier) inherits them. Never
+   * throws: the sign-in already succeeded; on any hiccup "my orders" simply stays
+   * empty until the next scheduled sync.
    */
-  private async backfillOrders(
-    tenantId: number,
-    mallId: string,
-    userIdentifier: string,
-  ): Promise<void> {
+  private async backfillOrders(tenantId: number, mallId: string): Promise<void> {
     try {
-      const conn = await this.tokenService.getConnection(tenantId);
-      if (!conn) return;
-      const profile = await this.adminClient.fetchCustomerByIdentifier(
-        conn.mallId,
-        conn.accessToken,
-        userIdentifier,
-      );
-      if (profile?.email) {
-        await this.customerService.linkCafe24Customer(
-          tenantId,
-          profile.email,
-          profile.name ?? undefined,
-          userIdentifier,
-        );
-      }
-      await this.syncService.syncOrders(tenantId);
+      const lookback = Number(process.env.CAFE24_LOGIN_SYNC_LOOKBACK_DAYS ?? 365);
+      await this.syncService.syncOrders(tenantId, lookback);
     } catch (err) {
       this.logger.debug(
         `cafe24 customer order backfill skipped mall=${mallId}: ${

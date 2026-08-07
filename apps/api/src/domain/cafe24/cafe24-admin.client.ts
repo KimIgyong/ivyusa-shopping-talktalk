@@ -64,6 +64,7 @@ export interface Cafe24Order {
   paid?: string; // 'T' | 'F'
   payment_amount?: string;
   actual_order_amount?: { total_amount_due?: string };
+  member_id?: string | null; // storefront login id — the key to the member's user_identifier
   member_email?: string | null;
   billing_name?: string | null;
   items?: Cafe24OrderItem[];
@@ -157,20 +158,19 @@ export class Cafe24AdminClient {
   }
 
   /**
-   * Resolve a verified Cafe24 member (user_identifier) to their contact profile via
-   * the Admin API (PLN-260808 P-A2, J1). One targeted, PII-minimal lookup — the join
-   * that lets a customer-auth session inherit the shopper's email-synced orders.
-   * The admin query field for the front identifier is env-overridable
-   * (CAFE24_CUSTOMER_ID_QUERY) so the exact name is confirmed on staging without a
-   * code change. Returns null (never throws to the caller's happy path) when unmatched.
+   * Resolve a storefront member (member_id, from an order) to their front
+   * `user_identifier` + contact profile via the Admin API (PLN-260808 P-A2, J1).
+   * The admin customers resource filters only by member_id/cellphone and returns the
+   * same client-scoped `user_identifier` the customer-auth flow produces — so order
+   * sync can stamp it onto the customer, letting a later sign-in match. Returns null
+   * (never throws to the caller's happy path) when unmatched. Requires mall.read_customer.
    */
-  async fetchCustomerByIdentifier(
+  async fetchCustomerByMemberId(
     mallId: string,
     accessToken: string,
-    userIdentifier: string,
-  ): Promise<{ email: string | null; name: string | null } | null> {
-    const field = process.env.CAFE24_CUSTOMER_ID_QUERY ?? 'user_identifier';
-    const qs = new URLSearchParams({ [field]: userIdentifier, limit: '1' });
+    memberId: string,
+  ): Promise<{ userIdentifier: string | null; email: string | null; name: string | null } | null> {
+    const qs = new URLSearchParams({ member_id: memberId, limit: '1' });
     const body = await this.request<{ customers?: Array<Record<string, unknown>> }>(
       mallId,
       accessToken,
@@ -180,6 +180,7 @@ export class Cafe24AdminClient {
     const c = body.customers?.[0];
     if (!c) return null;
     return {
+      userIdentifier: typeof c.user_identifier === 'string' ? c.user_identifier : null,
       email: typeof c.email === 'string' ? c.email : null,
       name: typeof c.name === 'string' ? c.name : null,
     };

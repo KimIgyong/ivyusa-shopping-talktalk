@@ -12,14 +12,12 @@ function build() {
   const session = { findOrCreateForCustomer: jest.fn(async () => ({ sessionToken: 'sess-xyz' })) };
   const customer = { findOrCreateByCafe24Identifier: jest.fn(async () => ({ id: 42 })) };
   const token = { findTenantIdByMallId: jest.fn(async () => 7), getConnection: jest.fn(async () => null) };
-  const admin = { fetchCustomerByIdentifier: jest.fn() };
   const sync = { syncOrders: jest.fn() };
   const svc = new Cafe24CustomerAuthService(
     redis as never,
     session as never,
     customer as never,
     token as never,
-    admin as never,
     sync as never,
   );
   return { svc, redis, session, token, store };
