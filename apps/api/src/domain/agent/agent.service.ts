@@ -10,6 +10,7 @@ import {
 } from '@ivy/types';
 import { Conversation } from '../chat/entity/conversation.entity';
 import { Message } from '../chat/entity/message.entity';
+import { AnswerReuseService } from '../answer-reuse/answer-reuse.service';
 import { User } from '../user/entity/user.entity';
 import { Session } from '../session/entity/session.entity';
 import { AgentProfile } from './entity/agent-profile.entity';
@@ -96,6 +97,8 @@ export class AgentService {
     private readonly sessionService: SessionService,
     private readonly bus: EventBusService,
     private readonly mailer: MailerService,
+    // Appended last so positional test doubles stay valid; all uses `?.`-guarded.
+    private readonly answerReuse?: AnswerReuseService,
   ) {}
 
   /**
@@ -427,7 +430,36 @@ export class AgentService {
     );
     await this.notifyCustomerOfReply(conversation.sessionId, tenantId);
     await this.mailReplyIfOffHoursThread(conversation, tenantId, moderated.text);
+    // Answer reuse ingest (PLN-260808 Track C, D-C1): a human's moderated reply
+    // paired with the question it answered is the highest-trust reuse source.
+    // Fire-and-forget — a reuse hiccup must never fail the reply.
+    void this.ingestReplyForReuse(conversationId, tenantId, saved);
     return saved;
+  }
+
+  /** Pair the agent reply with the customer question right before it. */
+  private async ingestReplyForReuse(
+    conversationId: number,
+    tenantId: number,
+    reply: Message,
+  ): Promise<void> {
+    try {
+      if (!this.answerReuse) return;
+      const question = await this.msgRepo.findOne({
+        where: { conversationId, senderType: SENDER_TYPE.USER },
+        order: { id: 'DESC' },
+      });
+      if (!question) return;
+      await this.answerReuse.recordAgentAnswer({
+        tenantId,
+        lang: question.lang ?? 'EN',
+        question: question.body,
+        answerText: reply.body,
+        sourceMessageId: reply.id,
+      });
+    } catch (e) {
+      this.logger.debug(`reuse agent-ingest skipped: ${(e as Error).message}`);
+    }
   }
 
   /**

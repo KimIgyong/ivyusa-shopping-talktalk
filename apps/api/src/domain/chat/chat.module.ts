@@ -16,6 +16,7 @@ import { ModerationModule } from '../moderation/moderation.module';
 import { AiEngineModule } from '../ai-engine/ai-engine.module';
 import { OrderModule } from '../order/order.module';
 import { CustomerModule } from '../customer/customer.module';
+import { AnswerReuseModule } from '../answer-reuse/answer-reuse.module';
 
 @Module({
   imports: [
@@ -31,6 +32,8 @@ import { CustomerModule } from '../customer/customer.module';
     // CustomerService stores the off-hours contact address through the same
     // lead path (erasure suppression + encryption) the agent console uses.
     CustomerModule,
+    // Answer reuse (PLN-260808 Track C): replay verified answers pre-LLM.
+    AnswerReuseModule,
   ],
   controllers: [ChatController],
   providers: [ChatService, RagService, ScenarioService],

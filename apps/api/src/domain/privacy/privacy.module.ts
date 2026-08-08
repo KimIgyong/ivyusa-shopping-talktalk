@@ -24,6 +24,7 @@ import { Campaign } from '../campaign/entity/campaign.entity';
 import { Tenant } from '../tenant/entity/tenant.entity';
 import { AuditModule } from '../audit/audit.module';
 import { TenantModule } from '../tenant/tenant.module';
+import { AnswerReuseModule } from '../answer-reuse/answer-reuse.module';
 import { ShopifyAdminClient } from '../order/shopify-admin.client';
 import { PrivacyService } from './privacy.service';
 import { RetentionService } from './retention.service';
@@ -66,6 +67,8 @@ import { PrivacyController, ShopifyComplianceController } from './privacy.contro
     // the Admin API client. The client is stateless (no injected deps), so it is
     // provided here rather than dragging in the whole OrderModule.
     TenantModule,
+    // Answer reuse (PLN-260808 Track C): DSAR erasure drops derived Q&A entries.
+    AnswerReuseModule,
   ],
   controllers: [ShopifyComplianceController, PrivacyController],
   providers: [PrivacyService, RetentionService, ShopifyAdminClient],
