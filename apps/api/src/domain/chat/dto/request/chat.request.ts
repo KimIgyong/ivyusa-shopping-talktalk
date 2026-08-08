@@ -7,6 +7,11 @@ export class SendMessageRequest {
   @IsString() @MinLength(1) message: string;
 }
 
+/** POST /chat/end — customer ends the current conversation (PLN-260808 Track B). */
+export class EndChatRequest {
+  @IsString() session_token: string;
+}
+
 export class EscalateRequest {
   @IsString() session_token: string;
   // Widget echoes the id back as a string (bigint PKs serialize as strings).

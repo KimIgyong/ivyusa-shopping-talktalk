@@ -6,6 +6,7 @@ import { Session } from '../session/entity/session.entity';
 import { Tenant } from '../tenant/entity/tenant.entity';
 import { User } from '../user/entity/user.entity';
 import { KbDocument } from '../knowledge/entity/kb-document.entity';
+import { Assignment } from '../agent/entity/assignment.entity';
 import { ChatService } from './chat.service';
 import { RagService } from './rag.service';
 import { ScenarioService } from './scenario.service';
@@ -18,7 +19,9 @@ import { CustomerModule } from '../customer/customer.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Conversation, Message, Session, Tenant, User, KbDocument]),
+    // Assignment: the customer-side end-chat must release an agent's active
+    // assignment exactly like the console's end does (PLN-260808 Track B).
+    TypeOrmModule.forFeature([Conversation, Message, Session, Tenant, User, KbDocument, Assignment]),
     SessionModule,
     ModerationModule,
     AiEngineModule,

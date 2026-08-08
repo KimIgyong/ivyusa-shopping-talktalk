@@ -101,6 +101,7 @@ describe('ChatService consent gate', () => {
       sessionRepo,
       tenantRepo,
       userRepo,
+      { update: jest.fn() } as never, // Assignment repo (end-chat release; unused here)
       { classifyIntent: ragClassify, answer: ragAnswer } as unknown as RagService,
       { moderate } as unknown as ModerationService,
       // orderService precedes sessionService: it supplies the signed-in shopper's own

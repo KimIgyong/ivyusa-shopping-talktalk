@@ -33,6 +33,10 @@ export const es: Translation = {
     inputPlaceholder: 'Escribe un mensaje…',
     send: 'Enviar',
     sendFailed: 'Lo sentimos, no se pudo enviar. Inténtalo de nuevo.',
+    endChat: 'Finalizar chat',
+    endConfirm: '¿Finalizar esta conversación?',
+    endCancel: 'Cancelar',
+    endedNotice: 'La conversación ha finalizado. Envía un mensaje para iniciar una nueva.',
     connectingAgent: 'Te estamos conectando con un agente de soporte. Espera un momento…',
     contactEmail: {
       title: '¿A qué correo enviamos la respuesta?',

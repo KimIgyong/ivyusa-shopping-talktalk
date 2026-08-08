@@ -33,6 +33,10 @@ export const ko: Translation = {
     inputPlaceholder: '메시지를 입력하세요…',
     send: '보내기',
     sendFailed: '전송하지 못했습니다. 다시 시도해 주세요.',
+    endChat: '상담 종료',
+    endConfirm: '상담을 종료할까요?',
+    endCancel: '취소',
+    endedNotice: '상담이 종료되었습니다. 새 메시지를 보내면 새 상담이 시작됩니다.',
     connectingAgent: '상담원에게 연결하고 있습니다. 잠시만 기다려 주세요…',
     contactEmail: {
       title: '답변을 받으실 이메일을 알려주세요',

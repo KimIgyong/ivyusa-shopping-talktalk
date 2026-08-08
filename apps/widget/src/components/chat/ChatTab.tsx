@@ -47,7 +47,7 @@ export function ChatTab() {
   const consumeChatMessage = useWidgetStore((s) => s.consumeChatMessage);
   const analytics = useAnalytics();
 
-  const { messages, send, scenario, sending, status, escalate } = useChat(sessionToken);
+  const { messages, send, scenario, sending, status, escalate, endChat } = useChat(sessionToken);
   // Reply-pending indicator (PLN-260804, corrected by FIX-260806).
   //  · sending  → the AI completion runs synchronously inside the send request.
   //  · agent    → a human took the thread; their reply arrives via the poll.
@@ -72,6 +72,9 @@ export function ChatTab() {
   const [input, setInput] = useState('');
   const [inline, setInline] = useState<Inline>(null);
   const [showEscalate, setShowEscalate] = useState(false);
+  // End-chat confirm row (요구 3, PLN-260808 Track B).
+  const [endConfirm, setEndConfirm] = useState(false);
+  const chatLive = status === 'ai_active' || status === 'waiting' || status === 'agent';
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Tenant-configured greetings (session/ensure); fall back to the built-in
@@ -108,7 +111,7 @@ export function ChatTab() {
       top: scrollRef.current.scrollHeight,
       behavior: 'smooth',
     });
-  }, [messages, inline, showEscalate, waitMode]);
+  }, [messages, inline, showEscalate, waitMode, endConfirm, status]);
 
   /**
    * Fail-closed consent recording (ConsentBanner awaits this): the banner only
@@ -280,10 +283,18 @@ export function ChatTab() {
 
   return (
     <div className="flex h-full flex-col">
-      {/* AI disclosure */}
+      {/* AI disclosure + end-chat control */}
       <div className="flex items-center gap-1.5 border-b border-gray-100 bg-gray-50 px-3 py-1.5 text-[11px] text-gray-500">
-        <Sparkles className="h-3 w-3 text-primary-400" />
-        {t('chat.aiDisclosure')}
+        <Sparkles className="h-3 w-3 flex-shrink-0 text-primary-400" />
+        <span className="min-w-0 flex-1">{t('chat.aiDisclosure')}</span>
+        {chatLive && (
+          <button
+            onClick={() => setEndConfirm(true)}
+            className="flex-shrink-0 whitespace-nowrap font-medium text-gray-400 underline-offset-2 hover:text-gray-600 hover:underline"
+          >
+            {t('chat.endChat')}
+          </button>
+        )}
       </div>
 
       {/* Thread */}
@@ -354,6 +365,39 @@ export function ChatTab() {
               createdAt: new Date().toISOString(),
             }}
           />
+        )}
+
+        {/* End-chat confirm (render-only; the session and sign-in survive). */}
+        {endConfirm && chatLive && (
+          <div className="flex flex-col items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 p-3">
+            <span className="text-xs text-gray-600">{t('chat.endConfirm')}</span>
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  setEndConfirm(false);
+                  void endChat();
+                }}
+                className="rounded-full bg-gray-700 px-4 py-1 text-xs font-medium text-white hover:bg-gray-800"
+              >
+                {t('chat.endChat')}
+              </button>
+              <button
+                onClick={() => setEndConfirm(false)}
+                className="rounded-full border border-gray-300 bg-white px-4 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100"
+              >
+                {t('chat.endCancel')}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Ended divider — set by our end button OR an agent ending the thread. */}
+        {status === 'ended' && (
+          <div className="flex items-center gap-2 py-1 text-[11px] text-gray-400">
+            <span className="h-px flex-1 bg-gray-200" />
+            <span className="whitespace-nowrap">{t('chat.endedNotice')}</span>
+            <span className="h-px flex-1 bg-gray-200" />
+          </div>
         )}
 
         {waitMode && <TypingBubble mode={waitMode} />}

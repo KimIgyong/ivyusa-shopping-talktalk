@@ -31,6 +31,10 @@ export const en = {
     inputPlaceholder: 'Type a message…',
     send: 'Send',
     sendFailed: "Sorry, that didn't go through. Please try again.",
+    endChat: 'End chat',
+    endConfirm: 'End this conversation?',
+    endCancel: 'Cancel',
+    endedNotice: 'This conversation has ended. Send a message to start a new one.',
     connectingAgent: 'You are being connected to a support agent. Please hold on…',
     contactEmail: {
       title: 'Where should we send the answer?',

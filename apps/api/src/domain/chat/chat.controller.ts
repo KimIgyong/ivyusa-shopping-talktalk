@@ -4,7 +4,13 @@ import { SkipThrottle } from '@nestjs/throttler';
 import { ChatService } from './chat.service';
 import { ScenarioService } from './scenario.service';
 import { ChatMapper } from './chat.mapper';
-import { SendMessageRequest, EscalateRequest, ScenarioRequest, ContactEmailRequest } from './dto/request/chat.request';
+import {
+  SendMessageRequest,
+  EndChatRequest,
+  EscalateRequest,
+  ScenarioRequest,
+  ContactEmailRequest,
+} from './dto/request/chat.request';
 import { SessionService } from '../session/session.service';
 import { Public } from '../../global/decorator/public.decorator';
 import { SessionToken } from '../../global/decorator/session-token.decorator';
@@ -43,6 +49,14 @@ export class ChatController {
     return this.chatService.saveContactEmail(session, body.email);
   }
 
+  @Post('end')
+  @Public()
+  @ApiOperation({ summary: 'End the current conversation (customer side, PLN-260808 Track B)' })
+  async end(@Body() body: EndChatRequest) {
+    const session = await this.sessionService.findByToken(body.session_token);
+    return this.chatService.endBySession(session);
+  }
+
   @Get('conversation')
   @Public()
   @SkipThrottle() // widget polls this every few seconds — must not count against the flood limit
@@ -51,7 +65,9 @@ export class ChatController {
     const session = await this.sessionService.findByToken(token);
     // Read-only + bounded (PERF-1): the poll never creates conversations and
     // fetches only messages newer than after_id once the widget has history.
-    const conversation = await this.chatService.findOpenConversation(session.id);
+    // Latest (not open-only) so an ended thread reports status 'ended' — the
+    // widget renders its end-of-conversation notice off that status.
+    const conversation = await this.chatService.findLatestConversation(session.id);
     if (!conversation) {
       return { conversationId: null, status: 'none', messages: [] };
     }
