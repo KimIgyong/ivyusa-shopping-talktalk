@@ -87,7 +87,20 @@ export class Cafe24OAuthService {
   async handleCallback(query: Record<string, string>): Promise<{ mallId: string; tenantId: number }> {
     const code = query.code ?? '';
     const state = query.state ?? '';
+    // Cafe24 declines by redirecting here with `error` and no `code`. Reported as
+    // a bare "state invalid" this reads as OUR bug and says nothing about the
+    // cause — a real `invalid_scope` refusal (a scope the app registration does
+    // not carry) took a trip through the nginx access log to diagnose, because
+    // the reason Cafe24 handed us was thrown away here (2026-08-08).
+    if (query.error) {
+      this.logger.warn(
+        `Cafe24 OAuth refused: ${query.error}` +
+          (query.error_description ? ` — ${decodeURIComponent(query.error_description).replace(/\+/g, ' ')}` : ''),
+      );
+      throw new BusinessException(ERROR_CODE.CAFE24_OAUTH_REFUSED, HttpStatus.BAD_REQUEST);
+    }
     if (!code || !state) {
+      this.logger.warn(`Cafe24 OAuth callback without ${!code ? 'code' : 'state'}`);
       throw new BusinessException(ERROR_CODE.CAFE24_OAUTH_STATE_INVALID, HttpStatus.BAD_REQUEST);
     }
     const raw = await this.redis.get(`cafe24:oauth:${state}`);

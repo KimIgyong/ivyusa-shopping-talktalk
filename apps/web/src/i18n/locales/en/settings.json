@@ -193,7 +193,9 @@
       "syncFailed": "Cafe24 sync failed",
       "syncProducts": "Import products",
       "productsSynced": "{{synced}} product(s) synced, {{archived}} archived — run the conversion on the Knowledge page",
-      "syncProductsFailed": "Cafe24 product import failed"
+      "syncProductsFailed": "Cafe24 product import failed",
+      "errorInvalidScope": "Cafe24 rejected the requested permissions (invalid_scope) — add them to the app in Cafe24 Developers, then connect again",
+      "errorAccessDenied": "Cafe24 consent was denied (access_denied) — retry as the mall’s primary operator account"
     }
   }
 }

@@ -25,8 +25,14 @@ export function Cafe24ConnectCard() {
   useEffect(() => {
     const p = new URLSearchParams(window.location.search);
     const connected = p.get('cafe24_connected');
+    const failure = p.get('cafe24_error');
     if (connected) toast.success(t('cafe24.oauth.connectedToast', { mall: connected }));
-    else if (p.get('cafe24_error')) toast.error(t('cafe24.oauth.connectFailed'));
+    // Cafe24's own refusal reason, when it gave one. `invalid_scope` and
+    // `access_denied` are fixed in Cafe24's developer admin, not here, so a
+    // generic "connect failed" sends the operator looking in the wrong place.
+    else if (failure === 'invalid_scope') toast.error(t('cafe24.oauth.errorInvalidScope'));
+    else if (failure === 'access_denied') toast.error(t('cafe24.oauth.errorAccessDenied'));
+    else if (failure) toast.error(t('cafe24.oauth.connectFailed'));
     if (connected || p.get('cafe24_error')) {
       p.delete('cafe24_connected');
       p.delete('cafe24_error');

@@ -45,7 +45,12 @@ export class Cafe24OAuthController {
       const { mallId } = await this.oauthService.handleCallback(query);
       res.redirect(`${base}/?cafe24_connected=${encodeURIComponent(mallId)}`);
     } catch {
-      res.redirect(`${base}/?cafe24_error=1`);
+      // Carry Cafe24's own reason to the console. `cafe24_error=1` told the
+      // operator only that "something failed", which for an `invalid_scope`
+      // refusal points at the wrong place entirely — the fix is in the app's
+      // registered permissions, not in ShopTalk.
+      const reason = /^[a-z_]{1,40}$/.test(query.error ?? '') ? query.error : '1';
+      res.redirect(`${base}/?cafe24_error=${reason}`);
     }
   }
 }

@@ -66,6 +66,8 @@ export const ERROR_CODE = {
   CAFE24_CUSTOMER_TOKEN_FAILED: { code: 'E5016', message: 'Cafe24 customer token exchange failed' },
   CAFE24_CUSTOMER_IDENTIFIER_FAILED: { code: 'E5017', message: 'Cafe24 customer identifier lookup failed' },
   CAFE24_CUSTOMER_TICKET_INVALID: { code: 'E5018', message: 'Invalid or expired Cafe24 sign-in ticket' },
+  /** Cafe24 itself declined the authorize request (e.g. invalid_scope, access_denied). */
+  CAFE24_OAUTH_REFUSED: { code: 'E5019', message: 'Cafe24 declined the authorization request' },
 
   // E9xxx — system
   INTERNAL_ERROR: { code: 'E9001', message: 'Internal server error' },
