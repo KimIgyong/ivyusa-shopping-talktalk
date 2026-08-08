@@ -77,6 +77,14 @@ export class Tenant {
   @Column({ name: 'widget_copy', type: 'json', nullable: true })
   widgetCopy: TenantWidgetCopy | null;
 
+  /**
+   * Issue-workflow entitlement (REQ-260807 §11.1, server-judged):
+   * 'native' (paid add-on: kanban/state machine) | 'bridge' (external helpdesk
+   * hand-off) | 'base' (chat list only, default — behavior unchanged).
+   */
+  @Column({ name: 'workflow_mode', type: 'varchar', length: 8, default: 'base' })
+  workflowMode: string;
+
   // IANA timezone (e.g. 'Asia/Seoul', 'America/New_York'). Drives the default
   // widget language when the shopper hasn't picked one (Seoul → ko, US → en).
   @Column({ type: 'varchar', length: 40, nullable: true })

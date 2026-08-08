@@ -11,6 +11,7 @@ import {
 import { Conversation } from '../chat/entity/conversation.entity';
 import { Message } from '../chat/entity/message.entity';
 import { AnswerReuseService } from '../answer-reuse/answer-reuse.service';
+import { IssueService } from '../issue/issue.service';
 import { User } from '../user/entity/user.entity';
 import { Session } from '../session/entity/session.entity';
 import { AgentProfile } from './entity/agent-profile.entity';
@@ -99,6 +100,7 @@ export class AgentService {
     private readonly mailer: MailerService,
     // Appended last so positional test doubles stay valid; all uses `?.`-guarded.
     private readonly answerReuse?: AnswerReuseService,
+    private readonly issueService?: IssueService,
   ) {}
 
   /**
@@ -364,6 +366,9 @@ export class AgentService {
       { id: conversationId },
       { status: CONVERSATION_STATUS.AGENT, agentId },
     );
+    // Issue P1: a native-mode tenant's ticket follows the acceptance (assign +
+    // in_progress + tier stamp). Best-effort — never blocks the accept.
+    void this.issueService?.onAgentAccept(conversationId, tenantId, agentId);
     return this.convRepo.findOneOrFail({ where: { id: conversationId } });
   }
 
@@ -615,6 +620,8 @@ export class AgentService {
       { conversationId, status: 'active' },
       { status: 'released', releasedAt: new Date() },
     );
+    // Issue P1: a settled (resolved/rejected) issue closes with the conversation.
+    void this.issueService?.onConversationEnded(conversationId);
     return this.convRepo.findOneOrFail({ where: { id: conversationId } });
   }
 

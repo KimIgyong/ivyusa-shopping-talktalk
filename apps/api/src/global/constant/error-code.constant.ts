@@ -68,6 +68,9 @@ export const ERROR_CODE = {
   CAFE24_CUSTOMER_TICKET_INVALID: { code: 'E5018', message: 'Invalid or expired Cafe24 sign-in ticket' },
   /** Cafe24 itself declined the authorize request (e.g. invalid_scope, access_denied). */
   CAFE24_OAUTH_REFUSED: { code: 'E5019', message: 'Cafe24 declined the authorization request' },
+  // E5020-E5021 — issue workflow P1 (PLN-260808-Issue-Workflow-P1).
+  ISSUE_NOT_FOUND: { code: 'E5020', message: 'Issue not found' },
+  ISSUE_TRANSITION_INVALID: { code: 'E5021', message: 'Issue state transition not allowed' },
 
   // E9xxx — system
   INTERNAL_ERROR: { code: 'E9001', message: 'Internal server error' },
