@@ -104,10 +104,18 @@ export const settingsService = {
   connectCafe24: (mallId: string) =>
     apiPost<{ authorizeUrl: string }>('/tenants/me/cafe24/connect', { mall_id: mallId }),
   syncCafe24: () => apiPost<Cafe24SyncResult>('/tenants/me/cafe24/sync'),
+  // Catalogue pull (PLN-260808-Cafe24-Product-Knowledge). Fills products_cache;
+  // turning those rows into knowledge stays a separate, previewed step.
+  syncCafe24Products: () =>
+    apiPost<Cafe24ProductSyncResult>('/tenants/me/cafe24/products/sync'),
 };
 
 export interface Cafe24SyncResult {
   ok: boolean;
   synced: number;
   detail: string;
+}
+
+export interface Cafe24ProductSyncResult extends Cafe24SyncResult {
+  archived: number;
 }

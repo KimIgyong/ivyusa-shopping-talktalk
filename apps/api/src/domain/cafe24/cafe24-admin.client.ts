@@ -73,10 +73,54 @@ export interface Cafe24Variant {
   variant_code?: string;
   custom_variant_code?: string;
 }
+
+/**
+ * A catalogue row as the Admin API serves it.
+ *
+ * Every field beyond `product_no` is optional on purpose. Which of them the LIST
+ * response carries is not settled by the documentation — `description` in
+ * particular is served on the single-product resource and may be absent from the
+ * list — and a mapper that assumes a field is present writes empty documents in
+ * silence. The sync fills gaps by fetching the detail resource instead
+ * (PLN-260808-Cafe24-Product-Knowledge P1; kit-01 §3.6 — never fix an external
+ * schema from documentation alone).
+ */
 export interface Cafe24Product {
   product_no?: number;
   product_code?: string;
   product_name?: string;
+  /** Full detail HTML (상세설명). */
+  description?: string | null;
+  /** Short marketing line (상품 요약설명). */
+  summary_description?: string | null;
+  /** One-liner shown in list views (상품 간략설명). */
+  simple_description?: string | null;
+  price?: string | number | null;
+  /** 'T' = on display, 'F' = hidden. */
+  display?: string;
+  /** 'T' = for sale, 'F' = not sold. */
+  selling?: string;
+  /** 'T' when the product has options — the only case worth an options call. */
+  has_option?: string;
+  brand_code?: string | null;
+  product_tag?: string[] | string | null;
+  /** Category memberships; `category_no` resolves to a name via /categories. */
+  category?: Array<{ category_no?: number }> | null;
+  detail_image?: string | null;
+  list_image?: string | null;
+  created_date?: string | null;
+}
+
+/** One option row of `GET /products/{no}/options` (name + selectable values). */
+export interface Cafe24ProductOption {
+  option_name?: string;
+  option_value?: Array<{ option_text?: string }> | null;
+}
+
+/** A storefront category (code → display name). */
+export interface Cafe24Category {
+  category_no?: number;
+  category_name?: string;
 }
 
 @Injectable()
@@ -155,6 +199,92 @@ export class Cafe24AdminClient {
       `/orders?${qs.toString()}`,
     );
     return body.orders ?? [];
+  }
+
+  /**
+   * One page of the catalogue.
+   *
+   * Cafe24 refuses an `offset` above 8,000, so a mall deeper than that is paged
+   * by `since_product_no` instead — the caller switches once it crosses the cap
+   * (the behaviour proven in btbz-shop-pmm's adapter).
+   */
+  async pullProducts(
+    mallId: string,
+    accessToken: string,
+    opts: { limit?: number; offset?: number; sinceProductNo?: number | null },
+  ): Promise<Cafe24Product[]> {
+    const qs = new URLSearchParams({ limit: String(opts.limit ?? 100) });
+    if (opts.sinceProductNo != null) qs.set('since_product_no', String(opts.sinceProductNo));
+    else qs.set('offset', String(opts.offset ?? 0));
+    const body = await this.request<{ products?: Cafe24Product[] }>(
+      mallId,
+      accessToken,
+      'GET',
+      `/products?${qs.toString()}`,
+    );
+    return body.products ?? [];
+  }
+
+  /** The single-product resource — the authority on the fields a list row omits. */
+  async fetchProduct(
+    mallId: string,
+    accessToken: string,
+    productNo: number,
+  ): Promise<Cafe24Product | null> {
+    const body = await this.request<{ product?: Cafe24Product }>(
+      mallId,
+      accessToken,
+      'GET',
+      `/products/${productNo}`,
+    );
+    return body.product ?? null;
+  }
+
+  /** Option names and their selectable values, for the product knowledge body. */
+  async fetchProductOptions(
+    mallId: string,
+    accessToken: string,
+    productNo: number,
+  ): Promise<Cafe24ProductOption[]> {
+    const body = await this.request<{ options?: Cafe24ProductOption[]; option?: { options?: Cafe24ProductOption[] } }>(
+      mallId,
+      accessToken,
+      'GET',
+      `/products/${productNo}/options`,
+    );
+    // The resource is documented as a single `option` object, but has also been
+    // observed as a plain `options` array. Accept either rather than lose the values.
+    return body.options ?? body.option?.options ?? [];
+  }
+
+  /**
+   * category_no → display name.
+   *
+   * Categories sit behind their own scope (`mall.read_category`), which this app
+   * does not request. A 403 therefore is not a failure — the catalogue sync
+   * simply leaves the category blank rather than storing a number no human can
+   * read. Returns an empty map on any error.
+   */
+  async listCategoryNames(mallId: string, accessToken: string): Promise<Map<number, string>> {
+    const names = new Map<number, string>();
+    try {
+      for (let offset = 0; offset < 1000; offset += 100) {
+        const body = await this.request<{ categories?: Cafe24Category[] }>(
+          mallId,
+          accessToken,
+          'GET',
+          `/categories?limit=100&offset=${offset}`,
+        );
+        const page = body.categories ?? [];
+        for (const c of page) {
+          if (c.category_no != null && c.category_name) names.set(Number(c.category_no), c.category_name);
+        }
+        if (page.length < 100) break;
+      }
+    } catch (e) {
+      this.logger.warn(`cafe24 categories unavailable (names omitted): ${(e as Error).message}`);
+    }
+    return names;
   }
 
   // (fetchCustomerByMemberId / /customersprivacy removed — the customer token

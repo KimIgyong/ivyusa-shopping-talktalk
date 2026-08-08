@@ -183,14 +183,17 @@
   "cafe24": {
     "oauth": {
       "title": "Cafe24 (OAuth)",
-      "hint": "Conecta tu tienda Cafe24 por OAuth para sincronizar los pedidos en ShopTalk.",
+      "hint": "Conecte su tienda Cafe24 mediante OAuth para importar sus pedidos y productos a ShopTalk.",
       "status": "Estado",
       "mallId": "ID de tienda",
       "connect": "Conectar Cafe24",
       "syncNow": "Sincronizar ahora",
       "connectedToast": "Cafe24 conectado: {{mall}}",
       "connectFailed": "Fallo al conectar Cafe24",
-      "syncFailed": "Fallo al sincronizar Cafe24"
+      "syncFailed": "Fallo al sincronizar Cafe24",
+      "syncProducts": "Importar productos",
+      "productsSynced": "{{synced}} producto(s) sincronizados, {{archived}} archivados: ejecute la conversión en Conocimiento",
+      "syncProductsFailed": "Error al importar productos de Cafe24"
     }
   }
 }

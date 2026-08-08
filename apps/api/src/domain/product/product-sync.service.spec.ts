@@ -49,7 +49,7 @@ describe('ProductSyncService.syncTenant', () => {
     return fn;
   }
 
-  function build(existing: Partial<ProductCache>[] = []) {
+  function build(existing: Partial<ProductCache>[] = [], cafe24TenantIds: number[] = []) {
     const saved: ProductCache[] = [];
     let nextId = 100;
     const productRepo = {
@@ -67,8 +67,15 @@ describe('ProductSyncService.syncTenant', () => {
       find: jest.fn().mockResolvedValue([tenant]),
       findOne: jest.fn().mockResolvedValue(tenant),
     };
-    const svc = new ProductSyncService(productRepo as never, tenantRepo as never);
-    return { svc, saved, productRepo, tenantRepo };
+    const credRepo = {
+      find: jest.fn().mockResolvedValue(cafe24TenantIds.map((tenantId) => ({ tenantId }))),
+    };
+    const svc = new ProductSyncService(
+      productRepo as never,
+      tenantRepo as never,
+      credRepo as never,
+    );
+    return { svc, saved, productRepo, tenantRepo, credRepo };
   }
 
   afterEach(() => {
@@ -205,6 +212,33 @@ describe('ProductSyncService.syncTenant', () => {
     expect(tenantRepo.findOne).toHaveBeenCalledWith({ where: { id: 7 } });
     tenantRepo.findOne.mockResolvedValue(null);
     await expect(svc.syncTenantById(404)).rejects.toThrow();
+  });
+
+  describe('Cafe24 tenants', () => {
+    // A Cafe24 mall answers /products.json with a 404 HTML page, so polling one
+    // is pure noise — its catalogue comes from Cafe24ProductSyncService.
+    it('are skipped by the scheduled run', async () => {
+      const fetchMock = mockFetch([[product()]]);
+      const { svc } = build([], [7]);
+      await svc.runAll();
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it('are skipped by the initial fill', async () => {
+      const fetchMock = mockFetch([[product()]]);
+      const { svc } = build([], [7]);
+      await svc.initialSyncAll();
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it('get an explanatory result from the manual trigger, not a 404 crawl', async () => {
+      const fetchMock = mockFetch([[product()]]);
+      const { svc } = build([], [7]);
+      const res = await svc.syncTenantById(7);
+      expect(res).toMatchObject({ ok: false, synced: 0 });
+      expect(res.detail).toContain('Cafe24');
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
   });
 });
 

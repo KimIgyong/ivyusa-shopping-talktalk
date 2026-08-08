@@ -183,14 +183,17 @@
   "cafe24": {
     "oauth": {
       "title": "Cafe24 (OAuth)",
-      "hint": "Connect your Cafe24 mall via OAuth so orders sync into ShopTalk.",
+      "hint": "Connect your Cafe24 mall via OAuth to pull its orders and products into ShopTalk.",
       "status": "Status",
       "mallId": "Mall ID",
       "connect": "Connect Cafe24",
       "syncNow": "Sync now",
       "connectedToast": "Cafe24 connected: {{mall}}",
       "connectFailed": "Cafe24 connection failed",
-      "syncFailed": "Cafe24 sync failed"
+      "syncFailed": "Cafe24 sync failed",
+      "syncProducts": "Import products",
+      "productsSynced": "{{synced}} product(s) synced, {{archived}} archived — run the conversion on the Knowledge page",
+      "syncProductsFailed": "Cafe24 product import failed"
     }
   }
 }
