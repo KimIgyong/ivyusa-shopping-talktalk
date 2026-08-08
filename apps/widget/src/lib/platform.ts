@@ -1,7 +1,7 @@
 /**
  * Storefront-platform helpers. The embed loader passes the storefront host as the
  * `shop` query param on the widget iframe URL, so the widget can offer platform-
- * native affordances (e.g. Cafe24's own order-list page) without extra config.
+ * native affordances (e.g. the mall's own order-history page) without extra config.
  */
 
 /** The current storefront host, from the iframe's `shop` param. */
@@ -14,11 +14,15 @@ function shopHost(): string {
 }
 
 /**
- * The Cafe24 mall's native "my orders" page for this storefront, or null when the
- * shop isn't a Cafe24 mall. Linked as a "view all" fallback: the mall authenticates
- * the member itself, so it works regardless of the widget's session state.
+ * The storefront's native "my page" order-history URL, or null when the host is
+ * unknown. The mall authenticates the member itself, so the link works regardless
+ * of the widget's session state. Cafe24 malls use /myshop/order/list.html; other
+ * storefronts (Shopify) use /account, which lists the customer's orders.
  */
-export function cafe24OrderListUrl(): string | null {
+export function myPageOrdersUrl(): string | null {
   const host = shopHost();
-  return /(^|\.)cafe24\.com$/.test(host) ? `https://${host}/myshop/order/list.html` : null;
+  if (!host) return null;
+  return /(^|\.)cafe24\.com$/.test(host)
+    ? `https://${host}/myshop/order/list.html`
+    : `https://${host}/account`;
 }

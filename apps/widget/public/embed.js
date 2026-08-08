@@ -66,7 +66,13 @@
   if (document.getElementById('ivy-talktalk-frame')) return; // idempotent
 
   var cfg = window.IVY_WIDGET_CONFIG || {};
-  var shop = cfg.shop || (window.Shopify && window.Shopify.shop) || '';
+  // Cafe24 malls rarely set data-shop and expose no window.Shopify — but the page
+  // host IS the mall host, so fall back to it there. Without `shop` the widget
+  // can't render its "my page" order-history link.
+  var pageHost = (window.location.hostname || '').toLowerCase();
+  var isCafe24Host = /(^|\.)cafe24\.com$/.test(pageHost);
+  var shop =
+    cfg.shop || (window.Shopify && window.Shopify.shop) || (isCafe24Host ? pageHost : '');
   var base = String(cfg.widgetUrl || 'https://widget.ivyusa.app').replace(/\/+$/, '');
   // Origin only (scheme+host+port) — `base` may carry a sub-path (e.g. /widget),
   // but postMessage e.origin never includes a path, so compare against the origin.
@@ -118,7 +124,6 @@
   // Cafe24 has no credential-login API and its member session lives on the mall
   // origin (unreadable from this cross-origin iframe), so login must happen in the
   // top window here, then the reopen flag brings the widget back up (PLN-260807).
-  var isCafe24Host = /(^|\.)cafe24\.com$/.test((window.location.hostname || '').toLowerCase());
   var loginPath = String(cfg.loginPath || (isCafe24Host ? '/member/login.html' : '/account/login'));
   var loginReturnParam = String(
     cfg.loginReturnParam || (isCafe24Host ? 'returnUrl' : 'return_url'),
