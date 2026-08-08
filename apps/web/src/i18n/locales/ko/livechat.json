@@ -73,5 +73,44 @@
     "save": "지식으로 저장",
     "saved": "지식으로 저장했습니다.",
     "saveFailed": "지식 문서를 저장하지 못했습니다."
+  },
+  "issue": {
+    "status": {
+      "received": "접수",
+      "in_progress": "진행중",
+      "resolved": "해결",
+      "rejected": "반려",
+      "closed": "종료"
+    },
+    "type": {
+      "order_status": "주문상태",
+      "delivery": "배송",
+      "cancel": "취소",
+      "refund": "환불",
+      "partnership": "제휴",
+      "other": "기타"
+    },
+    "resolve": "해결",
+    "reject": "반려",
+    "rejectConfirm": "반려 확정",
+    "reopen": "재오픈",
+    "timeline": "타임라인",
+    "reopened": "재오픈 ×{{count}}",
+    "notePlaceholder": "메모 (선택)",
+    "rejectReason": {
+      "policy_impossible": "정책상 불가",
+      "misrouted": "오분류",
+      "spam": "스팸"
+    },
+    "event": {
+      "created": "이슈 생성",
+      "status_changed": "상태 변경",
+      "assigned": "배정",
+      "tier_advanced": "상담원 이관",
+      "memo": "메모",
+      "reopened": "재오픈"
+    },
+    "transitioned": "이슈가 업데이트되었습니다.",
+    "transitionError": "이슈 업데이트에 실패했습니다."
   }
 }
