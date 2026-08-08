@@ -169,5 +169,22 @@
   "routing_inherited": "상속됨",
   "routing_tenant_default": "테넌트 기본",
   "routing_platform_default": "플랫폼 기본",
-  "routing_none": "엔진 없음"
+  "routing_none": "엔진 없음",
+  "answerReuse": {
+    "title": "답변 재사용",
+    "desc": "검증된 과거 답변(상담원 답변, 인용이 있는 고신뢰 AI 답변)을 유사 질문에 AI 엔진 호출 없이 재사용합니다. 여기서 답변을 편집·비활성화할 수 있으며, 지식이 크게 바뀐 뒤에는 전체 비활성화를 사용하세요.",
+    "searchPlaceholder": "질문 검색…",
+    "activeOnly": "활성만",
+    "total": "{{count}}건",
+    "hits": "히트 {{count}}",
+    "sourceAgent": "상담원",
+    "empty": "저장된 재사용 답변이 아직 없습니다.",
+    "saved": "재사용 답변이 저장되었습니다.",
+    "deleted": "삭제되었습니다.",
+    "saveError": "재사용 답변 저장에 실패했습니다.",
+    "deleteConfirm": "이 항목을 삭제할까요? 더 이상 재사용되지 않습니다.",
+    "deactivateAll": "전체 비활성화",
+    "deactivateAllConfirm": "저장된 답변을 모두 비활성화할까요? 다시 활성화하거나 재학습되기 전까지 새 질문은 항상 AI 엔진으로 갑니다.",
+    "deactivatedAll": "{{count}}건을 비활성화했습니다."
+  }
 }

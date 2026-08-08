@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AnswerReuse } from './entity/answer-reuse.entity';
 import { AnswerReuseService } from './answer-reuse.service';
+import { AnswerReuseController } from './answer-reuse.controller';
 
 /**
  * Answer reuse (PLN-260808 Track C): verified past answers replayed for
@@ -11,6 +12,7 @@ import { AnswerReuseService } from './answer-reuse.service';
  */
 @Module({
   imports: [TypeOrmModule.forFeature([AnswerReuse])],
+  controllers: [AnswerReuseController],
   providers: [AnswerReuseService],
   exports: [AnswerReuseService],
 })

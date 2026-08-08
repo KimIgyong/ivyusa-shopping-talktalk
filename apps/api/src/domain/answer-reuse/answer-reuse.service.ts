@@ -1,6 +1,8 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { In, Like, Repository } from 'typeorm';
+import { BusinessException } from '../../global/exception/business.exception';
+import { ERROR_CODE } from '../../global/constant/error-code.constant';
 import { AnswerReuse, REUSE_SOURCE } from './entity/answer-reuse.entity';
 import { AiGatewayService } from '../../infrastructure/external/ai/ai-gateway.service';
 import { ReuseQdrantService } from '../../infrastructure/external/vector/reuse-qdrant.service';
@@ -170,6 +172,75 @@ export class AnswerReuseService {
     await this.repo.delete({ tenantId, sourceMessageId: In(messageIds) });
     await this.vector.delete(ids).catch(() => undefined);
     this.logger.log(`erased ${ids.length} reuse entr(ies) for tenant=${tenantId} (DSAR)`);
+  }
+
+  /* ---------------- console management (PR-C2, D-C3) ---------------- */
+
+  /** Paginated tenant-scoped list for the console; optional text search / active filter. */
+  async list(
+    tenantId: number,
+    page: number,
+    size: number,
+    q?: string,
+    activeOnly?: boolean,
+  ): Promise<{ items: AnswerReuse[]; total: number }> {
+    const where = {
+      tenantId,
+      ...(activeOnly ? { active: 1 } : {}),
+      ...(q?.trim() ? { questionText: Like(`%${q.trim()}%`) } : {}),
+    };
+    const [items, total] = await this.repo.findAndCount({
+      where,
+      order: { hitCount: 'DESC', id: 'DESC' },
+      skip: (page - 1) * size,
+      take: size,
+    });
+    return { items, total };
+  }
+
+  /** Console edit (D-C3): answer text and/or active toggle. Tenant-scoped. */
+  async update(
+    tenantId: number,
+    id: number,
+    patch: { answerText?: string; active?: boolean },
+  ): Promise<AnswerReuse> {
+    const row = await this.repo.findOne({ where: { id, tenantId } });
+    if (!row) {
+      this.logger.warn(`reuse update rejected: id=${id} not in tenant=${tenantId}`);
+      throw new BusinessException(ERROR_CODE.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND);
+    }
+    if (patch.answerText !== undefined) {
+      const text = scrubPii(patch.answerText).text.trim();
+      if (text.length < MIN_ANSWER_LEN) {
+        throw new BusinessException(ERROR_CODE.VALIDATION_FAILED, HttpStatus.BAD_REQUEST);
+      }
+      row.answerText = text;
+      // An operator-edited answer is human-verified now — treat it as such.
+      row.source = REUSE_SOURCE.AGENT;
+    }
+    if (patch.active !== undefined) {
+      row.active = patch.active ? 1 : 0;
+      await this.vector.setActive(Number(row.id), patch.active).catch(() => undefined);
+    }
+    return this.repo.save(row);
+  }
+
+  /** Console delete: row + vector point. Tenant-scoped. */
+  async remove(tenantId: number, id: number): Promise<void> {
+    const row = await this.repo.findOne({ where: { id, tenantId } });
+    if (!row) {
+      this.logger.warn(`reuse delete rejected: id=${id} not in tenant=${tenantId}`);
+      throw new BusinessException(ERROR_CODE.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND);
+    }
+    await this.repo.delete({ id, tenantId });
+    await this.vector.delete([Number(id)]).catch(() => undefined);
+  }
+
+  /** Bulk off-switch (e.g. after a KB overhaul made stored answers stale). */
+  async deactivateAll(tenantId: number): Promise<number> {
+    const res = await this.repo.update({ tenantId, active: 1 }, { active: 0 });
+    await this.vector.setActiveByTenant(tenantId, false).catch(() => undefined);
+    return res.affected ?? 0;
   }
 
   private async store(input: {

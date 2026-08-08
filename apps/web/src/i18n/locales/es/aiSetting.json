@@ -169,5 +169,22 @@
   "routing_inherited": "Heredado",
   "routing_tenant_default": "Predeterminado del inquilino",
   "routing_platform_default": "Predeterminado de la plataforma",
-  "routing_none": "Sin motor"
+  "routing_none": "Sin motor",
+  "answerReuse": {
+    "title": "Reutilización de respuestas",
+    "desc": "Las respuestas verificadas (de agentes o de la IA con citas y alta confianza) se reutilizan para preguntas casi idénticas antes de llamar al motor de IA. Edite o desactive entradas aquí; desactive todo tras una gran actualización del conocimiento.",
+    "searchPlaceholder": "Buscar preguntas…",
+    "activeOnly": "Solo activas",
+    "total": "{{count}} entradas",
+    "hits": "{{count}} usos",
+    "sourceAgent": "Agente",
+    "empty": "Aún no hay respuestas reutilizables.",
+    "saved": "Entrada guardada.",
+    "deleted": "Entrada eliminada.",
+    "saveError": "No se pudo actualizar la entrada.",
+    "deleteConfirm": "¿Eliminar esta entrada? Ya no se reutilizará.",
+    "deactivateAll": "Desactivar todo",
+    "deactivateAllConfirm": "¿Desactivar todas las respuestas guardadas? Las nuevas preguntas irán siempre al motor de IA hasta reactivarlas o reaprenderlas.",
+    "deactivatedAll": "{{count}} entradas desactivadas."
+  }
 }
