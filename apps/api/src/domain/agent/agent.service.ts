@@ -352,6 +352,20 @@ export class AgentService {
   /** Agent accepts/takes over a conversation. */
   async accept(conversationId: number, agentId: number, tenantId: number): Promise<Conversation> {
     await this.requireConversation(conversationId, tenantId);
+    // maxConcurrent enforcement (P2, REQ §7-P2). A profile row opts an agent in;
+    // without one the pre-P2 behavior (unlimited) stands. 409, warn-logged.
+    const profile = await this.profileRepo.findOne({ where: { userId: agentId } });
+    if (profile) {
+      const active = await this.assignmentRepo.count({
+        where: { tenantId, agentId, status: 'active' },
+      });
+      if (active >= profile.maxConcurrent) {
+        this.logger.warn(
+          `accept rejected: agent=${agentId} at capacity (${active}/${profile.maxConcurrent})`,
+        );
+        throw new BusinessException(ERROR_CODE.AGENT_AT_CAPACITY, HttpStatus.CONFLICT);
+      }
+    }
     await this.assignmentRepo.save(
       this.assignmentRepo.create({
         tenantId,

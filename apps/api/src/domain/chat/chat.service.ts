@@ -89,7 +89,7 @@ export function sysMsg(key: keyof typeof SYSTEM_MESSAGES, lang: string): string 
 /** Response shape lives in `@ivy/types` — the widget imports the same contract. */
 export type ChatTurnResult = ChatTurnResponse;
 
-export type EscalationReason = 'low_confidence' | 'moderation_blocked' | 'user_request';
+export type EscalationReason = 'low_confidence' | 'moderation_blocked' | 'user_request' | 'policy';
 
 /** What a handoff tells the caller: the notice shown, and whether we still need an address. */
 export interface HandoffOutcome {
@@ -109,6 +109,9 @@ export interface EscalationEvent {
   targetUserIds?: number[];
   /** Off-hours: mail the summary here instead of paging the console. */
   offHoursEmail?: string;
+  /** Issue type/label stamp from a deny rule (P2) — consumed by IssueService/alerts. */
+  issueType?: string;
+  issueLabel?: string;
 }
 
 /**
@@ -346,6 +349,27 @@ export class ChatService {
       { id: userTurn.id },
       { intent: intent.intent ?? null, intentConfidence: intent.confidence ?? null },
     );
+    // Policy deny-list (P2, REQ §5.3): a matched topic goes to a human no matter
+    // how confident the AI would be — the LLM is not even asked. A queued thread
+    // stays silent (agents are already paged; see the blocked/low-conf branches).
+    const deny = await this.handoffRouter.denyMatch(tenantId, egressText);
+    if (deny) {
+      if (queued) {
+        return { conversationId: String(conversation.id), reply: null, escalate: false, needsAuth: false };
+      }
+      const handoff = await this.handoff(conversation.id, session, tenantId, 'policy', text, {
+        issueType: deny.type,
+        issueLabel: deny.label,
+      });
+      return {
+        conversationId: String(conversation.id),
+        reply: { senderType: 'system', body: handoff.body },
+        escalate: true,
+        needsAuth: false,
+        needsContactEmail: handoff.needsContactEmail,
+      };
+    }
+
     if (intent.needsOrderData && session.customerId == null) {
       const body = sysMsg('authRequired', session.language);
       await this.persist(tenantId, conversation.id, SENDER_TYPE.SYSTEM, body, session.language);
@@ -529,6 +553,7 @@ export class ChatService {
     tenantId: number,
     reason: EscalationReason,
     preview: string,
+    stamp?: { issueType?: string; issueLabel?: string },
   ): Promise<HandoffOutcome> {
     // Routing decides both who gets paged and what the customer is told:
     // outside business hours the message goes to a mailbox and the shopper is
@@ -563,6 +588,8 @@ export class ChatService {
       preview: preview.slice(0, 300),
       targetUserIds: route.targetUserIds,
       offHoursEmail: route.mode === 'email' ? route.email : undefined,
+      issueType: stamp?.issueType,
+      issueLabel: stamp?.issueLabel,
     };
     await this.bus.publish(EVENTS.ESCALATION, event);
     return { body, needsContactEmail };

@@ -47,6 +47,19 @@ export interface HandoffConfig {
     /** Customer-facing notice; blank falls back to the built-in wording. */
     notice?: Partial<Record<'EN' | 'ES' | 'KO', string>>;
   };
+  /**
+   * Policy deny-list (PLN-260808-Issue-Workflow-P2, REQ §5.3): a customer
+   * message matching any keyword is force-handed to an agent regardless of AI
+   * confidence — the LLM is not even asked. Optional type/label stamp the
+   * promoted issue (결정 4).
+   */
+  denyRules?: Array<{
+    keywords: string[];
+    /** IssueType to stamp (order_status|delivery|cancel|refund|partnership|other). */
+    type?: string;
+    /** JobLabel to route/stamp (consult|accounting|operations). */
+    label?: string;
+  }>;
 }
 
 export interface ScenarioOverride {

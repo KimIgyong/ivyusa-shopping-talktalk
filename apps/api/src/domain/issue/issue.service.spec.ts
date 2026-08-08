@@ -50,8 +50,23 @@ describe('IssueService', () => {
     } as unknown as Repository<Message>;
     const bus = { subscribe: jest.fn(), publish: jest.fn() } as never;
     const audit = { write: jest.fn(async () => undefined) } as never;
-    const svc = new IssueService(issueRepo, eventRepo, tenantRepo, msgRepo, bus, audit);
-    return { svc, issueRepo, eventRepo, events, getSaved: () => saved };
+    const assignmentRepo = {
+      update: jest.fn(),
+      save: jest.fn(async (e: unknown) => e),
+      create: (e: unknown) => e,
+    };
+    const convRepo = { update: jest.fn() };
+    const svc = new IssueService(
+      issueRepo,
+      eventRepo,
+      tenantRepo,
+      msgRepo,
+      assignmentRepo as never,
+      convRepo as never,
+      bus,
+      audit,
+    );
+    return { svc, issueRepo, eventRepo, events, assignmentRepo, convRepo, getSaved: () => saved };
   }
 
   const payload = { tenantId: 1, conversationId: 7, sessionId: 5, reason: 'low_confidence' };
@@ -83,6 +98,53 @@ describe('IssueService', () => {
       await svc.openForEscalation(payload);
       expect(getSaved()).toMatchObject({ status: 'in_progress', reopenCount: 1 });
       expect(events[0]).toMatchObject({ type: 'reopened' });
+    });
+
+    // P2 (결정 4): deny-rule stamps win; otherwise default type→label routing.
+    it('stamps deny-rule type/label when present, else the default label map', async () => {
+      const { svc, getSaved } = build({ existing: null, maxNo: 0, lastIntent: 'greeting' });
+      await svc.openForEscalation({ ...payload, issueType: 'refund', issueLabel: 'accounting' });
+      expect(getSaved()).toMatchObject({ type: 'refund', assigneeLabel: 'accounting' });
+
+      const { svc: svc2, getSaved: saved2 } = build({
+        existing: null,
+        maxNo: 0,
+        lastIntent: 'delivery_tracking',
+      });
+      await svc2.openForEscalation(payload);
+      expect(saved2()).toMatchObject({ type: 'delivery', assigneeLabel: 'operations' });
+    });
+  });
+
+  // P2: transfer/reassign — manager-only, releases the active assignment.
+  describe('assign (P2, 결정 10)', () => {
+    const issue = (): Partial<Issue> => ({
+      id: 9,
+      tenantId: 1,
+      issueNo: 37,
+      conversationId: 7,
+      status: ISSUE_STATUS.RECEIVED,
+      assigneeUserId: 20,
+      reopenCount: 0,
+    });
+
+    it('manager transfers: old assignment released as transferred, new active, issue restamped', async () => {
+      const { svc, getSaved, assignmentRepo, convRepo } = build({ existing: issue() });
+      await svc.assign({ userId: 99, rank: 'manager' }, 1, 9, 31);
+      expect(assignmentRepo.update).toHaveBeenCalledWith(
+        { conversationId: 7, status: 'active' },
+        expect.objectContaining({ status: 'transferred' }),
+      );
+      expect(assignmentRepo.save).toHaveBeenCalled();
+      expect(convRepo.update).toHaveBeenCalledWith({ id: 7 }, { agentId: 31 });
+      expect(getSaved()).toMatchObject({ assigneeUserId: 31, status: 'in_progress' });
+    });
+
+    it('staff cannot transfer', async () => {
+      const { svc } = build({ existing: issue() });
+      await expect(svc.assign({ userId: 20, rank: 'staff' }, 1, 9, 31)).rejects.toBeInstanceOf(
+        BusinessException,
+      );
     });
   });
 

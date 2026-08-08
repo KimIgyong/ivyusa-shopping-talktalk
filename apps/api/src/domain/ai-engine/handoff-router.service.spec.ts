@@ -155,3 +155,29 @@ describe('HandoffRouterService — breaks inside the shift', () => {
     }
   });
 });
+
+/** Policy deny-list matching (P2, PLN-260808-Issue-Workflow-P2). */
+describe('HandoffRouterService.denyMatch', () => {
+  it('matches case-insensitively and returns the rule stamps', async () => {
+    const svc = routerFor({
+      denyRules: [
+        { keywords: ['환불', 'refund'], type: 'refund', label: 'accounting' },
+        { keywords: ['제휴'], type: 'partnership', label: 'operations' },
+      ],
+    });
+    await expect(svc.denyMatch(1, '이 제품 REFUND 가능한가요?')).resolves.toEqual({
+      type: 'refund',
+      label: 'accounting',
+    });
+    await expect(svc.denyMatch(1, '제휴 문의드립니다')).resolves.toEqual({
+      type: 'partnership',
+      label: 'operations',
+    });
+  });
+
+  it('returns null with no rules, no match, or blank keywords', async () => {
+    await expect(routerFor(null).denyMatch(1, '배송 언제 오나요')).resolves.toBeNull();
+    const svc = routerFor({ denyRules: [{ keywords: ['', '  '], type: 'other' }] });
+    await expect(svc.denyMatch(1, '아무 질문')).resolves.toBeNull();
+  });
+});

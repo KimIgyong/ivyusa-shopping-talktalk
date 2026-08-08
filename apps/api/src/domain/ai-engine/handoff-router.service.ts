@@ -30,6 +30,30 @@ const DEFAULT_OFF_HOURS_NOTICE: Record<string, string> = {
 export class HandoffRouterService {
   constructor(private readonly aiConfig: AiConfigService) {}
 
+  /**
+   * Policy deny-list check (PLN-260808-Issue-Workflow-P2): does this customer
+   * message hit a tenant rule that forces a human regardless of AI confidence?
+   * Returns the rule's issue type/label stamp, or null. Case-insensitive
+   * substring match — cheap and predictable for operators.
+   */
+  async denyMatch(
+    tenantId: number | null,
+    text: string,
+  ): Promise<{ type?: string; label?: string } | null> {
+    const config = await this.aiConfig.getHandoffConfig(tenantId);
+    const rules = config?.denyRules ?? [];
+    if (!rules.length) return null;
+    const lower = text.toLowerCase();
+    for (const rule of rules) {
+      const hit = (rule.keywords ?? []).some((k) => {
+        const kw = (k ?? '').trim().toLowerCase();
+        return kw.length > 0 && lower.includes(kw);
+      });
+      if (hit) return { type: rule.type, label: rule.label };
+    }
+    return null;
+  }
+
   async route(tenantId: number | null, language: string): Promise<HandoffRoute> {
     const config = await this.aiConfig.getHandoffConfig(tenantId);
     const targetUserIds = config?.assigneeUserIds?.filter((id) => Number.isFinite(id)) ?? [];

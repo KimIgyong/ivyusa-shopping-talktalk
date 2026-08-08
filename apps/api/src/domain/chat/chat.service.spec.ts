@@ -113,6 +113,7 @@ describe('ChatService consent gate', () => {
       // an escalation, so the default (page agents, broadcast) is enough.
       {
         route: jest.fn(async () => ({ mode: 'agents', targetUserIds: [] })),
+        denyMatch: jest.fn(async () => null),
       } as unknown as HandoffRouterService,
       bus,
     );
