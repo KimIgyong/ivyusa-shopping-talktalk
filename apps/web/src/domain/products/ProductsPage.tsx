@@ -64,7 +64,7 @@ export function ProductsPage() {
       key: 'title',
       header: t('columns.product'),
       render: (p) => (
-        <div className="flex items-center gap-3">
+        <div className="flex max-w-[460px] items-center gap-3">
           {p.imageUrl ? (
             <img
               src={p.imageUrl}
@@ -161,42 +161,49 @@ export function ProductsPage() {
         />
       </div>
 
+      {/* Widths live on the wrappers. Input/Select carry `w-full` from their
+          shared base class and `cn` joins classes without merging them, so a
+          `w-auto` on the control loses to it and every filter went full-width,
+          each on its own row. */}
       <div className="mb-4 flex flex-wrap items-center gap-2">
-        <Input
-          value={search}
-          placeholder={t('filters.searchPlaceholder')}
-          onChange={(e) => setSearch(e.target.value)}
-          className="max-w-xs"
-        />
-        <Select
-          value={category}
-          onChange={(e) => {
-            setCategory(e.target.value);
-            setPage(1);
-          }}
-          className="w-auto"
-          aria-label={t('columns.category')}
-        >
-          <option value="">{t('filters.allCategories')}</option>
-          {(categories ?? []).map((c) => (
-            <option key={c} value={c}>
-              {c}
-            </option>
-          ))}
-        </Select>
-        <Select
-          value={status}
-          onChange={(e) => {
-            setStatus(e.target.value);
-            setPage(1);
-          }}
-          className="w-auto"
-          aria-label={t('columns.status')}
-        >
-          <option value="">{t('filters.allStatuses')}</option>
-          <option value="active">{t('status.active')}</option>
-          <option value="archived">{t('status.archived')}</option>
-        </Select>
+        <div className="w-72">
+          <Input
+            value={search}
+            placeholder={t('filters.searchPlaceholder')}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <div className="w-52">
+          <Select
+            value={category}
+            onChange={(e) => {
+              setCategory(e.target.value);
+              setPage(1);
+            }}
+            aria-label={t('columns.category')}
+          >
+            <option value="">{t('filters.allCategories')}</option>
+            {(categories ?? []).map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </Select>
+        </div>
+        <div className="w-44">
+          <Select
+            value={status}
+            onChange={(e) => {
+              setStatus(e.target.value);
+              setPage(1);
+            }}
+            aria-label={t('columns.status')}
+          >
+            <option value="">{t('filters.allStatuses')}</option>
+            <option value="active">{t('status.active')}</option>
+            <option value="archived">{t('status.archived')}</option>
+          </Select>
+        </div>
       </div>
 
       <Table
