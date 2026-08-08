@@ -193,7 +193,9 @@
       "syncFailed": "Cafe24 동기화 실패",
       "syncProducts": "상품 가져오기",
       "productsSynced": "상품 {{synced}}건 동기화, {{archived}}건 보관됨 — 지식 메뉴에서 변환을 실행하세요",
-      "syncProductsFailed": "Cafe24 상품 가져오기 실패"
+      "syncProductsFailed": "Cafe24 상품 가져오기 실패",
+      "errorInvalidScope": "Cafe24가 요청 권한을 거부했습니다(invalid_scope) — 개발자센터에서 앱 권한에 해당 항목을 추가한 뒤 다시 연결하세요",
+      "errorAccessDenied": "Cafe24 동의가 거부되었습니다(access_denied) — 몰 대표 운영자 계정으로 다시 시도하세요"
     }
   }
 }

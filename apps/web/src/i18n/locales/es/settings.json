@@ -193,7 +193,9 @@
       "syncFailed": "Fallo al sincronizar Cafe24",
       "syncProducts": "Importar productos",
       "productsSynced": "{{synced}} producto(s) sincronizados, {{archived}} archivados: ejecute la conversión en Conocimiento",
-      "syncProductsFailed": "Error al importar productos de Cafe24"
+      "syncProductsFailed": "Error al importar productos de Cafe24",
+      "errorInvalidScope": "Cafe24 rechazó los permisos solicitados (invalid_scope): agréguelos a la app en Cafe24 Developers y vuelva a conectar",
+      "errorAccessDenied": "Se denegó el consentimiento de Cafe24 (access_denied): reinténtelo con la cuenta del operador principal de la tienda"
     }
   }
 }
