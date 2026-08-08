@@ -194,6 +194,16 @@ describe('CatalogSyncService', () => {
       expect(saved[0].category).toBe('LAGOM');
     });
 
+    it('falls back to the storefront category for a catalogue with no brand at all', async () => {
+      // A Cafe24 mall has no vendor field: filing every document under a blank
+      // category threw away a name the catalogue row already carried.
+      const { svc, saved } = build([product({ vendor: null, category: '향수' } as never)]);
+
+      await svc.sync(1, 9);
+
+      expect(saved[0].category).toBe('향수');
+    });
+
     it('stays active while any variant is still sold', async () => {
       const { svc, saved } = build([
         product({ handle: 'a', title: 'One Family Two Rows Here', status: 'archived' }),
