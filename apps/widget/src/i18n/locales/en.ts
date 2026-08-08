@@ -133,6 +133,7 @@ export const en = {
       inquiries: 'Inquiries',
     },
     empty: 'No orders found.',
+    viewAllOnMall: 'View all my orders',
     ask: 'Ask about this order',
     askMessage: 'I have a question about order #{{orderNumber}}.',
     trackingSteps: ['Preparing', 'Shipped', 'In transit', 'Delivered'],
