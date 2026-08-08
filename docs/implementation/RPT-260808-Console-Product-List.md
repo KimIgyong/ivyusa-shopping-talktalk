@@ -4,7 +4,7 @@
 
 - 작성일: 2026-08-08
 - 문서 체인: `REQ-260808-Console-Product-List.md` → `PLN-260808-…` → `TCR-260808-…` → 본 문서
-- PR: **#181** → main `7fd7b66`
+- PR: **#181** → main `7fd7b66` · 증분 **#184** → main `d99ae2c`(상세보기 + 목록 100자 요약)
 
 ---
 
@@ -28,6 +28,19 @@
 | `apps/web/src/router/AppRouter.tsx` · `layouts/nav-config.ts` | `/products` 라우트 + 사이드바(지식 다음) |
 | `apps/web/src/i18n/**` | 신규 `products` 네임스페이스 + nav 라벨 (en/es/ko) |
 
+## 2-1. 증분 — 상세보기 + 목록 100자 요약 (PR #184)
+
+| 파일 | 변경 |
+|---|---|
+| `product.controller.ts` | `GET /admin/products/:handle` — **정적 라우트 뒤에** 등록 |
+| `product.mapper.ts` | `descriptionSnippet()`(100자, 단어 경계) · `toAdminProductDetailResponse` |
+| `dto/response/product.response.ts` | 목록 행에서 `description` 제거 → `descriptionSnippet`, 상세용 `AdminProductDetailResponse` 신설 |
+| `apps/web/src/domain/products/ProductDetailModal.tsx` **(신규)** | 이미지·가격·상태·지식 여부·카테고리·브랜드·태그·SKU·키·등록일·동기화·전체 내용 |
+| `ProductsPage.tsx` | 요약 줄(2줄 clamp)로 태그 줄 대체, 행 클릭 → 다이얼로그, 쇼핑몰 링크는 `stopPropagation` |
+
+**왜 서버에서 자르나**: 20행 페이지가 두 줄 렌더하자고 상품 본문 20개를 실어 보내고 있었다. 전문은 그것을 요구하는 상세가 가져간다.
+**왜 단어 경계를 조건부로 인정하나**: 한국어 문구는 100자 안에 공백이 없는 경우가 흔해, 앞쪽 공백을 존중하면 요약 대부분이 날아간다 → 마지막 40% 구간의 공백만 인정.
+
 ## 3. 설계 결정
 
 | 결정 | 이유 |
@@ -43,21 +56,22 @@
 
 | 항목 | 결과 |
 |---|---|
-| `npx jest` | ✅ **772 passed / 73 suites** (신규 8) |
+| `npx jest` | ✅ **777 passed / 74 suites** (신규 13) |
 | `npm run typecheck` / `build` | ✅ 9/9 · 6/6 |
 | 실기동 | ✅ `Nest application successfully started` + 라우트 4개 매핑 |
 | 스테이징 | ✅ S1~S7 (TCR §3) — 요약 28/23/5·지식 28, 카테고리 6종, 상태 필터, 태그 검색, **테넌트 격리**, 번들 반영 |
+| 스테이징(증분) | ✅ S8~S12 (TCR §3-1) — 목록에 전문 미포함, 상세 전문 조회, 정적 라우트 미가림, 404, **ivyusa 실데이터로 97자+`…` 단어경계 확인** |
 
 ## 5. 배포 상태
 
 | 환경 | 상태 |
 |---|---|
 | 마이그레이션 | **불필요** — 스키마 변경 없음 |
-| main | ✅ PR #181 → `7fd7b66` |
-| staging | ✅ 배포·검증 완료 2026-08-08 |
+| main | ✅ PR #181 → `7fd7b66`, #184 → `d99ae2c` |
+| staging | ✅ 배포·검증 완료 2026-08-08 (2회) |
 
 ## 6. 남은 일
 
-1. 콘솔 브라우저 육안 확인(레이아웃·이미지 폴백·페이지네이션) — 검증은 API 경로로 수행했다.
+1. 콘솔 브라우저 육안 확인(레이아웃·이미지 폴백·페이지네이션·**행 클릭 → 상세 다이얼로그**) — 검증은 API 경로로 수행했다.
 2. ivyusa 2,275건 화면 체감 성능 미측정(페이지 20건 + 지식 1쿼리 설계).
 3. 요청이 있으면 CSV 내보내기 / 상품 상세 패널은 별도 요구사항으로.
