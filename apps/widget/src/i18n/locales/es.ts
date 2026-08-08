@@ -134,6 +134,7 @@ export const es: Translation = {
       inquiries: 'Consultas',
     },
     empty: 'No se encontraron pedidos.',
+    viewAllOnMall: 'Ver todos mis pedidos',
     ask: 'Preguntar sobre este pedido',
     askMessage: 'Tengo una pregunta sobre el pedido n.º {{orderNumber}}.',
     trackingSteps: ['En preparación', 'Enviado', 'En tránsito', 'Entregado'],

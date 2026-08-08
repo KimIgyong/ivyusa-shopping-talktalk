@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { ChevronRight, PackageSearch, Lock } from 'lucide-react';
+import { ChevronRight, PackageSearch, Lock, ExternalLink } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useWidgetStore } from '../../store/widgetStore';
 import { useOrders } from '../../hooks/useOrders';
 import { Badge, toneForStatus } from '../ui/Badge';
 import { Spinner } from '../ui/Spinner';
 import { formatDate, formatMoney } from '../../lib/format';
+import { cafe24OrderListUrl } from '../../lib/platform';
 import { isAuthError } from '../../lib/errors';
 import { OrderDetailView } from './OrderDetail';
 import { AuthGate } from '../chat/AuthGate';
@@ -89,6 +90,10 @@ export function OrdersTab() {
   }
 
   const orders = filterForSubtab(data ?? [], sub);
+  // Cafe24 keeps the full, canonical order history on the mall's own member page;
+  // the widget shows the synced subset inline and links out for "view all" (the mall
+  // authenticates the member, so the link works even when nothing synced yet).
+  const cafe24Url = cafe24OrderListUrl();
 
   return (
     <div className="flex h-full flex-col">
@@ -150,6 +155,18 @@ export function OrdersTab() {
           </button>
         ))}
       </div>
+
+      {cafe24Url && (
+        <a
+          href={cafe24Url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-center gap-1.5 border-t border-gray-100 py-2.5 text-xs font-medium text-primary-600 transition-colors hover:bg-gray-50"
+        >
+          {t('orders.viewAllOnMall')}
+          <ExternalLink className="h-3.5 w-3.5" />
+        </a>
+      )}
     </div>
   );
 }
