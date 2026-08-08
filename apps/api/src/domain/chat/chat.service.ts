@@ -16,6 +16,7 @@ import { DOC_GROUP } from '../knowledge/entity/kb-document.entity';
 import { Session } from '../session/entity/session.entity';
 import { Tenant } from '../tenant/entity/tenant.entity';
 import { User } from '../user/entity/user.entity';
+import { Assignment } from '../agent/entity/assignment.entity';
 import { RagService } from './rag.service';
 import { ModerationService } from '../moderation/moderation.service';
 import type { ChatTurnResponse } from '@ivy/types';
@@ -123,6 +124,7 @@ export class ChatService {
     @InjectRepository(Session) private readonly sessionRepo: Repository<Session>,
     @InjectRepository(Tenant) private readonly tenantRepo: Repository<Tenant>,
     @InjectRepository(User) private readonly userRepo: Repository<User>,
+    @InjectRepository(Assignment) private readonly assignmentRepo: Repository<Assignment>,
     private readonly rag: RagService,
     private readonly moderation: ModerationService,
     private readonly orderService: OrderService,
@@ -176,6 +178,38 @@ export class ChatService {
       },
       order: { id: 'DESC' },
     });
+  }
+
+  /**
+   * The session's newest conversation regardless of status. The widget's poll
+   * needs this so an ENDED thread (customer or agent pressed "end") reports
+   * status 'ended' with its history instead of collapsing to 'none' — that
+   * status is what renders the "conversation ended" notice (PLN-260808 Track B).
+   */
+  async findLatestConversation(sessionId: number): Promise<Conversation | null> {
+    return this.convRepo.findOne({ where: { sessionId }, order: { id: 'DESC' } });
+  }
+
+  /**
+   * Customer-side end chat (요구 3, PLN-260808 Track B): end the session's open
+   * conversation and release any active agent assignment — the same state
+   * transition as the console's end. The session (and sign-in) stays alive; the
+   * next message simply opens a fresh conversation (existing open-only lookup).
+   * No-op success when nothing is open: pressing "end" twice must not error.
+   */
+  async endBySession(session: Session): Promise<{ ended: boolean; conversationId: string | null }> {
+    const open = await this.findOpenConversation(session.id);
+    if (!open) return { ended: false, conversationId: null };
+    await this.convRepo.update(
+      { id: open.id },
+      { status: CONVERSATION_STATUS.ENDED, endedAt: new Date() },
+    );
+    await this.assignmentRepo.update(
+      { conversationId: open.id, status: 'active' },
+      { status: 'released', releasedAt: new Date() },
+    );
+    this.logger.log(`conversation ${open.id} ended by customer (session=${session.id})`);
+    return { ended: true, conversationId: String(open.id) };
   }
 
   /**

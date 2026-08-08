@@ -95,6 +95,7 @@ describe('ChatService — queued threads', () => {
       sessionRepo,
       tenantRepo,
       { find: jest.fn(async () => []) } as unknown as Repository<User>,
+      { update: jest.fn() } as never, // Assignment repo (end-chat release; unused here)
       {
         classifyIntent: jest.fn(async () => ({
           intent: 'product_recommendation',
@@ -224,6 +225,7 @@ describe('ChatService — off-hours reply channel', () => {
       {} as never,
       {} as never,
       {} as never,
+      { update: jest.fn() } as never, // Assignment repo (end-chat release; unused here)
       {
         classifyIntent: jest.fn(async () => ({ intent: 'x', needsOrderData: false, confidence: 0.9 })),
         answer: jest.fn(async () => ({ text: 'ok', confidence: 0.9, citations: [] })),

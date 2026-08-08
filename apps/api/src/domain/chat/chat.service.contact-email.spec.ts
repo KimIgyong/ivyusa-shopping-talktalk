@@ -48,6 +48,7 @@ describe('ChatService.saveContactEmail', () => {
       { update: sessionUpdate } as unknown as Repository<Session>,
       {} as unknown as Repository<Tenant>,
       {} as unknown as Repository<User>,
+      { update: jest.fn() } as never, // Assignment repo
       {} as unknown as RagService,
       {} as unknown as ModerationService,
       {} as never,
