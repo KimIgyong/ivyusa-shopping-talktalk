@@ -86,6 +86,15 @@ export class ReuseQdrantService implements OnModuleInit {
     });
   }
 
+  /** Bulk visibility flip for one tenant (console "deactivate all"). */
+  async setActiveByTenant(tenantId: number, active: boolean): Promise<void> {
+    await this.lazyEnsure();
+    await this.request('POST', `/collections/${this.collection}/points/payload?wait=true`, {
+      payload: { active },
+      filter: { must: [{ key: 'tenant_id', match: { value: Number(tenantId) } }] },
+    });
+  }
+
   async delete(ids: number[]): Promise<void> {
     if (!ids.length) return;
     await this.lazyEnsure();

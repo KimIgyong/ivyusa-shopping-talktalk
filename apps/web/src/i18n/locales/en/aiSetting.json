@@ -169,5 +169,22 @@
   "routing_inherited": "Inherited",
   "routing_tenant_default": "Tenant default",
   "routing_platform_default": "Platform default",
-  "routing_none": "No engine"
+  "routing_none": "No engine",
+  "answerReuse": {
+    "title": "Answer reuse",
+    "desc": "Verified past answers (agent replies, high-confidence cited AI answers) are replayed for near-duplicate questions before calling the AI engine. Edit or disable entries here; disable all after a large knowledge update.",
+    "searchPlaceholder": "Search questions…",
+    "activeOnly": "Active only",
+    "total": "{{count}} entries",
+    "hits": "{{count}} hits",
+    "sourceAgent": "Agent",
+    "empty": "No reusable answers stored yet.",
+    "saved": "Answer-reuse entry saved.",
+    "deleted": "Entry deleted.",
+    "saveError": "Failed to update the answer-reuse entry.",
+    "deleteConfirm": "Delete this entry? It will no longer be replayed.",
+    "deactivateAll": "Deactivate all",
+    "deactivateAllConfirm": "Deactivate every stored answer? New questions will always go to the AI engine until entries are re-enabled or re-learned.",
+    "deactivatedAll": "Deactivated {{count}} entries."
+  }
 }
