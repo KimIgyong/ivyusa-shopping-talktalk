@@ -76,6 +76,21 @@ describe('Cafe24AdminClient — catalogue requests', () => {
     expect(await client.fetchProductOptions('m', 't', 1)).toEqual([{ option_name: '사이즈' }]);
   });
 
+  it('maps category_no → category_name', async () => {
+    mockFetch({ categories: [{ category_no: 24, category_name: '클렌징' }] });
+    await expect(client.listCategoryNames('amoebaorder', 'tok')).resolves.toEqual(
+      new Map([[24, '클렌징']]),
+    );
+  });
+
+  it('warns when rows come back but nothing maps (a shape change must not read as "no categories")', async () => {
+    const warn = jest.spyOn(client['logger'], 'warn').mockImplementation(() => undefined);
+    mockFetch({ categories: [{ no: 24, name: '클렌징' }] });
+    await expect(client.listCategoryNames('amoebaorder', 'tok')).resolves.toEqual(new Map());
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('unexpected shape'));
+    warn.mockRestore();
+  });
+
   it('returns an empty category map when the scope is missing, rather than failing the sync', async () => {
     // Categories sit behind mall.read_category, which this app never requested.
     mockFetch({ error: 'forbidden' }, 403);

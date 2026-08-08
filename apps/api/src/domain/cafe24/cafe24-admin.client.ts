@@ -276,8 +276,19 @@ export class Cafe24AdminClient {
           `/categories?limit=100&offset=${offset}`,
         );
         const page = body.categories ?? [];
+        const before = names.size;
         for (const c of page) {
           if (c.category_no != null && c.category_name) names.set(Number(c.category_no), c.category_name);
+        }
+        // Rows came back but none of them mapped: the response carries different
+        // field names than assumed. Left quiet this would look exactly like "the
+        // mall has no categories" — a blank category on every product with
+        // nothing in the log to explain it.
+        if (page.length > 0 && names.size === before) {
+          this.logger.warn(
+            `cafe24 categories: ${page.length} row(s) but no category_no/category_name — ` +
+              `unexpected shape, keys=[${Object.keys(page[0] ?? {}).join(',')}]`,
+          );
         }
         if (page.length < 100) break;
       }

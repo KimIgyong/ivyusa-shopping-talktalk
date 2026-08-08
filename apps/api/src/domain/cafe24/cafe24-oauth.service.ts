@@ -39,8 +39,18 @@ export class Cafe24OAuthService {
       'https://shoptalk.amoeba.site/api/v1/auth/cafe24/callback'
     );
   }
+  /**
+   * `mall.read_category` sits beside the product scope because a product row
+   * carries category NUMBERS, not names. Without it `/categories` answers 403
+   * `insufficient_scope` and every product's knowledge document ends up with a
+   * blank category (measured on amoebaorder, 2026-08-08).
+   *
+   * Adding a scope here only changes what NEW consents ask for — an already
+   * connected mall keeps the scopes its refresh token was issued with until the
+   * operator re-authorizes.
+   */
   private scopes(): string {
-    return process.env.CAFE24_SCOPES ?? 'mall.read_order,mall.read_product';
+    return process.env.CAFE24_SCOPES ?? 'mall.read_order,mall.read_product,mall.read_category';
   }
   get consoleReturnUrl(): string {
     return (process.env.CAFE24_CONSOLE_RETURN_URL ?? 'https://shoptalk.amoeba.site/').replace(
