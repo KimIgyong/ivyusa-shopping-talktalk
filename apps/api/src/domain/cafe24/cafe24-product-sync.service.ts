@@ -306,7 +306,11 @@ export class Cafe24ProductSyncService {
       const name = entry?.category_no != null ? categories.get(Number(entry.category_no)) : null;
       if (name) tags.push(name);
     }
-    if (p.brand_code) tags.push(String(p.brand_code));
+    // `brand_code` is deliberately absent. It is an opaque code (`B0000000` is
+    // Cafe24's "no brand" default, carried by all 28 products on the pilot mall),
+    // so it discriminates nothing in retrieval and shows up verbatim in the
+    // snippet a shopper reads. Same rule as `category`: a code no human can read
+    // is worse than a blank.
     const declared = Array.isArray(p.product_tag)
       ? p.product_tag
       : typeof p.product_tag === 'string'

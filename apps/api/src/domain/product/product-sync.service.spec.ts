@@ -4,8 +4,12 @@ import { Tenant } from '../tenant/entity/tenant.entity';
 
 /** ProductSyncService — storefront /products.json → products_cache (PLN-260807 F1). */
 describe('ProductSyncService.syncTenant', () => {
+  // `id` is a STRING on purpose: Tenant's bigint PK has no transformer, so this
+  // is the shape TypeORM actually hands back. A number here hid a real bug —
+  // the Cafe24 skip compared against transformer-converted numbers and never
+  // matched, so staging kept crawling the mall (RPT-260808 D5).
   const tenant = {
-    id: 7,
+    id: '7' as unknown as number,
     shopDomain: 'ivy.myshopify.com',
     storefrontUrl: 'https://ivyusa.com/',
   } as Tenant;
@@ -95,7 +99,8 @@ describe('ProductSyncService.syncTenant', () => {
       expect.objectContaining({ headers: { accept: 'application/json' } }),
     );
     expect(saved[0]).toMatchObject({
-      tenantId: 7,
+      // Carried through as TypeORM handed it over (bigint PK → string).
+      tenantId: '7',
       handle: 'vita-c-serum',
       title: 'Vita C Serum',
       vendor: 'IVY',

@@ -110,13 +110,19 @@ export class ProductSyncService implements OnModuleInit, OnModuleDestroy {
    * page (measured on amoebaorder.cafe24.com), so polling one produces nothing
    * but an `aborted:` warning every tick. Their catalogue arrives through
    * Cafe24ProductSyncService instead.
+   *
+   * Compared as strings, not numbers. `Tenant.id` is a bigint PK with no
+   * transformer, so TypeORM hands it back as a string, while the credential's
+   * `tenant_id` carries `bigintTransformer` and arrives as a number — a
+   * `Set<number>.has('3')` miss that let the Cafe24 tenant get crawled anyway
+   * (measured on staging: `Initial product sync tenant 3: aborted: HTTP 404`).
    */
-  private async cafe24TenantIds(): Promise<Set<number>> {
+  private async cafe24TenantIds(): Promise<Set<string>> {
     const creds = await this.credRepo.find({
       where: { provider: INTEGRATION_PROVIDER.CAFE24 },
       select: ['tenantId'],
     });
-    return new Set(creds.map((c) => c.tenantId).filter((id): id is number => id != null));
+    return new Set(creds.filter((c) => c.tenantId != null).map((c) => String(c.tenantId)));
   }
 
   /** First-boot fill: sync each storefront-capable tenant that has no cached products yet. */
@@ -124,7 +130,7 @@ export class ProductSyncService implements OnModuleInit, OnModuleDestroy {
     const tenants = await this.tenantRepo.find();
     const cafe24 = await this.cafe24TenantIds();
     for (const tenant of tenants) {
-      if (cafe24.has(tenant.id)) continue;
+      if (cafe24.has(String(tenant.id))) continue;
       if (!tenant.storefrontUrl && !tenant.shopDomain) continue;
       const count = await this.productRepo.count({ where: { tenantId: tenant.id } });
       if (count > 0) continue;
@@ -148,7 +154,7 @@ export class ProductSyncService implements OnModuleInit, OnModuleDestroy {
       const tenants = await this.tenantRepo.find();
       const cafe24 = await this.cafe24TenantIds();
       for (const tenant of tenants) {
-        if (cafe24.has(tenant.id)) continue;
+        if (cafe24.has(String(tenant.id))) continue;
         if (!tenant.storefrontUrl && !tenant.shopDomain) continue;
         try {
           const res = await this.syncTenant(tenant);
@@ -168,7 +174,7 @@ export class ProductSyncService implements OnModuleInit, OnModuleDestroy {
     if (!tenant) {
       throw new BusinessException(ERROR_CODE.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND);
     }
-    if ((await this.cafe24TenantIds()).has(tenant.id)) {
+    if ((await this.cafe24TenantIds()).has(String(tenant.id))) {
       return {
         ok: false,
         synced: 0,
