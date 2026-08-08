@@ -117,13 +117,13 @@ Shopify 테넌트: 동일 UI 통일 적용 (승인 ②)
 
 ## 5. 배포 (Migration 섹션 — PR 본문에 복제)
 - SQL: `sql/260808-cafe24-member-orders.sql` — **staging DB 선적용 → 코드 배포** (pre-deploy-check 스킬)
-- 적용 체크: [ ] staging SQL [ ] staging 배포 [ ] 실부트 로그(`successfully started`) [ ] 신규 경로 HTTP 확인
+- 적용 체크: [x] staging SQL(2026-08-08, 컬럼·인덱스 확인) [x] staging 배포(deploy-staging.sh) [x] 실부트 로그(`successfully started`) [x] 신규 경로 HTTP 확인(orders?days → 401)
 - 롤백: 코드 revert만으로 안전(컬럼 잔존 무해). 인덱스/컬럼 DROP은 불필요 시 미실행.
 
-## 6. 산출물/순서
-1. PR-1 (백엔드+SQL): S1+S2 — 승인 후 착수
-2. PR-2 (위젯): S3 (PR-1 배포 후)
-3. env/문서 정리(S4)는 PR-1에 동승
-4. RPT + 메모리 갱신 (J-personal 해소 기록)
+## 6. 산출물/순서 — 완료 2026-08-08
+1. PR-1 (백엔드+SQL): S1+S2+S2-4 → **#165 머지**
+2. PR-2 (위젯): S3 → **#166 머지**
+3. env/문서 정리(S4): CONFIG.md §4.3b — #165 동승
+4. TCR/RPT: `docs/test/TCR-260808-…`, `docs/implementation/RPT-260808-…` + 메모리 갱신
 
 ~~미결~~ → 2026-08-08 승인으로 확정: ① O1 포함 ② 10건/30일 Shopify 통일 + 더보기→마이페이지 안내.
