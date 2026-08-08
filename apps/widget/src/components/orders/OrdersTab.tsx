@@ -6,7 +6,7 @@ import { useOrders } from '../../hooks/useOrders';
 import { Badge, toneForStatus } from '../ui/Badge';
 import { Spinner } from '../ui/Spinner';
 import { formatDate, formatMoney } from '../../lib/format';
-import { cafe24OrderListUrl } from '../../lib/platform';
+import { myPageOrdersUrl } from '../../lib/platform';
 import { isAuthError } from '../../lib/errors';
 import { OrderDetailView } from './OrderDetail';
 import { AuthGate } from '../chat/AuthGate';
@@ -39,6 +39,7 @@ export function OrdersTab() {
 
   const [sub, setSub] = useState<SubTab>('payments');
   const [selected, setSelected] = useState<string | null>(null);
+  const [moreOpen, setMoreOpen] = useState(false);
 
   const { data, isLoading, isError, error } = useOrders(sessionToken, authenticated);
 
@@ -90,10 +91,11 @@ export function OrdersTab() {
   }
 
   const orders = filterForSubtab(data ?? [], sub);
-  // Cafe24 keeps the full, canonical order history on the mall's own member page;
-  // the widget shows the synced subset inline and links out for "view all" (the mall
-  // authenticates the member, so the link works even when nothing synced yet).
-  const cafe24Url = cafe24OrderListUrl();
+  // The widget shows a bounded recent window inline (10 orders / 30 days); the
+  // full, canonical history lives on the storefront's own my-page — "view more"
+  // reveals a pointer there (the mall authenticates the member itself, so the
+  // link works even when nothing synced yet).
+  const myPageUrl = myPageOrdersUrl();
 
   return (
     <div className="flex h-full flex-col">
@@ -123,7 +125,7 @@ export function OrdersTab() {
         {!isLoading && !isError && orders.length === 0 && (
           <div className="flex flex-col items-center gap-2 py-12 text-gray-400">
             <PackageSearch className="h-6 w-6" />
-            <span className="text-sm">{t('orders.empty')}</span>
+            <span className="text-sm">{t('orders.emptyRecent')}</span>
           </div>
         )}
         {orders.map((o) => (
@@ -140,7 +142,7 @@ export function OrdersTab() {
                 <Badge tone={toneForStatus(o.statusUi)}>{o.statusUi}</Badge>
               </div>
               <div className="mt-1 flex items-center gap-2 text-xs text-gray-500">
-                <span>{formatDate(o.createdAt)}</span>
+                <span>{formatDate(o.orderedAt ?? o.createdAt)}</span>
                 <span>·</span>
                 <span>
                   {o.itemCount} item{o.itemCount === 1 ? '' : 's'}
@@ -156,17 +158,31 @@ export function OrdersTab() {
         ))}
       </div>
 
-      {cafe24Url && (
-        <a
-          href={cafe24Url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center justify-center gap-1.5 border-t border-gray-100 py-2.5 text-xs font-medium text-primary-600 transition-colors hover:bg-gray-50"
-        >
-          {t('orders.viewAllOnMall')}
-          <ExternalLink className="h-3.5 w-3.5" />
-        </a>
-      )}
+      <div className="border-t border-gray-100">
+        {!moreOpen ? (
+          <button
+            onClick={() => setMoreOpen(true)}
+            className="flex w-full items-center justify-center py-2.5 text-xs font-medium text-primary-600 transition-colors hover:bg-gray-50"
+          >
+            {t('orders.more')}
+          </button>
+        ) : (
+          <div className="flex flex-col items-center gap-1.5 px-3 py-2.5 text-center">
+            <span className="text-xs text-gray-500">{t('orders.moreInMyPage')}</span>
+            {myPageUrl && (
+              <a
+                href={myPageUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 text-xs font-medium text-primary-600 hover:underline"
+              >
+                {t('orders.viewAllOnMall')}
+                <ExternalLink className="h-3.5 w-3.5" />
+              </a>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

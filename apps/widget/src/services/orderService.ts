@@ -18,9 +18,16 @@ export function guestLookup(
   });
 }
 
+// Inline "my orders" shows a bounded recent window; anything older/more lives on
+// the storefront's own my-page (the list links out). PLN-260808 approved: 10/30.
+export const INLINE_ORDER_LIMIT = 10;
+export const INLINE_ORDER_DAYS = 30;
+
 export function listOrders(sessionToken: string): Promise<OrderSummary[]> {
   return apiClient.get<OrderSummary[]>('/orders', {
     session_token: sessionToken,
+    size: String(INLINE_ORDER_LIMIT),
+    days: String(INLINE_ORDER_DAYS),
   });
 }
 
