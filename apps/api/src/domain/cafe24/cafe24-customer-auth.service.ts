@@ -176,13 +176,24 @@ export class Cafe24CustomerAuthService {
     await this.redis.del(`cafe24:cust:state:${state}`);
     const parsed = JSON.parse(raw) as CustomerAuthState;
 
-    const accessToken = await this.exchangeCode(parsed.mallId, code);
+    const { accessToken, userId } = await this.exchangeCode(parsed.mallId, code);
     const userIdentifier = await this.fetchIdentifier(parsed.mallId, accessToken);
 
     const customer = await this.customerService.findOrCreateByCafe24Identifier(
       parsed.tenantId,
       userIdentifier,
     );
+    // The token response also names the member's login id (`user_id`) — the direct
+    // join key to each order's member_id. Stamp it and adopt any orders synced
+    // before this member first signed in. Best-effort: identifier binding above is
+    // what the session stands on, so a hiccup here must not fail the sign-in.
+    if (userId) {
+      await this.customerService
+        .adoptCafe24MemberId(parsed.tenantId, customer.id, userId)
+        .catch((err: Error) =>
+          this.logger.warn(`cafe24 member-id adopt failed mall=${parsed.mallId}: ${err.message}`),
+        );
+    }
     // Enrich the identifier-keyed row with the shopper's email + order history so
     // "my orders" populates. Fire-and-forget (never blocks the sign-in handshake),
     // exactly like the Shopify app-proxy identity path.
@@ -211,7 +222,10 @@ export class Cafe24CustomerAuthService {
     return { sessionToken: token };
   }
 
-  private async exchangeCode(mallId: string, code: string): Promise<string> {
+  private async exchangeCode(
+    mallId: string,
+    code: string,
+  ): Promise<{ accessToken: string; userId: string | null }> {
     const { clientId, clientSecret } = Cafe24TokenService.appConfig();
     const basic = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
     const res = await fetch(`${cafe24AuthHost(mallId)}/api/v2/oauth/token`, {
@@ -230,11 +244,14 @@ export class Cafe24CustomerAuthService {
       this.logger.warn(`cafe24 customer token exchange failed mall=${mallId}: ${res.status}`);
       throw new BusinessException(ERROR_CODE.CAFE24_CUSTOMER_TOKEN_FAILED, HttpStatus.BAD_GATEWAY);
     }
-    const data = (await res.json()) as { access_token?: string };
+    const data = (await res.json()) as { access_token?: string; user_id?: string };
     if (!data.access_token) {
       throw new BusinessException(ERROR_CODE.CAFE24_CUSTOMER_TOKEN_FAILED, HttpStatus.BAD_GATEWAY);
     }
-    return data.access_token;
+    // `user_id` is the member's login id, documented on the token response —
+    // tolerate its absence (identifier binding alone still signs the member in).
+    const userId = typeof data.user_id === 'string' && data.user_id.trim() ? data.user_id.trim() : null;
+    return { accessToken: data.access_token, userId };
   }
 
   private async fetchIdentifier(mallId: string, customerAccessToken: string): Promise<string> {
@@ -272,10 +289,10 @@ export class Cafe24CustomerAuthService {
    */
   private async backfillOrders(tenantId: number, mallId: string): Promise<void> {
     try {
-      // Cafe24's orders search caps a single query's date range at 3 months, so keep
-      // the login backfill within it (older history isn't E2E-critical; a windowed
-      // multi-quarter pull can come later if needed).
-      const lookback = Math.min(Number(process.env.CAFE24_LOGIN_SYNC_LOOKBACK_DAYS ?? 90), 90);
+      // The widget's inline list windows to the last 30 days, so that's all the
+      // sign-in needs to freshen (Cafe24 caps a single query's range at 3 months —
+      // the env override stays clamped under it).
+      const lookback = Math.min(Number(process.env.CAFE24_LOGIN_SYNC_LOOKBACK_DAYS ?? 30), 90);
       await this.syncService.syncOrders(tenantId, lookback);
     } catch (err) {
       this.logger.debug(

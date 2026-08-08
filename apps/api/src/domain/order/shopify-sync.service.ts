@@ -265,6 +265,12 @@ export class ShopifySyncService {
     row.statusUi = internalToUiStatus(internal);
     row.total = total;
     row.currency = o.currency ?? row.currency ?? 'USD';
+    // Order-placed time when the payload names it; otherwise keep what we had —
+    // the widget's recent-orders window falls back to the cache-insert time.
+    if (o.created_at) {
+      const placed = new Date(o.created_at);
+      if (!Number.isNaN(placed.getTime())) row.orderedAt = placed;
+    }
     const saved = await this.orderRepo.save(row);
     await this.syncLineItems(tenantId, saved.id, o);
 

@@ -10,7 +10,10 @@ function build() {
     del: jest.fn(async (k: string) => void store.delete(k)),
   };
   const session = { findOrCreateForCustomer: jest.fn(async () => ({ sessionToken: 'sess-xyz' })) };
-  const customer = { findOrCreateByCafe24Identifier: jest.fn(async () => ({ id: 42 })) };
+  const customer = {
+    findOrCreateByCafe24Identifier: jest.fn(async () => ({ id: 42 })),
+    adoptCafe24MemberId: jest.fn(async () => undefined),
+  };
   const token = { findTenantIdByMallId: jest.fn(async () => 7), getConnection: jest.fn(async () => null) };
   const sync = { syncOrders: jest.fn() };
   const svc = new Cafe24CustomerAuthService(
@@ -20,7 +23,18 @@ function build() {
     token as never,
     sync as never,
   );
-  return { svc, redis, session, token, store };
+  return { svc, redis, session, customer, token, store };
+}
+
+/** fetch stub: first call = token endpoint, second = identifier endpoint. */
+function mockAuthFetch(tokenBody: Record<string, unknown>) {
+  return jest
+    .fn()
+    .mockResolvedValueOnce({ ok: true, json: async () => tokenBody })
+    .mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ identifier: { user_identifier: 'uid-1' } }),
+    });
 }
 
 describe('Cafe24CustomerAuthService', () => {
@@ -73,5 +87,40 @@ describe('Cafe24CustomerAuthService', () => {
     await expect(svc.handleCallback({ code: 'c', state: 'ghost' })).rejects.toBeInstanceOf(
       BusinessException,
     );
+  });
+
+  it('handleCallback adopts the member id from the token response (user_id)', async () => {
+    const { svc, store, customer } = build();
+    store.set(
+      'cafe24:cust:state:st1',
+      JSON.stringify({ tenantId: 7, mallId: 'amoebaorder', returnUrl: 'https://amoebaorder.cafe24.com/' }),
+    );
+    const realFetch = global.fetch;
+    global.fetch = mockAuthFetch({ access_token: 'at-1', user_id: 'anhthutest1' }) as never;
+    try {
+      const out = await svc.handleCallback({ code: 'c1', state: 'st1' });
+      expect(out.ticket).toBeTruthy();
+      expect(customer.findOrCreateByCafe24Identifier).toHaveBeenCalledWith(7, 'uid-1');
+      expect(customer.adoptCafe24MemberId).toHaveBeenCalledWith(7, 42, 'anhthutest1');
+    } finally {
+      global.fetch = realFetch;
+    }
+  });
+
+  it('handleCallback still signs in when the token response omits user_id', async () => {
+    const { svc, store, customer } = build();
+    store.set(
+      'cafe24:cust:state:st2',
+      JSON.stringify({ tenantId: 7, mallId: 'amoebaorder', returnUrl: 'https://amoebaorder.cafe24.com/' }),
+    );
+    const realFetch = global.fetch;
+    global.fetch = mockAuthFetch({ access_token: 'at-2' }) as never;
+    try {
+      const out = await svc.handleCallback({ code: 'c2', state: 'st2' });
+      expect(out.ticket).toBeTruthy();
+      expect(customer.adoptCafe24MemberId).not.toHaveBeenCalled();
+    } finally {
+      global.fetch = realFetch;
+    }
   });
 });

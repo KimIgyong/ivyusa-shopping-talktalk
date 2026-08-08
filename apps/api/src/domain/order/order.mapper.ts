@@ -41,6 +41,7 @@ export class OrderMapper {
       total: order.total,
       currency: order.currency,
       createdAt: order.createdAt.toISOString(),
+      orderedAt: order.orderedAt ? order.orderedAt.toISOString() : null,
       itemCount,
     };
   }
@@ -64,6 +65,7 @@ export class OrderMapper {
       total: order.total,
       currency: order.currency,
       createdAt: order.createdAt.toISOString(),
+      orderedAt: order.orderedAt ? order.orderedAt.toISOString() : null,
       items: items.map((i) => this.toItemView(i)),
     };
   }

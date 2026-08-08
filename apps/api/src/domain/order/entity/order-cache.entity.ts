@@ -8,6 +8,9 @@ import { bigintTransformer, decimalTransformer } from '../../../global/util/tran
 // Channel-scoped unique so the same external order id can exist under different
 // (tenant, provider) pairs — Cafe24 order "20260807-001" ≠ a Shopify order (PLN-260807).
 @Unique('uk_orders_channel', ['tenantId', 'provider', 'shopifyOrderId'])
+// Retro-link scans on sign-in (member_id → customer) and recent-orders windows.
+@Index('idx_ordc_tenant_member', ['tenantId', 'memberId'])
+@Index('idx_ordc_tenant_ordered', ['tenantId', 'orderedAt'])
 export class OrderCache {
   @PrimaryGeneratedColumn({ type: 'bigint' })
   id: number;
@@ -29,6 +32,11 @@ export class OrderCache {
   @Index('idx_orders_customer')
   customerId: number | null;
 
+  // Platform member login id on the order (Cafe24 member_id). Kept even while the
+  // customer link is unresolved so a later sign-in can retro-link by member id.
+  @Column({ name: 'member_id', type: 'varchar', length: 64, nullable: true })
+  memberId: string | null;
+
   @Column({ name: 'order_number', type: 'varchar', length: 32 })
   @Index('idx_orders_number')
   orderNumber: string;
@@ -44,6 +52,11 @@ export class OrderCache {
 
   @Column({ type: 'varchar', length: 8, nullable: true, default: 'USD' })
   currency: string | null;
+
+  // When the order was PLACED on the platform (Cafe24 order_date). created_at is
+  // only the cache-insert time — a backfilled old order would otherwise read "today".
+  @Column({ name: 'ordered_at', type: 'datetime', nullable: true })
+  orderedAt: Date | null;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

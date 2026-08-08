@@ -192,4 +192,64 @@ describe('CustomerService.linkCafe24Customer (identity↔orders merge)', () => {
     expect(orderUpdate).not.toHaveBeenCalled();
     expect(rows).toHaveLength(1);
   });
+
+  /**
+   * PLN-260808-Cafe24-MemberId-RecentOrders: the token response names the member's
+   * login id — adopt stamps it on the session row and retro-links orders that were
+   * synced before the member ever signed in (member_id kept, customer unresolved).
+   */
+  describe('adoptCafe24MemberId', () => {
+    it('stamps the member id and retro-links unresolved orders', async () => {
+      const target = Object.assign(new Customer(), {
+        id: 15,
+        tenantId: 3,
+        email: null,
+        emailHash: null,
+        cafe24UserIdentifier: 'UID-X',
+        cafe24MemberId: null,
+      });
+      rows.push(target);
+
+      await svc.adoptCafe24MemberId(3, 15, 'anhthutest1');
+
+      expect(target.cafe24MemberId).toBe('anhthutest1');
+      expect(orderUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({ tenantId: 3, memberId: 'anhthutest1' }),
+        { customerId: 15 },
+      );
+    });
+
+    it('converges on the session row when another row already holds the member id', async () => {
+      const holder = Object.assign(new Customer(), {
+        id: 12,
+        tenantId: 3,
+        email: 'shopper@example.com',
+        name: '홍길동',
+        cafe24UserIdentifier: null,
+        cafe24MemberId: 'anhthutest1',
+      });
+      holder.syncEmailHash();
+      const target = Object.assign(new Customer(), {
+        id: 15,
+        tenantId: 3,
+        email: null,
+        emailHash: null,
+        name: null,
+        cafe24UserIdentifier: 'UID-X',
+        cafe24MemberId: null,
+      });
+      rows.push(holder, target);
+
+      await svc.adoptCafe24MemberId(3, 15, 'anhthutest1');
+
+      // Holder's orders repointed to the session row; duplicate dropped; contact kept.
+      expect(orderUpdate).toHaveBeenCalledWith(
+        { tenantId: 3, customerId: 12 },
+        { customerId: 15 },
+      );
+      expect(rows.map((r) => r.id)).toEqual([15]);
+      expect(target.cafe24MemberId).toBe('anhthutest1');
+      expect(target.email).toBe('shopper@example.com');
+    });
+  });
 });

@@ -17,6 +17,8 @@ export interface ShopifyOrderDto {
   email?: string | null;
   financial_status?: string | null;
   fulfillment_status?: string | null;
+  /** When the order was placed (webhooks carry it natively). */
+  created_at?: string | null;
   total_price?: string | null;
   currency?: string | null;
   customer?: {

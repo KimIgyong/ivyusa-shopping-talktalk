@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { OrderCache } from '../order/entity/order-cache.entity';
+import { OrderItem } from '../order/entity/order-item.entity';
 import { IntegrationCredential } from '../tenant/entity/integration-credential.entity';
 import { TenantModule } from '../tenant/tenant.module';
 import { CustomerModule } from '../customer/customer.module';
@@ -21,7 +22,7 @@ import { Cafe24Controller } from './cafe24.controller';
  */
 @Module({
   imports: [
-    TypeOrmModule.forFeature([OrderCache, IntegrationCredential]),
+    TypeOrmModule.forFeature([OrderCache, OrderItem, IntegrationCredential]),
     TenantModule,
     CustomerModule,
     SessionModule,

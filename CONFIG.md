@@ -137,6 +137,17 @@ regardless of these.
 > App Proxy customer identity uses `SHOPIFY_API_SECRET` to verify Shopify-signed
 > `/apps/{prefix}/{subpath}` storefront requests (route `/api/v1/shopify/proxy`).
 
+### 4.3b Cafe24 (optional — features default-safe/disabled when unset)
+| Variable | Purpose |
+|---|---|
+| `CAFE24_CLIENT_ID` / `CAFE24_CLIENT_SECRET` | Developer-center app credentials; empty → Cafe24 endpoints 501 |
+| `CAFE24_SCOPES` | admin OAuth scopes — `mall.read_order,mall.read_product,mall.read_customer` (`mall.read_personal` NOT needed since PLN-260808-MemberId) |
+| `CAFE24_REDIRECT_URI` | the ONE redirect URI registered on the app (shared by admin install + customer auth), default `https://shoptalk.amoeba.site/api/v1/auth/cafe24/callback` |
+| `CAFE24_CUSTOMER_SCOPES` | customer-auth scope, default `mall.read_customer_identifier` (token response carries `user_id` = member login id) |
+| `CAFE24_LOGIN_SYNC_LOOKBACK_DAYS` | order backfill window on member sign-in, default 30, clamped ≤ 90 (Cafe24 range cap 3 months) |
+| `CAFE24_SYNC_INTERVAL_MIN` | scheduled order sync (0/unset = disabled) |
+| `CAFE24_API_VERSION` | admin API version header, default `2025-09-01` |
+
 ### 4.4 Frontend (`apps/web`, `apps/widget`) — build-time (baked into image)
 | Variable | Dev | Staging |
 |---|---|---|
