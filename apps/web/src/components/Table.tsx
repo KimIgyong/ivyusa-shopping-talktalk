@@ -31,7 +31,10 @@ export function Table<T>({
   const { t } = useTranslation('common');
   const empty = emptyMessage ?? t('empty');
   return (
-    <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
+    // Scrolls rather than clips: a table wider than its container used to lose
+    // its rightmost columns outright, with no way to reach them (the products
+    // catalogue lost its Knowledge column at 1568px).
+    <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
       <table className="w-full text-left">
         <thead className="bg-gray-50">
           <tr>
