@@ -1,4 +1,8 @@
-import type { ProductCardResponse, ProductDetailResponse } from './dto/response/product.response';
+import type {
+  AdminProductResponse,
+  ProductCardResponse,
+  ProductDetailResponse,
+} from './dto/response/product.response';
 import { ProductCache } from './entity/product-cache.entity';
 
 /** Map a catalog row to the compact card shape (grids, recommendation rails). */
@@ -24,5 +28,14 @@ export function toProductDetailResponse(p: ProductCache): ProductDetailResponse 
     tags: p.tags,
     publishedAt: p.publishedAt ? p.publishedAt.toISOString() : null,
     status: p.status,
+  };
+}
+
+/** Map a catalog row to the console row shape. */
+export function toAdminProductResponse(p: ProductCache, inKnowledge: boolean): AdminProductResponse {
+  return {
+    ...toProductDetailResponse(p),
+    syncedAt: p.syncedAt ? p.syncedAt.toISOString() : null,
+    inKnowledge,
   };
 }

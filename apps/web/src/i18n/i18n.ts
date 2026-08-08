@@ -16,6 +16,7 @@ import enAiSetting from './locales/en/aiSetting.json';
 import enKnowledge from './locales/en/knowledge.json';
 import enCustomers from './locales/en/customers.json';
 import enOrders from './locales/en/orders.json';
+import enProducts from './locales/en/products.json';
 import enCampaigns from './locales/en/campaigns.json';
 import enReviews from './locales/en/reviews.json';
 import enUsers from './locales/en/users.json';
@@ -40,6 +41,7 @@ import esAiSetting from './locales/es/aiSetting.json';
 import esKnowledge from './locales/es/knowledge.json';
 import esCustomers from './locales/es/customers.json';
 import esOrders from './locales/es/orders.json';
+import esProducts from './locales/es/products.json';
 import esCampaigns from './locales/es/campaigns.json';
 import esReviews from './locales/es/reviews.json';
 import esUsers from './locales/es/users.json';
@@ -64,6 +66,7 @@ import koAiSetting from './locales/ko/aiSetting.json';
 import koKnowledge from './locales/ko/knowledge.json';
 import koCustomers from './locales/ko/customers.json';
 import koOrders from './locales/ko/orders.json';
+import koProducts from './locales/ko/products.json';
 import koCampaigns from './locales/ko/campaigns.json';
 import koReviews from './locales/ko/reviews.json';
 import koUsers from './locales/ko/users.json';
@@ -93,6 +96,7 @@ export const ns = [
   'knowledge',
   'customers',
   'orders',
+  'products',
   'campaigns',
   'reviews',
   'users',
@@ -119,6 +123,7 @@ const resources = {
     knowledge: enKnowledge,
     customers: enCustomers,
     orders: enOrders,
+    products: enProducts,
     campaigns: enCampaigns,
     reviews: enReviews,
     users: enUsers,
@@ -143,6 +148,7 @@ const resources = {
     knowledge: esKnowledge,
     customers: esCustomers,
     orders: esOrders,
+    products: esProducts,
     campaigns: esCampaigns,
     reviews: esReviews,
     users: esUsers,
@@ -167,6 +173,7 @@ const resources = {
     knowledge: koKnowledge,
     customers: koCustomers,
     orders: koOrders,
+    products: koProducts,
     campaigns: koCampaigns,
     reviews: koReviews,
     users: koUsers,

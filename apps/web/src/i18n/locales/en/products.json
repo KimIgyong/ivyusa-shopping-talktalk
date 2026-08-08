@@ -1,0 +1,36 @@
+{
+  "title": "Products",
+  "subtitle": "The catalogue synced from your store. Run an import from Settings.",
+  "kpi": {
+    "total": "Products",
+    "active": "On sale",
+    "archived": "Archived",
+    "inKnowledge": "In knowledge base",
+    "lastSynced": "Last synced {{at}}"
+  },
+  "filters": {
+    "searchPlaceholder": "Search name or tags",
+    "allCategories": "All categories",
+    "allStatuses": "All statuses"
+  },
+  "columns": {
+    "product": "Product",
+    "category": "Category",
+    "price": "Price",
+    "status": "Status",
+    "knowledge": "Knowledge",
+    "openInShop": "Open in shop"
+  },
+  "status": {
+    "active": "On sale",
+    "archived": "Archived"
+  },
+  "knowledge": {
+    "registered": "Registered",
+    "missing": "Not registered"
+  },
+  "empty": "No products have been imported yet.",
+  "emptyFiltered": "No products match these filters.",
+  "emptyHint": "Import your catalogue first —",
+  "emptyHintLink": "go to Settings"
+}

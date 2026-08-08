@@ -21,3 +21,24 @@ export interface ProductDetailResponse extends ProductCardResponse {
   publishedAt: string | null;
   status: string;
 }
+
+/**
+ * Console row (PLN-260808-Console-Product-List). Not the customer card: it adds
+ * what an operator judges the sync by — whether the row is still sold, when it
+ * was last seen on the storefront, and whether it reached the knowledge base.
+ */
+export interface AdminProductResponse extends ProductDetailResponse {
+  syncedAt: string | null;
+  /** A product knowledge document exists for this handle. */
+  inKnowledge: boolean;
+}
+
+/** Header counters above the console list. */
+export interface AdminProductSummaryResponse {
+  total: number;
+  active: number;
+  archived: number;
+  /** Rows that reached the knowledge base (whole catalogue, not just this page). */
+  inKnowledge: number;
+  lastSyncedAt: string | null;
+}

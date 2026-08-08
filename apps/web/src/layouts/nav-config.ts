@@ -8,6 +8,7 @@ import {
   BookOpen,
   Users,
   ShoppingCart,
+  Package,
   Megaphone,
   Star,
   UserCog,
@@ -36,6 +37,8 @@ export const TENANT_NAV: NavItem[] = [
   { to: '/statistics', labelKey: 'statistics', icon: BarChart3, capability: 'statistics' },
   { to: '/ai-setting', labelKey: 'aiSettings', icon: Bot, capability: 'ai_settings' },
   { to: '/knowledge', labelKey: 'knowledge', icon: BookOpen, capability: 'knowledge' },
+  // The synced catalogue that feeds product knowledge — same group as Knowledge.
+  { to: '/products', labelKey: 'products', icon: Package, capability: 'knowledge' },
   { to: '/customers', labelKey: 'customers', icon: Users, capability: 'customers' },
   { to: '/orders', labelKey: 'orders', icon: ShoppingCart, capability: 'orders' },
   { to: '/campaigns', labelKey: 'campaigns', icon: Megaphone, capability: 'campaigns' },
