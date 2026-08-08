@@ -39,7 +39,7 @@ Cafe24 몰에는 그 라우트가 없다(실측 404 text/html). 그래서 파일
 | `apps/web/src/i18n/locales/{en,es,ko}/settings.json` | `syncProducts` / `productsSynced` / `syncProductsFailed`, hint 문구 갱신(주문+상품) |
 
 ### 테스트·문서
-`cafe24-product-sync.service.spec.ts`(신규 10) · `cafe24-admin.client.spec.ts`(+3) ·
+`cafe24-product-sync.service.spec.ts`(신규 13) · `cafe24-admin.client.spec.ts`(+3) ·
 `product-sync.service.spec.ts`(+3, 생성자 변경 반영) · REQ/PLN/TCR-260808.
 
 ## 3. 설계상 중요한 결정
@@ -58,7 +58,7 @@ Cafe24 몰에는 그 라우트가 없다(실측 404 text/html). 그래서 파일
 
 | 항목 | 결과 |
 |---|---|
-| `npx jest` (apps/api 전체) | ✅ **737 passed / 70 suites** (신규 16) |
+| `npx jest` (apps/api 전체) | ✅ **740 passed / 70 suites** (신규 19) |
 | `npm run typecheck` (turbo) | ✅ 9/9 |
 | `npm run build` (turbo) | ✅ 6/6 |
 | API 실기동 | ✅ `Nest application successfully started` |
@@ -75,6 +75,16 @@ Cafe24 몰에는 그 라우트가 없다(실측 404 text/html). 그래서 파일
 | main 머지 | PR #168 |
 | staging (`shoptalk.amoeba.site`) | **미배포** — 배포 및 실몰 검증 대기 |
 | production | 미해당 |
+
+## 5-1. 자체 리뷰에서 잡은 결함 3건 (머지 전 수정)
+
+| # | 결함 | 증상이 됐을 모습 | 수정 |
+|---|---|---|---|
+| D1 | offset 상한 통과 후 `since_product_no`가 **고정**된 채 offset만 증가 | 8,000번째 상품 이후 같은 페이지를 페이지 상한(100회)까지 재요청 — 신규 상품 0건인데 레이트리밋만 소진 | 승계 모드로 들어가면 매 페이지 마지막 `product_no`로 **갱신** |
+| D2 | 보강 조회 조건이 "텍스트가 **없을 때**"뿐 | 12자짜리 `simple_description` 하나 있으면 상세를 안 가져와 빈약한 문서가 그대로 지식이 됨 | 80자 미만이면 보강 |
+| D3 | 이미지가 호스트 상대경로(`/web/product/...`)면 `null` | 카탈로그 대부분의 썸네일 유실 | storefront 오리진으로 절대화(프로토콜 상대 `//`도 함께 처리) |
+
+D1은 테스트로 고정했다(승계 호출들의 `since_product_no`가 서로 달라야 통과).
 
 ## 6. 남은 일 (스테이징 배포 후)
 

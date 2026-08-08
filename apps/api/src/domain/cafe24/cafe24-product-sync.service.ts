@@ -114,12 +114,14 @@ export class Cafe24ProductSyncService {
           complete = true;
           break;
         }
-        // Past the offset ceiling Cafe24 stops answering — carry on from the last
-        // product number instead.
-        const last = products[products.length - 1]?.product_no;
-        if (offset + PAGE_LIMIT > OFFSET_CAP && last != null) {
+        // Past the offset ceiling Cafe24 stops answering, so paging carries on
+        // from the last product number. Once switched it must STAY switched and
+        // advance every page — leaving `sinceProductNo` pinned while `offset`
+        // creeps forward re-requests the same page until the page cap.
+        if (sinceProductNo != null || offset + PAGE_LIMIT > OFFSET_CAP) {
+          const last = products[products.length - 1]?.product_no;
+          if (last == null) break; // nothing to advance on; not a complete run
           sinceProductNo = Number(last);
-          offset = 0;
         } else {
           offset += PAGE_LIMIT;
         }
@@ -188,8 +190,9 @@ export class Cafe24ProductSyncService {
     let product = raw;
     // The list row may not carry the detail HTML at all. Ask the single-product
     // resource — but only when the row is actually thin, and only while there is
-    // budget for it.
-    if (ctx.budget - spent > 0 && this.describe(product) === null) {
+    // budget for it. "Thin" includes a short line, not just an absent one: a
+    // 12-character `simple_description` is not something to ground an answer in.
+    if (ctx.budget - spent > 0 && (this.describe(product)?.length ?? 0) < THIN_DESCRIPTION) {
       const full = await this.safeCall(() =>
         this.client.fetchProduct(ctx.mallId, ctx.accessToken, Number(productNo)),
       );
@@ -216,7 +219,7 @@ export class Cafe24ProductSyncService {
       sku: product.product_code ? String(product.product_code).slice(0, 64) : null,
       price: this.parsePrice(product.price),
       currency: 'KRW',
-      imageUrl: this.absoluteImage(product.detail_image ?? product.list_image),
+      imageUrl: this.absoluteImage(product.detail_image ?? product.list_image, ctx.origin),
       // The canonical form: the pretty URL embeds a name slug and a category, both
       // of which change without the product changing.
       productUrl: `${ctx.origin}/product/detail.html?product_no=${productNo}`.slice(0, 1024),
@@ -338,11 +341,19 @@ export class Cafe24ProductSyncService {
     return Number.isNaN(date.getTime()) ? null : date;
   }
 
-  /** Cafe24 serves images protocol-relative (`//mall.cafe24.com/...`). */
-  private absoluteImage(src: string | null | undefined): string | null {
+  /**
+   * Cafe24 image paths come in three shapes: absolute, protocol-relative
+   * (`//mall.cafe24.com/...`) and host-relative (`/web/product/big/x.jpg`).
+   * Dropping the last two would blank the thumbnail on most of the catalogue.
+   */
+  private absoluteImage(src: string | null | undefined, origin: string): string | null {
     const raw = (src ?? '').trim();
     if (!raw) return null;
-    const url = raw.startsWith('//') ? `https:${raw}` : raw;
+    const url = raw.startsWith('//')
+      ? `https:${raw}`
+      : raw.startsWith('/')
+        ? `${origin}${raw}`
+        : raw;
     return /^https?:\/\//i.test(url) ? url.slice(0, 1024) : null;
   }
 

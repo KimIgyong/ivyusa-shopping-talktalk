@@ -176,6 +176,42 @@ describe('Cafe24ProductSyncService.syncProducts', () => {
     expect(res.detail).toContain('not connected');
   });
 
+  it('enriches a product whose only text is a short line, not just an empty one', async () => {
+    const fetchProduct = jest.fn(async () => ({
+      description: `<p>${'상세 설명 텍스트입니다. '.repeat(10)}</p>`,
+    }));
+    const { svc, saved, client } = build(
+      [[product({ description: null, simple_description: '리무버' })]],
+      { fetchProduct },
+    );
+    await svc.syncProducts(5);
+    expect(client.fetchProduct).toHaveBeenCalled();
+    expect(saved[0].description).toContain('상세 설명 텍스트입니다.');
+  });
+
+  it('resolves host-relative and protocol-relative image paths against the storefront', async () => {
+    const { svc, saved } = build([[product({ detail_image: '/web/product/big/floria.jpg' })]]);
+    await svc.syncProducts(5);
+    expect(saved[0].imageUrl).toBe('https://amoebaorder.cafe24.com/web/product/big/floria.jpg');
+  });
+
+  it('advances since_product_no on every page once it crosses the offset cap', async () => {
+    // Pinning since_product_no while offset creeps forward re-requests the same
+    // page until the page cap — 100 wasted calls returning nothing new.
+    const page = (start: number) =>
+      Array.from({ length: 100 }, (_, i) => product({ product_no: start + i }));
+    const pages = [...Array(82)].map((_, p) => page(p * 100 + 1));
+    const { svc, client } = build([...pages, []]);
+
+    await svc.syncProducts(5);
+
+    const calls = (client.pullProducts as jest.Mock).mock.calls.map((c) => c[2]);
+    const bySince = calls.filter((o) => o.sinceProductNo != null);
+    expect(bySince.length).toBeGreaterThan(1);
+    // Each since-paged call resumes past the previous page's last product.
+    expect(new Set(bySince.map((o) => o.sinceProductNo)).size).toBe(bySince.length);
+  });
+
   it('keeps paging until a short page and does not double-count a repeated product', async () => {
     const page1 = Array.from({ length: 100 }, (_, i) => product({ product_no: i + 1 }));
     const { svc } = build([page1, [product({ product_no: 1 })]]);
