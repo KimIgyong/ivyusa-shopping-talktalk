@@ -12,6 +12,16 @@ export const useProducts = (params: ProductListParams) => {
   });
 };
 
+/** The detail dialog's product. Idle until a row is actually opened. */
+export const useProduct = (handle: string | null) => {
+  const tenantKey = useTenantKey();
+  return useQuery({
+    queryKey: ['product', tenantKey, handle],
+    queryFn: () => productsService.detail(handle as string),
+    enabled: !!handle,
+  });
+};
+
 export const useProductSummary = () => {
   const tenantKey = useTenantKey();
   return useQuery({

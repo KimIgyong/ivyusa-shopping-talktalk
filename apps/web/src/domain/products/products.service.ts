@@ -8,7 +8,8 @@ export interface AdminProduct {
   category: string | null;
   tags: string | null;
   sku: string | null;
-  description: string | null;
+  /** First ~100 characters of the description; the full text is in the detail view. */
+  descriptionSnippet: string | null;
   price: number | null;
   currency: string;
   imageUrl: string | null;
@@ -18,6 +19,11 @@ export interface AdminProduct {
   syncedAt: string | null;
   /** A product knowledge document exists for this handle. */
   inKnowledge: boolean;
+}
+
+/** One product in full — the detail dialog. */
+export interface AdminProductDetail extends Omit<AdminProduct, 'descriptionSnippet'> {
+  description: string | null;
 }
 
 export interface AdminProductSummary {
@@ -45,6 +51,8 @@ export const productsService = {
       ...(params.category ? { category: params.category } : {}),
       ...(params.status ? { status: params.status } : {}),
     }),
+  detail: (handle: string) =>
+    apiGet<AdminProductDetail>(`/admin/products/${encodeURIComponent(handle)}`),
   summary: () => apiGet<AdminProductSummary>('/admin/products/summary'),
   categories: () => apiGet<string[]>('/admin/products/categories'),
 };

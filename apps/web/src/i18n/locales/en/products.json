@@ -32,5 +32,18 @@
   "empty": "No products have been imported yet.",
   "emptyFiltered": "No products match these filters.",
   "emptyHint": "Import your catalogue first —",
-  "emptyHintLink": "go to Settings"
+  "emptyHintLink": "go to Settings",
+  "detail": {
+    "title": "Product detail",
+    "loading": "Loading…",
+    "vendor": "Brand",
+    "tags": "Tags",
+    "sku": "SKU",
+    "handle": "Key",
+    "publishedAt": "Published",
+    "syncedAt": "Last synced",
+    "description": "Description",
+    "noDescription": "No description. With no tags either, this product is held back from the knowledge base.",
+    "openInShop": "Open in shop"
+  }
 }

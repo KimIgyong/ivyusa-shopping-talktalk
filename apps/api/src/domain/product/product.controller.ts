@@ -5,6 +5,7 @@ import { buildPagination, normalizePage } from '@ivy/common';
 import { ProductService } from './product.service';
 import { ProductSyncService } from './product-sync.service';
 import {
+  toAdminProductDetailResponse,
   toAdminProductResponse,
   toProductCardResponse,
   toProductDetailResponse,
@@ -160,6 +161,17 @@ export class ProductAdminController {
       items.map((i) => toAdminProductResponse(i, known.has(i.handle))),
       buildPagination(p, s, total),
     );
+  }
+
+  // Path-param route LAST so it never shadows `summary` / `categories`.
+  @Get(':handle')
+  @RequireCapability(CAPABILITY.MODULE_OPERATIONS)
+  @ApiOperation({ summary: 'One catalogue row in full (archived rows included)' })
+  async detail(@CurrentUser() user: Principal, @Param('handle') handle: string) {
+    const tenantId = this.tenantId(user);
+    const product = await this.productService.detail(tenantId, handle);
+    const known = await this.productService.knowledgeHandles(tenantId, [handle]);
+    return toAdminProductDetailResponse(product, known.has(handle));
   }
 
   @Post('sync')

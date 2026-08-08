@@ -32,5 +32,18 @@
   "empty": "Todavía no se han importado productos.",
   "emptyFiltered": "Ningún producto coincide con estos filtros.",
   "emptyHint": "Importe su catálogo primero:",
-  "emptyHintLink": "ir a Configuración"
+  "emptyHintLink": "ir a Configuración",
+  "detail": {
+    "title": "Detalle del producto",
+    "loading": "Cargando…",
+    "vendor": "Marca",
+    "tags": "Etiquetas",
+    "sku": "SKU",
+    "handle": "Clave",
+    "publishedAt": "Publicado",
+    "syncedAt": "Última sincronización",
+    "description": "Descripción",
+    "noDescription": "Sin descripción. Si tampoco tiene etiquetas, este producto no llega a la base de conocimiento.",
+    "openInShop": "Abrir en la tienda"
+  }
 }

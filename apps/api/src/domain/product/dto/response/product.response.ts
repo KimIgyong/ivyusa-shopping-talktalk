@@ -26,10 +26,34 @@ export interface ProductDetailResponse extends ProductCardResponse {
  * Console row (PLN-260808-Console-Product-List). Not the customer card: it adds
  * what an operator judges the sync by — whether the row is still sold, when it
  * was last seen on the storefront, and whether it reached the knowledge base.
+ *
+ * Carries a SNIPPET, not the description. A page of 20 rows would otherwise ship
+ * 20 full product bodies to render two lines of each; the full text belongs to
+ * the detail view that asks for it.
  */
-export interface AdminProductResponse extends ProductDetailResponse {
+export interface AdminProductResponse {
+  handle: string;
+  title: string;
+  vendor: string | null;
+  category: string | null;
+  tags: string | null;
+  sku: string | null;
+  price: number | null;
+  currency: string;
+  imageUrl: string | null;
+  productUrl: string | null;
+  status: string;
+  publishedAt: string | null;
   syncedAt: string | null;
+  /** First ~100 characters of the description, ellipsised. */
+  descriptionSnippet: string | null;
   /** A product knowledge document exists for this handle. */
+  inKnowledge: boolean;
+}
+
+/** One product in full — the console detail view. */
+export interface AdminProductDetailResponse extends ProductDetailResponse {
+  syncedAt: string | null;
   inKnowledge: boolean;
 }
 
