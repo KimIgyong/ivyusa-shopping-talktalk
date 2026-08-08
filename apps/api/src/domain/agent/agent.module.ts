@@ -16,6 +16,7 @@ import { ModerationModule } from '../moderation/moderation.module';
 import { CustomerModule } from '../customer/customer.module';
 import { AuditModule } from '../audit/audit.module';
 import { SessionModule } from '../session/session.module';
+import { AnswerReuseModule } from '../answer-reuse/answer-reuse.module';
 
 @Module({
   imports: [
@@ -34,6 +35,8 @@ import { SessionModule } from '../session/session.module';
     CustomerModule,
     AuditModule,
     SessionModule,
+    // Answer reuse (PLN-260808 Track C): agent replies feed the reuse store.
+    AnswerReuseModule,
   ],
   controllers: [AgentConsoleController],
   providers: [AgentService, AgentAlertService],

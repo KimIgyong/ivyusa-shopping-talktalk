@@ -17,8 +17,9 @@ import { Session } from '../session/entity/session.entity';
 import { Tenant } from '../tenant/entity/tenant.entity';
 import { User } from '../user/entity/user.entity';
 import { Assignment } from '../agent/entity/assignment.entity';
-import { RagService } from './rag.service';
+import { RagService, RagAnswer } from './rag.service';
 import { ModerationService } from '../moderation/moderation.service';
+import { AnswerReuseService } from '../answer-reuse/answer-reuse.service';
 import type { ChatTurnResponse } from '@ivy/types';
 import { OrderService } from '../order/order.service';
 import { SessionService, sessionCacheKey } from '../session/session.service';
@@ -133,6 +134,9 @@ export class ChatService {
     private readonly bus: EventBusService,
     private readonly customerService: CustomerService,
     private readonly redis: RedisService,
+    // Appended last so positional test doubles that predate it stay valid —
+    // every use is `this.answerReuse?.`-guarded for exactly that reason.
+    private readonly answerReuse?: AnswerReuseService,
   ) {}
 
   async getOrCreateConversation(sessionId: number): Promise<Conversation> {
@@ -363,18 +367,33 @@ export class ChatService {
     // yields no preference at all.
     const preferGroup =
       !intent.fallback && /product/i.test(intent.intent ?? '') ? DOC_GROUP.PRODUCT : undefined;
-    const answer = await this.rag.answer(
-      tenantId,
-      egressText,
-      session.language,
-      orderContext,
-      preferGroup,
-      // Retrieval-only context (FIX-260806 A2): a follow-up like "and for my
-      // young son?" carries none of the words its own topic is indexed under,
-      // so searching on it alone scored off-topic and escalated a question the
-      // knowledge base could answer.
-      await this.retrievalQueryFor(conversation.id, userTurn.id, egressText),
-    );
+    // Answer reuse (요구 5, PLN-260808 Track C): a near-duplicate of an already
+    // answered question replays the stored verified answer — no LLM call. Sits
+    // BEFORE rag.answer but upstream of the moderation gate below, so a replay
+    // is still moderated (FR-069 non-bypassable). Never for order questions:
+    // those answers are personal and the reuse store refuses them anyway.
+    const reused =
+      intent.needsOrderData || !this.answerReuse
+        ? null
+        : await this.answerReuse.lookup(tenantId, session.language, egressText);
+    const answer = reused
+      ? {
+          text: reused.text,
+          confidence: reused.confidence,
+          citations: reused.citations as RagAnswer['citations'],
+        }
+      : await this.rag.answer(
+          tenantId,
+          egressText,
+          session.language,
+          orderContext,
+          preferGroup,
+          // Retrieval-only context (FIX-260806 A2): a follow-up like "and for my
+          // young son?" carries none of the words its own topic is indexed under,
+          // so searching on it alone scored off-topic and escalated a question the
+          // knowledge base could answer.
+          await this.retrievalQueryFor(conversation.id, userTurn.id, egressText),
+        );
 
     // Mandatory moderation gate (FR-069).
     const moderated = await this.moderation.moderate({
@@ -390,6 +409,12 @@ export class ChatService {
     // alert. Stay silent for this turn — the widget keeps showing the queued
     // state — rather than escalating what is already escalated.
     if (moderated.decision === MODERATION_DECISION.BLOCKED) {
+      // A replay the moderator refuses must never be replayed again.
+      if (reused) {
+        void this.answerReuse
+          ?.deactivate(reused.reuseId, tenantId)
+          .catch((e: Error) => this.logger.warn(`reuse deactivate failed: ${e.message}`));
+      }
       if (queued) {
         return { conversationId: String(conversation.id), reply: null, escalate: false, needsAuth: false };
       }
@@ -419,10 +444,29 @@ export class ChatService {
       };
     }
 
-    await this.persist(tenantId, conversation.id, SENDER_TYPE.AI, moderated.text, session.language, {
+    const aiTurn = await this.persist(tenantId, conversation.id, SENDER_TYPE.AI, moderated.text, session.language, {
       citations: answer.citations,
       confidence: answer.confidence,
+      // Console diagnostics: which answers came from the reuse store (D-C2:
+      // the customer sees no marker; the trace always records it).
+      ...(reused ? { answeredFrom: 'reuse', reuseId: reused.reuseId } : {}),
     });
+    if (reused) {
+      void this.answerReuse?.recordHit(reused.reuseId);
+    } else {
+      // A freshly generated, delivered answer becomes a reuse candidate (the
+      // service applies the D-C1 filters: cited + confident, no order context).
+      void this.answerReuse?.recordAiAnswer({
+        tenantId,
+        lang: session.language,
+        question: egressText,
+        answerText: moderated.text,
+        confidence: answer.confidence,
+        citations: answer.citations,
+        sourceMessageId: aiTurn.id,
+        needsOrderData: intent.needsOrderData ?? false,
+      });
+    }
 
     return {
       conversationId: String(conversation.id),

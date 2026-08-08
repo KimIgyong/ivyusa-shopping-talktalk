@@ -16,6 +16,7 @@ import { RequestContextMiddleware } from './global/middleware/request-context.mi
 import { AuthModule } from './domain/auth/auth.module';
 import { SessionModule } from './domain/session/session.module';
 import { ChatModule } from './domain/chat/chat.module';
+import { AnswerReuseModule } from './domain/answer-reuse/answer-reuse.module';
 import { ModerationModule } from './domain/moderation/moderation.module';
 import { TenantModule } from './domain/tenant/tenant.module';
 import { UserModule } from './domain/user/user.module';
@@ -68,6 +69,7 @@ import { ShopifyProxyModule } from './domain/shopify-proxy/shopify-proxy.module'
     AuthModule,
     SessionModule,
     ChatModule,
+    AnswerReuseModule,
     ModerationModule,
     TenantModule,
     UserModule,

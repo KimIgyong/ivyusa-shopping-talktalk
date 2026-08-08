@@ -26,6 +26,7 @@ import { Tenant } from '../tenant/entity/tenant.entity';
 import { AuditService } from '../audit/audit.service';
 import { RedisService } from '../../infrastructure/cache/redis.service';
 import { SessionService, sessionCacheKey } from '../session/session.service';
+import { AnswerReuseService } from '../answer-reuse/answer-reuse.service';
 import { TenantService } from '../tenant/tenant.service';
 import { ShopifyAdminClient } from '../order/shopify-admin.client';
 import { ErasureSuppressionService } from './erasure-suppression.service';
@@ -77,6 +78,8 @@ export class PrivacyService {
     private readonly suppression: ErasureSuppressionService,
     private readonly tenantService: TenantService,
     private readonly adminClient: ShopifyAdminClient,
+    // Appended last so positional test doubles stay valid; uses `?.`-guarded.
+    private readonly answerReuse?: AnswerReuseService,
   ) {}
 
   // ---- session resolution (widget DSAR/CCPA) ----
@@ -537,6 +540,21 @@ export class PrivacyService {
       });
       const conversationIds = conversations.map((c) => c.id);
       if (conversationIds.length) {
+        // Reuse entries derived from this person's turns go first (PLN-260808
+        // Track C): they carry scrubbed copies of the conversation and must not
+        // outlive the erasure. Ids are read before the redact below.
+        if (this.answerReuse && customer.tenantId != null) {
+          const msgs = await this.messageRepo.find({
+            where: { conversationId: In(conversationIds) },
+            select: ['id'],
+          });
+          await this.answerReuse
+            .eraseByMessageIds(
+              customer.tenantId,
+              msgs.map((m) => Number(m.id)),
+            )
+            .catch((e: Error) => this.logger.warn(`reuse erasure failed: ${e.message}`));
+        }
         await this.messageRepo.update(
           { conversationId: In(conversationIds) },
           { body: REDACTED },
