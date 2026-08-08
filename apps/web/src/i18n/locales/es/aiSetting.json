@@ -123,7 +123,24 @@
     "breakEnd": "Descanso hasta",
     "breakHint": "Las consultas durante el descanso se enrutan como fuera de horario.",
     "movedToSettings": "El horario y el enrutamiento fuera de horario ahora están en Configuración.",
-    "openSettings": "Abrir Configuración"
+    "openSettings": "Abrir Configuración",
+    "denyTitle": "Derivación forzosa por política (deny-list)",
+    "denyHint": "Los mensajes que coincidan con una palabra clave van directo a un agente — no se consulta a la IA. Tipo/etiqueta marcan el issue creado.",
+    "denyKeywordsPh": "palabras clave, separadas por comas",
+    "denyAdd": "+ Añadir regla",
+    "denyType": {
+      "order_status": "Estado del pedido",
+      "delivery": "Entrega",
+      "cancel": "Cancelación",
+      "refund": "Reembolso",
+      "partnership": "Alianzas",
+      "other": "Otro"
+    },
+    "denyLabel": {
+      "consult": "Consulta",
+      "accounting": "Contabilidad",
+      "operations": "Operaciones"
+    }
   },
   "coach": {
     "title": "Entrenamiento del agente",

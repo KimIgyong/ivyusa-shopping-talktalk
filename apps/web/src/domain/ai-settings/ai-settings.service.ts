@@ -83,6 +83,8 @@ export interface HandoffConfig {
     breaks?: Array<{ start: string; end: string }>;
   };
   offHours?: { email?: string; notice?: Partial<Record<ScenarioLang, string>> };
+  /** Policy deny-list (P2): matched messages are force-handed to a human. */
+  denyRules?: Array<{ keywords: string[]; type?: string; label?: string }>;
 }
 
 export interface AiConfig {

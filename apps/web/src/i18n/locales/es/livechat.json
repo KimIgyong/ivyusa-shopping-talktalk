@@ -111,6 +111,8 @@
       "reopened": "Reabierto"
     },
     "transitioned": "Issue actualizado.",
-    "transitionError": "No se pudo actualizar el issue."
+    "transitionError": "No se pudo actualizar el issue.",
+    "transfer": "Transferir a…",
+    "assigned": "Issue reasignado."
   }
 }

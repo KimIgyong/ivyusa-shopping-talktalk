@@ -45,6 +45,10 @@ export function HandoffSection() {
   const [email, setEmail] = useState('');
   const [notice, setNotice] = useState<Partial<Record<ScenarioLang, string>>>({});
   const [lang, setLang] = useState<ScenarioLang>('KO');
+  // Policy deny-list rows (P2) — keywords edited as a comma-joined string.
+  const [denyRows, setDenyRows] = useState<Array<{ keywords: string; type: string; label: string }>>(
+    [],
+  );
 
   useEffect(() => {
     const h = config?.handoffConfig;
@@ -65,6 +69,13 @@ export function HandoffSection() {
     }
     setEmail(h.offHours?.email ?? '');
     setNotice(h.offHours?.notice ?? {});
+    setDenyRows(
+      (h.denyRules ?? []).map((r) => ({
+        keywords: (r.keywords ?? []).join(', '),
+        type: r.type ?? 'other',
+        label: r.label ?? 'consult',
+      })),
+    );
   }, [config]);
 
   // Only consult-label agents handle conversations, so only they can be assigned.
@@ -95,6 +106,17 @@ export function HandoffSection() {
         ? { offHours: { email: email.trim() || undefined, notice } }
         : {}),
     };
+    const denyRules = denyRows
+      .map((r) => ({
+        keywords: r.keywords
+          .split(',')
+          .map((k) => k.trim())
+          .filter(Boolean),
+        type: r.type,
+        label: r.label,
+      }))
+      .filter((r) => r.keywords.length > 0);
+    if (denyRules.length) handoff.denyRules = denyRules;
     updateConfig.mutate({ handoff_config: handoff });
   };
 
@@ -259,6 +281,74 @@ export function HandoffSection() {
               placeholder={t('handoff.noticePlaceholder')}
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-primary-500"
             />
+          </div>
+
+          {/* Policy deny-list (P2): matched topics skip the AI and go to a human. */}
+          <div className="border-t border-gray-100 pt-4">
+            <Label>{t('handoff.denyTitle')}</Label>
+            <p className="mb-2 mt-0.5 text-[11px] text-gray-400">{t('handoff.denyHint')}</p>
+            <div className="space-y-2">
+              {denyRows.map((row, i) => (
+                <div key={i} className="flex flex-wrap items-center gap-2">
+                  <Input
+                    value={row.keywords}
+                    placeholder={t('handoff.denyKeywordsPh')}
+                    onChange={(e) =>
+                      setDenyRows((rows) =>
+                        rows.map((r, j) => (j === i ? { ...r, keywords: e.target.value } : r)),
+                      )
+                    }
+                  />
+                  <Select
+                    value={row.type}
+                    onChange={(e) =>
+                      setDenyRows((rows) =>
+                        rows.map((r, j) => (j === i ? { ...r, type: e.target.value } : r)),
+                      )
+                    }
+                  >
+                    {['order_status', 'delivery', 'cancel', 'refund', 'partnership', 'other'].map(
+                      (v) => (
+                        <option key={v} value={v}>
+                          {t(`handoff.denyType.${v}`)}
+                        </option>
+                      ),
+                    )}
+                  </Select>
+                  <Select
+                    value={row.label}
+                    onChange={(e) =>
+                      setDenyRows((rows) =>
+                        rows.map((r, j) => (j === i ? { ...r, label: e.target.value } : r)),
+                      )
+                    }
+                  >
+                    {['consult', 'accounting', 'operations'].map((v) => (
+                      <option key={v} value={v}>
+                        {t(`handoff.denyLabel.${v}`)}
+                      </option>
+                    ))}
+                  </Select>
+                  <button
+                    type="button"
+                    className="text-xs font-medium text-red-500 hover:underline"
+                    onClick={() => setDenyRows((rows) => rows.filter((_, j) => j !== i))}
+                  >
+                    {tc('delete')}
+                  </button>
+                </div>
+              ))}
+            </div>
+            <Button
+              size="sm"
+              variant="secondary"
+              className="mt-2"
+              onClick={() =>
+                setDenyRows((rows) => [...rows, { keywords: '', type: 'other', label: 'consult' }])
+              }
+            >
+              {t('handoff.denyAdd')}
+            </Button>
           </div>
 
           <div className="flex justify-end">
