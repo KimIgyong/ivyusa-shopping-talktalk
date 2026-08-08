@@ -78,3 +78,73 @@ describe('probeEcommerce SSRF guard', () => {
     expect(r.detail).toMatch(/Blocked/);
   });
 });
+
+/**
+ * Marketing/helpdesk probes (PLN-260808): vendor-pinned domains, never-throw,
+ * missing-credential short-circuit before any fetch.
+ */
+describe('probeEcommerce marketing/helpdesk providers', () => {
+  const realFetch = global.fetch;
+  afterEach(() => {
+    global.fetch = realFetch;
+  });
+
+  it('short-circuits on missing credentials without fetching', async () => {
+    global.fetch = jest.fn(async () => {
+      throw new Error('FETCH-REACHED');
+    }) as unknown as typeof fetch;
+    for (const [provider, config] of [
+      ['klaviyo', {}],
+      ['yotpo', { app_key: 'a' }], // secret missing
+      ['gorgias', { subdomain: 's', email: 'e@x.com' }], // key missing
+    ] as const) {
+      const r = await probeEcommerce(provider, config as Record<string, string>);
+      expect(r.ok).toBe(false);
+      expect(r.detail).toMatch(/missing/i);
+    }
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it('klaviyo: 200 → connected with the required revision header', async () => {
+    const fetchMock = jest.fn(async () => ({ ok: true, status: 200 }));
+    global.fetch = fetchMock as unknown as typeof fetch;
+    const r = await probeEcommerce('klaviyo', { api_key: 'pk_test' });
+    expect(r.ok).toBe(true);
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toContain('a.klaviyo.com/api/accounts');
+    expect((init.headers as Record<string, string>).revision).toBeTruthy();
+  });
+
+  it('yotpo: token in the response body proves the pair; no token = rejected', async () => {
+    global.fetch = jest.fn(async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({ access_token: 'tok' }),
+    })) as unknown as typeof fetch;
+    await expect(
+      probeEcommerce('yotpo', { app_key: 'a', secret_key: 's' }),
+    ).resolves.toMatchObject({ ok: true });
+
+    global.fetch = jest.fn(async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({}),
+    })) as unknown as typeof fetch;
+    await expect(
+      probeEcommerce('yotpo', { app_key: 'a', secret_key: 'bad' }),
+    ).resolves.toMatchObject({ ok: false });
+  });
+
+  it('gorgias: pins to the vendor domain and maps 401 to invalid credentials', async () => {
+    const fetchMock = jest.fn(async () => ({ ok: false, status: 401 }));
+    global.fetch = fetchMock as unknown as typeof fetch;
+    const r = await probeEcommerce('gorgias', {
+      subdomain: 'https://acme.gorgias.com/extra', // normalizes to bare subdomain
+      email: 'agent@acme.com',
+      api_key: 'key',
+    });
+    expect(r.ok).toBe(false);
+    expect(r.detail).toMatch(/invalid/i);
+    expect((fetchMock.mock.calls[0] as [string])[0]).toBe('https://acme.gorgias.com/api/account');
+  });
+});

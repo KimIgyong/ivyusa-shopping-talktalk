@@ -1,4 +1,4 @@
-import { EcommerceProvider, INTEGRATION_FIELDS } from '@ivy/types';
+import { GenericIntegrationProvider, INTEGRATION_FIELDS } from '@ivy/types';
 import { IntegrationCredential } from './entity/integration-credential.entity';
 import { IntegrationStatusEntity } from '../integration/entity/integration-status.entity';
 import { IntegrationSettingsResponse } from './dto/response/tenant.response';
@@ -6,7 +6,7 @@ import { IntegrationSettingsResponse } from './dto/response/tenant.response';
 /** Shapes the generic integration settings view. Secret values are never returned. */
 export class EcommerceIntegrationMapper {
   static toSettings(
-    provider: EcommerceProvider,
+    provider: GenericIntegrationProvider,
     config: Record<string, string>,
     cred: IntegrationCredential | null,
     status: IntegrationStatusEntity | null,

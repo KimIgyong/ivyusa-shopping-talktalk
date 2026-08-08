@@ -1,8 +1,10 @@
 # PLN-260808-Marketing-Integrations-Klaviyo-Yotpo
 
-연동설정 페이지 Klaviyo·Yotpo 설정 기능 작업계획서 (범위: 자격증명 저장+연결 테스트).
+연동설정 페이지 Klaviyo·Yotpo **+ Gorgias**(Rev.2) 설정 기능 작업계획서 (범위: 자격증명 저장+연결 테스트).
 
-- 근거: REQ-260808-Marketing-Integrations-Klaviyo-Yotpo · ⚠️ **사용자 승인 후 구현 착수**
+- 근거: REQ-260808-Marketing-Integrations-Klaviyo-Yotpo · 2026-08-08 승인
+- **Rev.2 (승인 직후 사용자 지시)**: Gorgias 연동 설정 포함 — 원래 P2(커넥터) 몫이던 자격증명 설정을
+  이번에 선반영(§11.2 "기존 integration_credentials 패턴 재사용" 그대로). P2는 전달 로직만 남음.
 - 스키마 변경 없음(integration_credentials 재사용) → **Migration 불필요**
 
 ## 1. 단계별 계획 (PR 1건)
@@ -11,15 +13,19 @@
 - `INTEGRATION_PROVIDER`에 `KLAVIYO:'klaviyo'`, `YOTPO:'yotpo'` 추가.
 - `MARKETING_PROVIDERS = ['klaviyo','yotpo']` 신설(+`MarketingProvider` 타입) — 기존
   `ECOMMERCE_PROVIDERS`는 불변(커머스 의미 유지), 제네릭 연동 허용 리스트는 두 배열의 합집합.
+- `HELPDESK_PROVIDERS = ['gorgias']`(+`HelpdeskProvider`) 신설 — P2 커넥터(Zendesk 등)도 이 축으로 확장.
 - `INTEGRATION_FIELDS` 확장:
   - `klaviyo: [{ key:'api_key', secret:true, required:true }]`
   - `yotpo: [{ key:'app_key', secret:false, required:true }, { key:'secret_key', secret:true, required:true }]`
+  - `gorgias: [{ key:'subdomain', secret:false, required:true }, { key:'email', secret:false, required:true }, { key:'api_key', secret:true, required:true }]`
+    (REST Basic 인증 = 계정 이메일 + REST API 키, §11.2.1)
 
 ### S2. 백엔드 (`domain/tenant`)
 - `ecommerce-integration.service.ts`: 허용 리스트를 `[...ECOMMERCE_PROVIDERS, ...MARKETING_PROVIDERS]`로.
 - `ecommerce-probe.util.ts`에 프로브 2종 추가(기존 패턴: never-throw, 상태·detail 기록):
   - `probeKlaviyo`: `GET https://a.klaviyo.com/api/accounts/` + `Authorization: Klaviyo-API-Key`, `revision: 2026-07-15` → 200 connected / 401 invalid key
   - `probeYotpo`: `POST https://api.yotpo.com/oauth/token` (`client_credentials`, app_key/secret) → access_token 존재 시 connected
+  - `probeGorgias`: `GET https://{subdomain}.gorgias.com/api/account` + Basic(email:api_key) → 200 connected / 401 invalid
 
 ### S3. 콘솔 (web)
 - `integration-providers.ts` 미러 확장(MARKETING_PROVIDERS + 필드) — KEEP IN SYNC 주석 갱신.

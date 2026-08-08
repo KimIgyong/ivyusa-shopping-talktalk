@@ -1,6 +1,6 @@
 import { promises as dns } from 'dns';
 import { isIP } from 'net';
-import { EcommerceProvider } from '@ivy/types';
+import { GenericIntegrationProvider } from '@ivy/types';
 
 export interface ProbeResult {
   ok: boolean;
@@ -94,7 +94,7 @@ function normHost(v: string): string {
  * endpoint with the stored credentials.
  */
 export async function probeEcommerce(
-  provider: EcommerceProvider,
+  provider: GenericIntegrationProvider,
   config: Record<string, string>,
 ): Promise<ProbeResult> {
   try {
@@ -107,6 +107,12 @@ export async function probeEcommerce(
         return await probeCafe24(config);
       case 'haravan':
         return await probeHaravan(config);
+      case 'klaviyo':
+        return await probeKlaviyo(config);
+      case 'yotpo':
+        return await probeYotpo(config);
+      case 'gorgias':
+        return await probeGorgias(config);
       default:
         return { ok: false, detail: 'Unsupported provider' };
     }
@@ -179,6 +185,65 @@ async function probeCafe24(c: Record<string, string>): Promise<ProbeResult> {
   if (res.ok) return { ok: true, detail: 'Connected' };
   if (res.status === 401) return { ok: false, detail: 'Cafe24 token invalid or expired' };
   return { ok: false, detail: `Cafe24 returned ${res.status}` };
+}
+
+/** Klaviyo API — private API key against the accounts resource (read-only, cheap). */
+async function probeKlaviyo(c: Record<string, string>): Promise<ProbeResult> {
+  const key = (c.api_key ?? '').trim();
+  if (!key) return missing();
+  if (!ASCII.test(key)) return { ok: false, detail: 'API key contains invalid characters' };
+  const res = await httpFetch('https://a.klaviyo.com/api/accounts/', {
+    headers: {
+      Authorization: `Klaviyo-API-Key ${key}`,
+      Accept: 'application/vnd.api+json',
+      // Klaviyo requires a dated revision header on every call.
+      revision: '2025-07-15',
+    },
+  });
+  if (res.ok) return { ok: true, detail: 'Connected' };
+  if (res.status === 401 || res.status === 403) {
+    return { ok: false, detail: 'Klaviyo API key invalid or lacks accounts:read' };
+  }
+  return { ok: false, detail: `Klaviyo returned ${res.status}` };
+}
+
+/** Yotpo core API — client_credentials token mint proves the app/secret pair. */
+async function probeYotpo(c: Record<string, string>): Promise<ProbeResult> {
+  const appKey = (c.app_key ?? '').trim();
+  const secret = (c.secret_key ?? '').trim();
+  if (!appKey || !secret) return missing();
+  const res = await httpFetch('https://api.yotpo.com/oauth/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify({
+      client_id: appKey,
+      client_secret: secret,
+      grant_type: 'client_credentials',
+    }),
+  });
+  if (!res.ok) return { ok: false, detail: `Yotpo returned ${res.status}` };
+  const data = (await res.json().catch(() => ({}))) as { access_token?: string };
+  return data.access_token
+    ? { ok: true, detail: 'Connected' }
+    : { ok: false, detail: 'Yotpo rejected the app key / secret pair' };
+}
+
+/** Gorgias REST — Basic (account email + REST API key) against the account resource. */
+async function probeGorgias(c: Record<string, string>): Promise<ProbeResult> {
+  const subdomain = normHost(c.subdomain ?? '').replace(/\.gorgias\.com.*$/i, '');
+  const email = (c.email ?? '').trim();
+  const key = (c.api_key ?? '').trim();
+  if (!subdomain || !email || !key) return missing();
+  if (!ASCII.test(email) || !ASCII.test(key)) {
+    return { ok: false, detail: 'Email / API key contain invalid characters' };
+  }
+  const auth = Buffer.from(`${email}:${key}`).toString('base64');
+  const res = await httpFetch(`https://${subdomain}.gorgias.com/api/account`, {
+    headers: { Authorization: `Basic ${auth}`, Accept: 'application/json' },
+  });
+  if (res.ok) return { ok: true, detail: 'Connected' };
+  if (res.status === 401) return { ok: false, detail: 'Gorgias credentials invalid' };
+  return { ok: false, detail: `Gorgias returned ${res.status}` };
 }
 
 /** Haravan Admin API (Shopify-compatible) — Bearer access token against shop.json. */

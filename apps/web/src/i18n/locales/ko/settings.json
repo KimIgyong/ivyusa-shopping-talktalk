@@ -133,7 +133,11 @@
       "db": "데이터베이스",
       "username": "사용자명",
       "api_key": "API 키",
-      "shop_domain": "쇼핑몰 주소"
+      "shop_domain": "쇼핑몰 주소",
+      "app_key": "App(스토어) 키",
+      "secret_key": "시크릿 키",
+      "subdomain": "계정 서브도메인",
+      "email": "계정 이메일"
     },
     "ph": {
       "mall_id": "your-mall",
@@ -141,7 +145,10 @@
       "url": "https://my-odoo.example.com",
       "db": "odoo-db",
       "username": "user@example.com",
-      "shop_domain": "your-store.myharavan.com"
+      "shop_domain": "your-store.myharavan.com",
+      "subdomain": "your-company (your-company.gorgias.com의 앞부분)",
+      "email": "agent@example.com",
+      "app_key": "yotpo app key"
     },
     "cafe24": {
       "title": "Cafe24",
@@ -158,6 +165,18 @@
     "haravan": {
       "title": "Haravan",
       "subtitle": "Admin API 액세스 토큰으로 Haravan 상점을 연결합니다."
+    },
+    "klaviyo": {
+      "title": "Klaviyo",
+      "subtitle": "이메일/SMS 마케팅 — Private API Key로 연결합니다."
+    },
+    "yotpo": {
+      "title": "Yotpo",
+      "subtitle": "리뷰·로열티 — App Key와 Secret Key로 연결합니다."
+    },
+    "gorgias": {
+      "title": "Gorgias",
+      "subtitle": "헬프데스크 — 에스컬레이션된 상담을 Gorgias 티켓으로 전달할 수 있습니다."
     }
   },
   "install": {
@@ -204,5 +223,7 @@
       "errorInvalidScope": "Cafe24가 요청 권한을 거부했습니다(invalid_scope) — 개발자센터에서 앱 권한에 해당 항목을 추가한 뒤 다시 연결하세요",
       "errorAccessDenied": "Cafe24 동의가 거부되었습니다(access_denied) — 몰 대표 운영자 계정으로 다시 시도하세요"
     }
-  }
+  },
+  "marketingTitle": "마케팅 연동",
+  "helpdeskTitle": "헬프데스크 연동"
 }
