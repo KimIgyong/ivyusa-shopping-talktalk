@@ -1,8 +1,10 @@
 import { HttpStatus, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { INTEGRATION_PROVIDER } from '@ivy/types';
 import { PRODUCT_STATUS, ProductCache } from './entity/product-cache.entity';
 import { Tenant } from '../tenant/entity/tenant.entity';
+import { IntegrationCredential } from '../tenant/entity/integration-credential.entity';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
 
@@ -76,6 +78,8 @@ export class ProductSyncService implements OnModuleInit, OnModuleDestroy {
   constructor(
     @InjectRepository(ProductCache) private readonly productRepo: Repository<ProductCache>,
     @InjectRepository(Tenant) private readonly tenantRepo: Repository<Tenant>,
+    @InjectRepository(IntegrationCredential)
+    private readonly credRepo: Repository<IntegrationCredential>,
   ) {}
 
   onModuleInit(): void {
@@ -99,10 +103,28 @@ export class ProductSyncService implements OnModuleInit, OnModuleDestroy {
     if (this.timer) clearInterval(this.timer);
   }
 
+  /**
+   * Tenants whose catalogue comes from Cafe24, not a Shopify storefront.
+   *
+   * `/products.json` is a Shopify route: a Cafe24 mall answers it with a 404 HTML
+   * page (measured on amoebaorder.cafe24.com), so polling one produces nothing
+   * but an `aborted:` warning every tick. Their catalogue arrives through
+   * Cafe24ProductSyncService instead.
+   */
+  private async cafe24TenantIds(): Promise<Set<number>> {
+    const creds = await this.credRepo.find({
+      where: { provider: INTEGRATION_PROVIDER.CAFE24 },
+      select: ['tenantId'],
+    });
+    return new Set(creds.map((c) => c.tenantId).filter((id): id is number => id != null));
+  }
+
   /** First-boot fill: sync each storefront-capable tenant that has no cached products yet. */
   async initialSyncAll(): Promise<void> {
     const tenants = await this.tenantRepo.find();
+    const cafe24 = await this.cafe24TenantIds();
     for (const tenant of tenants) {
+      if (cafe24.has(tenant.id)) continue;
       if (!tenant.storefrontUrl && !tenant.shopDomain) continue;
       const count = await this.productRepo.count({ where: { tenantId: tenant.id } });
       if (count > 0) continue;
@@ -124,7 +146,9 @@ export class ProductSyncService implements OnModuleInit, OnModuleDestroy {
     this.running = true;
     try {
       const tenants = await this.tenantRepo.find();
+      const cafe24 = await this.cafe24TenantIds();
       for (const tenant of tenants) {
+        if (cafe24.has(tenant.id)) continue;
         if (!tenant.storefrontUrl && !tenant.shopDomain) continue;
         try {
           const res = await this.syncTenant(tenant);
@@ -143,6 +167,14 @@ export class ProductSyncService implements OnModuleInit, OnModuleDestroy {
     const tenant = await this.tenantRepo.findOne({ where: { id: tenantId } });
     if (!tenant) {
       throw new BusinessException(ERROR_CODE.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND);
+    }
+    if ((await this.cafe24TenantIds()).has(tenant.id)) {
+      return {
+        ok: false,
+        synced: 0,
+        archived: 0,
+        detail: 'This tenant’s catalogue comes from Cafe24 — use the Cafe24 product sync',
+      };
     }
     return this.syncTenant(tenant);
   }

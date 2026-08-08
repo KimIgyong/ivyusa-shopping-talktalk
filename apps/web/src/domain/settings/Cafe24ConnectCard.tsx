@@ -19,6 +19,7 @@ export function Cafe24ConnectCard() {
   const [mallId, setMallId] = useState('');
   const [connecting, setConnecting] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [syncingProducts, setSyncingProducts] = useState(false);
 
   // Surface the OAuth round-trip outcome the callback appended to the URL.
   useEffect(() => {
@@ -60,6 +61,28 @@ export function Cafe24ConnectCard() {
     }
   };
 
+  /**
+   * Pull the catalogue into products_cache. It stops there on purpose: the
+   * knowledge conversion is previewed and approved on the Knowledge page, so the
+   * toast points the operator at that next step rather than implying the
+   * products are already answerable.
+   */
+  const syncProducts = async () => {
+    setSyncingProducts(true);
+    try {
+      const r = await settingsService.syncCafe24Products();
+      if (r.ok) {
+        toast.success(t('cafe24.oauth.productsSynced', { synced: r.synced, archived: r.archived }));
+      } else {
+        toast.error(r.detail);
+      }
+    } catch {
+      toast.error(t('cafe24.oauth.syncProductsFailed'));
+    } finally {
+      setSyncingProducts(false);
+    }
+  };
+
   const connected =
     data?.integration?.status === 'connected' || Boolean(data?.credential?.configured);
 
@@ -86,9 +109,14 @@ export function Cafe24ConnectCard() {
             {t('cafe24.oauth.connect')}
           </Button>
           {connected && (
-            <Button variant="secondary" disabled={syncing} onClick={sync}>
-              {t('cafe24.oauth.syncNow')}
-            </Button>
+            <>
+              <Button variant="secondary" disabled={syncing} onClick={sync}>
+                {t('cafe24.oauth.syncNow')}
+              </Button>
+              <Button variant="secondary" disabled={syncingProducts} onClick={syncProducts}>
+                {t('cafe24.oauth.syncProducts')}
+              </Button>
+            </>
           )}
         </div>
       </div>

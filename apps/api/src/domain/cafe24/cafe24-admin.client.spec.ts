@@ -39,3 +39,46 @@ describe('Cafe24AdminClient — status & amount mapping', () => {
     expect(client.orderTotal({ order_id: '3', paid: 'T', payment_amount: '' })).toBeNull();
   });
 });
+
+describe('Cafe24AdminClient — catalogue requests', () => {
+  const client = new Cafe24AdminClient();
+
+  function mockFetch(body: unknown, status = 200) {
+    const fn = jest.fn(async () => ({
+      ok: status === 200,
+      status,
+      headers: { get: () => null },
+      json: async () => body,
+      text: async () => JSON.stringify(body),
+    }));
+    global.fetch = fn as unknown as typeof fetch;
+    return fn;
+  }
+
+  afterEach(() => {
+    delete (global as { fetch?: unknown }).fetch;
+  });
+
+  it('pages by offset, and by since_product_no once the caller crosses the cap', async () => {
+    const fn = mockFetch({ products: [] });
+    await client.pullProducts('amoebaorder', 'tok', { limit: 100, offset: 200 });
+    expect(fn.mock.calls[0][0]).toContain('/products?limit=100&offset=200');
+
+    await client.pullProducts('amoebaorder', 'tok', { limit: 100, offset: 0, sinceProductNo: 8123 });
+    expect(fn.mock.calls[1][0]).toContain('/products?limit=100&since_product_no=8123');
+    expect(fn.mock.calls[1][0]).not.toContain('offset');
+  });
+
+  it('accepts either shape the options resource is served in', async () => {
+    mockFetch({ option: { options: [{ option_name: '색상' }] } });
+    expect(await client.fetchProductOptions('m', 't', 1)).toEqual([{ option_name: '색상' }]);
+    mockFetch({ options: [{ option_name: '사이즈' }] });
+    expect(await client.fetchProductOptions('m', 't', 1)).toEqual([{ option_name: '사이즈' }]);
+  });
+
+  it('returns an empty category map when the scope is missing, rather than failing the sync', async () => {
+    // Categories sit behind mall.read_category, which this app never requested.
+    mockFetch({ error: 'forbidden' }, 403);
+    await expect(client.listCategoryNames('amoebaorder', 'tok')).resolves.toEqual(new Map());
+  });
+});
