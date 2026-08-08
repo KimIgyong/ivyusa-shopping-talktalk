@@ -17,6 +17,7 @@ import { AuthModule } from './domain/auth/auth.module';
 import { SessionModule } from './domain/session/session.module';
 import { ChatModule } from './domain/chat/chat.module';
 import { AnswerReuseModule } from './domain/answer-reuse/answer-reuse.module';
+import { IssueModule } from './domain/issue/issue.module';
 import { ModerationModule } from './domain/moderation/moderation.module';
 import { TenantModule } from './domain/tenant/tenant.module';
 import { UserModule } from './domain/user/user.module';
@@ -70,6 +71,7 @@ import { ShopifyProxyModule } from './domain/shopify-proxy/shopify-proxy.module'
     SessionModule,
     ChatModule,
     AnswerReuseModule,
+    IssueModule,
     ModerationModule,
     TenantModule,
     UserModule,

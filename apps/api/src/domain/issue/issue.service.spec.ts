@@ -1,0 +1,156 @@
+import { Repository } from 'typeorm';
+import { IssueService } from './issue.service';
+import { Issue, ISSUE_STATUS } from './entity/issue.entity';
+import { IssueEvent } from './entity/issue-event.entity';
+import { Tenant } from '../tenant/entity/tenant.entity';
+import { Message } from '../chat/entity/message.entity';
+import { BusinessException } from '../../global/exception/business.exception';
+
+/**
+ * Issue core P1 (PLN-260808-Issue-Workflow-P1): entitlement gating, escalation
+ * promotion (1:1 + reopen), state machine and the 결정 3·10 permission rules.
+ */
+describe('IssueService', () => {
+  function build(opts: {
+    mode?: string;
+    existing?: Partial<Issue> | null;
+    maxNo?: number;
+    lastIntent?: string | null;
+  }) {
+    let saved: Partial<Issue> | null = null;
+    const events: Array<Partial<IssueEvent>> = [];
+    const issueRepo = {
+      findOne: jest.fn(async () => (opts.existing === undefined ? null : opts.existing)),
+      save: jest.fn(async (e: Issue) => {
+        saved = { id: 101, ...e };
+        return saved as Issue;
+      }),
+      create: (e: Partial<Issue>) => e as Issue,
+      createQueryBuilder: jest.fn(() => ({
+        select: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        getRawOne: jest.fn(async () => ({ max: opts.maxNo ?? 0 })),
+      })),
+    } as unknown as Repository<Issue>;
+    const eventRepo = {
+      save: jest.fn(async (e: IssueEvent) => {
+        events.push(e);
+        return e;
+      }),
+      create: (e: Partial<IssueEvent>) => e as IssueEvent,
+      find: jest.fn(async () => events),
+    } as unknown as Repository<IssueEvent>;
+    const tenantRepo = {
+      findOne: jest.fn(async () => ({ id: 1, workflowMode: opts.mode ?? 'native' }) as Tenant),
+    } as unknown as Repository<Tenant>;
+    const msgRepo = {
+      findOne: jest.fn(async () =>
+        opts.lastIntent === undefined ? null : ({ intent: opts.lastIntent } as Message),
+      ),
+    } as unknown as Repository<Message>;
+    const bus = { subscribe: jest.fn(), publish: jest.fn() } as never;
+    const audit = { write: jest.fn(async () => undefined) } as never;
+    const svc = new IssueService(issueRepo, eventRepo, tenantRepo, msgRepo, bus, audit);
+    return { svc, issueRepo, eventRepo, events, getSaved: () => saved };
+  }
+
+  const payload = { tenantId: 1, conversationId: 7, sessionId: 5, reason: 'low_confidence' };
+
+  describe('openForEscalation (결정 1·2 + entitlement)', () => {
+    it('creates a received issue with per-tenant number and intent-mapped type', async () => {
+      const { svc, getSaved, events } = build({ existing: null, maxNo: 36, lastIntent: 'refund_inquiry' });
+      await svc.openForEscalation(payload);
+      expect(getSaved()).toMatchObject({ issueNo: 37, type: 'refund', status: 'received' });
+      expect(events[0]).toMatchObject({ type: 'created', toStatus: 'received' });
+    });
+
+    it('does nothing for a non-native tenant (server-side entitlement, §11.1)', async () => {
+      const { svc, getSaved } = build({ mode: 'bridge', existing: null });
+      await svc.openForEscalation(payload);
+      expect(getSaved()).toBeNull();
+    });
+
+    it('reuses the open 1:1 issue instead of creating a second one', async () => {
+      const { svc, getSaved } = build({ existing: { id: 9, status: ISSUE_STATUS.IN_PROGRESS } });
+      await svc.openForEscalation(payload);
+      expect(getSaved()).toBeNull(); // no new row, no transition
+    });
+
+    it('re-escalation reopens a settled issue (reopen_count++)', async () => {
+      const { svc, getSaved, events } = build({
+        existing: { id: 9, tenantId: 1, status: ISSUE_STATUS.RESOLVED, reopenCount: 0 },
+      });
+      await svc.openForEscalation(payload);
+      expect(getSaved()).toMatchObject({ status: 'in_progress', reopenCount: 1 });
+      expect(events[0]).toMatchObject({ type: 'reopened' });
+    });
+  });
+
+  describe('transition (결정 3·10)', () => {
+    const openIssue = (): Partial<Issue> => ({
+      id: 9,
+      tenantId: 1,
+      issueNo: 37,
+      status: ISSUE_STATUS.IN_PROGRESS,
+      assigneeUserId: 20,
+      reopenCount: 0,
+    });
+
+    it('assignee (staff) may resolve their own issue', async () => {
+      const { svc, getSaved } = build({ existing: openIssue() });
+      await svc.transition({ userId: 20, rank: 'staff' }, 1, 9, ISSUE_STATUS.RESOLVED);
+      expect(getSaved()).toMatchObject({ status: 'resolved', resolvedTier: 'agent' });
+    });
+
+    it('a non-assignee staff is forbidden; a manager may transition', async () => {
+      const { svc } = build({ existing: openIssue() });
+      await expect(
+        svc.transition({ userId: 99, rank: 'staff' }, 1, 9, ISSUE_STATUS.RESOLVED),
+      ).rejects.toBeInstanceOf(BusinessException);
+      const { svc: svc2, getSaved } = build({ existing: openIssue() });
+      await svc2.transition({ userId: 99, rank: 'manager' }, 1, 9, ISSUE_STATUS.RESOLVED);
+      expect(getSaved()).toMatchObject({ status: 'resolved' });
+    });
+
+    it('reject requires manager rank AND a valid reason code', async () => {
+      const { svc } = build({ existing: openIssue() });
+      await expect(
+        svc.transition({ userId: 20, rank: 'staff' }, 1, 9, ISSUE_STATUS.REJECTED, {
+          rejectReason: 'spam',
+        }),
+      ).rejects.toBeInstanceOf(BusinessException); // staff, even as assignee
+      const { svc: svc2 } = build({ existing: openIssue() });
+      await expect(
+        svc2.transition({ userId: 99, rank: 'manager' }, 1, 9, ISSUE_STATUS.REJECTED, {}),
+      ).rejects.toBeInstanceOf(BusinessException); // reason missing
+      const { svc: svc3, getSaved } = build({ existing: openIssue() });
+      await svc3.transition({ userId: 99, rank: 'manager' }, 1, 9, ISSUE_STATUS.REJECTED, {
+        rejectReason: 'policy_impossible',
+      });
+      expect(getSaved()).toMatchObject({ status: 'rejected', rejectReason: 'policy_impossible' });
+    });
+
+    it('blocks a transition outside the state machine', async () => {
+      const { svc } = build({ existing: { ...openIssue(), status: ISSUE_STATUS.CLOSED } });
+      await expect(
+        svc.transition({ userId: 99, rank: 'manager' }, 1, 9, ISSUE_STATUS.RESOLVED),
+      ).rejects.toBeInstanceOf(BusinessException);
+    });
+  });
+
+  describe('onConversationEnded', () => {
+    it('closes a resolved issue with the conversation; leaves an open one alone', async () => {
+      const { svc, getSaved } = build({
+        existing: { id: 9, tenantId: 1, status: ISSUE_STATUS.RESOLVED, reopenCount: 0 },
+      });
+      await svc.onConversationEnded(7);
+      expect(getSaved()).toMatchObject({ status: 'closed' });
+
+      const { svc: svc2, getSaved: saved2 } = build({
+        existing: { id: 9, tenantId: 1, status: ISSUE_STATUS.IN_PROGRESS },
+      });
+      await svc2.onConversationEnded(7);
+      expect(saved2()).toBeNull();
+    });
+  });
+});

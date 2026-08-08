@@ -20,6 +20,7 @@ import { Assignment } from '../agent/entity/assignment.entity';
 import { RagService, RagAnswer } from './rag.service';
 import { ModerationService } from '../moderation/moderation.service';
 import { AnswerReuseService } from '../answer-reuse/answer-reuse.service';
+import { IssueService } from '../issue/issue.service';
 import type { ChatTurnResponse } from '@ivy/types';
 import { OrderService } from '../order/order.service';
 import { SessionService, sessionCacheKey } from '../session/session.service';
@@ -135,8 +136,9 @@ export class ChatService {
     private readonly customerService: CustomerService,
     private readonly redis: RedisService,
     // Appended last so positional test doubles that predate it stay valid —
-    // every use is `this.answerReuse?.`-guarded for exactly that reason.
+    // every use is `this.answerReuse?.` / `this.issueService?.`-guarded.
     private readonly answerReuse?: AnswerReuseService,
+    private readonly issueService?: IssueService,
   ) {}
 
   async getOrCreateConversation(sessionId: number): Promise<Conversation> {
@@ -212,6 +214,8 @@ export class ChatService {
       { conversationId: open.id, status: 'active' },
       { status: 'released', releasedAt: new Date() },
     );
+    // Issue P1: a settled (resolved/rejected) issue closes with the conversation.
+    void this.issueService?.onConversationEnded(open.id);
     this.logger.log(`conversation ${open.id} ended by customer (session=${session.id})`);
     return { ended: true, conversationId: String(open.id) };
   }

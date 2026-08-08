@@ -17,6 +17,7 @@ import { CustomerModule } from '../customer/customer.module';
 import { AuditModule } from '../audit/audit.module';
 import { SessionModule } from '../session/session.module';
 import { AnswerReuseModule } from '../answer-reuse/answer-reuse.module';
+import { IssueModule } from '../issue/issue.module';
 
 @Module({
   imports: [
@@ -37,6 +38,8 @@ import { AnswerReuseModule } from '../answer-reuse/answer-reuse.module';
     SessionModule,
     // Answer reuse (PLN-260808 Track C): agent replies feed the reuse store.
     AnswerReuseModule,
+    // Issue P1: accept/end hooks drive the conversation's ticket.
+    IssueModule,
   ],
   controllers: [AgentConsoleController],
   providers: [AgentService, AgentAlertService],

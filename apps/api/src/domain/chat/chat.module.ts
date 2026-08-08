@@ -17,6 +17,7 @@ import { AiEngineModule } from '../ai-engine/ai-engine.module';
 import { OrderModule } from '../order/order.module';
 import { CustomerModule } from '../customer/customer.module';
 import { AnswerReuseModule } from '../answer-reuse/answer-reuse.module';
+import { IssueModule } from '../issue/issue.module';
 
 @Module({
   imports: [
@@ -34,6 +35,8 @@ import { AnswerReuseModule } from '../answer-reuse/answer-reuse.module';
     CustomerModule,
     // Answer reuse (PLN-260808 Track C): replay verified answers pre-LLM.
     AnswerReuseModule,
+    // Issue P1: customer end-chat closes a settled issue.
+    IssueModule,
   ],
   controllers: [ChatController],
   providers: [ChatService, RagService, ScenarioService],
