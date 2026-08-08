@@ -73,5 +73,44 @@
     "save": "Save as knowledge",
     "saved": "Saved to the knowledge base.",
     "saveFailed": "Could not save the knowledge document."
+  },
+  "issue": {
+    "status": {
+      "received": "Received",
+      "in_progress": "In progress",
+      "resolved": "Resolved",
+      "rejected": "Rejected",
+      "closed": "Closed"
+    },
+    "type": {
+      "order_status": "Order status",
+      "delivery": "Delivery",
+      "cancel": "Cancellation",
+      "refund": "Refund",
+      "partnership": "Partnership",
+      "other": "Other"
+    },
+    "resolve": "Resolve",
+    "reject": "Reject",
+    "rejectConfirm": "Confirm reject",
+    "reopen": "Reopen",
+    "timeline": "Timeline",
+    "reopened": "reopened ×{{count}}",
+    "notePlaceholder": "Note (optional)",
+    "rejectReason": {
+      "policy_impossible": "Not possible by policy",
+      "misrouted": "Misrouted / misclassified",
+      "spam": "Spam"
+    },
+    "event": {
+      "created": "Issue created",
+      "status_changed": "Status changed",
+      "assigned": "Assigned",
+      "tier_advanced": "Escalated to agent",
+      "memo": "Memo",
+      "reopened": "Reopened"
+    },
+    "transitioned": "Issue updated.",
+    "transitionError": "Failed to update the issue."
   }
 }

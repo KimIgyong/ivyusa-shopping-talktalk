@@ -73,5 +73,44 @@
     "save": "Guardar como conocimiento",
     "saved": "Guardado en la base de conocimiento.",
     "saveFailed": "No se pudo guardar el documento."
+  },
+  "issue": {
+    "status": {
+      "received": "Recibido",
+      "in_progress": "En curso",
+      "resolved": "Resuelto",
+      "rejected": "Rechazado",
+      "closed": "Cerrado"
+    },
+    "type": {
+      "order_status": "Estado del pedido",
+      "delivery": "Entrega",
+      "cancel": "Cancelación",
+      "refund": "Reembolso",
+      "partnership": "Alianzas",
+      "other": "Otro"
+    },
+    "resolve": "Resolver",
+    "reject": "Rechazar",
+    "rejectConfirm": "Confirmar rechazo",
+    "reopen": "Reabrir",
+    "timeline": "Cronología",
+    "reopened": "reabierto ×{{count}}",
+    "notePlaceholder": "Nota (opcional)",
+    "rejectReason": {
+      "policy_impossible": "No posible por política",
+      "misrouted": "Mal clasificado",
+      "spam": "Spam"
+    },
+    "event": {
+      "created": "Issue creado",
+      "status_changed": "Estado cambiado",
+      "assigned": "Asignado",
+      "tier_advanced": "Escalado a agente",
+      "memo": "Memo",
+      "reopened": "Reabierto"
+    },
+    "transitioned": "Issue actualizado.",
+    "transitionError": "No se pudo actualizar el issue."
   }
 }
