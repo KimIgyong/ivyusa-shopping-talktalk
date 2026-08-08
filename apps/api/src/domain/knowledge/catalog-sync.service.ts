@@ -308,9 +308,15 @@ export class CatalogSyncService {
 
     return {
       title: rep.title,
-      // Brand, not product_type: vendor is filled on every row while
-      // product_type is missing on 899 of 2,275 (REQ-260807 §3-6).
-      category: rep.vendor ?? null,
+      // Brand first: on the Shopify catalogue `vendor` is filled on every one of
+      // 2,275 rows while product_type is missing on 899 (REQ-260807 §3-6).
+      //
+      // The storefront category is the fallback, for catalogues that carry no
+      // brand at all — a Cafe24 mall has no vendor field, so every one of its
+      // documents was filed under a blank category while `products_cache.category`
+      // held a perfectly good name (measured on amoebaorder: 0/28 vs 23/28).
+      // Order matters, not preference: with vendor present this changes nothing.
+      category: rep.vendor ?? rep.category ?? null,
       content: parts.join('\n'),
       sourceUrl: rep.productUrl ?? null,
       // A family stays recommendable while any of its variants is still sold.
