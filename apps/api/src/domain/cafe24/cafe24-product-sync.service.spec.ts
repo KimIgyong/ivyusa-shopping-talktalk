@@ -110,10 +110,13 @@ describe('Cafe24ProductSyncService.syncProducts', () => {
   });
 
   it('falls back to the product name when nothing else can be tagged', async () => {
-    const { svc, saved } = build([[product({ description: null, category: [], has_option: 'F' })]], {
-      listCategoryNames: jest.fn(async () => new Map()),
-    });
+    const { svc, saved } = build(
+      [[product({ description: null, category: [], has_option: 'F', brand_code: 'B0000000' })]],
+      { listCategoryNames: jest.fn(async () => new Map()) },
+    );
     await svc.syncProducts(5);
+    // The brand code is not a tag: `B0000000` is Cafe24's "no brand" default and
+    // sat on every product of the pilot mall, reaching the shopper's snippet.
     expect(saved[0].tags).toBe('플로리아 메이크업 리무버');
   });
 
