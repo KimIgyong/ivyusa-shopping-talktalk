@@ -4,8 +4,8 @@ Cafe24 몰 상품정보 가져오기 + 지식(KB) 활용 구현 보고.
 
 - 작성일: 2026-08-08
 - 문서 체인: `REQ-260808-Cafe24-Product-Knowledge.md` → `PLN-260808-…` → `TCR-260808-…` → 본 문서
-- PR: **#168** (`feature/cafe24-product-knowledge` → `main`)
-- 커밋: `111696b`
+- PR: **#168** (`feature/cafe24-product-knowledge` → `main`, squash-merged 2026-08-08)
+- main 커밋: `0dd84aa`
 
 ---
 
@@ -72,8 +72,8 @@ Cafe24 몰에는 그 라우트가 없다(실측 404 text/html). 그래서 파일
 | 환경 | 상태 |
 |---|---|
 | 마이그레이션 | **불필요** — 스키마 변경 없음(`products_cache` 기존 컬럼만 사용) |
-| main 머지 | PR #168 |
-| staging (`shoptalk.amoeba.site`) | **미배포** — 배포 및 실몰 검증 대기 |
+| main 머지 | ✅ PR #168 → `0dd84aa` (CI typecheck·test·build pass, CodeRabbit pass) |
+| staging (`shoptalk.amoeba.site`) | **미배포** — 이 작업 환경에 스테이징 SSH 자격증명이 없어 배포를 수행하지 못함(`secrets/staging-server.md` 부재, 키 인증 거부). 배포 후 §6 검증 필요 |
 | production | 미해당 |
 
 ## 5-1. 자체 리뷰에서 잡은 결함 3건 (머지 전 수정)
