@@ -19,6 +19,7 @@ const AiSettingsPage = lazy(() => import('@/domain/ai-settings/AiSettingsPage').
 const KnowledgePage = lazy(() => import('@/domain/knowledge/KnowledgePage').then((m) => ({ default: m.KnowledgePage })));
 const CustomersPage = lazy(() => import('@/domain/customers/CustomersPage').then((m) => ({ default: m.CustomersPage })));
 const OrdersPage = lazy(() => import('@/domain/orders/OrdersPage').then((m) => ({ default: m.OrdersPage })));
+const ProductsPage = lazy(() => import('@/domain/products/ProductsPage').then((m) => ({ default: m.ProductsPage })));
 const CampaignsPage = lazy(() => import('@/domain/campaigns/CampaignsPage').then((m) => ({ default: m.CampaignsPage })));
 const ReviewsPage = lazy(() => import('@/domain/reviews/ReviewsPage').then((m) => ({ default: m.ReviewsPage })));
 const UsersPage = lazy(() => import('@/domain/users/UsersPage').then((m) => ({ default: m.UsersPage })));
@@ -63,6 +64,7 @@ const router = createBrowserRouter([
       { path: '/knowledge', element: <KnowledgePage /> },
       { path: '/customers', element: <CustomersPage /> },
       { path: '/orders', element: <OrdersPage /> },
+      { path: '/products', element: <ProductsPage /> },
       { path: '/campaigns', element: <CampaignsPage /> },
       { path: '/reviews', element: <ReviewsPage /> },
       { path: '/users', element: <UsersPage /> },

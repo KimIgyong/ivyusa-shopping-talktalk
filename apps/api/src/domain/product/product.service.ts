@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { In, Like, Repository } from 'typeorm';
 import { PRODUCT_STATUS, ProductCache } from './entity/product-cache.entity';
 import { ProductSave } from '../save/entity/product-save.entity';
+import { DOC_GROUP, KbDocument } from '../knowledge/entity/kb-document.entity';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
 
@@ -24,6 +25,9 @@ export class ProductService {
   constructor(
     @InjectRepository(ProductCache) private readonly productRepo: Repository<ProductCache>,
     @InjectRepository(ProductSave) private readonly saveRepo: Repository<ProductSave>,
+    // Repository-only: the console list reports whether each catalogue row
+    // reached the knowledge base, which is a read across one column.
+    @InjectRepository(KbDocument) private readonly docRepo: Repository<KbDocument>,
   ) {}
 
   /**
@@ -47,6 +51,98 @@ export class ProductService {
       skip: (page - 1) * size,
       take: size,
     });
+  }
+
+  /**
+   * Console catalogue listing (PLN-260808-Console-Product-List P1).
+   *
+   * Deliberately not `list()`: the customer-facing one pins `status='active'`,
+   * and the whole point of the console view is seeing what the sync ARCHIVED —
+   * a product that quietly left the storefront is exactly what an operator is
+   * looking for. `status: 'all'` (the default) therefore returns both.
+   */
+  async adminList(
+    tenantId: number | null,
+    filters: { q?: string; category?: string; status?: string },
+    page: number,
+    size: number,
+  ): Promise<[ProductCache[], number]> {
+    if (tenantId == null) return [[], 0];
+    const base: Record<string, unknown> = { tenantId };
+    if (filters.category) base.category = filters.category;
+    if (filters.status === PRODUCT_STATUS.ACTIVE || filters.status === PRODUCT_STATUS.ARCHIVED) {
+      base.status = filters.status;
+    }
+    const q = filters.q?.trim();
+    // Search spans title OR tags — on a Cafe24 mall the tags carry the category
+    // and option values, which is often the only text a product has.
+    const where = q ? [{ ...base, title: Like(`%${q}%`) }, { ...base, tags: Like(`%${q}%`) }] : base;
+    return this.productRepo.findAndCount({
+      where,
+      order: { status: 'ASC', publishedAt: 'DESC', id: 'DESC' },
+      skip: (page - 1) * size,
+      take: size,
+    });
+  }
+
+  /** Header counters for the console list. */
+  async adminSummary(tenantId: number | null): Promise<{
+    total: number;
+    active: number;
+    archived: number;
+    lastSyncedAt: string | null;
+  }> {
+    if (tenantId == null) return { total: 0, active: 0, archived: 0, lastSyncedAt: null };
+    const rows = await this.productRepo.find({
+      where: { tenantId },
+      select: ['status', 'syncedAt'],
+    });
+    let active = 0;
+    let last: Date | null = null;
+    for (const row of rows) {
+      if (row.status === PRODUCT_STATUS.ACTIVE) active += 1;
+      if (row.syncedAt && (!last || row.syncedAt > last)) last = row.syncedAt;
+    }
+    return {
+      total: rows.length,
+      active,
+      archived: rows.length - active,
+      lastSyncedAt: last ? last.toISOString() : null,
+    };
+  }
+
+  /**
+   * Which of these handles already back a product knowledge document.
+   *
+   * This is the column the console screen exists for: a row in `products_cache`
+   * is only display data, and a product that never became a `kb_documents` entry
+   * is invisible to the chat no matter how good it looks in the catalogue. One
+   * query for the whole page — per-row lookups would be N+1.
+   */
+  async knowledgeHandles(tenantId: number | null, handles: string[]): Promise<Set<string>> {
+    if (tenantId == null || handles.length === 0) return new Set();
+    const docs = await this.docRepo.find({
+      where: { tenantId, docGroup: DOC_GROUP.PRODUCT, externalKey: In(handles) },
+      select: ['externalKey'],
+    });
+    return new Set(docs.map((d) => d.externalKey).filter((k): k is string => !!k));
+  }
+
+  /** How many product knowledge documents the tenant has (console header). */
+  async knowledgeDocumentCount(tenantId: number | null): Promise<number> {
+    if (tenantId == null) return 0;
+    return this.docRepo.count({ where: { tenantId, docGroup: DOC_GROUP.PRODUCT } });
+  }
+
+  /** Every distinct category in the tenant's catalogue, archived rows included. */
+  async adminCategories(tenantId: number | null): Promise<string[]> {
+    if (tenantId == null) return [];
+    const rows = await this.productRepo.find({ where: { tenantId }, select: ['category'] });
+    const set = new Set<string>();
+    for (const row of rows) {
+      if (row.category && row.category.trim() !== '') set.add(row.category);
+    }
+    return [...set].sort();
   }
 
   /** Distinct non-empty categories of the tenant's active products (filter dropdown). */

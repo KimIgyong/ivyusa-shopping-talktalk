@@ -4,7 +4,11 @@ import { CAPABILITY, CJM_STAGE, Principal } from '@ivy/types';
 import { buildPagination, normalizePage } from '@ivy/common';
 import { ProductService } from './product.service';
 import { ProductSyncService } from './product-sync.service';
-import { toProductCardResponse, toProductDetailResponse } from './product.mapper';
+import {
+  toAdminProductResponse,
+  toProductCardResponse,
+  toProductDetailResponse,
+} from './product.mapper';
 import { Public } from '../../global/decorator/public.decorator';
 import { RequireCapability } from '../../global/decorator/auth.decorator';
 import { CurrentUser } from '../../global/decorator/current-user.decorator';
@@ -100,11 +104,63 @@ export class ProductController {
   }
 }
 
-/** Tenant-console catalog operations (manual sync trigger). */
+/** Tenant-console catalog view + operations (PLN-260808-Console-Product-List). */
 @ApiTags('Product')
 @Controller('admin/products')
 export class ProductAdminController {
-  constructor(private readonly syncService: ProductSyncService) {}
+  constructor(
+    private readonly productService: ProductService,
+    private readonly syncService: ProductSyncService,
+  ) {}
+
+  // Static routes first — a later `:handle` route would otherwise swallow them.
+  @Get('summary')
+  @RequireCapability(CAPABILITY.MODULE_OPERATIONS)
+  @ApiOperation({ summary: 'Catalogue counters for the console header' })
+  async summary(@CurrentUser() user: Principal) {
+    const tenantId = this.tenantId(user);
+    const [counts, inKnowledge] = await Promise.all([
+      this.productService.adminSummary(tenantId),
+      this.productService.knowledgeDocumentCount(tenantId),
+    ]);
+    return { ...counts, inKnowledge };
+  }
+
+  @Get('categories')
+  @RequireCapability(CAPABILITY.MODULE_OPERATIONS)
+  @ApiOperation({ summary: 'Categories present in the catalogue, archived rows included' })
+  async categories(@CurrentUser() user: Principal) {
+    return this.productService.adminCategories(this.tenantId(user));
+  }
+
+  @Get()
+  @RequireCapability(CAPABILITY.MODULE_OPERATIONS)
+  @ApiOperation({ summary: 'List the synced catalogue (archived rows included)' })
+  async list(
+    @CurrentUser() user: Principal,
+    @Query('q') q?: string,
+    @Query('category') category?: string,
+    @Query('status') status?: string,
+    @Query('page') page?: string,
+    @Query('size') size?: string,
+  ) {
+    const tenantId = this.tenantId(user);
+    const { page: p, size: s } = normalizePage(page, size);
+    const [items, total] = await this.productService.adminList(
+      tenantId,
+      { q, category, status },
+      p,
+      s,
+    );
+    const known = await this.productService.knowledgeHandles(
+      tenantId,
+      items.map((i) => i.handle),
+    );
+    return new Paginated(
+      items.map((i) => toAdminProductResponse(i, known.has(i.handle))),
+      buildPagination(p, s, total),
+    );
+  }
 
   @Post('sync')
   @RequireCapability(CAPABILITY.MODULE_OPERATIONS)

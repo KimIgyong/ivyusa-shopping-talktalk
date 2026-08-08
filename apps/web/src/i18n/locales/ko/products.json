@@ -1,0 +1,36 @@
+{
+  "title": "상품",
+  "subtitle": "쇼핑몰에서 가져온 카탈로그입니다. 가져오기는 설정에서 실행합니다.",
+  "kpi": {
+    "total": "전체 상품",
+    "active": "판매중",
+    "archived": "보관됨",
+    "inKnowledge": "지식 등록",
+    "lastSynced": "마지막 동기화 {{at}}"
+  },
+  "filters": {
+    "searchPlaceholder": "상품명·태그 검색",
+    "allCategories": "전체 카테고리",
+    "allStatuses": "전체 상태"
+  },
+  "columns": {
+    "product": "상품",
+    "category": "카테고리",
+    "price": "가격",
+    "status": "상태",
+    "knowledge": "지식",
+    "openInShop": "쇼핑몰에서 열기"
+  },
+  "status": {
+    "active": "판매중",
+    "archived": "보관됨"
+  },
+  "knowledge": {
+    "registered": "등록됨",
+    "missing": "미등록"
+  },
+  "empty": "아직 가져온 상품이 없습니다.",
+  "emptyFiltered": "조건에 맞는 상품이 없습니다.",
+  "emptyHint": "먼저 카탈로그를 가져오세요 —",
+  "emptyHintLink": "설정으로 이동"
+}
