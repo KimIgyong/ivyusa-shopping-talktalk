@@ -1,0 +1,26 @@
+{
+  "title": "Todos los menús",
+  "subtitle": "Todas las pantallas disponibles en la consola de {{scope}}.",
+  "items": {
+    "dashboard": "Actividad de soporte y cifras clave de un vistazo",
+    "liveChat": "Atienda las conversaciones en curso",
+    "history": "Busque y revise conversaciones anteriores",
+    "workLog": "Qué gestionó realmente cada agente",
+    "statistics": "Analice métricas de soporte por periodo",
+    "aiSettings": "Persona, escenarios y reglas de derivación de la IA",
+    "knowledge": "El conocimiento en el que la IA basa sus respuestas",
+    "products": "El catálogo importado y si llegó a la base de conocimiento",
+    "customers": "Fichas de clientes y su historial",
+    "orders": "Estado de pedidos y datos de envío",
+    "campaigns": "Notificaciones y envíos promocionales",
+    "reviews": "Revise y modere las reseñas",
+    "users": "Cuentas del equipo, rangos y etiquetas",
+    "settings": "Integraciones de la tienda y el widget",
+    "privacyNotice": "Aviso de consentimiento mostrado a los compradores",
+    "myPage": "Su cuenta, contraseña y verificación en dos pasos",
+    "overview": "Estado general de la plataforma",
+    "tenants": "Aprobar y gestionar tenants",
+    "aiEngines": "Motores de IA y enrutamiento",
+    "audit": "Registro de auditoría de la plataforma"
+  }
+}
