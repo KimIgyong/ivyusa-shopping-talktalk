@@ -24,7 +24,12 @@ import {
   useWidgetSettings,
 } from './settings.hooks';
 import type { CredentialStatus, WidgetCopyDraft } from './settings.service';
-import { ECOMMERCE_PROVIDERS, type EcommerceProvider } from './integration-providers';
+import {
+  ECOMMERCE_PROVIDERS,
+  HELPDESK_PROVIDERS,
+  MARKETING_PROVIDERS,
+  type GenericIntegrationProvider,
+} from './integration-providers';
 import { ProviderTile } from './ProviderTile';
 import { ShopifyConfigModal } from './ShopifyConfigModal';
 import { IntegrationConfigModal } from './IntegrationConfigModal';
@@ -46,7 +51,7 @@ const WIDGET_URL = (
 type InstallMethod = 'appEmbed' | 'scriptTag' | 'manual';
 
 /** Which store's config modal is open: Shopify, an e-commerce provider, or none. */
-type ConfiguringStore = 'shopify' | EcommerceProvider | null;
+type ConfiguringStore = 'shopify' | GenericIntegrationProvider | null;
 
 async function copyToClipboard(text: string): Promise<boolean> {
   try {
@@ -290,7 +295,7 @@ function EcommerceTile({
   provider,
   onConfigure,
 }: {
-  provider: EcommerceProvider;
+  provider: GenericIntegrationProvider;
   onConfigure: () => void;
 }) {
   const { t } = useTranslation('settings');
@@ -547,6 +552,25 @@ export function SettingsPage() {
         </div>
       </section>
 
+      {/* Marketing platforms + helpdesk on the same generic credential flow
+          (PLN-260808-Marketing-Integrations, Rev.2 adds Gorgias). */}
+      <section>
+        <h2 className="mb-3 text-sm font-semibold text-gray-700">{t('marketingTitle')}</h2>
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {MARKETING_PROVIDERS.map((p) => (
+            <EcommerceTile key={p} provider={p} onConfigure={() => setConfiguring(p)} />
+          ))}
+        </div>
+      </section>
+      <section>
+        <h2 className="mb-3 text-sm font-semibold text-gray-700">{t('helpdeskTitle')}</h2>
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {HELPDESK_PROVIDERS.map((p) => (
+            <EcommerceTile key={p} provider={p} onConfigure={() => setConfiguring(p)} />
+          ))}
+        </div>
+      </section>
+
       <Cafe24ConnectCard />
 
       <InstallGuideCard />
@@ -569,7 +593,7 @@ export function SettingsPage() {
       </Card>
 
       <ShopifyConfigModal open={configuring === 'shopify'} onClose={() => setConfiguring(null)} />
-      {ECOMMERCE_PROVIDERS.map((p) => (
+      {[...ECOMMERCE_PROVIDERS, ...MARKETING_PROVIDERS, ...HELPDESK_PROVIDERS].map((p) => (
         <IntegrationConfigModal
           key={p}
           provider={p}

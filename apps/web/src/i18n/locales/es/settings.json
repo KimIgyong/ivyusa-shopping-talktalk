@@ -133,7 +133,11 @@
       "db": "Base de datos",
       "username": "Usuario",
       "api_key": "API key",
-      "shop_domain": "Dominio de la tienda"
+      "shop_domain": "Dominio de la tienda",
+      "app_key": "App (store) key",
+      "secret_key": "Clave secreta",
+      "subdomain": "Subdominio de la cuenta",
+      "email": "Email de la cuenta"
     },
     "ph": {
       "mall_id": "your-mall",
@@ -141,7 +145,10 @@
       "url": "https://my-odoo.example.com",
       "db": "odoo-db",
       "username": "user@example.com",
-      "shop_domain": "your-store.myharavan.com"
+      "shop_domain": "your-store.myharavan.com",
+      "subdomain": "su-empresa (de su-empresa.gorgias.com)",
+      "email": "agente@ejemplo.com",
+      "app_key": "yotpo app key"
     },
     "cafe24": {
       "title": "Cafe24",
@@ -158,6 +165,18 @@
     "haravan": {
       "title": "Haravan",
       "subtitle": "Conecta tu tienda Haravan con un token de la Admin API."
+    },
+    "klaviyo": {
+      "title": "Klaviyo",
+      "subtitle": "Email/SMS marketing — conecte con su clave API privada."
+    },
+    "yotpo": {
+      "title": "Yotpo",
+      "subtitle": "Reseñas y fidelización — conecte con su app key y secreto."
+    },
+    "gorgias": {
+      "title": "Gorgias",
+      "subtitle": "Helpdesk — los chats escalados pueden transferirse como tickets de Gorgias."
     }
   },
   "install": {
@@ -204,5 +223,7 @@
       "errorInvalidScope": "Cafe24 rechazó los permisos solicitados (invalid_scope): agréguelos a la app en Cafe24 Developers y vuelva a conectar",
       "errorAccessDenied": "Se denegó el consentimiento de Cafe24 (access_denied): reinténtelo con la cuenta del operador principal de la tienda"
     }
-  }
+  },
+  "marketingTitle": "Integraciones de marketing",
+  "helpdeskTitle": "Integraciones de helpdesk"
 }
