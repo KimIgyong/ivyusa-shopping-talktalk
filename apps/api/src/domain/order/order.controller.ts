@@ -27,7 +27,7 @@ export class OrderController {
   @Public()
   @ApiOperation({ summary: "List the session customer's orders (FR-020)" })
   async list(@SessionToken() token: string, @Query() query: OrderListQuery) {
-    return this.orderService.listForSession(token, query.page, query.size);
+    return this.orderService.listForSession(token, query.page, query.size, query.days);
   }
 
   @Get(':id')

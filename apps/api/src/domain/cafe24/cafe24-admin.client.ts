@@ -157,34 +157,9 @@ export class Cafe24AdminClient {
     return body.orders ?? [];
   }
 
-  /**
-   * Resolve a storefront member (member_id, from an order) to their front
-   * `user_identifier` + contact profile (PLN-260808 P-A2, J1). The identifier lives
-   * on the PRIVACY resource — /customers omits it — so this reads /customersprivacy,
-   * which returns the same client-scoped user_identifier the customer-auth flow
-   * yields. Order sync stamps it onto the customer, letting a later sign-in match by
-   * the server-verified identifier (no client-supplied member_id, so unspoofable).
-   * Requires mall.read_personal; returns null (never throws) when unmatched/unscoped.
-   */
-  async fetchCustomerByMemberId(
-    mallId: string,
-    accessToken: string,
-    memberId: string,
-  ): Promise<{ userIdentifier: string | null; email: string | null; name: string | null } | null> {
-    const body = await this.request<{ customersprivacy?: Array<Record<string, unknown>> }>(
-      mallId,
-      accessToken,
-      'GET',
-      `/customersprivacy?member_id=${encodeURIComponent(memberId)}&limit=1`,
-    );
-    const c = body.customersprivacy?.[0];
-    if (!c) return null;
-    return {
-      userIdentifier: typeof c.user_identifier === 'string' ? c.user_identifier : null,
-      email: typeof c.email === 'string' ? c.email : null,
-      name: typeof c.name === 'string' ? c.name : null,
-    };
-  }
+  // (fetchCustomerByMemberId / /customersprivacy removed — the customer token
+  // response carries the member's `user_id` directly, so member↔order matching no
+  // longer needs mall.read_personal. PLN-260808-Cafe24-MemberId-RecentOrders.)
 
   /** Connectivity probe — the store resource (cheap, no PII). */
   async getStore(mallId: string, accessToken: string): Promise<{ shop_name?: string } | null> {

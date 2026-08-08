@@ -29,6 +29,17 @@ import { blindIndex } from '../../global/util/crypto.util';
 
 const LOOKUP_MAX_ATTEMPTS = 5;
 const LOOKUP_WINDOW_SEC = 15 * 60;
+const DAYS_WINDOW_MAX = 90;
+
+/** `days` query param → integer 1–90, null when absent, 400 on garbage/out-of-range. */
+function parseDaysWindow(days?: string): number | null {
+  if (days == null || days === '') return null;
+  const n = Number(days);
+  if (!Number.isInteger(n) || n < 1 || n > DAYS_WINDOW_MAX) {
+    throw new BusinessException(ERROR_CODE.VALIDATION_FAILED, HttpStatus.BAD_REQUEST);
+  }
+  return n;
+}
 
 /**
  * Order read access (FR-019/020/021). Widget endpoints resolve the customer from
@@ -79,17 +90,31 @@ export class OrderService {
     return OrderMapper.toSummary(order);
   }
 
-  /** List the bound customer's orders (paginated). */
-  async listForSession(sessionToken: string, page?: string, size?: string) {
+  /**
+   * List the bound customer's orders (paginated), optionally windowed to the last
+   * `days` days. Sorted by the date the order was PLACED — `ordered_at` where the
+   * platform sync recorded it (Cafe24), falling back to the cache-insert time for
+   * rows that predate the column (Shopify) so a backfilled old order never floats
+   * to the top as "new".
+   */
+  async listForSession(sessionToken: string, page?: string, size?: string, days?: string) {
     const customerId = await this.requireCustomerId(sessionToken);
     const { page: p, size: s } = normalizePage(page, size);
+    const windowDays = parseDaysWindow(days);
 
-    const [orders, total] = await this.orderRepo.findAndCount({
-      where: { customerId },
-      order: { createdAt: 'DESC' },
-      skip: (p - 1) * s,
-      take: s,
-    });
+    const qb = this.orderRepo
+      .createQueryBuilder('o')
+      .where('o.customer_id = :customerId', { customerId });
+    if (windowDays != null) {
+      qb.andWhere('COALESCE(o.ordered_at, o.created_at) >= DATE_SUB(NOW(), INTERVAL :d DAY)', {
+        d: windowDays,
+      });
+    }
+    const [orders, total] = await qb
+      .orderBy('COALESCE(o.ordered_at, o.created_at)', 'DESC')
+      .skip((p - 1) * s)
+      .take(s)
+      .getManyAndCount();
 
     const countByOrder = await this.itemCounts(orders.map((o) => o.id));
     const items = orders.map((o) => OrderMapper.toListItem(o, countByOrder.get(String(o.id)) ?? 0));

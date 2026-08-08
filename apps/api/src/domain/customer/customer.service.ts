@@ -1,6 +1,6 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { FindOptionsWhere, In, Repository } from 'typeorm';
+import { FindOptionsWhere, In, IsNull, Repository } from 'typeorm';
 import { Customer } from './entity/customer.entity';
 import { blindIndex } from '../../global/util/crypto.util';
 import { OrderCache } from '../order/entity/order-cache.entity';
@@ -388,6 +388,48 @@ export class CustomerService {
       tier: 'guest',
     });
     return this.customerRepo.save(customer);
+  }
+
+  /** The customer holding this Cafe24 member login id, or null. */
+  async findByCafe24MemberId(tenantId: number, memberId: string): Promise<Customer | null> {
+    return this.customerRepo.findOne({ where: { tenantId, cafe24MemberId: memberId } });
+  }
+
+  /**
+   * Stamp the server-verified Cafe24 member login id (`user_id` from the token
+   * response) onto the session-bound customer, then retro-link any orders that
+   * were synced before we knew who this member is (member_id saved, customer link
+   * unresolved). PLN-260808-Cafe24-MemberId-RecentOrders.
+   *
+   * If ANOTHER row already holds this member id (order sync stamped it onto an
+   * email row before this member ever signed in), converge on the session row the
+   * same way linkCafe24Customer does: repoint its orders, copy contact fields the
+   * session row lacks, and drop the duplicate — "my orders" must never split.
+   */
+  async adoptCafe24MemberId(
+    tenantId: number,
+    customerId: number,
+    memberId: string,
+  ): Promise<void> {
+    const target = await this.customerRepo.findOne({ where: { tenantId, id: customerId } });
+    if (!target) return;
+    const holder = await this.findByCafe24MemberId(tenantId, memberId);
+    if (holder && holder.id !== target.id) {
+      await this.orderRepo.update({ tenantId, customerId: holder.id }, { customerId: target.id });
+      if (!target.email && holder.email) target.email = holder.email;
+      if (!target.name && holder.name) target.name = holder.name;
+      await this.customerRepo.remove(holder);
+    }
+    if (target.cafe24MemberId !== memberId) {
+      target.cafe24MemberId = memberId;
+      await this.customerRepo.save(target);
+    }
+    // Orders synced before any sign-in carry member_id but no customer link —
+    // adopt them now. Never steals rows already linked elsewhere.
+    await this.orderRepo.update(
+      { tenantId, memberId, customerId: IsNull() },
+      { customerId: target.id },
+    );
   }
 
   /**

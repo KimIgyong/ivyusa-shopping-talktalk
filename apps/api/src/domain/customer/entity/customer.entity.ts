@@ -32,6 +32,9 @@ const piiTransformer = {
 // identity path (user_identifier, no email) and order sync (email) must land on
 // one row (PLN-260808 P-A2). NULLs repeat freely under a MySQL unique index.
 @Index('uq_customers_tenant_cafe24_uid', ['tenantId', 'cafe24UserIdentifier'], { unique: true })
+// Mall login id from the customer token response — the direct join key to an
+// order's member_id (PLN-260808-Cafe24-MemberId-RecentOrders).
+@Index('uq_customers_tenant_cafe24_mid', ['tenantId', 'cafe24MemberId'], { unique: true })
 @Entity('customers')
 export class Customer {
   @PrimaryGeneratedColumn({ type: 'bigint' })
@@ -49,6 +52,11 @@ export class Customer {
   // not PII — so stored plaintext and used as the join key, never the email.
   @Column({ name: 'cafe24_user_identifier', type: 'varchar', length: 120, nullable: true })
   cafe24UserIdentifier: string | null;
+
+  // Cafe24 member login id (`user_id` from the token response — server-verified,
+  // never client-supplied). Matches orders_cache.member_id for inline "my orders".
+  @Column({ name: 'cafe24_member_id', type: 'varchar', length: 64, nullable: true })
+  cafe24MemberId: string | null;
 
   // Email is encrypted (unsearchable ciphertext), so equality lookups go through
   // the deterministic email_hash blind index instead (PRV-M6).

@@ -140,6 +140,8 @@ export interface OrderListItemResponse {
   total: number | null;
   currency: string | null;
   createdAt: string;
+  /** When the order was placed on the platform; null for rows that predate it. */
+  orderedAt: string | null;
   itemCount: number;
 }
 
@@ -161,6 +163,8 @@ export interface OrderDetailResponse {
   total: number | null;
   currency: string | null;
   createdAt: string;
+  /** When the order was placed on the platform; null for rows that predate it. */
+  orderedAt: string | null;
   items: OrderItemResponse[];
 }
 
