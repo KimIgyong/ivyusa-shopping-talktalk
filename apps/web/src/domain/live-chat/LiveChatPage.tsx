@@ -28,6 +28,7 @@ import {
   useCustomerActions,
 } from './live-chat.hooks';
 import { KnowledgeCaptureModal } from './KnowledgeCaptureModal';
+import { IssuePanel } from './IssuePanel';
 import { useAuthStore } from '@/store/auth-store';
 import { liveChatService } from './live-chat.service';
 import type { ChatMessage, CustomerContext } from './live-chat.service';
@@ -356,6 +357,9 @@ export function LiveChatPage() {
                   </Button>
                 </div>
               </div>
+
+              {/* Issue P1 (native tenants only — renders nothing when no issue). */}
+              <IssuePanel conversationId={selected} />
 
               <div
                 role="log"
