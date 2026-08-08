@@ -45,7 +45,14 @@
     "saveError": "No se pudo guardar la configuración del widget.",
     "timezone": "Idioma por defecto según zona horaria",
     "tzUnset": "Sin definir (inglés por defecto)",
-    "timezoneHint": "Define el idioma por defecto del widget cuando el cliente no ha elegido — Asia/Seoul → coreano, America/New_York → inglés."
+    "timezoneHint": "Define el idioma por defecto del widget cuando el cliente no ha elegido — Asia/Seoul → coreano, America/New_York → inglés.",
+    "copyTitle": "Textos del widget",
+    "displayName": "Nombre para mostrar",
+    "displayNameHint": "Se muestra en el encabezado del widget y como {shop} en los saludos. Vacío = nombre del tenant.",
+    "firstVisit": "Mensaje de bienvenida (primera visita)",
+    "firstVisitHint": "Se muestra al abrir el chat. {shop} inserta el nombre para mostrar. Vacío = mensaje por defecto.",
+    "loginGreeting": "Saludo para clientes identificados",
+    "loginGreetingHint": "Se muestra al reconocer a un cliente con sesión iniciada. {name} inserta su nombre. Vacío = mensaje por defecto."
   },
   "shopify": {
     "title": "Conexión de Shopify",

@@ -58,6 +58,10 @@ export class TenantMapper {
           ? WIDGET_LOGIN_MODE.POPUP
           : WIDGET_LOGIN_MODE.REDIRECT,
       timezone: t.timezone ?? null,
+      displayName: t.widgetCopy?.displayName ?? null,
+      firstVisit: t.widgetCopy?.firstVisit ?? {},
+      loginGreeting: t.widgetCopy?.loginGreeting ?? {},
+      displayNameFallback: t.name ?? null,
     };
   }
 

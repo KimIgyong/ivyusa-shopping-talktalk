@@ -8,6 +8,7 @@ describe('SessionMapper.toResponse', () => {
     privacyPolicyUrl: 'https://shop.example/privacy',
     consentNoticeVersion: 'v2',
     widgetLoginMode: 'redirect',
+    widgetCopy: { displayName: 'Shop', firstVisit: {}, loginGreeting: {} },
   };
 
   function session(over: Partial<Session> = {}): Session {
@@ -38,6 +39,7 @@ describe('SessionMapper.toResponse', () => {
       noticeOutdated: false,
       consentAt: null,
       widgetLoginMode: 'redirect',
+      widgetCopy: { displayName: 'Shop', firstVisit: {}, loginGreeting: {} },
     });
   });
 

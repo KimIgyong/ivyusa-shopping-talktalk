@@ -8,7 +8,7 @@ import { getShopDomain } from '../../hooks/useSession';
 import { ensureSession, setConsent } from '../../services/sessionService';
 import { getStoredConsent, setStoredConsent } from '../../lib/consent';
 import { useAnalytics } from '../../lib/analytics';
-import type { ScenarioButton, ScenarioPostAction } from '../../lib/types';
+import type { ScenarioButton, ScenarioPostAction, WidgetCopyText } from '../../lib/types';
 import { MessageBubble } from './MessageBubble';
 import { TypingBubble } from './TypingBubble';
 import { ContactEmailCard } from './ContactEmailCard';
@@ -19,6 +19,17 @@ import { ContactCard } from './ContactCard';
 import { AffiliateCard } from './AffiliateCard';
 
 type Inline = 'auth' | 'contact' | 'affiliate' | 'contactEmail' | null;
+
+/** Pick the tenant-configured copy for the active language, if any. */
+function pickCopy(bag: WidgetCopyText | undefined, language: string): string | null {
+  const key = (language || 'en').toUpperCase() as keyof WidgetCopyText;
+  return bag?.[key]?.trim() || null;
+}
+
+/** Substitute a template placeholder everywhere (ES2020-safe replaceAll). */
+function fill(template: string, key: string, value: string): string {
+  return template.split(key).join(value);
+}
 
 export function ChatTab() {
   const { t } = useTranslation();
@@ -62,6 +73,35 @@ export function ChatTab() {
   const [inline, setInline] = useState<Inline>(null);
   const [showEscalate, setShowEscalate] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Tenant-configured greetings (session/ensure); fall back to the built-in
+  // defaults with {shop} = tenant display name (no hardcoded brand — a second
+  // tenant's shoppers must never be welcomed to "IVY USA").
+  const widgetCopy = useWidgetStore((s) => s.widgetCopy);
+  const shopName = widgetCopy?.displayName || t('appName');
+  const greetingFor = (name: string | null): string => {
+    if (name) {
+      const custom = pickCopy(widgetCopy?.loginGreeting, language);
+      return custom
+        ? fill(fill(custom, '{name}', name), '{shop}', shopName)
+        : t('chat.welcomeNamed', { name, shop: shopName });
+    }
+    const custom = pickCopy(widgetCopy?.firstVisit, language);
+    return custom ? fill(custom, '{shop}', shopName) : t('chat.welcome', { shop: shopName });
+  };
+
+  // Requirement 4 (PLN-260808-Widget-Greetings): when the shopper signs in
+  // mid-conversation, greet them by name once. Render-only — never persisted.
+  const [loginGreeting, setLoginGreeting] = useState<string | null>(null);
+  const prevNameRef = useRef<string | null>(customerName);
+  useEffect(() => {
+    if (!prevNameRef.current && customerName && messages.length > 0) {
+      setLoginGreeting(greetingFor(customerName));
+    }
+    prevNameRef.current = customerName;
+    // greetingFor is stable enough for this transition-only effect.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [customerName]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({
@@ -267,14 +307,12 @@ export function ChatTab() {
           />
         )}
 
-        {/* Welcome bubble — greets a signed-in shopper by name when we know it. */}
+        {/* Welcome bubble — tenant-configured copy; greets by name when known. */}
         <MessageBubble
           message={{
             id: 'welcome',
             senderType: 'ai',
-            body: customerName
-              ? t('chat.welcomeNamed', { name: customerName })
-              : t('chat.welcome'),
+            body: greetingFor(customerName),
             createdAt: new Date().toISOString(),
           }}
         />
@@ -305,6 +343,18 @@ export function ChatTab() {
             )}
           </div>
         ))}
+
+        {/* Sign-in greeting for a mid-conversation login (render-only, once). */}
+        {loginGreeting && (
+          <MessageBubble
+            message={{
+              id: 'login-greeting',
+              senderType: 'ai',
+              body: loginGreeting,
+              createdAt: new Date().toISOString(),
+            }}
+          />
+        )}
 
         {waitMode && <TypingBubble mode={waitMode} />}
 

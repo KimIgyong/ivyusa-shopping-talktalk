@@ -2,7 +2,7 @@ import { randomUUID } from 'crypto';
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { FindOptionsWhere, Repository } from 'typeorm';
-import { Tenant } from './entity/tenant.entity';
+import { Tenant, TenantWidgetCopy } from './entity/tenant.entity';
 import { normalizeStorefrontUrl } from '../../global/util/storefront-url.util';
 import { IntegrationCredential } from './entity/integration-credential.entity';
 import { User } from '../user/entity/user.entity';
@@ -253,6 +253,7 @@ export class TenantService {
     const tenant = await this.findById(tenantId);
     tenant.widgetLoginMode = dto.login_mode;
     if (dto.timezone !== undefined) tenant.timezone = dto.timezone?.trim() || null;
+    tenant.widgetCopy = mergeWidgetCopy(tenant.widgetCopy, dto);
     const saved = await this.tenantRepo.save(tenant);
     await this.audit.write({
       tenantId,
@@ -557,4 +558,38 @@ export class TenantService {
     return { ok, detail };
   }
 
+}
+
+/**
+ * Fold the flat per-language DTO fields into the widget_copy JSON blob.
+ * PATCH semantics per field: undefined keeps the stored value, ''/null clears it
+ * (falling back to the widget default). Returns null when nothing remains set.
+ */
+function mergeWidgetCopy(
+  current: TenantWidgetCopy | null,
+  dto: UpdateWidgetSettingsRequest,
+): TenantWidgetCopy | null {
+  const copy: TenantWidgetCopy = {
+    displayName: current?.displayName ?? null,
+    firstVisit: { ...(current?.firstVisit ?? {}) },
+    loginGreeting: { ...(current?.loginGreeting ?? {}) },
+  };
+  if (dto.display_name !== undefined) copy.displayName = dto.display_name?.trim() || null;
+  const setLang = (bag: Record<string, string>, lang: string, v: string | null | undefined) => {
+    if (v === undefined) return;
+    const trimmed = v?.trim();
+    if (trimmed) bag[lang] = trimmed;
+    else delete bag[lang];
+  };
+  setLang(copy.firstVisit!, 'EN', dto.first_visit_en);
+  setLang(copy.firstVisit!, 'ES', dto.first_visit_es);
+  setLang(copy.firstVisit!, 'KO', dto.first_visit_ko);
+  setLang(copy.loginGreeting!, 'EN', dto.login_greeting_en);
+  setLang(copy.loginGreeting!, 'ES', dto.login_greeting_es);
+  setLang(copy.loginGreeting!, 'KO', dto.login_greeting_ko);
+  const empty =
+    !copy.displayName &&
+    Object.keys(copy.firstVisit!).length === 0 &&
+    Object.keys(copy.loginGreeting!).length === 0;
+  return empty ? null : copy;
 }

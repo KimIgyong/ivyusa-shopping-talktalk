@@ -72,6 +72,17 @@ export interface Storefront {
 export interface WidgetSettings {
   loginMode: WidgetLoginMode;
   timezone: string | null;
+  displayName: string | null;
+  firstVisit: Record<string, string>;
+  loginGreeting: Record<string, string>;
+  displayNameFallback: string | null;
+}
+
+/** Console-side draft of the widget copy fields (PLN-260808-Widget-Greetings). */
+export interface WidgetCopyDraft {
+  displayName: string;
+  firstVisit: Record<string, string>;
+  loginGreeting: Record<string, string>;
 }
 
 export const settingsService = {
@@ -80,10 +91,25 @@ export const settingsService = {
   storefront: () => apiGet<Storefront>('/tenants/storefront'),
   updateStorefront: (storefrontUrl: string) =>
     apiPatch<Storefront>('/tenants/storefront', { storefront_url: storefrontUrl }),
-  saveWidgetSettings: (loginMode: WidgetLoginMode, timezone?: string | null) =>
+  saveWidgetSettings: (
+    loginMode: WidgetLoginMode,
+    timezone?: string | null,
+    copy?: WidgetCopyDraft,
+  ) =>
     apiPatch<WidgetSettings>('/tenants/widget-settings', {
       login_mode: loginMode,
       ...(timezone !== undefined ? { timezone } : {}),
+      ...(copy
+        ? {
+            display_name: copy.displayName,
+            first_visit_en: copy.firstVisit.EN ?? '',
+            first_visit_es: copy.firstVisit.ES ?? '',
+            first_visit_ko: copy.firstVisit.KO ?? '',
+            login_greeting_en: copy.loginGreeting.EN ?? '',
+            login_greeting_es: copy.loginGreeting.ES ?? '',
+            login_greeting_ko: copy.loginGreeting.KO ?? '',
+          }
+        : {}),
     }),
   updateCredential: (provider: string, body: UpdateCredentialBody) =>
     apiPut<CredentialStatus>(`/tenants/me/credentials/${provider}`, body),

@@ -23,7 +23,7 @@ import {
   useUpdateStorefront,
   useWidgetSettings,
 } from './settings.hooks';
-import type { CredentialStatus } from './settings.service';
+import type { CredentialStatus, WidgetCopyDraft } from './settings.service';
 import { ECOMMERCE_PROVIDERS, type EcommerceProvider } from './integration-providers';
 import { ProviderTile } from './ProviderTile';
 import { ShopifyConfigModal } from './ShopifyConfigModal';
@@ -354,6 +354,9 @@ function StorefrontCard() {
  * to the store's hosted login (default) vs a popup window. Delivered to the
  * widget via session/ensure; takes effect on the shopper's next page load.
  */
+const COPY_LANGS = ['EN', 'ES', 'KO'] as const;
+type CopyLang = (typeof COPY_LANGS)[number];
+
 function WidgetBehaviorCard() {
   const { t } = useTranslation('settings');
   const { t: tc } = useTranslation('common');
@@ -364,7 +367,23 @@ function WidgetBehaviorCard() {
   const [tzPicked, setTzPicked] = useState<string | null>(null);
   const value: WidgetLoginMode = picked ?? data?.loginMode ?? 'redirect';
   const tz = tzPicked ?? data?.timezone ?? '';
-  const dirty = data != null && (value !== data.loginMode || tz !== (data.timezone ?? ''));
+
+  // Widget copy draft (PLN-260808-Widget-Greetings) — lazily seeded from the
+  // stored values; one language tab shared by both message editors.
+  const [copyLang, setCopyLang] = useState<CopyLang>('EN');
+  const [copyDraft, setCopyDraft] = useState<WidgetCopyDraft | null>(null);
+  const storedCopy: WidgetCopyDraft = {
+    displayName: data?.displayName ?? '',
+    firstVisit: data?.firstVisit ?? {},
+    loginGreeting: data?.loginGreeting ?? {},
+  };
+  const copy = copyDraft ?? storedCopy;
+  const setCopyText = (field: 'firstVisit' | 'loginGreeting', text: string) =>
+    setCopyDraft({ ...copy, [field]: { ...copy[field], [copyLang]: text } });
+
+  const copyDirty = copyDraft != null && JSON.stringify(copyDraft) !== JSON.stringify(storedCopy);
+  const dirty =
+    data != null && (value !== data.loginMode || tz !== (data.timezone ?? '') || copyDirty);
 
   return (
     <Card title={t('widgetBehavior.title')}>
@@ -391,8 +410,68 @@ function WidgetBehaviorCard() {
           </Select>
         </FormRow>
         <p className="mb-4 text-xs text-gray-400">{t('widgetBehavior.timezoneHint')}</p>
+
+        {/* Widget copy (display name + greetings) — PLN-260808-Widget-Greetings */}
+        <div className="mb-2 border-t border-gray-100 pt-4 text-sm font-medium text-gray-700">
+          {t('widgetBehavior.copyTitle')}
+        </div>
+        <FormRow label={t('widgetBehavior.displayName')}>
+          <Input
+            value={copy.displayName}
+            maxLength={80}
+            disabled={isLoading}
+            placeholder={data?.displayNameFallback ?? ''}
+            onChange={(e) => setCopyDraft({ ...copy, displayName: e.target.value })}
+          />
+        </FormRow>
+        <p className="mb-3 text-xs text-gray-400">{t('widgetBehavior.displayNameHint')}</p>
+
+        <div className="mb-2 flex gap-1">
+          {COPY_LANGS.map((l) => (
+            <button
+              key={l}
+              type="button"
+              onClick={() => setCopyLang(l)}
+              className={`rounded px-2 py-1 text-xs font-medium ${
+                copyLang === l
+                  ? 'bg-primary-500 text-white'
+                  : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+              }`}
+            >
+              {l}
+            </button>
+          ))}
+        </div>
+        <FormRow label={t('widgetBehavior.firstVisit')}>
+          <textarea
+            className="w-full rounded-lg border border-gray-200 p-2 text-sm focus:border-primary-400 focus:outline-none"
+            rows={3}
+            maxLength={500}
+            disabled={isLoading}
+            value={copy.firstVisit[copyLang] ?? ''}
+            onChange={(e) => setCopyText('firstVisit', e.target.value)}
+          />
+        </FormRow>
+        <p className="mb-3 text-xs text-gray-400">{t('widgetBehavior.firstVisitHint')}</p>
+        <FormRow label={t('widgetBehavior.loginGreeting')}>
+          <textarea
+            className="w-full rounded-lg border border-gray-200 p-2 text-sm focus:border-primary-400 focus:outline-none"
+            rows={3}
+            maxLength={500}
+            disabled={isLoading}
+            value={copy.loginGreeting[copyLang] ?? ''}
+            onChange={(e) => setCopyText('loginGreeting', e.target.value)}
+          />
+        </FormRow>
+        <p className="mb-4 text-xs text-gray-400">{t('widgetBehavior.loginGreetingHint')}</p>
+
         <Button
-          onClick={() => save.mutate({ loginMode: value, timezone: tz })}
+          onClick={() =>
+            save.mutate(
+              { loginMode: value, timezone: tz, ...(copyDirty ? { copy } : {}) },
+              { onSuccess: () => setCopyDraft(null) },
+            )
+          }
           disabled={!dirty || save.isPending}
         >
           {save.isPending ? tc('saving') : tc('save')}
