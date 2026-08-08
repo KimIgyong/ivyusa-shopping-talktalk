@@ -40,4 +40,6 @@ export const issueService = {
       ...(note ? { note } : {}),
     }),
   events: (issueId: string) => apiGet<{ events: IssueEventItem[] }>(`/agent/issues/${issueId}/events`),
+  assign: (issueId: string, userId: number) =>
+    apiPost<IssueItem>(`/agent/issues/${issueId}/assign`, { user_id: userId }),
 };

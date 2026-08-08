@@ -123,7 +123,24 @@
     "breakEnd": "Break to",
     "breakHint": "Questions during the break are routed like off hours.",
     "movedToSettings": "Business hours and off-hours routing now live in tenant Settings.",
-    "openSettings": "Open Settings"
+    "openSettings": "Open Settings",
+    "denyTitle": "Policy force-handoff (deny-list)",
+    "denyHint": "Messages matching any keyword are sent straight to an agent — the AI is not asked. Type/label stamp the created issue.",
+    "denyKeywordsPh": "keywords, comma separated (e.g. refund, chargeback)",
+    "denyAdd": "+ Add rule",
+    "denyType": {
+      "order_status": "Order status",
+      "delivery": "Delivery",
+      "cancel": "Cancellation",
+      "refund": "Refund",
+      "partnership": "Partnership",
+      "other": "Other"
+    },
+    "denyLabel": {
+      "consult": "Consult",
+      "accounting": "Accounting",
+      "operations": "Operations"
+    }
   },
   "coach": {
     "title": "Agent coaching",

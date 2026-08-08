@@ -6,6 +6,7 @@ import { Badge } from '@/components/Badge';
 import { Button } from '@/components/Button';
 import { toast } from '@/store/toast-store';
 import { useTenantKey } from '@/lib/use-tenant-key';
+import { useUsers } from '../users/users.hooks';
 import { issueService } from './issue.service';
 
 const REJECT_REASONS = ['policy_impossible', 'misrouted', 'spam'] as const;
@@ -44,6 +45,19 @@ export function IssuePanel({ conversationId }: { conversationId: string }) {
     queryKey: ['issue-events', tenantKey, issue?.id],
     queryFn: () => issueService.events(issue!.id),
     enabled: !!issue && showTimeline,
+  });
+
+  // Transfer/reassign (P2, manager+ — server enforces; staff gets a 403 toast).
+  const users = useUsers();
+  const agents = (users.data ?? []).filter((u) => u.status !== 'inactive');
+  const assign = useMutation({
+    mutationFn: (userId: number) => issueService.assign(issue!.id, userId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['issue', tenantKey, conversationId] });
+      qc.invalidateQueries({ queryKey: ['issue-events', tenantKey] });
+      toast.success(t('issue.assigned'));
+    },
+    onError: (e: Error) => toast.error(e.message || t('issue.transitionError'), { sticky: true }),
   });
 
   const transition = useMutation({
@@ -103,6 +117,24 @@ export function IssuePanel({ conversationId }: { conversationId: string }) {
             >
               {t('issue.reopen')}
             </Button>
+          )}
+          {open && agents.length > 0 && (
+            <select
+              className="rounded-lg border border-gray-200 px-2 py-1 text-xs text-gray-600"
+              value=""
+              disabled={assign.isPending}
+              onChange={(e) => {
+                const id = Number(e.target.value);
+                if (Number.isFinite(id) && id > 0) assign.mutate(id);
+              }}
+            >
+              <option value="">{t('issue.transfer')}</option>
+              {agents.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.name || u.email || `#${u.id}`}
+                </option>
+              ))}
+            </select>
           )}
           <button
             className="flex items-center gap-0.5 text-xs text-gray-400 hover:text-gray-600"

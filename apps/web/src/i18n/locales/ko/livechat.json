@@ -111,6 +111,8 @@
       "reopened": "재오픈"
     },
     "transitioned": "이슈가 업데이트되었습니다.",
-    "transitionError": "이슈 업데이트에 실패했습니다."
+    "transitionError": "이슈 업데이트에 실패했습니다.",
+    "transfer": "이관…",
+    "assigned": "이슈가 이관되었습니다."
   }
 }
