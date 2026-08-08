@@ -71,6 +71,8 @@ export const ERROR_CODE = {
   // E5020-E5021 — issue workflow P1 (PLN-260808-Issue-Workflow-P1).
   ISSUE_NOT_FOUND: { code: 'E5020', message: 'Issue not found' },
   ISSUE_TRANSITION_INVALID: { code: 'E5021', message: 'Issue state transition not allowed' },
+  // P2 (PLN-260808-Issue-Workflow-P2)
+  AGENT_AT_CAPACITY: { code: 'E5022', message: 'Agent is at max concurrent conversations' },
 
   // E9xxx — system
   INTERNAL_ERROR: { code: 'E9001', message: 'Internal server error' },

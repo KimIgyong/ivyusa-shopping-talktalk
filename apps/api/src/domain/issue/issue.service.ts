@@ -6,6 +6,8 @@ import { Issue, ISSUE_REJECT_REASON, ISSUE_STATUS, ISSUE_TIER } from './entity/i
 import { IssueEvent, ISSUE_EVENT_TYPE } from './entity/issue-event.entity';
 import { Tenant } from '../tenant/entity/tenant.entity';
 import { Message } from '../chat/entity/message.entity';
+import { Assignment } from '../agent/entity/assignment.entity';
+import { Conversation } from '../chat/entity/conversation.entity';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
 import { AuditService } from '../audit/audit.service';
@@ -17,6 +19,9 @@ interface EscalationLike {
   conversationId?: number;
   sessionId?: number;
   reason?: string;
+  /** Deny-rule stamps (P2) — override the intent-derived type / default label. */
+  issueType?: string;
+  issueLabel?: string;
 }
 
 /** Actor for a console-side transition (permission checks, 결정 10). */
@@ -53,6 +58,19 @@ function intentToType(intent: string | null | undefined): string {
 }
 
 /**
+ * Default type → label routing (P2, 결정 4 — 기존 라벨 축; REQ §6). A deny rule's
+ * explicit label wins; console-editable mapping is a later phase.
+ */
+const DEFAULT_LABEL_BY_TYPE: Record<string, string> = {
+  cancel: 'accounting',
+  refund: 'accounting',
+  delivery: 'operations',
+  partnership: 'operations',
+  order_status: 'consult',
+  other: 'consult',
+};
+
+/**
  * Issue core (PLN-260808-Issue-Workflow-P1): promotes an escalated conversation
  * to a 1:1 ticket for `workflow_mode='native'` tenants, owns the state machine +
  * timeline, and closes with the conversation. Creation rides the ESCALATION bus
@@ -69,6 +87,8 @@ export class IssueService implements OnModuleInit {
     @InjectRepository(IssueEvent) private readonly eventRepo: Repository<IssueEvent>,
     @InjectRepository(Tenant) private readonly tenantRepo: Repository<Tenant>,
     @InjectRepository(Message) private readonly msgRepo: Repository<Message>,
+    @InjectRepository(Assignment) private readonly assignmentRepo: Repository<Assignment>,
+    @InjectRepository(Conversation) private readonly convRepo: Repository<Conversation>,
     private readonly bus: EventBusService,
     private readonly audit: AuditService,
   ) {}
@@ -115,12 +135,15 @@ export class IssueService implements OnModuleInit {
       where: { conversationId, senderType: SENDER_TYPE.USER },
       order: { id: 'DESC' },
     });
+    const type = payload.issueType ?? intentToType(lastUser?.intent);
     const issue = await this.insertWithSequence({
       tenantId,
       conversationId,
       sessionId,
       customerId: null,
-      type: intentToType(lastUser?.intent),
+      type,
+      // Deny-rule label wins; otherwise the default type→label routing (결정 4).
+      assigneeLabel: payload.issueLabel ?? DEFAULT_LABEL_BY_TYPE[type] ?? 'consult',
       status: ISSUE_STATUS.RECEIVED,
     });
     await this.record(issue, ISSUE_EVENT_TYPE.CREATED, {
@@ -242,6 +265,59 @@ export class IssueService implements OnModuleInit {
       target: `#${issue.issueNo} ${issue.status}→${to}`,
     });
     return updated;
+  }
+
+  /**
+   * Transfer / reassign (P2, 결정 10: manager 이상 전용). Releases the active
+   * assignment as `transferred`, creates the new active one, repoints the
+   * conversation and stamps the issue — all audited.
+   */
+  async assign(
+    actor: IssueActor,
+    tenantId: number,
+    issueId: number,
+    targetUserId: number,
+  ): Promise<Issue> {
+    if (!MANAGER_RANKS.has(actor.rank)) {
+      this.logger.warn(`issue assign forbidden: issue=${issueId} user=${actor.userId} rank=${actor.rank}`);
+      throw new BusinessException(ERROR_CODE.FORBIDDEN, HttpStatus.FORBIDDEN);
+    }
+    const issue = await this.issueRepo.findOne({ where: { id: issueId, tenantId } });
+    if (!issue) {
+      this.logger.warn(`issue assign rejected: id=${issueId} not in tenant=${tenantId}`);
+      throw new BusinessException(ERROR_CODE.ISSUE_NOT_FOUND, HttpStatus.NOT_FOUND);
+    }
+    await this.assignmentRepo.update(
+      { conversationId: issue.conversationId, status: 'active' },
+      { status: 'transferred', releasedAt: new Date() },
+    );
+    await this.assignmentRepo.save(
+      this.assignmentRepo.create({
+        tenantId,
+        conversationId: issue.conversationId,
+        agentId: targetUserId,
+        assignedBy: actor.userId,
+        type: 'transfer',
+        status: 'active',
+      }),
+    );
+    await this.convRepo.update({ id: issue.conversationId }, { agentId: targetUserId });
+    issue.assigneeUserId = targetUserId;
+    if (issue.status === ISSUE_STATUS.RECEIVED) issue.status = ISSUE_STATUS.IN_PROGRESS;
+    const saved = await this.issueRepo.save(issue);
+    await this.record(saved, ISSUE_EVENT_TYPE.ASSIGNED, {
+      actorType: 'agent',
+      actorId: actor.userId,
+      note: `→ user ${targetUserId}`,
+    });
+    await this.audit.write({
+      tenantId,
+      actorType: 'user',
+      actorId: actor.userId,
+      action: 'issue.assigned',
+      target: `#${saved.issueNo} → user ${targetUserId}`,
+    });
+    return saved;
   }
 
   async listEvents(tenantId: number, issueId: number): Promise<IssueEvent[]> {

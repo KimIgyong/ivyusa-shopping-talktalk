@@ -3,7 +3,7 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CAPABILITY, Principal } from '@ivy/types';
 import { IssueService } from './issue.service';
 import { IssueMapper } from './issue.mapper';
-import { TransitionIssueRequest } from './dto/request/issue.request';
+import { AssignIssueRequest, TransitionIssueRequest } from './dto/request/issue.request';
 import { RequireCapability } from '../../global/decorator/auth.decorator';
 import { CurrentUser } from '../../global/decorator/current-user.decorator';
 import { BusinessException } from '../../global/exception/business.exception';
@@ -41,6 +41,24 @@ export class IssueController {
       id,
       body.to,
       { rejectReason: body.reject_reason, note: body.note },
+    );
+    return IssueMapper.toIssue(issue);
+  }
+
+  @Post(':id/assign')
+  @RequireCapability(CAPABILITY.CONVERSATION_HANDLE)
+  @ApiOperation({ summary: 'Transfer/reassign an issue to another agent (P2, manager+)' })
+  async assign(
+    @CurrentUser() user: Principal,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: AssignIssueRequest,
+  ) {
+    const u = this.tenant(user);
+    const issue = await this.issueService.assign(
+      { userId: u.userId, rank: u.rank },
+      u.tenantId,
+      id,
+      body.user_id,
     );
     return IssueMapper.toIssue(issue);
   }

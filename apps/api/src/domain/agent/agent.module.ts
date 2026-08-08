@@ -17,6 +17,8 @@ import { CustomerModule } from '../customer/customer.module';
 import { AuditModule } from '../audit/audit.module';
 import { SessionModule } from '../session/session.module';
 import { AnswerReuseModule } from '../answer-reuse/answer-reuse.module';
+import { JobLabel } from '../user/entity/job-label.entity';
+import { UserJobLabel } from '../user/entity/user-job-label.entity';
 import { IssueModule } from '../issue/issue.module';
 
 @Module({
@@ -31,6 +33,8 @@ import { IssueModule } from '../issue/issue.module';
       Message,
       User,
       Session,
+      JobLabel,
+      UserJobLabel,
     ]),
     ModerationModule,
     CustomerModule,

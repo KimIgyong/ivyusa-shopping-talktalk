@@ -113,6 +113,7 @@ describe('ChatService — queued threads', () => {
       } as unknown as SessionService,
       {
         route: jest.fn(async () => ({ mode: 'agents', targetUserIds: [] })),
+        denyMatch: jest.fn(async () => null),
       } as unknown as HandoffRouterService,
       { publish: busPublish } as unknown as EventBusService,
     );
@@ -233,7 +234,7 @@ describe('ChatService — off-hours reply channel', () => {
       { moderate: jest.fn(async () => ({ decision: MODERATION_DECISION.DELIVERED, text: 'ok' })) } as never,
       {} as never,
       { effectiveConsentFor: jest.fn(async () => CONSENT_STATE.GRANTED) } as never,
-      { route: jest.fn(async () => ({ mode: routeMode, targetUserIds: [] })) } as never,
+      { route: jest.fn(async () => ({ mode: routeMode, targetUserIds: [] })), denyMatch: jest.fn(async () => null) } as never,
       { publish: jest.fn() } as never,
       { contactEmail: jest.fn(async () => 'shopper@example.com') } as never,
       { del: jest.fn() } as never,

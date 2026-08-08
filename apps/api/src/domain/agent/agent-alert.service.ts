@@ -1,8 +1,12 @@
 import { HttpStatus, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { IsNull, Repository } from 'typeorm';
+import { In, IsNull, Repository } from 'typeorm';
 import { AgentAlert } from './entity/agent-alert.entity';
+import { AgentProfile } from './entity/agent-profile.entity';
+import { Assignment } from './entity/assignment.entity';
+import { JobLabel } from '../user/entity/job-label.entity';
+import { UserJobLabel } from '../user/entity/user-job-label.entity';
 import { EventBusService, EVENTS, MailerService } from '../../infrastructure/infrastructure.module';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
@@ -17,12 +21,15 @@ interface EscalationPayload {
   targetUserIds?: number[];
   /** Set when routing decided this is an off-hours handoff: mail, don't page. */
   offHoursEmail?: string;
+  /** Label routing (P2, 결정 4): narrow the alarm to this label's available agents. */
+  issueLabel?: string;
 }
 
 const REASON_LABEL: Record<string, string> = {
   low_confidence: 'AI could not answer from the knowledge base',
   moderation_blocked: 'AI reply blocked by moderation',
   user_request: 'Customer asked for a human agent',
+  policy: 'Policy deny-list — forced human handling',
 };
 
 /**
@@ -39,6 +46,10 @@ export class AgentAlertService implements OnModuleInit {
 
   constructor(
     @InjectRepository(AgentAlert) private readonly alertRepo: Repository<AgentAlert>,
+    @InjectRepository(JobLabel) private readonly labelRepo: Repository<JobLabel>,
+    @InjectRepository(UserJobLabel) private readonly userLabelRepo: Repository<UserJobLabel>,
+    @InjectRepository(AgentProfile) private readonly profileRepo: Repository<AgentProfile>,
+    @InjectRepository(Assignment) private readonly assignmentRepo: Repository<Assignment>,
     private readonly bus: EventBusService,
     private readonly config: ConfigService,
     private readonly mailer: MailerService,
@@ -61,6 +72,13 @@ export class AgentAlertService implements OnModuleInit {
         status: 'new',
       },
     });
+    // Label routing (P2): with no explicit assignee configured, address the
+    // alarm to the least-loaded available agent holding the issue's label.
+    // No eligible agent → NULL, i.e. the pre-P2 broadcast (alarms never drop).
+    let targetUserId = payload.targetUserIds?.[0] ?? null;
+    if (targetUserId == null && payload.issueLabel && payload.tenantId) {
+      targetUserId = await this.pickLabelAgent(payload.tenantId, payload.issueLabel);
+    }
     const alert =
       existing ??
       (await this.alertRepo.save(
@@ -73,7 +91,7 @@ export class AgentAlertService implements OnModuleInit {
           // One row per addressed agent would duplicate the alarm, so a single
           // row carries the first assignee; the console filters on it and NULL
           // keeps the historical broadcast behaviour.
-          targetUserId: payload.targetUserIds?.[0] ?? null,
+          targetUserId,
           status: 'new',
         }),
       ));
@@ -87,6 +105,37 @@ export class AgentAlertService implements OnModuleInit {
       return;
     }
     await Promise.allSettled([this.notifySlack(alert), this.notifyEmail(alert)]);
+  }
+
+  /**
+   * Least-loaded available agent holding the label (P2, 결정 4): online profile,
+   * active assignments under maxConcurrent. Null → broadcast fallback.
+   */
+  private async pickLabelAgent(tenantId: number, labelCode: string): Promise<number | null> {
+    try {
+      const labelRows = await this.labelRepo.find({ where: { tenantId, code: labelCode } });
+      if (!labelRows.length) return null;
+      const links = await this.userLabelRepo.find({
+        where: { jobLabelId: In(labelRows.map((l) => Number(l.id))) },
+      });
+      const userIds = [...new Set(links.map((l) => Number(l.userId)))];
+      if (!userIds.length) return null;
+      const profiles = await this.profileRepo.find({
+        where: { tenantId, userId: In(userIds), status: 'online' },
+      });
+      let best: { userId: number; load: number } | null = null;
+      for (const p of profiles) {
+        const active = await this.assignmentRepo.count({
+          where: { tenantId, agentId: Number(p.userId), status: 'active' },
+        });
+        if (active >= p.maxConcurrent) continue;
+        if (!best || active < best.load) best = { userId: Number(p.userId), load: active };
+      }
+      return best?.userId ?? null;
+    } catch (e) {
+      this.logger.warn(`label routing failed (${labelCode}): ${(e as Error).message}`);
+      return null;
+    }
   }
 
   /** Broadcast alerts plus the ones addressed to this agent. */
