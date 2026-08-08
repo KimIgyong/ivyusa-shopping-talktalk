@@ -18,6 +18,7 @@ export function WidgetPanel() {
   // link) can open the settings/preferences area too.
   const showSettings = useWidgetStore((s) => s.settingsOpen);
   const setShowSettings = useWidgetStore((s) => s.setSettingsOpen);
+  const displayName = useWidgetStore((s) => s.widgetCopy?.displayName);
   const panelRef = useRef<HTMLDivElement>(null);
 
   // Tabs the shopper has opened at least once — mounted from then on.
@@ -50,10 +51,10 @@ export function WidgetPanel() {
       aria-label={t('a11y.supportWidget')}
       tabIndex={-1}
     >
-      {/* Header */}
+      {/* Header — the tenant's display name (console-configurable), not a fixed label. */}
       <header className="flex items-center justify-between bg-primary-500 px-4 py-3 text-white">
         <span className="text-sm font-semibold">
-          {t('notificationCenter')}
+          {displayName || t('notificationCenter')}
         </span>
         <div className="flex items-center gap-1.5">
           <LanguageSwitcher />

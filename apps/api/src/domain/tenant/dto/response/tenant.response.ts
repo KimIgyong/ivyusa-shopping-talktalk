@@ -69,6 +69,12 @@ export interface StorefrontResponse {
 export interface WidgetSettingsResponse {
   loginMode: WidgetLoginMode;
   timezone: string | null;
+  /** Stored (raw) widget copy — null/missing = widget default; console shows the tenant name as placeholder. */
+  displayName: string | null;
+  firstVisit: Record<string, string>;
+  loginGreeting: Record<string, string>;
+  /** Fallback used when displayName is unset (the tenant's name). */
+  displayNameFallback: string | null;
 }
 
 /**

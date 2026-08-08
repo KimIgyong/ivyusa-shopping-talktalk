@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { setStoredSessionToken } from '../lib/api-client';
-import type { ConsentState, WidgetLoginMode } from '../lib/types';
+import type { ConsentState, WidgetCopy, WidgetLoginMode } from '../lib/types';
 
 export type TabKey = 'notifications' | 'chat' | 'orders';
 
@@ -24,6 +24,8 @@ interface WidgetState {
   authPending: boolean;
   /** Tenant setting: how "Sign in" opens the storefront login (session/ensure). */
   loginMode: WidgetLoginMode;
+  /** Tenant widget copy (display name + greetings) from session/ensure. */
+  widgetCopy: WidgetCopy | null;
   /** Signed-in shopper's name, once the backend resolves it; null otherwise. */
   customerName: string | null;
   /**
@@ -49,6 +51,7 @@ interface WidgetState {
   setAuthenticated: (v: boolean) => void;
   setAuthPending: (v: boolean) => void;
   setLoginMode: (m: WidgetLoginMode) => void;
+  setWidgetCopy: (c: WidgetCopy | null) => void;
   setCustomerName: (n: string | null) => void;
   setEmbedIdentity: (v: 'pending' | 'verified' | 'anonymous') => void;
   setLanguage: (l: string) => void;
@@ -76,6 +79,7 @@ export const useWidgetStore = create<WidgetState>()((set, get) => ({
   authenticated: false,
   authPending: false,
   loginMode: 'redirect',
+  widgetCopy: null,
   customerName: null,
   embedIdentity: 'pending',
   language: 'en',
@@ -92,6 +96,7 @@ export const useWidgetStore = create<WidgetState>()((set, get) => ({
   setAuthenticated: (v) => set({ authenticated: v }),
   setAuthPending: (v) => set({ authPending: v }),
   setLoginMode: (m) => set({ loginMode: m }),
+  setWidgetCopy: (c) => set({ widgetCopy: c }),
   setCustomerName: (n) => set({ customerName: n }),
   setEmbedIdentity: (v) => set({ embedIdentity: v }),
   setLanguage: (l) => set({ language: l }),

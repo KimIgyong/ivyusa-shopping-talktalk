@@ -25,6 +25,7 @@ export class SessionMapper {
       noticeOutdated: s.consentVersion != null && s.consentVersion !== notice.consentNoticeVersion,
       consentAt: s.consentAt ? new Date(s.consentAt).toISOString() : null,
       widgetLoginMode: notice.widgetLoginMode,
+      widgetCopy: notice.widgetCopy,
     };
   }
 }

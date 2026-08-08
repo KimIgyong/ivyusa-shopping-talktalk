@@ -22,9 +22,9 @@ export const en = {
 
   chat: {
     welcome:
-      "Hi! Welcome to IVY USA. How can we help you today? Pick a topic below or type your question.",
+      'Hi! Welcome to {{shop}}. How can we help you today? Pick a topic below or type your question.',
     welcomeNamed:
-      'Hi {{name}}! Welcome back to IVY USA. How can we help you today? Pick a topic below or type your question.',
+      'Hi {{name}}! Welcome back to {{shop}}. How can we help you today? Pick a topic below or type your question.',
     aiDisclosure:
       'This chat is AI-powered. Messages you send are processed by a third-party AI service provider in the United States to generate responses.',
     citations: 'Knowledge referenced',

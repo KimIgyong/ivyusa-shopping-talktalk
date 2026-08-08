@@ -72,4 +72,46 @@ describe('TenantService.updatePrivacyNotice', () => {
     expect(saved.privacyPolicyUrl).toBe('https://old.example/privacy'); // untouched
     expect(saved.consentNoticeVersion).toBeNull(); // cleared → fallback applies
   });
+
+  /** Widget copy merge (PLN-260808-Widget-Greetings): flat fields → JSON blob. */
+  describe('updateWidgetSettings widget copy', () => {
+    it('folds per-language fields into widget_copy, trimming and dropping empties', async () => {
+      const saved = await svc.updateWidgetSettings(1, 7, {
+        login_mode: 'redirect',
+        display_name: '  IVY 뷰티샵 ',
+        first_visit_ko: '어서오세요!',
+        first_visit_en: '   ',
+        login_greeting_ko: '{name}님 반갑습니다. 무엇을 도와드릴까요?',
+      });
+      expect(saved.widgetCopy).toEqual({
+        displayName: 'IVY 뷰티샵',
+        firstVisit: { KO: '어서오세요!' },
+        loginGreeting: { KO: '{name}님 반갑습니다. 무엇을 도와드릴까요?' },
+      });
+    });
+
+    it('PATCH semantics: undefined keeps stored copy, empty clears; all-empty → null', async () => {
+      tenant.widgetCopy = {
+        displayName: 'Old',
+        firstVisit: { EN: 'Hello', KO: '안녕' },
+        loginGreeting: {},
+      };
+      const saved = await svc.updateWidgetSettings(1, 7, {
+        login_mode: 'redirect',
+        first_visit_en: '', // clear EN only
+      });
+      expect(saved.widgetCopy).toEqual({
+        displayName: 'Old',
+        firstVisit: { KO: '안녕' },
+        loginGreeting: {},
+      });
+
+      const cleared = await svc.updateWidgetSettings(1, 7, {
+        login_mode: 'redirect',
+        display_name: null,
+        first_visit_ko: '',
+      });
+      expect(cleared.widgetCopy).toBeNull();
+    });
+  });
 });

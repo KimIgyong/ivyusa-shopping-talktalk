@@ -8,6 +8,7 @@ import {
   SESSION_IDENTITY,
   SESSION_LANGUAGE,
   WIDGET_LOGIN_MODE,
+  WidgetCopy,
   WidgetLoginMode,
 } from '@ivy/types';
 import { generateToken } from '@ivy/common';
@@ -34,6 +35,8 @@ export interface PrivacyNoticeInfo {
   consentNoticeVersion: string;
   /** How the widget's "Sign in" opens the storefront login. */
   widgetLoginMode: WidgetLoginMode;
+  /** Tenant widget copy; displayName already resolved (config ?? tenant name). */
+  widgetCopy: WidgetCopy;
 }
 
 /** TTL for the token→session Redis cache (PERF-11). */
@@ -348,6 +351,13 @@ export class SessionService {
         tenant?.widgetLoginMode === WIDGET_LOGIN_MODE.POPUP
           ? WIDGET_LOGIN_MODE.POPUP
           : WIDGET_LOGIN_MODE.REDIRECT,
+      widgetCopy: {
+        // Resolved here so the widget never needs the tenant entity: configured
+        // name ?? tenant name (kills the hardcoded-brand greeting for tenant 2).
+        displayName: tenant?.widgetCopy?.displayName?.trim() || tenant?.name || null,
+        firstVisit: tenant?.widgetCopy?.firstVisit ?? {},
+        loginGreeting: tenant?.widgetCopy?.loginGreeting ?? {},
+      },
     };
   }
 

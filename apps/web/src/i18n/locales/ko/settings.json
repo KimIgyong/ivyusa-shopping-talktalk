@@ -45,7 +45,14 @@
     "saveError": "위젯 설정 저장에 실패했습니다.",
     "timezone": "타임존 기반 기본 언어",
     "tzUnset": "미설정 (기본 영어)",
-    "timezoneHint": "고객이 언어를 선택하지 않았을 때 위젯 기본 언어를 결정합니다 — Asia/Seoul → 한국어, America/New_York → 영어."
+    "timezoneHint": "고객이 언어를 선택하지 않았을 때 위젯 기본 언어를 결정합니다 — Asia/Seoul → 한국어, America/New_York → 영어.",
+    "copyTitle": "위젯 문구",
+    "displayName": "표시 이름",
+    "displayNameHint": "위젯 헤더에 표시되고 인사말의 {shop}으로 치환됩니다. 비우면 테넌트 이름을 사용합니다.",
+    "firstVisit": "첫 방문 안내 문구",
+    "firstVisitHint": "고객이 채팅을 열 때 표시됩니다. {shop}은 표시 이름으로 치환됩니다. 비우면 기본 문구를 사용합니다.",
+    "loginGreeting": "로그인 인사말",
+    "loginGreetingHint": "로그인 고객을 인식하면 표시됩니다. {name}은 고객 이름으로 치환됩니다. 비우면 기본 문구를 사용합니다."
   },
   "shopify": {
     "title": "Shopify 연동",

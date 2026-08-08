@@ -35,6 +35,9 @@ export function useSessionProfile() {
         if (cancelled) return;
         // Adopt the name; token/auth state stays owned by the paths above.
         if (res.customerName) setCustomerName(res.customerName);
+        // Tenant widget copy keys off the shop, not the session — adopt here too
+        // (a storefront-signed-in widget makes no other /session/ensure call).
+        if (res.widgetCopy) useWidgetStore.getState().setWidgetCopy(res.widgetCopy);
         // This re-ensure is the ONLY /session/ensure a storefront-signed-in
         // widget makes (useEnsureSession bails once authenticated), so the
         // verified session's consent state must be adopted — and a pending one
