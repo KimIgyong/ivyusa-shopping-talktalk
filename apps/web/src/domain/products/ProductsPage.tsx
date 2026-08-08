@@ -10,6 +10,7 @@ import { Table } from '@/components/Table';
 import type { Column } from '@/components/Table';
 import { Pagination } from '@/components/Pagination';
 import { useProductCategories, useProducts, useProductSummary } from './products.hooks';
+import { ProductDetailModal } from './ProductDetailModal';
 import type { AdminProduct } from './products.service';
 
 const PAGE_SIZE = 20;
@@ -43,6 +44,7 @@ export function ProductsPage() {
   const [q, setQ] = useState('');
   const [category, setCategory] = useState('');
   const [status, setStatus] = useState('');
+  const [openHandle, setOpenHandle] = useState<string | null>(null);
 
   // Debounced so typing does not fire a request per keystroke.
   useEffect(() => {
@@ -81,7 +83,11 @@ export function ProductsPage() {
           )}
           <div className="min-w-0">
             <p className="truncate font-medium text-gray-900">{p.title}</p>
-            {p.tags && <p className="truncate text-xs text-gray-400">{p.tags}</p>}
+            {/* The API sends ~100 characters; `line-clamp-2` keeps a long one
+                from stretching the row. Full text lives in the detail dialog. */}
+            {p.descriptionSnippet && (
+              <p className="line-clamp-2 text-xs text-gray-500">{p.descriptionSnippet}</p>
+            )}
           </div>
         </div>
       ),
@@ -126,6 +132,8 @@ export function ProductsPage() {
             href={p.productUrl}
             target="_blank"
             rel="noopener noreferrer"
+            // The row opens the dialog; the shop link must not do both.
+            onClick={(e) => e.stopPropagation()}
             className="text-gray-400 hover:text-primary-600"
             aria-label={t('columns.openInShop')}
           >
@@ -200,7 +208,10 @@ export function ProductsPage() {
         // one needs an import, the other needs a different search.
         emptyMessage={filtered ? t('emptyFiltered') : t('empty')}
         rowKey={(p) => p.handle}
+        onRowClick={(p) => setOpenHandle(p.handle)}
       />
+
+      <ProductDetailModal handle={openHandle} onClose={() => setOpenHandle(null)} />
 
       {!isLoading && !filtered && (data?.total ?? 0) === 0 && (
         <p className="mt-3 text-sm text-gray-500">
