@@ -176,6 +176,14 @@ describe('Cafe24ProductSyncService.syncProducts', () => {
     expect(res.detail).toContain('not connected');
   });
 
+  it('does not count a product whose row failed to save', async () => {
+    // The summary has to describe the database, not the attempt.
+    const { svc, productRepo } = build([[product()]]);
+    (productRepo.save as jest.Mock).mockRejectedValueOnce(new Error('deadlock'));
+    const res = await svc.syncProducts(5);
+    expect(res).toMatchObject({ ok: false, synced: 0, archived: 0 });
+  });
+
   it('enriches a product whose only text is a short line, not just an empty one', async () => {
     const fetchProduct = jest.fn(async () => ({
       description: `<p>${'상세 설명 텍스트입니다. '.repeat(10)}</p>`,

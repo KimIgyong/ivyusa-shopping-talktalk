@@ -4,13 +4,13 @@ Cafe24 상품 → `products_cache` → 지식(KB) → 상담/추천 테스트 �
 
 - 작성일: 2026-08-08
 - 대상: `PLN-260808-Cafe24-Product-Knowledge.md`
-- 자동화: Jest (`apps/api`) — 신규 19 케이스, 회귀 포함 전체 **740 passed / 70 suites**
+- 자동화: Jest (`apps/api`) — 신규 20 케이스, 회귀 포함 전체 **741 passed / 70 suites**
 
 ---
 
 ## 1. 단위 테스트 (자동)
 
-### 1-1. `cafe24-product-sync.service.spec.ts` (신규 13)
+### 1-1. `cafe24-product-sync.service.spec.ts` (신규 14)
 | ID | 케이스 | 기대 | 결과 |
 |---|---|---|---|
 | U1 | Cafe24 상품 → 캐시 행 매핑 | `handle=cafe24-27`, `sku=P000000A`, `price=18000`, `currency=KRW`, `category=클렌징`, `productUrl=…/product/detail.html?product_no=27`, 이미지 절대경로, `status=active` | ✅ |
@@ -26,6 +26,7 @@ Cafe24 상품 → `products_cache` → 지식(KB) → 상담/추천 테스트 �
 | U10a | 짧은 한 줄만 있는 상품(12자) | 상세 보강 호출 발생 — "없을 때만"이 아니라 "80자 미만이면" | ✅ |
 | U10b | 이미지가 호스트 상대경로 `/web/product/...` | storefront 오리진으로 절대화 | ✅ |
 | U10c | offset 상한 통과 후 `since_product_no` 승계 | 매 페이지 값이 **갱신**됨(고정 시 같은 페이지 100회 재요청) | ✅ |
+| U10d | 캐시 행 저장 실패(deadlock) | `synced=0` — 저장 성공분만 집계 | ✅ |
 
 ### 1-2. `cafe24-admin.client.spec.ts` (신규 3)
 | ID | 케이스 | 기대 | 결과 |

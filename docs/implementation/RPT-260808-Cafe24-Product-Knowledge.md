@@ -39,7 +39,7 @@ Cafe24 몰에는 그 라우트가 없다(실측 404 text/html). 그래서 파일
 | `apps/web/src/i18n/locales/{en,es,ko}/settings.json` | `syncProducts` / `productsSynced` / `syncProductsFailed`, hint 문구 갱신(주문+상품) |
 
 ### 테스트·문서
-`cafe24-product-sync.service.spec.ts`(신규 13) · `cafe24-admin.client.spec.ts`(+3) ·
+`cafe24-product-sync.service.spec.ts`(신규 14) · `cafe24-admin.client.spec.ts`(+3) ·
 `product-sync.service.spec.ts`(+3, 생성자 변경 반영) · REQ/PLN/TCR-260808.
 
 ## 3. 설계상 중요한 결정
@@ -58,7 +58,7 @@ Cafe24 몰에는 그 라우트가 없다(실측 404 text/html). 그래서 파일
 
 | 항목 | 결과 |
 |---|---|
-| `npx jest` (apps/api 전체) | ✅ **740 passed / 70 suites** (신규 19) |
+| `npx jest` (apps/api 전체) | ✅ **741 passed / 70 suites** (신규 20) |
 | `npm run typecheck` (turbo) | ✅ 9/9 |
 | `npm run build` (turbo) | ✅ 6/6 |
 | API 실기동 | ✅ `Nest application successfully started` |
@@ -85,6 +85,11 @@ Cafe24 몰에는 그 라우트가 없다(실측 404 text/html). 그래서 파일
 | D3 | 이미지가 호스트 상대경로(`/web/product/...`)면 `null` | 카탈로그 대부분의 썸네일 유실 | storefront 오리진으로 절대화(프로토콜 상대 `//`도 함께 처리) |
 
 D1은 테스트로 고정했다(승계 호출들의 `since_product_no`가 서로 달라야 통과).
+
+CodeRabbit 리뷰에서 1건 추가 반영: **저장 성공 건수만 집계**(D4). 이전에는 `seen`에 넣는 시점에
+집계해서, 저장이 실패해도 "N건 동기화"로 보고될 수 있었다 — 운영자에게 보이는 요약이 DB와 어긋난다.
+나머지 지적(10,000건 페이지 상한, `detail` 문자열 영어)은 각각 이미 `(incomplete: page cap)`으로
+보고되고 있고, 기존 Cafe24 주문 동기화와 동일한 패턴이라 유지했다.
 
 ## 6. 남은 일 (스테이징 배포 후)
 

@@ -83,6 +83,10 @@ export class Cafe24ProductSyncService {
     const byHandle = new Map(existing.map((p) => [p.handle, p]));
     const seen = new Set<string>();
     const now = new Date();
+    // Rows actually written. Counting attempts instead would report a product as
+    // synced after its save threw — the run's own summary would then disagree
+    // with the database.
+    let written = 0;
     let complete = false;
     let budget = ENRICH_CALL_BUDGET;
     let offset = 0;
@@ -100,7 +104,7 @@ export class Cafe24ProductSyncService {
           break;
         }
         for (const raw of products) {
-          const spent = await this.upsertProduct(
+          const outcome = await this.upsertProduct(
             tenantId,
             { mallId, accessToken, origin, categories, budget },
             byHandle,
@@ -108,7 +112,8 @@ export class Cafe24ProductSyncService {
             now,
             seen,
           );
-          budget -= spent;
+          budget -= outcome.spent;
+          written += outcome.written;
         }
         if (products.length < PAGE_LIMIT) {
           complete = true;
@@ -132,16 +137,16 @@ export class Cafe24ProductSyncService {
       // A partial run must not archive: the products it never reached are still
       // on the storefront.
       return {
-        ok: seen.size > 0,
-        synced: seen.size,
+        ok: written > 0,
+        synced: written,
         archived: 0,
-        detail: seen.size
-          ? `Synced ${seen.size} product(s), interrupted: ${message}`
+        detail: written
+          ? `Synced ${written} product(s), interrupted: ${message}`
           : `Sync failed: ${message}`,
       };
     }
 
-    const synced = seen.size;
+    const synced = written;
     const archived = complete ? await this.archiveMissing(byHandle, seen) : 0;
     if (!complete) {
       this.logger.warn(
@@ -165,7 +170,12 @@ export class Cafe24ProductSyncService {
     };
   }
 
-  /** Map one Cafe24 product onto the cache row. Returns the enrichment calls spent. */
+  /**
+   * Map one Cafe24 product onto the cache row.
+   *
+   * Reports the enrichment calls it spent and whether a row was actually written
+   * — the caller's counts must describe the database, not the attempt.
+   */
   private async upsertProduct(
     tenantId: number,
     ctx: {
@@ -179,11 +189,11 @@ export class Cafe24ProductSyncService {
     raw: Cafe24Product,
     now: Date,
     seen: Set<string>,
-  ): Promise<number> {
+  ): Promise<{ spent: number; written: number }> {
     const productNo = raw.product_no;
-    if (productNo == null) return 0;
+    if (productNo == null) return { spent: 0, written: 0 };
     const handle = `${HANDLE_PREFIX}${productNo}`;
-    if (seen.has(handle)) return 0;
+    if (seen.has(handle)) return { spent: 0, written: 0 };
     seen.add(handle);
 
     let spent = 0;
@@ -238,7 +248,7 @@ export class Cafe24ProductSyncService {
       );
       byHandle.set(handle, created);
     }
-    return spent;
+    return { spent, written: 1 };
   }
 
   /**
