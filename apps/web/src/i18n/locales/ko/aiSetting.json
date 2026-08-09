@@ -140,7 +140,11 @@
       "consult": "상담",
       "accounting": "회계",
       "operations": "운영"
-    }
+    },
+    "slaTitle": "이슈 보드 SLA 목표시간",
+    "slaNormal": "일반 (시간)",
+    "slaUrgent": "긴급 (시간)",
+    "slaHint": "보드의 경고(⚠)/지연(🔥) 표시가 이 기준을 따릅니다. 1~168시간, 기본 24h/4h."
   },
   "coach": {
     "title": "에이전트 코칭",

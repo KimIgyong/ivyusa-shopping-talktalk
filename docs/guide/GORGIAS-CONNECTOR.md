@@ -32,6 +32,19 @@ Gorgias Settings → Integrations → **HTTP Integration** 생성:
 동작: 티켓이 **closed** 되면 고객 위젯에 "문의 처리가 완료되었습니다" 알림이 가고,
 그 뒤 같은 대화가 재에스컬레이션되면 기존 티켓 append 대신 **새 티켓**이 생성됩니다(결정 12).
 
+## 3b. L3 답변 릴레이 — 두 번째 HTTP Integration (선택, 백로그 B1)
+같은 방식으로 Integration 하나 더:
+- **Trigger**: Ticket message created
+- **URL/Headers**: 3단계와 동일
+- **Body(JSON)**:
+```json
+{ "ticket": { "id": {{ticket.id}} },
+  "message": { "id": {{message.id}}, "from_agent": {{message.from_agent}}, "body_text": "{{message.body_text}}" } }
+```
+동작: Gorgias 상담원의 답변(from_agent=true)이 **모더레이션 통과 후 위젯 채팅에 상담원 메시지로 표시**되고
+고객에게 "상담원 답변 도착" 알림이 갑니다(멱등 — 중복 웹훅 무해).
+⚠️ Gorgias는 같은 답변을 이메일로도 보냅니다(이메일 채널 특성) — 고객은 위젯과 이메일 양쪽에서 받게 됨을 안내하세요.
+
 ## 4. 동작 요약
 | 이벤트 | 결과 |
 |---|---|

@@ -140,7 +140,11 @@
       "consult": "Consult",
       "accounting": "Accounting",
       "operations": "Operations"
-    }
+    },
+    "slaTitle": "Issue board SLA targets",
+    "slaNormal": "Normal (hours)",
+    "slaUrgent": "Urgent (hours)",
+    "slaHint": "Drives the board's warning/overdue badges. 1-168h; defaults 24h / 4h."
   },
   "coach": {
     "title": "Agent coaching",

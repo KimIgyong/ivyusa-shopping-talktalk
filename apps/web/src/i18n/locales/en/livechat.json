@@ -131,6 +131,7 @@
     "priorityToggle": "Toggle priority",
     "urgent": "URGENT",
     "normal": "normal",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "move": "Move…"
   }
 }
