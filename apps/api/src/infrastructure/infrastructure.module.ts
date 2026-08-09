@@ -24,4 +24,6 @@ export const EVENTS = {
   CAMPAIGN_DISPATCH: 'campaign.dispatch',
   ESCALATION: 'escalation.requested',
   PUSH_DISPATCH: 'push.dispatch',
+  /** Agent-tier issue resolution → knowledge-gap capture proposal (P5). */
+  ISSUE_RESOLVED: 'issue.resolved',
 } as const;

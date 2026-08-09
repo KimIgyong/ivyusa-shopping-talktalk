@@ -203,5 +203,22 @@
   "usageType_heated_tool": "Herramientas de calor",
   "usageType_skincare": "Cuidado de la piel",
   "usageType_makeup": "Maquillaje",
-  "usageType_edge_styling": "Productos de peinado"
+  "usageType_edge_styling": "Productos de peinado",
+  "gap": {
+    "title": "Propuestas de brechas de conocimiento",
+    "desc": "Temas con muchas escaladas, intents sin fuente y resoluciones de agentes propuestos para la base de conocimiento. Revise, edite y apruebe — nada se aplica automáticamente.",
+    "source": {
+      "escalation_cluster": "Muchas escaladas",
+      "no_source": "Sin fuente",
+      "agent_resolution": "Resolución de agente"
+    },
+    "accept": "Aprobar como doc KB",
+    "acceptConfirm": "Crear documento",
+    "dismiss": "Descartar",
+    "titlePlaceholder": "Título del documento",
+    "contentPlaceholder": "Contenido del documento",
+    "accepted": "Documento creado e indexado.",
+    "dismissed": "Propuesta descartada.",
+    "actionError": "No se pudo procesar la propuesta."
+  }
 }

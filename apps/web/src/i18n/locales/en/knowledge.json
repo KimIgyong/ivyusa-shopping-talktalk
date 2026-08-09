@@ -203,5 +203,22 @@
   "usageType_heated_tool": "Heated styling tools",
   "usageType_skincare": "Skincare",
   "usageType_makeup": "Makeup",
-  "usageType_edge_styling": "Hair styling products"
+  "usageType_edge_styling": "Hair styling products",
+  "gap": {
+    "title": "Knowledge gap proposals",
+    "desc": "Escalation-heavy topics, unanswered intents and agent resolutions proposed for the knowledge base. Review, edit and approve — nothing is applied automatically.",
+    "source": {
+      "escalation_cluster": "Escalation-heavy",
+      "no_source": "No source",
+      "agent_resolution": "Agent resolution"
+    },
+    "accept": "Approve as KB doc",
+    "acceptConfirm": "Create document",
+    "dismiss": "Dismiss",
+    "titlePlaceholder": "Document title",
+    "contentPlaceholder": "Document content",
+    "accepted": "Document created and embedded.",
+    "dismissed": "Proposal dismissed.",
+    "actionError": "Failed to process the proposal."
+  }
 }
