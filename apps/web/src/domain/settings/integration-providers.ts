@@ -61,5 +61,6 @@ export const INTEGRATION_FIELDS: Record<GenericIntegrationProvider, IntegrationF
     { key: 'subdomain', secret: false, required: true },
     { key: 'email', secret: false, required: true },
     { key: 'api_key', secret: true, required: true },
+    { key: 'webhook_secret', secret: true, required: false },
   ],
 };

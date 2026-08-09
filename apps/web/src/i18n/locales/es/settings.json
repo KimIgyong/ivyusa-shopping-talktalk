@@ -137,7 +137,8 @@
       "app_key": "App (store) key",
       "secret_key": "Clave secreta",
       "subdomain": "Subdominio de la cuenta",
-      "email": "Email de la cuenta"
+      "email": "Email de la cuenta",
+      "webhook_secret": "Secreto del webhook (estado L2)"
     },
     "ph": {
       "mall_id": "your-mall",

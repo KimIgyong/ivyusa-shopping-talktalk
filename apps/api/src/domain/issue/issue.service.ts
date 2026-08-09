@@ -8,10 +8,13 @@ import { Tenant } from '../tenant/entity/tenant.entity';
 import { Message } from '../chat/entity/message.entity';
 import { Assignment } from '../agent/entity/assignment.entity';
 import { Conversation } from '../chat/entity/conversation.entity';
+import { Session } from '../session/entity/session.entity';
+import { Customer } from '../customer/entity/customer.entity';
+import { issueNotice } from './issue-notice';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
 import { AuditService } from '../audit/audit.service';
-import { EventBusService, EVENTS } from '../../infrastructure/infrastructure.module';
+import { EventBusService, EVENTS, MailerService } from '../../infrastructure/infrastructure.module';
 
 /** Minimal escalation payload this service reads (decoupled from chat's type). */
 interface EscalationLike {
@@ -89,8 +92,11 @@ export class IssueService implements OnModuleInit {
     @InjectRepository(Message) private readonly msgRepo: Repository<Message>,
     @InjectRepository(Assignment) private readonly assignmentRepo: Repository<Assignment>,
     @InjectRepository(Conversation) private readonly convRepo: Repository<Conversation>,
+    @InjectRepository(Session) private readonly sessionRepo: Repository<Session>,
+    @InjectRepository(Customer) private readonly customerRepo: Repository<Customer>,
     private readonly bus: EventBusService,
     private readonly audit: AuditService,
+    private readonly mailer: MailerService,
   ) {}
 
   onModuleInit(): void {
@@ -152,6 +158,7 @@ export class IssueService implements OnModuleInit {
       toStatus: ISSUE_STATUS.RECEIVED,
       note: payload.reason ?? null,
     });
+    void this.notifyCustomer(issue, 'received');
     this.logger.log(
       `issue #${issue.issueNo} opened (tenant=${tenantId} conversation=${conversationId}, ${payload.reason ?? 'escalation'})`,
     );
@@ -356,7 +363,74 @@ export class IssueService implements OnModuleInit {
       toStatus: to,
       note: meta.note,
     });
+    // Customer status notice (P3, REQ §5.4): every state change tells the shopper
+    // where their inquiry stands — rejection wording is per reason code.
+    const noticeKey = reopen
+      ? 'reopened'
+      : to === ISSUE_STATUS.REJECTED
+        ? `rejected_${saved.rejectReason ?? 'policy_impossible'}`
+        : to;
+    void this.notifyCustomer(saved, noticeKey, to === ISSUE_STATUS.RESOLVED ? meta.note : null);
     return saved;
+  }
+
+  /**
+   * Publish the localized notice on the existing notification bus (in-app +
+   * push per customer preference — 결정 6). resolved/rejected on an email-mode
+   * thread additionally reuses the off-hours mail path. Best-effort.
+   */
+  private async notifyCustomer(
+    issue: Issue,
+    key: string,
+    extra?: string | null,
+  ): Promise<void> {
+    try {
+      const session = await this.sessionRepo.findOne({ where: { id: issue.sessionId } });
+      const copy = issueNotice(session?.language, key, issue.issueNo);
+      if (!copy) return;
+      const body = extra?.trim() ? `${copy.body}\n${extra.trim()}` : copy.body;
+      await this.bus.publish(EVENTS.NOTIFICATION, {
+        tenantId: issue.tenantId,
+        customerId: session?.customerId ?? null,
+        sessionId: issue.sessionId,
+        category: 'issue',
+        title: copy.title,
+        body,
+        channel: 'push',
+      });
+      if (key === 'resolved' || key.startsWith('rejected_')) {
+        await this.mailIfEmailThread(issue, `${copy.title} — ${body}`);
+      }
+    } catch (e) {
+      this.logger.debug(`issue notice skipped: ${(e as Error).message}`);
+    }
+  }
+
+  /** Email-mode threads (off-hours capture) also get the notice by mail (결정 6). */
+  private async mailIfEmailThread(issue: Issue, text: string): Promise<void> {
+    const conv = await this.convRepo.findOne({ where: { id: issue.conversationId } });
+    if (conv?.replyChannel !== 'email') return;
+    const session = await this.sessionRepo.findOne({ where: { id: issue.sessionId } });
+    if (!session?.customerId) return;
+    const customer = await this.customerRepo.findOne({
+      where: { id: session.customerId, tenantId: issue.tenantId },
+    });
+    const to = customer?.email?.trim();
+    if (!to) return;
+    await this.mailer.send({ to, subject: text.split('\n')[0].slice(0, 120), text });
+  }
+
+  /** The session's issues for the widget inquiries feed (guest sessions included). */
+  async listForSessionToken(sessionToken: string): Promise<Issue[]> {
+    const session = await this.sessionRepo.findOne({ where: { sessionToken } });
+    if (!session) {
+      throw new BusinessException(ERROR_CODE.SESSION_NOT_FOUND, HttpStatus.NOT_FOUND);
+    }
+    return this.issueRepo.find({
+      where: { sessionId: session.id },
+      order: { id: 'DESC' },
+      take: 20,
+    });
   }
 
   /** Per-tenant issue number = max+1; the unique key catches races (one retry). */

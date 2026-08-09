@@ -4,6 +4,8 @@ import { MoreThan, Repository } from 'typeorm';
 import { SENDER_TYPE } from '@ivy/types';
 import { ExternalTicket } from './entity/external-ticket.entity';
 import { Tenant } from '../tenant/entity/tenant.entity';
+import { Conversation } from '../chat/entity/conversation.entity';
+import { externalNotice } from './issue-notice';
 import { Message } from '../chat/entity/message.entity';
 import { Session } from '../session/entity/session.entity';
 import { Customer } from '../customer/entity/customer.entity';
@@ -50,6 +52,7 @@ export class ExternalTicketService implements OnModuleInit {
     @InjectRepository(OrderCache) private readonly orderRepo: Repository<OrderCache>,
     @InjectRepository(IntegrationCredential)
     private readonly credRepo: Repository<IntegrationCredential>,
+    @InjectRepository(Conversation) private readonly convRepo: Repository<Conversation>,
     private readonly bus: EventBusService,
   ) {}
 
@@ -83,10 +86,70 @@ export class ExternalTicketService implements OnModuleInit {
 
     const existing = await this.extRepo.findOne({ where: { conversationId, provider: PROVIDER } });
     if (existing) {
+      // 결정 12 (완성, L2): a ticket the webhook reported CLOSED gets a fresh
+      // ticket on re-escalation; an open one gets the new messages appended.
+      if (existing.status === 'closed') {
+        await this.createTicket(cfg, tenantId, conversationId, email, payload.reason ?? 'escalation', existing);
+        return;
+      }
       await this.appendNewMessages(cfg, existing, email);
       return;
     }
     await this.createTicket(cfg, tenantId, conversationId, email, payload.reason ?? 'escalation');
+  }
+
+  /**
+   * Gorgias L2 webhook (ticket-updated): authenticate by the tenant's stored
+   * webhook_secret, mirror the external status, and tell the shopper when the
+   * ticket closes. Returns false when the token matches no tenant (→ 401).
+   */
+  async handleWebhook(token: string, externalId: string, status: string): Promise<boolean> {
+    if (!token?.trim() || !externalId) return false;
+    const creds = await this.credRepo.find({ where: { provider: PROVIDER } });
+    let tenantId: number | null = null;
+    for (const cred of creds) {
+      try {
+        const parsed = JSON.parse(decryptSecret(cred.secretEnc!)) as Record<string, string>;
+        if (parsed.webhook_secret && parsed.webhook_secret === token.trim()) {
+          tenantId = Number(cred.tenantId);
+          break;
+        }
+      } catch {
+        /* unreadable blob — not this tenant */
+      }
+    }
+    if (tenantId == null) return false;
+    const ref = await this.extRepo.findOne({
+      where: { tenantId, provider: PROVIDER, externalId: String(externalId) },
+    });
+    if (!ref) return true; // authenticated, but not a ticket we created — ack quietly
+    const normalized = String(status).toLowerCase() === 'closed' ? 'closed' : 'open';
+    const newlyClosed = ref.status !== 'closed' && normalized === 'closed';
+    ref.status = normalized;
+    await this.extRepo.save(ref);
+    if (newlyClosed) {
+      await this.notifyExternalClosed(tenantId, ref.conversationId).catch((e: Error) =>
+        this.logger.warn(`external-closed notice failed: ${e.message}`),
+      );
+      this.logger.log(`gorgias ticket ${ref.externalId} closed (tenant=${tenantId})`);
+    }
+    return true;
+  }
+
+  private async notifyExternalClosed(tenantId: number, conversationId: number): Promise<void> {
+    const conv = await this.convRepo.findOne({ where: { id: conversationId } });
+    if (!conv) return;
+    const session = await this.sessionRepo.findOne({ where: { id: conv.sessionId } });
+    const copy = externalNotice(session?.language);
+    await this.bus.publish(EVENTS.NOTIFICATION, {
+      tenantId,
+      customerId: session?.customerId ?? null,
+      sessionId: conv.sessionId,
+      category: 'issue',
+      title: copy.title,
+      body: copy.body,
+      channel: 'push',
+    });
   }
 
   /* ------------------------------ internals ------------------------------ */
@@ -97,6 +160,7 @@ export class ExternalTicketService implements OnModuleInit {
     conversationId: number,
     email: string,
     reason: string,
+    reuseRef?: ExternalTicket,
   ): Promise<void> {
     const transcript = await this.msgRepo.find({
       where: { conversationId },
@@ -123,15 +187,24 @@ export class ExternalTicketService implements OnModuleInit {
         tags: ['shoptalk', reason],
       }),
     );
-    await this.extRepo.save(
-      this.extRepo.create({
-        tenantId,
-        conversationId,
-        provider: PROVIDER,
-        externalId,
-        lastRelayedMessageId: transcript[transcript.length - 1]?.id ?? null,
-      }),
-    );
+    if (reuseRef) {
+      // Same conversation row (unique key) — repoint it at the fresh ticket.
+      reuseRef.externalId = externalId;
+      reuseRef.status = 'open';
+      reuseRef.lastRelayedMessageId = transcript[transcript.length - 1]?.id ?? null;
+      await this.extRepo.save(reuseRef);
+    } else {
+      await this.extRepo.save(
+        this.extRepo.create({
+          tenantId,
+          conversationId,
+          provider: PROVIDER,
+          externalId,
+          status: 'open',
+          lastRelayedMessageId: transcript[transcript.length - 1]?.id ?? null,
+        }),
+      );
+    }
     this.logger.log(
       `gorgias ticket ${externalId} created (tenant=${tenantId} conversation=${conversationId})`,
     );

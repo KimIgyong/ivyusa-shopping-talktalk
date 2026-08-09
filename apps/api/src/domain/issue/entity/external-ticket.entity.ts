@@ -26,6 +26,10 @@ export class ExternalTicket {
   @Column({ name: 'external_id', type: 'varchar', length: 64 })
   externalId: string;
 
+  /** Mirrored external state (L2 webhook): open | closed. */
+  @Column({ type: 'varchar', length: 16, default: 'open' })
+  status: string;
+
   /** Highest message id already relayed — append idempotency cursor. */
   @Column({ name: 'last_relayed_message_id', type: 'bigint', nullable: true, transformer: bigintTransformer })
   lastRelayedMessageId: number | null;

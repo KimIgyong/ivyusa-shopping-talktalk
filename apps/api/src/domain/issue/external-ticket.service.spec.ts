@@ -7,6 +7,7 @@ import { Session } from '../session/entity/session.entity';
 import { Customer } from '../customer/entity/customer.entity';
 import { OrderCache } from '../order/entity/order-cache.entity';
 import { IntegrationCredential } from '../tenant/entity/integration-credential.entity';
+import { Conversation } from '../chat/entity/conversation.entity';
 import { encryptSecret } from '../../global/util/crypto.util';
 
 /**
@@ -68,7 +69,10 @@ describe('ExternalTicketService', () => {
             } as IntegrationCredential),
       ),
     } as unknown as Repository<IntegrationCredential>;
-    const bus = { subscribe: jest.fn() } as never;
+    const convRepo = {
+      findOne: jest.fn(async () => ({ id: 7, sessionId: 5 })),
+    } as unknown as Repository<Conversation>;
+    const bus = { subscribe: jest.fn(), publish: jest.fn() } as never;
     const svc = new ExternalTicketService(
       extRepo,
       tenantRepo,
@@ -77,9 +81,15 @@ describe('ExternalTicketService', () => {
       customerRepo,
       orderRepo,
       credRepo,
+      convRepo,
       bus,
     );
-    return { svc, extRepo, getSavedRef: () => savedRef };
+    return {
+      svc,
+      extRepo,
+      bus: bus as unknown as { publish: jest.Mock },
+      getSavedRef: () => savedRef,
+    };
   }
 
   const userMsg = (id: number, body: string): Partial<Message> => ({
@@ -141,3 +151,148 @@ describe('ExternalTicketService', () => {
     expect(getSavedRef()).toMatchObject({ lastRelayedMessageId: 3 });
   });
 });
+
+/** L2 webhook (P3): token auth, status mirror, close notice, closed→new ticket. */
+describe('ExternalTicketService.handleWebhook (P3)', () => {
+  const OLD = process.env;
+  beforeAll(() => {
+    process.env = { ...OLD, CRED_ENC_KEY: Buffer.alloc(32, 7).toString('base64') };
+  });
+  afterAll(() => {
+    process.env = OLD;
+  });
+
+  function buildHook(opts: { ref?: Partial<ExternalTicket> | null; secret?: string }) {
+    let savedRef: Partial<ExternalTicket> | null = null;
+    const extRepo = {
+      findOne: jest.fn(async () => opts.ref ?? null),
+      save: jest.fn(async (e: ExternalTicket) => {
+        savedRef = e;
+        return e;
+      }),
+      create: (e: Partial<ExternalTicket>) => e as ExternalTicket,
+    } as unknown as Repository<ExternalTicket>;
+    const credRepo = {
+      find: jest.fn(async () => [
+        {
+          tenantId: 1,
+          secretEnc: encryptSecret(
+            JSON.stringify({
+              subdomain: 'acme',
+              email: 'a@a.com',
+              api_key: 'k',
+              webhook_secret: opts.secret ?? 'hook-token',
+            }),
+          ),
+        } as IntegrationCredential,
+      ]),
+    } as unknown as Repository<IntegrationCredential>;
+    const convRepo = {
+      findOne: jest.fn(async () => ({ id: 7, sessionId: 5 })),
+    } as unknown as Repository<Conversation>;
+    const sessionRepo = {
+      findOne: jest.fn(async () => ({ id: 5, language: 'KO', customerId: 9 })),
+    } as unknown as Repository<Session>;
+    const bus = { subscribe: jest.fn(), publish: jest.fn() };
+    const svc = new ExternalTicketService(
+      extRepo,
+      {} as never,
+      {} as never,
+      sessionRepo,
+      {} as never,
+      {} as never,
+      credRepo,
+      convRepo,
+      bus as never,
+    );
+    return { svc, bus, getSavedRef: () => savedRef };
+  }
+
+  it('rejects an unknown token (→ controller 401)', async () => {
+    const { svc } = buildHook({ secret: 'other' });
+    await expect(svc.handleWebhook('wrong', '555', 'closed')).resolves.toBe(false);
+  });
+
+  it('mirrors closed and notifies the customer once', async () => {
+    const { svc, bus, getSavedRef } = buildHook({
+      ref: { tenantId: 1, conversationId: 7, provider: 'gorgias', externalId: '555', status: 'open' },
+    });
+    await expect(svc.handleWebhook('hook-token', '555', 'closed')).resolves.toBe(true);
+    expect(getSavedRef()).toMatchObject({ status: 'closed' });
+    expect(bus.publish).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ category: 'issue', sessionId: 5 }),
+    );
+  });
+
+  it('re-escalation after a CLOSED ticket creates a NEW ticket on the same ref (결정 12)', async () => {
+    const fetchMock = jest.fn(async () => ({ ok: true, json: async () => ({ id: 777 }) }));
+    global.fetch = fetchMock as unknown as typeof fetch;
+    // Reuse the main harness: existing ref is closed → createTicket path.
+    // (buildHook lacks msg/tenant repos, so use the top-level build.)
+    const { svc, getSavedRef } = (function () {
+      // eslint-disable-next-line @typescript-eslint/no-use-before-define
+      return buildForClosed();
+    })();
+    await svc.relayEscalation({ tenantId: 1, conversationId: 7, sessionId: 5, reason: 'user_request' });
+    expect((fetchMock.mock.calls[0] as [string])[0]).toBe('https://acme.gorgias.com/api/tickets');
+    expect(getSavedRef()).toMatchObject({ externalId: '777', status: 'open' });
+  });
+});
+
+/** Closed-ref harness for the re-escalation → new-ticket case. */
+function buildForClosed() {
+  let savedRef: Partial<ExternalTicket> | null = null;
+  const closedRef = {
+    tenantId: 1,
+    conversationId: 7,
+    provider: 'gorgias',
+    externalId: '555',
+    status: 'closed',
+    lastRelayedMessageId: 2,
+  } as ExternalTicket;
+  const extRepo = {
+    findOne: jest.fn(async () => closedRef),
+    save: jest.fn(async (e: ExternalTicket) => {
+      savedRef = e;
+      return e;
+    }),
+    create: (e: Partial<ExternalTicket>) => e as ExternalTicket,
+  } as unknown as Repository<ExternalTicket>;
+  const tenantRepo = {
+    findOne: jest.fn(async () => ({ id: 1, workflowMode: 'bridge' }) as Tenant),
+  } as unknown as Repository<Tenant>;
+  const msgRepo = {
+    find: jest.fn(async () => [
+      { id: 3, senderType: 'user', body: '다시 문의드립니다', createdAt: new Date() } as Message,
+    ]),
+  } as unknown as Repository<Message>;
+  const sessionRepo = {
+    findOne: jest.fn(async () => ({ id: 5, customerId: 9 }) as Session),
+  } as unknown as Repository<Session>;
+  const customerRepo = {
+    findOne: jest.fn(async () => ({ id: 9, email: 'a@b.com' }) as Customer),
+  } as unknown as Repository<Customer>;
+  const orderRepo = { find: jest.fn(async () => []) } as unknown as Repository<OrderCache>;
+  const credRepo = {
+    findOne: jest.fn(async () => ({
+      secretEnc: encryptSecret(
+        JSON.stringify({ subdomain: 'acme', email: 'agent@acme.com', api_key: 'k' }),
+      ),
+    }) as IntegrationCredential),
+  } as unknown as Repository<IntegrationCredential>;
+  const convRepo = { findOne: jest.fn() } as unknown as Repository<Conversation>;
+  const bus = { subscribe: jest.fn(), publish: jest.fn() } as never;
+  const svc = new ExternalTicketService(
+    extRepo,
+    tenantRepo,
+    msgRepo,
+    sessionRepo,
+    customerRepo,
+    orderRepo,
+    credRepo,
+    convRepo,
+    bus,
+  );
+  return { svc, getSavedRef: () => savedRef };
+}

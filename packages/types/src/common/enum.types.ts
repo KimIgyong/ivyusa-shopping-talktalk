@@ -276,5 +276,8 @@ export const INTEGRATION_FIELDS: Record<GenericIntegrationProvider, IntegrationF
     { key: 'subdomain', secret: false, required: true },
     { key: 'email', secret: false, required: true },
     { key: 'api_key', secret: true, required: true },
+    // L2 status webhook auth token (POST /webhooks/gorgias) — optional until the
+    // tenant wires the Gorgias HTTP Integration (PLN-260809 P3).
+    { key: 'webhook_secret', secret: true, required: false },
   ],
 };
