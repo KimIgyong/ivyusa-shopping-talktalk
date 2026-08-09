@@ -113,6 +113,24 @@
     "transitioned": "이슈가 업데이트되었습니다.",
     "transitionError": "이슈 업데이트에 실패했습니다.",
     "transfer": "이관…",
-    "assigned": "이슈가 이관되었습니다."
+    "assigned": "이슈가 이관되었습니다.",
+    "label": {
+      "consult": "상담",
+      "accounting": "회계",
+      "operations": "운영"
+    }
+  },
+  "board": {
+    "title": "이슈 보드",
+    "subtitle": "에스컬레이션된 문의를 상태별로 — 카드를 드래그해 전이합니다.",
+    "notNative": "이 스토어에는 이슈 워크플로우 애드온이 활성화되어 있지 않습니다. 활성화는 플랫폼 운영자에게 문의하세요.",
+    "unassigned": "미배정",
+    "avgResolution": "평균 해결",
+    "reopenRate": "재오픈율",
+    "noAssignee": "미배정",
+    "priorityToggle": "우선순위 전환",
+    "urgent": "긴급",
+    "normal": "일반",
+    "cancel": "취소"
   }
 }

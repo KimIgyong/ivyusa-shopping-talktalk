@@ -72,7 +72,11 @@ export function LiveChatPage() {
     return t('daysAgo', { n: Math.floor(h / 24) });
   };
   const [searchParams] = useSearchParams();
-  const [selected, setSelected] = useState<string | null>(null);
+  // Deep-link from the issue board (P4): /live-chat?conversation={id} opens
+  // that thread directly (session-row ids ARE conversation ids).
+  const [selected, setSelected] = useState<string | null>(
+    () => searchParams.get('conversation'),
+  );
   const [draft, setDraft] = useState('');
   /** In-flight latch for the reply send — see onSend. */
   const sendingRef = useRef(false);

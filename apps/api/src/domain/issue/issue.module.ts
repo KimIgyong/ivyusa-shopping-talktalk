@@ -8,6 +8,7 @@ import { Assignment } from '../agent/entity/assignment.entity';
 import { Conversation } from '../chat/entity/conversation.entity';
 import { Session } from '../session/entity/session.entity';
 import { Customer } from '../customer/entity/customer.entity';
+import { User } from '../user/entity/user.entity';
 import { OrderCache } from '../order/entity/order-cache.entity';
 import { IntegrationCredential } from '../tenant/entity/integration-credential.entity';
 import { ExternalTicket } from './entity/external-ticket.entity';
@@ -35,6 +36,7 @@ import { AuditModule } from '../audit/audit.module';
       Conversation,
       Session,
       Customer,
+      User,
       OrderCache,
       IntegrationCredential,
       ExternalTicket,

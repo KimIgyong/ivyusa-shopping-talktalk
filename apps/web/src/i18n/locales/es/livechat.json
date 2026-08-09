@@ -113,6 +113,24 @@
     "transitioned": "Issue actualizado.",
     "transitionError": "No se pudo actualizar el issue.",
     "transfer": "Transferir a…",
-    "assigned": "Issue reasignado."
+    "assigned": "Issue reasignado.",
+    "label": {
+      "consult": "Consulta",
+      "accounting": "Contabilidad",
+      "operations": "Operaciones"
+    }
+  },
+  "board": {
+    "title": "Tablero de issues",
+    "subtitle": "Consultas escaladas por estado — arrastra para transicionar.",
+    "notNative": "El complemento de flujo de issues no está habilitado para esta tienda.",
+    "unassigned": "Sin asignar",
+    "avgResolution": "Resolución media",
+    "reopenRate": "Tasa de reapertura",
+    "noAssignee": "Sin asignar",
+    "priorityToggle": "Cambiar prioridad",
+    "urgent": "URGENTE",
+    "normal": "normal",
+    "cancel": "Cancelar"
   }
 }

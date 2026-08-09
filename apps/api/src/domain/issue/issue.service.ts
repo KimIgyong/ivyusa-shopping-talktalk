@@ -1,6 +1,6 @@
 import { HttpStatus, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, MoreThan, Repository } from 'typeorm';
 import { SENDER_TYPE, USER_RANK } from '@ivy/types';
 import { Issue, ISSUE_REJECT_REASON, ISSUE_STATUS, ISSUE_TIER } from './entity/issue.entity';
 import { IssueEvent, ISSUE_EVENT_TYPE } from './entity/issue-event.entity';
@@ -10,6 +10,7 @@ import { Assignment } from '../agent/entity/assignment.entity';
 import { Conversation } from '../chat/entity/conversation.entity';
 import { Session } from '../session/entity/session.entity';
 import { Customer } from '../customer/entity/customer.entity';
+import { User } from '../user/entity/user.entity';
 import { issueNotice } from './issue-notice';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
@@ -94,6 +95,7 @@ export class IssueService implements OnModuleInit {
     @InjectRepository(Conversation) private readonly convRepo: Repository<Conversation>,
     @InjectRepository(Session) private readonly sessionRepo: Repository<Session>,
     @InjectRepository(Customer) private readonly customerRepo: Repository<Customer>,
+    @InjectRepository(User) private readonly userRepo: Repository<User>,
     private readonly bus: EventBusService,
     private readonly audit: AuditService,
     private readonly mailer: MailerService,
@@ -418,6 +420,139 @@ export class IssueService implements OnModuleInit {
     const to = customer?.email?.trim();
     if (!to) return;
     await this.mailer.send({ to, subject: text.split('\n')[0].slice(0, 120), text });
+  }
+
+  /* ---------------- board / dashboard (P4) ---------------- */
+
+  /**
+   * Kanban board data (PLN-260809-Issue-Workflow-P4 S1): open statuses in full,
+   * settled ones capped at the latest 20 per column. Names resolved in one pass.
+   */
+  async board(tenantId: number): Promise<{
+    columns: Record<string, Issue[]>;
+    names: Map<number, string>;
+  }> {
+    const open = await this.issueRepo.find({
+      where: { tenantId, status: In([ISSUE_STATUS.RECEIVED, ISSUE_STATUS.IN_PROGRESS]) },
+      order: { updatedAt: 'DESC' },
+    });
+    const columns: Record<string, Issue[]> = {
+      [ISSUE_STATUS.RECEIVED]: open.filter((i) => i.status === ISSUE_STATUS.RECEIVED),
+      [ISSUE_STATUS.IN_PROGRESS]: open.filter((i) => i.status === ISSUE_STATUS.IN_PROGRESS),
+    };
+    for (const status of [ISSUE_STATUS.RESOLVED, ISSUE_STATUS.REJECTED, ISSUE_STATUS.CLOSED]) {
+      columns[status] = await this.issueRepo.find({
+        where: { tenantId, status },
+        order: { updatedAt: 'DESC' },
+        take: 20,
+      });
+    }
+    const ids = [
+      ...new Set(
+        Object.values(columns)
+          .flat()
+          .map((i) => i.assigneeUserId)
+          .filter((v): v is number => v != null)
+          .map(Number),
+      ),
+    ];
+    const names = new Map<number, string>();
+    if (ids.length) {
+      const users = await this.userRepo.find({ where: { id: In(ids) } });
+      for (const u of users) names.set(Number(u.id), u.name || u.email || `#${u.id}`);
+    }
+    return { columns, names };
+  }
+
+  /** Workflow KPIs for the board header (30-day window for rates/averages). */
+  async stats(tenantId: number): Promise<{
+    workflowMode: string;
+    counts: Record<string, number>;
+    unassigned: number;
+    byLabel: Record<string, number>;
+    avgResolutionHours: number | null;
+    reopenRate: number | null;
+  }> {
+    const tenant = await this.tenantRepo.findOne({ where: { id: tenantId } });
+    const rows = await this.issueRepo
+      .createQueryBuilder('i')
+      .select('i.status', 'status')
+      .addSelect('COUNT(*)', 'cnt')
+      .where('i.tenant_id = :t', { t: tenantId })
+      .groupBy('i.status')
+      .getRawMany<{ status: string; cnt: string }>();
+    const counts: Record<string, number> = {};
+    for (const r of rows) counts[r.status] = Number(r.cnt);
+
+    const openWhere = {
+      tenantId,
+      status: In([ISSUE_STATUS.RECEIVED, ISSUE_STATUS.IN_PROGRESS]),
+    };
+    const openIssues = await this.issueRepo.find({ where: openWhere });
+    const unassigned = openIssues.filter((i) => i.assigneeUserId == null).length;
+    const byLabel: Record<string, number> = {};
+    for (const i of openIssues) {
+      const label = i.assigneeLabel ?? 'consult';
+      byLabel[label] = (byLabel[label] ?? 0) + 1;
+    }
+
+    const since = new Date(Date.now() - 30 * 24 * 60 * 60_000);
+    const recent = await this.issueRepo.find({
+      where: { tenantId, createdAt: MoreThan(since) },
+    });
+    const resolvedDurations = recent
+      .filter((i) => i.resolvedAt != null)
+      .map((i) => (new Date(i.resolvedAt!).getTime() - new Date(i.createdAt).getTime()) / 3_600_000);
+    const avgResolutionHours = resolvedDurations.length
+      ? Math.round((resolvedDurations.reduce((a, b) => a + b, 0) / resolvedDurations.length) * 10) / 10
+      : null;
+    const reopenRate = recent.length
+      ? Math.round((recent.filter((i) => i.reopenCount > 0).length / recent.length) * 100)
+      : null;
+
+    return {
+      workflowMode: tenant?.workflowMode ?? 'base',
+      counts,
+      unassigned,
+      byLabel,
+      avgResolutionHours,
+      reopenRate,
+    };
+  }
+
+  /** Priority toggle (P4, 결정 5 — 2단계): assignee or manager+, audited. */
+  async setPriority(
+    actor: IssueActor,
+    tenantId: number,
+    issueId: number,
+    priority: string,
+  ): Promise<Issue> {
+    const issue = await this.issueRepo.findOne({ where: { id: issueId, tenantId } });
+    if (!issue) {
+      throw new BusinessException(ERROR_CODE.ISSUE_NOT_FOUND, HttpStatus.NOT_FOUND);
+    }
+    const isManager = MANAGER_RANKS.has(actor.rank);
+    const isAssignee =
+      issue.assigneeUserId != null && Number(issue.assigneeUserId) === Number(actor.userId);
+    if (!isManager && !isAssignee) {
+      this.logger.warn(`issue priority forbidden: issue=${issueId} user=${actor.userId}`);
+      throw new BusinessException(ERROR_CODE.FORBIDDEN, HttpStatus.FORBIDDEN);
+    }
+    issue.priority = priority;
+    const saved = await this.issueRepo.save(issue);
+    await this.record(saved, ISSUE_EVENT_TYPE.MEMO, {
+      actorType: 'agent',
+      actorId: actor.userId,
+      note: `priority → ${priority}`,
+    });
+    await this.audit.write({
+      tenantId,
+      actorType: 'user',
+      actorId: actor.userId,
+      action: 'issue.priority',
+      target: `#${saved.issueNo} ${priority}`,
+    });
+    return saved;
   }
 
   /** The session's issues for the widget inquiries feed (guest sessions included). */
