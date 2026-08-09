@@ -2,7 +2,9 @@ import { useEffect, useState } from 'react';
 import { ChevronRight, PackageSearch, Lock, ExternalLink } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useWidgetStore } from '../../store/widgetStore';
+import { useQuery } from '@tanstack/react-query';
 import { useOrders } from '../../hooks/useOrders';
+import { listIssues, type IssueFeedItem } from '../../services/orderService';
 import { Badge, toneForStatus } from '../ui/Badge';
 import { Spinner } from '../ui/Spinner';
 import { formatDate, formatMoney } from '../../lib/format';
@@ -42,6 +44,16 @@ export function OrdersTab() {
   const [moreOpen, setMoreOpen] = useState(false);
 
   const { data, isLoading, isError, error } = useOrders(sessionToken, authenticated);
+  // Inquiries feed (P3): the session's escalated issues with their status. When
+  // the tenant/session has none (non-native tenants, normal shoppers) the
+  // subtab keeps its pre-P3 behavior — the order status filter. Declared here,
+  // above the early returns, to keep the hook order stable.
+  const { data: issueFeed } = useQuery({
+    queryKey: ['issues', sessionToken],
+    queryFn: () => listIssues(sessionToken!),
+    enabled: !!sessionToken && authenticated && sub === 'inquiries',
+    refetchInterval: 15_000,
+  });
 
   // The server is the authority on whether this session is still customer-bound.
   // It can stop being bound while the widget thinks otherwise — after a DSAR data
@@ -91,6 +103,8 @@ export function OrdersTab() {
   }
 
   const orders = filterForSubtab(data ?? [], sub);
+  const issues: IssueFeedItem[] = issueFeed ?? [];
+  const showIssueFeed = sub === 'inquiries' && issues.length > 0;
   // The widget shows a bounded recent window inline (10 orders / 30 days); the
   // full, canonical history lives on the storefront's own my-page — "view more"
   // reveals a pointer there (the mall authenticates the member itself, so the
@@ -116,19 +130,39 @@ export function OrdersTab() {
       </div>
 
       <div className="scroll-thin flex-1 overflow-y-auto p-2">
-        {isLoading && <Spinner label={t('common.loading')} />}
-        {isError && (
+        {/* Inquiries feed (P3) — replaces the order filter when issues exist. */}
+        {showIssueFeed &&
+          issues.map((i) => (
+            <div key={i.issueNo} className="mb-2 rounded-lg border border-gray-200 bg-white p-3">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-semibold text-gray-900">
+                  #{i.issueNo} · {t(`orders.issues.type.${i.type}`, { defaultValue: i.type })}
+                </span>
+                <Badge tone={toneForStatus(i.status)}>
+                  {t(`orders.issues.status.${i.status}`, { defaultValue: i.status })}
+                </Badge>
+              </div>
+              <p className="mt-1 text-xs text-gray-500">
+                {t(`orders.issues.line.${i.status}`, { defaultValue: '' })}
+              </p>
+              {i.updatedAt && (
+                <p className="mt-0.5 text-[11px] text-gray-400">{formatDate(i.updatedAt)}</p>
+              )}
+            </div>
+          ))}
+        {!showIssueFeed && isLoading && <Spinner label={t('common.loading')} />}
+        {!showIssueFeed && isError && (
           <p className="py-8 text-center text-sm text-gray-400">
             {t('common.error')}
           </p>
         )}
-        {!isLoading && !isError && orders.length === 0 && (
+        {!showIssueFeed && !isLoading && !isError && orders.length === 0 && (
           <div className="flex flex-col items-center gap-2 py-12 text-gray-400">
             <PackageSearch className="h-6 w-6" />
             <span className="text-sm">{t('orders.emptyRecent')}</span>
           </div>
         )}
-        {orders.map((o) => (
+        {!showIssueFeed && orders.map((o) => (
           <button
             key={o.id}
             onClick={() => setSelected(o.id)}

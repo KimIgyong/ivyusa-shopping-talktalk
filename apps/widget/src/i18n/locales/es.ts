@@ -132,6 +132,30 @@ export const es: Translation = {
   },
 
   orders: {
+    issues: {
+      status: {
+        received: 'Recibida',
+        in_progress: 'En curso',
+        resolved: 'Resuelta',
+        rejected: 'Rechazada',
+        closed: 'Completada',
+      },
+      type: {
+        order_status: 'Estado del pedido',
+        delivery: 'Entrega',
+        cancel: 'Cancelación',
+        refund: 'Reembolso',
+        partnership: 'Alianzas',
+        other: 'Consulta',
+      },
+      line: {
+        received: 'Hemos recibido tu consulta. La estamos revisando.',
+        in_progress: 'Un agente asignado la está atendiendo.',
+        resolved: 'Esta consulta ha sido resuelta.',
+        rejected: 'No pudimos procesar esta consulta. Revisa la notificación para más detalles.',
+        closed: 'Esta consulta ha sido completada. Gracias.',
+      },
+    },
     subtabs: {
       payments: 'Pagos',
       shipping: 'Envíos',

@@ -131,6 +131,30 @@ export const en = {
   },
 
   orders: {
+    issues: {
+      status: {
+        received: 'Received',
+        in_progress: 'In progress',
+        resolved: 'Resolved',
+        rejected: 'Declined',
+        closed: 'Completed',
+      },
+      type: {
+        order_status: 'Order status',
+        delivery: 'Delivery',
+        cancel: 'Cancellation',
+        refund: 'Refund',
+        partnership: 'Partnership',
+        other: 'Inquiry',
+      },
+      line: {
+        received: 'Your inquiry has been received. We are looking into it.',
+        in_progress: 'An agent has been assigned and is working on it.',
+        resolved: 'This inquiry has been resolved.',
+        rejected: 'This inquiry could not be processed. See the notification for details.',
+        closed: 'This inquiry has been completed. Thank you.',
+      },
+    },
     subtabs: {
       payments: 'Payments',
       shipping: 'Shipping',
