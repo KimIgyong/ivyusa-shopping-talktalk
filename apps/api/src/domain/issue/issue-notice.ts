@@ -60,6 +60,20 @@ const EXTERNAL_TITLES: Record<NoticeLang, string> = {
   KO: '문의 처리 안내',
 };
 
+const EXTERNAL_REPLY_BODIES: Record<NoticeLang, string> = {
+  EN: 'A support agent has replied — open the chat to read it.',
+  ES: 'Un agente de soporte ha respondido — abre el chat para leerlo.',
+  KO: '상담원 답변이 도착했습니다. 채팅에서 확인해 주세요.',
+};
+
+/** L3 relay notice (백로그 B1): an external agent reply landed in the widget thread. */
+export function externalReplyNotice(language: string | null | undefined): { title: string; body: string } {
+  const lang = ((language ?? 'EN').toUpperCase() as NoticeLang) in BODIES
+    ? ((language ?? 'EN').toUpperCase() as NoticeLang)
+    : 'EN';
+  return { title: EXTERNAL_TITLES[lang], body: EXTERNAL_REPLY_BODIES[lang] };
+}
+
 /** Bridge-mode notice (no local issue number — the ticket lives in Gorgias). */
 export function externalNotice(language: string | null | undefined): { title: string; body: string } {
   const lang = ((language ?? 'EN').toUpperCase() as NoticeLang) in BODIES

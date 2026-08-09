@@ -16,6 +16,7 @@ describe('IssueService', () => {
     existing?: Partial<Issue> | null;
     maxNo?: number;
     lastIntent?: string | null;
+    lastAiTrace?: Record<string, unknown> | null;
   }) {
     let saved: Partial<Issue> | null = null;
     const events: Array<Partial<IssueEvent>> = [];
@@ -44,9 +45,12 @@ describe('IssueService', () => {
       findOne: jest.fn(async () => ({ id: 1, workflowMode: opts.mode ?? 'native' }) as Tenant),
     } as unknown as Repository<Tenant>;
     const msgRepo = {
-      findOne: jest.fn(async () =>
-        opts.lastIntent === undefined ? null : ({ intent: opts.lastIntent } as Message),
-      ),
+      findOne: jest.fn(async ({ where }: { where: { senderType?: string } }) => {
+        if (where?.senderType === 'ai') {
+          return opts.lastAiTrace ? ({ retrievalTrace: opts.lastAiTrace } as Message) : null;
+        }
+        return opts.lastIntent === undefined ? null : ({ intent: opts.lastIntent } as Message);
+      }),
     } as unknown as Repository<Message>;
     const bus = { subscribe: jest.fn(), publish: jest.fn() } as never;
     const audit = { write: jest.fn(async () => undefined) } as never;
@@ -61,6 +65,7 @@ describe('IssueService', () => {
     };
     const customerRepo = { findOne: jest.fn(async () => null) };
     const userRepo = { find: jest.fn(async () => []) };
+    const aiConfigRepo = { findOne: jest.fn(async () => null) };
     const mailer = { send: jest.fn(async () => true) };
     const svc = new IssueService(
       issueRepo,
@@ -72,6 +77,7 @@ describe('IssueService', () => {
       sessionRepo as never,
       customerRepo as never,
       userRepo as never,
+      aiConfigRepo as never,
       bus,
       audit,
       mailer as never,
@@ -249,6 +255,57 @@ describe('IssueService', () => {
         (c) => (c[1] as { category?: string }).category === 'issue',
       );
       expect((call?.[1] as { body: string }).body).toContain('정책상');
+    });
+  });
+
+  // 백로그 B4: 접수+미배정 이슈의 고객 종료 → 마지막 봇 tier로 자동 종결.
+  describe('onConversationEnded auto-tier (B4)', () => {
+    const receivedIssue = (): Partial<Issue> => ({
+      id: 9, tenantId: 1, issueNo: 37, sessionId: 5,
+      status: ISSUE_STATUS.RECEIVED, assigneeUserId: null, reopenCount: 0,
+    });
+
+    it('confident AI answer → resolved(tier=ai) → closed, silently', async () => {
+      const { svc, getSaved, bus } = build({
+        existing: receivedIssue(),
+        lastAiTrace: { confidence: 0.8 },
+      });
+      await svc.onConversationEnded(7, true);
+      expect(getSaved()).toMatchObject({ status: 'closed', resolvedTier: 'ai' });
+      await new Promise((r) => setImmediate(r));
+      const issueNotices = (bus.publish as jest.Mock).mock.calls.filter(
+        (c) => (c[1] as { category?: string }).category === 'issue',
+      );
+      expect(issueNotices).toHaveLength(0); // silent — the shopper ended it themselves
+    });
+
+    it('scenario reply → tier=scenario', async () => {
+      const { svc, getSaved } = build({
+        existing: receivedIssue(),
+        lastAiTrace: { scenario: 'refund_policy' },
+      });
+      await svc.onConversationEnded(7, true);
+      expect(getSaved()).toMatchObject({ status: 'closed', resolvedTier: 'scenario' });
+    });
+
+    it('stays open with no confident answer, on agent-side end, or when assigned', async () => {
+      const { svc, getSaved } = build({ existing: receivedIssue(), lastAiTrace: { confidence: 0.2 } });
+      await svc.onConversationEnded(7, true);
+      expect(getSaved()).toBeNull();
+
+      const { svc: svc2, getSaved: s2 } = build({
+        existing: receivedIssue(),
+        lastAiTrace: { confidence: 0.9 },
+      });
+      await svc2.onConversationEnded(7, false); // agent console end
+      expect(s2()).toBeNull();
+
+      const { svc: svc3, getSaved: s3 } = build({
+        existing: { ...receivedIssue(), assigneeUserId: 20 },
+        lastAiTrace: { confidence: 0.9 },
+      });
+      await svc3.onConversationEnded(7, true);
+      expect(s3()).toBeNull();
     });
   });
 

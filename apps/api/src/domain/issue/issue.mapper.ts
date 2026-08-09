@@ -47,16 +47,20 @@ export interface IssueCardResponse {
   updatedAt: string;
 }
 
-/** SLA targets by priority (결정 5 — 2단계); computed, no schema. */
-const SLA_HOURS: Record<string, number> = { urgent: 4, normal: 24 };
+/** SLA fallbacks (결정 5 — 2단계); tenant overrides arrive via handoffConfig.sla (B2). */
+const SLA_DEFAULTS = { normalHours: 24, urgentHours: 4 };
 
 /** Entity → console response (camelCase per convention). */
 export class IssueMapper {
-  static toCard(i: Issue, assigneeName: string | null): IssueCardResponse {
+  static toCard(
+    i: Issue,
+    assigneeName: string | null,
+    sla: { normalHours: number; urgentHours: number } = SLA_DEFAULTS,
+  ): IssueCardResponse {
     const open = i.status === 'received' || i.status === 'in_progress';
     let slaState: IssueCardResponse['slaState'] = null;
     if (open) {
-      const limitH = SLA_HOURS[i.priority] ?? SLA_HOURS.normal;
+      const limitH = i.priority === 'urgent' ? sla.urgentHours : sla.normalHours;
       const elapsedH = (Date.now() - new Date(i.createdAt).getTime()) / 3_600_000;
       slaState = elapsedH > limitH ? 'overdue' : elapsedH > limitH * 0.7 ? 'warning' : 'ok';
     }
