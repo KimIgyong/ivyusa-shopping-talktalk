@@ -39,6 +39,8 @@ import {
 } from './dto/request/knowledge.request';
 import { KbConflictService } from './kb-conflict.service';
 import { KbRevisionService } from './kb-revision.service';
+import { KnowledgeGapService } from './knowledge-gap.service';
+import { AcceptGapTaskRequest } from './dto/request/knowledge.request';
 
 /** Knowledge source & RAG corpus management (FR-064, FR-065). Tenant-scoped. */
 @ApiTags('Knowledge')
@@ -49,7 +51,46 @@ export class KnowledgeController {
     private readonly conflictService: KbConflictService,
     private readonly revisionService: KbRevisionService,
     private readonly jobService: CatalogSyncJobService,
+    private readonly gapService: KnowledgeGapService,
   ) {}
+
+  // ---- Knowledge-gap proposals (P5, 결정 9: human approval only) ----
+
+  @Get('gap-tasks')
+  @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
+  @ApiOperation({ summary: 'Knowledge-gap proposals awaiting a decision (P5)' })
+  async listGapTasks(@CurrentUser() user: Principal, @Query('status') status?: string) {
+    const tasks = await this.gapService.list(
+      this.tenantUser(user).tenantId,
+      status === 'accepted' || status === 'dismissed' ? status : 'proposed',
+    );
+    return { tasks: tasks.map((t) => KnowledgeMapper.toGapTask(t)) };
+  }
+
+  @Post('gap-tasks/:id/accept')
+  @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
+  @ApiOperation({ summary: 'Approve a proposal → create+embed a KB document (existing pipeline)' })
+  async acceptGapTask(
+    @CurrentUser() user: Principal,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: AcceptGapTaskRequest,
+  ) {
+    const u = this.tenantUser(user);
+    const { task, document } = await this.gapService.accept(u.tenantId, u.userId, id, {
+      title: body.title,
+      content: body.content,
+    });
+    return { task: KnowledgeMapper.toGapTask(task), documentId: String(document.id) };
+  }
+
+  @Post('gap-tasks/:id/dismiss')
+  @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
+  @ApiOperation({ summary: 'Dismiss a proposal (never re-raised)' })
+  async dismissGapTask(@CurrentUser() user: Principal, @Param('id', ParseIntPipe) id: number) {
+    const u = this.tenantUser(user);
+    const task = await this.gapService.dismiss(u.tenantId, u.userId, id);
+    return { task: KnowledgeMapper.toGapTask(task) };
+  }
 
   /** Narrow to a tenant user; knowledge management is tenant-scoped only. */
   private tenantUser(user: Principal): { tenantId: number; userId: number } {

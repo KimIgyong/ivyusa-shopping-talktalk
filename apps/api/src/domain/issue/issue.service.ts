@@ -365,6 +365,18 @@ export class IssueService implements OnModuleInit {
       toStatus: to,
       note: meta.note,
     });
+    // Knowledge closed loop (P5): an agent-tier resolution is a capture
+    // candidate — publish for KnowledgeGapService (module graph stays acyclic).
+    if (to === ISSUE_STATUS.RESOLVED && saved.resolvedTier === ISSUE_TIER.AGENT) {
+      void Promise.resolve(
+        this.bus.publish(EVENTS.ISSUE_RESOLVED, {
+          tenantId: saved.tenantId,
+          issueId: Number(saved.id),
+          issueNo: saved.issueNo,
+          conversationId: Number(saved.conversationId),
+        }),
+      ).catch((e: Error) => this.logger.debug(`issue.resolved publish failed: ${e.message}`));
+    }
     // Customer status notice (P3, REQ §5.4): every state change tells the shopper
     // where their inquiry stands — rejection wording is per reason code.
     const noticeKey = reopen

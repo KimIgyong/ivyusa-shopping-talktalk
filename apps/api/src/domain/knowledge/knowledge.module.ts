@@ -17,6 +17,10 @@ import { UsageGuideService } from './usage-guide.service';
 import { SourceSyncService } from './source-sync.service';
 import { BoardAdapter } from './adapters/board.adapter';
 import { AuditModule } from '../audit/audit.module';
+import { KnowledgeGapTask } from './entity/knowledge-gap-task.entity';
+import { QuestionStatDaily } from '../analytics/entity/question-stat-daily.entity';
+import { Message } from '../chat/entity/message.entity';
+import { KnowledgeGapService } from './knowledge-gap.service';
 import { KnowledgeController } from './knowledge.controller';
 import { ChatModule } from '../chat/chat.module';
 import { ModerationModule } from '../moderation/moderation.module';
@@ -33,6 +37,9 @@ import { ModerationModule } from '../moderation/moderation.module';
       // Repository only — the CSV import's optional Price/Image bridge writes
       // into the display catalog (PLN-260807 F1). No ProductModule import.
       ProductCache,
+      KnowledgeGapTask,
+      QuestionStatDaily,
+      Message,
     ]),
     // RagService answers the console's knowledge questions; Chat does not depend
     // on Knowledge, so this stays acyclic.
@@ -44,6 +51,7 @@ import { ModerationModule } from '../moderation/moderation.module';
   controllers: [KnowledgeController],
   providers: [
     KnowledgeService,
+    KnowledgeGapService,
     KbConflictService,
     KbRevisionService,
     ProductImportService,

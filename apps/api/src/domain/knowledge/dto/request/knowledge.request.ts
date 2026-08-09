@@ -92,3 +92,9 @@ export class SaveUsageGuideRequest {
   @IsString() @MaxLength(255) title: string;
   @IsString() @MinLength(20) @MaxLength(20000) content: string;
 }
+
+/** POST /knowledge/gap-tasks/:id/accept — 승인 전 인라인 편집(P5). */
+export class AcceptGapTaskRequest {
+  @IsOptional() @IsString() @MaxLength(300) title?: string;
+  @IsOptional() @IsString() content?: string;
+}

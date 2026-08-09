@@ -17,6 +17,7 @@ import { FormRow, Input, Select } from '@/components/Field';
 import { ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { KnowledgeQaPanel } from './KnowledgeQaPanel';
+import { GapTasksSection } from './GapTasksSection';
 import { ConflictReview } from './ConflictReview';
 import { RevisionHistory } from './RevisionHistory';
 import {
@@ -447,6 +448,9 @@ export function KnowledgePage() {
   return (
     <div>
       <PageHeader title={t('title')} subtitle={t('subtitle')} />
+
+      {/* Knowledge-gap proposal inbox (P5) — renders nothing when empty. */}
+      <GapTasksSection />
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_400px]">
         <div className="space-y-6">
