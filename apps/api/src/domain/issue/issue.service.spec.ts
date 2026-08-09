@@ -55,7 +55,12 @@ describe('IssueService', () => {
       save: jest.fn(async (e: unknown) => e),
       create: (e: unknown) => e,
     };
-    const convRepo = { update: jest.fn() };
+    const convRepo = { update: jest.fn(), findOne: jest.fn(async () => null) };
+    const sessionRepo = {
+      findOne: jest.fn(async () => ({ id: 5, language: 'KO', customerId: null })),
+    };
+    const customerRepo = { findOne: jest.fn(async () => null) };
+    const mailer = { send: jest.fn(async () => true) };
     const svc = new IssueService(
       issueRepo,
       eventRepo,
@@ -63,10 +68,22 @@ describe('IssueService', () => {
       msgRepo,
       assignmentRepo as never,
       convRepo as never,
+      sessionRepo as never,
+      customerRepo as never,
       bus,
       audit,
+      mailer as never,
     );
-    return { svc, issueRepo, eventRepo, events, assignmentRepo, convRepo, getSaved: () => saved };
+    return {
+      svc,
+      issueRepo,
+      eventRepo,
+      events,
+      assignmentRepo,
+      convRepo,
+      bus: bus as unknown as { publish: jest.Mock },
+      getSaved: () => saved,
+    };
   }
 
   const payload = { tenantId: 1, conversationId: 7, sessionId: 5, reason: 'low_confidence' };
@@ -197,6 +214,39 @@ describe('IssueService', () => {
       await expect(
         svc.transition({ userId: 99, rank: 'manager' }, 1, 9, ISSUE_STATUS.RESOLVED),
       ).rejects.toBeInstanceOf(BusinessException);
+    });
+  });
+
+
+  // P3: customer status notices ride the existing notification bus.
+  describe('status notices (P3)', () => {
+    it('publishes a localized notice on creation and on transition', async () => {
+      const { svc, bus } = build({ existing: null, maxNo: 0, lastIntent: 'refund_inquiry' });
+      await svc.openForEscalation(payload);
+      await new Promise((r) => setImmediate(r)); // fire-and-forget notice
+      expect(bus.publish).toHaveBeenCalledWith(
+        expect.stringContaining('notification'),
+        expect.objectContaining({ category: 'issue', sessionId: 5, channel: 'push' }),
+      );
+      const first = (bus.publish as jest.Mock).mock.calls[0][1] as { body: string };
+      expect(first.body).toContain('#1'); // KO received notice with issue number
+    });
+
+    it('rejection notice uses the reason-specific wording', async () => {
+      const { svc, bus } = build({
+        existing: {
+          id: 9, tenantId: 1, issueNo: 37, sessionId: 5,
+          status: ISSUE_STATUS.IN_PROGRESS, assigneeUserId: 20, reopenCount: 0,
+        },
+      });
+      await svc.transition({ userId: 99, rank: 'manager' }, 1, 9, ISSUE_STATUS.REJECTED, {
+        rejectReason: 'policy_impossible',
+      });
+      await new Promise((r) => setImmediate(r));
+      const call = (bus.publish as jest.Mock).mock.calls.find(
+        (c) => (c[1] as { category?: string }).category === 'issue',
+      );
+      expect((call?.[1] as { body: string }).body).toContain('정책상');
     });
   });
 

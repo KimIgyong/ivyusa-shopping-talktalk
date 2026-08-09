@@ -137,7 +137,8 @@
       "app_key": "App(스토어) 키",
       "secret_key": "시크릿 키",
       "subdomain": "계정 서브도메인",
-      "email": "계정 이메일"
+      "email": "계정 이메일",
+      "webhook_secret": "웹훅 시크릿 (L2 상태회신)"
     },
     "ph": {
       "mall_id": "your-mall",

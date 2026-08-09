@@ -13,6 +13,8 @@ import { IntegrationCredential } from '../tenant/entity/integration-credential.e
 import { ExternalTicket } from './entity/external-ticket.entity';
 import { IssueService } from './issue.service';
 import { IssueController } from './issue.controller';
+import { IssuePublicController } from './issue-public.controller';
+import { GorgiasWebhookController } from './gorgias-webhook.controller';
 import { ExternalTicketService } from './external-ticket.service';
 import { AuditModule } from '../audit/audit.module';
 
@@ -39,7 +41,7 @@ import { AuditModule } from '../audit/audit.module';
     ]),
     AuditModule,
   ],
-  controllers: [IssueController],
+  controllers: [IssueController, IssuePublicController, GorgiasWebhookController],
   providers: [IssueService, ExternalTicketService],
   exports: [IssueService],
 })
