@@ -131,6 +131,7 @@
     "priorityToggle": "우선순위 전환",
     "urgent": "긴급",
     "normal": "일반",
-    "cancel": "취소"
+    "cancel": "취소",
+    "move": "이동…"
   }
 }

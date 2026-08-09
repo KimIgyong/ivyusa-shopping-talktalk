@@ -49,6 +49,9 @@ export function HandoffSection() {
   const [denyRows, setDenyRows] = useState<Array<{ keywords: string; type: string; label: string }>>(
     [],
   );
+  // Issue-board SLA targets (B2) — string state, validated on save (1..168h).
+  const [slaNormal, setSlaNormal] = useState('24');
+  const [slaUrgent, setSlaUrgent] = useState('4');
 
   useEffect(() => {
     const h = config?.handoffConfig;
@@ -76,6 +79,8 @@ export function HandoffSection() {
         label: r.label ?? 'consult',
       })),
     );
+    if (h.sla?.normalHours != null) setSlaNormal(String(h.sla.normalHours));
+    if (h.sla?.urgentHours != null) setSlaUrgent(String(h.sla.urgentHours));
   }, [config]);
 
   // Only consult-label agents handle conversations, so only they can be assigned.
@@ -117,6 +122,11 @@ export function HandoffSection() {
       }))
       .filter((r) => r.keywords.length > 0);
     if (denyRules.length) handoff.denyRules = denyRules;
+    const clamp = (v: string, fallback: number) => {
+      const n = Number(v);
+      return Number.isFinite(n) && n >= 1 && n <= 168 ? n : fallback;
+    };
+    handoff.sla = { normalHours: clamp(slaNormal, 24), urgentHours: clamp(slaUrgent, 4) };
     updateConfig.mutate({ handoff_config: handoff });
   };
 
@@ -281,6 +291,34 @@ export function HandoffSection() {
               placeholder={t('handoff.noticePlaceholder')}
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-primary-500"
             />
+          </div>
+
+          {/* Issue-board SLA targets (B2) — drives the board's ⚠/🔥 badges. */}
+          <div className="border-t border-gray-100 pt-4">
+            <Label>{t('handoff.slaTitle')}</Label>
+            <div className="mt-1 flex flex-wrap items-end gap-3">
+              <div className="w-36">
+                <Label>{t('handoff.slaNormal')}</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  max={168}
+                  value={slaNormal}
+                  onChange={(e) => setSlaNormal(e.target.value)}
+                />
+              </div>
+              <div className="w-36">
+                <Label>{t('handoff.slaUrgent')}</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  max={168}
+                  value={slaUrgent}
+                  onChange={(e) => setSlaUrgent(e.target.value)}
+                />
+              </div>
+            </div>
+            <p className="mt-1 text-[11px] text-gray-400">{t('handoff.slaHint')}</p>
           </div>
 
           {/* Policy deny-list (P2): matched topics skip the AI and go to a human. */}

@@ -15,6 +15,15 @@ import { issuesBoardService, type IssueCard } from './issues-board.service';
 const COLUMNS = ['received', 'in_progress', 'resolved', 'rejected', 'closed'] as const;
 const REJECT_REASONS = ['policy_impossible', 'misrouted', 'spam'] as const;
 
+/** Allowed transitions per status (mirrors the server state machine, P1). */
+const MOVES: Record<string, string[]> = {
+  received: ['in_progress', 'resolved', 'rejected'],
+  in_progress: ['resolved', 'rejected'],
+  resolved: ['closed', 'in_progress'],
+  rejected: ['closed', 'in_progress'],
+  closed: ['in_progress'],
+};
+
 function slaBadge(state: IssueCard['slaState']): string | null {
   if (state === 'overdue') return '🔥';
   if (state === 'warning') return '⚠️';
@@ -166,6 +175,24 @@ export function IssueBoardPage() {
                       <Badge tone="info">{t(`issue.label.${card.assigneeLabel}`, { defaultValue: card.assigneeLabel })}</Badge>
                     )}
                     <span className="truncate">{card.assigneeName ?? t('board.noAssignee')}</span>
+                    {/* Touch-friendly move (백로그 B3): same transitions as drag. */}
+                    <select
+                      className="rounded border border-gray-200 bg-white px-1 py-0.5 text-[10px] text-gray-500"
+                      value=""
+                      onClick={(e) => e.stopPropagation()}
+                      onChange={(e) => {
+                        e.stopPropagation();
+                        const to = e.target.value;
+                        if (to) onDrop(card, to);
+                      }}
+                    >
+                      <option value="">{t('board.move')}</option>
+                      {(MOVES[card.status] ?? []).map((to) => (
+                        <option key={to} value={to}>
+                          {t(`issue.status.${to}`)}
+                        </option>
+                      ))}
+                    </select>
                     <button
                       onClick={(e) => {
                         e.stopPropagation();

@@ -140,7 +140,11 @@
       "consult": "Consulta",
       "accounting": "Contabilidad",
       "operations": "Operaciones"
-    }
+    },
+    "slaTitle": "Objetivos SLA del tablero",
+    "slaNormal": "Normal (horas)",
+    "slaUrgent": "Urgente (horas)",
+    "slaHint": "Controla las insignias de aviso/retraso del tablero. 1-168h; por defecto 24h / 4h."
   },
   "coach": {
     "title": "Entrenamiento del agente",

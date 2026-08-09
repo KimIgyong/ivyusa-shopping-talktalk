@@ -85,6 +85,8 @@ export interface HandoffConfig {
   offHours?: { email?: string; notice?: Partial<Record<ScenarioLang, string>> };
   /** Policy deny-list (P2): matched messages are force-handed to a human. */
   denyRules?: Array<{ keywords: string[]; type?: string; label?: string }>;
+  /** Issue-board SLA targets (백로그 B2); defaults 24h/4h. */
+  sla?: { normalHours?: number; urgentHours?: number };
 }
 
 export interface AiConfig {
