@@ -113,6 +113,24 @@
     "transitioned": "Issue updated.",
     "transitionError": "Failed to update the issue.",
     "transfer": "Transfer to…",
-    "assigned": "Issue reassigned."
+    "assigned": "Issue reassigned.",
+    "label": {
+      "consult": "Consult",
+      "accounting": "Accounting",
+      "operations": "Operations"
+    }
+  },
+  "board": {
+    "title": "Issue board",
+    "subtitle": "Escalated inquiries by status — drag cards to transition.",
+    "notNative": "The issue workflow add-on is not enabled for this store. Contact the platform operator to enable it.",
+    "unassigned": "Unassigned",
+    "avgResolution": "Avg. resolution",
+    "reopenRate": "Reopen rate",
+    "noAssignee": "Unassigned",
+    "priorityToggle": "Toggle priority",
+    "urgent": "URGENT",
+    "normal": "normal",
+    "cancel": "Cancel"
   }
 }

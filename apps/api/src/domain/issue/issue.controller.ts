@@ -1,9 +1,13 @@
-import { Body, Controller, Get, HttpStatus, Param, ParseIntPipe, Post } from '@nestjs/common';
+import { Body, Controller, Get, HttpStatus, Param, ParseIntPipe, Patch, Post } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CAPABILITY, Principal } from '@ivy/types';
 import { IssueService } from './issue.service';
 import { IssueMapper } from './issue.mapper';
-import { AssignIssueRequest, TransitionIssueRequest } from './dto/request/issue.request';
+import {
+  AssignIssueRequest,
+  SetIssuePriorityRequest,
+  TransitionIssueRequest,
+} from './dto/request/issue.request';
 import { RequireCapability } from '../../global/decorator/auth.decorator';
 import { CurrentUser } from '../../global/decorator/current-user.decorator';
 import { BusinessException } from '../../global/exception/business.exception';
@@ -14,6 +18,45 @@ import { ERROR_CODE } from '../../global/constant/error-code.constant';
 @Controller('agent/issues')
 export class IssueController {
   constructor(private readonly issueService: IssueService) {}
+
+  @Get('board')
+  @RequireCapability(CAPABILITY.CONVERSATION_HANDLE)
+  @ApiOperation({ summary: 'Kanban board — issues grouped by status (P4)' })
+  async board(@CurrentUser() user: Principal) {
+    const { columns, names } = await this.issueService.board(this.tenant(user).tenantId);
+    const mapped: Record<string, unknown[]> = {};
+    for (const [status, issues] of Object.entries(columns)) {
+      mapped[status] = issues.map((i) =>
+        IssueMapper.toCard(i, i.assigneeUserId != null ? names.get(Number(i.assigneeUserId)) ?? null : null),
+      );
+    }
+    return { columns: mapped };
+  }
+
+  @Get('stats')
+  @RequireCapability(CAPABILITY.CONVERSATION_HANDLE)
+  @ApiOperation({ summary: 'Workflow KPIs for the board header (P4)' })
+  async stats(@CurrentUser() user: Principal) {
+    return this.issueService.stats(this.tenant(user).tenantId);
+  }
+
+  @Patch(':id/priority')
+  @RequireCapability(CAPABILITY.CONVERSATION_HANDLE)
+  @ApiOperation({ summary: 'Toggle issue priority normal/urgent (P4, 결정 5)' })
+  async priority(
+    @CurrentUser() user: Principal,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: SetIssuePriorityRequest,
+  ) {
+    const u = this.tenant(user);
+    const issue = await this.issueService.setPriority(
+      { userId: u.userId, rank: u.rank },
+      u.tenantId,
+      id,
+      body.priority,
+    );
+    return IssueMapper.toIssue(issue);
+  }
 
   @Get('by-conversation/:conversationId')
   @RequireCapability(CAPABILITY.CONVERSATION_HANDLE)

@@ -60,6 +60,7 @@ describe('IssueService', () => {
       findOne: jest.fn(async () => ({ id: 5, language: 'KO', customerId: null })),
     };
     const customerRepo = { findOne: jest.fn(async () => null) };
+    const userRepo = { find: jest.fn(async () => []) };
     const mailer = { send: jest.fn(async () => true) };
     const svc = new IssueService(
       issueRepo,
@@ -70,6 +71,7 @@ describe('IssueService', () => {
       convRepo as never,
       sessionRepo as never,
       customerRepo as never,
+      userRepo as never,
       bus,
       audit,
       mailer as never,

@@ -17,3 +17,9 @@ export class TransitionIssueRequest {
 export class AssignIssueRequest {
   @IsInt() @Min(1) user_id: number;
 }
+
+/** PATCH /agent/issues/:id/priority — 결정 5의 2단계 우선순위 (P4). */
+export class SetIssuePriorityRequest {
+  @IsIn(['normal', 'urgent'])
+  priority: string;
+}

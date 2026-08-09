@@ -1,6 +1,7 @@
 import {
   LayoutDashboard,
   MessagesSquare,
+  SquareKanban,
   History,
   ClipboardList,
   BarChart3,
@@ -31,6 +32,8 @@ export interface NavItem {
 export const TENANT_NAV: NavItem[] = [
   { to: '/dashboard', labelKey: 'dashboard', icon: LayoutDashboard, capability: 'dashboard' },
   { to: '/live-chat', labelKey: 'liveChat', icon: MessagesSquare, capability: 'live_chat' },
+  // Issue board (P4) — same holders as live chat; non-native tenants get a notice.
+  { to: '/issues', labelKey: 'issueBoard', icon: SquareKanban, capability: 'live_chat' },
   { to: '/history', labelKey: 'history', icon: History, capability: 'history' },
   // Audit-backed agent activity — same holders as TENANT_AUDIT_READ.
   { to: '/work-log', labelKey: 'workLog', icon: ClipboardList, capability: 'work_log' },
