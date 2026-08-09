@@ -132,6 +132,30 @@ export const ko: Translation = {
   },
 
   orders: {
+    issues: {
+      status: {
+        received: '접수',
+        in_progress: '진행중',
+        resolved: '해결',
+        rejected: '반려',
+        closed: '완료',
+      },
+      type: {
+        order_status: '주문상태',
+        delivery: '배송',
+        cancel: '취소',
+        refund: '환불',
+        partnership: '제휴',
+        other: '문의',
+      },
+      line: {
+        received: '문의가 접수되었습니다. 확인 중입니다.',
+        in_progress: '담당자가 배정되어 처리 중입니다.',
+        resolved: '문의가 해결되었습니다.',
+        rejected: '처리할 수 없어 반려되었습니다. 자세한 내용은 알림을 확인해 주세요.',
+        closed: '문의 처리가 완료되었습니다. 감사합니다.',
+      },
+    },
     subtabs: {
       payments: '결제',
       shipping: '배송',

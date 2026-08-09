@@ -40,6 +40,21 @@ export function getOrder(
   });
 }
 
+/** The session's inquiry (issue) feed — PLN-260809-Issue-Workflow-P3 S2. */
+export interface IssueFeedItem {
+  issueNo: number;
+  type: string;
+  status: string;
+  rejectReason: string | null;
+  updatedAt: string | null;
+}
+
+export function listIssues(sessionToken: string): Promise<IssueFeedItem[]> {
+  return apiClient
+    .get<{ issues: IssueFeedItem[] }>('/issues', { session_token: sessionToken })
+    .then((r) => r.issues ?? []);
+}
+
 export function getTracking(
   id: string,
   sessionToken: string,
