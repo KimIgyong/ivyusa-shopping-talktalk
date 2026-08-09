@@ -34,6 +34,10 @@ export class ExternalTicket {
   @Column({ name: 'last_relayed_message_id', type: 'bigint', nullable: true, transformer: bigintTransformer })
   lastRelayedMessageId: number | null;
 
+  /** Highest Gorgias message id relayed INTO the widget (L3 inbound cursor). */
+  @Column({ name: 'last_inbound_message_id', type: 'bigint', nullable: true, transformer: bigintTransformer })
+  lastInboundMessageId: number | null;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 

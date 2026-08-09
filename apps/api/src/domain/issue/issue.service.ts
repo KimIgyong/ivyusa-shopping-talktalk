@@ -11,6 +11,7 @@ import { Conversation } from '../chat/entity/conversation.entity';
 import { Session } from '../session/entity/session.entity';
 import { Customer } from '../customer/entity/customer.entity';
 import { User } from '../user/entity/user.entity';
+import { TenantAiConfig } from '../ai-engine/entity/tenant-ai-config.entity';
 import { issueNotice } from './issue-notice';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
@@ -96,6 +97,7 @@ export class IssueService implements OnModuleInit {
     @InjectRepository(Session) private readonly sessionRepo: Repository<Session>,
     @InjectRepository(Customer) private readonly customerRepo: Repository<Customer>,
     @InjectRepository(User) private readonly userRepo: Repository<User>,
+    @InjectRepository(TenantAiConfig) private readonly aiConfigRepo: Repository<TenantAiConfig>,
     private readonly bus: EventBusService,
     private readonly audit: AuditService,
     private readonly mailer: MailerService,
@@ -203,8 +205,15 @@ export class IssueService implements OnModuleInit {
   /**
    * Conversation ended (agent console or the customer's end button): a settled
    * issue closes with it; an open one stays on the worklist (best-effort hook).
+   *
+   * 백로그 B4 (접수→해결 단축경로, REQ §5.2): when the CUSTOMER ends the chat
+   * while the issue is still received and unassigned, the last bot turn decides —
+   * a confident AI answer settles it as tier=ai, a scenario reply as
+   * tier=scenario (silently; the shopper just chose to leave satisfied). A
+   * low-confidence/answerless thread stays open on the worklist, and anything
+   * an agent touched keeps the normal flow.
    */
-  async onConversationEnded(conversationId: number): Promise<void> {
+  async onConversationEnded(conversationId: number, customerEnded = false): Promise<void> {
     try {
       const issue = await this.issueRepo.findOne({ where: { conversationId } });
       if (!issue) return;
@@ -214,10 +223,47 @@ export class IssueService implements OnModuleInit {
           actorId: null,
           note: 'conversation ended',
         });
+        return;
+      }
+      if (
+        customerEnded &&
+        issue.status === ISSUE_STATUS.RECEIVED &&
+        issue.assigneeUserId == null
+      ) {
+        const tier = await this.autoResolveTier(conversationId);
+        if (!tier) return; // no confident bot answer — keep it on the worklist
+        issue.resolvedTier = tier;
+        const resolved = await this.applyTransition(issue, ISSUE_STATUS.RESOLVED, {
+          actorType: tier === ISSUE_TIER.SCENARIO ? 'system' : 'ai',
+          actorId: null,
+          note: `auto-resolved (${tier})`,
+          silent: true,
+        });
+        await this.applyTransition(resolved, ISSUE_STATUS.CLOSED, {
+          actorType: 'system',
+          actorId: null,
+          note: 'customer ended',
+          silent: true,
+        });
       }
     } catch (e) {
       this.logger.warn(`issue close hook failed: ${(e as Error).message}`);
     }
+  }
+
+  /** Which tier answered last, confidently enough to count as auto-resolution. */
+  private async autoResolveTier(conversationId: number): Promise<string | null> {
+    const last = await this.msgRepo.findOne({
+      where: { conversationId, senderType: SENDER_TYPE.AI },
+      order: { id: 'DESC' },
+    });
+    const trace = (last?.retrievalTrace ?? null) as
+      | { confidence?: number; scenario?: string }
+      | null;
+    if (!last || !trace) return null;
+    if (trace.scenario) return ISSUE_TIER.SCENARIO;
+    if (typeof trace.confidence === 'number' && trace.confidence >= 0.45) return ISSUE_TIER.AI;
+    return null;
   }
 
   /** The conversation's issue for the console thread header, or null. */
@@ -340,7 +386,14 @@ export class IssueService implements OnModuleInit {
   private async applyTransition(
     issue: Issue,
     to: string,
-    meta: { actorType: string; actorId: number | null; note: string | null; rejectReason?: string },
+    meta: {
+      actorType: string;
+      actorId: number | null;
+      note: string | null;
+      rejectReason?: string;
+      /** Skip the customer notice (B4 auto-resolution on a self-ended chat). */
+      silent?: boolean;
+    },
   ): Promise<Issue> {
     const from = issue.status;
     if (!(TRANSITIONS[from] ?? []).includes(to)) {
@@ -384,7 +437,9 @@ export class IssueService implements OnModuleInit {
       : to === ISSUE_STATUS.REJECTED
         ? `rejected_${saved.rejectReason ?? 'policy_impossible'}`
         : to;
-    void this.notifyCustomer(saved, noticeKey, to === ISSUE_STATUS.RESOLVED ? meta.note : null);
+    if (!meta.silent) {
+      void this.notifyCustomer(saved, noticeKey, to === ISSUE_STATUS.RESOLVED ? meta.note : null);
+    }
     return saved;
   }
 
@@ -443,6 +498,7 @@ export class IssueService implements OnModuleInit {
   async board(tenantId: number): Promise<{
     columns: Record<string, Issue[]>;
     names: Map<number, string>;
+    sla: { normalHours: number; urgentHours: number };
   }> {
     const open = await this.issueRepo.find({
       where: { tenantId, status: In([ISSUE_STATUS.RECEIVED, ISSUE_STATUS.IN_PROGRESS]) },
@@ -473,7 +529,22 @@ export class IssueService implements OnModuleInit {
       const users = await this.userRepo.find({ where: { id: In(ids) } });
       for (const u of users) names.set(Number(u.id), u.name || u.email || `#${u.id}`);
     }
-    return { columns, names };
+    return { columns, names, sla: await this.slaTargets(tenantId) };
+  }
+
+  /** SLA targets (백로그 B2): tenant handoffConfig.sla ?? 결정 5 기본(24h/4h). */
+  private async slaTargets(tenantId: number): Promise<{ normalHours: number; urgentHours: number }> {
+    try {
+      const config = await this.aiConfigRepo.findOne({ where: { tenantId } });
+      const sla = config?.handoffConfig?.sla;
+      const clamp = (v: unknown, fallback: number) => {
+        const n = Number(v);
+        return Number.isFinite(n) && n >= 1 && n <= 168 ? n : fallback;
+      };
+      return { normalHours: clamp(sla?.normalHours, 24), urgentHours: clamp(sla?.urgentHours, 4) };
+    } catch {
+      return { normalHours: 24, urgentHours: 4 };
+    }
   }
 
   /** Workflow KPIs for the board header (30-day window for rates/averages). */

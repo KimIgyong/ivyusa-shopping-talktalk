@@ -18,9 +18,13 @@ export class GorgiasWebhookController {
 
   @Post()
   @Public()
-  @ApiOperation({ summary: 'Gorgias ticket-updated → mirror status, notify on close' })
+  @ApiOperation({ summary: 'Gorgias ticket-updated / message-created → status mirror + L3 reply relay' })
   async ticketUpdated(
-    @Body() body: { ticket?: { id?: number | string; status?: string } },
+    @Body()
+    body: {
+      ticket?: { id?: number | string; status?: string };
+      message?: { id?: number | string; from_agent?: boolean; body_text?: string };
+    },
     @Headers('x-shoptalk-token') headerToken?: string,
     @Query('token') queryToken?: string,
   ) {
@@ -28,6 +32,13 @@ export class GorgiasWebhookController {
       headerToken ?? queryToken ?? '',
       String(body?.ticket?.id ?? ''),
       String(body?.ticket?.status ?? ''),
+      body?.message
+        ? {
+            id: Number(body.message.id ?? 0),
+            fromAgent: body.message.from_agent === true,
+            bodyText: String(body.message.body_text ?? ''),
+          }
+        : undefined,
     );
     if (!ok) {
       // 4xx are not server-logged by default — the service already warns; reject.

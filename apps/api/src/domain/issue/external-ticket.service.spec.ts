@@ -83,6 +83,7 @@ describe('ExternalTicketService', () => {
       credRepo,
       convRepo,
       bus,
+      { moderate: jest.fn(async ({ text }: { text: string }) => ({ decision: 'delivered', text })) } as never,
     );
     return {
       svc,
@@ -204,6 +205,7 @@ describe('ExternalTicketService.handleWebhook (P3)', () => {
       credRepo,
       convRepo,
       bus as never,
+      { moderate: jest.fn(async ({ text }: { text: string }) => ({ decision: 'delivered', text })) } as never,
     );
     return { svc, bus, getSavedRef: () => savedRef };
   }
@@ -293,6 +295,103 @@ function buildForClosed() {
     credRepo,
     convRepo,
     bus,
+    { moderate: jest.fn(async ({ text }: { text: string }) => ({ decision: 'delivered', text })) } as never,
   );
   return { svc, getSavedRef: () => savedRef };
 }
+
+/** 백로그 B1 — L3 relay: from_agent filter, cursor idempotency, moderation gate. */
+describe('ExternalTicketService L3 relay', () => {
+  const OLD = process.env;
+  beforeAll(() => {
+    process.env = { ...OLD, CRED_ENC_KEY: Buffer.alloc(32, 7).toString('base64') };
+  });
+  afterAll(() => {
+    process.env = OLD;
+  });
+
+  function buildRelay(opts: { cursor?: number | null; blocked?: boolean }) {
+    const savedMsgs: Array<Record<string, unknown>> = [];
+    let savedRef: Partial<ExternalTicket> | null = null;
+    const ref = {
+      tenantId: 1,
+      conversationId: 7,
+      provider: 'gorgias',
+      externalId: '555',
+      status: 'open',
+      lastInboundMessageId: opts.cursor ?? null,
+    } as ExternalTicket;
+    const extRepo = {
+      findOne: jest.fn(async () => ref),
+      save: jest.fn(async (e: ExternalTicket) => {
+        savedRef = e;
+        return e;
+      }),
+    } as unknown as Repository<ExternalTicket>;
+    const credRepo = {
+      find: jest.fn(async () => [
+        {
+          tenantId: 1,
+          secretEnc: encryptSecret(
+            JSON.stringify({ subdomain: 'a', email: 'e', api_key: 'k', webhook_secret: 'tok' }),
+          ),
+        } as IntegrationCredential,
+      ]),
+    } as unknown as Repository<IntegrationCredential>;
+    const msgRepo = {
+      save: jest.fn(async (m: Record<string, unknown>) => {
+        savedMsgs.push(m);
+        return m;
+      }),
+      create: (m: Record<string, unknown>) => m,
+    } as unknown as Repository<Message>;
+    const convRepo = {
+      findOne: jest.fn(async () => ({ id: 7, sessionId: 5 })),
+    } as unknown as Repository<Conversation>;
+    const sessionRepo = {
+      findOne: jest.fn(async () => ({ id: 5, language: 'KO', customerId: 9 })),
+    } as unknown as Repository<Session>;
+    const bus = { subscribe: jest.fn(), publish: jest.fn() };
+    const moderation = {
+      moderate: jest.fn(async ({ text }: { text: string }) =>
+        opts.blocked ? { decision: 'blocked', text } : { decision: 'delivered', text },
+      ),
+    };
+    const svc = new ExternalTicketService(
+      extRepo,
+      {} as never,
+      msgRepo,
+      sessionRepo,
+      {} as never,
+      {} as never,
+      credRepo,
+      convRepo,
+      bus as never,
+      moderation as never,
+    );
+    return { svc, savedMsgs, bus, getSavedRef: () => savedRef };
+  }
+
+  it('relays a from_agent message as an agent turn + notifies (cursor advances)', async () => {
+    const { svc, savedMsgs, bus, getSavedRef } = buildRelay({});
+    await svc.handleWebhook('tok', '555', '', { id: 42, fromAgent: true, bodyText: '환불 완료되었습니다.' });
+    expect(savedMsgs[0]).toMatchObject({ senderType: 'agent', body: '환불 완료되었습니다.' });
+    expect(getSavedRef()).toMatchObject({ lastInboundMessageId: 42 });
+    expect(bus.publish).toHaveBeenCalled();
+    // status untouched by a message-only event
+    expect((getSavedRef() as ExternalTicket).status).toBe('open');
+  });
+
+  it('skips duplicates at/below the cursor and non-agent messages', async () => {
+    const { svc, savedMsgs } = buildRelay({ cursor: 42 });
+    await svc.handleWebhook('tok', '555', '', { id: 42, fromAgent: true, bodyText: 'dup' });
+    await svc.handleWebhook('tok', '555', '', { id: 43, fromAgent: false, bodyText: 'customer side' });
+    expect(savedMsgs).toHaveLength(0);
+  });
+
+  it('a moderation-blocked reply is not relayed', async () => {
+    const { svc, savedMsgs } = buildRelay({ blocked: true });
+    await svc.handleWebhook('tok', '555', '', { id: 50, fromAgent: true, bodyText: 'bad' });
+    expect(savedMsgs).toHaveLength(0);
+  });
+});

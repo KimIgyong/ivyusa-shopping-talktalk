@@ -5,7 +5,8 @@ import { SENDER_TYPE } from '@ivy/types';
 import { ExternalTicket } from './entity/external-ticket.entity';
 import { Tenant } from '../tenant/entity/tenant.entity';
 import { Conversation } from '../chat/entity/conversation.entity';
-import { externalNotice } from './issue-notice';
+import { ModerationService } from '../moderation/moderation.service';
+import { externalNotice, externalReplyNotice } from './issue-notice';
 import { Message } from '../chat/entity/message.entity';
 import { Session } from '../session/entity/session.entity';
 import { Customer } from '../customer/entity/customer.entity';
@@ -54,6 +55,7 @@ export class ExternalTicketService implements OnModuleInit {
     private readonly credRepo: Repository<IntegrationCredential>,
     @InjectRepository(Conversation) private readonly convRepo: Repository<Conversation>,
     private readonly bus: EventBusService,
+    private readonly moderation: ModerationService,
   ) {}
 
   onModuleInit(): void {
@@ -103,7 +105,12 @@ export class ExternalTicketService implements OnModuleInit {
    * webhook_secret, mirror the external status, and tell the shopper when the
    * ticket closes. Returns false when the token matches no tenant (→ 401).
    */
-  async handleWebhook(token: string, externalId: string, status: string): Promise<boolean> {
+  async handleWebhook(
+    token: string,
+    externalId: string,
+    status: string,
+    message?: { id: number; fromAgent: boolean; bodyText: string },
+  ): Promise<boolean> {
     if (!token?.trim() || !externalId) return false;
     const creds = await this.credRepo.find({ where: { provider: PROVIDER } });
     let tenantId: number | null = null;
@@ -123,17 +130,91 @@ export class ExternalTicketService implements OnModuleInit {
       where: { tenantId, provider: PROVIDER, externalId: String(externalId) },
     });
     if (!ref) return true; // authenticated, but not a ticket we created — ack quietly
-    const normalized = String(status).toLowerCase() === 'closed' ? 'closed' : 'open';
-    const newlyClosed = ref.status !== 'closed' && normalized === 'closed';
-    ref.status = normalized;
-    await this.extRepo.save(ref);
-    if (newlyClosed) {
-      await this.notifyExternalClosed(tenantId, ref.conversationId).catch((e: Error) =>
-        this.logger.warn(`external-closed notice failed: ${e.message}`),
+
+    // Status mirror only when the event carries one — a message-created event
+    // without `status` must not silently flip a closed ticket back to open.
+    if (status?.trim()) {
+      const normalized = status.trim().toLowerCase() === 'closed' ? 'closed' : 'open';
+      const newlyClosed = ref.status !== 'closed' && normalized === 'closed';
+      ref.status = normalized;
+      await this.extRepo.save(ref);
+      if (newlyClosed) {
+        await this.notifyExternalClosed(tenantId, ref.conversationId).catch((e: Error) =>
+          this.logger.warn(`external-closed notice failed: ${e.message}`),
+        );
+        this.logger.log(`gorgias ticket ${ref.externalId} closed (tenant=${tenantId})`);
+      }
+    }
+
+    // L3 (백로그 B1): relay the helpdesk agent's reply into the widget thread.
+    if (message?.fromAgent && message.bodyText.trim()) {
+      await this.relayAgentReply(tenantId, ref, message).catch((e: Error) =>
+        this.logger.warn(`L3 relay failed (ticket ${ref.externalId}): ${e.message}`),
       );
-      this.logger.log(`gorgias ticket ${ref.externalId} closed (tenant=${tenantId})`);
     }
     return true;
+  }
+
+  /**
+   * L3 inbound relay: moderate (FR-069, scope agent) → persist as an agent turn
+   * → notify the shopper. Idempotent via the inbound message-id cursor.
+   */
+  private async relayAgentReply(
+    tenantId: number,
+    ref: ExternalTicket,
+    message: { id: number; bodyText: string },
+  ): Promise<void> {
+    if (
+      Number.isFinite(message.id) &&
+      ref.lastInboundMessageId != null &&
+      message.id <= Number(ref.lastInboundMessageId)
+    ) {
+      return; // already relayed (at-least-once webhook)
+    }
+    const moderated = await this.moderation.moderate({
+      tenantId,
+      scope: 'agent',
+      authorType: 'agent',
+      conversationId: ref.conversationId,
+      text: message.bodyText,
+    });
+    if (moderated.decision === 'blocked') {
+      this.logger.warn(`L3 relay blocked by moderation (ticket ${ref.externalId})`);
+      return;
+    }
+    await this.msgRepo.save(
+      this.msgRepo.create({
+        tenantId,
+        conversationId: ref.conversationId,
+        senderType: SENDER_TYPE.AGENT,
+        senderId: null,
+        body: moderated.text,
+        lang: null,
+        retrievalTrace: { relayedFrom: PROVIDER, externalMessageId: message.id },
+      }),
+    );
+    if (Number.isFinite(message.id) && message.id > 0) {
+      ref.lastInboundMessageId = message.id;
+      await this.extRepo.save(ref);
+    }
+    await this.notifyExternalReply(tenantId, ref.conversationId).catch(() => undefined);
+    this.logger.log(`L3 relayed gorgias msg ${message.id} → conversation ${ref.conversationId}`);
+  }
+
+  private async notifyExternalReply(tenantId: number, conversationId: number): Promise<void> {
+    const conv = await this.convRepo.findOne({ where: { id: conversationId } });
+    if (!conv) return;
+    const session = await this.sessionRepo.findOne({ where: { id: conv.sessionId } });
+    const copy = externalReplyNotice(session?.language);
+    await this.bus.publish(EVENTS.NOTIFICATION, {
+      tenantId,
+      customerId: session?.customerId ?? null,
+      sessionId: conv.sessionId,
+      category: 'issue',
+      title: copy.title,
+      body: copy.body,
+      channel: 'push',
+    });
   }
 
   private async notifyExternalClosed(tenantId: number, conversationId: number): Promise<void> {

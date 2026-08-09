@@ -217,8 +217,9 @@ export class ChatService {
       { conversationId: open.id, status: 'active' },
       { status: 'released', releasedAt: new Date() },
     );
-    // Issue P1: a settled (resolved/rejected) issue closes with the conversation.
-    void this.issueService?.onConversationEnded(open.id);
+    // Issue P1/B4: a settled issue closes; an untouched received issue may
+    // auto-resolve by the last bot tier (customer chose to leave satisfied).
+    void this.issueService?.onConversationEnded(open.id, true);
     this.logger.log(`conversation ${open.id} ended by customer (session=${session.id})`);
     return { ended: true, conversationId: String(open.id) };
   }

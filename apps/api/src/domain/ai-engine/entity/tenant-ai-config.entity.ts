@@ -60,6 +60,8 @@ export interface HandoffConfig {
     /** JobLabel to route/stamp (consult|accounting|operations). */
     label?: string;
   }>;
+  /** SLA targets for the issue board (백로그 B2, 결정 5); defaults 24h/4h. */
+  sla?: { normalHours?: number; urgentHours?: number };
 }
 
 export interface ScenarioOverride {
