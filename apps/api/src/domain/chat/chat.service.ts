@@ -301,6 +301,15 @@ export class ChatService {
       eventType: 'chat_message',
     });
 
+    // The customer answered the idle check, so the thread is alive again. This
+    // must happen BEFORE the agent-mode return below: the threads most likely
+    // to have been asked are exactly the ones a human owns, and clearing the
+    // latch after that early return would never run for them (PLN-260810 P1).
+    if (conversation.idlePromptAt) {
+      conversation.idlePromptAt = null;
+      await this.convRepo.update({ id: conversation.id }, { idlePromptAt: null });
+    }
+
     // Agent mode (FR-S4): once a human owns the thread the bot stays silent —
     // the message is persisted for the agent console and the customer receives
     // agent replies via conversation polling.

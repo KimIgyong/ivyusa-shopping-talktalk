@@ -42,6 +42,21 @@ export class Conversation {
   @Column({ name: 'reply_channel', type: 'varchar', length: 16, nullable: true })
   replyChannel: string | null;
 
+  /**
+   * When the "anything else?" check was sent (PLN-260810 P1). Doubles as the
+   * idempotency guard — a non-null value means the question already went out,
+   * so a sweep that runs every 30 seconds cannot ask twice.
+   */
+  @Column({ name: 'idle_prompt_at', type: 'datetime', nullable: true })
+  idlePromptAt: Date | null;
+
+  /** Customer satisfaction, 1..5 stars. Null = never rated. */
+  @Column({ name: 'csat_rating', type: 'tinyint', nullable: true })
+  csatRating: number | null;
+
+  @Column({ name: 'csat_rated_at', type: 'datetime', nullable: true })
+  csatRatedAt: Date | null;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
