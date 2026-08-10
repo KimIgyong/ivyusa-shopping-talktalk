@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { liveChatService } from './live-chat.service';
 import type { CustomerLead } from './live-chat.service';
 import { useTenantKey } from '@/lib/use-tenant-key';
+import { toast } from '@/store/toast-store';
 
 export const useSessions = (q = '', status = 'all', channel = 'all') => {
   const tenantKey = useTenantKey();
@@ -59,6 +60,20 @@ export const useAckAlert = () => {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['agent', tenantKey, 'alerts'] }),
   });
 };
+
+/**
+ * Ask the knowledge base from the chat screen (PLN-260810 S2).
+ *
+ * A mutation, not a query: the agent decides when to spend an LLM call, and
+ * nothing should re-fire it on a window focus or a cache miss.
+ */
+export function useAskKnowledge() {
+  return useMutation({
+    mutationFn: (v: { question: string; language: string }) =>
+      liveChatService.askKnowledge(v.question, v.language),
+    onError: (err: Error) => toast.error(err.message),
+  });
+}
 
 export function useConversationActions(id: string | null) {
   const qc = useQueryClient();

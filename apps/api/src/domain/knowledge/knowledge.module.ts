@@ -22,6 +22,7 @@ import { QuestionStatDaily } from '../analytics/entity/question-stat-daily.entit
 import { Message } from '../chat/entity/message.entity';
 import { KnowledgeGapService } from './knowledge-gap.service';
 import { KnowledgeController } from './knowledge.controller';
+import { AgentKnowledgeController } from './agent-knowledge.controller';
 import { ChatModule } from '../chat/chat.module';
 import { ModerationModule } from '../moderation/moderation.module';
 
@@ -48,7 +49,7 @@ import { ModerationModule } from '../moderation/moderation.module';
     // Knowledge edits were the one privileged action leaving no audit trail.
     AuditModule,
   ],
-  controllers: [KnowledgeController],
+  controllers: [KnowledgeController, AgentKnowledgeController],
   providers: [
     KnowledgeService,
     KnowledgeGapService,

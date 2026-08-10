@@ -11,6 +11,7 @@ import {
   XCircle,
   RefreshCw,
   BookPlus,
+  BookOpen,
   Bot,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -27,6 +28,7 @@ import {
   useBriefing,
   useConversation,
   useConversationActions,
+  useAskKnowledge,
   useCustomerActions,
 } from './live-chat.hooks';
 import { KnowledgeCaptureModal } from './KnowledgeCaptureModal';
@@ -156,6 +158,14 @@ export function LiveChatPage() {
   };
   const { accept, end, send, handBack } = useConversationActions(selected);
   const [handBackOpen, setHandBackOpen] = useState(false);
+
+  // Knowledge lookup (PLN-260810 S2/S3). Answer lives in component state, not
+  // in the conversation: it is the agent checking, not a customer turn.
+  const askKnowledge = useAskKnowledge();
+  const [kbQuestion, setKbQuestion] = useState('');
+  const lastCustomerMessage = [...(convo?.messages ?? [])]
+    .reverse()
+    .find((m) => m.senderType === 'user')?.body;
   const { link, create } = useCustomerActions(selected);
 
   // Customer match / create modals (FR-057).
@@ -553,6 +563,93 @@ export function LiveChatPage() {
                   ? t('briefingLoading')
                   : briefingData?.briefing || t('noBriefing')}
             </p>
+          </div>
+
+          {/* Knowledge lookup + draft delivery (PLN-260810 S2/S3). Read-only:
+              asking never touches the conversation, and sending goes through
+              the normal agent-reply path so moderation and the audit trail
+              apply exactly as they do to anything a person types. */}
+          <div className="rounded-lg border border-gray-200 bg-white p-4">
+            <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-gray-800">
+              <BookOpen className="h-4 w-4 text-primary-500" /> {t('kbLookup')}
+            </div>
+            <textarea
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-primary-500"
+              rows={2}
+              value={kbQuestion}
+              onChange={(e) => setKbQuestion(e.target.value)}
+              placeholder={t('kbQuestionPlaceholder')}
+            />
+            <div className="mt-2 flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled={!lastCustomerMessage}
+                onClick={() => setKbQuestion(lastCustomerMessage ?? '')}
+              >
+                {t('kbUseLastMessage')}
+              </Button>
+              <Button
+                size="sm"
+                disabled={!kbQuestion.trim() || askKnowledge.isPending}
+                onClick={() =>
+                  askKnowledge.mutate({ question: kbQuestion.trim(), language: 'EN' })
+                }
+              >
+                {askKnowledge.isPending ? tc('loading') : t('kbAsk')}
+              </Button>
+            </div>
+
+            {askKnowledge.data && (
+              <div className="mt-3 space-y-2 border-t border-gray-100 pt-3">
+                {askKnowledge.data.blocked ? (
+                  <p className="text-sm text-red-600">{t('kbBlocked')}</p>
+                ) : (
+                  <p className="whitespace-pre-wrap text-sm text-gray-800">
+                    {askKnowledge.data.answer}
+                  </p>
+                )}
+                <p className="text-xs text-gray-500">
+                  {askKnowledge.data.sources.length === 0
+                    ? t('kbNoSources')
+                    : t('kbSourceCount', { count: askKnowledge.data.sources.length })}
+                </p>
+                <ul className="space-y-1 text-xs">
+                  {askKnowledge.data.sources.map((src) => (
+                    <li key={src.id} className="flex items-center gap-1 text-gray-600">
+                      <a
+                        className="truncate underline-offset-2 hover:underline"
+                        href={`/knowledge?doc=${src.id}`}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        {src.title}
+                      </a>
+                      {src.stale && <Badge tone="warning">{t('kbStale')}</Badge>}
+                      {src.conflicted && <Badge tone="error">{t('kbConflicted')}</Badge>}
+                    </li>
+                  ))}
+                </ul>
+                {!askKnowledge.data.blocked && askKnowledge.data.answer && (
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    <Button
+                      size="sm"
+                      disabled={!selected || send.isPending || receiveOnly}
+                      onClick={() => void send.mutateAsync(askKnowledge.data!.answer)}
+                    >
+                      {t('kbSendToCustomer')}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => setDraft(askKnowledge.data!.answer)}
+                    >
+                      {t('kbEditThenSend')}
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="rounded-lg border border-gray-200 bg-white p-4">

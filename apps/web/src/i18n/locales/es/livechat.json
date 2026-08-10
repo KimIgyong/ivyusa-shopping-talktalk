@@ -152,5 +152,16 @@
   "handBack": "Devolver a la IA",
   "handBackHint": "Devuelve las respuestas a la IA sin cerrar la conversación",
   "handBackExplain": "El asistente de IA responderá a partir de ahora. La conversación sigue abierta y, si el cliente vuelve a pedir una persona, regresa a la cola.",
-  "handBackNoticePreview": "Al cliente se le muestra: «Nuestro agente ha terminado de revisarlo, así que el asistente de IA continuará desde aquí». (editable en ajustes de IA)"
+  "handBackNoticePreview": "Al cliente se le muestra: «Nuestro agente ha terminado de revisarlo, así que el asistente de IA continuará desde aquí». (editable en ajustes de IA)",
+  "kbLookup": "Consulta de conocimiento",
+  "kbQuestionPlaceholder": "Pega la pregunta del cliente para ver qué dice la base de conocimiento",
+  "kbUseLastMessage": "Último mensaje",
+  "kbAsk": "Consultar",
+  "kbBlocked": "La moderación bloqueó esta respuesta",
+  "kbNoSources": "Sin fuentes: la base de conocimiento no cubre esto",
+  "kbSourceCount": "{{count}} fuente(s)",
+  "kbStale": "revisión vencida",
+  "kbConflicted": "conflicto",
+  "kbSendToCustomer": "Enviar al cliente",
+  "kbEditThenSend": "Editar y enviar"
 }
