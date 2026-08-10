@@ -143,6 +143,9 @@ describe('IdleConversationService.sweep', () => {
       const res = await svc.sweep();
 
       expect(res.prompted).toBe(0);
+      // Reported, not swallowed: the first version logged "closed 0" on a sweep
+      // that had just ended thirteen conversations.
+      expect(res.silentlyClosed).toBe(1);
       expect(saved).toHaveLength(0);
       expect(updates.some((u) => u.patch.status === CONVERSATION_STATUS.ENDED)).toBe(true);
     });
@@ -158,7 +161,7 @@ describe('IdleConversationService.sweep', () => {
 
       const res = await svc.sweep();
 
-      expect(res).toEqual({ prompted: 0, closed: 0 });
+      expect(res).toEqual({ prompted: 0, closed: 0, silentlyClosed: 0 });
       expect(saved).toHaveLength(0);
       expect(updates).toHaveLength(0);
     });
@@ -183,6 +186,6 @@ describe('IdleConversationService.sweep', () => {
       new Error('db down'),
     );
 
-    await expect(svc.sweep()).resolves.toEqual({ prompted: 0, closed: 0 });
+    await expect(svc.sweep()).resolves.toEqual({ prompted: 0, closed: 0, silentlyClosed: 0 });
   });
 });

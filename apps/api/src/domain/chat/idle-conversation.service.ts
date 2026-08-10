@@ -80,20 +80,33 @@ export class IdleConversationService implements OnModuleInit, OnModuleDestroy {
     if (this.timer) clearInterval(this.timer);
   }
 
-  /** One pass: close what is due, then ask what has gone quiet. */
-  async sweep(): Promise<{ prompted: number; closed: number }> {
-    if (this.running) return { prompted: 0, closed: 0 };
+  /**
+   * One pass: close what is due, then ask what has gone quiet.
+   *
+   * Silent closes are counted separately. Folding them into `closed` would hide
+   * how many customers were spoken to, and leaving them out of the log entirely
+   * — as the first version did — reported "asked 20, closed 0" on a sweep that
+   * had just ended thirteen conversations (observed on the staging backfill).
+   */
+  async sweep(): Promise<{ prompted: number; closed: number; silentlyClosed: number }> {
+    const idle = { prompted: 0, closed: 0, silentlyClosed: 0 };
+    if (this.running) return idle;
     this.running = true;
     try {
-      const closed = await this.closeDue();
-      const prompted = await this.promptIdle();
-      if (prompted || closed) {
-        this.logger.log(`idle sweep: asked ${prompted}, closed ${closed}`);
+      idle.closed = await this.closeDue();
+      const asked = await this.promptIdle();
+      idle.prompted = asked.prompted;
+      idle.silentlyClosed = asked.silentlyClosed;
+      if (idle.prompted || idle.closed || idle.silentlyClosed) {
+        this.logger.log(
+          `idle sweep: asked ${idle.prompted}, closed ${idle.closed}, ` +
+            `closed without asking ${idle.silentlyClosed}`,
+        );
       }
-      return { prompted, closed };
+      return idle;
     } catch (e) {
       this.logger.warn(`idle sweep failed: ${(e as Error).message}`);
-      return { prompted: 0, closed: 0 };
+      return idle;
     } finally {
       this.running = false;
     }
@@ -135,7 +148,7 @@ export class IdleConversationService implements OnModuleInit, OnModuleDestroy {
   }
 
   /** Threads nobody has touched for long enough to ask about. */
-  private async promptIdle(): Promise<number> {
+  private async promptIdle(): Promise<{ prompted: number; silentlyClosed: number }> {
     const quietSince = new Date(Date.now() - PROMPT_AFTER_MIN * 60_000);
     const candidates = await this.convRepo.find({
       where: {
@@ -149,6 +162,7 @@ export class IdleConversationService implements OnModuleInit, OnModuleDestroy {
     });
 
     let prompted = 0;
+    let silentlyClosed = 0;
     for (const conversation of candidates) {
       const last = await this.msgRepo.findOne({
         where: { conversationId: conversation.id },
@@ -159,9 +173,10 @@ export class IdleConversationService implements OnModuleInit, OnModuleDestroy {
 
       const staleBefore = new Date(Date.now() - STALE_AFTER_DAYS * 86_400_000);
       if (lastAt < staleBefore) {
-        // Silent close — counted under `closed`, not `asked`, because nothing
-        // was said to anyone.
+        // Reported on its own line: nothing was said to anyone, and an operator
+        // reading the log needs to see that these ended too.
         await this.close(conversation, false);
+        silentlyClosed += 1;
         continue;
       }
 
@@ -172,7 +187,7 @@ export class IdleConversationService implements OnModuleInit, OnModuleDestroy {
       prompted += 1;
       if (prompted >= BATCH) break;
     }
-    return prompted;
+    return { prompted, silentlyClosed };
   }
 
   /**
