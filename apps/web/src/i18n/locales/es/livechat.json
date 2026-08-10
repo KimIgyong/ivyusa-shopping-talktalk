@@ -133,5 +133,20 @@
     "normal": "normal",
     "cancel": "Cancelar",
     "move": "Mover…"
+  },
+  "channel": {
+    "filterLabel": "Filtrar por canal",
+    "filterAll": "Todos los canales",
+    "widget": "Widget",
+    "telegram": "Telegram",
+    "viber": "Viber",
+    "zalo": "Zalo",
+    "line": "LINE",
+    "whatsapp": "WhatsApp",
+    "kakao": "KakaoTalk",
+    "sms": "SMS",
+    "email": "Correo",
+    "receiveOnlyShort": "solo recepción",
+    "receiveOnlyHint": "Este canal no admite respuestas: el relé de SMS es solo de recepción."
   }
 }

@@ -133,5 +133,20 @@
     "normal": "normal",
     "cancel": "Cancel",
     "move": "Move…"
+  },
+  "channel": {
+    "filterLabel": "Filter by channel",
+    "filterAll": "All channels",
+    "widget": "Widget",
+    "telegram": "Telegram",
+    "viber": "Viber",
+    "zalo": "Zalo",
+    "line": "LINE",
+    "whatsapp": "WhatsApp",
+    "kakao": "KakaoTalk",
+    "sms": "SMS",
+    "email": "Email",
+    "receiveOnlyShort": "receive only",
+    "receiveOnlyHint": "This channel cannot be replied to — SMS relay is receive-only."
   }
 }

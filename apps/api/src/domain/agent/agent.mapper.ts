@@ -26,6 +26,10 @@ export function toSessionResponse(
   return {
     id: c.id,
     status: c.status,
+    // Which surface the shopper is on (widget/telegram/zalo/kakao/sms/email…).
+    // The console badges it so an agent knows what they are replying into —
+    // an SMS thread cannot be answered at all (PLN-260810 PR-M4).
+    channel: c.channel || 'widget',
     escalated: c.escalated === 1,
     customerName: contact.name,
     // Fallback identity for a shopper who only ever left an address.

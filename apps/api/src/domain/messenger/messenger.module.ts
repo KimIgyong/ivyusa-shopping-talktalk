@@ -18,6 +18,7 @@ import { TelegramAdapter } from './adapter/telegram.adapter';
 import { ViberAdapter } from './adapter/viber.adapter';
 import { AmoebaTalkHubAdapter } from './adapter/amoeba-talk-hub.adapter';
 import { BtbzRelayAdapter } from './adapter/btbz-relay.adapter';
+import { GmailImapAdapter } from './adapter/gmail-imap.adapter';
 import { MessengerSyncService } from './messenger-sync.service';
 import { ChatModule } from '../chat/chat.module';
 import { SessionModule } from '../session/session.module';
@@ -27,8 +28,8 @@ import { AuditModule } from '../audit/audit.module';
  * External messenger channels (PLN-260810). Telegram and Viber speak to
  * ShopTalk directly over webhooks (PR-M1); AmoebaTalk is polled as a hub so its
  * already-certified Zalo/LINE/WhatsApp channels come for free (PR-M2); the btbz
- * KSR relay adds KakaoTalk rooms and inbound SMS (PR-M3). Gmail follows behind
- * the same port. Chat/Session are imported one-way — nothing there knows this
+ * KSR relay adds KakaoTalk rooms and inbound SMS (PR-M3); Gmail work mailboxes
+ * arrive over IMAP/SMTP (PR-M4). Chat/Session are imported one-way — nothing there knows this
  * module exists, so the graph stays acyclic.
  */
 @Module({
@@ -58,6 +59,7 @@ import { AuditModule } from '../audit/audit.module';
     ViberAdapter,
     AmoebaTalkHubAdapter,
     BtbzRelayAdapter,
+    GmailImapAdapter,
   ],
   exports: [
     MessengerService,

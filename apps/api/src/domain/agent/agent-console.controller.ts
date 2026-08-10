@@ -73,6 +73,7 @@ export class AgentConsoleController {
       size,
       query.q,
       scope,
+      query.channel,
     );
     return new Paginated(
       items.map(({ conversation, lastMessage, contact }) =>
@@ -109,8 +110,14 @@ export class AgentConsoleController {
     await this.agentService.auditConversationView(actorIdOf(user), tenantId, id);
     const names = await this.agentService.resolveSenderNames(messages);
     const customer = await this.agentService.customerContext(id, tenantId);
+    const conversation = await this.agentService.findConversation(id, tenantId);
     return {
       conversationId: id,
+      // Carried on the detail as well as the list row: a deep link from the
+      // escalation alarm opens a conversation the filtered list may not hold,
+      // and the composer needs the channel to know whether a reply is possible.
+      channel: conversation.channel || 'widget',
+      status: conversation.status,
       messages: messages.map((m) =>
         toMessageResponse(m, m.senderId != null ? names.get(String(m.senderId)) ?? null : null),
       ),

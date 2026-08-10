@@ -133,5 +133,20 @@
     "normal": "일반",
     "cancel": "취소",
     "move": "이동…"
+  },
+  "channel": {
+    "filterLabel": "채널 필터",
+    "filterAll": "전체 채널",
+    "widget": "위젯",
+    "telegram": "텔레그램",
+    "viber": "바이버",
+    "zalo": "잘로",
+    "line": "라인",
+    "whatsapp": "와츠앱",
+    "kakao": "카카오톡",
+    "sms": "SMS",
+    "email": "이메일",
+    "receiveOnlyShort": "수신 전용",
+    "receiveOnlyHint": "이 채널은 답장할 수 없습니다 — SMS 릴레이는 수신 전용입니다."
   }
 }

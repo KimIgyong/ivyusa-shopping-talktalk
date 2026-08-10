@@ -162,6 +162,11 @@ export class AgentService {
    * Every agent-console action keys off a raw conversation id, so this is the
    * single choke point that prevents cross-tenant read/takeover/end.
    */
+  /** Public read of one conversation row (channel/status) for the console header. */
+  async findConversation(conversationId: number, tenantId: number): Promise<Conversation> {
+    return this.requireConversation(conversationId, tenantId);
+  }
+
   private async requireConversation(conversationId: number, tenantId: number): Promise<Conversation> {
     const conversation = await this.convRepo.findOne({
       where: { id: conversationId, tenantId },
@@ -188,6 +193,7 @@ export class AgentService {
     size: number,
     q?: string,
     scope: 'all' | 'queue' | 'ended' = 'all',
+    channel?: string,
   ): Promise<{
     items: Array<{
       conversation: Conversation;
@@ -211,6 +217,18 @@ export class AgentService {
       .createQueryBuilder('c')
       .where('c.tenant_id = :tenantId', { tenantId })
       .andWhere('c.status IN (:...statuses)', { statuses });
+
+    // Channel filter (PLN-260810 PR-M4). 'widget' also covers the pre-channel
+    // rows: conversations created before external channels existed default to
+    // 'widget', and NULL would otherwise vanish from the widget view.
+    const channelFilter = channel?.trim();
+    if (channelFilter && channelFilter !== 'all') {
+      if (channelFilter === 'widget') {
+        qb.andWhere("(c.channel = 'widget' OR c.channel IS NULL)");
+      } else {
+        qb.andWhere('c.channel = :channel', { channel: channelFilter });
+      }
+    }
 
     if (q?.trim()) {
       // Customer name/email filter. Names are encrypted at rest, so matching

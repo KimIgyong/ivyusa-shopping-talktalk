@@ -6,10 +6,11 @@ import { TelegramAdapter } from './telegram.adapter';
 import { ViberAdapter } from './viber.adapter';
 import { AmoebaTalkHubAdapter } from './amoeba-talk-hub.adapter';
 import { BtbzRelayAdapter } from './btbz-relay.adapter';
+import { GmailImapAdapter } from './gmail-imap.adapter';
 
 /**
  * Provider → adapter lookup. A new channel registers here and nothing else in
- * the pipeline changes (gmail lands in PR-M4).
+ * the pipeline changes.
  */
 @Injectable()
 export class AdapterRegistry {
@@ -20,8 +21,9 @@ export class AdapterRegistry {
     viber: ViberAdapter,
     amoebaTalk: AmoebaTalkHubAdapter,
     btbzRelay: BtbzRelayAdapter,
+    gmail: GmailImapAdapter,
   ) {
-    for (const adapter of [telegram, viber, amoebaTalk, btbzRelay]) {
+    for (const adapter of [telegram, viber, amoebaTalk, btbzRelay, gmail]) {
       this.adapters.set(adapter.provider, adapter);
     }
   }

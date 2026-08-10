@@ -7,6 +7,8 @@ export class ListSessionsQuery {
   @IsOptional() @IsString() q?: string;
   /** 'all' (default, includes live AI threads) | 'queue' | 'ended'. */
   @IsOptional() @IsString() status?: string;
+  /** Origin channel filter: 'all' (default) | widget | telegram | zalo | email … */
+  @IsOptional() @IsString() channel?: string;
 }
 
 /** Transcript paging for the console (PLN-260807): recent tail, then older blocks. */
