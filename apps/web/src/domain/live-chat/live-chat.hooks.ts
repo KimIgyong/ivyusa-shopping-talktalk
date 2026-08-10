@@ -83,7 +83,12 @@ export function useConversationActions(id: string | null) {
     onSuccess: invalidate,
   });
 
-  return { accept, end, send };
+  const handBack = useMutation({
+    mutationFn: () => liveChatService.handBack(id as string),
+    onSuccess: invalidate,
+  });
+
+  return { accept, end, send, handBack };
 }
 
 /** Link an existing customer or create a new one for the current conversation. */

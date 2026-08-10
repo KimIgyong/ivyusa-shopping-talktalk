@@ -82,6 +82,9 @@ export const liveChatService = {
   sendMessage: (id: string, body: string) =>
     apiPost<ChatMessage>(`/agent/conversations/${id}/message`, { body }),
   end: (id: string) => apiPost<ConversationDetail>(`/agent/conversations/${id}/end`),
+  /** Return the thread to the AI without ending it (PLN-260810 S1). */
+  handBack: (id: string) =>
+    apiPost<{ id: string; status: string }>(`/agent/conversations/${id}/handback`, {}),
   alerts: (status = 'new') => apiGet<AgentAlert[]>(`/agent/alerts?status=${status}`),
   ackAlert: (id: string) => apiPost<AgentAlert>(`/agent/alerts/${id}/ack`),
   searchCustomers: (q: string) =>

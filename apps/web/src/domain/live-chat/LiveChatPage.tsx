@@ -11,6 +11,7 @@ import {
   XCircle,
   RefreshCw,
   BookPlus,
+  Bot,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { PageHeader } from '@/components/PageHeader';
@@ -59,6 +60,7 @@ function absTime(value: string | undefined | null): string {
 
 export function LiveChatPage() {
   const { t } = useTranslation('livechat');
+  const { t: tc } = useTranslation('common');
 
   /** Compact relative time for the queue rows; absolute time goes in the tooltip. */
   const timeAgo = (value: string | undefined | null): string => {
@@ -152,7 +154,8 @@ export function LiveChatPage() {
       setLoadingOlder(false);
     }
   };
-  const { accept, end, send } = useConversationActions(selected);
+  const { accept, end, send, handBack } = useConversationActions(selected);
+  const [handBackOpen, setHandBackOpen] = useState(false);
   const { link, create } = useCustomerActions(selected);
 
   // Customer match / create modals (FR-057).
@@ -377,6 +380,19 @@ export function LiveChatPage() {
                   >
                     <CheckCircle2 className="h-4 w-4" /> {t('accept')}
                   </Button>
+                  {/* Handing back is only meaningful while a person owns the
+                      thread; on any other status the API refuses it (409). */}
+                  {convo?.status === 'agent' && (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      title={t('handBackHint')}
+                      onClick={() => setHandBackOpen(true)}
+                      disabled={handBack.isPending}
+                    >
+                      <Bot className="h-4 w-4" /> {t('handBack')}
+                    </Button>
+                  )}
                   <Button
                     size="sm"
                     variant="danger"
@@ -592,6 +608,37 @@ export function LiveChatPage() {
       </div>
 
       {/* Match an existing customer to this chat (FR-057). */}
+      {/* Handback confirmation (PLN-260810 S1). The thread keeps running, so
+          the dialog says what changes and what does not — an agent reading
+          "hand back" could reasonably fear it closes the conversation. */}
+      <Modal
+        open={handBackOpen}
+        onClose={() => setHandBackOpen(false)}
+        title={t('handBack')}
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setHandBackOpen(false)}>
+              {tc('close')}
+            </Button>
+            <Button
+              disabled={handBack.isPending}
+              onClick={() =>
+                handBack.mutate(undefined, { onSuccess: () => setHandBackOpen(false) })
+              }
+            >
+              {handBack.isPending ? tc('loading') : t('handBack')}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-2 text-sm text-gray-700">
+          <p>{t('handBackExplain')}</p>
+          <p className="rounded-lg bg-blue-50 px-3 py-2 text-xs text-blue-800">
+            {t('handBackNoticePreview')}
+          </p>
+        </div>
+      </Modal>
+
       <KnowledgeCaptureModal
         open={!!capture}
         question={capture?.question ?? ''}

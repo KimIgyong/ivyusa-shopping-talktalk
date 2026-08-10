@@ -81,6 +81,11 @@ export const ERROR_CODE = {
   /** Reply refused by the platform: receive-only thread, or its send window closed. */
   MESSENGER_REPLY_NOT_ALLOWED: { code: 'E5027', message: 'Replying to this channel thread is not allowed' },
 
+  // E5028 — live-chat handback (PLN-260810 S1).
+  CONVERSATION_NOT_WITH_AGENT: {
+    code: 'E5028',
+    message: 'Only a conversation an agent is handling can be handed back',
+  },
   // E9xxx — system
   INTERNAL_ERROR: { code: 'E9001', message: 'Internal server error' },
   EXTERNAL_SERVICE_ERROR: { code: 'E9002', message: 'External service error' },

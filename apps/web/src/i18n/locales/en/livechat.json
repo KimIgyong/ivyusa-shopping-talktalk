@@ -148,5 +148,9 @@
     "email": "Email",
     "receiveOnlyShort": "receive only",
     "receiveOnlyHint": "This channel cannot be replied to — SMS relay is receive-only."
-  }
+  },
+  "handBack": "Hand back to AI",
+  "handBackHint": "Return replies to the AI without ending the conversation",
+  "handBackExplain": "The AI assistant answers from here on. The conversation stays open, and if the customer asks for a person again it returns to the queue.",
+  "handBackNoticePreview": "The customer is shown: \"Our agent has finished looking into this, so the AI assistant will take it from here.\" (editable in AI settings)"
 }

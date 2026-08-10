@@ -214,6 +214,14 @@ export class AgentConsoleController {
     return toMessageResponse(saved, senderName);
   }
 
+  @Post('conversations/:id/handback')
+  @RequireCapability(CAPABILITY.CONVERSATION_HANDLE)
+  @ApiOperation({ summary: 'Hand the conversation back to the AI without ending it' })
+  async handBack(@CurrentUser() user: Principal, @Param('id', ParseIntPipe) id: number) {
+    const conversation = await this.agentService.handBack(id, tenantOf(user), actorIdOf(user));
+    return { id: conversation.id, status: conversation.status };
+  }
+
   @Post('conversations/:id/end')
   @RequireCapability(CAPABILITY.CONVERSATION_HANDLE)
   @ApiOperation({ summary: 'End the conversation and release the assignment' })

@@ -25,6 +25,7 @@ import {
 } from '../customer/customer.service';
 import { AiGatewayService } from '../../infrastructure/external/ai/ai-gateway.service';
 import { AuditService } from '../audit/audit.service';
+import { TenantAiConfig } from '../ai-engine/entity/tenant-ai-config.entity';
 import { EventBusService, EVENTS, MailerService } from '../../infrastructure/infrastructure.module';
 import { RedisService } from '../../infrastructure/cache/redis.service';
 import { SessionService, sessionCacheKey } from '../session/session.service';
@@ -42,6 +43,19 @@ const DUPLICATE_REPLY_WINDOW_MS = 10_000;
 
 /** How long a generated briefing is reused for the same newest message. */
 const BRIEFING_CACHE_TTL_SEC = 900;
+
+/**
+ * Built-in wording when an agent hands the thread back to the AI, used unless
+ * the tenant set `handoffConfig.handbackNotice` (PLN-260810 S1 / D1).
+ *
+ * The customer is told, deliberately. Switching back in silence reads as the
+ * person who was just talking to them walking off mid-sentence.
+ */
+const DEFAULT_HANDBACK_NOTICE: Record<string, string> = {
+  EN: "Our agent has finished looking into this, so the AI assistant will take it from here. Just ask if you need a person again.",
+  ES: 'Nuestro agente ha terminado de revisarlo, así que el asistente de IA continuará desde aquí. Solo dilo si necesitas hablar con una persona de nuevo.',
+  KO: '상담사 확인이 끝나 이후 문의는 AI 상담원이 도와드립니다. 다시 상담사 연결이 필요하시면 말씀해 주세요.',
+};
 
 /** Localized generic copy for the agent-reply push (session.language EN/ES/KO). */
 const AGENT_REPLY_COPY = {
@@ -101,6 +115,8 @@ export class AgentService {
     // Appended last so positional test doubles stay valid; all uses `?.`-guarded.
     private readonly answerReuse?: AnswerReuseService,
     private readonly issueService?: IssueService,
+    @InjectRepository(TenantAiConfig)
+    private readonly aiConfigRepo?: Repository<TenantAiConfig>,
   ) {}
 
   /**
@@ -642,6 +658,85 @@ export class AgentService {
   }
 
   /** End a conversation and release the active assignment. */
+  /**
+   * Hand the thread back to the AI (PLN-260810 S1).
+   *
+   * Until now `agent` was a one-way door: the bot goes silent the moment
+   * somebody takes over (chat.service, FIX-260806 A1) and the only exit was
+   * ending the conversation. Measured on staging before this shipped — all
+   * seven `agent` threads had been idle for over a day and three of them held
+   * ten customer messages that nobody and nothing had answered.
+   *
+   * Clearing `agent_id` is not cosmetic. The silence rule also fires on
+   * `waiting && agentId != null`, so a thread handed back with the id still on
+   * it would go mute again the next time it queued for a person.
+   */
+  async handBack(
+    conversationId: number,
+    tenantId: number,
+    actorUserId: number,
+  ): Promise<Conversation> {
+    const conversation = await this.requireConversation(conversationId, tenantId);
+    if (conversation.status !== CONVERSATION_STATUS.AGENT) {
+      // 4xx is not server-logged by default; say why the button did nothing.
+      this.logger.warn(
+        `handback rejected: conversation=${conversationId} status='${conversation.status}' (expected 'agent')`,
+      );
+      throw new BusinessException(ERROR_CODE.CONVERSATION_NOT_WITH_AGENT, HttpStatus.CONFLICT);
+    }
+
+    await this.assignmentRepo.update(
+      { conversationId, status: 'active' },
+      { status: 'released', releasedAt: new Date() },
+    );
+    await this.convRepo.update(
+      { id: conversationId },
+      { status: CONVERSATION_STATUS.AI_ACTIVE, agentId: null },
+    );
+
+    const session = await this.sessionRepo.findOne({ where: { id: conversation.sessionId } });
+    const language = session?.language ?? 'EN';
+    await this.msgRepo.save(
+      this.msgRepo.create({
+        tenantId,
+        conversationId,
+        senderType: SENDER_TYPE.SYSTEM,
+        body: await this.handbackNotice(tenantId, language),
+        lang: language,
+        retrievalTrace: null,
+      }),
+    );
+
+    await this.audit
+      .write({
+        tenantId,
+        actorType: 'user',
+        actorId: actorUserId,
+        action: 'agent.handed_back',
+        target: `conversation:${conversationId}`,
+        metadata: { previousAgentId: conversation.agentId ?? null },
+      })
+      .catch((e) => this.logger.warn(`handback audit failed: ${(e as Error).message}`));
+
+    this.logger.log(`conversation ${conversationId} handed back to AI by user ${actorUserId}`);
+    return this.convRepo.findOneOrFail({ where: { id: conversationId } });
+  }
+
+  /** Tenant wording for the handback, falling back to the built-in text. */
+  private async handbackNotice(tenantId: number, language: string): Promise<string> {
+    const lang = (language || 'EN').toUpperCase();
+    const fallback = DEFAULT_HANDBACK_NOTICE[lang] ?? DEFAULT_HANDBACK_NOTICE.EN;
+    try {
+      const config = await this.aiConfigRepo?.findOne({ where: { tenantId } });
+      const custom = config?.handoffConfig?.handbackNotice as Record<string, string> | undefined;
+      return custom?.[lang]?.trim() || custom?.EN?.trim() || fallback;
+    } catch (e) {
+      // Wording is not worth failing a state transition over.
+      this.logger.warn(`handback notice lookup failed: ${(e as Error).message}`);
+      return fallback;
+    }
+  }
+
   async end(conversationId: number, tenantId: number): Promise<Conversation> {
     await this.requireConversation(conversationId, tenantId);
     await this.convRepo.update(
