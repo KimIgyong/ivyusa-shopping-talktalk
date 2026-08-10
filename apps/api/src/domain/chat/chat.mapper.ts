@@ -7,6 +7,9 @@ import type {
 import { Conversation } from './entity/conversation.entity';
 import { Message } from './entity/message.entity';
 
+/** How long after the thread ends a rating is still accepted (PLN-260810 D5). */
+export const CSAT_WINDOW_MS = 24 * 60 * 60 * 1000;
+
 /**
  * Response shapes live in `@ivy/types` — the widget imports the same contract.
  */
@@ -59,9 +62,17 @@ export class ChatMapper {
     messages: Message[],
     senderNames?: Map<string, string>,
   ): ConversationResponse {
+    const endedAt = conversation.endedAt?.getTime() ?? null;
     return {
       conversationId: String(conversation.id),
       status: conversation.status,
+      csatRating: conversation.csatRating ?? null,
+      // Offered only while the submission window is open — showing stars that
+      // the API would refuse is worse than showing none.
+      canRate:
+        conversation.csatRating == null &&
+        endedAt != null &&
+        Date.now() - endedAt < CSAT_WINDOW_MS,
       messages: messages.map((m) =>
         ChatMapper.toMessageResponse(
           m,

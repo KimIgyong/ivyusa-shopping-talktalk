@@ -37,6 +37,10 @@ export const ko: Translation = {
     endConfirm: '상담을 종료할까요?',
     endCancel: '취소',
     endedNotice: '상담이 종료되었습니다. 새 메시지를 보내면 새 상담이 시작됩니다.',
+    csatQuestion: '상담에 만족하셨나요?',
+    csatThanks: '평가해 주셔서 감사합니다 🙏',
+    csatDismiss: '닫기',
+    csatStar: '별 {{count}}개',
     connectingAgent: '상담원에게 연결하고 있습니다. 잠시만 기다려 주세요…',
     contactEmail: {
       title: '답변을 받으실 이메일을 알려주세요',
