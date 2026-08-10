@@ -3,7 +3,11 @@ import { MessengerService } from './messenger.service';
 import { MessengerChannel } from './entity/messenger-channel.entity';
 import { AdapterRegistry } from './adapter/adapter.registry';
 import { AuditService } from '../audit/audit.service';
-import { channelField, decryptChannelSecretFields } from './messenger-secret.util';
+import {
+  channelField,
+  decryptChannelSecretFields,
+  encryptChannelSecret,
+} from './messenger-secret.util';
 
 /**
  * Field routing (FIX-260810). Only `secret: true` fields may be encrypted:
@@ -100,5 +104,86 @@ describe('MessengerService — field routing', () => {
     await h.service.update(1, 7, 1, { secret: { password: '   ' } });
 
     expect(h.saved?.secretEnc?.toString()).toBe('keep-me');
+  });
+});
+
+/**
+ * Legacy channels (saved before the split) must become readable on their own —
+ * an operator should not have to retype values that are already stored.
+ */
+describe('MessengerService — legacy field hoist', () => {
+  const OLD = process.env;
+  beforeAll(() => {
+    process.env = { ...OLD, CRED_ENC_KEY: Buffer.alloc(32, 13).toString('base64') };
+  });
+  afterAll(() => {
+    process.env = OLD;
+  });
+
+  function build(channel: Partial<MessengerChannel>) {
+    const updates: Array<Record<string, unknown>> = [];
+    const channelRepo = {
+      find: jest.fn(async () => [channel as MessengerChannel]),
+      findOne: jest.fn(async () => channel as MessengerChannel),
+      update: jest.fn(async (_w: unknown, patch: Record<string, unknown>) => {
+        updates.push(patch);
+        return { affected: 1 };
+      }),
+    } as unknown as Repository<MessengerChannel>;
+    const service = new MessengerService(
+      channelRepo,
+      { require: () => ({}) } as unknown as AdapterRegistry,
+      { write: jest.fn() } as unknown as AuditService,
+    );
+    return { service, updates };
+  }
+
+  it('surfaces the server URL and email a legacy channel already holds', async () => {
+    const h = build({
+      id: 1,
+      provider: 'btbz_relay',
+      config: null,
+      secretEnc: encryptChannelSecret({
+        base_url: 'https://messenger.amoeba.site/login',
+        email: 'admin@amoeba.group',
+        password: 'pw',
+      }),
+    });
+
+    const [channel] = await h.service.list(1);
+
+    expect(channel.config).toEqual({
+      base_url: 'https://messenger.amoeba.site/login',
+      email: 'admin@amoeba.group',
+    });
+    // The secret stays out of config, and the move is persisted once.
+    expect(JSON.stringify(channel.config)).not.toContain('pw');
+    expect(h.updates).toHaveLength(1);
+  });
+
+  it('does not overwrite a value the operator already set in config', async () => {
+    const h = build({
+      id: 1,
+      provider: 'btbz_relay',
+      config: { base_url: 'https://messenger.amoeba.site' },
+      secretEnc: encryptChannelSecret({ base_url: 'https://old.example', password: 'pw' }),
+    });
+
+    const [channel] = await h.service.list(1);
+
+    expect(channel.config?.base_url).toBe('https://messenger.amoeba.site');
+  });
+
+  it('writes nothing when there is nothing to move', async () => {
+    const h = build({
+      id: 1,
+      provider: 'telegram',
+      config: null,
+      secretEnc: encryptChannelSecret('123:ABC'),
+    });
+
+    await h.service.list(1);
+
+    expect(h.updates).toHaveLength(0);
   });
 });
