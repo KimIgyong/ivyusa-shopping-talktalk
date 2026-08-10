@@ -34,6 +34,16 @@ import { ProviderTile } from './ProviderTile';
 import { ShopifyConfigModal } from './ShopifyConfigModal';
 import { IntegrationConfigModal } from './IntegrationConfigModal';
 import { Cafe24ConnectCard } from './Cafe24ConnectCard';
+import { MessengerChannelCard } from './MessengerChannelCard';
+import { MessengerChannelModal } from './MessengerChannelModal';
+import { useMessengerChannels, useTestMessengerChannel } from './messenger.hooks';
+import {
+  COMMUNICATION_PROVIDERS,
+  MESSENGER_PROVIDERS,
+  PLANNED_MESSENGER_PROVIDERS,
+  type AnyMessengerProvider,
+  type MessengerChannel,
+} from './messenger.service';
 import { toast } from '@/store/toast-store';
 
 function fmtDate(value?: string | null): string {
@@ -103,6 +113,88 @@ function CodeBlock({ code, label }: { code: string; label: string }) {
 }
 
 type InstallPlatform = 'shopify' | 'cafe24' | 'woocommerce' | 'odoo';
+
+/**
+ * External messenger + communication channels (PLN-260810 PR-M5).
+ *
+ * Unlike the credential tiles above, a channel is a *conversation source*: the
+ * card carries live operating state (last inbound, last error, whether AI
+ * answers) because a channel that quietly stopped receiving is otherwise
+ * invisible until a customer complains.
+ */
+function MessengerChannelsSection() {
+  const { t } = useTranslation('settings');
+  const { data, isLoading } = useMessengerChannels();
+  const test = useTestMessengerChannel();
+  const [editing, setEditing] = useState<{
+    provider: AnyMessengerProvider;
+    channel?: MessengerChannel;
+  } | null>(null);
+
+  const channels = data?.channels ?? [];
+  const supported = new Set(data?.supported ?? []);
+  const byProvider = (provider: string) => channels.filter((c) => c.provider === provider);
+
+  const renderCards = (providers: readonly string[]) =>
+    providers.flatMap((provider) => {
+      const existing = byProvider(provider);
+      // One card per configured account (Gmail work mailbox 1/2), plus an empty
+      // one so another account can always be added.
+      const cards = existing.map((channel) => (
+        <MessengerChannelCard
+          key={channel.id}
+          provider={provider}
+          channel={channel}
+          onConfigure={() => setEditing({ provider: provider as AnyMessengerProvider, channel })}
+          onTest={() => test.mutate(channel.id)}
+        />
+      ));
+      cards.push(
+        <MessengerChannelCard
+          key={`${provider}:new`}
+          provider={provider}
+          planned={!supported.has(provider)}
+          onConfigure={() => setEditing({ provider: provider as AnyMessengerProvider })}
+        />,
+      );
+      return cards;
+    });
+
+  return (
+    <>
+      <section>
+        <h2 className="mb-1 text-sm font-semibold text-gray-700">{t('messenger.groupTitle')}</h2>
+        <p className="mb-3 text-xs text-gray-500">{t('messenger.groupHint')}</p>
+        {isLoading ? (
+          <p className="text-sm text-gray-400">{t('messenger.loading')}</p>
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {renderCards([...MESSENGER_PROVIDERS, ...PLANNED_MESSENGER_PROVIDERS])}
+          </div>
+        )}
+      </section>
+
+      <section>
+        <h2 className="mb-1 text-sm font-semibold text-gray-700">
+          {t('messenger.communicationTitle')}
+        </h2>
+        <p className="mb-3 text-xs text-gray-500">{t('messenger.communicationHint')}</p>
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {renderCards(COMMUNICATION_PROVIDERS)}
+        </div>
+      </section>
+
+      {editing && (
+        <MessengerChannelModal
+          provider={editing.provider}
+          channel={editing.channel}
+          open
+          onClose={() => setEditing(null)}
+        />
+      )}
+    </>
+  );
+}
 
 function InstallGuideCard() {
   const { t } = useTranslation('settings');
@@ -570,6 +662,8 @@ export function SettingsPage() {
           ))}
         </div>
       </section>
+
+      <MessengerChannelsSection />
 
       <Cafe24ConnectCard />
 
