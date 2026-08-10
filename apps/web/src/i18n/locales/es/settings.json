@@ -107,7 +107,8 @@
         "step2": "Abre layout/theme.liquid.",
         "step3": "Pega el fragmento justo antes de la etiqueta </body> y guarda."
       }
-    }
+    },
+    "nonShopifyDomain": "No es un dominio *.myshopify.com. Este campo también es el dominio de la tienda del inquilino, así que un dominio de Cafe24 o propio es válido: solo significa que esta tienda no está conectada a Shopify."
   },
   "integrations": {
     "configured": "Guardado — introduce un nuevo valor para reemplazar",
@@ -205,7 +206,9 @@
     "title": "Tienda",
     "url": "URL de la tienda",
     "hint": "Se usa para verificar los enlaces de producto antes de mostrarlos a los clientes. Solo aparecen en el chat los enlaces de este origen.",
-    "unsetWarning": "Sin configurar — las recomendaciones de producto no aparecerán como enlaces en el chat."
+    "unsetWarning": "Sin configurar — las recomendaciones de producto no aparecerán como enlaces en el chat.",
+    "shopDomain": "Dominio de la tienda",
+    "shopDomainHint": "Identifica a este inquilino ante el widget de chat. Sirve el dominio de cualquier plataforma —Shopify, Cafe24 o propio— siempre que coincida con el sitio donde corre el widget."
   },
   "cafe24": {
     "oauth": {
