@@ -7,6 +7,7 @@ import { Tenant } from '../tenant/entity/tenant.entity';
 import { User } from '../user/entity/user.entity';
 import { KbDocument } from '../knowledge/entity/kb-document.entity';
 import { Assignment } from '../agent/entity/assignment.entity';
+import { AgentDailyStat } from '../agent/entity/agent-daily-stat.entity';
 import { ChatService } from './chat.service';
 import { IdleConversationService } from './idle-conversation.service';
 import { RagService } from './rag.service';
@@ -25,7 +26,17 @@ import { IssueModule } from '../issue/issue.module';
   imports: [
     // Assignment: the customer-side end-chat must release an agent's active
     // assignment exactly like the console's end does (PLN-260808 Track B).
-    TypeOrmModule.forFeature([Conversation, Message, Session, Tenant, User, KbDocument, Assignment]),
+    TypeOrmModule.forFeature([
+      Conversation,
+      Message,
+      Session,
+      Tenant,
+      User,
+      KbDocument,
+      Assignment,
+      // Satisfaction ratings roll up into the agent's daily row.
+      AgentDailyStat,
+    ]),
     SessionModule,
     // Idle sweep records who (nothing) closed a thread and when.
     AuditModule,

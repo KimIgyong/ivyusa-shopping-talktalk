@@ -100,6 +100,13 @@ export interface ConversationResponse {
   conversationId: string | null;
   status: string;
   messages: ChatMessageResponse[];
+  /**
+   * Satisfaction state for the ended thread (PLN-260810 P2/P3). `canRate` is
+   * false once the 24-hour window closes, so the widget never shows stars that
+   * the API would reject.
+   */
+  csatRating?: number | null;
+  canRate?: boolean;
 }
 
 export interface ChatTurnResponse {

@@ -11,6 +11,7 @@ import { useAnalytics } from '../../lib/analytics';
 import type { ScenarioButton, ScenarioPostAction, WidgetCopyText } from '../../lib/types';
 import { MessageBubble } from './MessageBubble';
 import { TypingBubble } from './TypingBubble';
+import { CsatCard } from './CsatCard';
 import { ContactEmailCard } from './ContactEmailCard';
 import { ConsentBanner } from './ConsentBanner';
 import { ScenarioMenu, type SubAction } from './ScenarioMenu';
@@ -47,7 +48,8 @@ export function ChatTab() {
   const consumeChatMessage = useWidgetStore((s) => s.consumeChatMessage);
   const analytics = useAnalytics();
 
-  const { messages, send, scenario, sending, status, escalate, endChat } = useChat(sessionToken);
+  const { messages, send, scenario, sending, status, escalate, endChat, canRate, rate, conversationId } =
+    useChat(sessionToken);
   // Reply-pending indicator (PLN-260804, corrected by FIX-260806).
   //  · sending  → the AI completion runs synchronously inside the send request.
   //  · agent    → a human took the thread; their reply arrives via the poll.
@@ -398,6 +400,12 @@ export function ChatTab() {
             <span className="whitespace-nowrap">{t('chat.endedNotice')}</span>
             <span className="h-px flex-1 bg-gray-200" />
           </div>
+        )}
+
+        {/* Satisfaction (PLN-260810 P3). The server decides whether the window
+            is still open, so the card cannot outlive what the API accepts. */}
+        {status === 'ended' && canRate && conversationId && (
+          <CsatCard conversationId={conversationId} onRate={rate} />
         )}
 
         {waitMode && <TypingBubble mode={waitMode} />}

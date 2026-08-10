@@ -11,12 +11,14 @@ import {
   SENDER_TYPE,
 } from '@ivy/types';
 import { Conversation } from './entity/conversation.entity';
+import { CSAT_WINDOW_MS } from './chat.mapper';
 import { Message } from './entity/message.entity';
 import { DOC_GROUP } from '../knowledge/entity/kb-document.entity';
 import { Session } from '../session/entity/session.entity';
 import { Tenant } from '../tenant/entity/tenant.entity';
 import { User } from '../user/entity/user.entity';
 import { Assignment } from '../agent/entity/assignment.entity';
+import { AgentDailyStat } from '../agent/entity/agent-daily-stat.entity';
 import { RagService, RagAnswer } from './rag.service';
 import { ModerationService } from '../moderation/moderation.service';
 import { AnswerReuseService } from '../answer-reuse/answer-reuse.service';
@@ -142,6 +144,10 @@ export class ChatService {
     // every use is `this.answerReuse?.` / `this.issueService?.`-guarded.
     private readonly answerReuse?: AnswerReuseService,
     private readonly issueService?: IssueService,
+    // Satisfaction lands in the agent's daily row (PLN-260810 P2); appended so
+    // existing positional test doubles keep working.
+    @InjectRepository(AgentDailyStat)
+    private readonly statRepo?: Repository<AgentDailyStat>,
   ) {}
 
   async getOrCreateConversation(sessionId: number): Promise<Conversation> {
@@ -222,6 +228,109 @@ export class ChatService {
     void this.issueService?.onConversationEnded(open.id, true);
     this.logger.log(`conversation ${open.id} ended by customer (session=${session.id})`);
     return { ended: true, conversationId: String(open.id) };
+  }
+
+  /**
+   * Record how the customer felt about a finished conversation (PLN-260810 P2).
+   *
+   * Open to the widget, so ownership is checked the same way `escalate` does
+   * it: the session token must belong to this conversation. Ratings are not
+   * personal data, so no consent gate — but a stranger must not be able to
+   * score someone else's thread.
+   */
+  async rate(session: Session, conversationId: number, rating: number): Promise<{ rating: number }> {
+    const conversation = await this.convRepo.findOne({ where: { id: conversationId } });
+    if (!conversation || Number(conversation.sessionId) !== Number(session.id)) {
+      throw new BusinessException(ERROR_CODE.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND);
+    }
+    if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+      throw new BusinessException(ERROR_CODE.VALIDATION_FAILED, HttpStatus.BAD_REQUEST);
+    }
+    // A thread still running has nothing to rate yet, and one closed long ago
+    // is being rated from a stale widget — both are refused rather than
+    // silently accepted into the averages.
+    const endedAt = conversation.endedAt?.getTime();
+    if (conversation.status !== CONVERSATION_STATUS.ENDED || !endedAt) {
+      throw new BusinessException(ERROR_CODE.VALIDATION_FAILED, HttpStatus.CONFLICT);
+    }
+    if (Date.now() - endedAt > CSAT_WINDOW_MS) {
+      this.logger.warn(`csat rejected: conversation=${conversationId} outside the 24h window`);
+      throw new BusinessException(ERROR_CODE.VALIDATION_FAILED, HttpStatus.CONFLICT);
+    }
+
+    // Re-rating overwrites: a misclick the customer cannot correct produces
+    // worse data than one they can (PLN-260810 D6).
+    await this.convRepo.update(
+      { id: conversationId },
+      { csatRating: rating, csatRatedAt: new Date() },
+    );
+    void this.recordCsatForAgent(conversation).catch((e: Error) =>
+      this.logger.warn(`csat stat update failed: ${e.message}`),
+    );
+    this.logger.log(`csat ${rating}/5 recorded for conversation ${conversationId}`);
+    return { rating };
+  }
+
+  /**
+   * Fold the rating into the handling agent's daily average.
+   *
+   * `agent_daily_stats.csat_avg` has existed since the console was built and
+   * nothing ever wrote it — the satisfaction column read '—' for every agent.
+   * Recomputed from the conversations themselves rather than accumulated, so a
+   * re-rating corrects the average instead of double-counting.
+   */
+  private async recordCsatForAgent(conversation: Conversation): Promise<void> {
+    const lastAgentMessage = await this.msgRepo.findOne({
+      where: { conversationId: conversation.id, senderType: SENDER_TYPE.AGENT },
+      order: { id: 'DESC' },
+    });
+    const agentId = lastAgentMessage?.senderId ?? conversation.agentId;
+    if (!agentId || !conversation.tenantId || !conversation.endedAt) return;
+
+    const statDate = conversation.endedAt.toISOString().slice(0, 10);
+    const { avg, rated } = await this.csatAverageFor(
+      conversation.tenantId,
+      Number(agentId),
+      statDate,
+    );
+    if (rated === 0) return;
+
+    const existing = await this.statRepo?.findOne({
+      where: { tenantId: conversation.tenantId, agentId: Number(agentId), statDate },
+    });
+    if (existing) {
+      existing.csatAvg = avg;
+      await this.statRepo?.save(existing);
+      return;
+    }
+    await this.statRepo?.save(
+      this.statRepo.create({
+        tenantId: conversation.tenantId,
+        agentId: Number(agentId),
+        statDate,
+        csatAvg: avg,
+      }),
+    );
+  }
+
+  /** Average of every rated conversation that agent closed that day. */
+  private async csatAverageFor(
+    tenantId: number,
+    agentId: number,
+    statDate: string,
+  ): Promise<{ avg: number; rated: number }> {
+    const row = await this.convRepo
+      .createQueryBuilder('c')
+      .select('AVG(c.csat_rating)', 'avg')
+      .addSelect('COUNT(c.csat_rating)', 'rated')
+      .where('c.tenant_id = :tenantId', { tenantId })
+      .andWhere('c.agent_id = :agentId OR c.id IN (' +
+        'SELECT m.conversation_id FROM messages m WHERE m.sender_type = :agent AND m.sender_id = :agentId)',
+        { agentId, agent: SENDER_TYPE.AGENT })
+      .andWhere('c.csat_rating IS NOT NULL')
+      .andWhere('DATE(c.ended_at) = :statDate', { statDate })
+      .getRawOne<{ avg: string | null; rated: string }>();
+    return { avg: Number(row?.avg ?? 0), rated: Number(row?.rated ?? 0) };
   }
 
   /**
