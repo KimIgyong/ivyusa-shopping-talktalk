@@ -9,7 +9,11 @@ import { AuditService } from '../audit/audit.service';
 import { MessengerChannel } from './entity/messenger-channel.entity';
 import { AdapterRegistry } from './adapter/adapter.registry';
 import { TestResult } from './adapter/messenger-adapter';
-import { encryptChannelSecret, decryptChannelSecret } from './messenger-secret.util';
+import {
+  encryptChannelSecret,
+  decryptChannelSecret,
+  decryptChannelSecretFields,
+} from './messenger-secret.util';
 
 /** Providers reached through an aggregator rather than their own API. */
 const HUB_PROVIDERS: string[] = [MESSENGER_PROVIDER.AMOEBATALK, MESSENGER_PROVIDER.BTBZ_RELAY];
@@ -39,8 +43,13 @@ export class MessengerService {
     private readonly audit: AuditService,
   ) {}
 
-  list(tenantId: number): Promise<MessengerChannel[]> {
-    return this.channelRepo.find({ where: { tenantId }, order: { provider: 'ASC', label: 'ASC' } });
+  async list(tenantId: number): Promise<MessengerChannel[]> {
+    const channels = await this.channelRepo.find({
+      where: { tenantId },
+      order: { provider: 'ASC', label: 'ASC' },
+    });
+    for (const channel of channels) await this.hoistLegacyFields(channel);
+    return channels;
   }
 
   async require(tenantId: number, id: number): Promise<MessengerChannel> {
@@ -48,7 +57,45 @@ export class MessengerService {
     if (!channel) {
       throw new BusinessException(ERROR_CODE.MESSENGER_CHANNEL_NOT_FOUND, HttpStatus.NOT_FOUND);
     }
+    await this.hoistLegacyFields(channel);
     return channel;
+  }
+
+  /**
+   * Move non-secret fields of channels saved before the config/secret split out
+   * of the encrypted blob and into `config`, once, on first read.
+   *
+   * Without it an existing channel keeps showing blank inputs — which is how
+   * the original report ("account email didn't save") happened: the value was
+   * there, just unreadable. The blob is left as is; adapters prefer config, and
+   * rewriting a credential to fix a display bug is not worth the risk.
+   */
+  private async hoistLegacyFields(channel: MessengerChannel): Promise<void> {
+    const specs = MESSENGER_FIELDS[channel.provider as MessengerProvider] ?? [];
+    const plainKeys = specs.filter((f) => !f.secret).map((f) => f.key);
+    if (plainKeys.length === 0 || !channel.secretEnc) return;
+
+    let stored: Record<string, string>;
+    try {
+      stored = decryptChannelSecretFields(channel);
+    } catch {
+      return; // unreadable blob (rotated key) — nothing to hoist
+    }
+
+    const config = { ...(channel.config ?? {}) } as MessengerChannel['config'] & object;
+    let moved = false;
+    for (const key of plainKeys) {
+      const value = stored[key];
+      if (typeof value === 'string' && value.trim() && config[key] === undefined) {
+        config[key] = value.trim();
+        moved = true;
+      }
+    }
+    if (!moved) return;
+
+    channel.config = config;
+    await this.channelRepo.update({ id: channel.id }, { config });
+    this.logger.log(`channel ${channel.id}: hoisted legacy field(s) into config`);
   }
 
   /** Active channel for an inbound webhook token — the tenant resolves from it. */
