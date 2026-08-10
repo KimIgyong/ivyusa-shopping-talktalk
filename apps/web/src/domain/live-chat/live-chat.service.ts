@@ -17,6 +17,23 @@ export interface AgentSession {
 
 export type MessageSenderType = 'user' | 'agent' | 'ai' | 'system';
 
+/** What the knowledge base says, with the documents it stood on (PLN-260810 S2). */
+export interface AgentKnowledgeAnswer {
+  answer: string;
+  confidence: number;
+  blocked: boolean;
+  sources: Array<{
+    id: number;
+    title: string;
+    category: string | null;
+    similarity: number | null;
+    snippet: string;
+    source: string | null;
+    stale: boolean;
+    conflicted: boolean;
+  }>;
+}
+
 export interface ChatMessage {
   id: string;
   senderType: MessageSenderType;
@@ -82,6 +99,9 @@ export const liveChatService = {
   sendMessage: (id: string, body: string) =>
     apiPost<ChatMessage>(`/agent/conversations/${id}/message`, { body }),
   end: (id: string) => apiPost<ConversationDetail>(`/agent/conversations/${id}/end`),
+  /** Read-only knowledge lookup for chat handlers (PLN-260810 S2). */
+  askKnowledge: (question: string, language: string) =>
+    apiPost<AgentKnowledgeAnswer>('/agent/knowledge/ask', { question, language }),
   /** Return the thread to the AI without ending it (PLN-260810 S1). */
   handBack: (id: string) =>
     apiPost<{ id: string; status: string }>(`/agent/conversations/${id}/handback`, {}),
