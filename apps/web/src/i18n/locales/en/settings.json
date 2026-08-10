@@ -107,7 +107,8 @@
         "step2": "Open layout/theme.liquid.",
         "step3": "Paste the snippet just before the </body> tag and Save."
       }
-    }
+    },
+    "nonShopifyDomain": "This is not a *.myshopify.com domain. The field doubles as the tenant store domain, so a Cafe24 or custom domain here is fine — it just means this store is not connected to Shopify."
   },
   "integrations": {
     "configured": "Saved — enter a new value to replace",
@@ -205,7 +206,9 @@
     "title": "Storefront",
     "url": "Shop URL",
     "hint": "Used to verify product links before showing them to customers. Only links on this origin appear in chat.",
-    "unsetWarning": "Not set — product recommendations will not appear as links in the chat widget."
+    "unsetWarning": "Not set — product recommendations will not appear as links in the chat widget.",
+    "shopDomain": "Store domain",
+    "shopDomainHint": "Identifies this tenant to the chat widget. Any platform's domain — Shopify, Cafe24, or your own — as long as it matches the site the widget runs on."
   },
   "cafe24": {
     "oauth": {
