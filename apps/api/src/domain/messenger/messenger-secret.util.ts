@@ -31,3 +31,32 @@ export function decryptChannelSecretFields(channel: MessengerChannel): Record<st
   }
   return {};
 }
+
+/**
+ * One field of a channel's credentials, wherever it lives.
+ *
+ * Non-secret fields (mailbox address, server URL, hosts) are kept in `config`
+ * so the console can show them back; secrets are in the encrypted blob, which
+ * holds either a JSON map or — when the provider has a single secret — the
+ * bare value. Channels saved before that split still carry everything in the
+ * blob, so it is checked last rather than dropped.
+ */
+export function channelField(
+  channel: MessengerChannel,
+  key: string,
+  opts: { secret?: boolean } = {},
+): string {
+  const fromConfig = channel.config?.[key];
+  if (typeof fromConfig === 'string' && fromConfig.trim()) return fromConfig.trim();
+
+  const fields = decryptChannelSecretFields(channel);
+  const fromFields = fields[key];
+  if (typeof fromFields === 'string' && fromFields.trim()) return fromFields.trim();
+
+  // Single-secret providers store the value bare — only a secret field may claim it.
+  if (opts.secret) {
+    const bare = decryptChannelSecret(channel);
+    if (bare && Object.keys(fields).length === 0) return bare;
+  }
+  return '';
+}

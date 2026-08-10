@@ -2,7 +2,7 @@ import { HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { randomBytes } from 'crypto';
-import { MESSENGER_MODE, MESSENGER_PROVIDER } from '@ivy/types';
+import { MESSENGER_FIELDS, MESSENGER_MODE, MESSENGER_PROVIDER, type MessengerProvider } from '@ivy/types';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
 import { AuditService } from '../audit/audit.service';
@@ -75,10 +75,9 @@ export class MessengerService {
         webhookToken: adapter.kind === 'webhook' ? randomBytes(24).toString('hex') : null,
       });
 
-    if (input.secret && Object.keys(input.secret).length > 0) {
-      channel.secretEnc = encryptChannelSecret(normalizeSecret(input.secret));
-    }
-    if (input.config !== undefined) channel.config = input.config;
+    const split = splitFields(input.provider, input.secret, input.config);
+    if (split.secret) channel.secretEnc = encryptChannelSecret(split.secret);
+    if (split.config) channel.config = { ...(channel.config ?? {}), ...split.config };
     if (input.autoReply !== undefined) channel.autoReply = input.autoReply ? 1 : 0;
     if (input.consentMode !== undefined) channel.consentMode = input.consentMode;
     if (input.active !== undefined) channel.active = input.active ? 1 : 0;
@@ -103,10 +102,9 @@ export class MessengerService {
   ): Promise<MessengerChannel> {
     const channel = await this.require(tenantId, id);
     if (patch.label !== undefined) channel.label = patch.label;
-    if (patch.secret && Object.keys(patch.secret).length > 0) {
-      channel.secretEnc = encryptChannelSecret(normalizeSecret(patch.secret));
-    }
-    if (patch.config !== undefined) channel.config = patch.config;
+    const split = splitFields(channel.provider, patch.secret, patch.config);
+    if (split.secret) channel.secretEnc = encryptChannelSecret(split.secret);
+    if (split.config) channel.config = { ...(channel.config ?? {}), ...split.config };
     if (patch.autoReply !== undefined) channel.autoReply = patch.autoReply ? 1 : 0;
     if (patch.consentMode !== undefined) channel.consentMode = patch.consentMode;
     if (patch.active !== undefined) channel.active = patch.active ? 1 : 0;
@@ -206,11 +204,35 @@ export class MessengerService {
 }
 
 /**
- * Single-field credentials (bot token, auth token) are stored bare so adapters
- * can use `ctx.secret` directly; multi-field ones keep their JSON shape.
+ * Route each submitted field to where it belongs, by the provider's own schema
+ * rather than by what the client happened to send.
+ *
+ * Only `secret: true` fields are encrypted. The rest (mailbox address, server
+ * URL, IMAP/SMTP host) go to `config`, which the console reads back — keeping
+ * them in the write-only blob meant an operator reopened the form to blank
+ * inputs and could not see what a channel was actually pointed at.
  */
-function normalizeSecret(secret: Record<string, string>): string | Record<string, string> {
-  const entries = Object.entries(secret).filter(([, v]) => typeof v === 'string' && v.trim() !== '');
-  if (entries.length === 1) return entries[0][1].trim();
-  return Object.fromEntries(entries.map(([k, v]) => [k, v.trim()]));
+function splitFields(
+  provider: string,
+  submitted: Record<string, string> | undefined,
+  config: Record<string, unknown> | undefined,
+): { secret?: string | Record<string, string>; config?: Record<string, unknown> } {
+  const specs = MESSENGER_FIELDS[provider as MessengerProvider] ?? [];
+  const secretKeys = new Set(specs.filter((f) => f.secret).map((f) => f.key));
+
+  const secrets: Record<string, string> = {};
+  const plain: Record<string, unknown> = { ...(config ?? {}) };
+  for (const [key, value] of Object.entries(submitted ?? {})) {
+    if (typeof value !== 'string' || value.trim() === '') continue;
+    if (secretKeys.has(key)) secrets[key] = value.trim();
+    // Unknown keys land in config too: better visible than silently dropped.
+    else plain[key] = value.trim();
+  }
+
+  const entries = Object.entries(secrets);
+  return {
+    // A lone secret is stored bare so adapters can use `ctx.secret` directly.
+    secret: entries.length === 0 ? undefined : entries.length === 1 ? entries[0][1] : secrets,
+    config: Object.keys(plain).length > 0 || config !== undefined ? plain : undefined,
+  };
 }

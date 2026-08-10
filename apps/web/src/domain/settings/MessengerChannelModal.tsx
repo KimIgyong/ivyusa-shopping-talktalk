@@ -19,11 +19,21 @@ import {
   useUpdateMessengerChannel,
 } from './messenger.hooks';
 
-/** Non-secret config keys the operator edits per provider. */
+/** Extra non-credential settings the operator edits per provider. */
 const CONFIG_FIELDS: Partial<Record<string, string[]>> = {
   amoebatalk: ['social_types'],
   gmail: ['sender_name'],
   viber: ['sender_name'],
+};
+
+/**
+ * Defaults offered on a brand-new channel. A blank server/host box is the one
+ * thing that turns a wrong value into an unexplained 404, so the known-good
+ * value is filled in and the operator only edits it when their install differs.
+ */
+const FIELD_DEFAULTS: Partial<Record<string, Record<string, string>>> = {
+  btbz_relay: { base_url: 'https://messenger.amoeba.site' },
+  gmail: { imap_host: 'imap.gmail.com', smtp_host: 'smtp.gmail.com' },
 };
 
 async function copy(text: string): Promise<boolean> {
@@ -75,7 +85,20 @@ export function MessengerChannelModal({
   useEffect(() => {
     if (!open) return;
     setLabel(channel?.label ?? t(`messenger.provider.${provider}.defaultLabel`, { defaultValue: provider }));
-    setValues({});
+    // Non-secret fields come back from the server (they live in `config`), so
+    // reopening the form shows what is actually stored instead of blank boxes.
+    // Secrets stay empty — an empty secret means "keep", never "clear".
+    const defaults = FIELD_DEFAULTS[provider] ?? {};
+    setValues(
+      Object.fromEntries(
+        specs
+          .filter((spec) => !spec.secret)
+          .map((spec) => [
+            spec.key,
+            String(channel?.config?.[spec.key] ?? (channel ? '' : (defaults[spec.key] ?? ''))),
+          ]),
+      ),
+    );
     setConfig(
       Object.fromEntries(
         configKeys.map((k) => [k, stringifyConfig(channel?.config?.[k])]),
@@ -86,7 +109,7 @@ export function MessengerChannelModal({
     setAutoReply(channel?.autoReply ?? !UNOFFICIAL_PROVIDERS.has(provider));
     setConsentMode(channel?.consentMode ?? 'notice');
     setActive(channel?.active ?? false);
-    // configKeys is derived from `provider`, which is already a dependency.
+    // specs/configKeys are derived from `provider`, already a dependency.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, channel, provider]);
 

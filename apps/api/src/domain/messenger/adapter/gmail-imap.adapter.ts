@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { MESSENGER_PROVIDER } from '@ivy/types';
 import { ChannelThread } from '../entity/channel-thread.entity';
 import { MessengerChannel } from '../entity/messenger-channel.entity';
-import { decryptChannelSecretFields } from '../messenger-secret.util';
+import { channelField } from '../messenger-secret.util';
 import {
   AdapterContext,
   MessengerAdapter,
@@ -149,9 +149,9 @@ export class GmailImapAdapter implements MessengerAdapter {
     } | null;
     if (!nodemailer) throw new Error('nodemailer not installed');
 
-    const port = Number(ctx.channel.config?.smtp_port ?? account.smtp_port ?? DEFAULT_SMTP_PORT);
+    const port = Number(account.smtp_port || DEFAULT_SMTP_PORT);
     const transport = nodemailer.createTransport({
-      host: ctx.channel.config?.smtp_host ?? account.smtp_host ?? DEFAULT_SMTP_HOST,
+      host: account.smtp_host || DEFAULT_SMTP_HOST,
       port,
       secure: port === 465,
       auth: { user: account.email, pass: account.password },
@@ -173,12 +173,24 @@ export class GmailImapAdapter implements MessengerAdapter {
 
   // ---- helpers ----
 
-  private account(ctx: AdapterContext): Record<string, string> {
-    const fields = decryptChannelSecretFields(ctx.channel);
+  private account(ctx: AdapterContext): {
+    email: string;
+    password: string;
+    imap_host: string;
+    smtp_host: string;
+    imap_port: string;
+    smtp_port: string;
+  } {
+    const channel = ctx.channel;
     return {
-      ...fields,
-      email: fields.email ?? (ctx.channel.config?.email as string) ?? '',
-      password: fields.app_password ?? fields.password ?? '',
+      email: channelField(channel, 'email'),
+      password:
+        channelField(channel, 'app_password', { secret: true }) ||
+        channelField(channel, 'password', { secret: true }),
+      imap_host: channelField(channel, 'imap_host'),
+      smtp_host: channelField(channel, 'smtp_host'),
+      imap_port: channelField(channel, 'imap_port'),
+      smtp_port: channelField(channel, 'smtp_port'),
     };
   }
 
@@ -192,8 +204,8 @@ export class GmailImapAdapter implements MessengerAdapter {
 
     const account = this.account(ctx);
     const client = new mod.ImapFlow({
-      host: (ctx.channel.config?.imap_host as string) ?? account.imap_host ?? DEFAULT_IMAP_HOST,
-      port: Number(ctx.channel.config?.imap_port ?? account.imap_port ?? DEFAULT_IMAP_PORT),
+      host: account.imap_host || DEFAULT_IMAP_HOST,
+      port: Number(account.imap_port || DEFAULT_IMAP_PORT),
       secure: true,
       auth: { user: account.email, pass: account.password },
       logger: false,

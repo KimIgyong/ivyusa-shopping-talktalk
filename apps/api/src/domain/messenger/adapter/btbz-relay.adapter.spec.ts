@@ -157,7 +157,9 @@ describe('BtbzRelayAdapter', () => {
 
     await expect(
       adapter.send({ channel: channel(), secret: 'x' }, { externalThreadId: '9' } as ChannelThread, 'hi'),
-    ).rejects.toThrow(/btbz relay POST \/api\/relay\/replies failed: 404/);
+      // The URL is in the message on purpose: a 404 here is nearly always a
+      // wrong server URL, and the operator needs to see which one was called.
+    ).rejects.toThrow(/btbz relay POST https:\/\/relay\.test\/api\/relay\/replies failed: 404/);
   });
 });
 
@@ -173,5 +175,84 @@ describe('extractCookieToken', () => {
   it('returns null when absent', () => {
     expect(extractCookieToken('other=1; Path=/')).toBeNull();
     expect(extractCookieToken(null)).toBeNull();
+  });
+});
+
+/**
+ * Server URL handling (FIX-260810). The 404 an operator hit on staging was a
+ * wrong base URL that nothing on screen revealed.
+ */
+describe('BtbzRelayAdapter — server URL', () => {
+  const OLD_ENV = process.env;
+  const originalFetch = global.fetch;
+  beforeAll(() => {
+    process.env = { ...OLD_ENV, CRED_ENC_KEY: Buffer.alloc(32, 11).toString('base64') };
+  });
+  afterAll(() => {
+    process.env = OLD_ENV;
+    global.fetch = originalFetch;
+  });
+
+  const redis = {
+    get: jest.fn(async () => null),
+    set: jest.fn(async () => undefined),
+  } as unknown as RedisService;
+
+  function channelWith(config: Record<string, unknown>): MessengerChannel {
+    return {
+      id: 4,
+      tenantId: 1,
+      provider: 'btbz_relay',
+      config,
+      secretEnc: encryptChannelSecret('pw'),
+    } as unknown as MessengerChannel;
+  }
+
+  function stubLogin(status: number) {
+    const urls: string[] = [];
+    global.fetch = jest.fn(async (url: unknown) => {
+      urls.push(String(url));
+      return {
+        ok: status < 400,
+        status,
+        headers: { get: () => (status < 400 ? 'ksr_token=jwt' : null) },
+        text: async () => '{}',
+      } as unknown as Response;
+    }) as unknown as typeof fetch;
+    return urls;
+  }
+
+  it('names the failing URL so a wrong server URL is visible', async () => {
+    stubLogin(404);
+    const adapter = new BtbzRelayAdapter(redis);
+
+    const result = await adapter.test({
+      channel: channelWith({ base_url: 'https://wrong.example/login', email: 'a@b.c' }),
+      secret: 'pw',
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.detail).toContain('https://wrong.example/login/api/auth/login');
+  });
+
+  it('accepts a host pasted without a scheme', async () => {
+    const urls = stubLogin(200);
+    const adapter = new BtbzRelayAdapter(redis);
+
+    await adapter
+      .test({ channel: channelWith({ base_url: 'messenger.amoeba.site', email: 'a@b.c' }), secret: 'pw' })
+      .catch(() => undefined);
+
+    expect(urls[0]).toBe('https://messenger.amoeba.site/api/auth/login');
+  });
+
+  it('refuses to log in with no account email instead of posting an empty body', async () => {
+    stubLogin(200);
+    const adapter = new BtbzRelayAdapter(redis);
+
+    const result = await adapter.test({ channel: channelWith({}), secret: 'pw' });
+
+    expect(result.ok).toBe(false);
+    expect(result.detail).toContain('email or password is not set');
   });
 });
