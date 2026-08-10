@@ -37,6 +37,7 @@ import { KnowledgeModule } from './domain/knowledge/knowledge.module';
 import { CampaignModule } from './domain/campaign/campaign.module';
 import { CjmModule } from './domain/cjm/cjm.module';
 import { IntegrationModule } from './domain/integration/integration.module';
+import { MessengerModule } from './domain/messenger/messenger.module';
 import { AgentModule } from './domain/agent/agent.module';
 import { AuditModule } from './domain/audit/audit.module';
 import { AiEngineModule } from './domain/ai-engine/ai-engine.module';
@@ -95,6 +96,7 @@ import { ShopifyProxyModule } from './domain/shopify-proxy/shopify-proxy.module'
     CampaignModule,
     CjmModule,
     IntegrationModule,
+    MessengerModule,
     AgentModule,
     AuditModule,
     AiEngineModule,

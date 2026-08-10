@@ -281,3 +281,75 @@ export const INTEGRATION_FIELDS: Record<GenericIntegrationProvider, IntegrationF
     { key: 'webhook_secret', secret: true, required: false },
   ],
 };
+
+/**
+ * External messenger channels (PLN-260810). Distinct from INTEGRATION_PROVIDER:
+ * these carry *conversations* (inbound messages become ShopTalk conversations and
+ * outbound replies go back out), not store/marketing credentials.
+ */
+export const MESSENGER_PROVIDER = {
+  TELEGRAM: 'telegram',
+  VIBER: 'viber',
+  AMOEBATALK: 'amoebatalk',
+  BTBZ_RELAY: 'btbz_relay',
+  GMAIL: 'gmail',
+} as const;
+export type MessengerProvider = (typeof MESSENGER_PROVIDER)[keyof typeof MESSENGER_PROVIDER];
+
+/** Channels ShopTalk speaks to directly (own webhook + own send API) — PR-M1. */
+export const DIRECT_MESSENGER_PROVIDERS = [
+  MESSENGER_PROVIDER.TELEGRAM,
+  MESSENGER_PROVIDER.VIBER,
+] as const;
+
+/** How a channel is reached: 'direct' = platform API, 'hub' = via an aggregator. */
+export const MESSENGER_MODE = { DIRECT: 'direct', HUB: 'hub' } as const;
+export type MessengerMode = (typeof MESSENGER_MODE)[keyof typeof MESSENGER_MODE];
+
+/**
+ * Consent handling for a channel with no widget consent banner (REQ G3):
+ * 'notice' sends the privacy notice on first contact and records the grant;
+ * 'auto' relies on the platform's own terms (tenant's call).
+ */
+export const MESSENGER_CONSENT_MODE = { NOTICE: 'notice', AUTO: 'auto' } as const;
+export type MessengerConsentMode =
+  (typeof MESSENGER_CONSENT_MODE)[keyof typeof MESSENGER_CONSENT_MODE];
+
+/**
+ * Outbound delivery state. 'unconfirmed' exists because some relays (btbz KSR)
+ * cannot prove delivery — reporting those as 'sent' would be a false claim.
+ */
+export const OUTBOX_STATUS = {
+  PENDING: 'pending',
+  SENT: 'sent',
+  UNCONFIRMED: 'unconfirmed',
+  FAILED: 'failed',
+} as const;
+export type OutboxStatus = (typeof OUTBOX_STATUS)[keyof typeof OUTBOX_STATUS];
+
+export const CHANNEL_DIRECTION = { INBOUND: 'inbound', OUTBOUND: 'outbound' } as const;
+export type ChannelDirection = (typeof CHANNEL_DIRECTION)[keyof typeof CHANNEL_DIRECTION];
+
+/** Credential fields per messenger provider (console renders, API stores/masks). */
+export const MESSENGER_FIELDS: Record<MessengerProvider, IntegrationFieldSpec[]> = {
+  // Bot token from BotFather — the only credential Telegram needs.
+  telegram: [{ key: 'bot_token', secret: true, required: true }],
+  // Viber public-account auth token; also the HMAC key for inbound signatures.
+  viber: [{ key: 'auth_token', secret: true, required: true }],
+  amoebatalk: [
+    { key: 'email', secret: false, required: true },
+    { key: 'password', secret: true, required: true },
+    { key: 'company_id', secret: false, required: false },
+  ],
+  btbz_relay: [
+    { key: 'base_url', secret: false, required: true },
+    { key: 'email', secret: false, required: true },
+    { key: 'password', secret: true, required: true },
+  ],
+  gmail: [
+    { key: 'email', secret: false, required: true },
+    { key: 'imap_host', secret: false, required: true },
+    { key: 'smtp_host', secret: false, required: true },
+    { key: 'app_password', secret: true, required: true },
+  ],
+};
