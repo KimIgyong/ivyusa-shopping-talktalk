@@ -3,7 +3,7 @@ import { MESSENGER_PROVIDER } from '@ivy/types';
 import { RedisService } from '../../../infrastructure/cache/redis.service';
 import { ChannelThread } from '../entity/channel-thread.entity';
 import { MessengerChannel } from '../entity/messenger-channel.entity';
-import { decryptChannelSecretFields } from '../messenger-secret.util';
+import { channelField } from '../messenger-secret.util';
 import {
   AdapterContext,
   MessengerAdapter,
@@ -83,7 +83,7 @@ export class BtbzRelayAdapter implements MessengerAdapter {
       return {
         ok: true,
         detail: `connected (${count} conversation(s))`,
-        accountId: this.fields(ctx).email ?? null,
+        accountId: this.fields(ctx).email || null,
       };
     } catch (e) {
       return { ok: false, detail: (e as Error).message.slice(0, 200) };
@@ -216,12 +216,21 @@ export class BtbzRelayAdapter implements MessengerAdapter {
     }
 
     const fields = this.fields(ctx);
+    // Posting an empty body would come back as a plain 401 and read as "wrong
+    // password" — say which side is actually missing.
+    if (!fields.email || !fields.password) {
+      throw new Error('btbz relay account email or password is not set');
+    }
     const res = await fetch(`${this.baseUrl(ctx.channel)}/api/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: fields.email, password: fields.password }),
     });
-    if (!res.ok) throw new Error(`btbz relay login failed: ${res.status}`);
+    if (!res.ok) {
+      // Name the URL: a 404 here almost always means the server URL is wrong,
+      // and "login failed: 404" alone gives the operator nothing to fix.
+      throw new Error(`btbz relay login failed: ${res.status} at ${this.baseUrl(ctx.channel)}/api/auth/login`);
+    }
 
     const token = extractCookieToken(res.headers.get('set-cookie'));
     if (!token) throw new Error('btbz relay login returned no ksr_token cookie');
@@ -229,14 +238,22 @@ export class BtbzRelayAdapter implements MessengerAdapter {
     return token;
   }
 
-  private fields(ctx: AdapterContext): Record<string, string> {
-    return decryptChannelSecretFields(ctx.channel);
+  private fields(ctx: AdapterContext): { email: string; password: string } {
+    return {
+      email: channelField(ctx.channel, 'email'),
+      password: channelField(ctx.channel, 'password', { secret: true }),
+    };
   }
 
+  /**
+   * Server URL, normalized. An operator pastes what they see in the browser, so
+   * a missing scheme is added and a trailing path is kept — the error message
+   * carries the full URL, which is how a wrong one gets spotted.
+   */
   private baseUrl(channel: MessengerChannel): string {
-    const fromConfig = (channel.config?.base_url as string | undefined)?.trim();
-    const fromSecret = decryptChannelSecretFields(channel).base_url?.trim();
-    return (fromConfig || fromSecret || DEFAULT_BASE_URL).replace(/\/+$/, '');
+    const raw = channelField(channel, 'base_url') || DEFAULT_BASE_URL;
+    const withScheme = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+    return withScheme.replace(/\/+$/, '');
   }
 
   private async request<T>(
@@ -267,7 +284,8 @@ export class BtbzRelayAdapter implements MessengerAdapter {
       // surfaced verbatim so the outbox can show the operator why.
       const message = (parsed as { message?: string })?.message;
       throw new Error(
-        `btbz relay ${method} ${path.split('?')[0]} failed: ${res.status}${message ? ` ${message}` : ''}`,
+        `btbz relay ${method} ${this.baseUrl(ctx.channel)}${path.split('?')[0]} failed: ${res.status}` +
+          (message ? ` ${message}` : ''),
       );
     }
     return parsed as T;

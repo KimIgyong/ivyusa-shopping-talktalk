@@ -3,7 +3,7 @@ import { MESSENGER_PROVIDER } from '@ivy/types';
 import { RedisService } from '../../../infrastructure/cache/redis.service';
 import { ChannelThread } from '../entity/channel-thread.entity';
 import { MessengerChannel } from '../entity/messenger-channel.entity';
-import { decryptChannelSecretFields } from '../messenger-secret.util';
+import { channelField } from '../messenger-secret.util';
 import {
   AdapterContext,
   MessengerAdapter,
@@ -71,7 +71,7 @@ export class AmoebaTalkHubAdapter implements MessengerAdapter {
         `/api/inbox/conversations?page=1&limit=1`,
       );
       const count = list?.data?.items?.length ?? 0;
-      const account = this.fields(ctx).email ?? null;
+      const account = this.fields(ctx).email || null;
       return { ok: true, detail: `connected (${count} conversation(s) visible)`, accountId: account };
     } catch (e) {
       return { ok: false, detail: (e as Error).message.slice(0, 200) };
@@ -191,10 +191,9 @@ export class AmoebaTalkHubAdapter implements MessengerAdapter {
 
     if (!accessToken) {
       if (!tempToken) throw new Error('amoebatalk signin returned no token');
-      const companyId =
-        (ctx.channel.config?.company_id as string | number | undefined) ??
-        fields.company_id ??
-        signin?.data?.companies?.[0]?.id;
+      // `fields.company_id` already prefers config over the encrypted blob;
+      // with neither set, take the first workspace the account belongs to.
+      const companyId = fields.company_id || signin?.data?.companies?.[0]?.id;
       const selected = await this.post<{ data?: { access_token?: string } }>(
         ctx,
         tempToken,
@@ -209,8 +208,12 @@ export class AmoebaTalkHubAdapter implements MessengerAdapter {
     return accessToken;
   }
 
-  private fields(ctx: AdapterContext): Record<string, string> {
-    return decryptChannelSecretFields(ctx.channel);
+  private fields(ctx: AdapterContext): { email: string; password: string; company_id: string } {
+    return {
+      email: channelField(ctx.channel, 'email'),
+      password: channelField(ctx.channel, 'password', { secret: true }),
+      company_id: channelField(ctx.channel, 'company_id'),
+    };
   }
 
   private socialTypes(ctx: AdapterContext): string[] {
@@ -260,7 +263,9 @@ export class AmoebaTalkHubAdapter implements MessengerAdapter {
     }
     if (!res.ok) {
       // Never echo the body: it can carry customer message content.
-      throw new Error(`amoebatalk ${method} ${path.split('?')[0]} failed: ${res.status}`);
+      throw new Error(
+        `amoebatalk ${method} ${this.baseUrl(ctx.channel)}${path.split('?')[0]} failed: ${res.status}`,
+      );
     }
     return parsed as T;
   }
