@@ -7,6 +7,8 @@ export interface AgentSession {
   /** Shown when the shopper left an address but no name (off-hours capture). */
   customerEmail?: string | null;
   status?: string;
+  /** Origin surface: widget | telegram | viber | zalo | line | kakao | sms | email … */
+  channel?: string | null;
   escalated?: boolean;
   lastMessagePreview?: string | null;
   lastMessageAt?: string | null;
@@ -35,6 +37,8 @@ export interface CustomerContext {
 export interface ConversationDetail {
   conversationId?: number;
   status?: string;
+  /** Origin surface — the composer is disabled on receive-only channels. */
+  channel?: string | null;
   assignedTo?: string | null;
   messages: ChatMessage[];
   /** Older messages exist before the first one returned (PLN-260807). */
@@ -60,10 +64,11 @@ export interface AgentAlert {
 }
 
 export const liveChatService = {
-  sessions: (q?: string, status?: string) =>
+  sessions: (q?: string, status?: string, channel?: string) =>
     apiGet<AgentSession[]>('/agent/sessions', {
       ...(q?.trim() ? { q: q.trim() } : {}),
       ...(status && status !== 'all' ? { status } : {}),
+      ...(channel && channel !== 'all' ? { channel } : {}),
     }),
   conversation: (id: string, beforeId?: string) =>
     apiGet<ConversationDetail>(

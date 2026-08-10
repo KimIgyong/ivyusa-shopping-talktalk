@@ -3,11 +3,11 @@ import { liveChatService } from './live-chat.service';
 import type { CustomerLead } from './live-chat.service';
 import { useTenantKey } from '@/lib/use-tenant-key';
 
-export const useSessions = (q = '', status = 'all') => {
+export const useSessions = (q = '', status = 'all', channel = 'all') => {
   const tenantKey = useTenantKey();
   return useQuery({
-    queryKey: ['agent', tenantKey, 'sessions', q, status],
-    queryFn: () => liveChatService.sessions(q, status),
+    queryKey: ['agent', tenantKey, 'sessions', q, status, channel],
+    queryFn: () => liveChatService.sessions(q, status, channel),
     // 5s (was 15s): a new escalation should surface within a beat, not a
     // quarter-minute — the endpoint is a few ms (PLN-260804).
     refetchInterval: 5000,

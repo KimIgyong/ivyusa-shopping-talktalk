@@ -16,6 +16,7 @@ import { useTranslation } from 'react-i18next';
 import { PageHeader } from '@/components/PageHeader';
 import { Button } from '@/components/Button';
 import { StatusBadge } from '@/components/StatusBadge';
+import { ChannelBadge, CHANNEL_FILTERS, RECEIVE_ONLY_CHANNELS } from './ChannelBadge';
 import { Badge } from '@/components/Badge';
 import { Modal } from '@/components/Modal';
 import { Input, FormRow } from '@/components/Field';
@@ -85,6 +86,10 @@ export function LiveChatPage() {
   // was having right now with the bot (PLN-260807 D1).
   const [scope, setScope] = useState<'all' | 'queue' | 'ended'>('all');
 
+  // Origin-channel filter (PLN-260810 PR-M4). Kept separate from `scope` so an
+  // agent can watch, say, only KakaoTalk without losing the queue/ended split.
+  const [channel, setChannel] = useState<string>('all');
+
   // Queue search box (customer name/email) — debounced into the list query.
   const [listQuery, setListQuery] = useState('');
   const [listSearch, setListSearch] = useState('');
@@ -99,10 +104,16 @@ export function LiveChatPage() {
   useEffect(() => {
     if (deepLink) setSelected(deepLink);
   }, [deepLink]);
-  const { data: sessions, isLoading: sessionsLoading } = useSessions(listSearch, scope);
+  const { data: sessions, isLoading: sessionsLoading } = useSessions(listSearch, scope, channel);
   const { data: convo, isLoading: convoLoading, isFetching: convoFetching, refetch: refetchConvo } =
     useConversation(selected);
   const { data: briefingData, isLoading: briefingLoading } = useBriefing(selected);
+
+  // Prefer the detail's channel (a deep-linked thread may not be in the list).
+  const activeChannel = (
+    convo?.channel ?? sessions?.find((s) => s.id === selected)?.channel ?? 'widget'
+  ).toLowerCase();
+  const receiveOnly = RECEIVE_ONLY_CHANNELS.has(activeChannel);
   // KB writes belong to knowledge owners; an agent handling the chat does not
   // automatically get to publish knowledge (PLN-260807 D3). Mirrors the server
   // rule — knowledge_source.manage is granted to master/director — so the
@@ -252,6 +263,18 @@ export function LiveChatPage() {
                 {t(`scope.${key}`)}
               </button>
             ))}
+            <select
+              value={channel}
+              onChange={(e) => setChannel(e.target.value)}
+              aria-label={t('channel.filterLabel')}
+              className="ml-auto rounded-full border border-gray-200 bg-white px-2 py-1 text-xs text-gray-600 outline-none focus:border-primary-400"
+            >
+              {CHANNEL_FILTERS.map((key) => (
+                <option key={key} value={key}>
+                  {key === 'all' ? t('channel.filterAll') : t(`channel.${key}`, { defaultValue: key })}
+                </option>
+              ))}
+            </select>
           </div>
           <div className="border-b border-gray-100 p-2">
             <div className="relative">
@@ -289,7 +312,10 @@ export function LiveChatPage() {
                         s.customerEmail ||
                         t('sessionLabel', { id: s.id.slice(0, 6) })}
                     </span>
-                    <StatusBadge status={s.status} />
+                    <div className="flex shrink-0 items-center gap-1">
+                      <ChannelBadge channel={s.channel} />
+                      <StatusBadge status={s.status} />
+                    </div>
                   </div>
                   {/* Keep the session label visible even when we can name the
                       shopper — agents refer to threads by it. */}
@@ -480,12 +506,15 @@ export function LiveChatPage() {
                     if (e.key !== 'Enter' || e.nativeEvent.isComposing) return;
                     void onSend();
                   }}
-                  placeholder={t('replyPlaceholder')}
-                  className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  disabled={receiveOnly}
+                  placeholder={receiveOnly ? t('channel.receiveOnlyHint') : t('replyPlaceholder')}
+                  className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-400"
                 />
                 <Button
                   onClick={onSend}
-                  disabled={send.isPending || !draft.trim()}
+                  // The platform rejects a reply on these threads (SMS relay),
+                  // so the composer says so instead of failing after the send.
+                  disabled={receiveOnly || send.isPending || !draft.trim()}
                   aria-label={t('send')}
                 >
                   <Send className="h-4 w-4" />
