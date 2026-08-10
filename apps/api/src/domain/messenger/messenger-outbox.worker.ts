@@ -41,6 +41,8 @@ export class MessengerOutboxWorker implements OnModuleInit, OnModuleDestroy {
     try {
       await this.outbox.flushAllThreads();
       await this.outbox.deliverDue();
+      // Asynchronous providers report back later; ask what became of them.
+      await this.outbox.confirmUnconfirmed();
     } catch (e) {
       this.logger.error(`outbox tick failed: ${(e as Error).message}`);
     } finally {

@@ -5,17 +5,23 @@ import { MessengerAdapter } from './messenger-adapter';
 import { TelegramAdapter } from './telegram.adapter';
 import { ViberAdapter } from './viber.adapter';
 import { AmoebaTalkHubAdapter } from './amoeba-talk-hub.adapter';
+import { BtbzRelayAdapter } from './btbz-relay.adapter';
 
 /**
- * Provider → adapter lookup. Later phases (amoebatalk hub, btbz relay, gmail)
- * add themselves here and nothing else in the pipeline changes.
+ * Provider → adapter lookup. A new channel registers here and nothing else in
+ * the pipeline changes (gmail lands in PR-M4).
  */
 @Injectable()
 export class AdapterRegistry {
   private readonly adapters = new Map<string, MessengerAdapter>();
 
-  constructor(telegram: TelegramAdapter, viber: ViberAdapter, amoebaTalk: AmoebaTalkHubAdapter) {
-    for (const adapter of [telegram, viber, amoebaTalk]) {
+  constructor(
+    telegram: TelegramAdapter,
+    viber: ViberAdapter,
+    amoebaTalk: AmoebaTalkHubAdapter,
+    btbzRelay: BtbzRelayAdapter,
+  ) {
+    for (const adapter of [telegram, viber, amoebaTalk, btbzRelay]) {
       this.adapters.set(adapter.provider, adapter);
     }
   }
