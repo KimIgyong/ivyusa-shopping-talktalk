@@ -148,5 +148,9 @@
     "email": "Correo",
     "receiveOnlyShort": "solo recepción",
     "receiveOnlyHint": "Este canal no admite respuestas: el relé de SMS es solo de recepción."
-  }
+  },
+  "handBack": "Devolver a la IA",
+  "handBackHint": "Devuelve las respuestas a la IA sin cerrar la conversación",
+  "handBackExplain": "El asistente de IA responderá a partir de ahora. La conversación sigue abierta y, si el cliente vuelve a pedir una persona, regresa a la cola.",
+  "handBackNoticePreview": "Al cliente se le muestra: «Nuestro agente ha terminado de revisarlo, así que el asistente de IA continuará desde aquí». (editable en ajustes de IA)"
 }

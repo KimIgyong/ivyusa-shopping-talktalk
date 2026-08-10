@@ -148,5 +148,9 @@
     "email": "이메일",
     "receiveOnlyShort": "수신 전용",
     "receiveOnlyHint": "이 채널은 답장할 수 없습니다 — SMS 릴레이는 수신 전용입니다."
-  }
+  },
+  "handBack": "AI에게 넘기기",
+  "handBackHint": "대화를 종료하지 않고 이후 응답을 AI에게 넘깁니다",
+  "handBackExplain": "이후 고객 문의는 AI 상담원이 응답합니다. 대화는 종료되지 않으며, 고객이 다시 상담사를 요청하면 대기열에 올라옵니다.",
+  "handBackNoticePreview": "고객에게는 \"상담사 확인이 끝나 이후 문의는 AI 상담원이 도와드립니다\"라는 안내가 표시됩니다. (문구는 AI 설정에서 변경 가능)"
 }

@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { TenantAiConfig } from '../ai-engine/entity/tenant-ai-config.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Agent } from './entity/agent.entity';
 import { AgentProfile } from './entity/agent-profile.entity';
@@ -35,6 +36,8 @@ import { IssueModule } from '../issue/issue.module';
       Session,
       JobLabel,
       UserJobLabel,
+      // Read-only: the handback notice lives in tenant_ai_config.handoff_config.
+      TenantAiConfig,
     ]),
     ModerationModule,
     CustomerModule,

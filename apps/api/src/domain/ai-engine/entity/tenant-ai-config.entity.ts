@@ -41,6 +41,12 @@ export interface HandoffConfig {
      */
     breaks?: Array<{ start: string; end: string }>;
   };
+  /**
+   * Wording shown when an agent hands the thread back to the AI (PLN-260810 S1).
+   * Blank falls back to the built-in text. The customer should learn that the
+   * person stepped out — a silent switch back reads as the agent ignoring them.
+   */
+  handbackNotice?: Partial<Record<'EN' | 'ES' | 'KO', string>>;
   /** Where to send the conversation outside business hours. */
   offHours?: {
     email?: string;
