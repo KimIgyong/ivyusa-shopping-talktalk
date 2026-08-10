@@ -73,6 +73,13 @@ export const ERROR_CODE = {
   ISSUE_TRANSITION_INVALID: { code: 'E5021', message: 'Issue state transition not allowed' },
   // P2 (PLN-260808-Issue-Workflow-P2)
   AGENT_AT_CAPACITY: { code: 'E5022', message: 'Agent is at max concurrent conversations' },
+  // E5023-E5027 — external messenger channels (PLN-260810 PR-M1).
+  MESSENGER_CHANNEL_NOT_FOUND: { code: 'E5023', message: 'Messenger channel not found' },
+  MESSENGER_PROVIDER_UNSUPPORTED: { code: 'E5024', message: 'Messenger provider is not supported' },
+  MESSENGER_CREDENTIAL_MISSING: { code: 'E5025', message: 'Messenger channel credential is not set' },
+  MESSENGER_SEND_FAILED: { code: 'E5026', message: 'Messenger outbound delivery failed' },
+  /** Reply refused by the platform: receive-only thread, or its send window closed. */
+  MESSENGER_REPLY_NOT_ALLOWED: { code: 'E5027', message: 'Replying to this channel thread is not allowed' },
 
   // E9xxx — system
   INTERNAL_ERROR: { code: 'E9001', message: 'Internal server error' },
