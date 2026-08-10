@@ -226,5 +226,110 @@
     }
   },
   "marketingTitle": "Marketing integrations",
-  "helpdeskTitle": "Helpdesk integrations"
+  "helpdeskTitle": "Helpdesk integrations",
+  "messenger": {
+    "groupTitle": "External messenger channels",
+    "groupHint": "Messages arrive in Live Chat and ShopTalk's AI answers on the same channel.",
+    "communicationTitle": "Communication",
+    "communicationHint": "Company mailboxes handled as conversations.",
+    "loading": "Loading channels…",
+    "label": "Display name",
+    "credential": "Credential",
+    "stored": "Stored — type to replace",
+    "autoReply": "AI auto-reply",
+    "consentMode": "Consent handling",
+    "on": "On",
+    "off": "Off",
+    "enabledLabel": "Channel",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "lastInbound": "Last inbound",
+    "lastError": "Last error",
+    "connectionStatus": "Connection",
+    "test": "Test connection",
+    "testing": "Testing…",
+    "testOk": "Connected — {{detail}}",
+    "testFailed": "Connection failed — {{detail}}",
+    "registerWebhook": "Register receive URL",
+    "webhookRegistered": "Receive URL registered with the provider.",
+    "webhookRegisterError": "Could not register the receive URL.",
+    "webhookUrl": "Receive URL",
+    "webhookHint": "Register it with the provider, or use the button below.",
+    "copy": "Copy",
+    "copied": "Copied.",
+    "copyFailed": "Copy failed.",
+    "saved": "Channel saved.",
+    "saveError": "Could not save the channel.",
+    "disconnect": "Disconnect",
+    "disconnected": "Channel disconnected.",
+    "disconnectError": "Could not disconnect the channel.",
+    "plannedHint": "Not available in this build yet.",
+    "unofficialWarning": "Unofficial channel: messages are relayed by an agent the merchant installs on their own device, and the merchant starts and stops it. AI auto-reply is off by default.",
+    "state": {
+      "connected": "Connected",
+      "error": "Error",
+      "unknown": "Not tested",
+      "planned": "Planned"
+    },
+    "consent": {
+      "notice": "Send a privacy notice on first contact",
+      "auto": "Rely on the platform's terms"
+    },
+    "fields": {
+      "bot_token": "Bot token",
+      "auth_token": "Auth token",
+      "email": "Account email",
+      "password": "Password",
+      "company_id": "Company (workspace) ID",
+      "base_url": "Server URL",
+      "imap_host": "IMAP host",
+      "smtp_host": "SMTP host",
+      "app_password": "App password",
+      "social_types": "Inbound channels",
+      "sender_name": "Sender name"
+    },
+    "ph": {
+      "social_types": "zalo, line, whatsapp",
+      "sender_name": "Support"
+    },
+    "provider": {
+      "telegram": {
+        "title": "Telegram",
+        "subtitle": "Direct — bot token, no platform review",
+        "defaultLabel": "Telegram"
+      },
+      "viber": {
+        "title": "Viber",
+        "subtitle": "Direct — public account token",
+        "defaultLabel": "Viber"
+      },
+      "amoebatalk": {
+        "title": "AmoebaTalk hub",
+        "subtitle": "Carries Zalo / LINE / WhatsApp with reviews already cleared",
+        "defaultLabel": "AmoebaTalk"
+      },
+      "btbz_relay": {
+        "title": "btbz messenger relay",
+        "subtitle": "KakaoTalk rooms + inbound SMS via the merchant's own device",
+        "defaultLabel": "btbz relay"
+      },
+      "gmail": {
+        "title": "Gmail",
+        "subtitle": "Work mailbox over IMAP/SMTP (app password)",
+        "defaultLabel": "Work 1"
+      },
+      "zalo": {
+        "title": "Zalo",
+        "subtitle": "Via the AmoebaTalk hub"
+      },
+      "line": {
+        "title": "LINE",
+        "subtitle": "Via the AmoebaTalk hub"
+      },
+      "whatsapp": {
+        "title": "WhatsApp",
+        "subtitle": "Via the AmoebaTalk hub"
+      }
+    }
+  }
 }

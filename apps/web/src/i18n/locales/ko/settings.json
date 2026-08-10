@@ -226,5 +226,110 @@
     }
   },
   "marketingTitle": "마케팅 연동",
-  "helpdeskTitle": "헬프데스크 연동"
+  "helpdeskTitle": "헬프데스크 연동",
+  "messenger": {
+    "groupTitle": "외부 메신저 연동",
+    "groupHint": "메시지가 실시간 채팅으로 들어오고, 샵톡 AI가 같은 채널로 응답합니다.",
+    "communicationTitle": "커뮤니케이션 연동",
+    "communicationHint": "회사 업무용 메일함을 대화로 처리합니다.",
+    "loading": "채널 불러오는 중…",
+    "label": "표시명",
+    "credential": "자격증명",
+    "stored": "저장됨 — 입력하면 교체",
+    "autoReply": "AI 자동응답",
+    "consentMode": "동의 처리",
+    "on": "켜짐",
+    "off": "꺼짐",
+    "enabledLabel": "채널",
+    "enabled": "활성",
+    "disabled": "비활성",
+    "lastInbound": "최근 수신",
+    "lastError": "최근 오류",
+    "connectionStatus": "연결 상태",
+    "test": "연결 테스트",
+    "testing": "테스트 중…",
+    "testOk": "연결됨 — {{detail}}",
+    "testFailed": "연결 실패 — {{detail}}",
+    "registerWebhook": "수신 URL 등록",
+    "webhookRegistered": "수신 URL을 제공자에 등록했습니다.",
+    "webhookRegisterError": "수신 URL을 등록하지 못했습니다.",
+    "webhookUrl": "수신 URL",
+    "webhookHint": "제공자 콘솔에 등록하거나 아래 버튼을 사용하세요.",
+    "copy": "복사",
+    "copied": "복사했습니다.",
+    "copyFailed": "복사하지 못했습니다.",
+    "saved": "채널을 저장했습니다.",
+    "saveError": "채널을 저장하지 못했습니다.",
+    "disconnect": "연동 해제",
+    "disconnected": "채널 연동을 해제했습니다.",
+    "disconnectError": "연동을 해제하지 못했습니다.",
+    "plannedHint": "이번 빌드에서는 아직 제공되지 않습니다.",
+    "unofficialWarning": "비공식 채널입니다. 가맹점주 본인 기기에 직접 설치한 에이전트가 메시지를 중계하며, 개시·중단도 본인이 선택합니다. AI 자동응답은 기본 꺼짐입니다.",
+    "state": {
+      "connected": "연결됨",
+      "error": "오류",
+      "unknown": "미검증",
+      "planned": "지원 예정"
+    },
+    "consent": {
+      "notice": "첫 접촉 시 개인정보 안내 발송",
+      "auto": "플랫폼 약관에 근거"
+    },
+    "fields": {
+      "bot_token": "봇 토큰",
+      "auth_token": "인증 토큰",
+      "email": "계정 이메일",
+      "password": "비밀번호",
+      "company_id": "회사(워크스페이스) ID",
+      "base_url": "서버 URL",
+      "imap_host": "IMAP 호스트",
+      "smtp_host": "SMTP 호스트",
+      "app_password": "앱 비밀번호",
+      "social_types": "인입 채널",
+      "sender_name": "발신자 이름"
+    },
+    "ph": {
+      "social_types": "zalo, line, whatsapp",
+      "sender_name": "고객지원"
+    },
+    "provider": {
+      "telegram": {
+        "title": "텔레그램",
+        "subtitle": "직접 연동 — 봇 토큰만 있으면 되고 플랫폼 심사 없음",
+        "defaultLabel": "텔레그램"
+      },
+      "viber": {
+        "title": "바이버",
+        "subtitle": "직접 연동 — 퍼블릭 계정 토큰",
+        "defaultLabel": "바이버"
+      },
+      "amoebatalk": {
+        "title": "아메바톡 허브",
+        "subtitle": "심사를 이미 통과한 잘로·라인·와츠앱을 함께 확보",
+        "defaultLabel": "아메바톡"
+      },
+      "btbz_relay": {
+        "title": "btbz 메신저 릴레이",
+        "subtitle": "가맹점주 본인 기기로 카카오톡 대화방·SMS 수신",
+        "defaultLabel": "btbz 릴레이"
+      },
+      "gmail": {
+        "title": "지메일",
+        "subtitle": "업무용 메일함 IMAP/SMTP (앱 비밀번호)",
+        "defaultLabel": "업무용 1"
+      },
+      "zalo": {
+        "title": "잘로",
+        "subtitle": "아메바톡 허브 경유"
+      },
+      "line": {
+        "title": "라인",
+        "subtitle": "아메바톡 허브 경유"
+      },
+      "whatsapp": {
+        "title": "와츠앱",
+        "subtitle": "아메바톡 허브 경유"
+      }
+    }
+  }
 }

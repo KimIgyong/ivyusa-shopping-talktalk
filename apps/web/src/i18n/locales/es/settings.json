@@ -226,5 +226,110 @@
     }
   },
   "marketingTitle": "Integraciones de marketing",
-  "helpdeskTitle": "Integraciones de helpdesk"
+  "helpdeskTitle": "Integraciones de helpdesk",
+  "messenger": {
+    "groupTitle": "Canales de mensajería externos",
+    "groupHint": "Los mensajes llegan a Chat en vivo y la IA de ShopTalk responde por el mismo canal.",
+    "communicationTitle": "Comunicación",
+    "communicationHint": "Buzones de la empresa tratados como conversaciones.",
+    "loading": "Cargando canales…",
+    "label": "Nombre visible",
+    "credential": "Credencial",
+    "stored": "Guardada — escribe para reemplazar",
+    "autoReply": "Respuesta automática de IA",
+    "consentMode": "Gestión del consentimiento",
+    "on": "Activada",
+    "off": "Desactivada",
+    "enabledLabel": "Canal",
+    "enabled": "Habilitado",
+    "disabled": "Deshabilitado",
+    "lastInbound": "Última recepción",
+    "lastError": "Último error",
+    "connectionStatus": "Conexión",
+    "test": "Probar conexión",
+    "testing": "Probando…",
+    "testOk": "Conectado — {{detail}}",
+    "testFailed": "Falló la conexión — {{detail}}",
+    "registerWebhook": "Registrar URL de recepción",
+    "webhookRegistered": "URL de recepción registrada en el proveedor.",
+    "webhookRegisterError": "No se pudo registrar la URL de recepción.",
+    "webhookUrl": "URL de recepción",
+    "webhookHint": "Regístrala en el proveedor o usa el botón de abajo.",
+    "copy": "Copiar",
+    "copied": "Copiado.",
+    "copyFailed": "No se pudo copiar.",
+    "saved": "Canal guardado.",
+    "saveError": "No se pudo guardar el canal.",
+    "disconnect": "Desconectar",
+    "disconnected": "Canal desconectado.",
+    "disconnectError": "No se pudo desconectar el canal.",
+    "plannedHint": "Aún no disponible en esta versión.",
+    "unofficialWarning": "Canal no oficial: los mensajes los retransmite un agente que el comerciante instala en su propio dispositivo, y él mismo lo inicia y lo detiene. La respuesta automática está desactivada por defecto.",
+    "state": {
+      "connected": "Conectado",
+      "error": "Error",
+      "unknown": "Sin probar",
+      "planned": "Previsto"
+    },
+    "consent": {
+      "notice": "Enviar el aviso de privacidad en el primer contacto",
+      "auto": "Basarse en los términos de la plataforma"
+    },
+    "fields": {
+      "bot_token": "Token del bot",
+      "auth_token": "Token de autenticación",
+      "email": "Correo de la cuenta",
+      "password": "Contraseña",
+      "company_id": "ID de empresa (workspace)",
+      "base_url": "URL del servidor",
+      "imap_host": "Servidor IMAP",
+      "smtp_host": "Servidor SMTP",
+      "app_password": "Contraseña de aplicación",
+      "social_types": "Canales de entrada",
+      "sender_name": "Nombre del remitente"
+    },
+    "ph": {
+      "social_types": "zalo, line, whatsapp",
+      "sender_name": "Soporte"
+    },
+    "provider": {
+      "telegram": {
+        "title": "Telegram",
+        "subtitle": "Directo — token de bot, sin revisión de plataforma",
+        "defaultLabel": "Telegram"
+      },
+      "viber": {
+        "title": "Viber",
+        "subtitle": "Directo — token de cuenta pública",
+        "defaultLabel": "Viber"
+      },
+      "amoebatalk": {
+        "title": "Hub AmoebaTalk",
+        "subtitle": "Aporta Zalo / LINE / WhatsApp con las revisiones ya superadas",
+        "defaultLabel": "AmoebaTalk"
+      },
+      "btbz_relay": {
+        "title": "Relé btbz messenger",
+        "subtitle": "Salas de KakaoTalk y SMS entrantes desde el dispositivo del comerciante",
+        "defaultLabel": "Relé btbz"
+      },
+      "gmail": {
+        "title": "Gmail",
+        "subtitle": "Buzón de trabajo por IMAP/SMTP (contraseña de aplicación)",
+        "defaultLabel": "Trabajo 1"
+      },
+      "zalo": {
+        "title": "Zalo",
+        "subtitle": "A través del hub AmoebaTalk"
+      },
+      "line": {
+        "title": "LINE",
+        "subtitle": "A través del hub AmoebaTalk"
+      },
+      "whatsapp": {
+        "title": "WhatsApp",
+        "subtitle": "A través del hub AmoebaTalk"
+      }
+    }
+  }
 }
