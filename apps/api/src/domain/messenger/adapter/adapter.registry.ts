@@ -4,6 +4,7 @@ import { ERROR_CODE } from '../../../global/constant/error-code.constant';
 import { MessengerAdapter } from './messenger-adapter';
 import { TelegramAdapter } from './telegram.adapter';
 import { ViberAdapter } from './viber.adapter';
+import { AmoebaTalkHubAdapter } from './amoeba-talk-hub.adapter';
 
 /**
  * Provider → adapter lookup. Later phases (amoebatalk hub, btbz relay, gmail)
@@ -13,8 +14,8 @@ import { ViberAdapter } from './viber.adapter';
 export class AdapterRegistry {
   private readonly adapters = new Map<string, MessengerAdapter>();
 
-  constructor(telegram: TelegramAdapter, viber: ViberAdapter) {
-    for (const adapter of [telegram, viber]) {
+  constructor(telegram: TelegramAdapter, viber: ViberAdapter, amoebaTalk: AmoebaTalkHubAdapter) {
+    for (const adapter of [telegram, viber, amoebaTalk]) {
       this.adapters.set(adapter.provider, adapter);
     }
   }

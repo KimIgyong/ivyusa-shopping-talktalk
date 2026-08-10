@@ -24,6 +24,14 @@ export interface NormalizedInbound {
   occurredAt: Date | null;
 }
 
+/** What a poll adapter already ingested for one external thread. */
+export interface ThreadCursor {
+  externalThreadId: string;
+  /** Last external message id ingested, or null for a thread never polled. */
+  inboundCursor: string | null;
+  lastInboundAt: Date | null;
+}
+
 /** Adapter call context: the channel row plus its decrypted credential. */
 export interface AdapterContext {
   channel: MessengerChannel;
@@ -66,8 +74,12 @@ export interface MessengerAdapter {
    */
   parse?(ctx: AdapterContext, headers: Record<string, string>, raw: Buffer): NormalizedInbound[];
 
-  /** Fetch messages newer than the thread cursors (poll adapters). */
-  pull?(ctx: AdapterContext): Promise<NormalizedInbound[]>;
+  /**
+   * Fetch messages newer than what we already hold (poll adapters). Cursors are
+   * passed in rather than read by the adapter, so database access stays in the
+   * service layer and the adapter remains a pure protocol translator.
+   */
+  pull?(ctx: AdapterContext, cursors: ThreadCursor[]): Promise<NormalizedInbound[]>;
 
   send(ctx: AdapterContext, thread: ChannelThread, text: string): Promise<SendResult>;
 

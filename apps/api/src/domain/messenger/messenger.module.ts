@@ -16,15 +16,19 @@ import { MessengerWebhookController } from './messenger-webhook.controller';
 import { AdapterRegistry } from './adapter/adapter.registry';
 import { TelegramAdapter } from './adapter/telegram.adapter';
 import { ViberAdapter } from './adapter/viber.adapter';
+import { AmoebaTalkHubAdapter } from './adapter/amoeba-talk-hub.adapter';
+import { MessengerSyncService } from './messenger-sync.service';
 import { ChatModule } from '../chat/chat.module';
 import { SessionModule } from '../session/session.module';
 import { AuditModule } from '../audit/audit.module';
 
 /**
- * External messenger channels (PLN-260810 PR-M1): Telegram and Viber speak to
- * ShopTalk directly; later phases add hub adapters (AmoebaTalk, btbz relay) and
- * Gmail behind the same port. Chat/Session are imported one-way — nothing in
- * those modules knows this one exists, which keeps the graph acyclic.
+ * External messenger channels (PLN-260810). Telegram and Viber speak to
+ * ShopTalk directly over webhooks (PR-M1); AmoebaTalk is polled as a hub so its
+ * already-certified Zalo/LINE/WhatsApp channels come for free (PR-M2). Later
+ * phases add the btbz relay and Gmail behind the same port. Chat/Session are
+ * imported one-way — nothing there knows this module exists, so the graph
+ * stays acyclic.
  */
 @Module({
   imports: [
@@ -47,10 +51,18 @@ import { AuditModule } from '../audit/audit.module';
     MessengerIngestService,
     MessengerOutboxService,
     MessengerOutboxWorker,
+    MessengerSyncService,
     AdapterRegistry,
     TelegramAdapter,
     ViberAdapter,
+    AmoebaTalkHubAdapter,
   ],
-  exports: [MessengerService, MessengerIngestService, MessengerOutboxService, AdapterRegistry],
+  exports: [
+    MessengerService,
+    MessengerIngestService,
+    MessengerOutboxService,
+    MessengerSyncService,
+    AdapterRegistry,
+  ],
 })
 export class MessengerModule {}
