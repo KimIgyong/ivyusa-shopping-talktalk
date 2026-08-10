@@ -29,6 +29,7 @@ describe('MessengerOutboxService', () => {
     inboundOriginIds?: number[];
     outboundSent?: number[];
     send?: MessengerAdapter['send'];
+    confirm?: MessengerAdapter['confirm'];
   }) {
     const thread = {
       id: 55,
@@ -120,6 +121,7 @@ describe('MessengerOutboxService', () => {
       kind: 'webhook' as const,
       test: jest.fn(),
       send: opts.send ?? jest.fn(async () => ({ externalMessageId: 'ext-out-1' })),
+      confirm: opts.confirm,
     } as unknown as MessengerAdapter;
     const registry = { find: () => adapter } as unknown as AdapterRegistry;
 
@@ -254,6 +256,21 @@ describe('MessengerOutboxService', () => {
       expect(h.outboxUpdates[0]).toMatchObject({ status: 'failed', attempts: 5, nextAttemptAt: null });
     });
 
+    it('records unconfirmed with the provider command id', async () => {
+      const h = build({
+        outboxRows: [row],
+        messages: [{ id: 502, senderType: 'ai', body: 'hi' }],
+        send: jest.fn(async () => ({ externalMessageId: 'cmd-77', unconfirmed: true })),
+      });
+
+      await h.service.deliverDue();
+
+      expect(h.outboxUpdates[0]).toMatchObject({
+        status: 'unconfirmed',
+        externalCommandId: 'cmd-77',
+      });
+    });
+
     it('keeps the row retryable when the channel is disabled', async () => {
       const h = build({
         channel: { active: 0 },
@@ -264,6 +281,54 @@ describe('MessengerOutboxService', () => {
       await h.service.deliverDue();
 
       expect(h.outboxUpdates[0]).toMatchObject({ status: 'pending', lastError: 'channel inactive' });
+    });
+  });
+
+  describe('confirmUnconfirmed', () => {
+    const unconfirmed = {
+      id: 2,
+      tenantId: 1,
+      threadId: 55,
+      messageId: 502,
+      status: 'unconfirmed',
+      attempts: 1,
+      externalCommandId: 'cmd-77',
+    };
+
+    it('promotes to sent only once the provider confirms delivery', async () => {
+      const h = build({ outboxRows: [unconfirmed], confirm: jest.fn(async () => 'sent' as const) });
+
+      const resolved = await h.service.confirmUnconfirmed();
+
+      expect(resolved).toBe(1);
+      expect(h.outboxUpdates[0]).toMatchObject({ status: 'sent' });
+    });
+
+    it('leaves the row unconfirmed while the device agent has not answered', async () => {
+      const h = build({ outboxRows: [unconfirmed], confirm: jest.fn(async () => 'pending' as const) });
+
+      const resolved = await h.service.confirmUnconfirmed();
+
+      expect(resolved).toBe(0);
+      // Never silently promoted — an unproven delivery stays unproven.
+      expect(h.outboxUpdates).toHaveLength(0);
+    });
+
+    it('marks failed when the agent reports failure', async () => {
+      const h = build({ outboxRows: [unconfirmed], confirm: jest.fn(async () => 'failed' as const) });
+
+      await h.service.confirmUnconfirmed();
+
+      expect(h.outboxUpdates[0]).toMatchObject({ status: 'failed' });
+    });
+
+    it('ignores providers that deliver synchronously', async () => {
+      const h = build({ outboxRows: [unconfirmed] }); // adapter has no confirm()
+
+      const resolved = await h.service.confirmUnconfirmed();
+
+      expect(resolved).toBe(0);
+      expect(h.outboxUpdates).toHaveLength(0);
     });
   });
 });

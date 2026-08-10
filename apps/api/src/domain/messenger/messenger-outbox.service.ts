@@ -109,6 +109,46 @@ export class MessengerOutboxService {
     return rows.length;
   }
 
+  /**
+   * Resolve sends the provider could not confirm at the time (btbz relay hands
+   * the reply to a device agent). Rows stay 'unconfirmed' until the agent
+   * reports back — never silently promoted to 'sent'.
+   */
+  async confirmUnconfirmed(): Promise<number> {
+    const rows = await this.outboxRepo.find({
+      where: { status: OUTBOX_STATUS.UNCONFIRMED },
+      order: { id: 'ASC' },
+      take: BATCH,
+    });
+
+    let resolved = 0;
+    for (const row of rows) {
+      if (!row.externalCommandId) continue;
+      const thread = await this.threadRepo.findOne({ where: { id: row.threadId } });
+      if (!thread) continue;
+      const channel = await this.channelRepo.findOne({ where: { id: thread.channelId } });
+      if (!channel) continue;
+      const adapter = this.registry.find(channel.provider);
+      if (!adapter?.confirm) continue;
+
+      try {
+        const secret = decryptChannelSecret(channel);
+        const verdict = await adapter.confirm({ channel, secret }, thread, row.externalCommandId);
+        if (verdict === 'pending' || verdict === 'unconfirmed') continue;
+        await this.outboxRepo.update(
+          { id: row.id },
+          verdict === 'sent'
+            ? { status: OUTBOX_STATUS.SENT, lastError: null }
+            : { status: OUTBOX_STATUS.FAILED, lastError: 'relay agent reported failure' },
+        );
+        resolved += 1;
+      } catch (e) {
+        this.logger.warn(`confirm failed for outbox ${row.id}: ${(e as Error).message}`);
+      }
+    }
+    return resolved;
+  }
+
   /** Deliver rows whose backoff has elapsed (worker tick). */
   async deliverDue(): Promise<number> {
     const due = await this.outboxRepo.find({
