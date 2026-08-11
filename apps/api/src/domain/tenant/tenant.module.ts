@@ -4,6 +4,7 @@ import { Tenant } from './entity/tenant.entity';
 import { IntegrationCredential } from './entity/integration-credential.entity';
 import { User } from '../user/entity/user.entity';
 import { ContentFilterRule } from '../moderation/entity/content-filter-rule.entity';
+import { JobLabel } from '../user/entity/job-label.entity';
 import { TenantService } from './tenant.service';
 import { EcommerceIntegrationService } from './ecommerce-integration.service';
 import { WebhookSecretService } from './webhook-secret.service';
@@ -13,7 +14,7 @@ import { AuditModule } from '../audit/audit.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Tenant, IntegrationCredential, User, ContentFilterRule]),
+    TypeOrmModule.forFeature([Tenant, IntegrationCredential, User, ContentFilterRule, JobLabel]),
     IntegrationModule,
     AuditModule,
   ],
