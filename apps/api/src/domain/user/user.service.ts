@@ -197,6 +197,9 @@ export class UserService {
     labelCodes: string[],
   ): Promise<UserResponse> {
     const user = await this.getTenantUser(tenantId, userId);
+    this.logger.log(
+      `updateLabels tenant=${tenantId} user=${userId} codes=[${(labelCodes ?? []).join(',')}]`,
+    );
     await this.userLabelRepo.delete({ userId: user.id });
     await this.assignLabels(tenantId, user.id, labelCodes);
     return this.toResponseWithLabels(user);
@@ -257,6 +260,16 @@ export class UserService {
   private async assignLabels(tenantId: number, userId: number, codes: string[]): Promise<void> {
     if (!codes.length) return;
     const labels = await this.labelRepo.find({ where: { tenantId, code: In(codes) } });
+    // A checked label whose code isn't a tenant job_label would otherwise be dropped
+    // silently with a 200 — the invisible-fallback trap. Surface it so "checked but
+    // not saved" is diagnosable (4xx-style events aren't logged by default).
+    const found = new Set(labels.map((l) => l.code));
+    const unknown = codes.filter((c) => !found.has(c));
+    if (unknown.length) {
+      this.logger.warn(
+        `assignLabels tenant=${tenantId} user=${userId}: ignored ${unknown.length} code(s) not in job_labels [${unknown.join(',')}]`,
+      );
+    }
     if (!labels.length) return;
     const links = labels.map((l) => this.userLabelRepo.create({ userId, jobLabelId: l.id }));
     await this.userLabelRepo.save(links);
