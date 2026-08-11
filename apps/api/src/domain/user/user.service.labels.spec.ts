@@ -20,8 +20,10 @@ function repo(overrides: Record<string, unknown> = {}): never {
 }
 
 describe('UserService.listUsers — job-label codes join (bigint id string vs number)', () => {
+  // id as a STRING — the bigint PK representation TypeORM actually returns for User.id
+  // (the outer half of the join trap: result Map keyed by numeric userId vs string id).
   const user = {
-    id: 2,
+    id: '2',
     tenantId: 1,
     email: 'hykim4@example.com',
     name: null,

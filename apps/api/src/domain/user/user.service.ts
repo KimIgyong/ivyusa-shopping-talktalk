@@ -54,7 +54,7 @@ export class UserService {
     });
 
     const labelsByUser = await this.loadLabelCodes(users.map((u) => u.id));
-    const items = users.map((u) => UserMapper.toResponse(u, labelsByUser.get(u.id) ?? []));
+    const items = users.map((u) => UserMapper.toResponse(u, labelsByUser.get(String(u.id)) ?? []));
     return { items, total };
   }
 
@@ -277,12 +277,18 @@ export class UserService {
 
   private async toResponseWithLabels(user: User): Promise<UserResponse> {
     const labelsByUser = await this.loadLabelCodes([user.id]);
-    return UserMapper.toResponse(user, labelsByUser.get(user.id) ?? []);
+    return UserMapper.toResponse(user, labelsByUser.get(String(user.id)) ?? []);
   }
 
-  /** Map userId -> label codes (join user_job_labels + job_labels). */
-  private async loadLabelCodes(userIds: number[]): Promise<Map<number, string[]>> {
-    const result = new Map<number, string[]>();
+  /**
+   * Map userId -> label codes (join user_job_labels + job_labels). Every key is
+   * String()-normalized: User.id / JobLabel.id are BIGINT PKs TypeORM hands back as
+   * strings, while UserJobLabel.userId / .jobLabelId are transformed to numbers, so
+   * BOTH joins (label id AND user id) miss unless both sides share a representation
+   * (bigint-PK-as-string trap). Callers must read with String(id).
+   */
+  private async loadLabelCodes(userIds: number[]): Promise<Map<string, string[]>> {
+    const result = new Map<string, string[]>();
     if (!userIds.length) return result;
 
     const links = await this.userLabelRepo.find({ where: { userId: In(userIds) } });
@@ -290,16 +296,15 @@ export class UserService {
 
     const labelIds = [...new Set(links.map((l) => l.jobLabelId))];
     const labels = await this.labelRepo.find({ where: { id: In(labelIds) } });
-    // Key by String so a bigint returned as "1" (string) still matches jobLabelId 1
-    // (number) — the join must never depend on both sides sharing a representation.
     const codeById = new Map(labels.map((l) => [String(l.id), l.code]));
 
     for (const link of links) {
       const code = codeById.get(String(link.jobLabelId));
       if (!code) continue;
-      const list = result.get(link.userId) ?? [];
+      const key = String(link.userId);
+      const list = result.get(key) ?? [];
       list.push(code);
-      result.set(link.userId, list);
+      result.set(key, list);
     }
     return result;
   }
