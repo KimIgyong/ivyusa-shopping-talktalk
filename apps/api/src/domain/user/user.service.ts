@@ -290,10 +290,12 @@ export class UserService {
 
     const labelIds = [...new Set(links.map((l) => l.jobLabelId))];
     const labels = await this.labelRepo.find({ where: { id: In(labelIds) } });
-    const codeById = new Map(labels.map((l) => [l.id, l.code]));
+    // Key by String so a bigint returned as "1" (string) still matches jobLabelId 1
+    // (number) — the join must never depend on both sides sharing a representation.
+    const codeById = new Map(labels.map((l) => [String(l.id), l.code]));
 
     for (const link of links) {
-      const code = codeById.get(link.jobLabelId);
+      const code = codeById.get(String(link.jobLabelId));
       if (!code) continue;
       const list = result.get(link.userId) ?? [];
       list.push(code);

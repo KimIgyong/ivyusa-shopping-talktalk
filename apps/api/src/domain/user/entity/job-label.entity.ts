@@ -5,6 +5,11 @@ import { bigintTransformer } from '../../../global/util/transformers';
 @Entity('job_labels')
 @Unique('uk_label_tenant_code', ['tenantId', 'code'])
 export class JobLabel {
+  // NOTE: TypeORM returns this BIGINT PK as a STRING at runtime (despite the number
+  // type) — @PrimaryGeneratedColumn takes no transformer. Any code joining this id to
+  // UserJobLabel.jobLabelId (which IS transformed to a number) must String()-normalize
+  // both sides, or the join silently misses (bigint-PK-as-string trap; see
+  // loadLabelCodes). Left as-is to match every other bigint PK in the schema.
   @PrimaryGeneratedColumn({ type: 'bigint' })
   id: number;
 
