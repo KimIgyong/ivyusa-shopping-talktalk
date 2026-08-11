@@ -25,7 +25,7 @@ export const MFA_REQUIRED_USER_RANKS: readonly string[] = ['master', 'director']
 // Existing passwords are grandfathered until their next change; login is untouched.
 
 /** Minimum length for newly set passwords. */
-export const PASSWORD_MIN_LENGTH = 12;
+export const PASSWORD_MIN_LENGTH = 10;
 
 /** Minimum distinct character classes (of lowercase/uppercase/digit/special). */
 export const PASSWORD_MIN_CHAR_CLASSES = 3;

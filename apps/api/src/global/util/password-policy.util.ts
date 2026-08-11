@@ -18,7 +18,7 @@ import { PASSWORD_BLOCKLIST } from '../constant/password-blocklist.constant';
  * localize per-rule.
  */
 export const PASSWORD_RULE = {
-  /** Shorter than PASSWORD_MIN_LENGTH (12). */
+  /** Shorter than PASSWORD_MIN_LENGTH (10). */
   MIN_LENGTH: 'min_length',
   /** Fewer than PASSWORD_MIN_CHAR_CLASSES (3) of lower/upper/digit/special. */
   CHAR_CLASSES: 'char_classes',

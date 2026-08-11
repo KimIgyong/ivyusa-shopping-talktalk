@@ -35,7 +35,7 @@ export class LogoutRequest {
 }
 
 export class ChangePasswordRequest {
-  // Grandfathered passwords may predate the 12-char policy — keep the old floor.
+  // Grandfathered passwords may predate the strong-password policy — keep the old floor.
   @IsString()
   @MinLength(6)
   current_password: string;
