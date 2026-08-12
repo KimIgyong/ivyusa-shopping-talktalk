@@ -82,6 +82,26 @@ values change (ports/domains/creds), update `CLAUDE.md`/`SPEC.md`/`CONFIG.md` im
 past REQ/PLN/RPT stay as written. Keep code mapped to design IDs (FR→FN→SCR→TBL→SEQ→T).
 Git: branch `feature/*` from `main`, PR + squash-merge.
 
+**세션별 워크트리 (MUST)** — 여러 세션이 한 체크아웃을 공유하면 한쪽의 `git checkout`이
+다른 쪽의 HEAD를 옮깁니다. 실제로 네 번 발생했고, 한 번은 22개 파일 구현이 엉뚱한 브랜치에
+올라간 뒤 `reset --hard`로 사라져 reflog로 복구했습니다. 작업 시작 시 자기 워크트리를
+만드십시오.
+
+```bash
+scripts/session-worktree.sh new <name>   # ~/orca/worktrees/ivyusa-talktalk/<name>, 브랜치 session/<name>
+scripts/session-worktree.sh list         # 워크트리별 브랜치 + dirty/unpushed
+scripts/session-worktree.sh remove <name>
+```
+`node_modules`는 APFS 클론(~10초, 디스크 거의 0)이고 `secrets/`는 주 체크아웃에서 링크됩니다.
+
+공유 체크아웃에서 작업해야 한다면 최소한 이 세 가지는 지킵니다.
+- **내가 만들지 않은 브랜치로 `checkout` 하지 않습니다.** 커밋 전 `git branch --show-current`로
+  내 브랜치가 맞는지 확인하십시오 — 다른 세션이 중간에 바꿔놓았을 수 있습니다.
+- **`reset --hard` 전에 `git log origin/main..HEAD`를 먼저 봅니다.** 여기 있는 커밋은
+  reset이 지웁니다.
+- **`git add -A`를 쓰지 않습니다.** 다른 세션의 미커밋 파일까지 쓸어담습니다 — 변경한 경로만
+  명시적으로 스테이징하십시오.
+
 Kit rules adopted (dev-kit 03/04 — MUST):
 - **Schema-change PRs** (diff touches `sql/*.sql` or `*.entity.ts`) need a `## Migration`
   section in the PR body: SQL path, per-env apply checkboxes, rollback plan. The deploy
