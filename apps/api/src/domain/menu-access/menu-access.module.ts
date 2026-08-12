@@ -4,8 +4,10 @@ import { Tenant } from '../tenant/entity/tenant.entity';
 import { TenantMenu } from './entity/tenant-menu.entity';
 import { TenantRoleMenu } from './entity/tenant-role-menu.entity';
 import { TenantUserMenu } from './entity/tenant-user-menu.entity';
+import { AuditModule } from '../audit/audit.module';
 import { MenuAccessService } from './menu-access.service';
 import { MenuAccessController } from './menu-access.controller';
+import { AdminTenantMenuController } from './admin-tenant-menu.controller';
 
 /**
  * Menu provisioning & access (PLN-260812-Menu-Provisioning-Access).
@@ -15,8 +17,8 @@ import { MenuAccessController } from './menu-access.controller';
  * otherwise have to import the other.
  */
 @Module({
-  imports: [TypeOrmModule.forFeature([TenantMenu, TenantRoleMenu, TenantUserMenu, Tenant])],
-  controllers: [MenuAccessController],
+  imports: [TypeOrmModule.forFeature([TenantMenu, TenantRoleMenu, TenantUserMenu, Tenant]), AuditModule],
+  controllers: [MenuAccessController, AdminTenantMenuController],
   providers: [MenuAccessService],
   exports: [MenuAccessService],
 })
