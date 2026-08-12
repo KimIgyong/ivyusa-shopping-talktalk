@@ -3,6 +3,9 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { CoachingThread } from './entity/coaching-thread.entity';
 import { CoachingMessage } from './entity/coaching-message.entity';
 import { CoachingProposal } from './entity/coaching-proposal.entity';
+import { GoldenQuestion } from './entity/golden-question.entity';
+import { GoldenRun, GoldenRunItem } from './entity/golden-run.entity';
+import { GoldenService } from './golden.service';
 import { Message } from '../chat/entity/message.entity';
 import { AiCoachService } from './ai-coach.service';
 import { CoachContextService } from './coach-context.service';
@@ -21,7 +24,15 @@ import { AuditModule } from '../audit/audit.module';
  */
 @Module({
   imports: [
-    TypeOrmModule.forFeature([CoachingThread, CoachingMessage, CoachingProposal, Message]),
+    TypeOrmModule.forFeature([
+      CoachingThread,
+      CoachingMessage,
+      CoachingProposal,
+      GoldenQuestion,
+      GoldenRun,
+      GoldenRunItem,
+      Message,
+    ]),
     ChatModule,
     KnowledgeModule,
     AiEngineModule,
@@ -29,7 +40,7 @@ import { AuditModule } from '../audit/audit.module';
     AuditModule,
   ],
   controllers: [AiCoachController],
-  providers: [AiCoachService, CoachContextService, CoachProposalService],
-  exports: [AiCoachService],
+  providers: [AiCoachService, CoachContextService, CoachProposalService, GoldenService],
+  exports: [AiCoachService, GoldenService],
 })
 export class AiCoachModule {}

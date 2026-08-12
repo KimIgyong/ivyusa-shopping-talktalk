@@ -48,6 +48,8 @@ export const ERROR_CODE = {
     code: 'E4016',
     message: 'Undo this from the knowledge document revision history',
   },
+  // Nothing to re-ask, so a before/after comparison would be empty.
+  GOLDEN_SET_EMPTY: { code: 'E4017', message: 'Add a regression question first' },
 
   // E5xxx — domain
   ORDER_NOT_FOUND: { code: 'E5001', message: 'Order not found' },

@@ -1,4 +1,15 @@
-import { Body, Controller, Delete, Get, HttpStatus, Param, ParseIntPipe, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpStatus,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CAPABILITY, JobLabel, Principal, UserRank } from '@ivy/types';
 import { buildPagination, normalizePage } from '@ivy/common';
@@ -16,6 +27,14 @@ import {
   ListThreadsQuery,
   SendCoachMessageRequest,
 } from './dto/request/ai-coach.request';
+import {
+  CompareRunsQuery,
+  CreateGoldenQuestionRequest,
+  CreateGoldenRunRequest,
+  UpdateGoldenQuestionRequest,
+} from './dto/request/golden.request';
+import { GOLDEN_MAX_QUESTIONS, GoldenService } from './golden.service';
+import { GOLDEN_RUN_KIND, GoldenRunKind } from './entity/golden-run.entity';
 
 /**
  * Agent coaching channel (FR-071 / FR-072). Distinct from the /ai-setting
@@ -28,6 +47,7 @@ export class AiCoachController {
   constructor(
     private readonly coach: AiCoachService,
     private readonly proposals: CoachProposalService,
+    private readonly golden: GoldenService,
   ) {}
 
   private tenantUser(user: Principal): {
@@ -124,6 +144,110 @@ export class AiCoachController {
       scenarioReply: body.scenario_reply,
     });
     return AiCoachMapper.toProposal(proposal);
+  }
+
+  /**
+   * Apply a proposal with evidence: snapshot the answers, apply, snapshot again.
+   *
+   * The order is the whole point — once a change is live the previous config is
+   * gone, so a "before" cannot be taken afterwards. Kept separate from plain
+   * apply because it costs two model calls per question and most approvals do
+   * not need it.
+   */
+  @Post('proposals/:id/apply-verified')
+  @RequireCapability(CAPABILITY.AI_SETTINGS_MANAGE)
+  @ApiOperation({ summary: 'Run the regression set, apply the proposal, run it again, and compare' })
+  async applyVerified(
+    @CurrentUser() user: Principal,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: ApplyProposalRequest,
+  ) {
+    const { tenantId, userId, rank, labels } = this.tenantUser(user);
+    const baseline = await this.golden.run(tenantId, userId, GOLDEN_RUN_KIND.BASELINE, {
+      label: `proposal #${id}`,
+    });
+    const proposal = await this.proposals.apply(tenantId, { userId, rank, labels }, id, {
+      persona: body.persona,
+      rule: body.rule,
+      docContent: body.doc_content,
+      scenarioReply: body.scenario_reply,
+    });
+    const after = await this.golden.run(tenantId, userId, GOLDEN_RUN_KIND.AFTER, {
+      label: `proposal #${id}`,
+      proposalId: id,
+    });
+    return {
+      proposal: AiCoachMapper.toProposal(proposal),
+      comparison: await this.golden.compare(tenantId, Number(baseline.id), Number(after.id)),
+    };
+  }
+
+  // ---- regression set (FR-073) ----
+
+  @Get('golden/questions')
+  @RequireCapability(CAPABILITY.AI_SETTINGS_MANAGE)
+  @ApiOperation({ summary: 'List the regression questions' })
+  async listGolden(@CurrentUser() user: Principal) {
+    const rows = await this.golden.listQuestions(this.tenantUser(user).tenantId);
+    return { items: rows.map((r) => AiCoachMapper.toGoldenQuestion(r)), max: GOLDEN_MAX_QUESTIONS };
+  }
+
+  @Post('golden/questions')
+  @RequireCapability(CAPABILITY.AI_SETTINGS_MANAGE)
+  @ApiOperation({ summary: 'Add a regression question' })
+  async addGolden(@CurrentUser() user: Principal, @Body() body: CreateGoldenQuestionRequest) {
+    const { tenantId, userId } = this.tenantUser(user);
+    const row = await this.golden.addQuestion(tenantId, userId, body);
+    return AiCoachMapper.toGoldenQuestion(row);
+  }
+
+  @Patch('golden/questions/:id')
+  @RequireCapability(CAPABILITY.AI_SETTINGS_MANAGE)
+  @ApiOperation({ summary: 'Edit a regression question' })
+  async updateGolden(
+    @CurrentUser() user: Principal,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: UpdateGoldenQuestionRequest,
+  ) {
+    const row = await this.golden.updateQuestion(this.tenantUser(user).tenantId, id, body);
+    return AiCoachMapper.toGoldenQuestion(row);
+  }
+
+  @Delete('golden/questions/:id')
+  @RequireCapability(CAPABILITY.AI_SETTINGS_MANAGE)
+  @ApiOperation({ summary: 'Remove a regression question' })
+  async removeGolden(@CurrentUser() user: Principal, @Param('id', ParseIntPipe) id: number) {
+    await this.golden.removeQuestion(this.tenantUser(user).tenantId, id);
+    return { removed: true };
+  }
+
+  @Post('golden/runs')
+  @RequireCapability(CAPABILITY.AI_SETTINGS_MANAGE)
+  @ApiOperation({ summary: 'Ask every regression question on the current config' })
+  async createGoldenRun(@CurrentUser() user: Principal, @Body() body: CreateGoldenRunRequest) {
+    const { tenantId, userId } = this.tenantUser(user);
+    const run = await this.golden.run(
+      tenantId,
+      userId,
+      (body.kind as GoldenRunKind) ?? GOLDEN_RUN_KIND.MANUAL,
+      { label: body.label },
+    );
+    return AiCoachMapper.toGoldenRun(run);
+  }
+
+  @Get('golden/runs')
+  @RequireCapability(CAPABILITY.AI_SETTINGS_MANAGE)
+  @ApiOperation({ summary: 'Recent regression runs' })
+  async listGoldenRuns(@CurrentUser() user: Principal) {
+    const rows = await this.golden.listRuns(this.tenantUser(user).tenantId);
+    return { items: rows.map((r) => AiCoachMapper.toGoldenRun(r)) };
+  }
+
+  @Get('golden/compare')
+  @RequireCapability(CAPABILITY.AI_SETTINGS_MANAGE)
+  @ApiOperation({ summary: 'Compare two runs question by question' })
+  async compareGolden(@CurrentUser() user: Principal, @Query() query: CompareRunsQuery) {
+    return this.golden.compare(this.tenantUser(user).tenantId, query.base, query.target);
   }
 
   @Post('proposals/:id/reject')
