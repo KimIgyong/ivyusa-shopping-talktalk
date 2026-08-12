@@ -333,6 +333,11 @@
         "title": "WhatsApp",
         "subtitle": "Via the AmoebaTalk hub"
       }
-    }
+    },
+    "syncNow": "Fetch now",
+    "syncOk": "Fetched {{count}} new message(s).",
+    "syncFailed": "Fetch failed — {{detail}}",
+    "syncInactive": "Fetched {{count}} message(s), but this channel is disabled — nothing will arrive on its own until you enable it.",
+    "inactiveWarning": "Disabled — not receiving. Open Configure and set the channel to Enabled."
   }
 }

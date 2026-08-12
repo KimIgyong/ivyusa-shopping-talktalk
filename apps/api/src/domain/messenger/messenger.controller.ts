@@ -16,6 +16,7 @@ import { CurrentUser } from '../../global/decorator/current-user.decorator';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
 import { MessengerService } from './messenger.service';
+import { MessengerSyncService } from './messenger-sync.service';
 import { MessengerMapper } from './messenger.mapper';
 import { AdapterRegistry } from './adapter/adapter.registry';
 import {
@@ -30,6 +31,7 @@ export class MessengerController {
   constructor(
     private readonly messenger: MessengerService,
     private readonly registry: AdapterRegistry,
+    private readonly sync: MessengerSyncService,
   ) {}
 
   @Get()
@@ -97,6 +99,20 @@ export class MessengerController {
   @ApiOperation({ summary: 'Verify the stored credential against the provider' })
   async test(@CurrentUser() user: Principal, @Param('id', ParseIntPipe) id: number) {
     return this.messenger.test(this.tenantId(user), id);
+  }
+
+  @Post(':id/sync')
+  @RequireCapability(CAPABILITY.INTEGRATION_CREDENTIALS_MANAGE)
+  @ApiOperation({ summary: 'Fetch this channel now (does not wait for the poll tick)' })
+  async syncNow(@CurrentUser() user: Principal, @Param('id', ParseIntPipe) id: number) {
+    const channel = await this.messenger.require(this.tenantId(user), id);
+    const outcome = await this.sync.syncChannel(channel);
+    return {
+      ...outcome,
+      // A disabled channel can still be fetched by hand, but it will not keep
+      // syncing — say so rather than let "0 fetched" look like "no messages".
+      inactive: channel.active !== 1,
+    };
   }
 
   @Post(':id/register-webhook')

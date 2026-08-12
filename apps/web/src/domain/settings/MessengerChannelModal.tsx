@@ -108,7 +108,9 @@ export function MessengerChannelModal({
     // into someone's personal KakaoTalk room must be a deliberate choice.
     setAutoReply(channel?.autoReply ?? !UNOFFICIAL_PROVIDERS.has(provider));
     setConsentMode(channel?.consentMode ?? 'notice');
-    setActive(channel?.active ?? false);
+    // A new channel defaults to enabled: filling in credentials is the intent
+    // to use it, and a silently disabled channel receives nothing.
+    setActive(channel?.active ?? true);
     // specs/configKeys are derived from `provider`, already a dependency.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, channel, provider]);

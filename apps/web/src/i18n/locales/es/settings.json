@@ -333,6 +333,11 @@
         "title": "WhatsApp",
         "subtitle": "A través del hub AmoebaTalk"
       }
-    }
+    },
+    "syncNow": "Recibir ahora",
+    "syncOk": "Se recibieron {{count}} mensaje(s) nuevo(s).",
+    "syncFailed": "Fallo al recibir — {{detail}}",
+    "syncInactive": "Se recibieron {{count}} mensaje(s), pero el canal está deshabilitado: no llegará nada por sí solo hasta que lo habilites.",
+    "inactiveWarning": "Deshabilitado: no recibe. Abre Configurar y habilita el canal."
   }
 }

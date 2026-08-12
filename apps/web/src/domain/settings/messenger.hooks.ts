@@ -76,6 +76,31 @@ export function useTestMessengerChannel() {
   });
 }
 
+/** Pull a channel now instead of waiting for the 15s poll. */
+export function useSyncMessengerChannel() {
+  const { t } = useTranslation('settings');
+  const qc = useQueryClient();
+  const tenantKey = useTenantKey();
+  return useMutation({
+    mutationFn: (id: string) => messengerService.sync(id),
+    onSuccess: (result) => {
+      qc.invalidateQueries({ queryKey: key(tenantKey) });
+      if (result.error) {
+        toast.error(t('messenger.syncFailed', { detail: result.error }), { sticky: true });
+        return;
+      }
+      // "0 fetched" on a disabled channel is not "no messages" — it means
+      // nothing will arrive on its own until the channel is enabled.
+      if (result.inactive) {
+        toast.error(t('messenger.syncInactive', { count: result.fetched }), { sticky: true });
+        return;
+      }
+      toast.success(t('messenger.syncOk', { count: result.fetched }));
+    },
+    onError: (e: Error) => toast.error(e.message || t('messenger.syncFailed', { detail: '' }), { sticky: true }),
+  });
+}
+
 export function useRegisterMessengerWebhook() {
   const { t } = useTranslation('settings');
   const qc = useQueryClient();
