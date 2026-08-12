@@ -97,5 +97,5 @@ apps/api/src/domain/chat/chat.service.ts    (비질문 분기 · nonQuestionKind
 |---|---|
 | **V10** | `low_confidence` 알림 비중(배포 전 69%) 감소 확인 — **트래픽 축적 후** 재측정 |
 | O6 | 리뷰 작성 절차 문서 보강 |
-| O2 | 세션 언어 고정(기존) |
+| ~~O2~~ | ~~세션 언어 고정(기존)~~ — 해결(PR #260) |
 | O3 | 프로덕션 배포 |
