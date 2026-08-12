@@ -92,6 +92,13 @@ export interface UpsertChannelBody {
 
 export type UpdateChannelBody = Omit<UpsertChannelBody, 'provider' | 'label'> & { label?: string };
 
+export interface ChannelSyncResult {
+  fetched: number;
+  error?: string;
+  /** True when the channel is disabled: this fetch worked, but nothing recurs. */
+  inactive?: boolean;
+}
+
 export interface ChannelTestResult {
   ok: boolean;
   detail: string;
@@ -105,6 +112,7 @@ export const messengerService = {
     apiPatch<MessengerChannel>(`/messenger/channels/${id}`, body),
   remove: (id: string) => apiDelete<{ deleted: boolean }>(`/messenger/channels/${id}`),
   test: (id: string) => apiPost<ChannelTestResult>(`/messenger/channels/${id}/test`),
+  sync: (id: string) => apiPost<ChannelSyncResult>(`/messenger/channels/${id}/sync`),
   registerWebhook: (id: string) =>
     apiPost<{ webhookUrl: string }>(`/messenger/channels/${id}/register-webhook`),
 };

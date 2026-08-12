@@ -37,7 +37,11 @@ import { IntegrationConfigModal } from './IntegrationConfigModal';
 import { Cafe24ConnectCard } from './Cafe24ConnectCard';
 import { MessengerChannelCard } from './MessengerChannelCard';
 import { MessengerChannelModal } from './MessengerChannelModal';
-import { useMessengerChannels, useTestMessengerChannel } from './messenger.hooks';
+import {
+  useMessengerChannels,
+  useSyncMessengerChannel,
+  useTestMessengerChannel,
+} from './messenger.hooks';
 import {
   COMMUNICATION_PROVIDERS,
   MESSENGER_PROVIDERS,
@@ -130,6 +134,7 @@ function MessengerChannelsSection() {
   const { t } = useTranslation('settings');
   const { data, isLoading } = useMessengerChannels();
   const test = useTestMessengerChannel();
+  const sync = useSyncMessengerChannel();
   const [editing, setEditing] = useState<{
     provider: AnyMessengerProvider;
     channel?: MessengerChannel;
@@ -149,6 +154,7 @@ function MessengerChannelsSection() {
           channel={channel}
           onConfigure={() => setEditing({ provider: provider as AnyMessengerProvider, channel })}
           onTest={() => test.mutate(channel.id)}
+          onSync={() => sync.mutate(channel.id)}
         />
       ));
       // An empty "add" card only where a second account is meaningful — Gmail

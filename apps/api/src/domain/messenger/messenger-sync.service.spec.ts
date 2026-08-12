@@ -84,6 +84,42 @@ describe('MessengerSyncService', () => {
     expect(h.channelUpdates[0]).toMatchObject({ status: 'connected', lastError: null });
   });
 
+  it('reports what a manual fetch did, so the console can say more than "0"', async () => {
+    const h = build({
+      channels: [{ id: 7, tenantId: 1, provider: 'amoebatalk', active: 0, secretEnc: encryptChannelSecret({ email: 'a', password: 'b' }) }],
+      pull: jest.fn(async () => []),
+    });
+
+    const outcome = await h.service.syncChannel({
+      id: 7,
+      tenantId: 1,
+      provider: 'amoebatalk',
+      active: 0,
+      secretEnc: encryptChannelSecret({ email: 'a', password: 'b' }),
+    } as never);
+
+    expect(outcome).toEqual({ fetched: 0 });
+  });
+
+  it('returns the reason a fetch failed instead of swallowing it', async () => {
+    const h = build({
+      pull: jest.fn(async () => {
+        throw new Error('btbz relay login failed: 401');
+      }),
+    });
+
+    const outcome = await h.service.syncChannel({
+      id: 7,
+      tenantId: 1,
+      provider: 'amoebatalk',
+      active: 1,
+      secretEnc: encryptChannelSecret({ email: 'a', password: 'b' }),
+    } as never);
+
+    expect(outcome.fetched).toBe(0);
+    expect(outcome.error).toContain('401');
+  });
+
   it('skips webhook-kind channels — they are pushed to, not polled', async () => {
     const h = build({ kind: 'webhook' });
     await h.service.tick();

@@ -13,6 +13,12 @@ const DEFAULT_INTERVAL_SEC = 15;
 /** Threads handed to an adapter as cursors — the most recently active ones. */
 const CURSOR_LIMIT = 200;
 
+/** What one poll did: messages taken in, and why it stopped if it failed. */
+export interface SyncOutcome {
+  fetched: number;
+  error?: string;
+}
+
 /**
  * Polls every active poll-kind channel (PLN-260810 PR-M2). Same shape as the
  * Cafe24/Shopify schedulers: env-gated interval, `running` guard, unref'd timer.
@@ -66,16 +72,20 @@ export class MessengerSyncService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  /** Pull one channel and push whatever came back through the shared pipeline. */
-  async syncChannel(channel: MessengerChannel): Promise<number> {
+  /**
+   * Pull one channel and push whatever came back through the shared pipeline.
+   * Never throws: the outcome is returned so a scheduled tick can move on while
+   * a manual "fetch now" can tell the operator exactly what happened.
+   */
+  async syncChannel(channel: MessengerChannel): Promise<SyncOutcome> {
     const adapter = this.registry.find(channel.provider);
-    if (!adapter?.pull) return 0;
+    if (!adapter?.pull) return { fetched: 0, error: 'channel is not a polling provider' };
 
     try {
       const secret = decryptChannelSecret(channel);
       if (!secret) {
         await this.markError(channel, 'credential not set');
-        return 0;
+        return { fetched: 0, error: 'credential not set' };
       }
       const cursors = await this.cursorsFor(channel.id);
       const inbounds = await adapter.pull({ channel, secret }, cursors);
@@ -86,10 +96,11 @@ export class MessengerSyncService implements OnModuleInit, OnModuleDestroy {
         { id: channel.id },
         { lastSyncAt: new Date(), status: 'connected', lastError: null },
       );
-      return inbounds.length;
+      return { fetched: inbounds.length };
     } catch (e) {
-      await this.markError(channel, (e as Error).message);
-      return 0;
+      const error = (e as Error).message;
+      await this.markError(channel, error);
+      return { fetched: 0, error: error.slice(0, 200) };
     }
   }
 
