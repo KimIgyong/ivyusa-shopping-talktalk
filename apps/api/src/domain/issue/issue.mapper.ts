@@ -43,8 +43,21 @@ export interface IssueCardResponse {
   assigneeLabel: string | null;
   reopenCount: number;
   slaState: 'ok' | 'warning' | 'overdue' | null;
+  /** Session behind the issue — the board shows it so a card is identifiable. */
+  sessionId: string;
+  /** Operator-set session name, when one exists (PLN-260812). */
+  sessionAlias: string | null;
+  /** The shopper's own last line — what the card is actually about. */
+  preview: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+/** Batched per-card extras the service resolves for the whole board at once. */
+export interface IssueCardContext {
+  sessionId: string;
+  sessionAlias: string | null;
+  preview: string | null;
 }
 
 /** SLA fallbacks (결정 5 — 2단계); tenant overrides arrive via handoffConfig.sla (B2). */
@@ -56,6 +69,7 @@ export class IssueMapper {
     i: Issue,
     assigneeName: string | null,
     sla: { normalHours: number; urgentHours: number } = SLA_DEFAULTS,
+    context?: IssueCardContext,
   ): IssueCardResponse {
     const open = i.status === 'received' || i.status === 'in_progress';
     let slaState: IssueCardResponse['slaState'] = null;
@@ -76,6 +90,9 @@ export class IssueMapper {
       assigneeLabel: i.assigneeLabel,
       reopenCount: i.reopenCount,
       slaState,
+      sessionId: context?.sessionId ?? String(i.sessionId),
+      sessionAlias: context?.sessionAlias ?? null,
+      preview: context?.preview ?? null,
       createdAt: i.createdAt ? new Date(i.createdAt).toISOString() : '',
       updatedAt: i.updatedAt ? new Date(i.updatedAt).toISOString() : '',
     };

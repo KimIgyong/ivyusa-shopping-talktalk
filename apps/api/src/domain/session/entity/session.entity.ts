@@ -35,6 +35,15 @@ export class Session {
   @Column({ name: 'identity_level', type: 'varchar', length: 16, default: 'guest' })
   identityLevel: string; // guest | verified
 
+  /**
+   * Operator-set display name for this session (PLN-260812). Wins over the
+   * derived name (customer → email → "Session {id}") in the console; blank
+   * clears it. Never shown to the shopper. It can hold a real person's name, so
+   * it is handled as PII: never logged, never put in audit metadata.
+   */
+  @Column({ type: 'varchar', length: 60, nullable: true })
+  alias: string | null;
+
   @Column({ type: 'varchar', length: 8, default: 'EN' })
   language: string; // EN/ES/KO
 

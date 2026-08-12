@@ -1,4 +1,14 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Post, Put, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
+  Put,
+  Query,
+} from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CAPABILITY, Principal } from '@ivy/types';
 import { normalizePage, buildPagination } from '@ivy/common';
@@ -14,6 +24,7 @@ import {
   ConversationQuery,
   ListSessionsQuery,
   ListStatsQuery,
+  SetSessionAliasRequest,
   UpsertProfileRequest,
 } from './dto/request/agent.request';
 import {
@@ -76,10 +87,26 @@ export class AgentConsoleController {
       query.channel,
     );
     return new Paginated(
-      items.map(({ conversation, lastMessage, contact }) =>
-        toSessionResponse(conversation, lastMessage, contact),
+      items.map(({ conversation, lastMessage, contact, alias }) =>
+        toSessionResponse(conversation, lastMessage, contact, alias),
       ),
       buildPagination(page, size, total),
+    );
+  }
+
+  @Patch('conversations/:id/alias')
+  @RequireCapability(CAPABILITY.CONVERSATION_HANDLE)
+  @ApiOperation({ summary: "Set or clear the operator's name for this session" })
+  async setAlias(
+    @CurrentUser() user: Principal,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: SetSessionAliasRequest,
+  ) {
+    return this.agentService.setSessionAlias(
+      id,
+      tenantOf(user),
+      actorIdOf(user),
+      body.alias ?? null,
     );
   }
 

@@ -35,6 +35,8 @@ import { UpsertProfileRequest } from './dto/request/agent.request';
 
 /** Transcript page size for the console (PLN-260807 D2). */
 const MESSAGE_PAGE_SIZE = 30;
+/** Operator alias length — matches sessions.alias (PLN-260812). */
+export const SESSION_ALIAS_MAX = 60;
 /** Messages the briefing summarises — the tail is what an agent needs oriented. */
 const BRIEFING_WINDOW = 50;
 
@@ -215,6 +217,8 @@ export class AgentService {
       conversation: Conversation;
       lastMessage: Message | null;
       contact: { name: string | null; email: string | null };
+      /** Operator-set session name (PLN-260812); null when unset. */
+      alias: string | null;
     }>;
     total: number;
   }> {
@@ -275,12 +279,60 @@ export class AgentService {
     const contactByConv = await this.contactsByConversation(conversations);
     // Batched last-message lookup (PERF-7) — one query instead of one per row.
     const lastByConv = await this.lastMessagesByConversation(conversations.map((c) => c.id));
+    // One query for the whole page, same reason (PLN-260812).
+    const aliasBySession = await this.aliasesBySession(conversations.map((c) => c.sessionId));
     const items = conversations.map((conversation) => ({
       conversation,
       lastMessage: lastByConv.get(String(conversation.id)) ?? null,
       contact: contactByConv.get(String(conversation.id)) ?? { name: null, email: null },
+      alias: aliasBySession.get(String(conversation.sessionId)) ?? null,
     }));
     return { items, total };
+  }
+
+  /** session id → operator alias, for a whole page of rows in one query. */
+  private async aliasesBySession(sessionIds: number[]): Promise<Map<string, string | null>> {
+    if (sessionIds.length === 0) return new Map();
+    const rows = await this.sessionRepo.find({
+      where: { id: In(sessionIds) },
+      select: { id: true, alias: true },
+    });
+    return new Map(rows.map((s) => [String(s.id), s.alias ?? null]));
+  }
+
+  /**
+   * Set (or clear) the operator's name for the session behind a conversation.
+   *
+   * Keyed by conversation because that is all the console holds — its "session"
+   * rows are conversation ids. Blank clears, restoring the derived name.
+   */
+  async setSessionAlias(
+    conversationId: number,
+    tenantId: number,
+    actorUserId: number,
+    alias: string | null,
+  ): Promise<{ sessionId: string; alias: string | null }> {
+    const conversation = await this.requireConversation(conversationId, tenantId);
+    const clean = (alias ?? '').trim().slice(0, SESSION_ALIAS_MAX);
+    const value = clean.length > 0 ? clean : null;
+
+    await this.sessionRepo.update({ id: conversation.sessionId }, { alias: value });
+    // The token→session cache would otherwise serve the old alias for 30s.
+    const session = await this.sessionRepo.findOne({
+      where: { id: conversation.sessionId },
+      select: { id: true, sessionToken: true },
+    });
+    if (session?.sessionToken) await this.redis.del(sessionCacheKey(session.sessionToken));
+
+    // An alias can be a real person's name — record THAT it changed, never what to.
+    await this.auditAgentAction(
+      actorUserId,
+      tenantId,
+      'agent.session.alias',
+      `session:${conversation.sessionId}`,
+      { conversationId: String(conversationId), set: value != null },
+    );
+    return { sessionId: String(conversation.sessionId), alias: value };
   }
 
   /** conversation id → its newest message, in a single grouped query (PERF-7). */

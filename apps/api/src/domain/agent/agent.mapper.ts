@@ -22,10 +22,17 @@ export function toSessionResponse(
   c: Conversation,
   lastMessage: Message | null,
   contact: { name: string | null; email: string | null } = { name: null, email: null },
+  alias: string | null = null,
 ) {
   return {
     id: c.id,
     status: c.status,
+    // The session this row belongs to. The row id is a CONVERSATION id (the
+    // console calls it a session), so the real session id has to travel too —
+    // the alias hangs off the session, not the conversation (PLN-260812).
+    sessionId: String(c.sessionId),
+    /** Operator-set name; wins over customerName in the console. */
+    alias,
     // Which surface the shopper is on (widget/telegram/zalo/kakao/sms/email…).
     // The console badges it so an agent knows what they are replying into —
     // an SMS thread cannot be answered at all (PLN-260810 PR-M4).
