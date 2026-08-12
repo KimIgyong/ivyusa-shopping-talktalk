@@ -55,8 +55,16 @@ export class MessengerChannel {
   @Column({ name: 'secret_enc', type: 'varbinary', length: 2048, nullable: true })
   secretEnc: Buffer | null;
 
+  /** Kept in sync with `replyMode` so a code rollback still behaves. */
   @Column({ name: 'auto_reply', type: 'tinyint', width: 1, default: 1 })
   autoReply: number;
+
+  /**
+   * How this channel answers by default: off | approve | auto (PLN-260812).
+   * A session may override it; an agent on the thread outranks both.
+   */
+  @Column({ name: 'reply_mode', type: 'varchar', length: 8, default: 'auto' })
+  replyMode: string;
 
   @Column({ name: 'consent_mode', type: 'varchar', length: 8, default: 'notice' })
   consentMode: string; // notice | auto

@@ -339,7 +339,12 @@
     "syncFailed": "Fallo al recibir — {{detail}}",
     "syncInactive": "Se recibieron {{count}} mensaje(s), pero el canal está deshabilitado: no llegará nada por sí solo hasta que lo habilites.",
     "inactiveWarning": "Deshabilitado: no recibe. Abre Configurar y habilita el canal.",
-    "autoReplyScope": "Se aplica a los mensajes que lleguen a partir de ahora. Cada conversación puede anularlo en Chat en vivo."
+    "autoReplyScope": "Se aplica a los mensajes que lleguen a partir de ahora. Cada conversación puede anularlo en Chat en vivo.",
+    "mode": {
+      "auto": "Automática — la IA responde sola",
+      "approve": "Requiere aprobación — la IA redacta, un agente envía",
+      "off": "Desactivada"
+    }
   },
   "menuAccess": {
     "title": "Acceso a los menús",

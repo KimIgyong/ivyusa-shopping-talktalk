@@ -63,6 +63,7 @@ export class MessengerController {
       secret: body.secret,
       config: body.config,
       autoReply: body.auto_reply,
+      replyMode: body.reply_mode,
       consentMode: body.consent_mode,
       active: body.active,
     });
@@ -82,6 +83,7 @@ export class MessengerController {
       secret: body.secret,
       config: body.config,
       autoReply: body.auto_reply,
+      replyMode: body.reply_mode,
       consentMode: body.consent_mode,
       active: body.active,
     });

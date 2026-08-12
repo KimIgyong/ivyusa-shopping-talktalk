@@ -197,7 +197,22 @@
     "offHint": "La IA no responde en esta sesión.",
     "savedOn": "La IA responderá esta sesión a partir del próximo mensaje.",
     "savedOff": "La IA no responderá esta sesión.",
-    "saveError": "No se pudo cambiar la respuesta automática de esta sesión."
+    "saveError": "No se pudo cambiar la respuesta automática de esta sesión.",
+    "auto": "Automática",
+    "approve": "Requiere aprobación",
+    "awaitingApproval": "Borrador pendiente"
   },
-  "kbProposeKnowledge": "Proponer como conocimiento"
+  "kbProposeKnowledge": "Proponer como conocimiento",
+  "draft": {
+    "title": "Sugerencia de IA",
+    "confidence": "confianza {{value}}",
+    "approve": "Aprobar y enviar",
+    "sending": "Enviando…",
+    "discard": "Descartar",
+    "hint": "Edítalo antes de enviar: sale como tu respuesta.",
+    "sent": "Enviado al cliente.",
+    "sendError": "No se pudo enviar el borrador.",
+    "discarded": "Borrador descartado.",
+    "discardError": "No se pudo descartar el borrador."
+  }
 }

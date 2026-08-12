@@ -8,6 +8,7 @@ import { ERROR_CODE } from '../../global/constant/error-code.constant';
 import { AuditService } from '../audit/audit.service';
 import { MessengerChannel } from './entity/messenger-channel.entity';
 import { AdapterRegistry } from './adapter/adapter.registry';
+import { autoReplyFlagFor, REPLY_MODE } from './auto-reply.util';
 import { TestResult } from './adapter/messenger-adapter';
 import {
   encryptChannelSecret,
@@ -24,6 +25,7 @@ export interface UpsertChannelInput {
   secret?: Record<string, string>;
   config?: Record<string, unknown>;
   autoReply?: boolean;
+  replyMode?: string;
   consentMode?: string;
   active?: boolean;
 }
@@ -125,7 +127,15 @@ export class MessengerService {
     const split = splitFields(input.provider, input.secret, input.config);
     if (split.secret) channel.secretEnc = encryptChannelSecret(split.secret);
     if (split.config) channel.config = { ...(channel.config ?? {}), ...split.config };
-    if (input.autoReply !== undefined) channel.autoReply = input.autoReply ? 1 : 0;
+    // `reply_mode` is the real setting; `auto_reply` is mirrored so rolling the
+    // code back keeps the old boolean meaningful (PLN-260812 D-1).
+    if (input.replyMode !== undefined) {
+      channel.replyMode = input.replyMode;
+      channel.autoReply = autoReplyFlagFor(input.replyMode);
+    } else if (input.autoReply !== undefined) {
+      channel.autoReply = input.autoReply ? 1 : 0;
+      channel.replyMode = input.autoReply ? REPLY_MODE.AUTO : REPLY_MODE.OFF;
+    }
     if (input.consentMode !== undefined) channel.consentMode = input.consentMode;
     if (input.active !== undefined) channel.active = input.active ? 1 : 0;
 
@@ -152,7 +162,13 @@ export class MessengerService {
     const split = splitFields(channel.provider, patch.secret, patch.config);
     if (split.secret) channel.secretEnc = encryptChannelSecret(split.secret);
     if (split.config) channel.config = { ...(channel.config ?? {}), ...split.config };
-    if (patch.autoReply !== undefined) channel.autoReply = patch.autoReply ? 1 : 0;
+    if (patch.replyMode !== undefined) {
+      channel.replyMode = patch.replyMode;
+      channel.autoReply = autoReplyFlagFor(patch.replyMode);
+    } else if (patch.autoReply !== undefined) {
+      channel.autoReply = patch.autoReply ? 1 : 0;
+      channel.replyMode = patch.autoReply ? REPLY_MODE.AUTO : REPLY_MODE.OFF;
+    }
     if (patch.consentMode !== undefined) channel.consentMode = patch.consentMode;
     if (patch.active !== undefined) channel.active = patch.active ? 1 : 0;
 

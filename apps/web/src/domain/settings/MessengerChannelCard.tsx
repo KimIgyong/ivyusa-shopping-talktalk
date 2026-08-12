@@ -92,7 +92,11 @@ export function MessengerChannelCard({
             </p>
             <p>
               {t('messenger.autoReply')}:{' '}
-              {channel ? (channel.autoReply ? t('messenger.on') : t('messenger.off')) : '—'}
+              {channel
+                ? t(`messenger.mode.${channel.replyMode ?? (channel.autoReply ? 'auto' : 'off')}`, {
+                    defaultValue: channel.replyMode ?? '',
+                  })
+                : '—'}
               {channel ? ` · ${channel.active ? t('messenger.enabled') : t('messenger.disabled')}` : ''}
             </p>
             {/* Half of the "the toggle does nothing" report was this sentence

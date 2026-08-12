@@ -64,6 +64,8 @@ export interface MessengerChannel {
   credentialSet: boolean;
   config: Record<string, unknown>;
   autoReply: boolean;
+  /** off | approve | auto — the channel default for new messages. */
+  replyMode?: string;
   consentMode: 'notice' | 'auto' | string;
   active: boolean;
   status: 'connected' | 'error' | 'unknown' | string;
@@ -86,6 +88,7 @@ export interface UpsertChannelBody {
   secret?: Record<string, string>;
   config?: Record<string, unknown>;
   auto_reply?: boolean;
+  reply_mode?: string;
   consent_mode?: string;
   active?: boolean;
 }

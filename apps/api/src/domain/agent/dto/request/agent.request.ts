@@ -37,6 +37,11 @@ export class SetAutoReplyRequest {
   @IsString() mode: string;
 }
 
+/** Approve the pending draft; `body` replaces it when the agent edited it. */
+export class ApproveDraftRequest {
+  @IsOptional() @IsString() body?: string;
+}
+
 export class AgentMessageRequest {
   @IsString() @MinLength(1) body: string;
 }

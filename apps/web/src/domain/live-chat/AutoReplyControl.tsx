@@ -19,6 +19,7 @@ export function AutoReplyControl({
   mode,
   effective,
   agentOwns,
+  awaitingApproval,
 }: {
   conversationId: string;
   mode?: string;
@@ -26,6 +27,8 @@ export function AutoReplyControl({
   effective?: boolean;
   /** An agent holding the thread outranks every setting here. */
   agentOwns?: boolean;
+  /** A draft is sitting here unsent. */
+  awaitingApproval?: boolean;
 }) {
   const { t } = useTranslation('livechat');
   const save = useSetSessionAutoReply();
@@ -47,18 +50,31 @@ export function AutoReplyControl({
             state: effective ? t('autoReply.on') : t('autoReply.off'),
           })}
         </option>
-        <option value="on">{t('autoReply.on')}</option>
+        <option value="auto">{t('autoReply.auto')}</option>
+        <option value="approve">{t('autoReply.approve')}</option>
         <option value="off">{t('autoReply.off')}</option>
       </select>
       <span
         className={cn(
           'flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium',
-          aiAnswering ? 'bg-primary-500/10 text-primary-700' : 'bg-gray-100 text-gray-500',
+          awaitingApproval
+            ? 'bg-amber-100 text-amber-800'
+            : aiAnswering
+              ? 'bg-primary-500/10 text-primary-700'
+              : 'bg-gray-100 text-gray-500',
         )}
         title={agentOwns ? t('autoReply.agentOwnsHint') : undefined}
       >
-        {aiAnswering ? <Bot className="h-3 w-3" /> : <Headset className="h-3 w-3" />}
-        {aiAnswering ? t('autoReply.aiAnswering') : t('autoReply.agentAnswering')}
+        {aiAnswering && !awaitingApproval ? (
+          <Bot className="h-3 w-3" />
+        ) : (
+          <Headset className="h-3 w-3" />
+        )}
+        {awaitingApproval
+          ? t('autoReply.awaitingApproval')
+          : aiAnswering
+            ? t('autoReply.aiAnswering')
+            : t('autoReply.agentAnswering')}
       </span>
     </span>
   );
