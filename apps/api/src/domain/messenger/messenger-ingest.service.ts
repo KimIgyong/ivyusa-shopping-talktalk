@@ -21,6 +21,7 @@ import { ChannelThread } from './entity/channel-thread.entity';
 import { ChannelMessageMap } from './entity/channel-message-map.entity';
 import { NormalizedInbound } from './adapter/messenger-adapter';
 import { MessengerOutboxService } from './messenger-outbox.service';
+import { resolveAutoReply } from './auto-reply.util';
 
 /**
  * Privacy notice sent on first contact for `consent_mode='notice'` channels.
@@ -94,7 +95,11 @@ export class MessengerIngestService {
       conversation.status === CONVERSATION_STATUS.AGENT ||
       (conversation.status === CONVERSATION_STATUS.WAITING && conversation.agentId != null);
 
-    if (channel.autoReply === 1 && !humanOwnsThread) {
+    // Session choice beats the channel default; an agent on the thread beats
+    // both (PLN-260812 §2 S1).
+    const autoReply = resolveAutoReply(channel.autoReply === 1, session.autoReplyMode);
+
+    if (autoReply && !humanOwnsThread) {
       // Full pipeline: consent gate, intent, deny-list, RAG, moderation, handoff.
       await this.chatService.handleUserMessage(session, inbound.text);
     } else {
@@ -109,7 +114,10 @@ export class MessengerIngestService {
           lang: session.language,
         }),
       );
-      if (!humanOwnsThread) {
+      // Escalate once per conversation, not once per message. Calling it on
+      // every inbound paged the agents again for a thread already sitting in
+      // their queue — 400 messages across 37 conversations on staging.
+      if (!humanOwnsThread && conversation.escalated !== 1) {
         await this.chatService.escalate(session, conversation.id).catch((e) => {
           this.logger.warn(`escalation failed for conversation ${conversation.id}: ${(e as Error).message}`);
         });
@@ -224,7 +232,12 @@ export class MessengerIngestService {
         tenantId: channel.tenantId,
         customerId: null,
         identityLevel: SESSION_IDENTITY.GUEST,
-        language: resolveLanguage(inbound.languageHint),
+        // Tenant default when the platform gives no locale — a relay sends
+        // none, and English notices in a Korean room were the result (B-2).
+        language: await this.sessionService.languageForChannel(
+          channel.tenantId,
+          inbound.languageHint,
+        ),
         consentState: CONSENT_STATE.GRANTED,
         consentAt: new Date(),
         consentVersion: noticeVersion,
@@ -284,10 +297,4 @@ export class MessengerIngestService {
   }
 }
 
-/** Platform locale hint → session language. Unknown hints fall back to English. */
-export function resolveLanguage(hint: string | null): string {
-  const l = (hint ?? '').toLowerCase();
-  if (l.startsWith('ko')) return SESSION_LANGUAGE.KO;
-  if (l.startsWith('es')) return SESSION_LANGUAGE.ES;
-  return SESSION_LANGUAGE.EN;
-}
+

@@ -338,7 +338,8 @@
     "syncOk": "Fetched {{count}} new message(s).",
     "syncFailed": "Fetch failed — {{detail}}",
     "syncInactive": "Fetched {{count}} message(s), but this channel is disabled — nothing will arrive on its own until you enable it.",
-    "inactiveWarning": "Disabled — not receiving. Open Configure and set the channel to Enabled."
+    "inactiveWarning": "Disabled — not receiving. Open Configure and set the channel to Enabled.",
+    "autoReplyScope": "Applies to messages received from now on. Each conversation can override it in Live Chat."
   },
   "menuAccess": {
     "title": "Menu access",

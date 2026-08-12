@@ -389,6 +389,18 @@ export class SessionService {
    * configured timezone decides the default (요구사항: Asia/Seoul → Korean,
    * America/New_York → English). Falls back to English when neither applies.
    */
+  /**
+   * Language for a session opened from an external messenger (PLN-260812 S3).
+   *
+   * Platform hint first, then the tenant's own default. Relay channels send no
+   * locale at all, and defaulting straight to English put English privacy and
+   * handoff notices into Korean KakaoTalk rooms.
+   */
+  async languageForChannel(tenantId: number | null, localeHint?: string | null): Promise<string> {
+    const tenant = tenantId != null ? await this.tenantRepo.findOne({ where: { id: tenantId } }) : null;
+    return this.resolveLanguage(localeHint ?? undefined, tenant?.timezone);
+  }
+
   private resolveLanguage(locale?: string, timezone?: string | null): string {
     const l = (locale ?? '').toLowerCase();
     if (l.startsWith('es')) return SESSION_LANGUAGE.ES;

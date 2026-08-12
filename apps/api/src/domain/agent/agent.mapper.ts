@@ -23,6 +23,7 @@ export function toSessionResponse(
   lastMessage: Message | null,
   contact: { name: string | null; email: string | null } = { name: null, email: null },
   alias: string | null = null,
+  autoReply: { mode: string; effective: boolean } = { mode: 'inherit', effective: true },
 ) {
   return {
     id: c.id,
@@ -33,6 +34,10 @@ export function toSessionResponse(
     sessionId: String(c.sessionId),
     /** Operator-set name; wins over customerName in the console. */
     alias,
+    /** Session choice: inherit | on | off (PLN-260812). */
+    autoReplyMode: autoReply.mode,
+    /** What that resolves to once the channel default is applied. */
+    autoReplyEffective: autoReply.effective,
     // Which surface the shopper is on (widget/telegram/zalo/kakao/sms/email…).
     // The console badges it so an agent knows what they are replying into —
     // an SMS thread cannot be answered at all (PLN-260810 PR-M4).

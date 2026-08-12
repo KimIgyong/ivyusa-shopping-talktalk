@@ -30,6 +30,30 @@ export function useSetSessionAlias() {
   });
 }
 
+/**
+ * Turn the AI on or off for one session (PLN-260812).
+ *
+ * Only applies to messages received from here on — nothing already in the
+ * thread is answered retroactively, and the control says so.
+ */
+export function useSetSessionAutoReply() {
+  const { t } = useTranslation('livechat');
+  const qc = useQueryClient();
+  const tenantKey = useTenantKey();
+  return useMutation({
+    mutationFn: ({ id, mode }: { id: string; mode: string }) =>
+      liveChatService.setAutoReply(id, mode),
+    onSuccess: (data, variables) => {
+      qc.invalidateQueries({ queryKey: ['agent', tenantKey, 'sessions'] });
+      qc.invalidateQueries({ queryKey: ['agent', tenantKey, 'conversation', variables.id] });
+      toast.success(
+        data.autoReplyEffective ? t('autoReply.savedOn') : t('autoReply.savedOff'),
+      );
+    },
+    onError: (e: Error) => toast.error(e.message || t('autoReply.saveError'), { sticky: true }),
+  });
+}
+
 export const useSessions = (q = '', status = 'all', channel = 'all') => {
   const tenantKey = useTenantKey();
   return useQuery({

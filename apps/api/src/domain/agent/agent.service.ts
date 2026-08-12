@@ -32,6 +32,13 @@ import { SessionService, sessionCacheKey } from '../session/session.service';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
 import { UpsertProfileRequest } from './dto/request/agent.request';
+import { ChannelThread } from '../messenger/entity/channel-thread.entity';
+import { MessengerChannel } from '../messenger/entity/messenger-channel.entity';
+import {
+  AUTO_REPLY_MODE,
+  isAutoReplyMode,
+  resolveAutoReply,
+} from '../messenger/auto-reply.util';
 
 /** Transcript page size for the console (PLN-260807 D2). */
 const MESSAGE_PAGE_SIZE = 30;
@@ -119,6 +126,12 @@ export class AgentService {
     private readonly issueService?: IssueService,
     @InjectRepository(TenantAiConfig)
     private readonly aiConfigRepo?: Repository<TenantAiConfig>,
+    // Entity-only reads: the console shows whether the AI is answering a
+    // channel thread, which needs the channel's default (PLN-260812 S4).
+    @InjectRepository(ChannelThread)
+    private readonly threadRepo?: Repository<ChannelThread>,
+    @InjectRepository(MessengerChannel)
+    private readonly channelRepo?: Repository<MessengerChannel>,
   ) {}
 
   /**
@@ -219,6 +232,10 @@ export class AgentService {
       contact: { name: string | null; email: string | null };
       /** Operator-set session name (PLN-260812); null when unset. */
       alias: string | null;
+      /** Session auto-reply choice: inherit | on | off. */
+      autoReplyMode: string;
+      /** That choice resolved against the channel default. */
+      autoReplyEffective: boolean;
     }>;
     total: number;
   }> {
@@ -280,24 +297,129 @@ export class AgentService {
     // Batched last-message lookup (PERF-7) — one query instead of one per row.
     const lastByConv = await this.lastMessagesByConversation(conversations.map((c) => c.id));
     // One query for the whole page, same reason (PLN-260812).
-    const aliasBySession = await this.aliasesBySession(conversations.map((c) => c.sessionId));
-    const items = conversations.map((conversation) => ({
-      conversation,
-      lastMessage: lastByConv.get(String(conversation.id)) ?? null,
-      contact: contactByConv.get(String(conversation.id)) ?? { name: null, email: null },
-      alias: aliasBySession.get(String(conversation.sessionId)) ?? null,
-    }));
+    const stateBySession = await this.sessionStates(conversations.map((c) => c.sessionId));
+    const channelDefaults = await this.channelDefaults(conversations.map((c) => c.id));
+    const items = conversations.map((conversation) => {
+      const state = stateBySession.get(String(conversation.sessionId));
+      return {
+        conversation,
+        lastMessage: lastByConv.get(String(conversation.id)) ?? null,
+        contact: contactByConv.get(String(conversation.id)) ?? { name: null, email: null },
+        alias: state?.alias ?? null,
+        autoReplyMode: state?.autoReplyMode ?? AUTO_REPLY_MODE.INHERIT,
+        autoReplyEffective: resolveAutoReply(
+          channelDefaults.get(String(conversation.id)) ?? null,
+          state?.autoReplyMode,
+        ),
+      };
+    });
     return { items, total };
   }
 
-  /** session id → operator alias, for a whole page of rows in one query. */
-  private async aliasesBySession(sessionIds: number[]): Promise<Map<string, string | null>> {
+  /**
+   * Set this session's auto-reply choice (PLN-260812 FR-2).
+   *
+   * Only affects messages received from now on — answering a question the
+   * shopper asked half an hour ago is worse than not answering it, so nothing
+   * is replayed. The console says as much next to the control.
+   */
+  async setSessionAutoReply(
+    conversationId: number,
+    tenantId: number,
+    actorUserId: number,
+    mode: string,
+  ): Promise<{ sessionId: string; autoReplyMode: string; autoReplyEffective: boolean }> {
+    if (!isAutoReplyMode(mode)) {
+      throw new BusinessException(ERROR_CODE.VALIDATION_FAILED, HttpStatus.BAD_REQUEST);
+    }
+    const conversation = await this.requireConversation(conversationId, tenantId);
+    await this.sessionRepo.update({ id: conversation.sessionId }, { autoReplyMode: mode });
+
+    const session = await this.sessionRepo.findOne({
+      where: { id: conversation.sessionId },
+      select: { id: true, sessionToken: true },
+    });
+    if (session?.sessionToken) await this.redis.del(sessionCacheKey(session.sessionToken));
+
+    await this.auditAgentAction(
+      actorUserId,
+      tenantId,
+      'agent.session.auto_reply',
+      `session:${conversation.sessionId}`,
+      { conversationId: String(conversationId), mode },
+    );
+
+    const defaults = await this.channelDefaults([conversationId]);
+    return {
+      sessionId: String(conversation.sessionId),
+      autoReplyMode: mode,
+      autoReplyEffective: resolveAutoReply(defaults.get(String(conversationId)) ?? null, mode),
+    };
+  }
+
+  /**
+   * Alias + auto-reply state for one conversation (console header).
+   *
+   * The header showed neither before: an alias set from the queue row did not
+   * appear above the transcript, and nothing said whether the AI was answering.
+   */
+  async sessionStateFor(
+    conversationId: number,
+    sessionId: number,
+  ): Promise<{ alias: string | null; autoReplyMode: string; autoReplyEffective: boolean }> {
+    const state = (await this.sessionStates([sessionId])).get(String(sessionId));
+    const mode = state?.autoReplyMode ?? AUTO_REPLY_MODE.INHERIT;
+    const defaults = await this.channelDefaults([conversationId]);
+    return {
+      alias: state?.alias ?? null,
+      autoReplyMode: mode,
+      autoReplyEffective: resolveAutoReply(defaults.get(String(conversationId)) ?? null, mode),
+    };
+  }
+
+  /** session id → alias + auto-reply mode, for a whole page in one query. */
+  private async sessionStates(
+    sessionIds: number[],
+  ): Promise<Map<string, { alias: string | null; autoReplyMode: string }>> {
     if (sessionIds.length === 0) return new Map();
     const rows = await this.sessionRepo.find({
       where: { id: In(sessionIds) },
-      select: { id: true, alias: true },
+      select: { id: true, alias: true, autoReplyMode: true },
     });
-    return new Map(rows.map((s) => [String(s.id), s.alias ?? null]));
+    return new Map(
+      rows.map((s) => [
+        String(s.id),
+        { alias: s.alias ?? null, autoReplyMode: s.autoReplyMode || AUTO_REPLY_MODE.INHERIT },
+      ]),
+    );
+  }
+
+  /**
+   * conversation id → its channel's auto-reply default, for the whole page.
+   *
+   * Only messenger-backed conversations have one; a widget thread answers by
+   * default, which `resolveAutoReply` expresses as a null default.
+   */
+  private async channelDefaults(conversationIds: number[]): Promise<Map<string, boolean>> {
+    const defaults = new Map<string, boolean>();
+    if (conversationIds.length === 0 || !this.threadRepo || !this.channelRepo) return defaults;
+
+    const threads = await this.threadRepo.find({
+      where: { conversationId: In(conversationIds) },
+      select: { conversationId: true, channelId: true },
+    });
+    if (threads.length === 0) return defaults;
+
+    const channels = await this.channelRepo.find({
+      where: { id: In([...new Set(threads.map((t) => Number(t.channelId)))]) },
+      select: { id: true, autoReply: true },
+    });
+    const byChannel = new Map(channels.map((c) => [String(c.id), c.autoReply === 1]));
+    for (const thread of threads) {
+      const value = byChannel.get(String(thread.channelId));
+      if (value !== undefined) defaults.set(String(thread.conversationId), value);
+    }
+    return defaults;
   }
 
   /**

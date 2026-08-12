@@ -95,6 +95,9 @@ export function MessengerChannelCard({
               {channel ? (channel.autoReply ? t('messenger.on') : t('messenger.off')) : '—'}
               {channel ? ` · ${channel.active ? t('messenger.enabled') : t('messenger.disabled')}` : ''}
             </p>
+            {/* Half of the "the toggle does nothing" report was this sentence
+                missing: the channel value is a default for future messages. */}
+            {channel && <p className="text-gray-400">{t('messenger.autoReplyScope')}</p>}
             <p className="text-gray-400">
               {t('messenger.lastInbound')}: {fmtDate(channel?.lastSyncAt)}
             </p>

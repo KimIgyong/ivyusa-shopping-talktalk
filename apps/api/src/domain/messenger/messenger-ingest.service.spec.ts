@@ -1,5 +1,5 @@
 import { Repository } from 'typeorm';
-import { MessengerIngestService, resolveLanguage } from './messenger-ingest.service';
+import { MessengerIngestService } from './messenger-ingest.service';
 import { MessengerChannel } from './entity/messenger-channel.entity';
 import { ChannelThread } from './entity/channel-thread.entity';
 import { ChannelMessageMap } from './entity/channel-message-map.entity';
@@ -30,6 +30,8 @@ describe('MessengerIngestService', () => {
 
   function build(opts: {
     channel?: Partial<MessengerChannel>;
+    /** Session auto-reply override for the resolved session. */
+    sessionMode?: string;
     thread?: Partial<ChannelThread> | null;
     duplicate?: boolean;
     openConversation?: Partial<Conversation> | null;
@@ -71,7 +73,8 @@ describe('MessengerIngestService', () => {
     const savedSessions: Partial<Session>[] = [];
     const sessionRepo = {
       findOne: jest.fn(async () => null),
-      create: (s: Partial<Session>) => ({ id: 90, ...s }) as Session,
+      create: (s: Partial<Session>) =>
+        ({ id: 90, autoReplyMode: opts.sessionMode ?? 'inherit', ...s }) as Session,
       save: jest.fn(async (s: Session) => {
         savedSessions.push(s);
         return s;
@@ -109,6 +112,9 @@ describe('MessengerIngestService', () => {
 
     const sessionService = {
       effectiveNoticeVersion: jest.fn(async () => '2026-07'),
+      languageForChannel: jest.fn(async (_tenantId: number, hint?: string | null) =>
+        (hint ?? '').toLowerCase().startsWith('ko') ? 'KO' : 'EN',
+      ),
     } as unknown as SessionService;
 
     const outbox = { flushThread: jest.fn(async () => undefined) } as unknown as MessengerOutboxService;
@@ -123,7 +129,18 @@ describe('MessengerIngestService', () => {
       sessionService,
       outbox,
     );
-    return { service, channel, chatService, outbox, savedMaps, savedSessions, savedConversations, savedMessages, threadUpdates };
+    return {
+      service,
+      channel,
+      chatService,
+      sessionService,
+      outbox,
+      savedMaps,
+      savedSessions,
+      savedConversations,
+      savedMessages,
+      threadUpdates,
+    };
   }
 
   it('runs the chat pipeline and maps the inbound message', async () => {
@@ -185,22 +202,43 @@ describe('MessengerIngestService', () => {
     expect(h.savedMessages.some((m) => m.senderType === 'user')).toBe(true);
   });
 
+  it('lets a session override turn the AI on where the channel default is off', async () => {
+    const h = build({ channel: { autoReply: 0 }, sessionMode: 'on' });
+    await h.service.ingestOne(h.channel, inbound);
+
+    expect(h.chatService.handleUserMessage).toHaveBeenCalled();
+  });
+
+  it('lets a session override silence a channel whose default is on', async () => {
+    const h = build({ channel: { autoReply: 1 }, sessionMode: 'off' });
+    await h.service.ingestOne(h.channel, inbound);
+
+    expect(h.chatService.handleUserMessage).not.toHaveBeenCalled();
+    expect(h.savedMessages.some((m) => m.senderType === 'user')).toBe(true);
+  });
+
+  it('escalates once, not on every message of an already-escalated thread', async () => {
+    const h = build({
+      channel: { autoReply: 0 },
+      openConversation: { id: 300, status: 'waiting', agentId: null, sessionId: 90, escalated: 1 },
+    });
+    await h.service.ingestOne(h.channel, inbound);
+
+    // 400 inbound across 37 conversations paged the agents 400 times (B-1).
+    expect(h.chatService.escalate).not.toHaveBeenCalled();
+    expect(h.savedMessages.some((m) => m.senderType === 'user')).toBe(true);
+  });
+
+  it('asks for the tenant default language when the platform sends no hint', async () => {
+    const h = build({});
+    await h.service.ingestOne(h.channel, { ...inbound, languageHint: null });
+
+    expect(h.sessionService.languageForChannel).toHaveBeenCalledWith(1, null);
+  });
+
   it('records the inbound cursor for poll adapters', async () => {
     const h = build({});
     await h.service.ingestOne(h.channel, inbound);
     expect(h.threadUpdates.some((p) => p.inboundCursor === 'ext-100')).toBe(true);
-  });
-});
-
-describe('resolveLanguage', () => {
-  it.each([
-    ['ko-KR', 'KO'],
-    ['ko', 'KO'],
-    ['es-ES', 'ES'],
-    ['en-US', 'EN'],
-    [null, 'EN'],
-    ['vi', 'EN'],
-  ])('maps %s → %s', (hint, expected) => {
-    expect(resolveLanguage(hint as string | null)).toBe(expected);
   });
 });
