@@ -4,12 +4,15 @@ import { Repository } from 'typeorm';
 import {
   isMenuCode,
   JobLabel,
+  MENU_ACCESS_MODE,
   MENU_PROVISION_MODE,
   MenuCode,
+  USER_RANK,
   UserPrincipal,
   UserRank,
 } from '@ivy/types';
 import {
+  DEFAULT_ROLE_MENUS,
   resolveEffectiveMenus,
   resolveProvidedMenus,
   RoleMenuRow,
@@ -21,10 +24,16 @@ import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
 import { AuditService } from '../audit/audit.service';
 import { Tenant } from '../tenant/entity/tenant.entity';
+import { User } from '../user/entity/user.entity';
 import { TenantMenu } from './entity/tenant-menu.entity';
 import { TenantRoleMenu } from './entity/tenant-role-menu.entity';
 import { TenantUserMenu } from './entity/tenant-user-menu.entity';
-import { MenuAccessMapper, TenantMenusView } from './menu-access.mapper';
+import {
+  MenuAccessMapper,
+  RoleMatrixView,
+  TenantMenusView,
+  UserOverridesView,
+} from './menu-access.mapper';
 
 /**
  * Menu access resolution (PLN-260812-Menu-Provisioning-Access).
@@ -51,6 +60,8 @@ export class MenuAccessService {
     private readonly userMenuRepo: Repository<TenantUserMenu>,
     @InjectRepository(Tenant)
     private readonly tenantRepo: Repository<Tenant>,
+    @InjectRepository(User)
+    private readonly userRepo: Repository<User>,
     private readonly redis: RedisService,
     private readonly audit: AuditService,
   ) {}
@@ -136,6 +147,139 @@ export class MenuAccessService {
     return rows
       .filter((r) => isMenuCode(r.menuCode))
       .map((r) => ({ menuCode: r.menuCode as MenuCode, allowed: r.allowed === 1 }));
+  }
+
+  /** Tenant console view of its own rank matrix. */
+  async roleMatrixView(tenantId: number): Promise<RoleMatrixView> {
+    const [provided, roleRows] = await Promise.all([
+      this.providedMenus(tenantId),
+      this.roleRows(tenantId),
+    ]);
+    return MenuAccessMapper.toRoleMatrix({
+      provided,
+      ranks: Object.values(USER_RANK),
+      masterRank: USER_RANK.MASTER,
+      roleRows,
+    });
+  }
+
+  /**
+   * Replace the tenant's rank matrix. Rows equal to the built-in default are
+   * dropped rather than stored, so a tenant that never really diverged keeps
+   * following the product default when that default changes.
+   */
+  async saveRoleMatrix(
+    tenantId: number,
+    rows: readonly { rank: string; menu_code: string; allowed: boolean }[],
+    actorUserId: number,
+  ): Promise<RoleMatrixView> {
+    const changed = rows
+      .filter((r) => isMenuCode(r.menu_code) && r.rank !== USER_RANK.MASTER)
+      .filter((r) => {
+        const fallback = DEFAULT_ROLE_MENUS[r.rank as UserRank]?.includes(r.menu_code as MenuCode);
+        return r.allowed !== fallback;
+      });
+
+    await this.roleMenuRepo.manager.transaction(async (trx) => {
+      await trx.delete(TenantRoleMenu, { tenantId });
+      if (changed.length) {
+        await trx.insert(
+          TenantRoleMenu,
+          changed.map((r) => ({
+            tenantId,
+            rank: r.rank,
+            menuCode: r.menu_code,
+            allowed: r.allowed ? 1 : 0,
+          })),
+        );
+      }
+    });
+
+    await this.invalidate(tenantId);
+    await this.audit.write({
+      tenantId,
+      actorType: 'user',
+      actorId: actorUserId,
+      action: 'menu_access.roles_update',
+      metadata: { changedCount: changed.length },
+    });
+
+    return this.roleMatrixView(tenantId);
+  }
+
+  /** Tenant console view of every member's exceptions. */
+  async userOverridesView(tenantId: number): Promise<UserOverridesView> {
+    const [provided, users, rows] = await Promise.all([
+      this.providedMenus(tenantId),
+      this.userRepo.find({ where: { tenantId }, order: { id: 'ASC' } }),
+      this.userMenuRepo.find({ where: { tenantId } }),
+    ]);
+
+    const rowsByUser = new Map<string, { menuCode: MenuCode; allowed: boolean }[]>();
+    for (const row of rows) {
+      if (!isMenuCode(row.menuCode)) continue;
+      const key = String(row.userId);
+      const list = rowsByUser.get(key) ?? [];
+      list.push({ menuCode: row.menuCode as MenuCode, allowed: row.allowed === 1 });
+      rowsByUser.set(key, list);
+    }
+
+    return MenuAccessMapper.toUserOverrides({ provided, users, rowsByUser });
+  }
+
+  /** Replace one member's exceptions. */
+  async saveUserOverrides(
+    tenantId: number,
+    targetUserId: number,
+    items: readonly { menu_code: string; mode: string }[],
+    actorUserId: number,
+  ): Promise<UserOverridesView> {
+    // Scoped by tenant, not just id: without this a master could address a
+    // member of another tenant by guessing a user id.
+    const target = await this.userRepo.findOne({ where: { id: targetUserId, tenantId } });
+    if (!target) {
+      throw new BusinessException(ERROR_CODE.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND);
+    }
+    if (target.rank === USER_RANK.MASTER) {
+      // Master is exempt from this layer, so a stored row would be dead data
+      // that reads like a rule someone can rely on.
+      throw new BusinessException(ERROR_CODE.FORBIDDEN, HttpStatus.FORBIDDEN);
+    }
+
+    const overrides = items
+      .filter((i) => isMenuCode(i.menu_code) && i.mode !== MENU_ACCESS_MODE.DEFAULT)
+      .map((i) => ({ menuCode: i.menu_code, allowed: i.mode === MENU_ACCESS_MODE.ALLOW }));
+
+    await this.userMenuRepo.manager.transaction(async (trx) => {
+      await trx.delete(TenantUserMenu, { tenantId, userId: targetUserId });
+      if (overrides.length) {
+        await trx.insert(
+          TenantUserMenu,
+          overrides.map((o) => ({
+            tenantId,
+            userId: targetUserId,
+            menuCode: o.menuCode,
+            allowed: o.allowed ? 1 : 0,
+          })),
+        );
+      }
+    });
+
+    await this.invalidate(tenantId);
+    await this.audit.write({
+      tenantId,
+      actorType: 'user',
+      actorId: actorUserId,
+      action: 'menu_access.user_update',
+      target: `user:${targetUserId}`,
+      metadata: {
+        overrides: Object.fromEntries(
+          overrides.map((o) => [o.menuCode, o.allowed ? 'allow' : 'deny']),
+        ),
+      },
+    });
+
+    return this.userOverridesView(tenantId);
   }
 
   /** Menus this signed-in tenant user actually sees. Cached per user. */

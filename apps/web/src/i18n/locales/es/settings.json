@@ -339,5 +339,47 @@
     "syncFailed": "Fallo al recibir — {{detail}}",
     "syncInactive": "Se recibieron {{count}} mensaje(s), pero el canal está deshabilitado: no llegará nada por sí solo hasta que lo habilites.",
     "inactiveWarning": "Deshabilitado: no recibe. Abre Configurar y habilita el canal."
+  },
+  "menuAccess": {
+    "title": "Acceso a los menús",
+    "subtitle": "Define a qué pantallas de la consola llega tu equipo. Los menús en gris no están incluidos en tu plan.",
+    "tabRoles": "Valores por rol",
+    "tabUsers": "Excepciones por persona",
+    "rankColumn": "Rango",
+    "menu": "Menú",
+    "member": "Miembro",
+    "exceptions": "Excepciones",
+    "edit": "Editar",
+    "editFor": "Excepciones — {{who}} ({{rank}})",
+    "rankDefault": "Según el rango",
+    "thisUser": "Este miembro",
+    "result": "Resultado",
+    "allowed": "Permitido",
+    "blocked": "Bloqueado",
+    "notProvided": "Fuera del plan",
+    "canAccess": "Con acceso",
+    "cannotAccess": "Sin acceso",
+    "readOnly": "solo lectura",
+    "masterExempt": "no admite excepciones",
+    "save": "Guardar valores por rol",
+    "saved": "Acceso a los menús guardado",
+    "saveError": "No se pudo guardar el acceso a los menús",
+    "loading": "Cargando…",
+    "needsLabel": "(requiere {{label}})",
+    "masterNote": "El máster siempre llega a todos los menús que provee el plan, así que no puede quedar bloqueado.",
+    "labelNote": "Los menús con etiqueta de función siguen ocultos para quien no la tenga. Para abrirlo a una sola persona, usa una excepción.",
+    "notProvidedNote": "Los menús tachados no los provee tu plan; contacta al administrador de la plataforma para añadirlos.",
+    "allowWaivesLabel": "«Permitir» también exime del requisito de etiqueta para este miembro. Las acciones dentro de la pantalla siguen su rango y etiquetas.",
+    "mode": {
+      "default": "Según el rango",
+      "allow": "Permitir",
+      "deny": "Bloquear"
+    },
+    "rank": {
+      "master": "Máster",
+      "director": "Director",
+      "manager": "Gerente",
+      "staff": "Personal"
+    }
   }
 }
