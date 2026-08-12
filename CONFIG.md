@@ -219,7 +219,7 @@ Docker templates exist (`docker/production/`: Dockerfiles api/web, compose, ngin
    strong `DB_*`, `RABBITMQ_*`, `JWT_*`, `CRED_ENC_KEY`, real `ANTHROPIC_API_KEY`,
    strong `SEED_PASSWORD` (with `SEED_DEMO_DATA=false`), `SHOPIFY_WEBHOOK_SECRET`,
    and `VITE_API_BASE_URL` = the production API URL.
-3. Apply schema via `sql/01-schema.sql` / init-sql (production keeps `DB_SYNCHRONIZE=false`).
+3. Apply schema via `docker/init-sql/01-schema.sql` (production keeps `DB_SYNCHRONIZE=false`).
 4. `bash docker/production/deploy-production.sh`, then turn `SEED_ON_BOOT` off after the first successful boot.
 
 Production hardening (vs staging): `restart: always`; DB/redis/rabbitmq have **no** host

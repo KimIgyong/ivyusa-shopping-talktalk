@@ -4,7 +4,7 @@
 |---|---|
 | Doc ID | CHATWIDGET-GUIDE-PRODCUT-1.0.0 |
 | 작성일 | 2026-08-13 |
-| 상태 | **점검 완료 — 착수 전 차단 요인 2건(§1) 해소 필요** |
+| 상태 | **B1 해소 완료 · B2(인프라) 대기** |
 | 대상 | 스테이징에서 검증된 `main`을 프로덕션으로 처음 올리는 작업 |
 | 선행 | `docs/guide/DEPLOYMENT-STRATEGY.md` (승격 흐름·환경 정책) |
 
@@ -26,40 +26,22 @@
 
 ## 1. 착수 전 차단 요인 (반드시 먼저 해소)
 
-### B1 — 첫 부팅 스키마가 **28개 테이블 뒤처져 있습니다** 🔴
+### B1 — 첫 부팅 스키마 ✅ **해소 완료 (2026-08-13)**
 
-프로덕션 MySQL은 첫 부팅에 `docker/init-sql/01-schema.sql`을 실행합니다(compose가 `/docker-entrypoint-initdb.d`로 마운트). 이 파일과 실제 운영 스키마의 차이:
+프로덕션 MySQL은 첫 부팅에 `docker/init-sql/01-schema.sql`을 실행합니다. 이 파일이 **41개 테이블로 28개 뒤처져** 있었고(스테이징 실제 68개), `DB_SYNCHRONIZE=false`라 런타임 생성도 되지 않아 **API는 뜨고 기능은 500으로 죽는** 상태였습니다.
 
-| | 테이블 수 |
+스테이징 실 스키마에서 재생성해 해소했습니다.
+
+| 검증 | 결과 |
 |---|---|
-| `docker/init-sql/01-schema.sql` | **41** |
-| 스테이징 실제 DB | **68** |
+| 빈 DB에 적용 | 오류 없이 완료 |
+| 테이블 | **68 / 68** |
+| 컬럼 | **669 / 669** — 차이 0 |
+| 인덱스·유니크 | **297 / 297** — 차이 0 |
 
-빠진 28개 (기능 단위로 묶음):
+**스키마 파일도 하나로 합쳤습니다.** `sql/01-schema.sql`(48개)과 `docker/init-sql/01-schema.sql`(41개)이 서로 다른 채 공존한 것이 격차가 묻힌 원인이었습니다. 프로덕션 compose가 디렉터리째 마운트하므로 실제 파일은 `docker/init-sql/`에 있어야 하고, 중복본은 삭제한 뒤 README·SPEC·CONFIG·compose 주석의 참조를 모두 그쪽으로 돌렸습니다.
 
-```
-코칭        agent_coaching_threads / _messages / _proposals
-메신저      messenger_channels · channel_threads · channel_outbox · channel_message_map · external_tickets
-이슈        issues · issue_events
-지식        kb_conflicts · kb_document_revisions · kb_answer_proposals · knowledge_gap_tasks · answer_reuse
-통계        question_stats_daily · question_clusters
-상품·앱     products_cache · product_saves · nudges · diary_notes · device_tokens
-보안        mfa_credentials · mfa_recovery_codes
-메뉴        tenant_menus · tenant_role_menus · tenant_user_menus
-승인        reply_drafts
-```
-
-**이대로 배포하면 API는 뜨지만 기능 대부분이 500으로 죽습니다.** `DB_SYNCHRONIZE=false`라 런타임에 만들어지지도 않습니다.
-
-> 덧붙여 **스키마 파일이 두 벌**입니다 — `sql/01-schema.sql`(48개)과 `docker/init-sql/01-schema.sql`(41개)이 서로 다르고 둘 다 낡았습니다. 진실의 출처가 둘이면 다음 사람도 같은 함정에 빠집니다.
-
-**해소안 (권장순)**
-
-| 안 | 방법 | 평가 |
-|---|---|---|
-| **ㄱ (권장)** | 스테이징에서 `mysqldump --no-data`로 스키마를 떠서 `docker/init-sql/01-schema.sql`을 재생성하고, `sql/01-schema.sql`은 **삭제하거나 심볼릭 참조로 일원화** | 실제 가동 중인 스키마와 1:1. 마이그레이션 51개를 순서대로 재생할 필요 없음 |
-| ㄴ | 41테이블 스키마 + `sql/migration_*.sql` 51개를 순서대로 적용 | 순서 의존·중복 적용 위험. 일부는 이미 스키마에 반영돼 있어 판별 필요 |
-| ㄷ | 첫 부팅만 `DB_SYNCHRONIZE=true` | **비권장** — 엔티티가 만든 스키마는 인덱스·주석·컬럼 타입이 운영 스키마와 미묘하게 다르고, 그 차이를 아무도 검증하지 않음 |
+재생성 명령은 파일 헤더에 적어 두었습니다 — **엔티티가 아니라 실제 가동 중인 DB에서** 떠야 합니다.
 
 ### B2 — 인프라·자격증명 (사용자 결정 필요) 🟡
 
@@ -135,6 +117,6 @@
 
 ## 6. 권고
 
-**B1을 먼저 처리하십시오.** 호스트가 준비돼도 스키마가 28개 뒤처진 상태로는 첫 배포가 실패합니다. 스키마 재생성은 스테이징 접근만으로 가능하고 위험이 없으므로, 인프라 준비와 **병행할 수 있는 유일한 항목**입니다.
+**B1은 처리했습니다.** 남은 것은 B2(호스트·DNS·TLS·자격증명)이며, 이는 인프라 결정이라 사용자 몫입니다.
 
 그 다음은 §3입니다. 과거 스테이징 배포에서 반복적으로 사고가 난 지점이 **"코드는 갔는데 데이터가 없어서 조용히 stub으로 도는"** 경우였습니다.
