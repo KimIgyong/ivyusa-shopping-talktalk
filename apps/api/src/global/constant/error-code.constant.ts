@@ -86,6 +86,13 @@ export const ERROR_CODE = {
     code: 'E5028',
     message: 'Only a conversation an agent is handling can be handed back',
   },
+  // E5029-E5031 — menu provisioning & access (PLN-260812).
+  /** The tenant's plan/provisioning does not include this menu at all. */
+  MENU_NOT_PROVIDED: { code: 'E5029', message: 'This menu is not provided for this tenant' },
+  /** Provided to the tenant, but this member is not allowed to reach it. */
+  MENU_ACCESS_DENIED: { code: 'E5030', message: 'You do not have access to this menu' },
+  MENU_CODE_UNKNOWN: { code: 'E5031', message: 'Unknown menu code' },
+
   // E9xxx — system
   INTERNAL_ERROR: { code: 'E9001', message: 'Internal server error' },
   EXTERNAL_SERVICE_ERROR: { code: 'E9002', message: 'External service error' },
