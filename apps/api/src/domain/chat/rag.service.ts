@@ -413,8 +413,16 @@ export class RagService {
       tenantId,
       function: AI_FUNCTION.CHAT,
       system:
-        'JSON_MODE:intent. Classify the shopper message. Return ' +
-        '{"intent":string,"needsOrderData":boolean,"confidence":number}.',
+        // A closed set, not free text (PLN-260813 P1). Handing off when the
+        // shopper asks for a person needs an intent value that arrives
+        // spelled the same way every time; a free-form label produced
+        // 'agent_request', 'human_handoff' and 'talk_to_agent' for the same
+        // sentence.
+        'JSON_MODE:intent. Classify the shopper message. `intent` must be one ' +
+          'of: order_status, delivery, cancel_refund, product_inquiry, ' +
+          'agent_request, other. Use agent_request only when the shopper is ' +
+          'asking to reach a human, not when they merely mention agents. Return ' +
+          '{"intent":string,"needsOrderData":boolean,"confidence":number}.',
       messages: [{ role: 'user', content: query }],
     });
     try {

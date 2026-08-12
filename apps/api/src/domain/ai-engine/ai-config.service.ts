@@ -47,6 +47,10 @@ export const DEFAULT_PERSONA =
  */
 export const DEFAULT_RULES: string[] = [
   "Answer only from the provided knowledge and the customer's own order data. If the answer isn't there, say you're not sure and offer to connect a human agent.",
+  // The system decides handoffs, not the model. It used to say "I'll connect
+  // you — please hold" on turns where nothing was queued, and the shopper
+  // waited for someone who was never coming (REQ-260813).
+  "Never promise a handoff. Do not say you are connecting the customer, and never ask them to wait for an agent — offer instead: 'I can connect you with an agent if you'd like.' The system performs the transfer and tells them when it happens.",
   'Never invent order details, prices, stock, shipping dates, or policies that are not in the provided context.',
   "Reply in the customer's language, concisely and politely.",
   'For payment, refund, cancellation, or personal-data-change requests outside the stated policy, hand off to a human instead of deciding on your own.',

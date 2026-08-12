@@ -32,6 +32,23 @@ import { EventBusService, EVENTS, RedisService } from '../../infrastructure/infr
 import { scrubPii } from '../../global/util/pii-scrub.util';
 
 const ESCALATION_CONFIDENCE = 0.45;
+
+/**
+ * How sure the classifier must be before a message counts as "get me a person"
+ * (PLN-260813 D2). The failure mode this guards against is a shopper saying
+ * "your agent was lovely" and landing in the queue.
+ */
+const AGENT_REQUEST_CONFIDENCE = 0.6;
+
+/**
+ * Second signal, for when the classifier misses or fails: phrasings that ask
+ * for a human, in the three supported languages.
+ *
+ * Request shapes only — a bare "상담원" or "agent" is deliberately absent,
+ * because "how many agents do you have?" is a question the AI should answer.
+ */
+const AGENT_REQUEST_PHRASES =
+  /(talk|speak|chat)\s+(to|with)\s+(a\s+|an\s+|the\s+)?(real\s+)?(person|human|agent|someone|representative)|real person|live agent|human agent|hablar con (una persona|un agente|alguien|un humano)|(상담원|상담사|담당자)(과|와|하고|이랑|을|를|에게|한테)?\s*(직접\s*)?(통화|연결|대화|얘기|이야기|바꿔|불러)|사람과\s*(통화|대화|얘기|이야기)/i;
 /** Recent orders handed to the assistant as grounding for order questions. */
 const ORDER_CONTEXT_LIMIT = 5;
 /** Earlier customer turns folded into the retrieval query (FIX-260806 A2). */
@@ -504,6 +521,26 @@ export class ChatService {
       };
     }
 
+    // The shopper asked for a person (PLN-260813 P1). Placed before retrieval:
+    // an answer we are not going to send is a model call we do not need to
+    // make. Until now this was not a handoff trigger at all — and because the
+    // knowledge base answers "how do I reach an agent?" confidently, it never
+    // fell through to the low-confidence branch either, so the AI replied
+    // "I'll connect you" and nobody ever came (REQ-260813).
+    if (this.wantsHuman(intent, egressText)) {
+      if (queued) {
+        return { conversationId: String(conversation.id), reply: null, escalate: false, needsAuth: false };
+      }
+      const handoff = await this.handoff(conversation.id, session, tenantId, 'user_request', text);
+      return {
+        conversationId: String(conversation.id),
+        reply: { senderType: 'system', body: handoff.body },
+        escalate: true,
+        needsAuth: false,
+        needsContactEmail: handoff.needsContactEmail,
+      };
+    }
+
     if (intent.needsOrderData && session.customerId == null) {
       const body = sysMsg('authRequired', session.language);
       await this.persist(tenantId, conversation.id, SENDER_TYPE.SYSTEM, body, session.language);
@@ -698,6 +735,33 @@ export class ChatService {
    * notice, mark the thread waiting, and publish the escalation event that
    * fans out to console modal / email / Slack alerts.
    */
+  /**
+   * Does this turn mean "get me a person"? (PLN-260813 P1, D1/D2)
+   *
+   * Two signals, in order. The classifier is the primary one; the phrase list
+   * covers what it misses — a typo, a language it read poorly, or a run where
+   * the JSON came back unparseable.
+   *
+   * A failed classification is NOT a signal. Its fallback label is a confident
+   * `product_inquiry`, and reading a parse failure as a request for a human
+   * would put shoppers in the queue because a model call hiccuped.
+   */
+  private wantsHuman(
+    intent: { intent?: string | null; confidence?: number | null; fallback?: boolean },
+    text: string,
+  ): boolean {
+    if (AGENT_REQUEST_PHRASES.test(text)) return true;
+    if (intent.fallback || intent.intent !== 'agent_request') return false;
+    const confidence = intent.confidence ?? 0;
+    if (confidence >= AGENT_REQUEST_CONFIDENCE) return true;
+    // Kept visible so the threshold can be judged on real traffic rather than
+    // guessed at again (PLN-260813 P3).
+    this.logger.log(
+      `agent_request below threshold (${confidence} < ${AGENT_REQUEST_CONFIDENCE}) — not handing off`,
+    );
+    return false;
+  }
+
   async handoff(
     conversationId: number,
     session: Session,
