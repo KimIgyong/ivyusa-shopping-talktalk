@@ -4,7 +4,7 @@
 |---|---|
 | Doc ID | CHATWIDGET-PLN-IDLECSAT-1.0.0 |
 | 작성일 | 2026-08-10 |
-| 상태 | **승인 대기 — 구현 착수 전** |
+| 상태 | **승인·구현 완료** — P1~P3 (PR #228/#229/#230, 30분·7일 확정), 결과는 `RPT-260813-LiveChat-Improvements` |
 | 선행 | `docs/analysis/REQ-260810-Idle-Close-Csat.md` |
 | 전제한 결정 | D1 30분 · D2 `agent`+`waiting` · D3 이메일 대기 제외 · D4 컬럼 2개 · D5 24시간 · D6 갱신 · D7 최근 7일만 확인질문 · D8 푸시 미발송 (§6에서 확정 요청) |
 
