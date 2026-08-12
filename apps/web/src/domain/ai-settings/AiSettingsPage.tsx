@@ -10,6 +10,7 @@ import { FormRow, Input, Select, Label } from '@/components/Field';
 import { Table, type Column } from '@/components/Table';
 import { cn } from '@/lib/cn';
 import { AiStudioPanel } from './AiStudioPanel';
+import { RegressionSection } from './RegressionSection';
 import { AnswerReuseSection } from './AnswerReuseSection';
 import { ScenarioReplyEditor } from './ScenarioReplyEditor';
 import { Link } from 'react-router-dom';
@@ -58,6 +59,7 @@ export function AiSettingsPage() {
           <ScenarioButtonsSection />
           <AiFunctionsSection />
           <ModerationSection />
+          <RegressionSection />
           <AnswerReuseSection />
           <HandoffMovedNotice />
         </div>
