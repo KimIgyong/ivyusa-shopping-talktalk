@@ -339,5 +339,47 @@
     "syncFailed": "가져오기 실패 — {{detail}}",
     "syncInactive": "메시지 {{count}}건을 가져왔지만 이 채널은 비활성입니다 — 활성화하기 전까지 자동으로는 들어오지 않습니다.",
     "inactiveWarning": "비활성 — 수신하지 않습니다. [설정]에서 채널을 활성으로 바꿔주세요."
+  },
+  "menuAccess": {
+    "title": "메뉴 접근권한",
+    "subtitle": "팀원이 볼 수 있는 콘솔 화면을 정합니다. 회색 처리된 메뉴는 플랜에 포함되지 않습니다.",
+    "tabRoles": "역할 기본값",
+    "tabUsers": "사용자 예외",
+    "rankColumn": "직급",
+    "menu": "메뉴",
+    "member": "팀원",
+    "exceptions": "예외",
+    "edit": "편집",
+    "editFor": "예외 — {{who}} ({{rank}})",
+    "rankDefault": "직급 기본",
+    "thisUser": "이 사용자",
+    "result": "결과",
+    "allowed": "허용",
+    "blocked": "차단",
+    "notProvided": "미제공",
+    "canAccess": "접근 가능",
+    "cannotAccess": "접근 불가",
+    "readOnly": "읽기 전용",
+    "masterExempt": "예외 대상 아님",
+    "save": "역할 기본값 저장",
+    "saved": "메뉴 접근권한을 저장했습니다",
+    "saveError": "메뉴 접근권한을 저장하지 못했습니다",
+    "loading": "불러오는 중…",
+    "needsLabel": "({{label}} 라벨 필요)",
+    "masterNote": "마스터는 플랜이 제공하는 모든 메뉴에 항상 접근합니다(자기잠금 방지).",
+    "labelNote": "직무 라벨이 붙은 메뉴는 해당 라벨이 없는 팀원에게 계속 숨겨집니다. 라벨과 무관하게 한 사람에게만 열어주려면 사용자 예외를 쓰세요.",
+    "notProvidedNote": "취소선이 그어진 메뉴는 플랜에 없습니다. 추가하려면 플랫폼 관리자에게 문의하세요.",
+    "allowWaivesLabel": "‘허용’은 이 팀원에 한해 직무 라벨 요건도 면제합니다. 화면 안에서의 작업 권한은 여전히 직급·라벨을 따릅니다.",
+    "mode": {
+      "default": "직급 기본",
+      "allow": "허용",
+      "deny": "차단"
+    },
+    "rank": {
+      "master": "마스터",
+      "director": "디렉터",
+      "manager": "매니저",
+      "staff": "스태프"
+    }
   }
 }

@@ -35,6 +35,7 @@ import { ProviderTile } from './ProviderTile';
 import { ShopifyConfigModal } from './ShopifyConfigModal';
 import { IntegrationConfigModal } from './IntegrationConfigModal';
 import { Cafe24ConnectCard } from './Cafe24ConnectCard';
+import { MenuAccessSection } from './MenuAccessSection';
 import { MessengerChannelCard } from './MessengerChannelCard';
 import { MessengerChannelModal } from './MessengerChannelModal';
 import {
@@ -50,6 +51,7 @@ import {
   type MessengerChannel,
 } from './messenger.service';
 import { toast } from '@/store/toast-store';
+import { useAuthStore } from '@/store/auth-store';
 
 function fmtDate(value?: string | null): string {
   if (!value) return '—';
@@ -635,6 +637,8 @@ export function SettingsPage() {
   const { data, isLoading, error } = useCredentials();
   const updateCredential = useUpdateCredential();
 
+  const isMaster = useAuthStore((s) => s.principal?.rank) === 'master';
+
   const [configuring, setConfiguring] = useState<ConfiguringStore>(null);
   const [editing, setEditing] = useState<CredentialStatus | null>(null);
   const [apiKey, setApiKey] = useState('');
@@ -725,6 +729,11 @@ export function SettingsPage() {
       {/* Live-support routing: business hours, break, off-hours mailbox. */}
       <HandoffSection />
       <StorefrontCard />
+
+      {/* Who on the team reaches which screen (PLN-260812 S3). Master-only:
+          the API gates it on TENANT_SETTINGS_MANAGE, and rendering it for
+          ranks that will only get a 403 is worse than not showing it. */}
+      {isMaster && <MenuAccessSection />}
 
       <Card title={t('integrationCredentials')}>
         <Table<CredentialStatus>

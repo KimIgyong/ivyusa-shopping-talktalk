@@ -339,5 +339,47 @@
     "syncFailed": "Fetch failed — {{detail}}",
     "syncInactive": "Fetched {{count}} message(s), but this channel is disabled — nothing will arrive on its own until you enable it.",
     "inactiveWarning": "Disabled — not receiving. Open Configure and set the channel to Enabled."
+  },
+  "menuAccess": {
+    "title": "Menu access",
+    "subtitle": "Decide which console screens your team reaches. Greyed-out menus are not included in your plan.",
+    "tabRoles": "Role defaults",
+    "tabUsers": "Member exceptions",
+    "rankColumn": "Rank",
+    "menu": "Menu",
+    "member": "Member",
+    "exceptions": "Exceptions",
+    "edit": "Edit",
+    "editFor": "Exceptions — {{who}} ({{rank}})",
+    "rankDefault": "Rank default",
+    "thisUser": "This member",
+    "result": "Result",
+    "allowed": "Allowed",
+    "blocked": "Blocked",
+    "notProvided": "Not in plan",
+    "canAccess": "Can access",
+    "cannotAccess": "No access",
+    "readOnly": "read-only",
+    "masterExempt": "not subject to exceptions",
+    "save": "Save role defaults",
+    "saved": "Menu access saved",
+    "saveError": "Could not save menu access",
+    "loading": "Loading…",
+    "needsLabel": "(needs {{label}})",
+    "masterNote": "Master always reaches every menu your plan provides, so it cannot be locked out.",
+    "labelNote": "Menus marked with a job label stay hidden from members without it. To open one for a single person regardless, use a member exception.",
+    "notProvidedNote": "Struck-through menus are not provided by your plan; contact the platform admin to add them.",
+    "allowWaivesLabel": "\"Allow\" also waives the job-label requirement for this member. Actions inside the screen still follow their rank and labels.",
+    "mode": {
+      "default": "Rank default",
+      "allow": "Allow",
+      "deny": "Block"
+    },
+    "rank": {
+      "master": "Master",
+      "director": "Director",
+      "manager": "Manager",
+      "staff": "Staff"
+    }
   }
 }
