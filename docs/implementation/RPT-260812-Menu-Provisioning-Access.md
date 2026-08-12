@@ -74,16 +74,31 @@ typecheck        9/9 tasks    build 6/6 tasks
 
 | 항목 | 상태 |
 |---|---|
-| PR | (작성 예정 — 머지 후 번호·SHA 기입) |
-| 마이그레이션 | `sql/migration_menu_access.sql` — **스테이징 미적용** |
-| 스테이징 | 미배포 |
+| PR | #239(S1) `baa2209` · #240(S2) `253b411` · #241(S3) `b9e3d67` · #242(S4+문서) `e63db4c` — 전부 squash 머지 |
+| 마이그레이션 | `sql/migration_menu_access.sql` — **스테이징 적용 완료 2026-08-12** (테이블 3종 생성 확인) |
+| 스테이징 | **배포 완료 2026-08-12** (`e63db4c`) |
 | 프로덕션 | 미배포(호스트 미확정) |
 
-**적용 순서(필수)**: 스테이징 DB에 SQL 선적용 → 코드 배포. 스테이징은 `DB_SYNCHRONIZE=false`라 코드만 올리면 `Table 'tenant_menus' doesn't exist`로 콘솔 진입 시 500이 난다.
+배포 검증: `Nest application successfully started` · `/api/v1/menu-access/{me,roles,users}` 라우트 매핑 로그 ·
+`GET /api/v1/menu-access/me` → **401**(배포됨) · `/api/v1/health` 200 · 콘솔 SPA 200 ·
+배포 후 API 로그에 ERROR/`Unknown column`/`doesn't exist` 없음.
 
-검증: 부팅 로그 `successfully started` · `docker ps` STATUS · `GET /api/v1/menu-access/me` → 401이면 배포됨 / 404면 미배포.
+### 5.1 배포 중 발견 — starter 테넌트 2곳의 무회귀 처리
 
-롤백: 코드 리버트 + 테이블 3종 DROP. 저장 데이터는 오버라이드·예외뿐이라 소실 영향이 없다.
+스테이징 테넌트는 3개이고 플랜이 이렇게 갈렸다.
+
+| id | slug | plan | workflow_mode | 프리셋대로면 |
+|---|---|---|---|---|
+| 1 | ivyusa | `custom` | base | 미지의 플랜 → **16개 전부** |
+| 2 | annehearts | `starter` | base | 9개 (7개 상실) |
+| 3 | amoebaorder | `starter` | **native** | 9개 (**이슈 보드 상실**) |
+
+프리셋을 그대로 적용하면 배포 순간 테넌트 2·3에서 이슈 보드·작업로그·통계·AI설정·상품·캠페인·리뷰가 사라진다.
+amoebaorder는 이슈 워크플로우 **파일럿(native)** 이라 이슈 보드 상실은 곧 파일럿 중단이다.
+
+계획의 수용 기준은 "배포 직후 화면상 변화 0"(FR-MP5·NFR-2)이므로, 두 테넌트에 **해당 7개 메뉴의 `강제 제공`
+오버라이드 행**을 넣어 현행을 유지했다(`tenant_menus` 각 7행). 어드민 [제공 메뉴] 모달에 `*` 예외로 보이며
+셀렉트를 `플랜 따름`으로 되돌리면 그 순간 프리셋이 적용된다 — 축소는 영업 판단이므로 배포가 대신 결정하지 않는다.
 
 ## 6. 남은 일
 
@@ -91,7 +106,7 @@ typecheck        9/9 tasks    build 6/6 tasks
 |---|---|---|
 | R1 | 스테이징 SQL 적용 + 배포 | §5 순서 |
 | R2 | 수동 스모크 E1~E10 | TCR §6 |
-| R3 | 스테이징 두 테넌트의 `plan` 값 확인 | 현재 tenant 1 = `custom`(전체 제공). `starter`/`growth`로 바꾸면 그 순간 메뉴가 줄어드니 영업 정책 확정 후 변경 |
+| R3 | starter 테넌트(annehearts·amoebaorder)의 프리셋 적용 여부 결정 | §5.1. 지금은 강제 제공 오버라이드로 현행 유지 중. 축소하려면 어드민 모달에서 해당 행을 `플랜 따름`으로 되돌리면 된다 |
 | R4 | 공유 라우트 차단(주문·이슈·실시간·AI설정) | TCR §5.3. 화면↔API를 1:1로 정리하거나 라우트 레벨로 쪼개야 가능 — 별건 |
 | R5 | `roles_permissions` 죽은 테이블 폐기 | 이번 범위 밖(REQ §6) |
 | R6 | 유효 메뉴 폴링 주기 | 현재 staleTime 60초 + 포커스 리페치. 다른 사람이 바꾼 권한은 최대 60초 지연 |
