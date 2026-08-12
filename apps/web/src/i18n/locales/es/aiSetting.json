@@ -248,5 +248,22 @@
     "toastAdded": "Pregunta añadida.",
     "toastRemoved": "Pregunta eliminada.",
     "toastRan": "Se ejecutaron {{count}} preguntas."
+  },
+  "history": {
+    "title": "Historial de cambios",
+    "hint": "Todas las versiones que han tenido la persona y las reglas, y por qué. Restaurar carga una versión en los editores de arriba; solo se aplica al guardar.",
+    "empty": "Aún no hay cambios registrados.",
+    "view": "Ver",
+    "viewTitle": "Versión n.º {{no}}",
+    "loadIntoEditor": "Cargar en el editor",
+    "restoreNotice": "Se carga en los editores de arriba. Nada cambia hasta que guardes.",
+    "toastLoaded": "Cargado en los editores. Revísalo y guarda.",
+    "kind_baseline": "Base",
+    "kind_manual": "Manual",
+    "kind_coaching": "Entrenamiento",
+    "kind_revert": "Deshecho",
+    "field_persona": "persona",
+    "field_rules": "reglas",
+    "field_scenarioOverrides": "respuestas de escenario"
   }
 }

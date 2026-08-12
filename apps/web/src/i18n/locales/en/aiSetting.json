@@ -248,5 +248,22 @@
     "toastAdded": "Question added.",
     "toastRemoved": "Question removed.",
     "toastRan": "Ran {{count}} questions."
+  },
+  "history": {
+    "title": "Change history",
+    "hint": "Every version the persona and response rules have had, and why. Restoring loads a version into the editors above — it goes live only when you save.",
+    "empty": "No changes recorded yet.",
+    "view": "View",
+    "viewTitle": "Version #{{no}}",
+    "loadIntoEditor": "Load into editor",
+    "restoreNotice": "Loads into the editors above. Nothing changes until you save.",
+    "toastLoaded": "Loaded into the editors. Review it, then save.",
+    "kind_baseline": "Baseline",
+    "kind_manual": "Manual",
+    "kind_coaching": "Coaching",
+    "kind_revert": "Undo",
+    "field_persona": "persona",
+    "field_rules": "rules",
+    "field_scenarioOverrides": "scenario replies"
   }
 }
