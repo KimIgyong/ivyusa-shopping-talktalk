@@ -374,9 +374,27 @@ export class SessionService {
   async setLanguage(token: string, language: string): Promise<Session> {
     const session = await this.loadByToken(token);
     session.language = this.resolveLanguage(language);
+    // An explicit choice outranks detection from here on (PLN-260813 D3).
+    session.languageLocked = 1;
     const saved = await this.sessionRepo.save(session);
     await this.redis.del(sessionCacheKey(token));
     return saved;
+  }
+
+  /**
+   * Move a session to the language the shopper is actually writing in
+   * (PLN-260813 P2). Unlike `setLanguage` this does NOT lock: it is an
+   * inference, and a later explicit pick must still win.
+   *
+   * The caller holds the `Session` object the rest of the turn reads from, so
+   * it is mutated here too — otherwise the system message of the very turn that
+   * triggered the switch would still go out in the old language.
+   */
+  async applyDetectedLanguage(session: Session, language: string): Promise<void> {
+    session.language = language;
+    await this.sessionRepo.update({ id: session.id }, { language });
+    await this.redis.del(sessionCacheKey(session.sessionToken));
+    this.logger.log(`session language detected: session=${session.id} → ${language}`);
   }
 
   async bindCustomer(sessionId: number, customerId: number): Promise<void> {

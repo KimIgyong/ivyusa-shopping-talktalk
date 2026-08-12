@@ -55,6 +55,14 @@ export class Session {
   @Column({ type: 'varchar', length: 8, default: 'EN' })
   language: string; // EN/ES/KO
 
+  /**
+   * The shopper picked this language themselves (language selector), so
+   * auto-detection leaves it alone (PLN-260813 D3). Default 0 means every
+   * existing session stays open to detection — none of them were hand-picked.
+   */
+  @Column({ name: 'language_locked', type: 'tinyint', width: 1, default: 0 })
+  languageLocked: number;
+
   @Column({ name: 'consent_state', type: 'varchar', length: 16, default: 'pending' })
   consentState: string; // pending/granted/declined
 
