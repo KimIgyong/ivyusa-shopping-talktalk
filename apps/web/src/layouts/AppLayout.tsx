@@ -10,6 +10,7 @@ import { ChangePasswordModal } from '@/domain/auth/ChangePasswordModal';
 import { MfaSettings } from '@/domain/auth/MfaSettings';
 import { EscalationAlarm } from '@/domain/live-chat/EscalationAlarm';
 import { Modal } from '@/components/Modal';
+import { MenuGuard } from '@/components/MenuGuard';
 import { cn } from '@/lib/cn';
 
 export function AppLayout() {
@@ -53,8 +54,13 @@ export function AppLayout() {
             </button>
           </div>
         )}
+        {/* One gate for every console route (PLN-260812 S4): the sidebar hides
+            menus a member may not reach, but a typed URL or an old bookmark
+            walks straight past that. */}
         <main className="mx-auto max-w-content p-6">
-          <Outlet />
+          <MenuGuard>
+            <Outlet />
+          </MenuGuard>
         </main>
       </div>
       {/* Forced first-login rotation only; voluntary changes live on My Page. */}

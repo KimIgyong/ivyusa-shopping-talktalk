@@ -2,14 +2,19 @@ import { HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { randomBytes } from 'crypto';
-import { MESSENGER_MODE, MESSENGER_PROVIDER } from '@ivy/types';
+import { MESSENGER_FIELDS, MESSENGER_MODE, MESSENGER_PROVIDER, type MessengerProvider } from '@ivy/types';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
 import { AuditService } from '../audit/audit.service';
 import { MessengerChannel } from './entity/messenger-channel.entity';
 import { AdapterRegistry } from './adapter/adapter.registry';
+import { autoReplyFlagFor, REPLY_MODE } from './auto-reply.util';
 import { TestResult } from './adapter/messenger-adapter';
-import { encryptChannelSecret, decryptChannelSecret } from './messenger-secret.util';
+import {
+  encryptChannelSecret,
+  decryptChannelSecret,
+  decryptChannelSecretFields,
+} from './messenger-secret.util';
 
 /** Providers reached through an aggregator rather than their own API. */
 const HUB_PROVIDERS: string[] = [MESSENGER_PROVIDER.AMOEBATALK, MESSENGER_PROVIDER.BTBZ_RELAY];
@@ -20,6 +25,7 @@ export interface UpsertChannelInput {
   secret?: Record<string, string>;
   config?: Record<string, unknown>;
   autoReply?: boolean;
+  replyMode?: string;
   consentMode?: string;
   active?: boolean;
 }
@@ -39,8 +45,13 @@ export class MessengerService {
     private readonly audit: AuditService,
   ) {}
 
-  list(tenantId: number): Promise<MessengerChannel[]> {
-    return this.channelRepo.find({ where: { tenantId }, order: { provider: 'ASC', label: 'ASC' } });
+  async list(tenantId: number): Promise<MessengerChannel[]> {
+    const channels = await this.channelRepo.find({
+      where: { tenantId },
+      order: { provider: 'ASC', label: 'ASC' },
+    });
+    for (const channel of channels) await this.hoistLegacyFields(channel);
+    return channels;
   }
 
   async require(tenantId: number, id: number): Promise<MessengerChannel> {
@@ -48,7 +59,45 @@ export class MessengerService {
     if (!channel) {
       throw new BusinessException(ERROR_CODE.MESSENGER_CHANNEL_NOT_FOUND, HttpStatus.NOT_FOUND);
     }
+    await this.hoistLegacyFields(channel);
     return channel;
+  }
+
+  /**
+   * Move non-secret fields of channels saved before the config/secret split out
+   * of the encrypted blob and into `config`, once, on first read.
+   *
+   * Without it an existing channel keeps showing blank inputs — which is how
+   * the original report ("account email didn't save") happened: the value was
+   * there, just unreadable. The blob is left as is; adapters prefer config, and
+   * rewriting a credential to fix a display bug is not worth the risk.
+   */
+  private async hoistLegacyFields(channel: MessengerChannel): Promise<void> {
+    const specs = MESSENGER_FIELDS[channel.provider as MessengerProvider] ?? [];
+    const plainKeys = specs.filter((f) => !f.secret).map((f) => f.key);
+    if (plainKeys.length === 0 || !channel.secretEnc) return;
+
+    let stored: Record<string, string>;
+    try {
+      stored = decryptChannelSecretFields(channel);
+    } catch {
+      return; // unreadable blob (rotated key) — nothing to hoist
+    }
+
+    const config = { ...(channel.config ?? {}) } as MessengerChannel['config'] & object;
+    let moved = false;
+    for (const key of plainKeys) {
+      const value = stored[key];
+      if (typeof value === 'string' && value.trim() && config[key] === undefined) {
+        config[key] = value.trim();
+        moved = true;
+      }
+    }
+    if (!moved) return;
+
+    channel.config = config;
+    await this.channelRepo.update({ id: channel.id }, { config });
+    this.logger.log(`channel ${channel.id}: hoisted legacy field(s) into config`);
   }
 
   /** Active channel for an inbound webhook token — the tenant resolves from it. */
@@ -75,11 +124,18 @@ export class MessengerService {
         webhookToken: adapter.kind === 'webhook' ? randomBytes(24).toString('hex') : null,
       });
 
-    if (input.secret && Object.keys(input.secret).length > 0) {
-      channel.secretEnc = encryptChannelSecret(normalizeSecret(input.secret));
+    const split = splitFields(input.provider, input.secret, input.config);
+    if (split.secret) channel.secretEnc = encryptChannelSecret(split.secret);
+    if (split.config) channel.config = { ...(channel.config ?? {}), ...split.config };
+    // `reply_mode` is the real setting; `auto_reply` is mirrored so rolling the
+    // code back keeps the old boolean meaningful (PLN-260812 D-1).
+    if (input.replyMode !== undefined) {
+      channel.replyMode = input.replyMode;
+      channel.autoReply = autoReplyFlagFor(input.replyMode);
+    } else if (input.autoReply !== undefined) {
+      channel.autoReply = input.autoReply ? 1 : 0;
+      channel.replyMode = input.autoReply ? REPLY_MODE.AUTO : REPLY_MODE.OFF;
     }
-    if (input.config !== undefined) channel.config = input.config;
-    if (input.autoReply !== undefined) channel.autoReply = input.autoReply ? 1 : 0;
     if (input.consentMode !== undefined) channel.consentMode = input.consentMode;
     if (input.active !== undefined) channel.active = input.active ? 1 : 0;
 
@@ -103,11 +159,16 @@ export class MessengerService {
   ): Promise<MessengerChannel> {
     const channel = await this.require(tenantId, id);
     if (patch.label !== undefined) channel.label = patch.label;
-    if (patch.secret && Object.keys(patch.secret).length > 0) {
-      channel.secretEnc = encryptChannelSecret(normalizeSecret(patch.secret));
+    const split = splitFields(channel.provider, patch.secret, patch.config);
+    if (split.secret) channel.secretEnc = encryptChannelSecret(split.secret);
+    if (split.config) channel.config = { ...(channel.config ?? {}), ...split.config };
+    if (patch.replyMode !== undefined) {
+      channel.replyMode = patch.replyMode;
+      channel.autoReply = autoReplyFlagFor(patch.replyMode);
+    } else if (patch.autoReply !== undefined) {
+      channel.autoReply = patch.autoReply ? 1 : 0;
+      channel.replyMode = patch.autoReply ? REPLY_MODE.AUTO : REPLY_MODE.OFF;
     }
-    if (patch.config !== undefined) channel.config = patch.config;
-    if (patch.autoReply !== undefined) channel.autoReply = patch.autoReply ? 1 : 0;
     if (patch.consentMode !== undefined) channel.consentMode = patch.consentMode;
     if (patch.active !== undefined) channel.active = patch.active ? 1 : 0;
 
@@ -206,11 +267,35 @@ export class MessengerService {
 }
 
 /**
- * Single-field credentials (bot token, auth token) are stored bare so adapters
- * can use `ctx.secret` directly; multi-field ones keep their JSON shape.
+ * Route each submitted field to where it belongs, by the provider's own schema
+ * rather than by what the client happened to send.
+ *
+ * Only `secret: true` fields are encrypted. The rest (mailbox address, server
+ * URL, IMAP/SMTP host) go to `config`, which the console reads back — keeping
+ * them in the write-only blob meant an operator reopened the form to blank
+ * inputs and could not see what a channel was actually pointed at.
  */
-function normalizeSecret(secret: Record<string, string>): string | Record<string, string> {
-  const entries = Object.entries(secret).filter(([, v]) => typeof v === 'string' && v.trim() !== '');
-  if (entries.length === 1) return entries[0][1].trim();
-  return Object.fromEntries(entries.map(([k, v]) => [k, v.trim()]));
+function splitFields(
+  provider: string,
+  submitted: Record<string, string> | undefined,
+  config: Record<string, unknown> | undefined,
+): { secret?: string | Record<string, string>; config?: Record<string, unknown> } {
+  const specs = MESSENGER_FIELDS[provider as MessengerProvider] ?? [];
+  const secretKeys = new Set(specs.filter((f) => f.secret).map((f) => f.key));
+
+  const secrets: Record<string, string> = {};
+  const plain: Record<string, unknown> = { ...(config ?? {}) };
+  for (const [key, value] of Object.entries(submitted ?? {})) {
+    if (typeof value !== 'string' || value.trim() === '') continue;
+    if (secretKeys.has(key)) secrets[key] = value.trim();
+    // Unknown keys land in config too: better visible than silently dropped.
+    else plain[key] = value.trim();
+  }
+
+  const entries = Object.entries(secrets);
+  return {
+    // A lone secret is stored bare so adapters can use `ctx.secret` directly.
+    secret: entries.length === 0 ? undefined : entries.length === 1 ? entries[0][1] : secrets,
+    config: Object.keys(plain).length > 0 || config !== undefined ? plain : undefined,
+  };
 }

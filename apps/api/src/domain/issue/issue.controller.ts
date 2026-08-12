@@ -23,7 +23,9 @@ export class IssueController {
   @RequireCapability(CAPABILITY.CONVERSATION_HANDLE)
   @ApiOperation({ summary: 'Kanban board — issues grouped by status (P4)' })
   async board(@CurrentUser() user: Principal) {
-    const { columns, names, sla } = await this.issueService.board(this.tenant(user).tenantId);
+    const { columns, names, sla, context } = await this.issueService.board(
+      this.tenant(user).tenantId,
+    );
     const mapped: Record<string, unknown[]> = {};
     for (const [status, issues] of Object.entries(columns)) {
       mapped[status] = issues.map((i) =>
@@ -31,6 +33,7 @@ export class IssueController {
           i,
           i.assigneeUserId != null ? names.get(Number(i.assigneeUserId)) ?? null : null,
           sla,
+          context.get(String(i.id)),
         ),
       );
     }

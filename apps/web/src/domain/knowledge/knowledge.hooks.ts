@@ -365,6 +365,44 @@ export function useCatalogSyncCompletion(job: CatalogSyncJob | null | undefined)
   }, [job, qc, tenantKey]);
 }
 
+/** Answer proposals awaiting a knowledge owner's decision (PLN-260810 S4). */
+export function useProposals(status = 'pending') {
+  const tenantKey = useTenantKey();
+  return useQuery({
+    queryKey: ['knowledge', tenantKey, 'proposals', status],
+    queryFn: () => knowledgeService.proposals(status),
+  });
+}
+
+/** Approve or reject a proposal. Approval creates and indexes the document. */
+export function useProposalDecision() {
+  const qc = useQueryClient();
+  const tenantKey = useTenantKey();
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'proposals'] });
+    qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'documents'] });
+  };
+  const approve = useMutation({
+    mutationFn: (v: { id: string; title?: string; category?: string; answer?: string }) =>
+      knowledgeService.approveProposal(v.id, { title: v.title, category: v.category, answer: v.answer }),
+    onSuccess: () => {
+      invalidate();
+      toast.success('Approved — the answer is now searchable');
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+  const reject = useMutation({
+    mutationFn: (v: { id: string; reason: string }) =>
+      knowledgeService.rejectProposal(v.id, v.reason),
+    onSuccess: () => {
+      invalidate();
+      toast.success('Rejected — the reason is shown to whoever proposed it');
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+  return { approve, reject };
+}
+
 /** Usage guides per product type, written or not (PLN-260807 P2). */
 export function useUsageGuides() {
   const tenantKey = useTenantKey();

@@ -5,7 +5,7 @@ import { Cafe24OAuthService } from './cafe24-oauth.service';
 import { Cafe24SyncService } from './cafe24-sync.service';
 import { Cafe24ProductSyncService } from './cafe24-product-sync.service';
 import { Cafe24ConnectRequest } from './dto/cafe24.request';
-import { RequireCapability } from '../../global/decorator/auth.decorator';
+import { RequireCapability, RequireMenu } from '../../global/decorator/auth.decorator';
 import { CurrentUser } from '../../global/decorator/current-user.decorator';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
@@ -13,6 +13,8 @@ import { ERROR_CODE } from '../../global/constant/error-code.constant';
 /** Tenant-scoped Cafe24 connect + sync (console, authenticated). */
 @ApiTags('Tenant')
 @Controller('tenants/me/cafe24')
+// Screen gate (PLN-260812 S4).
+@RequireMenu('settings')
 export class Cafe24Controller {
   constructor(
     private readonly oauthService: Cafe24OAuthService,

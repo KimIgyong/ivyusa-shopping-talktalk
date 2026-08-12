@@ -220,5 +220,13 @@
     "accepted": "Document created and embedded.",
     "dismissed": "Proposal dismissed.",
     "actionError": "Failed to process the proposal."
-  }
+  },
+  "proposals": "Answer proposals",
+  "proposalQuestion": "Question",
+  "proposalAnswer": "Answer",
+  "proposalApprove": "Approve",
+  "proposalReject": "Reject",
+  "proposalRejectReason": "Reason (shown to whoever proposed it)",
+  "proposalFromConversation": "Open conversation #{{id}}",
+  "proposalNoConversation": "No linked conversation"
 }

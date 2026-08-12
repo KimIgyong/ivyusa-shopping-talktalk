@@ -1,4 +1,8 @@
 import { Module } from '@nestjs/common';
+import { TenantAiConfig } from '../ai-engine/entity/tenant-ai-config.entity';
+import { ChannelThread } from '../messenger/entity/channel-thread.entity';
+import { MessengerChannel } from '../messenger/entity/messenger-channel.entity';
+import { ReplyDraft } from '../chat/entity/reply-draft.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Agent } from './entity/agent.entity';
 import { AgentProfile } from './entity/agent-profile.entity';
@@ -35,6 +39,14 @@ import { IssueModule } from '../issue/issue.module';
       Session,
       JobLabel,
       UserJobLabel,
+      // Read-only: the handback notice lives in tenant_ai_config.handoff_config.
+      TenantAiConfig,
+      // Read-only: whether the AI is answering a channel thread depends on the
+      // channel's default (PLN-260812). Entity-only, so no module cycle.
+      ChannelThread,
+      MessengerChannel,
+      // Approval-mode drafts live next to the conversation they belong to.
+      ReplyDraft,
     ]),
     ModerationModule,
     CustomerModule,

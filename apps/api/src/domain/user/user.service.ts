@@ -54,7 +54,7 @@ export class UserService {
     });
 
     const labelsByUser = await this.loadLabelCodes(users.map((u) => u.id));
-    const items = users.map((u) => UserMapper.toResponse(u, labelsByUser.get(u.id) ?? []));
+    const items = users.map((u) => UserMapper.toResponse(u, labelsByUser.get(String(u.id)) ?? []));
     return { items, total };
   }
 
@@ -197,6 +197,9 @@ export class UserService {
     labelCodes: string[],
   ): Promise<UserResponse> {
     const user = await this.getTenantUser(tenantId, userId);
+    this.logger.log(
+      `updateLabels tenant=${tenantId} user=${userId} codes=[${(labelCodes ?? []).join(',')}]`,
+    );
     await this.userLabelRepo.delete({ userId: user.id });
     await this.assignLabels(tenantId, user.id, labelCodes);
     return this.toResponseWithLabels(user);
@@ -257,6 +260,16 @@ export class UserService {
   private async assignLabels(tenantId: number, userId: number, codes: string[]): Promise<void> {
     if (!codes.length) return;
     const labels = await this.labelRepo.find({ where: { tenantId, code: In(codes) } });
+    // A checked label whose code isn't a tenant job_label would otherwise be dropped
+    // silently with a 200 — the invisible-fallback trap. Surface it so "checked but
+    // not saved" is diagnosable (4xx-style events aren't logged by default).
+    const found = new Set(labels.map((l) => l.code));
+    const unknown = codes.filter((c) => !found.has(c));
+    if (unknown.length) {
+      this.logger.warn(
+        `assignLabels tenant=${tenantId} user=${userId}: ignored ${unknown.length} code(s) not in job_labels [${unknown.join(',')}]`,
+      );
+    }
     if (!labels.length) return;
     const links = labels.map((l) => this.userLabelRepo.create({ userId, jobLabelId: l.id }));
     await this.userLabelRepo.save(links);
@@ -264,12 +277,18 @@ export class UserService {
 
   private async toResponseWithLabels(user: User): Promise<UserResponse> {
     const labelsByUser = await this.loadLabelCodes([user.id]);
-    return UserMapper.toResponse(user, labelsByUser.get(user.id) ?? []);
+    return UserMapper.toResponse(user, labelsByUser.get(String(user.id)) ?? []);
   }
 
-  /** Map userId -> label codes (join user_job_labels + job_labels). */
-  private async loadLabelCodes(userIds: number[]): Promise<Map<number, string[]>> {
-    const result = new Map<number, string[]>();
+  /**
+   * Map userId -> label codes (join user_job_labels + job_labels). Every key is
+   * String()-normalized: User.id / JobLabel.id are BIGINT PKs TypeORM hands back as
+   * strings, while UserJobLabel.userId / .jobLabelId are transformed to numbers, so
+   * BOTH joins (label id AND user id) miss unless both sides share a representation
+   * (bigint-PK-as-string trap). Callers must read with String(id).
+   */
+  private async loadLabelCodes(userIds: number[]): Promise<Map<string, string[]>> {
+    const result = new Map<string, string[]>();
     if (!userIds.length) return result;
 
     const links = await this.userLabelRepo.find({ where: { userId: In(userIds) } });
@@ -277,14 +296,15 @@ export class UserService {
 
     const labelIds = [...new Set(links.map((l) => l.jobLabelId))];
     const labels = await this.labelRepo.find({ where: { id: In(labelIds) } });
-    const codeById = new Map(labels.map((l) => [l.id, l.code]));
+    const codeById = new Map(labels.map((l) => [String(l.id), l.code]));
 
     for (const link of links) {
-      const code = codeById.get(link.jobLabelId);
+      const code = codeById.get(String(link.jobLabelId));
       if (!code) continue;
-      const list = result.get(link.userId) ?? [];
+      const key = String(link.userId);
+      const list = result.get(key) ?? [];
       list.push(code);
-      result.set(link.userId, list);
+      result.set(key, list);
     }
     return result;
   }

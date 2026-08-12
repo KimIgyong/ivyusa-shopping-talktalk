@@ -11,12 +11,14 @@ import {
   SENDER_TYPE,
 } from '@ivy/types';
 import { Conversation } from './entity/conversation.entity';
+import { CSAT_WINDOW_MS } from './chat.mapper';
 import { Message } from './entity/message.entity';
 import { DOC_GROUP } from '../knowledge/entity/kb-document.entity';
 import { Session } from '../session/entity/session.entity';
 import { Tenant } from '../tenant/entity/tenant.entity';
 import { User } from '../user/entity/user.entity';
 import { Assignment } from '../agent/entity/assignment.entity';
+import { AgentDailyStat } from '../agent/entity/agent-daily-stat.entity';
 import { RagService, RagAnswer } from './rag.service';
 import { ModerationService } from '../moderation/moderation.service';
 import { AnswerReuseService } from '../answer-reuse/answer-reuse.service';
@@ -28,8 +30,45 @@ import { CustomerService } from '../customer/customer.service';
 import { HandoffRouterService } from '../ai-engine/handoff-router.service';
 import { EventBusService, EVENTS, RedisService } from '../../infrastructure/infrastructure.module';
 import { scrubPii } from '../../global/util/pii-scrub.util';
+import { detectLanguage } from '../../global/util/detect-language.util';
 
 const ESCALATION_CONFIDENCE = 0.45;
+
+/**
+ * How sure the classifier must be before a message counts as "get me a person"
+ * (PLN-260813 D2). The failure mode this guards against is a shopper saying
+ * "your agent was lovely" and landing in the queue.
+ */
+const AGENT_REQUEST_CONFIDENCE = 0.6;
+
+/**
+ * Turns with nothing to look up (PLN-260813 P2). They score 0.2 for the same
+ * reason a greeting resembles no document, and that used to page a human.
+ */
+const NON_QUESTION_INTENTS = new Set(['smalltalk', 'out_of_scope', 'unintelligible']);
+
+/**
+ * How many consecutive turns with nothing to answer before the shopper is
+ * offered a person (PLN-260813 D5). Offered — not transferred: someone circling
+ * may need help, but that call is theirs to make.
+ */
+const NON_QUESTION_STREAK_FOR_OFFER = 3;
+
+const AGENT_OFFER_COPY: Record<string, string> = {
+  EN: 'If you would like to speak with one of our team, just say so and I will connect you.',
+  ES: 'Si prefieres hablar con nuestro equipo, dímelo y te conecto.',
+  KO: '혹시 상담원 연결이 필요하시면 말씀해 주세요.',
+};
+
+/**
+ * Second signal, for when the classifier misses or fails: phrasings that ask
+ * for a human, in the three supported languages.
+ *
+ * Request shapes only — a bare "상담원" or "agent" is deliberately absent,
+ * because "how many agents do you have?" is a question the AI should answer.
+ */
+const AGENT_REQUEST_PHRASES =
+  /(talk|speak|chat)\s+(to|with)\s+(a\s+|an\s+|the\s+)?(real\s+)?(person|human|agent|someone|representative)|real person|live agent|human agent|hablar con (una persona|un agente|alguien|un humano)|(상담원|상담사|담당자)(과|와|하고|이랑|을|를|에게|한테)?\s*(직접\s*)?(통화|연결|대화|얘기|이야기|바꿔|불러)|사람과\s*(통화|대화|얘기|이야기)/i;
 /** Recent orders handed to the assistant as grounding for order questions. */
 const ORDER_CONTEXT_LIMIT = 5;
 /** Earlier customer turns folded into the retrieval query (FIX-260806 A2). */
@@ -86,8 +125,19 @@ export function sysMsg(key: keyof typeof SYSTEM_MESSAGES, lang: string): string 
   return (set as Record<string, string>)[lang] ?? set.EN;
 }
 
-/** Response shape lives in `@ivy/types` — the widget imports the same contract. */
-export type ChatTurnResult = ChatTurnResponse;
+/** An answer produced but NOT delivered — approval mode (PLN-260812). */
+export interface ChatDraft {
+  body: string;
+  confidence: number;
+  citations?: unknown;
+}
+
+/**
+ * Response shape lives in `@ivy/types` — the widget imports the same contract.
+ * `draft` is additive and only ever set for callers that asked for draft mode,
+ * so the widget contract is unchanged.
+ */
+export type ChatTurnResult = ChatTurnResponse & { draft?: ChatDraft };
 
 export type EscalationReason = 'low_confidence' | 'moderation_blocked' | 'user_request' | 'policy';
 
@@ -142,6 +192,10 @@ export class ChatService {
     // every use is `this.answerReuse?.` / `this.issueService?.`-guarded.
     private readonly answerReuse?: AnswerReuseService,
     private readonly issueService?: IssueService,
+    // Satisfaction lands in the agent's daily row (PLN-260810 P2); appended so
+    // existing positional test doubles keep working.
+    @InjectRepository(AgentDailyStat)
+    private readonly statRepo?: Repository<AgentDailyStat>,
   ) {}
 
   async getOrCreateConversation(sessionId: number): Promise<Conversation> {
@@ -225,6 +279,109 @@ export class ChatService {
   }
 
   /**
+   * Record how the customer felt about a finished conversation (PLN-260810 P2).
+   *
+   * Open to the widget, so ownership is checked the same way `escalate` does
+   * it: the session token must belong to this conversation. Ratings are not
+   * personal data, so no consent gate — but a stranger must not be able to
+   * score someone else's thread.
+   */
+  async rate(session: Session, conversationId: number, rating: number): Promise<{ rating: number }> {
+    const conversation = await this.convRepo.findOne({ where: { id: conversationId } });
+    if (!conversation || Number(conversation.sessionId) !== Number(session.id)) {
+      throw new BusinessException(ERROR_CODE.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND);
+    }
+    if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+      throw new BusinessException(ERROR_CODE.VALIDATION_FAILED, HttpStatus.BAD_REQUEST);
+    }
+    // A thread still running has nothing to rate yet, and one closed long ago
+    // is being rated from a stale widget — both are refused rather than
+    // silently accepted into the averages.
+    const endedAt = conversation.endedAt?.getTime();
+    if (conversation.status !== CONVERSATION_STATUS.ENDED || !endedAt) {
+      throw new BusinessException(ERROR_CODE.VALIDATION_FAILED, HttpStatus.CONFLICT);
+    }
+    if (Date.now() - endedAt > CSAT_WINDOW_MS) {
+      this.logger.warn(`csat rejected: conversation=${conversationId} outside the 24h window`);
+      throw new BusinessException(ERROR_CODE.VALIDATION_FAILED, HttpStatus.CONFLICT);
+    }
+
+    // Re-rating overwrites: a misclick the customer cannot correct produces
+    // worse data than one they can (PLN-260810 D6).
+    await this.convRepo.update(
+      { id: conversationId },
+      { csatRating: rating, csatRatedAt: new Date() },
+    );
+    void this.recordCsatForAgent(conversation).catch((e: Error) =>
+      this.logger.warn(`csat stat update failed: ${e.message}`),
+    );
+    this.logger.log(`csat ${rating}/5 recorded for conversation ${conversationId}`);
+    return { rating };
+  }
+
+  /**
+   * Fold the rating into the handling agent's daily average.
+   *
+   * `agent_daily_stats.csat_avg` has existed since the console was built and
+   * nothing ever wrote it — the satisfaction column read '—' for every agent.
+   * Recomputed from the conversations themselves rather than accumulated, so a
+   * re-rating corrects the average instead of double-counting.
+   */
+  private async recordCsatForAgent(conversation: Conversation): Promise<void> {
+    const lastAgentMessage = await this.msgRepo.findOne({
+      where: { conversationId: conversation.id, senderType: SENDER_TYPE.AGENT },
+      order: { id: 'DESC' },
+    });
+    const agentId = lastAgentMessage?.senderId ?? conversation.agentId;
+    if (!agentId || !conversation.tenantId || !conversation.endedAt) return;
+
+    const statDate = conversation.endedAt.toISOString().slice(0, 10);
+    const { avg, rated } = await this.csatAverageFor(
+      conversation.tenantId,
+      Number(agentId),
+      statDate,
+    );
+    if (rated === 0) return;
+
+    const existing = await this.statRepo?.findOne({
+      where: { tenantId: conversation.tenantId, agentId: Number(agentId), statDate },
+    });
+    if (existing) {
+      existing.csatAvg = avg;
+      await this.statRepo?.save(existing);
+      return;
+    }
+    await this.statRepo?.save(
+      this.statRepo.create({
+        tenantId: conversation.tenantId,
+        agentId: Number(agentId),
+        statDate,
+        csatAvg: avg,
+      }),
+    );
+  }
+
+  /** Average of every rated conversation that agent closed that day. */
+  private async csatAverageFor(
+    tenantId: number,
+    agentId: number,
+    statDate: string,
+  ): Promise<{ avg: number; rated: number }> {
+    const row = await this.convRepo
+      .createQueryBuilder('c')
+      .select('AVG(c.csat_rating)', 'avg')
+      .addSelect('COUNT(c.csat_rating)', 'rated')
+      .where('c.tenant_id = :tenantId', { tenantId })
+      .andWhere('c.agent_id = :agentId OR c.id IN (' +
+        'SELECT m.conversation_id FROM messages m WHERE m.sender_type = :agent AND m.sender_id = :agentId)',
+        { agentId, agent: SENDER_TYPE.AGENT })
+      .andWhere('c.csat_rating IS NOT NULL')
+      .andWhere('DATE(c.ended_at) = :statDate', { statDate })
+      .getRawOne<{ avg: string | null; rated: string }>();
+    return { avg: Number(row?.avg ?? 0), rated: Number(row?.rated ?? 0) };
+  }
+
+  /**
    * Bounded message read (PERF-1). With `afterId` only newer rows return
    * (delta poll); without it, the LAST `limit` messages in ascending order.
    */
@@ -268,7 +425,11 @@ export class ChatService {
     return map;
   }
 
-  async handleUserMessage(session: Session, text: string): Promise<ChatTurnResult> {
+  async handleUserMessage(
+    session: Session,
+    text: string,
+    opts: { draft?: boolean } = {},
+  ): Promise<ChatTurnResult> {
     // Consent gate (PRV-M4, PLN-Privacy-Control-Gap D-1: fail-closed). Only an
     // effective GRANTED — fresh (uncached) read, current notice version — lets
     // the turn proceed; PENDING, DECLINED, and an outdated grant all soft-block:
@@ -300,6 +461,20 @@ export class ChatService {
       stage: CJM_STAGE.INQUIRY,
       eventType: 'chat_message',
     });
+
+    // Which language is this shopper actually writing in? Runs before any reply
+    // is produced so the switch takes effect on the turn that earned it, not
+    // the next one (PLN-260813 P2).
+    await this.syncSessionLanguage(session, conversation.id, text);
+
+    // The customer answered the idle check, so the thread is alive again. This
+    // must happen BEFORE the agent-mode return below: the threads most likely
+    // to have been asked are exactly the ones a human owns, and clearing the
+    // latch after that early return would never run for them (PLN-260810 P1).
+    if (conversation.idlePromptAt) {
+      conversation.idlePromptAt = null;
+      await this.convRepo.update({ id: conversation.id }, { idlePromptAt: null });
+    }
 
     // Agent mode (FR-S4): once a human owns the thread the bot stays silent —
     // the message is persisted for the agent console and the customer receives
@@ -368,6 +543,81 @@ export class ChatService {
         escalate: true,
         needsAuth: false,
         needsContactEmail: handoff.needsContactEmail,
+      };
+    }
+
+    // The shopper asked for a person (PLN-260813 P1). Placed before retrieval:
+    // an answer we are not going to send is a model call we do not need to
+    // make. Until now this was not a handoff trigger at all — and because the
+    // knowledge base answers "how do I reach an agent?" confidently, it never
+    // fell through to the low-confidence branch either, so the AI replied
+    // "I'll connect you" and nobody ever came (REQ-260813).
+    if (this.wantsHuman(intent, egressText)) {
+      if (queued) {
+        return { conversationId: String(conversation.id), reply: null, escalate: false, needsAuth: false };
+      }
+      const handoff = await this.handoff(conversation.id, session, tenantId, 'user_request', text);
+      return {
+        conversationId: String(conversation.id),
+        reply: { senderType: 'system', body: handoff.body },
+        escalate: true,
+        needsAuth: false,
+        needsContactEmail: handoff.needsContactEmail,
+      };
+    }
+
+    // Nothing to look up (PLN-260813 P2). Placed before retrieval on purpose:
+    // searching the knowledge base for "hello" produces "no similar document",
+    // and the old code read that as "no answer found" and paged an agent — 19
+    // of 34 low-confidence handoffs on staging were greetings, compliments,
+    // off-topic questions or noise (REQ-260813).
+    const nonQuestion = this.nonQuestionKind(intent);
+    if (nonQuestion) {
+      const streak = await this.nonQuestionStreak(conversation.id);
+      const drafted = await this.rag.answerWithoutKnowledge(
+        tenantId,
+        nonQuestion,
+        egressText,
+        session.language,
+      );
+      // Same gate as any other AI egress (FR-069, non-bypassable).
+      const checked = await this.moderation.moderate({
+        tenantId,
+        scope: 'ai',
+        authorType: 'ai',
+        conversationId: conversation.id,
+        text: drafted,
+      });
+      if (checked.decision === MODERATION_DECISION.BLOCKED) {
+        const handoff = await this.handoff(conversation.id, session, tenantId, 'moderation_blocked', text);
+        return {
+          conversationId: String(conversation.id),
+          reply: { senderType: 'system', body: handoff.body },
+          escalate: true,
+          needsAuth: false,
+          needsContactEmail: handoff.needsContactEmail,
+        };
+      }
+      const offer =
+        streak + 1 >= NON_QUESTION_STREAK_FOR_OFFER
+          ? ` ${AGENT_OFFER_COPY[session.language?.toUpperCase() ?? 'EN'] ?? AGENT_OFFER_COPY.EN}`
+          : '';
+      const body = `${checked.text}${offer}`;
+      await this.persist(tenantId, conversation.id, SENDER_TYPE.AI, body, session.language, {
+        // Recorded so a misclassification can be found later without guessing
+        // which turns took this path (PLN-260813 P4).
+        answeredFrom: 'no_knowledge',
+        nonQuestionKind: nonQuestion,
+        intentConfidence: intent.confidence ?? null,
+      });
+      this.logger.log(
+        `handoff skipped: ${nonQuestion} (conf ${intent.confidence ?? 0}) conversation=${conversation.id}`,
+      );
+      return {
+        conversationId: String(conversation.id),
+        reply: { senderType: 'ai', body },
+        escalate: false,
+        needsAuth: false,
       };
     }
 
@@ -473,6 +723,23 @@ export class ChatService {
       };
     }
 
+    if (opts.draft) {
+      // Approval mode: the answer is a proposal, not a message. Persisting it
+      // would deliver it — the widget poll and the channel outbox both read
+      // `messages` — and reuse must not learn from an answer nobody approved.
+      return {
+        conversationId: String(conversation.id),
+        reply: null,
+        draft: {
+          body: moderated.text,
+          confidence: answer.confidence,
+          citations: answer.citations,
+        },
+        escalate: false,
+        needsAuth: false,
+      };
+    }
+
     const aiTurn = await this.persist(tenantId, conversation.id, SENDER_TYPE.AI, moderated.text, session.language, {
       citations: answer.citations,
       confidence: answer.confidence,
@@ -548,6 +815,115 @@ export class ChatService {
    * notice, mark the thread waiting, and publish the escalation event that
    * fans out to console modal / email / Slack alerts.
    */
+  /**
+   * Which "nothing to answer" kind this turn is, or null (PLN-260813 P2).
+   *
+   * The same two guards as the handoff trigger: a failed classification is not
+   * a signal, and low confidence is not either. Getting this wrong in the
+   * permissive direction is the worse failure — a real question answered with
+   * a greeting and no human — so both gates stay closed by default.
+   */
+  private nonQuestionKind(intent: {
+    intent?: string | null;
+    confidence?: number | null;
+    fallback?: boolean;
+  }): 'smalltalk' | 'out_of_scope' | 'unintelligible' | null {
+    if (intent.fallback) return null;
+    const label = intent.intent ?? '';
+    if (!NON_QUESTION_INTENTS.has(label)) return null;
+    if ((intent.confidence ?? 0) < AGENT_REQUEST_CONFIDENCE) {
+      this.logger.log(`non-question below threshold (${intent.confidence ?? 0}) — answering normally`);
+      return null;
+    }
+    return label as 'smalltalk' | 'out_of_scope' | 'unintelligible';
+  }
+
+  /**
+   * How many of the immediately preceding customer turns had nothing to answer.
+   * Read from `messages.intent`, which is already written every turn — no new
+   * column, and it survives a restart.
+   */
+  private async nonQuestionStreak(conversationId: number): Promise<number> {
+    const recent = await this.msgRepo.find({
+      where: { conversationId, senderType: SENDER_TYPE.USER },
+      order: { id: 'DESC' },
+      take: NON_QUESTION_STREAK_FOR_OFFER,
+      select: ['id', 'intent'],
+    });
+    // The current turn is already persisted, so skip it and count backwards.
+    let streak = 0;
+    for (const message of recent.slice(1)) {
+      if (!message.intent || !NON_QUESTION_INTENTS.has(message.intent)) break;
+      streak += 1;
+    }
+    return streak;
+  }
+
+  /**
+   * Follow the shopper's language (PLN-260813 P2, D1/D2/D3/D5).
+   *
+   * The AI already matches whatever language a message is written in, turn by
+   * turn; system copy reads one fixed `session.language` chosen when the widget
+   * opened. That gap is the whole bug — a Korean conversation carrying English
+   * off-hours notices (REQ-260813).
+   *
+   * Two consecutive turns in the same language are required. One is not enough:
+   * a single "thanks" mid-conversation would otherwise turn every later notice
+   * English and leave it there. Short messages detect as null and so break the
+   * agreement rather than driving it — which is the intent, not a side effect.
+   */
+  private async syncSessionLanguage(
+    session: Session,
+    conversationId: number,
+    text: string,
+  ): Promise<void> {
+    // The shopper chose this language by hand. Detection does not get a vote.
+    if (session.languageLocked) return;
+
+    const detected = detectLanguage(text);
+    if (!detected || detected === session.language) return;
+
+    // The current turn is already persisted, so the previous customer turn is
+    // the second row back.
+    const recent = await this.msgRepo.find({
+      where: { conversationId, senderType: SENDER_TYPE.USER },
+      order: { id: 'DESC' },
+      take: 2,
+      select: ['id', 'body'],
+    });
+    const previous = recent[1];
+    if (!previous || detectLanguage(previous.body) !== detected) return;
+
+    await this.sessionService.applyDetectedLanguage(session, detected);
+  }
+
+  /**
+   * Does this turn mean "get me a person"? (PLN-260813 P1, D1/D2)
+   *
+   * Two signals, in order. The classifier is the primary one; the phrase list
+   * covers what it misses — a typo, a language it read poorly, or a run where
+   * the JSON came back unparseable.
+   *
+   * A failed classification is NOT a signal. Its fallback label is a confident
+   * `product_inquiry`, and reading a parse failure as a request for a human
+   * would put shoppers in the queue because a model call hiccuped.
+   */
+  private wantsHuman(
+    intent: { intent?: string | null; confidence?: number | null; fallback?: boolean },
+    text: string,
+  ): boolean {
+    if (AGENT_REQUEST_PHRASES.test(text)) return true;
+    if (intent.fallback || intent.intent !== 'agent_request') return false;
+    const confidence = intent.confidence ?? 0;
+    if (confidence >= AGENT_REQUEST_CONFIDENCE) return true;
+    // Kept visible so the threshold can be judged on real traffic rather than
+    // guessed at again (PLN-260813 P3).
+    this.logger.log(
+      `agent_request below threshold (${confidence} < ${AGENT_REQUEST_CONFIDENCE}) — not handing off`,
+    );
+    return false;
+  }
+
   async handoff(
     conversationId: number,
     session: Session,

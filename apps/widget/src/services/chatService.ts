@@ -34,6 +34,19 @@ export function endChat(
   return apiClient.post('/chat/end', { session_token: sessionToken });
 }
 
+/** Star rating for a finished conversation (PLN-260810 P3). */
+export function rateChat(
+  sessionToken: string,
+  conversationId: string,
+  rating: number,
+): Promise<{ rating: number }> {
+  return apiClient.post('/chat/csat', {
+    session_token: sessionToken,
+    conversation_id: conversationId,
+    rating,
+  });
+}
+
 export function escalate(sessionToken: string, conversationId: string): Promise<unknown> {
   return apiClient.post('/chat/escalate', {
     session_token: sessionToken,

@@ -7,7 +7,7 @@ import { PASSWORD_BLOCKLIST } from './password-blocklist';
  * this mirror only improves UX. Source of truth:
  * apps/api/src/global/util/password-policy.util.ts
  */
-export const PASSWORD_MIN_LENGTH = 12;
+export const PASSWORD_MIN_LENGTH = 10;
 export const PASSWORD_MIN_CHAR_CLASSES = 3;
 
 /** Error code the API returns when a new password violates the policy. */

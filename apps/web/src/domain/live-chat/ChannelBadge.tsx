@@ -42,7 +42,7 @@ export const RECEIVE_ONLY_CHANNELS = new Set(['sms']);
  * differently from the widget, and an SMS thread cannot be replied to at all.
  */
 export function ChannelBadge({ channel }: { channel?: string | null }) {
-  const { t } = useTranslation('liveChat');
+  const { t } = useTranslation('livechat');
   const key = (channel || 'widget').toLowerCase();
   const receiveOnly = RECEIVE_ONLY_CHANNELS.has(key);
 

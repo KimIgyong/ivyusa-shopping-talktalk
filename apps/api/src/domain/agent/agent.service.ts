@@ -25,15 +25,26 @@ import {
 } from '../customer/customer.service';
 import { AiGatewayService } from '../../infrastructure/external/ai/ai-gateway.service';
 import { AuditService } from '../audit/audit.service';
+import { TenantAiConfig } from '../ai-engine/entity/tenant-ai-config.entity';
 import { EventBusService, EVENTS, MailerService } from '../../infrastructure/infrastructure.module';
 import { RedisService } from '../../infrastructure/cache/redis.service';
 import { SessionService, sessionCacheKey } from '../session/session.service';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
 import { UpsertProfileRequest } from './dto/request/agent.request';
+import { ChannelThread } from '../messenger/entity/channel-thread.entity';
+import { MessengerChannel } from '../messenger/entity/messenger-channel.entity';
+import { ReplyDraft } from '../chat/entity/reply-draft.entity';
+import {
+  AUTO_REPLY_MODE,
+  isAutoReplyMode,
+  resolveAutoReply,
+} from '../messenger/auto-reply.util';
 
 /** Transcript page size for the console (PLN-260807 D2). */
 const MESSAGE_PAGE_SIZE = 30;
+/** Operator alias length — matches sessions.alias (PLN-260812). */
+export const SESSION_ALIAS_MAX = 60;
 /** Messages the briefing summarises — the tail is what an agent needs oriented. */
 const BRIEFING_WINDOW = 50;
 
@@ -42,6 +53,19 @@ const DUPLICATE_REPLY_WINDOW_MS = 10_000;
 
 /** How long a generated briefing is reused for the same newest message. */
 const BRIEFING_CACHE_TTL_SEC = 900;
+
+/**
+ * Built-in wording when an agent hands the thread back to the AI, used unless
+ * the tenant set `handoffConfig.handbackNotice` (PLN-260810 S1 / D1).
+ *
+ * The customer is told, deliberately. Switching back in silence reads as the
+ * person who was just talking to them walking off mid-sentence.
+ */
+const DEFAULT_HANDBACK_NOTICE: Record<string, string> = {
+  EN: "Our agent has finished looking into this, so the AI assistant will take it from here. Just ask if you need a person again.",
+  ES: 'Nuestro agente ha terminado de revisarlo, así que el asistente de IA continuará desde aquí. Solo dilo si necesitas hablar con una persona de nuevo.',
+  KO: '상담사 확인이 끝나 이후 문의는 AI 상담원이 도와드립니다. 다시 상담사 연결이 필요하시면 말씀해 주세요.',
+};
 
 /** Localized generic copy for the agent-reply push (session.language EN/ES/KO). */
 const AGENT_REPLY_COPY = {
@@ -101,6 +125,16 @@ export class AgentService {
     // Appended last so positional test doubles stay valid; all uses `?.`-guarded.
     private readonly answerReuse?: AnswerReuseService,
     private readonly issueService?: IssueService,
+    @InjectRepository(TenantAiConfig)
+    private readonly aiConfigRepo?: Repository<TenantAiConfig>,
+    // Entity-only reads: the console shows whether the AI is answering a
+    // channel thread, which needs the channel's default (PLN-260812 S4).
+    @InjectRepository(ChannelThread)
+    private readonly threadRepo?: Repository<ChannelThread>,
+    @InjectRepository(MessengerChannel)
+    private readonly channelRepo?: Repository<MessengerChannel>,
+    @InjectRepository(ReplyDraft)
+    private readonly draftRepo?: Repository<ReplyDraft>,
   ) {}
 
   /**
@@ -199,6 +233,12 @@ export class AgentService {
       conversation: Conversation;
       lastMessage: Message | null;
       contact: { name: string | null; email: string | null };
+      /** Operator-set session name (PLN-260812); null when unset. */
+      alias: string | null;
+      /** Session auto-reply choice: inherit | on | off. */
+      autoReplyMode: string;
+      /** That choice resolved against the channel default. */
+      autoReplyEffective: boolean;
     }>;
     total: number;
   }> {
@@ -259,12 +299,220 @@ export class AgentService {
     const contactByConv = await this.contactsByConversation(conversations);
     // Batched last-message lookup (PERF-7) — one query instead of one per row.
     const lastByConv = await this.lastMessagesByConversation(conversations.map((c) => c.id));
-    const items = conversations.map((conversation) => ({
-      conversation,
-      lastMessage: lastByConv.get(String(conversation.id)) ?? null,
-      contact: contactByConv.get(String(conversation.id)) ?? { name: null, email: null },
-    }));
+    // One query for the whole page, same reason (PLN-260812).
+    const stateBySession = await this.sessionStates(conversations.map((c) => c.sessionId));
+    const channelDefaults = await this.channelDefaults(conversations.map((c) => c.id));
+    const items = conversations.map((conversation) => {
+      const state = stateBySession.get(String(conversation.sessionId));
+      return {
+        conversation,
+        lastMessage: lastByConv.get(String(conversation.id)) ?? null,
+        contact: contactByConv.get(String(conversation.id)) ?? { name: null, email: null },
+        alias: state?.alias ?? null,
+        autoReplyMode: state?.autoReplyMode ?? AUTO_REPLY_MODE.INHERIT,
+        autoReplyEffective: resolveAutoReply(
+          channelDefaults.get(String(conversation.id)) ?? null,
+          state?.autoReplyMode,
+        ),
+      };
+    });
     return { items, total };
+  }
+
+  /**
+   * Set this session's auto-reply choice (PLN-260812 FR-2).
+   *
+   * Only affects messages received from now on — answering a question the
+   * shopper asked half an hour ago is worse than not answering it, so nothing
+   * is replayed. The console says as much next to the control.
+   */
+  async setSessionAutoReply(
+    conversationId: number,
+    tenantId: number,
+    actorUserId: number,
+    mode: string,
+  ): Promise<{ sessionId: string; autoReplyMode: string; autoReplyEffective: boolean }> {
+    if (!isAutoReplyMode(mode)) {
+      throw new BusinessException(ERROR_CODE.VALIDATION_FAILED, HttpStatus.BAD_REQUEST);
+    }
+    const conversation = await this.requireConversation(conversationId, tenantId);
+    await this.sessionRepo.update({ id: conversation.sessionId }, { autoReplyMode: mode });
+
+    const session = await this.sessionRepo.findOne({
+      where: { id: conversation.sessionId },
+      select: { id: true, sessionToken: true },
+    });
+    if (session?.sessionToken) await this.redis.del(sessionCacheKey(session.sessionToken));
+
+    await this.auditAgentAction(
+      actorUserId,
+      tenantId,
+      'agent.session.auto_reply',
+      `session:${conversation.sessionId}`,
+      { conversationId: String(conversationId), mode },
+    );
+
+    const defaults = await this.channelDefaults([conversationId]);
+    return {
+      sessionId: String(conversation.sessionId),
+      autoReplyMode: mode,
+      autoReplyEffective: resolveAutoReply(defaults.get(String(conversationId)) ?? null, mode),
+    };
+  }
+
+  /** The AI answer waiting for approval on this conversation, if any. */
+  async pendingDraft(conversationId: number, tenantId: number): Promise<ReplyDraft | null> {
+    if (!this.draftRepo) return null;
+    return this.draftRepo.findOne({
+      where: { conversationId, tenantId, status: 'pending' },
+      order: { id: 'DESC' },
+    });
+  }
+
+  /**
+   * Send the pending draft (optionally edited) as the agent's own reply.
+   *
+   * Deliberately routed through `sendMessage`: moderation, duplicate
+   * suppression and the channel outbox already live there, and a second
+   * delivery path would be a second set of those rules to keep in step.
+   */
+  async approveDraft(
+    conversationId: number,
+    tenantId: number,
+    agentId: number,
+    body?: string,
+  ): Promise<{ approved: boolean }> {
+    const draft = await this.pendingDraft(conversationId, tenantId);
+    if (!draft) throw new BusinessException(ERROR_CODE.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND);
+
+    const text = (body ?? draft.body).trim();
+    if (!text) throw new BusinessException(ERROR_CODE.VALIDATION_FAILED, HttpStatus.BAD_REQUEST);
+
+    await this.sendMessage(conversationId, agentId, tenantId, text);
+    await this.draftRepo!.update(
+      { id: draft.id },
+      { status: 'sent', resolvedBy: agentId, resolvedAt: new Date() },
+    );
+    await this.auditAgentAction(agentId, tenantId, 'agent.draft.approve', `conversation:${conversationId}`, {
+      edited: body != null && body.trim() !== draft.body,
+    });
+    return { approved: true };
+  }
+
+  /** Drop the pending draft without sending anything. */
+  async discardDraft(
+    conversationId: number,
+    tenantId: number,
+    agentId: number,
+  ): Promise<{ discarded: boolean }> {
+    const draft = await this.pendingDraft(conversationId, tenantId);
+    if (!draft) throw new BusinessException(ERROR_CODE.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND);
+    await this.draftRepo!.update(
+      { id: draft.id },
+      { status: 'discarded', resolvedBy: agentId, resolvedAt: new Date() },
+    );
+    await this.auditAgentAction(agentId, tenantId, 'agent.draft.discard', `conversation:${conversationId}`);
+    return { discarded: true };
+  }
+
+  /**
+   * Alias + auto-reply state for one conversation (console header).
+   *
+   * The header showed neither before: an alias set from the queue row did not
+   * appear above the transcript, and nothing said whether the AI was answering.
+   */
+  async sessionStateFor(
+    conversationId: number,
+    sessionId: number,
+  ): Promise<{ alias: string | null; autoReplyMode: string; autoReplyEffective: boolean }> {
+    const state = (await this.sessionStates([sessionId])).get(String(sessionId));
+    const mode = state?.autoReplyMode ?? AUTO_REPLY_MODE.INHERIT;
+    const defaults = await this.channelDefaults([conversationId]);
+    return {
+      alias: state?.alias ?? null,
+      autoReplyMode: mode,
+      autoReplyEffective: resolveAutoReply(defaults.get(String(conversationId)) ?? null, mode),
+    };
+  }
+
+  /** session id → alias + auto-reply mode, for a whole page in one query. */
+  private async sessionStates(
+    sessionIds: number[],
+  ): Promise<Map<string, { alias: string | null; autoReplyMode: string }>> {
+    if (sessionIds.length === 0) return new Map();
+    const rows = await this.sessionRepo.find({
+      where: { id: In(sessionIds) },
+      select: { id: true, alias: true, autoReplyMode: true },
+    });
+    return new Map(
+      rows.map((s) => [
+        String(s.id),
+        { alias: s.alias ?? null, autoReplyMode: s.autoReplyMode || AUTO_REPLY_MODE.INHERIT },
+      ]),
+    );
+  }
+
+  /**
+   * conversation id → its channel's auto-reply default, for the whole page.
+   *
+   * Only messenger-backed conversations have one; a widget thread answers by
+   * default, which `resolveAutoReply` expresses as a null default.
+   */
+  private async channelDefaults(conversationIds: number[]): Promise<Map<string, boolean>> {
+    const defaults = new Map<string, boolean>();
+    if (conversationIds.length === 0 || !this.threadRepo || !this.channelRepo) return defaults;
+
+    const threads = await this.threadRepo.find({
+      where: { conversationId: In(conversationIds) },
+      select: { conversationId: true, channelId: true },
+    });
+    if (threads.length === 0) return defaults;
+
+    const channels = await this.channelRepo.find({
+      where: { id: In([...new Set(threads.map((t) => Number(t.channelId)))]) },
+      select: { id: true, autoReply: true },
+    });
+    const byChannel = new Map(channels.map((c) => [String(c.id), c.autoReply === 1]));
+    for (const thread of threads) {
+      const value = byChannel.get(String(thread.channelId));
+      if (value !== undefined) defaults.set(String(thread.conversationId), value);
+    }
+    return defaults;
+  }
+
+  /**
+   * Set (or clear) the operator's name for the session behind a conversation.
+   *
+   * Keyed by conversation because that is all the console holds — its "session"
+   * rows are conversation ids. Blank clears, restoring the derived name.
+   */
+  async setSessionAlias(
+    conversationId: number,
+    tenantId: number,
+    actorUserId: number,
+    alias: string | null,
+  ): Promise<{ sessionId: string; alias: string | null }> {
+    const conversation = await this.requireConversation(conversationId, tenantId);
+    const clean = (alias ?? '').trim().slice(0, SESSION_ALIAS_MAX);
+    const value = clean.length > 0 ? clean : null;
+
+    await this.sessionRepo.update({ id: conversation.sessionId }, { alias: value });
+    // The token→session cache would otherwise serve the old alias for 30s.
+    const session = await this.sessionRepo.findOne({
+      where: { id: conversation.sessionId },
+      select: { id: true, sessionToken: true },
+    });
+    if (session?.sessionToken) await this.redis.del(sessionCacheKey(session.sessionToken));
+
+    // An alias can be a real person's name — record THAT it changed, never what to.
+    await this.auditAgentAction(
+      actorUserId,
+      tenantId,
+      'agent.session.alias',
+      `session:${conversation.sessionId}`,
+      { conversationId: String(conversationId), set: value != null },
+    );
+    return { sessionId: String(conversation.sessionId), alias: value };
   }
 
   /** conversation id → its newest message, in a single grouped query (PERF-7). */
@@ -642,6 +890,85 @@ export class AgentService {
   }
 
   /** End a conversation and release the active assignment. */
+  /**
+   * Hand the thread back to the AI (PLN-260810 S1).
+   *
+   * Until now `agent` was a one-way door: the bot goes silent the moment
+   * somebody takes over (chat.service, FIX-260806 A1) and the only exit was
+   * ending the conversation. Measured on staging before this shipped — all
+   * seven `agent` threads had been idle for over a day and three of them held
+   * ten customer messages that nobody and nothing had answered.
+   *
+   * Clearing `agent_id` is not cosmetic. The silence rule also fires on
+   * `waiting && agentId != null`, so a thread handed back with the id still on
+   * it would go mute again the next time it queued for a person.
+   */
+  async handBack(
+    conversationId: number,
+    tenantId: number,
+    actorUserId: number,
+  ): Promise<Conversation> {
+    const conversation = await this.requireConversation(conversationId, tenantId);
+    if (conversation.status !== CONVERSATION_STATUS.AGENT) {
+      // 4xx is not server-logged by default; say why the button did nothing.
+      this.logger.warn(
+        `handback rejected: conversation=${conversationId} status='${conversation.status}' (expected 'agent')`,
+      );
+      throw new BusinessException(ERROR_CODE.CONVERSATION_NOT_WITH_AGENT, HttpStatus.CONFLICT);
+    }
+
+    await this.assignmentRepo.update(
+      { conversationId, status: 'active' },
+      { status: 'released', releasedAt: new Date() },
+    );
+    await this.convRepo.update(
+      { id: conversationId },
+      { status: CONVERSATION_STATUS.AI_ACTIVE, agentId: null },
+    );
+
+    const session = await this.sessionRepo.findOne({ where: { id: conversation.sessionId } });
+    const language = session?.language ?? 'EN';
+    await this.msgRepo.save(
+      this.msgRepo.create({
+        tenantId,
+        conversationId,
+        senderType: SENDER_TYPE.SYSTEM,
+        body: await this.handbackNotice(tenantId, language),
+        lang: language,
+        retrievalTrace: null,
+      }),
+    );
+
+    await this.audit
+      .write({
+        tenantId,
+        actorType: 'user',
+        actorId: actorUserId,
+        action: 'agent.handed_back',
+        target: `conversation:${conversationId}`,
+        metadata: { previousAgentId: conversation.agentId ?? null },
+      })
+      .catch((e) => this.logger.warn(`handback audit failed: ${(e as Error).message}`));
+
+    this.logger.log(`conversation ${conversationId} handed back to AI by user ${actorUserId}`);
+    return this.convRepo.findOneOrFail({ where: { id: conversationId } });
+  }
+
+  /** Tenant wording for the handback, falling back to the built-in text. */
+  private async handbackNotice(tenantId: number, language: string): Promise<string> {
+    const lang = (language || 'EN').toUpperCase();
+    const fallback = DEFAULT_HANDBACK_NOTICE[lang] ?? DEFAULT_HANDBACK_NOTICE.EN;
+    try {
+      const config = await this.aiConfigRepo?.findOne({ where: { tenantId } });
+      const custom = config?.handoffConfig?.handbackNotice as Record<string, string> | undefined;
+      return custom?.[lang]?.trim() || custom?.EN?.trim() || fallback;
+    } catch (e) {
+      // Wording is not worth failing a state transition over.
+      this.logger.warn(`handback notice lookup failed: ${(e as Error).message}`);
+      return fallback;
+    }
+  }
+
   async end(conversationId: number, tenantId: number): Promise<Conversation> {
     await this.requireConversation(conversationId, tenantId);
     await this.convRepo.update(

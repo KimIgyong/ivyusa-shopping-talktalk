@@ -79,9 +79,9 @@ services:
     volumes:
       - ivy_mysql_staging_data:/var/lib/mysql
       # Staging runs DB_SYNCHRONIZE=false (since 2026-07-31) — schema comes from
-      # sql/01-schema.sql + migration_*.sql applied MANUALLY before each deploy
+      # docker/init-sql/01-schema.sql + sql/migration_*.sql applied MANUALLY before each deploy
       # (kit 04 §3). SEED_ON_BOOT stays false; no init-sql mount.
-      # sql/01-schema.sql remains the manual migration reference.
+      # docker/init-sql/01-schema.sql remains the DDL reference.
     healthcheck:
       test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost']
       interval: 10s

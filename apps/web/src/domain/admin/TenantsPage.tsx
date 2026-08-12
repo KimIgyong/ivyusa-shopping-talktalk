@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { UserCog } from 'lucide-react';
+import { LayoutList, UserCog } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { PageHeader } from '@/components/PageHeader';
 import { Button } from '@/components/Button';
@@ -12,6 +12,7 @@ import { Pagination } from '@/components/Pagination';
 import { Modal } from '@/components/Modal';
 import { FormRow, Input, Select } from '@/components/Field';
 import { useTenants, useCreateTenant, useSetTenantStatus } from './admin.hooks';
+import { TenantMenusModal } from './TenantMenusModal';
 import type { Tenant } from './admin.service';
 
 const PAGE_SIZE = 20;
@@ -27,6 +28,8 @@ export function TenantsPage() {
   const [slug, setSlug] = useState('');
   const [shopDomain, setShopDomain] = useState('');
   const [plan, setPlan] = useState(PLANS[0]);
+  // Tenant whose provided-menu modal is open (PLN-260812 S2).
+  const [menusFor, setMenusFor] = useState<Tenant | null>(null);
 
   const { data, isLoading, error } = useTenants({ page, pageSize: PAGE_SIZE });
   const createTenant = useCreateTenant();
@@ -73,6 +76,10 @@ export function TenantsPage() {
       header: '',
       render: (r) => (
         <div className="flex justify-end gap-2">
+          <Button variant="secondary" size="sm" onClick={() => setMenusFor(r)}>
+            <LayoutList className="mr-1 h-3.5 w-3.5" />
+            {t('manageMenus')}
+          </Button>
           <Button
             variant="secondary"
             size="sm"
@@ -126,6 +133,15 @@ export function TenantsPage() {
         total={data?.total ?? 0}
         onPageChange={setPage}
       />
+
+      {menusFor && (
+        <TenantMenusModal
+          open
+          tenantUuid={menusFor.uuid}
+          tenantName={menusFor.name}
+          onClose={() => setMenusFor(null)}
+        />
+      )}
 
       <Modal
         open={open}

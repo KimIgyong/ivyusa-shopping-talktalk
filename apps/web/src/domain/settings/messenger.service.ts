@@ -64,6 +64,8 @@ export interface MessengerChannel {
   credentialSet: boolean;
   config: Record<string, unknown>;
   autoReply: boolean;
+  /** off | approve | auto — the channel default for new messages. */
+  replyMode?: string;
   consentMode: 'notice' | 'auto' | string;
   active: boolean;
   status: 'connected' | 'error' | 'unknown' | string;
@@ -86,11 +88,19 @@ export interface UpsertChannelBody {
   secret?: Record<string, string>;
   config?: Record<string, unknown>;
   auto_reply?: boolean;
+  reply_mode?: string;
   consent_mode?: string;
   active?: boolean;
 }
 
 export type UpdateChannelBody = Omit<UpsertChannelBody, 'provider' | 'label'> & { label?: string };
+
+export interface ChannelSyncResult {
+  fetched: number;
+  error?: string;
+  /** True when the channel is disabled: this fetch worked, but nothing recurs. */
+  inactive?: boolean;
+}
 
 export interface ChannelTestResult {
   ok: boolean;
@@ -105,6 +115,7 @@ export const messengerService = {
     apiPatch<MessengerChannel>(`/messenger/channels/${id}`, body),
   remove: (id: string) => apiDelete<{ deleted: boolean }>(`/messenger/channels/${id}`),
   test: (id: string) => apiPost<ChannelTestResult>(`/messenger/channels/${id}/test`),
+  sync: (id: string) => apiPost<ChannelSyncResult>(`/messenger/channels/${id}/sync`),
   registerWebhook: (id: string) =>
     apiPost<{ webhookUrl: string }>(`/messenger/channels/${id}/register-webhook`),
 };

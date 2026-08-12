@@ -1,4 +1,14 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Post, Put, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
+  Put,
+  Query,
+} from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CAPABILITY, Principal } from '@ivy/types';
 import { normalizePage, buildPagination } from '@ivy/common';
@@ -14,6 +24,9 @@ import {
   ConversationQuery,
   ListSessionsQuery,
   ListStatsQuery,
+  ApproveDraftRequest,
+  SetAutoReplyRequest,
+  SetSessionAliasRequest,
   UpsertProfileRequest,
 } from './dto/request/agent.request';
 import {
@@ -76,11 +89,59 @@ export class AgentConsoleController {
       query.channel,
     );
     return new Paginated(
-      items.map(({ conversation, lastMessage, contact }) =>
-        toSessionResponse(conversation, lastMessage, contact),
+      items.map(({ conversation, lastMessage, contact, alias, autoReplyMode, autoReplyEffective }) =>
+        toSessionResponse(conversation, lastMessage, contact, alias, {
+          mode: autoReplyMode,
+          effective: autoReplyEffective,
+        }),
       ),
       buildPagination(page, size, total),
     );
+  }
+
+  @Patch('conversations/:id/alias')
+  @RequireCapability(CAPABILITY.CONVERSATION_HANDLE)
+  @ApiOperation({ summary: "Set or clear the operator's name for this session" })
+  async setAlias(
+    @CurrentUser() user: Principal,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: SetSessionAliasRequest,
+  ) {
+    return this.agentService.setSessionAlias(
+      id,
+      tenantOf(user),
+      actorIdOf(user),
+      body.alias ?? null,
+    );
+  }
+
+  @Patch('conversations/:id/auto-reply')
+  @RequireCapability(CAPABILITY.CONVERSATION_HANDLE)
+  @ApiOperation({ summary: 'Set whether the AI answers this session (inherit/on/off)' })
+  async setAutoReply(
+    @CurrentUser() user: Principal,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: SetAutoReplyRequest,
+  ) {
+    return this.agentService.setSessionAutoReply(id, tenantOf(user), actorIdOf(user), body.mode);
+  }
+
+  @Post('conversations/:id/draft/approve')
+  @RequireCapability(CAPABILITY.CONVERSATION_HANDLE)
+  @ApiOperation({ summary: 'Send the pending AI draft as the agent reply (optionally edited)' })
+  async approveDraft(
+    @CurrentUser() user: Principal,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: ApproveDraftRequest,
+  ) {
+    return this.agentService.approveDraft(id, tenantOf(user), actorIdOf(user), body.body);
+  }
+
+  @Post('conversations/:id/draft/discard')
+  @RequireCapability(CAPABILITY.CONVERSATION_HANDLE)
+  @ApiOperation({ summary: 'Drop the pending AI draft without sending it' })
+  async discardDraft(@CurrentUser() user: Principal, @Param('id', ParseIntPipe) id: number) {
+    return this.agentService.discardDraft(id, tenantOf(user), actorIdOf(user));
   }
 
   @Get('customers/search')
@@ -111,8 +172,21 @@ export class AgentConsoleController {
     const names = await this.agentService.resolveSenderNames(messages);
     const customer = await this.agentService.customerContext(id, tenantId);
     const conversation = await this.agentService.findConversation(id, tenantId);
+    const sessionState = await this.agentService.sessionStateFor(id, conversation.sessionId);
+    const draft = await this.agentService.pendingDraft(id, tenantId);
     return {
       conversationId: id,
+      // Approval mode: the agent sends this, so it travels with the transcript.
+      pendingDraft: draft
+        ? {
+            id: String(draft.id),
+            body: draft.body,
+            confidence: draft.confidence,
+            createdAt: draft.createdAt,
+          }
+        : null,
+      sessionId: String(conversation.sessionId),
+      ...sessionState,
       // Carried on the detail as well as the list row: a deep link from the
       // escalation alarm opens a conversation the filtered list may not hold,
       // and the composer needs the channel to know whether a reply is possible.
@@ -212,6 +286,14 @@ export class AgentConsoleController {
     );
     const senderName = await this.agentService.agentName(agentId);
     return toMessageResponse(saved, senderName);
+  }
+
+  @Post('conversations/:id/handback')
+  @RequireCapability(CAPABILITY.CONVERSATION_HANDLE)
+  @ApiOperation({ summary: 'Hand the conversation back to the AI without ending it' })
+  async handBack(@CurrentUser() user: Principal, @Param('id', ParseIntPipe) id: number) {
+    const conversation = await this.agentService.handBack(id, tenantOf(user), actorIdOf(user));
+    return { id: conversation.id, status: conversation.status };
   }
 
   @Post('conversations/:id/end')

@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { UserCircle } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import { useAuthStore } from '@/store/auth-store';
-import { makeCan } from '@/lib/rbac';
+import { useMenuAccess } from '@/lib/use-menu-access';
 import { ADMIN_NAV, TENANT_NAV, type NavItem } from '@/layouts/nav-config';
 
 /**
@@ -23,10 +23,10 @@ export function MenuPage() {
   const tenantSlug = useAuthStore((s) => s.tenantSlug);
   const isAdmin = principal?.actorType === 'admin';
 
-  const can = makeCan(principal);
+  const { canSeeMenu } = useMenuAccess();
   const items: NavItem[] = isAdmin
     ? ADMIN_NAV
-    : TENANT_NAV.filter((i) => !i.capability || can(i.capability));
+    : TENANT_NAV.filter((i) => canSeeMenu(i.code, i.capability));
 
   // My Page lives at the bottom of the sidebar, away from the nav list, which
   // makes it easy to miss entirely. It belongs in a screen called "all menus".

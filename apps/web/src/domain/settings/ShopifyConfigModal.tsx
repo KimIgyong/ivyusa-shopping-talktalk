@@ -4,6 +4,7 @@ import { Badge } from '@/components/Badge';
 import { Button } from '@/components/Button';
 import { Modal } from '@/components/Modal';
 import { FormRow, Input } from '@/components/Field';
+import { isShopifyDomain } from './SettingsPage';
 import {
   useRegisterShopifyWebhooks,
   useSaveShopify,
@@ -73,6 +74,14 @@ export function ShopifyConfigModal({ open, onClose }: { open: boolean; onClose: 
     >
       <p className="mb-4 text-sm text-gray-500">{t('shopify.subtitle')}</p>
 
+      {shopDomain.trim() && !isShopifyDomain(shopDomain) && (
+        // The field doubles as the tenant's store domain for any platform, so a
+        // Cafe24 mall legitimately lives here — say so instead of letting it
+        // look like a misconfigured Shopify store.
+        <p className="mb-3 rounded-lg bg-amber-50 p-2 text-xs text-amber-800">
+          {t('shopify.nonShopifyDomain')}
+        </p>
+      )}
       <FormRow label={t('shopify.shopDomain')}>
         <Input
           value={shopDomain}
