@@ -30,6 +30,7 @@ import { CustomerService } from '../customer/customer.service';
 import { HandoffRouterService } from '../ai-engine/handoff-router.service';
 import { EventBusService, EVENTS, RedisService } from '../../infrastructure/infrastructure.module';
 import { scrubPii } from '../../global/util/pii-scrub.util';
+import { detectLanguage } from '../../global/util/detect-language.util';
 
 const ESCALATION_CONFIDENCE = 0.45;
 
@@ -461,6 +462,11 @@ export class ChatService {
       eventType: 'chat_message',
     });
 
+    // Which language is this shopper actually writing in? Runs before any reply
+    // is produced so the switch takes effect on the turn that earned it, not
+    // the next one (PLN-260813 P2).
+    await this.syncSessionLanguage(session, conversation.id, text);
+
     // The customer answered the idle check, so the thread is alive again. This
     // must happen BEFORE the agent-mode return below: the threads most likely
     // to have been asked are exactly the ones a human owns, and clearing the
@@ -851,6 +857,44 @@ export class ChatService {
       streak += 1;
     }
     return streak;
+  }
+
+  /**
+   * Follow the shopper's language (PLN-260813 P2, D1/D2/D3/D5).
+   *
+   * The AI already matches whatever language a message is written in, turn by
+   * turn; system copy reads one fixed `session.language` chosen when the widget
+   * opened. That gap is the whole bug — a Korean conversation carrying English
+   * off-hours notices (REQ-260813).
+   *
+   * Two consecutive turns in the same language are required. One is not enough:
+   * a single "thanks" mid-conversation would otherwise turn every later notice
+   * English and leave it there. Short messages detect as null and so break the
+   * agreement rather than driving it — which is the intent, not a side effect.
+   */
+  private async syncSessionLanguage(
+    session: Session,
+    conversationId: number,
+    text: string,
+  ): Promise<void> {
+    // The shopper chose this language by hand. Detection does not get a vote.
+    if (session.languageLocked) return;
+
+    const detected = detectLanguage(text);
+    if (!detected || detected === session.language) return;
+
+    // The current turn is already persisted, so the previous customer turn is
+    // the second row back.
+    const recent = await this.msgRepo.find({
+      where: { conversationId, senderType: SENDER_TYPE.USER },
+      order: { id: 'DESC' },
+      take: 2,
+      select: ['id', 'body'],
+    });
+    const previous = recent[1];
+    if (!previous || detectLanguage(previous.body) !== detected) return;
+
+    await this.sessionService.applyDetectedLanguage(session, detected);
   }
 
   /**
