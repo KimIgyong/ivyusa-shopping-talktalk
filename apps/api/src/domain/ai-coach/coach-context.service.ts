@@ -93,12 +93,20 @@ export class CoachContextService {
       ? cfg.rules.map((r, i) => `${i + 1}. ${r}`).join('\n')
       : '(none)';
     // Actions, not labels: a scenario_override is keyed by action, so listing
-    // only the human label would leave the model guessing the key.
+    // only the human label would leave the model guessing the key. The current
+    // text comes too — without it the model rewrites a reply from scratch when
+    // it was asked to adjust one, losing wording the tenant already settled on.
     const scenarios = cfg.scenarioButtons
       .filter((b) => b.enabled)
       .map((b) => {
-        const edited = cfg.scenarioOverrides?.[b.action]?.reply ? ' [has a tenant edit]' : '';
-        return `- ${b.action} ("${b.label}")${edited}`;
+        const reply = cfg.scenarioOverrides?.[b.action]?.reply;
+        if (!reply) {
+          return `- ${b.action} ("${b.label}") — built-in script (its text is not visible here)`;
+        }
+        const current = Object.entries(reply)
+          .map(([lang, text]) => `    ${lang}: ${text}`)
+          .join('\n');
+        return `- ${b.action} ("${b.label}") — current tenant edit:\n${current}`;
       })
       .join('\n');
     return [

@@ -285,18 +285,42 @@ export class CoachProposalService {
         id: Not(applied.id),
       },
     });
-    const isPersona = applied.type === PROPOSAL_TYPE.PERSONA_PATCH;
-    const target = applied.payload.targetRule;
-    const stale = peers.filter((p) =>
-      isPersona
-        ? p.type === PROPOSAL_TYPE.PERSONA_PATCH
-        : !!target && p.payload?.targetRule === target,
-    );
+    const stale = peers.filter((p) => this.sharesTargetWith(applied, p));
     if (!stale.length) return;
     await this.proposalRepo.update(
       stale.map((p) => p.id),
       { status: PROPOSAL_STATUS.SUPERSEDED },
     );
+  }
+
+  /**
+   * Whether a pending proposal aims at the same thing one just applied.
+   *
+   * Each type is addressed differently, and a type missing from here silently
+   * stops superseding: two pending edits to the same target both stay
+   * applicable, and whichever is approved last quietly wins.
+   */
+  private sharesTargetWith(applied: CoachingProposal, other: CoachingProposal): boolean {
+    if (applied.type !== other.type) return false;
+    switch (applied.type) {
+      case PROPOSAL_TYPE.PERSONA_PATCH:
+        return true; // one persona, so any other patch is against a stale copy
+      case PROPOSAL_TYPE.RULE_EDIT:
+      case PROPOSAL_TYPE.RULE_REMOVE:
+        return !!applied.payload.targetRule && other.payload?.targetRule === applied.payload.targetRule;
+      case PROPOSAL_TYPE.SCENARIO_OVERRIDE:
+        return (
+          !!applied.payload.scenarioAction &&
+          other.payload?.scenarioAction === applied.payload.scenarioAction
+        );
+      case PROPOSAL_TYPE.KB_UPSERT:
+        // Only revisions share a target. Two "create a new document" proposals
+        // are independent — neither invalidates the other.
+        return !!applied.payload.docId && other.payload?.docId === applied.payload.docId;
+      default:
+        // rule_add appends; two additions do not conflict.
+        return false;
+    }
   }
 
   async reject(tenantId: number, userId: number, id: number): Promise<CoachingProposal> {
