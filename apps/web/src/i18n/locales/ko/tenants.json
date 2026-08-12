@@ -17,5 +17,27 @@
   "usersOf": "사용자 — {{name}}",
   "usersOfSubtitle": "이 테넌트의 직원 초대, 임시 비밀번호 발급, 접근 제어를 관리합니다.",
   "usersEmpty": "아직 이 테넌트에 사용자가 없습니다.",
-  "loginUrl": "로그인 페이지"
+  "loginUrl": "로그인 페이지",
+  "manageMenus": "제공 메뉴",
+  "menus": {
+    "title": "제공 메뉴 — {{name}}",
+    "menu": "메뉴",
+    "planDefault": "플랜 기본",
+    "thisTenant": "이 테넌트",
+    "result": "결과",
+    "provided": "제공",
+    "notProvided": "미제공",
+    "noPlan": "플랜 없음",
+    "planCount": "플랜 기본 제공 {{count}} / {{total}}",
+    "planHint": "‘플랜 따름’인 항목은 플랜이 바뀌면 함께 바뀝니다. 나머지는 고정됩니다.",
+    "exceptions": "플랜과 다른 예외 {{count}}건 (*)",
+    "issuesNote": "이슈 보드는 테넌트의 워크플로우 모드도 필요합니다. 제공만 해두면 안내 화면이 표시됩니다.",
+    "mode": {
+      "plan": "플랜 따름",
+      "on": "강제 제공",
+      "off": "차단"
+    },
+    "saved": "제공 메뉴를 저장했습니다",
+    "saveError": "제공 메뉴를 저장하지 못했습니다"
+  }
 }
