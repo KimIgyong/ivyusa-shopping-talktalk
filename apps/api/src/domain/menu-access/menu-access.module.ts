@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Global, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Tenant } from '../tenant/entity/tenant.entity';
 import { User } from '../user/entity/user.entity';
@@ -16,7 +16,11 @@ import { AdminTenantMenuController } from './admin-tenant-menu.controller';
  * Its own domain rather than a lodger in tenant/ or user/: both sides write to
  * it (platform admin provisions, tenant master delegates) and both would
  * otherwise have to import the other.
+ *
+ * Global because @RequireMenu's guard is applied across many domain modules
+ * (S4); the alternative is importing this module into every one of them.
  */
+@Global()
 @Module({
   imports: [
     TypeOrmModule.forFeature([TenantMenu, TenantRoleMenu, TenantUserMenu, Tenant, User]),

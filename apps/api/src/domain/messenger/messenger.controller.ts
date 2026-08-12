@@ -11,7 +11,7 @@ import {
 } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CAPABILITY, Principal } from '@ivy/types';
-import { RequireCapability } from '../../global/decorator/auth.decorator';
+import { RequireCapability, RequireMenu } from '../../global/decorator/auth.decorator';
 import { CurrentUser } from '../../global/decorator/current-user.decorator';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
@@ -27,6 +27,8 @@ import {
 /** Tenant console API for external messenger channels (PLN-260810 PR-M1). */
 @ApiTags('Messenger')
 @Controller('messenger/channels')
+// Screen gate (PLN-260812 S4): Messenger channels are configured from the settings screen.
+@RequireMenu('settings')
 export class MessengerController {
   constructor(
     private readonly messenger: MessengerService,

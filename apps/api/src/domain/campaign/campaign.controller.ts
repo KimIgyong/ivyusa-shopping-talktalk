@@ -15,7 +15,7 @@ import { buildPagination, normalizePage } from '@ivy/common';
 import { CampaignService } from './campaign.service';
 import { CreateCampaignRequest, UpdateCampaignRequest } from './dto/request/campaign.request';
 import { toCampaignResponse } from './campaign.mapper';
-import { RequireCapability } from '../../global/decorator/auth.decorator';
+import { RequireCapability, RequireMenu } from '../../global/decorator/auth.decorator';
 import { CurrentUser } from '../../global/decorator/current-user.decorator';
 import { Paginated } from '../../global/interceptor/transform.interceptor';
 import { BusinessException } from '../../global/exception/business.exception';
@@ -24,6 +24,8 @@ import { ERROR_CODE } from '../../global/constant/error-code.constant';
 /** Marketing campaign admin endpoints (FR-045). */
 @ApiTags('Campaign')
 @Controller('campaigns')
+// Screen gate (PLN-260812 S4).
+@RequireMenu('campaigns')
 export class CampaignController {
   constructor(private readonly campaignService: CampaignService) {}
 

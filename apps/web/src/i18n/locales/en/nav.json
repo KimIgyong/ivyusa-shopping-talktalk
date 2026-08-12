@@ -26,5 +26,10 @@
   "myPage": "My Page",
   "products": "Products",
   "allMenus": "All menus",
-  "issueBoard": "Issue board"
+  "issueBoard": "Issue board",
+  "blocked": {
+    "title": "You can't open this menu",
+    "description": "This screen isn't available for your account. Ask your workspace master if you need it.",
+    "goHome": "Go to dashboard"
+  }
 }
