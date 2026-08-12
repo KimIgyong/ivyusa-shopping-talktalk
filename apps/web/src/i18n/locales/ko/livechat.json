@@ -198,5 +198,6 @@
     "savedOn": "다음 메시지부터 이 세션에 AI가 답합니다.",
     "savedOff": "이 세션은 AI가 답하지 않습니다.",
     "saveError": "이 세션의 자동응답을 변경하지 못했습니다."
-  }
+  },
+  "kbProposeKnowledge": "확정 지식으로 제안"
 }

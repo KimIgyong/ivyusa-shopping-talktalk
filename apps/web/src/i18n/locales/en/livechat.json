@@ -198,5 +198,6 @@
     "savedOn": "The AI will answer this session from the next message.",
     "savedOff": "The AI will not answer this session.",
     "saveError": "Could not change auto-reply for this session."
-  }
+  },
+  "kbProposeKnowledge": "Propose as knowledge"
 }

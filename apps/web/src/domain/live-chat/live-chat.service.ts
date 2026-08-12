@@ -123,6 +123,9 @@ export const liveChatService = {
   /** Read-only knowledge lookup for chat handlers (PLN-260810 S2). */
   askKnowledge: (question: string, language: string) =>
     apiPost<AgentKnowledgeAnswer>('/agent/knowledge/ask', { question, language }),
+  /** Propose an answer for the knowledge base — awaits an owner's approval (S4). */
+  proposeAnswer: (body: { conversation_id?: number; question: string; answer: string }) =>
+    apiPost<{ id: string }>('/agent/knowledge/proposals', body),
   /** Return the thread to the AI without ending it (PLN-260810 S1). */
   handBack: (id: string) =>
     apiPost<{ id: string; status: string }>(`/agent/conversations/${id}/handback`, {}),

@@ -31,6 +31,7 @@ import {
   useConversation,
   useConversationActions,
   useAskKnowledge,
+  useProposeAnswer,
   useCustomerActions,
 } from './live-chat.hooks';
 import { KnowledgeCaptureModal } from './KnowledgeCaptureModal';
@@ -164,6 +165,7 @@ export function LiveChatPage() {
   // Knowledge lookup (PLN-260810 S2/S3). Answer lives in component state, not
   // in the conversation: it is the agent checking, not a customer turn.
   const askKnowledge = useAskKnowledge();
+  const proposeAnswer = useProposeAnswer();
   const [kbQuestion, setKbQuestion] = useState('');
   const lastCustomerMessage = [...(convo?.messages ?? [])]
     .reverse()
@@ -682,6 +684,22 @@ export function LiveChatPage() {
                       onClick={() => setDraft(askKnowledge.data!.answer)}
                     >
                       {t('kbEditThenSend')}
+                    </Button>
+                    {/* Anyone handling a chat may propose; only a knowledge
+                        owner can approve it (PLN-260810 D3). */}
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      disabled={proposeAnswer.isPending || !kbQuestion.trim()}
+                      onClick={() =>
+                        proposeAnswer.mutate({
+                          conversationId: selected ? Number(selected) : undefined,
+                          question: kbQuestion.trim(),
+                          answer: askKnowledge.data!.answer,
+                        })
+                      }
+                    >
+                      {t('kbProposeKnowledge')}
                     </Button>
                   </div>
                 )}
