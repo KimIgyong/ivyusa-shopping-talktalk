@@ -163,5 +163,25 @@
   "kbStale": "review overdue",
   "kbConflicted": "conflict",
   "kbSendToCustomer": "Send to customer",
-  "kbEditThenSend": "Edit then send"
+  "kbEditThenSend": "Edit then send",
+  "alias": {
+    "add": "Add a name",
+    "edit": "Edit name",
+    "placeholder": "e.g. Gangnam store owner",
+    "saved": "Session name saved.",
+    "cleared": "Session name cleared.",
+    "saveError": "Could not save the session name."
+  },
+  "preview": {
+    "title": "Issue #{{no}} preview",
+    "loading": "Loading conversation…",
+    "openSession": "Open the session",
+    "close": "Close"
+  },
+  "sender": {
+    "user": "Customer",
+    "ai": "AI",
+    "agent": "Agent",
+    "system": "System"
+  }
 }

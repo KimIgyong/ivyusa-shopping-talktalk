@@ -163,5 +163,25 @@
   "kbStale": "검토기한 경과",
   "kbConflicted": "충돌",
   "kbSendToCustomer": "고객에게 전달",
-  "kbEditThenSend": "편집 후 전달"
+  "kbEditThenSend": "편집 후 전달",
+  "alias": {
+    "add": "별칭 추가",
+    "edit": "별칭 수정",
+    "placeholder": "예: 강남점 사장님",
+    "saved": "세션 별칭을 저장했습니다.",
+    "cleared": "세션 별칭을 해제했습니다.",
+    "saveError": "세션 별칭을 저장하지 못했습니다."
+  },
+  "preview": {
+    "title": "이슈 #{{no}} 미리보기",
+    "loading": "대화 불러오는 중…",
+    "openSession": "관련 세션으로 이동",
+    "close": "닫기"
+  },
+  "sender": {
+    "user": "고객",
+    "ai": "AI",
+    "agent": "상담원",
+    "system": "시스템"
+  }
 }

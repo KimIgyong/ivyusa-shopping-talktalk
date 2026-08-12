@@ -1,8 +1,34 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { liveChatService } from './live-chat.service';
 import type { CustomerLead } from './live-chat.service';
 import { useTenantKey } from '@/lib/use-tenant-key';
 import { toast } from '@/store/toast-store';
+
+/**
+ * Set or clear the operator's name for a session (PLN-260812).
+ *
+ * Keyed by conversation because that is what a queue row holds; the server
+ * resolves the session. The row, the open conversation and the issue board all
+ * re-read after, so the new name appears everywhere it is shown.
+ */
+export function useSetSessionAlias() {
+  const { t } = useTranslation('livechat');
+  const qc = useQueryClient();
+  const tenantKey = useTenantKey();
+  return useMutation({
+    mutationFn: ({ id, alias }: { id: string; alias: string | null }) =>
+      liveChatService.setAlias(id, alias),
+    onSuccess: (_data, variables) => {
+      qc.invalidateQueries({ queryKey: ['agent', tenantKey, 'sessions'] });
+      qc.invalidateQueries({ queryKey: ['agent', tenantKey, 'conversation', variables.id] });
+      // The board prints the alias on its cards too.
+      qc.invalidateQueries({ queryKey: ['issue-board', tenantKey] });
+      toast.success(variables.alias ? t('alias.saved') : t('alias.cleared'));
+    },
+    onError: (e: Error) => toast.error(e.message || t('alias.saveError'), { sticky: true }),
+  });
+}
 
 export const useSessions = (q = '', status = 'all', channel = 'all') => {
   const tenantKey = useTenantKey();

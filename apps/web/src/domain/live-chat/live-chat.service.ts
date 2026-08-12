@@ -1,8 +1,12 @@
-import { apiGet, apiPost } from '@/lib/api-client';
+import { apiGet, apiPatch, apiPost } from '@/lib/api-client';
 
 /** Mirrors the API's toSessionResponse — no invented fields (they render as '—'). */
 export interface AgentSession {
   id: string;
+  /** Session behind the row (row ids are conversation ids). */
+  sessionId?: string;
+  /** Operator-set session name; shown ahead of the derived one. */
+  alias?: string | null;
   customerName?: string | null;
   /** Shown when the shopper left an address but no name (off-hours capture). */
   customerEmail?: string | null;
@@ -53,6 +57,8 @@ export interface CustomerContext {
 
 export interface ConversationDetail {
   conversationId?: number;
+  sessionId?: string;
+  alias?: string | null;
   status?: string;
   /** Origin surface — the composer is disabled on receive-only channels. */
   channel?: string | null;
@@ -86,6 +92,10 @@ export const liveChatService = {
       ...(q?.trim() ? { q: q.trim() } : {}),
       ...(status && status !== 'all' ? { status } : {}),
       ...(channel && channel !== 'all' ? { channel } : {}),
+    }),
+  setAlias: (id: string, alias: string | null) =>
+    apiPatch<{ sessionId: string; alias: string | null }>(`/agent/conversations/${id}/alias`, {
+      alias,
     }),
   conversation: (id: string, beforeId?: string) =>
     apiGet<ConversationDetail>(

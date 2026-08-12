@@ -163,5 +163,25 @@
   "kbStale": "revisión vencida",
   "kbConflicted": "conflicto",
   "kbSendToCustomer": "Enviar al cliente",
-  "kbEditThenSend": "Editar y enviar"
+  "kbEditThenSend": "Editar y enviar",
+  "alias": {
+    "add": "Añadir un nombre",
+    "edit": "Editar nombre",
+    "placeholder": "p. ej. Dueño de la tienda de Gangnam",
+    "saved": "Nombre de la sesión guardado.",
+    "cleared": "Nombre de la sesión borrado.",
+    "saveError": "No se pudo guardar el nombre de la sesión."
+  },
+  "preview": {
+    "title": "Vista previa de la incidencia #{{no}}",
+    "loading": "Cargando la conversación…",
+    "openSession": "Abrir la sesión",
+    "close": "Cerrar"
+  },
+  "sender": {
+    "user": "Cliente",
+    "ai": "IA",
+    "agent": "Agente",
+    "system": "Sistema"
+  }
 }

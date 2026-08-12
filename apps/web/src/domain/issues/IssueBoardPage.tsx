@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { PageHeader } from '@/components/PageHeader';
 import { Badge } from '@/components/Badge';
@@ -11,6 +10,7 @@ import { useTenantKey } from '@/lib/use-tenant-key';
 import { cn } from '@/lib/cn';
 import { issueService } from '../live-chat/issue.service';
 import { issuesBoardService, type IssueCard } from './issues-board.service';
+import { IssuePreviewModal } from './IssuePreviewModal';
 
 const COLUMNS = ['received', 'in_progress', 'resolved', 'rejected', 'closed'] as const;
 const REJECT_REASONS = ['policy_impossible', 'misrouted', 'spam'] as const;
@@ -40,7 +40,6 @@ export function IssueBoardPage() {
   const { t } = useTranslation('livechat');
   const qc = useQueryClient();
   const tenantKey = useTenantKey();
-  const navigate = useNavigate();
 
   const { data: stats } = useQuery({
     queryKey: ['issue-stats', tenantKey],
@@ -53,6 +52,9 @@ export function IssueBoardPage() {
     refetchInterval: 15_000,
   });
   const columns = boardData?.columns ?? {};
+  // Clicking a card opens a read-only preview instead of leaving the board —
+  // checking one issue used to cost the scroll position and filters (FR-4/5).
+  const [previewing, setPreviewing] = useState<IssueCard | null>(null);
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ['issue-board', tenantKey] });
@@ -156,7 +158,7 @@ export function IssueBoardPage() {
                   onDragStart={(e) =>
                     e.dataTransfer.setData('application/json', JSON.stringify(card))
                   }
-                  onClick={() => navigate(`/live-chat?conversation=${card.conversationId}`)}
+                  onClick={() => setPreviewing(card)}
                   className={cn(
                     'cursor-pointer rounded-lg border bg-white p-2.5 text-sm shadow-sm transition-colors hover:border-primary-400',
                     card.slaState === 'overdue' ? 'border-red-300' : 'border-gray-200',
@@ -170,6 +172,19 @@ export function IssueBoardPage() {
                       <span className="text-[11px] text-gray-400">↺{card.reopenCount}</span>
                     )}
                   </div>
+                  <div className="mt-0.5 flex items-center gap-1 text-[11px] text-gray-500">
+                    <span className="shrink-0 text-gray-400">
+                      {t('sessionLabel', { id: card.sessionId.slice(0, 6) })}
+                    </span>
+                    {card.sessionAlias && (
+                      <span className="truncate font-medium text-gray-700">
+                        · {card.sessionAlias}
+                      </span>
+                    )}
+                  </div>
+                  {card.preview && (
+                    <p className="mt-0.5 truncate text-[11px] text-gray-500">{card.preview}</p>
+                  )}
                   <div className="mt-1 flex items-center gap-1.5 text-[11px] text-gray-500">
                     {card.assigneeLabel && (
                       <Badge tone="info">{t(`issue.label.${card.assigneeLabel}`, { defaultValue: card.assigneeLabel })}</Badge>
@@ -218,6 +233,8 @@ export function IssueBoardPage() {
           </div>
         ))}
       </div>
+
+      <IssuePreviewModal card={previewing} onClose={() => setPreviewing(null)} />
 
       {/* Reject-reason modal (결정 3) */}
       <Modal
