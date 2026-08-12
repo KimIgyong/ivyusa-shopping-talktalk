@@ -8,6 +8,7 @@ import {
   getConversation,
   sendMessage,
   sendScenario,
+  rateChat,
 } from '../services/chatService';
 import type { ChatMessage, ChatReply, ScenarioPostAction } from '../lib/types';
 
@@ -35,6 +36,7 @@ export function useChat(sessionToken: string | null) {
   // 'none') — lets the UI say "an agent is typing…" instead of the AI wording
   // once the thread is handed off.
   const [status, setStatus] = useState<string>('none');
+  const [canRate, setCanRate] = useState(false);
   // Ref (not state) so the polling queryFn always sees the current value.
   const inFlight = useRef(false);
   // Highest server message id seen — the ?after_id= delta cursor (PERF-1).
@@ -49,6 +51,9 @@ export function useChat(sessionToken: string | null) {
       const conv = await getConversation(sessionToken!, after);
       if (!inFlight.current) {
         if (conv.status) setStatus(conv.status);
+        // The server decides whether rating is still open (24h window); the
+        // widget must not offer stars the API would refuse.
+        setCanRate(conv.canRate === true);
         if (conv.conversationId != null) setConversationId(String(conv.conversationId));
         const serverMsgs = conv.messages ?? [];
         trackCursor(lastServerId, serverMsgs);
@@ -199,7 +204,25 @@ export function useChat(sessionToken: string | null) {
     }
   }, [sessionToken, append, t]);
 
-  return { messages, send, scenario, sending, status, escalate, endChat, append, conversationId };
+  const rate = async (rating: number) => {
+    if (!sessionToken || !conversationId) return;
+    await rateChat(sessionToken, conversationId, rating);
+    setCanRate(false);
+  };
+
+  return {
+    messages,
+    send,
+    scenario,
+    sending,
+    status,
+    escalate,
+    endChat,
+    append,
+    conversationId,
+    canRate,
+    rate,
+  };
 }
 
 /**

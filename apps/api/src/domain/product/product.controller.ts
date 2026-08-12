@@ -11,7 +11,7 @@ import {
   toProductDetailResponse,
 } from './product.mapper';
 import { Public } from '../../global/decorator/public.decorator';
-import { RequireCapability } from '../../global/decorator/auth.decorator';
+import { RequireCapability, RequireMenu } from '../../global/decorator/auth.decorator';
 import { CurrentUser } from '../../global/decorator/current-user.decorator';
 import { SessionToken } from '../../global/decorator/session-token.decorator';
 import { Paginated } from '../../global/interceptor/transform.interceptor';
@@ -108,6 +108,8 @@ export class ProductController {
 /** Tenant-console catalog view + operations (PLN-260808-Console-Product-List). */
 @ApiTags('Product')
 @Controller('admin/products')
+// Screen gate (PLN-260812 S4): Console product list; the storefront's own /products controller is separate and public.
+@RequireMenu('products')
 export class ProductAdminController {
   constructor(
     private readonly productService: ProductService,

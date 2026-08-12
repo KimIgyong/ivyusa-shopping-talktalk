@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/Modal';
 import { Button } from '@/components/Button';
@@ -25,6 +26,37 @@ const RULE_LABEL_KEY: Record<ClientPasswordRule, string> = {
 };
 
 const RULE_ORDER: ClientPasswordRule[] = ['min_length', 'char_classes', 'common_password'];
+
+/** Password input with a show/hide (eye) toggle for entry confirmation. */
+function PasswordField({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const { t } = useTranslation('auth');
+  const [show, setShow] = useState(false);
+  return (
+    <div className="relative">
+      <Input
+        type={show ? 'text' : 'password'}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="pr-10"
+      />
+      <button
+        type="button"
+        onClick={() => setShow((v) => !v)}
+        className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-400 hover:text-gray-600"
+        aria-label={show ? t('hidePassword') : t('showPassword')}
+        title={show ? t('hidePassword') : t('showPassword')}
+      >
+        {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+      </button>
+    </div>
+  );
+}
 
 export function ChangePasswordModal({ open, forced, onClose }: Props) {
   const { t } = useTranslation('auth');
@@ -91,11 +123,11 @@ export function ChangePasswordModal({ open, forced, onClose }: Props) {
       }
     >
       {forced && <p className="mb-4 text-sm text-gray-500">{t('mustChangeNotice')}</p>}
-      <FormRow label={t('currentPassword')}>
-        <Input type="password" value={current} onChange={(e) => setCurrent(e.target.value)} />
+      <FormRow label={forced ? t('currentOrTempPassword') : t('currentPassword')}>
+        <PasswordField value={current} onChange={setCurrent} />
       </FormRow>
       <FormRow label={t('newPassword')}>
-        <Input type="password" value={next} onChange={(e) => setNext(e.target.value)} />
+        <PasswordField value={next} onChange={setNext} />
         <ul className="mt-1.5 space-y-0.5 text-xs" aria-live="polite">
           {RULE_ORDER.map((rule) => {
             const ok = policy.rules[rule];
@@ -110,7 +142,7 @@ export function ChangePasswordModal({ open, forced, onClose }: Props) {
         </ul>
       </FormRow>
       <FormRow label={t('confirmPassword')}>
-        <Input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} />
+        <PasswordField value={confirm} onChange={setConfirm} />
       </FormRow>
     </Modal>
   );

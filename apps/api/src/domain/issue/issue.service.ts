@@ -2,6 +2,7 @@ import { HttpStatus, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, MoreThan, Repository } from 'typeorm';
 import { SENDER_TYPE, USER_RANK } from '@ivy/types';
+import type { IssueCardContext } from './issue.mapper';
 import { Issue, ISSUE_REJECT_REASON, ISSUE_STATUS, ISSUE_TIER } from './entity/issue.entity';
 import { IssueEvent, ISSUE_EVENT_TYPE } from './entity/issue-event.entity';
 import { Tenant } from '../tenant/entity/tenant.entity';
@@ -499,6 +500,8 @@ export class IssueService implements OnModuleInit {
     columns: Record<string, Issue[]>;
     names: Map<number, string>;
     sla: { normalHours: number; urgentHours: number };
+    /** issue id → session alias + preview (PLN-260812). */
+    context: Map<string, IssueCardContext>;
   }> {
     const open = await this.issueRepo.find({
       where: { tenantId, status: In([ISSUE_STATUS.RECEIVED, ISSUE_STATUS.IN_PROGRESS]) },
@@ -529,7 +532,62 @@ export class IssueService implements OnModuleInit {
       const users = await this.userRepo.find({ where: { id: In(ids) } });
       for (const u of users) names.set(Number(u.id), u.name || u.email || `#${u.id}`);
     }
-    return { columns, names, sla: await this.slaTargets(tenantId) };
+    // Session alias + a one-line preview for every card, in two queries for the
+    // whole board rather than two per card (PLN-260812 S2).
+    const issues = Object.values(columns).flat();
+    const context = await this.cardContext(issues);
+    return { columns, names, sla: await this.slaTargets(tenantId), context };
+  }
+
+  /**
+   * Per-issue session alias and last customer line, batched.
+   *
+   * The preview is the shopper's own last message: an agent scanning the board
+   * wants to know what was asked, and an AI or agent reply says little about
+   * whether the card still needs them.
+   */
+  private async cardContext(issues: Issue[]): Promise<Map<string, IssueCardContext>> {
+    const context = new Map<string, IssueCardContext>();
+    if (issues.length === 0) return context;
+
+    const sessionIds = [...new Set(issues.map((i) => Number(i.sessionId)).filter(Boolean))];
+    const aliasBySession = new Map<string, string | null>();
+    if (sessionIds.length) {
+      const sessions = await this.sessionRepo.find({
+        where: { id: In(sessionIds) },
+        select: { id: true, alias: true },
+      });
+      for (const session of sessions) aliasBySession.set(String(session.id), session.alias ?? null);
+    }
+
+    const conversationIds = [...new Set(issues.map((i) => Number(i.conversationId)).filter(Boolean))];
+    const previewByConv = new Map<string, string>();
+    if (conversationIds.length) {
+      const rows = await this.msgRepo
+        .createQueryBuilder('m')
+        .select(['m.id', 'm.conversationId', 'm.body'])
+        .where(
+          `m.id IN (
+             SELECT MAX(id) FROM messages
+              WHERE conversation_id IN (:...ids) AND sender_type = :sender
+              GROUP BY conversation_id
+           )`,
+          { ids: conversationIds, sender: SENDER_TYPE.USER },
+        )
+        .getMany();
+      for (const row of rows) {
+        previewByConv.set(String(row.conversationId), (row.body ?? '').slice(0, 120));
+      }
+    }
+
+    for (const issue of issues) {
+      context.set(String(issue.id), {
+        sessionId: String(issue.sessionId),
+        sessionAlias: aliasBySession.get(String(issue.sessionId)) ?? null,
+        preview: previewByConv.get(String(issue.conversationId)) ?? null,
+      });
+    }
+    return context;
   }
 
   /** SLA targets (백로그 B2): tenant handoffConfig.sla ?? 결정 5 기본(24h/4h). */

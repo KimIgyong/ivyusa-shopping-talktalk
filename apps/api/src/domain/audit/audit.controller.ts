@@ -3,7 +3,7 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CAPABILITY, Principal } from '@ivy/types';
 import { normalizePage, buildPagination } from '@ivy/common';
 import { AuditService } from './audit.service';
-import { RequireCapability } from '../../global/decorator/auth.decorator';
+import { RequireCapability, RequireMenu } from '../../global/decorator/auth.decorator';
 import { CurrentUser } from '../../global/decorator/current-user.decorator';
 import { Paginated } from '../../global/interceptor/transform.interceptor';
 import { ListAuditQuery } from './dto/request/audit.request';
@@ -12,6 +12,8 @@ import { parseFrom, parseTo } from '../../global/util/date-range.util';
 /** Audit log read access (FR-061). Tenant-scoped for tenant users. */
 @ApiTags('Audit')
 @Controller('audit')
+// Screen gate (PLN-260812 S4): The work-log screen reads the audit trail; platform admins skip this gate.
+@RequireMenu('work_log')
 export class AuditController {
   constructor(private readonly auditService: AuditService) {}
 

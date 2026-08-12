@@ -114,6 +114,10 @@ Copy the `.example` to the real filename on the server and fill in secrets — t
 | `ANTHROPIC_MODEL` | claude-opus-4-8 | claude-opus-4-8 | claude-opus-4-8 | |
 | `OPENAI_API_KEY` | — | optional | optional | fallback route; per-engine key in the console wins |
 | `OPENAI_MODEL` | gpt-4o-mini | gpt-4o-mini | gpt-4o-mini | used when the engine row names no model |
+| `IDLE_SWEEP_INTERVAL_SEC` | 30 | 30 | 30 | 방치 대화 순회 주기(0=비활성) |
+| `IDLE_PROMPT_AFTER_MIN` | 30 | 30 | 30 | 이 시간 무응답이면 "더 도와드릴까요?" |
+| `IDLE_CLOSE_AFTER_SEC` | 60 | 60 | 60 | 그 질문 후 대기 시간 |
+| `IDLE_STALE_AFTER_DAYS` | 7 | 7 | 7 | 이보다 오래된 방치는 질문 없이 종료 |
 | `CONVERSATION_LOG_RETENTION_DAYS` | 365 | 90 | 365 | POL-003 retention purge |
 | `KB_STORAGE_DIR` | ./storage/kb | — | — | local KB uploads (dev) |
 | `SEED_ON_BOOT` | — | true→false after 1st boot | true→false after 1st boot | idempotent bootstrap seed at startup |
@@ -215,7 +219,7 @@ Docker templates exist (`docker/production/`: Dockerfiles api/web, compose, ngin
    strong `DB_*`, `RABBITMQ_*`, `JWT_*`, `CRED_ENC_KEY`, real `ANTHROPIC_API_KEY`,
    strong `SEED_PASSWORD` (with `SEED_DEMO_DATA=false`), `SHOPIFY_WEBHOOK_SECRET`,
    and `VITE_API_BASE_URL` = the production API URL.
-3. Apply schema via `sql/01-schema.sql` / init-sql (production keeps `DB_SYNCHRONIZE=false`).
+3. Apply schema via `docker/init-sql/01-schema.sql` (production keeps `DB_SYNCHRONIZE=false`).
 4. `bash docker/production/deploy-production.sh`, then turn `SEED_ON_BOOT` off after the first successful boot.
 
 Production hardening (vs staging): `restart: always`; DB/redis/rabbitmq have **no** host

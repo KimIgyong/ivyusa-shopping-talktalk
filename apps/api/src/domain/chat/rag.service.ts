@@ -37,6 +37,25 @@ export interface RagAnswer {
 }
 
 /**
+ * What to do on a turn with nothing to retrieve (PLN-260813 P2). These steer
+ * the model; the customer never sees them.
+ */
+const NO_KNOWLEDGE_INSTRUCTION: Record<string, string> = {
+  smalltalk:
+    'The shopper is making small talk — a greeting, thanks or a compliment. ' +
+    'Answer warmly and briefly, then ask in one sentence what you can help with. ' +
+    'Do not mention the knowledge base, documents, or that you searched.',
+  out_of_scope:
+    'The shopper asked something this shop cannot answer (weather, exchange ' +
+    'rates, news). Say plainly that this is outside what you can help with, ' +
+    'then name what you CAN help with (orders, delivery, returns, products). ' +
+    'Never guess or invent the information they asked for.',
+  unintelligible:
+    'The message cannot be read as a question. Say you did not catch that and ' +
+    'ask them to rephrase. Do not guess at what they meant.',
+};
+
+/**
  * Confidence floor when the answer is grounded in the customer's own order data.
  * Must stay above ChatService's escalation threshold so a factual order answer is
  * delivered rather than handed off for lack of a matching help article.
@@ -405,6 +424,33 @@ export class RagService {
     return chunks.length ? Math.min(0.95, 0.5 + chunks.length * 0.12) : 0.2;
   }
 
+  /**
+   * Reply to a turn that has nothing to look up (PLN-260813 P2).
+   *
+   * A greeting resembles no document, so retrieval returns nothing and the old
+   * path read that as "no answer found" and paged a human. This answers from
+   * the persona alone — no embedding, no vector search, no citations — which is
+   * both correct and cheaper than the RAG call it replaces.
+   */
+  async answerWithoutKnowledge(
+    tenantId: number,
+    kind: 'smalltalk' | 'out_of_scope' | 'unintelligible',
+    query: string,
+    language: string,
+  ): Promise<string> {
+    const { persona, rules } = await this.aiConfig.getPersonaRules(tenantId);
+    const instruction = NO_KNOWLEDGE_INSTRUCTION[kind];
+    const res = await this.ai.complete({
+      tenantId,
+      function: AI_FUNCTION.RAG,
+      system:
+        `${persona}\n${rules.map((r) => `- ${r}`).join('\n')}\n` +
+        `${instruction}\nReply in ${language.toUpperCase()}. Two sentences at most.`,
+      messages: [{ role: 'user', content: query }],
+    });
+    return res.text.trim();
+  }
+
   async classifyIntent(
     tenantId: number,
     query: string,
@@ -413,8 +459,23 @@ export class RagService {
       tenantId,
       function: AI_FUNCTION.CHAT,
       system:
-        'JSON_MODE:intent. Classify the shopper message. Return ' +
-        '{"intent":string,"needsOrderData":boolean,"confidence":number}.',
+        // A closed set, not free text (PLN-260813 P1). Handing off when the
+        // shopper asks for a person needs an intent value that arrives
+        // spelled the same way every time; a free-form label produced
+        // 'agent_request', 'human_handoff' and 'talk_to_agent' for the same
+        // sentence.
+        'JSON_MODE:intent. Classify the shopper message. `intent` must be one ' +
+          'of: order_status, delivery, cancel_refund, product_inquiry, ' +
+          'agent_request, smalltalk, out_of_scope, unintelligible, other. ' +
+          'agent_request only when the shopper is asking to reach a human, not ' +
+          'when they merely mention agents. smalltalk = greetings, thanks, ' +
+          'compliments, chat with nothing to answer. out_of_scope = a real ' +
+          'question this shop cannot answer (weather, exchange rates, news). ' +
+          'unintelligible = the message cannot be read as language. ' +
+          'IMPORTANT: a greeting followed by a real question takes the ' +
+          "question's intent — \"Hi, where is my order?\" is order_status, not " +
+          'smalltalk. Return ' +
+          '{"intent":string,"needsOrderData":boolean,"confidence":number}.',
       messages: [{ role: 'user', content: query }],
     });
     try {

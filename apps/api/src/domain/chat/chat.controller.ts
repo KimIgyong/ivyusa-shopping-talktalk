@@ -10,6 +10,7 @@ import {
   EscalateRequest,
   ScenarioRequest,
   ContactEmailRequest,
+  RateChatRequest,
 } from './dto/request/chat.request';
 import { SessionService } from '../session/session.service';
 import { Public } from '../../global/decorator/public.decorator';
@@ -55,6 +56,14 @@ export class ChatController {
   async end(@Body() body: EndChatRequest) {
     const session = await this.sessionService.findByToken(body.session_token);
     return this.chatService.endBySession(session);
+  }
+
+  @Post('csat')
+  @Public()
+  @ApiOperation({ summary: 'Rate a finished conversation, 1..5 stars (PLN-260810)' })
+  async rate(@Body() body: RateChatRequest) {
+    const session = await this.sessionService.findByToken(body.session_token);
+    return this.chatService.rate(session, body.conversation_id, body.rating);
   }
 
   @Get('conversation')

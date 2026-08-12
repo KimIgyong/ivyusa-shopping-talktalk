@@ -37,6 +37,10 @@ export const es: Translation = {
     endConfirm: '¿Finalizar esta conversación?',
     endCancel: 'Cancelar',
     endedNotice: 'La conversación ha finalizado. Envía un mensaje para iniciar una nueva.',
+    csatQuestion: '¿Qué tan satisfecho quedaste con este chat?',
+    csatThanks: 'Gracias por tu opinión 🙏',
+    csatDismiss: 'Cerrar',
+    csatStar: '{{count}} estrella',
     connectingAgent: 'Te estamos conectando con un agente de soporte. Espera un momento…',
     contactEmail: {
       title: '¿A qué correo enviamos la respuesta?',

@@ -13,6 +13,8 @@ import { KbRevisionService } from './kb-revision.service';
 import { ProductImportService } from './product-import.service';
 import { CatalogSyncService } from './catalog-sync.service';
 import { CatalogSyncJobService } from './catalog-sync-job.service';
+import { AnswerProposalService } from './answer-proposal.service';
+import { KbAnswerProposal } from './entity/kb-answer-proposal.entity';
 import { UsageGuideService } from './usage-guide.service';
 import { SourceSyncService } from './source-sync.service';
 import { BoardAdapter } from './adapters/board.adapter';
@@ -22,6 +24,7 @@ import { QuestionStatDaily } from '../analytics/entity/question-stat-daily.entit
 import { Message } from '../chat/entity/message.entity';
 import { KnowledgeGapService } from './knowledge-gap.service';
 import { KnowledgeController } from './knowledge.controller';
+import { AgentKnowledgeController } from './agent-knowledge.controller';
 import { ChatModule } from '../chat/chat.module';
 import { ModerationModule } from '../moderation/moderation.module';
 
@@ -34,6 +37,7 @@ import { ModerationModule } from '../moderation/moderation.module';
       KbFile,
       KbConflict,
       KbDocumentRevision,
+      KbAnswerProposal,
       // Repository only — the CSV import's optional Price/Image bridge writes
       // into the display catalog (PLN-260807 F1). No ProductModule import.
       ProductCache,
@@ -48,7 +52,7 @@ import { ModerationModule } from '../moderation/moderation.module';
     // Knowledge edits were the one privileged action leaving no audit trail.
     AuditModule,
   ],
-  controllers: [KnowledgeController],
+  controllers: [KnowledgeController, AgentKnowledgeController],
   providers: [
     KnowledgeService,
     KnowledgeGapService,
@@ -57,6 +61,7 @@ import { ModerationModule } from '../moderation/moderation.module';
     ProductImportService,
     CatalogSyncService,
     CatalogSyncJobService,
+    AnswerProposalService,
     UsageGuideService,
     SourceSyncService,
     BoardAdapter,

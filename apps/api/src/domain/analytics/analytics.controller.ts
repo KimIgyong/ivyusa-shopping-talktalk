@@ -5,7 +5,7 @@ import { normalizePage, buildPagination } from '@ivy/common';
 import { AnalyticsService } from './analytics.service';
 import { QuestionStatsService } from './question-stats.service';
 import { AuditService } from '../audit/audit.service';
-import { RequireCapability } from '../../global/decorator/auth.decorator';
+import { RequireCapability, RequireMenu } from '../../global/decorator/auth.decorator';
 import { CurrentUser } from '../../global/decorator/current-user.decorator';
 import { Paginated } from '../../global/interceptor/transform.interceptor';
 import { BusinessException } from '../../global/exception/business.exception';
@@ -40,6 +40,11 @@ function actorOf(user: Principal): { actorType: 'user' | 'admin'; actorId: numbe
 /** Analytics dashboards & conversation history (FN-038/039, SCR-104). */
 @ApiTags('Analytics')
 @Controller('analytics')
+// Screen gates are per-route here (PLN-260812 S4): this controller backs
+// three different screens -- the dashboard reads `dashboard`, conversation
+// history reads `conversations`, statistics reads `questions` -- so a
+// class-wide gate would break two of them. /dashboard is left ungated: it
+// is the console's landing screen and every rank holds it.
 export class AnalyticsController {
   constructor(
     private readonly analyticsService: AnalyticsService,
@@ -56,6 +61,7 @@ export class AnalyticsController {
 
   @Get('conversations')
   @RequireCapability(CAPABILITY.ANALYTICS_READ)
+  @RequireMenu('history')
   @ApiOperation({ summary: 'Conversation history search (FN-039, SCR-104)' })
   async conversations(@CurrentUser() user: Principal, @Query() query: ConversationSearchQuery) {
     const { page, size } = normalizePage(query.page, query.size);
@@ -78,6 +84,7 @@ export class AnalyticsController {
 
   @Get('questions')
   @RequireCapability(CAPABILITY.ANALYTICS_READ)
+  @RequireMenu('statistics')
   @ApiOperation({ summary: 'Customer question statistics by lens (SCR-104 §4)' })
   async questions(@CurrentUser() user: Principal, @Query() query: QuestionStatsQuery) {
     const dimension = (query.dimension ?? STAT_DIMENSION.INTENT) as string;
@@ -107,6 +114,7 @@ export class AnalyticsController {
 
   @Get('conversations/:id')
   @RequireCapability(CAPABILITY.ANALYTICS_READ)
+  @RequireMenu('history')
   @ApiOperation({ summary: 'Conversation transcript with AI grounding (SCR-104)' })
   async conversationDetail(@CurrentUser() user: Principal, @Param('id') id: string) {
     const tenantId = tenantScope(user);

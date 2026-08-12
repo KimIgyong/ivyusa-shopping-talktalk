@@ -1,4 +1,4 @@
-import { apiGet, apiGetList, apiPost, apiPatch } from '@/lib/api-client';
+import { apiGet, apiGetList, apiPost, apiPatch, apiPut } from '@/lib/api-client';
 import type {
   InviteResult,
   InviteUserBody,
@@ -41,6 +41,27 @@ interface BackendEngine {
   status?: string;
   isDefault?: number;
   createdAt?: string;
+}
+
+/** How a tenant's provisioning of one menu is pinned against its plan. */
+export type MenuProvisionMode = 'plan' | 'on' | 'off';
+
+export interface TenantMenuRow {
+  code: string;
+  /** i18n key in the `nav` namespace — menu names are already translated there. */
+  labelKey: string;
+  path: string;
+  planDefault: boolean;
+  mode: MenuProvisionMode;
+  /** Plan + override, computed server-side. */
+  provided: boolean;
+}
+
+export interface TenantMenusView {
+  tenantUuid: string;
+  tenantName: string | null;
+  plan: string | null;
+  menus: TenantMenuRow[];
 }
 
 export interface AuditEntry {
@@ -117,4 +138,12 @@ export const adminService = {
     apiPatch(`/ai-engines/${id}`, { status: enabled ? 'enabled' : 'disabled' }),
   audit: (params: { page: number; pageSize: number }) =>
     apiGetList<AuditEntry>('/audit', { page: params.page, size: params.pageSize }),
+
+  // ---- Menu provisioning (PLN-260812 S2) ----
+  tenantMenus: (uuid: string) => apiGet<TenantMenusView>(`/tenants/${uuid}/menus`),
+  saveTenantMenus: (uuid: string, menus: { code: string; mode: MenuProvisionMode }[]) =>
+    apiPut<TenantMenusView>(`/tenants/${uuid}/menus`, {
+      // Backend DTOs are snake_case.
+      menus: menus.map((m) => ({ menu_code: m.code, mode: m.mode })),
+    }),
 };

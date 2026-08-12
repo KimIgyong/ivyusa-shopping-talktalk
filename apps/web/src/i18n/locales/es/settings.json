@@ -107,7 +107,8 @@
         "step2": "Abre layout/theme.liquid.",
         "step3": "Pega el fragmento justo antes de la etiqueta </body> y guarda."
       }
-    }
+    },
+    "nonShopifyDomain": "No es un dominio *.myshopify.com. Este campo también es el dominio de la tienda del inquilino, así que un dominio de Cafe24 o propio es válido: solo significa que esta tienda no está conectada a Shopify."
   },
   "integrations": {
     "configured": "Guardado — introduce un nuevo valor para reemplazar",
@@ -205,7 +206,9 @@
     "title": "Tienda",
     "url": "URL de la tienda",
     "hint": "Se usa para verificar los enlaces de producto antes de mostrarlos a los clientes. Solo aparecen en el chat los enlaces de este origen.",
-    "unsetWarning": "Sin configurar — las recomendaciones de producto no aparecerán como enlaces en el chat."
+    "unsetWarning": "Sin configurar — las recomendaciones de producto no aparecerán como enlaces en el chat.",
+    "shopDomain": "Dominio de la tienda",
+    "shopDomainHint": "Identifica a este inquilino ante el widget de chat. Sirve el dominio de cualquier plataforma —Shopify, Cafe24 o propio— siempre que coincida con el sitio donde corre el widget."
   },
   "cafe24": {
     "oauth": {
@@ -330,6 +333,59 @@
         "title": "WhatsApp",
         "subtitle": "A través del hub AmoebaTalk"
       }
+    },
+    "syncNow": "Recibir ahora",
+    "syncOk": "Se recibieron {{count}} mensaje(s) nuevo(s).",
+    "syncFailed": "Fallo al recibir — {{detail}}",
+    "syncInactive": "Se recibieron {{count}} mensaje(s), pero el canal está deshabilitado: no llegará nada por sí solo hasta que lo habilites.",
+    "inactiveWarning": "Deshabilitado: no recibe. Abre Configurar y habilita el canal.",
+    "autoReplyScope": "Se aplica a los mensajes que lleguen a partir de ahora. Cada conversación puede anularlo en Chat en vivo.",
+    "mode": {
+      "auto": "Automática — la IA responde sola",
+      "approve": "Requiere aprobación — la IA redacta, un agente envía",
+      "off": "Desactivada"
+    }
+  },
+  "menuAccess": {
+    "title": "Acceso a los menús",
+    "subtitle": "Define a qué pantallas de la consola llega tu equipo. Los menús en gris no están incluidos en tu plan.",
+    "tabRoles": "Valores por rol",
+    "tabUsers": "Excepciones por persona",
+    "rankColumn": "Rango",
+    "menu": "Menú",
+    "member": "Miembro",
+    "exceptions": "Excepciones",
+    "edit": "Editar",
+    "editFor": "Excepciones — {{who}} ({{rank}})",
+    "rankDefault": "Según el rango",
+    "thisUser": "Este miembro",
+    "result": "Resultado",
+    "allowed": "Permitido",
+    "blocked": "Bloqueado",
+    "notProvided": "Fuera del plan",
+    "canAccess": "Con acceso",
+    "cannotAccess": "Sin acceso",
+    "readOnly": "solo lectura",
+    "masterExempt": "no admite excepciones",
+    "save": "Guardar valores por rol",
+    "saved": "Acceso a los menús guardado",
+    "saveError": "No se pudo guardar el acceso a los menús",
+    "loading": "Cargando…",
+    "needsLabel": "(requiere {{label}})",
+    "masterNote": "El máster siempre llega a todos los menús que provee el plan, así que no puede quedar bloqueado.",
+    "labelNote": "Los menús con etiqueta de función siguen ocultos para quien no la tenga. Para abrirlo a una sola persona, usa una excepción.",
+    "notProvidedNote": "Los menús tachados no los provee tu plan; contacta al administrador de la plataforma para añadirlos.",
+    "allowWaivesLabel": "«Permitir» también exime del requisito de etiqueta para este miembro. Las acciones dentro de la pantalla siguen su rango y etiquetas.",
+    "mode": {
+      "default": "Según el rango",
+      "allow": "Permitir",
+      "deny": "Bloquear"
+    },
+    "rank": {
+      "master": "Máster",
+      "director": "Director",
+      "manager": "Gerente",
+      "staff": "Personal"
     }
   }
 }

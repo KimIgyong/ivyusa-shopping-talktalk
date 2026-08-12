@@ -108,6 +108,19 @@ export interface CatalogSyncResult extends Omit<CatalogSyncPreview, 'heldSamples
   embedFailed: number;
 }
 
+/** An answer a chat handler wants to become knowledge (PLN-260810 S4). */
+export interface AnswerProposal {
+  id: string;
+  conversationId: string | null;
+  question: string;
+  answer: string;
+  status: 'pending' | 'approved' | 'rejected';
+  proposedBy: string;
+  rejectReason: string | null;
+  documentId: string | null;
+  createdAt: string;
+}
+
 /** One product type's usage guide and how many products it serves (PLN-260807 P2). */
 export interface UsageGuide {
   key: string;
@@ -270,6 +283,12 @@ export const knowledgeService = {
   syncCatalog: () => apiPost<CatalogSyncJob>('/knowledge/documents/import/catalog', {}),
   catalogSyncStatus: () =>
     apiGet<CatalogSyncJob | null>('/knowledge/documents/import/catalog/status'),
+  proposals: (status = 'pending') =>
+    apiGet<AnswerProposal[]>('/knowledge/proposals', { status }),
+  approveProposal: (id: string, body: { title?: string; category?: string; answer?: string }) =>
+    apiPost<AnswerProposal>(`/knowledge/proposals/${id}/approve`, body),
+  rejectProposal: (id: string, reason: string) =>
+    apiPost<AnswerProposal>(`/knowledge/proposals/${id}/reject`, { reason }),
   usageGuides: () => apiGet<UsageGuide[]>('/knowledge/usage-guides'),
   saveUsageGuide: (key: string, body: { title: string; content: string }) =>
     apiPut<{ id: string; embedded: number; embedFailed: number }>(

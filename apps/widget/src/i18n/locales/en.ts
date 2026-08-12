@@ -35,6 +35,10 @@ export const en = {
     endConfirm: 'End this conversation?',
     endCancel: 'Cancel',
     endedNotice: 'This conversation has ended. Send a message to start a new one.',
+    csatQuestion: 'How satisfied were you with this chat?',
+    csatThanks: 'Thanks for the feedback 🙏',
+    csatDismiss: 'Close',
+    csatStar: '{{count}} star',
     connectingAgent: 'You are being connected to a support agent. Please hold on…',
     contactEmail: {
       title: 'Where should we send the answer?',

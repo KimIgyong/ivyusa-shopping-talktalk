@@ -14,6 +14,7 @@ import { generateToken } from '@ivy/common';
 import { Session } from '../session/entity/session.entity';
 import { Conversation } from '../chat/entity/conversation.entity';
 import { Message } from '../chat/entity/message.entity';
+import { ReplyDraft } from '../chat/entity/reply-draft.entity';
 import { ChatService } from '../chat/chat.service';
 import { SessionService } from '../session/session.service';
 import { MessengerChannel } from './entity/messenger-channel.entity';
@@ -21,6 +22,7 @@ import { ChannelThread } from './entity/channel-thread.entity';
 import { ChannelMessageMap } from './entity/channel-message-map.entity';
 import { NormalizedInbound } from './adapter/messenger-adapter';
 import { MessengerOutboxService } from './messenger-outbox.service';
+import { REPLY_MODE, resolveReplyMode } from './auto-reply.util';
 
 /**
  * Privacy notice sent on first contact for `consent_mode='notice'` channels.
@@ -51,6 +53,7 @@ export class MessengerIngestService {
     @InjectRepository(Session) private readonly sessionRepo: Repository<Session>,
     @InjectRepository(Conversation) private readonly convRepo: Repository<Conversation>,
     @InjectRepository(Message) private readonly msgRepo: Repository<Message>,
+    @InjectRepository(ReplyDraft) private readonly draftRepo: Repository<ReplyDraft>,
     private readonly chatService: ChatService,
     private readonly sessionService: SessionService,
     private readonly outbox: MessengerOutboxService,
@@ -94,9 +97,34 @@ export class MessengerIngestService {
       conversation.status === CONVERSATION_STATUS.AGENT ||
       (conversation.status === CONVERSATION_STATUS.WAITING && conversation.agentId != null);
 
-    if (channel.autoReply === 1 && !humanOwnsThread) {
+    // Session choice beats the channel default; an agent on the thread beats
+    // both (PLN-260812 §2 S1).
+    const mode = humanOwnsThread
+      ? REPLY_MODE.OFF
+      : resolveReplyMode(channel.replyMode, session.autoReplyMode);
+
+    if (mode === REPLY_MODE.AUTO) {
       // Full pipeline: consent gate, intent, deny-list, RAG, moderation, handoff.
       await this.chatService.handleUserMessage(session, inbound.text);
+    } else if (mode === REPLY_MODE.APPROVE) {
+      // Same pipeline, but the answer stops at a draft an agent has to send.
+      const turn = await this.chatService.handleUserMessage(session, inbound.text, { draft: true });
+      if (turn.draft) {
+        await this.draftRepo.save(
+          this.draftRepo.create({
+            tenantId: channel.tenantId,
+            conversationId: conversation.id,
+            body: turn.draft.body,
+            confidence: turn.draft.confidence ?? null,
+          }),
+        );
+      }
+      // A draft nobody sees is a draft nobody sends — put the thread in the queue.
+      if (conversation.escalated !== 1) {
+        await this.chatService.escalate(session, conversation.id).catch((e) => {
+          this.logger.warn(`escalation failed for conversation ${conversation.id}: ${(e as Error).message}`);
+        });
+      }
     } else {
       // Auto-reply off (or a human already owns the thread): keep the message,
       // let the console answer. Nothing is generated on the shopper's behalf.
@@ -109,7 +137,10 @@ export class MessengerIngestService {
           lang: session.language,
         }),
       );
-      if (!humanOwnsThread) {
+      // Escalate once per conversation, not once per message. Calling it on
+      // every inbound paged the agents again for a thread already sitting in
+      // their queue — 400 messages across 37 conversations on staging.
+      if (!humanOwnsThread && conversation.escalated !== 1) {
         await this.chatService.escalate(session, conversation.id).catch((e) => {
           this.logger.warn(`escalation failed for conversation ${conversation.id}: ${(e as Error).message}`);
         });
@@ -224,7 +255,12 @@ export class MessengerIngestService {
         tenantId: channel.tenantId,
         customerId: null,
         identityLevel: SESSION_IDENTITY.GUEST,
-        language: resolveLanguage(inbound.languageHint),
+        // Tenant default when the platform gives no locale — a relay sends
+        // none, and English notices in a Korean room were the result (B-2).
+        language: await this.sessionService.languageForChannel(
+          channel.tenantId,
+          inbound.languageHint,
+        ),
         consentState: CONSENT_STATE.GRANTED,
         consentAt: new Date(),
         consentVersion: noticeVersion,
@@ -284,10 +320,4 @@ export class MessengerIngestService {
   }
 }
 
-/** Platform locale hint → session language. Unknown hints fall back to English. */
-export function resolveLanguage(hint: string | null): string {
-  const l = (hint ?? '').toLowerCase();
-  if (l.startsWith('ko')) return SESSION_LANGUAGE.KO;
-  if (l.startsWith('es')) return SESSION_LANGUAGE.ES;
-  return SESSION_LANGUAGE.EN;
-}
+

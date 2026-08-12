@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { setStoredSessionToken } from '../lib/api-client';
+import { initialLanguage } from '../i18n/i18n';
 import type { ConsentState, WidgetCopy, WidgetLoginMode } from '../lib/types';
 
 export type TabKey = 'notifications' | 'chat' | 'orders';
@@ -82,7 +83,10 @@ export const useWidgetStore = create<WidgetState>()((set, get) => ({
   widgetCopy: null,
   customerName: null,
   embedIdentity: 'pending',
-  language: 'en',
+  // Also the `locale` hint sent to session/ensure, so the server derives the
+  // session language from the shopper's own preference rather than a hardcoded
+  // 'en' (PLN-260813 P4).
+  language: initialLanguage(),
   consent: null,
   pendingChatMessage: null,
   setSessionToken: (t) => {

@@ -6,9 +6,17 @@ import { Tenant, TenantWidgetCopy } from './entity/tenant.entity';
 import { normalizeStorefrontUrl } from '../../global/util/storefront-url.util';
 import { IntegrationCredential } from './entity/integration-credential.entity';
 import { User } from '../user/entity/user.entity';
+import { JobLabel } from '../user/entity/job-label.entity';
 import { IntegrationStatusEntity } from '../integration/entity/integration-status.entity';
 import { ContentFilterRule } from '../moderation/entity/content-filter-rule.entity';
 import { DEFAULT_MODERATION_RULES } from '../moderation/moderation.defaults';
+
+/** Job labels every new tenant starts with (matches the seed for tenant ivyusa). */
+const DEFAULT_JOB_LABELS: ReadonlyArray<{ code: string; name: string }> = [
+  { code: 'consult', name: '상담' },
+  { code: 'accounting', name: '회계' },
+  { code: 'operations', name: '운영' },
+];
 import { IntegrationService } from '../integration/integration.service';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
@@ -43,6 +51,8 @@ export class TenantService {
     @InjectRepository(User) private readonly userRepo: Repository<User>,
     @InjectRepository(ContentFilterRule)
     private readonly cfrRepo: Repository<ContentFilterRule>,
+    @InjectRepository(JobLabel)
+    private readonly jobLabelRepo: Repository<JobLabel>,
     private readonly integrationService: IntegrationService,
     private readonly audit: AuditService,
   ) {}
@@ -132,7 +142,21 @@ export class TenantService {
     });
     const saved = await this.tenantRepo.save(tenant);
     await this.seedDefaultModeration(saved.id);
+    await this.seedDefaultJobLabels(saved.id);
     return saved;
+  }
+
+  /**
+   * Seed a new tenant's starter job labels (consult/accounting/operations), so the
+   * user-edit label picker isn't empty on a fresh tenant. Idempotent — skips a tenant
+   * that already has any (never clobbers renamed/deleted labels).
+   */
+  private async seedDefaultJobLabels(tenantId: number): Promise<void> {
+    const existing = await this.jobLabelRepo.count({ where: { tenantId } });
+    if (existing > 0) return;
+    await this.jobLabelRepo.save(
+      DEFAULT_JOB_LABELS.map((l) => this.jobLabelRepo.create({ tenantId, code: l.code, name: l.name })),
+    );
   }
 
   /**
@@ -176,6 +200,7 @@ export class TenantService {
       }),
     );
     await this.seedDefaultModeration(saved.id);
+    await this.seedDefaultJobLabels(saved.id);
     return saved;
   }
 

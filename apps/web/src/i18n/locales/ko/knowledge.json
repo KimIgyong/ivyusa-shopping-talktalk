@@ -220,5 +220,13 @@
     "accepted": "문서가 생성되어 임베딩되었습니다.",
     "dismissed": "제안을 기각했습니다.",
     "actionError": "제안 처리에 실패했습니다."
-  }
+  },
+  "proposals": "확정 지식 제안",
+  "proposalQuestion": "질문",
+  "proposalAnswer": "답변",
+  "proposalApprove": "승인",
+  "proposalReject": "거절",
+  "proposalRejectReason": "거절 사유 (제안자에게 표시됩니다)",
+  "proposalFromConversation": "대화 #{{id}} 열기",
+  "proposalNoConversation": "대화 연결 없음"
 }

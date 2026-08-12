@@ -17,6 +17,7 @@ import {
   useCredentials,
   useIntegration,
   useSaveWidgetSettings,
+  useSaveShopify,
   useShopifySettings,
   useUpdateCredential,
   useStorefront,
@@ -34,9 +35,14 @@ import { ProviderTile } from './ProviderTile';
 import { ShopifyConfigModal } from './ShopifyConfigModal';
 import { IntegrationConfigModal } from './IntegrationConfigModal';
 import { Cafe24ConnectCard } from './Cafe24ConnectCard';
+import { MenuAccessSection } from './MenuAccessSection';
 import { MessengerChannelCard } from './MessengerChannelCard';
 import { MessengerChannelModal } from './MessengerChannelModal';
-import { useMessengerChannels, useTestMessengerChannel } from './messenger.hooks';
+import {
+  useMessengerChannels,
+  useSyncMessengerChannel,
+  useTestMessengerChannel,
+} from './messenger.hooks';
 import {
   COMMUNICATION_PROVIDERS,
   MESSENGER_PROVIDERS,
@@ -45,6 +51,7 @@ import {
   type MessengerChannel,
 } from './messenger.service';
 import { toast } from '@/store/toast-store';
+import { useAuthStore } from '@/store/auth-store';
 
 function fmtDate(value?: string | null): string {
   if (!value) return '—';
@@ -122,10 +129,14 @@ type InstallPlatform = 'shopify' | 'cafe24' | 'woocommerce' | 'odoo';
  * answers) because a channel that quietly stopped receiving is otherwise
  * invisible until a customer complains.
  */
+/** Providers where several accounts make sense (one card per mailbox). */
+const MULTI_ACCOUNT_PROVIDERS = new Set<string>(['gmail']);
+
 function MessengerChannelsSection() {
   const { t } = useTranslation('settings');
   const { data, isLoading } = useMessengerChannels();
   const test = useTestMessengerChannel();
+  const sync = useSyncMessengerChannel();
   const [editing, setEditing] = useState<{
     provider: AnyMessengerProvider;
     channel?: MessengerChannel;
@@ -138,8 +149,6 @@ function MessengerChannelsSection() {
   const renderCards = (providers: readonly string[]) =>
     providers.flatMap((provider) => {
       const existing = byProvider(provider);
-      // One card per configured account (Gmail work mailbox 1/2), plus an empty
-      // one so another account can always be added.
       const cards = existing.map((channel) => (
         <MessengerChannelCard
           key={channel.id}
@@ -147,16 +156,23 @@ function MessengerChannelsSection() {
           channel={channel}
           onConfigure={() => setEditing({ provider: provider as AnyMessengerProvider, channel })}
           onTest={() => test.mutate(channel.id)}
+          onSync={() => sync.mutate(channel.id)}
         />
       ));
-      cards.push(
-        <MessengerChannelCard
-          key={`${provider}:new`}
-          provider={provider}
-          planned={!supported.has(provider)}
-          onConfigure={() => setEditing({ provider: provider as AnyMessengerProvider })}
-        />,
-      );
+      // An empty "add" card only where a second account is meaningful — Gmail
+      // has one card per mailbox, but a bot or hub account is single, and a
+      // trailing blank card there just reads as a duplicate of the real one.
+      const acceptsMore = MULTI_ACCOUNT_PROVIDERS.has(provider) || existing.length === 0;
+      if (acceptsMore) {
+        cards.push(
+          <MessengerChannelCard
+            key={`${provider}:new`}
+            provider={provider}
+            planned={!supported.has(provider)}
+            onConfigure={() => setEditing({ provider: provider as AnyMessengerProvider })}
+          />,
+        );
+      }
       return cards;
     });
 
@@ -366,14 +382,24 @@ function InstallGuideCard() {
   );
 }
 
+/** True for a Shopify store domain; the tenant field also holds Cafe24 malls etc. */
+export function isShopifyDomain(domain?: string | null): boolean {
+  return /\.myshopify\.com\/?$/i.test((domain ?? '').trim());
+}
+
 /** Shopify summary tile — data comes from the dedicated Shopify settings view. */
 function ShopifyTile({ onConfigure }: { onConfigure: () => void }) {
   const { t } = useTranslation('settings');
   const { data } = useShopifySettings();
+  // `shop_domain` is the tenant's store domain for ANY platform (the widget
+  // resolves the tenant by it), so a Cafe24 mall lives there too. Showing it
+  // here made those tenants look like Shopify stores — only a real
+  // *.myshopify.com domain belongs on this tile.
+  const domain = isShopifyDomain(data?.shopDomain) ? data?.shopDomain : null;
   return (
     <ProviderTile
       title={t('shopify.title')}
-      subtitle={data?.shopDomain || t('shopify.shopDomainPlaceholder')}
+      subtitle={domain || t('shopify.shopDomainPlaceholder')}
       status={data?.integration?.status}
       configured={data?.credential.configured}
       lastTested={data?.integration?.lastSyncAt}
@@ -420,6 +446,15 @@ function StorefrontCard() {
   const current = value ?? data?.storefrontUrl ?? '';
   const dirty = data != null && current !== (data.storefrontUrl ?? '');
 
+  // The store domain that identifies this tenant to the widget. It is platform
+  // neutral — Shopify, Cafe24, anything — but the only editor used to be inside
+  // the Shopify modal, which is why a Cafe24 mall appeared as a Shopify store.
+  const shopify = useShopifySettings();
+  const saveShopDomain = useSaveShopify();
+  const [domainDraft, setDomainDraft] = useState<string | null>(null);
+  const shopDomain = domainDraft ?? shopify.data?.shopDomain ?? '';
+  const domainDirty = shopify.data != null && shopDomain !== (shopify.data.shopDomain ?? '');
+
   return (
     <Card title={t('storefront.title')}>
       {isLoading ? (
@@ -440,6 +475,24 @@ function StorefrontCard() {
           <Button disabled={!dirty || save.isPending} onClick={() => save.mutate(current)}>
             {tc('save')}
           </Button>
+
+          <div className="mt-4 border-t border-gray-100 pt-4">
+            <FormRow label={t('storefront.shopDomain')}>
+              <Input
+                value={shopDomain}
+                placeholder="your-store.myshopify.com / your-mall.cafe24.com"
+                onChange={(e) => setDomainDraft(e.target.value)}
+              />
+            </FormRow>
+            <p className="text-xs text-gray-500">{t('storefront.shopDomainHint')}</p>
+            <Button
+              className="mt-2"
+              disabled={!domainDirty || saveShopDomain.isPending}
+              onClick={() => saveShopDomain.mutate({ shop_domain: shopDomain.trim() })}
+            >
+              {tc('save')}
+            </Button>
+          </div>
         </div>
       )}
     </Card>
@@ -584,6 +637,8 @@ export function SettingsPage() {
   const { data, isLoading, error } = useCredentials();
   const updateCredential = useUpdateCredential();
 
+  const isMaster = useAuthStore((s) => s.principal?.rank) === 'master';
+
   const [configuring, setConfiguring] = useState<ConfiguringStore>(null);
   const [editing, setEditing] = useState<CredentialStatus | null>(null);
   const [apiKey, setApiKey] = useState('');
@@ -674,6 +729,11 @@ export function SettingsPage() {
       {/* Live-support routing: business hours, break, off-hours mailbox. */}
       <HandoffSection />
       <StorefrontCard />
+
+      {/* Who on the team reaches which screen (PLN-260812 S3). Master-only:
+          the API gates it on TENANT_SETTINGS_MANAGE, and rendering it for
+          ranks that will only get a 403 is worse than not showing it. */}
+      {isMaster && <MenuAccessSection />}
 
       <Card title={t('integrationCredentials')}>
         <Table<CredentialStatus>

@@ -36,6 +36,8 @@ import {
   useCatalogSyncStatus,
   useCatalogSyncCompletion,
   useUsageGuides,
+  useProposals,
+  useProposalDecision,
   useSaveUsageGuide,
   useUpdateDocument,
   useDeleteDocument,
@@ -213,6 +215,10 @@ export function KnowledgePage() {
   const jobRunning = job?.status === 'running';
   useCatalogSyncCompletion(job);
 
+  const proposals = useProposals();
+  const proposalDecision = useProposalDecision();
+  const [rejecting, setRejecting] = useState<string | null>(null);
+  const [rejectReason, setRejectReason] = useState('');
   const usageGuides = useUsageGuides();
   const saveUsageGuide = useSaveUsageGuide();
   const [guideKey, setGuideKey] = useState<string | null>(null);
@@ -467,6 +473,93 @@ export function KnowledgePage() {
             rowKey={(r) => r.id}
           />
         </Card>
+
+        {/* Answer proposals (PLN-260810 S4). Rendered only when something is
+            waiting: an empty review queue should not take up the screen, but a
+            full one must be impossible to miss. */}
+        {(proposals.data?.length ?? 0) > 0 && (
+          <Card title={`${t('proposals')} ${proposals.data!.length}`}>
+            <ul className="space-y-3">
+              {proposals.data!.map((p) => (
+                <li key={p.id} className="rounded-lg border border-gray-200 p-3">
+                  <dl className="space-y-1 text-sm">
+                    <div className="flex gap-2">
+                      <dt className="w-16 shrink-0 text-gray-500">{t('proposalQuestion')}</dt>
+                      <dd className="font-medium text-gray-800">{p.question}</dd>
+                    </div>
+                    <div className="flex gap-2">
+                      <dt className="w-16 shrink-0 text-gray-500">{t('proposalAnswer')}</dt>
+                      <dd className="whitespace-pre-wrap text-gray-700">{p.answer}</dd>
+                    </div>
+                  </dl>
+                  <div className="mt-2 flex items-center justify-between gap-2">
+                    <span className="text-xs text-gray-500">
+                      {p.conversationId ? (
+                        <a
+                          className="underline-offset-2 hover:underline"
+                          href={`/live-chat?c=${p.conversationId}`}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          {t('proposalFromConversation', { id: p.conversationId })}
+                        </a>
+                      ) : (
+                        t('proposalNoConversation')
+                      )}
+                    </span>
+                    <span className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          setRejecting(p.id);
+                          setRejectReason('');
+                        }}
+                      >
+                        {t('proposalReject')}
+                      </Button>
+                      <Button
+                        size="sm"
+                        disabled={proposalDecision.approve.isPending}
+                        onClick={() => proposalDecision.approve.mutate({ id: p.id })}
+                      >
+                        {t('proposalApprove')}
+                      </Button>
+                    </span>
+                  </div>
+
+                  {rejecting === p.id && (
+                    <div className="mt-2 border-t border-gray-100 pt-2">
+                      <Input
+                        value={rejectReason}
+                        placeholder={t('proposalRejectReason')}
+                        onChange={(e) => setRejectReason(e.target.value)}
+                      />
+                      <div className="mt-2 flex justify-end gap-2">
+                        <Button size="sm" variant="ghost" onClick={() => setRejecting(null)}>
+                          {tc('close')}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="danger"
+                          disabled={rejectReason.trim().length < 2}
+                          onClick={() =>
+                            proposalDecision.reject.mutate(
+                              { id: p.id, reason: rejectReason.trim() },
+                              { onSuccess: () => setRejecting(null) },
+                            )
+                          }
+                        >
+                          {t('proposalReject')}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </Card>
+        )}
 
         {/* Usage guides (PLN-260807 P2). The storefront publishes no usage text
             at all — 31 of 2,275 products carry any — so these ten guides are

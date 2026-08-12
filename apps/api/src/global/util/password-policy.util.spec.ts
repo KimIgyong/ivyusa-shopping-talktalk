@@ -10,19 +10,19 @@ import {
 
 describe('password-policy.util (Stage 3 — POL-018)', () => {
   it('exposes the approved policy constants', () => {
-    expect(PASSWORD_MIN_LENGTH).toBe(12);
+    expect(PASSWORD_MIN_LENGTH).toBe(10);
     expect(PASSWORD_MIN_CHAR_CLASSES).toBe(3);
   });
 
   describe('min_length boundary', () => {
-    it('fails at 11 chars', () => {
-      const r = validatePassword('Zr8!kQw2Pl0'); // 11
+    it('fails at 9 chars', () => {
+      const r = validatePassword('Zr8!kQw2P'); // 9, 4 classes
       expect(r.ok).toBe(false);
       expect(r.failed).toContain(PASSWORD_RULE.MIN_LENGTH);
     });
 
-    it('passes at exactly 12 chars', () => {
-      const r = validatePassword('Zr8!kQw2Pl0x'); // 12
+    it('passes at exactly 10 chars', () => {
+      const r = validatePassword('Zr8!kQw2Pl'); // 10, 4 classes
       expect(r.failed).not.toContain(PASSWORD_RULE.MIN_LENGTH);
       expect(r.ok).toBe(true);
     });
@@ -135,7 +135,8 @@ describe('password-policy.util (Stage 3 — POL-018)', () => {
     it('treats non-ASCII letters as the special class', () => {
       const r = validatePassword('비밀번호테스트Ab34'); // special + upper + lower + digit
       expect(r.failed).not.toContain(PASSWORD_RULE.CHAR_CLASSES);
-      expect(r.failed).toContain(PASSWORD_RULE.MIN_LENGTH); // 11 UTF-16 units — still short
+      expect(r.failed).not.toContain(PASSWORD_RULE.MIN_LENGTH); // 11 chars — meets the 10 floor
+      expect(r.ok).toBe(true);
     });
 
     it('reports every failed rule, not just the first', () => {
