@@ -125,6 +125,20 @@ export function useAskKnowledge() {
   });
 }
 
+/** Send an answer to the knowledge owners for review (PLN-260810 S4). */
+export function useProposeAnswer() {
+  return useMutation({
+    mutationFn: (v: { conversationId?: number; question: string; answer: string }) =>
+      liveChatService.proposeAnswer({
+        conversation_id: v.conversationId,
+        question: v.question,
+        answer: v.answer,
+      }),
+    onSuccess: () => toast.success('Sent for review'),
+    onError: (err: Error) => toast.error(err.message),
+  });
+}
+
 export function useConversationActions(id: string | null) {
   const qc = useQueryClient();
   const tenantKey = useTenantKey();
