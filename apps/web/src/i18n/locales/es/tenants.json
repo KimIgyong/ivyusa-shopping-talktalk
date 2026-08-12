@@ -17,5 +17,27 @@
   "usersOf": "Usuarios — {{name}}",
   "usersOfSubtitle": "Invita personal, emite contraseñas temporales y controla el acceso de este inquilino.",
   "usersEmpty": "Este inquilino aún no tiene usuarios.",
-  "loginUrl": "Página de acceso"
+  "loginUrl": "Página de acceso",
+  "manageMenus": "Menús",
+  "menus": {
+    "title": "Menús provistos — {{name}}",
+    "menu": "Menú",
+    "planDefault": "Según el plan",
+    "thisTenant": "Este inquilino",
+    "result": "Resultado",
+    "provided": "Provisto",
+    "notProvided": "No provisto",
+    "noPlan": "sin plan",
+    "planCount": "El plan provee {{count}} de {{total}}",
+    "planHint": "Las filas en «Seguir el plan» cambian con el plan. Las demás quedan fijadas.",
+    "exceptions": "{{count}} excepción(es) difieren del plan (*)",
+    "issuesNote": "El tablero de incidencias también requiere el modo de flujo del inquilino; proveerlo solo muestra un aviso.",
+    "mode": {
+      "plan": "Seguir el plan",
+      "on": "Forzar provisión",
+      "off": "Bloquear"
+    },
+    "saved": "Menús provistos guardados",
+    "saveError": "No se pudieron guardar los menús provistos"
+  }
 }

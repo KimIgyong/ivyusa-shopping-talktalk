@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import type { WidgetLoginMode } from '@ivy/types';
 import { settingsService } from './settings.service';
-import type { SaveShopifyBody, UpdateCredentialBody } from './settings.service';
+import type { SaveShopifyBody, UpdateCredentialBody, WidgetCopyDraft } from './settings.service';
 import { toast } from '@/store/toast-store';
 import { useTenantKey } from '@/lib/use-tenant-key';
 
@@ -19,7 +19,11 @@ export function useSaveWidgetSettings() {
   const qc = useQueryClient();
   const tenantKey = useTenantKey();
   return useMutation({
-    mutationFn: (loginMode: WidgetLoginMode) => settingsService.saveWidgetSettings(loginMode),
+    mutationFn: (v: {
+      loginMode: WidgetLoginMode;
+      timezone?: string | null;
+      copy?: WidgetCopyDraft;
+    }) => settingsService.saveWidgetSettings(v.loginMode, v.timezone, v.copy),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['widget-settings', tenantKey] });
       // Success auto-closes; errors stay until dismissed (dev-kit §4.3).

@@ -1,0 +1,305 @@
+import { HttpStatus, Injectable, Logger } from '@nestjs/common';
+import { randomBytes } from 'crypto';
+import { RedisService } from '../../infrastructure/cache/redis.service';
+import { SessionService } from '../session/session.service';
+import { CustomerService } from '../customer/customer.service';
+import { BusinessException } from '../../global/exception/business.exception';
+import { ERROR_CODE } from '../../global/constant/error-code.constant';
+import { Cafe24TokenService } from './cafe24-token.service';
+import { cafe24AuthHost } from './cafe24-admin.client';
+import { Cafe24SyncService } from './cafe24-sync.service';
+
+const STATE_TTL_SEC = 600;
+const TICKET_TTL_SEC = 60;
+const MALL_ID_RE = /^[A-Za-z0-9][A-Za-z0-9_-]{1,59}$/;
+
+interface CustomerAuthState {
+  tenantId: number;
+  mallId: string;
+  returnUrl: string;
+  popup?: boolean; // sign-in ran in a widget-opened popup — post the ticket to the opener
+}
+
+/**
+ * Hands the one-time sign-in ticket back to the storefront two ways, shared by both
+ * callback routes:
+ *  - redirect (top-window flow): navigate the tab back with `#ivy_ticket`
+ *  - popup (in-widget flow): post the ticket to the opener (targeted at the mall
+ *    origin, so no other page can read it) and close the popup — the storefront page
+ *    and the widget never navigate.
+ * On any failure the shopper is bounced back to where they came from.
+ */
+export const cafe24TicketDelivery = {
+  bounceBack(): string {
+    return (
+      '<!doctype html><meta charset="utf-8"><title>Sign-in</title>' +
+      '<script>try{history.length>1?history.back():location.replace("/")}catch(e){location.replace("/")}</script>'
+    );
+  },
+  deliver(
+    res: { redirect(url: string): void; status(c: number): { type(t: string): { send(b: string): void } } },
+    out: { returnUrl: string; ticket: string; popup: boolean },
+  ): void {
+    if (out.popup) {
+      let origin = '*';
+      try {
+        origin = new URL(out.returnUrl).origin;
+      } catch {
+        /* keep '*' — the ticket is one-time + server-scoped anyway */
+      }
+      const html =
+        '<!doctype html><meta charset="utf-8"><title>Sign-in</title>' +
+        '<script>try{if(window.opener)window.opener.postMessage(' +
+        `{type:"ivy:cafe24-ticket",ticket:${JSON.stringify(out.ticket)}},${JSON.stringify(origin)}` +
+        ');}catch(e){}window.close();</script><p>You can close this window.</p>';
+      res.status(200).type('html').send(html);
+      return;
+    }
+    const sep = out.returnUrl.includes('#') ? '&' : '#';
+    res.redirect(`${out.returnUrl}${sep}ivy_ticket=${encodeURIComponent(out.ticket)}`);
+  },
+};
+
+/**
+ * Cafe24 storefront member sign-in (PLN-260808 P-A2). Cafe24 has no Shopify-style
+ * App Proxy, so the widget can't learn who is logged in on the mall. This bridges
+ * that with Cafe24's own "customer authentication" (customeraccesstoken) OAuth:
+ * authorize → token → GET /customers/identifier yields a SERVER-verified
+ * `user_identifier`, which we bind to a widget session. The customer access token
+ * never leaves the backend; the storefront only ever receives a one-time ticket.
+ *
+ * All three front calls hit the mall's primary domain ({mall}.cafe24.com), distinct
+ * from the admin API host ({mall}.cafe24api.com) used by P-A1 order sync.
+ */
+@Injectable()
+export class Cafe24CustomerAuthService {
+  private readonly logger = new Logger(Cafe24CustomerAuthService.name);
+
+  constructor(
+    private readonly redis: RedisService,
+    private readonly sessionService: SessionService,
+    private readonly customerService: CustomerService,
+    private readonly tokenService: Cafe24TokenService,
+    private readonly syncService: Cafe24SyncService,
+  ) {}
+
+  // Cafe24 validates redirect_uri against ONE registered value per app, so both the
+  // admin install and this customer flow share the already-registered callback
+  // (/auth/cafe24/callback); that controller dispatches by state. Overridable, and
+  // /public/.../callback still works if a second URI is ever registered.
+  private redirectUri(): string {
+    return (
+      process.env.CAFE24_CUSTOMER_REDIRECT_URI ??
+      process.env.CAFE24_REDIRECT_URI ??
+      'https://shoptalk.amoeba.site/api/v1/auth/cafe24/callback'
+    );
+  }
+
+  /** True when `state` belongs to an in-flight customer-auth (vs an admin install). */
+  async isCustomerAuthState(state: string): Promise<boolean> {
+    return state ? !!(await this.redis.get(`cafe24:cust:state:${state}`)) : false;
+  }
+  private scopes(): string {
+    return process.env.CAFE24_CUSTOMER_SCOPES ?? 'mall.read_customer_identifier';
+  }
+
+  /** Normalize a storefront host to a Cafe24 mall id, or null if it isn't one. */
+  private mallIdFromHost(host: string): string | null {
+    const h = host.trim().toLowerCase();
+    const m = /^([a-z0-9][a-z0-9_-]{1,59})\.cafe24\.com$/.exec(h);
+    const mall = m ? m[1] : h.replace(/\.cafe24(api)?\.com.*$/i, '');
+    return MALL_ID_RE.test(mall) ? mall : null;
+  }
+
+  /**
+   * Only ever redirect the browser back to the mall's own storefront — never an
+   * attacker-supplied origin. Accepts the mall's primary Cafe24 domain; anything
+   * else collapses to the mall root.
+   */
+  private safeReturnUrl(returnUrl: string, mallId: string): string {
+    const fallback = `https://${mallId}.cafe24.com/`;
+    try {
+      const u = new URL(returnUrl);
+      if (u.protocol !== 'https:') return fallback;
+      return u.hostname.toLowerCase() === `${mallId}.cafe24.com` ? u.toString() : fallback;
+    } catch {
+      return fallback;
+    }
+  }
+
+  /** Build the customer authorize URL for a storefront host. Called @Public. */
+  async start(host: string, returnUrl: string, popup = false): Promise<string> {
+    Cafe24TokenService.appConfig(); // E5010 if the app isn't configured
+    const mallId = this.mallIdFromHost(host);
+    if (!mallId) {
+      throw new BusinessException(ERROR_CODE.VALIDATION_FAILED, HttpStatus.BAD_REQUEST);
+    }
+    const tenantId = await this.tokenService.findTenantIdByMallId(mallId);
+    if (tenantId == null) {
+      throw new BusinessException(ERROR_CODE.CAFE24_NOT_CONNECTED, HttpStatus.NOT_FOUND);
+    }
+    const safeReturn = this.safeReturnUrl(returnUrl, mallId);
+    const state = randomBytes(16).toString('hex');
+    await this.redis.set(
+      `cafe24:cust:state:${state}`,
+      JSON.stringify({ tenantId, mallId, returnUrl: safeReturn, popup } satisfies CustomerAuthState),
+      STATE_TTL_SEC,
+    );
+    const { clientId } = Cafe24TokenService.appConfig();
+    const params = new URLSearchParams({
+      response_type: 'code',
+      client_id: clientId,
+      state,
+      redirect_uri: this.redirectUri(),
+      scope: this.scopes(),
+    });
+    return `${cafe24AuthHost(mallId)}/api/v2/oauth/authorize?${params.toString()}`;
+  }
+
+  /**
+   * Cafe24 redirects here with code+state. Verify, mint a customer access token,
+   * read the verified identifier, bind a session, and hand back a one-time ticket
+   * plus the storefront URL to return to. Never returns the session token in the URL.
+   */
+  async handleCallback(
+    query: Record<string, string>,
+  ): Promise<{ returnUrl: string; ticket: string; popup: boolean }> {
+    const code = query.code ?? '';
+    const state = query.state ?? '';
+    if (!code || !state) {
+      throw new BusinessException(ERROR_CODE.CAFE24_CUSTOMER_STATE_INVALID, HttpStatus.BAD_REQUEST);
+    }
+    const raw = await this.redis.get(`cafe24:cust:state:${state}`);
+    if (!raw) {
+      throw new BusinessException(ERROR_CODE.CAFE24_CUSTOMER_STATE_INVALID, HttpStatus.UNAUTHORIZED);
+    }
+    await this.redis.del(`cafe24:cust:state:${state}`);
+    const parsed = JSON.parse(raw) as CustomerAuthState;
+
+    const { accessToken, userId } = await this.exchangeCode(parsed.mallId, code);
+    const userIdentifier = await this.fetchIdentifier(parsed.mallId, accessToken);
+
+    const customer = await this.customerService.findOrCreateByCafe24Identifier(
+      parsed.tenantId,
+      userIdentifier,
+    );
+    // The token response also names the member's login id (`user_id`) — the direct
+    // join key to each order's member_id. Stamp it and adopt any orders synced
+    // before this member first signed in. Best-effort: identifier binding above is
+    // what the session stands on, so a hiccup here must not fail the sign-in.
+    if (userId) {
+      await this.customerService
+        .adoptCafe24MemberId(parsed.tenantId, customer.id, userId)
+        .catch((err: Error) =>
+          this.logger.warn(`cafe24 member-id adopt failed mall=${parsed.mallId}: ${err.message}`),
+        );
+    }
+    // Enrich the identifier-keyed row with the shopper's email + order history so
+    // "my orders" populates. Fire-and-forget (never blocks the sign-in handshake),
+    // exactly like the Shopify app-proxy identity path.
+    void this.backfillOrders(parsed.tenantId, parsed.mallId);
+
+    const session = await this.sessionService.findOrCreateForCustomer(
+      parsed.tenantId,
+      customer.id,
+    );
+    const ticket = randomBytes(24).toString('hex');
+    await this.redis.set(`cafe24:cust:ticket:${ticket}`, session.sessionToken, TICKET_TTL_SEC);
+    this.logger.log(
+      `customer-auth ok tenant=${parsed.tenantId} mall=${parsed.mallId} customer=${customer.id}`,
+    );
+    return { returnUrl: parsed.returnUrl, ticket, popup: parsed.popup === true };
+  }
+
+  /** Redeem a one-time ticket for the widget session token. Deletes on read. */
+  async exchangeTicket(ticket: string): Promise<{ sessionToken: string }> {
+    const key = `cafe24:cust:ticket:${ticket}`;
+    const token = ticket ? await this.redis.get(key) : null;
+    if (!token) {
+      throw new BusinessException(ERROR_CODE.CAFE24_CUSTOMER_TICKET_INVALID, HttpStatus.UNAUTHORIZED);
+    }
+    await this.redis.del(key);
+    return { sessionToken: token };
+  }
+
+  private async exchangeCode(
+    mallId: string,
+    code: string,
+  ): Promise<{ accessToken: string; userId: string | null }> {
+    const { clientId, clientSecret } = Cafe24TokenService.appConfig();
+    const basic = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
+    const res = await fetch(`${cafe24AuthHost(mallId)}/api/v2/oauth/token`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Basic ${basic}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        grant_type: 'authorization_code',
+        code,
+        redirect_uri: this.redirectUri(),
+      }).toString(),
+    });
+    if (!res.ok) {
+      this.logger.warn(`cafe24 customer token exchange failed mall=${mallId}: ${res.status}`);
+      throw new BusinessException(ERROR_CODE.CAFE24_CUSTOMER_TOKEN_FAILED, HttpStatus.BAD_GATEWAY);
+    }
+    const data = (await res.json()) as { access_token?: string; user_id?: string };
+    if (!data.access_token) {
+      throw new BusinessException(ERROR_CODE.CAFE24_CUSTOMER_TOKEN_FAILED, HttpStatus.BAD_GATEWAY);
+    }
+    // `user_id` is the member's login id, documented on the token response —
+    // tolerate its absence (identifier binding alone still signs the member in).
+    const userId = typeof data.user_id === 'string' && data.user_id.trim() ? data.user_id.trim() : null;
+    return { accessToken: data.access_token, userId };
+  }
+
+  private async fetchIdentifier(mallId: string, customerAccessToken: string): Promise<string> {
+    // Per Cafe24 docs the identifier endpoint takes `Authorization: Basic <token>`
+    // (the customer access token verbatim, not base64 client creds).
+    const res = await fetch(`${cafe24AuthHost(mallId)}/api/v2/customers/identifier`, {
+      method: 'GET',
+      headers: { Authorization: `Basic ${customerAccessToken}`, Accept: 'application/json' },
+    });
+    if (!res.ok) {
+      this.logger.warn(`cafe24 customer identifier failed mall=${mallId}: ${res.status}`);
+      throw new BusinessException(
+        ERROR_CODE.CAFE24_CUSTOMER_IDENTIFIER_FAILED,
+        HttpStatus.BAD_GATEWAY,
+      );
+    }
+    const data = (await res.json()) as { identifier?: { user_identifier?: string } };
+    const uid = data.identifier?.user_identifier;
+    if (!uid) {
+      throw new BusinessException(
+        ERROR_CODE.CAFE24_CUSTOMER_IDENTIFIER_FAILED,
+        HttpStatus.BAD_GATEWAY,
+      );
+    }
+    return uid;
+  }
+
+  /**
+   * Best-effort order backfill on sign-in. Order sync itself resolves each order's
+   * member_id → user_identifier (admin) and stamps/merges it onto the customer
+   * (J1 join), so a wide-window sync here enriches this member's row — including
+   * older orders — and the session (bound by user_identifier) inherits them. Never
+   * throws: the sign-in already succeeded; on any hiccup "my orders" simply stays
+   * empty until the next scheduled sync.
+   */
+  private async backfillOrders(tenantId: number, mallId: string): Promise<void> {
+    try {
+      // The widget's inline list windows to the last 30 days, so that's all the
+      // sign-in needs to freshen (Cafe24 caps a single query's range at 3 months —
+      // the env override stays clamped under it).
+      const lookback = Math.min(Number(process.env.CAFE24_LOGIN_SYNC_LOOKBACK_DAYS ?? 30), 90);
+      await this.syncService.syncOrders(tenantId, lookback);
+    } catch (err) {
+      this.logger.debug(
+        `cafe24 customer order backfill skipped mall=${mallId}: ${
+          err instanceof Error ? err.message : 'unknown'
+        }`,
+      );
+    }
+  }
+}

@@ -27,6 +27,26 @@ export function saveContactEmail(sessionToken: string, email: string): Promise<u
   return apiClient.post('/chat/contact-email', { session_token: sessionToken, email });
 }
 
+/** Customer ends the current conversation (PLN-260808 Track B). */
+export function endChat(
+  sessionToken: string,
+): Promise<{ ended: boolean; conversationId: string | null }> {
+  return apiClient.post('/chat/end', { session_token: sessionToken });
+}
+
+/** Star rating for a finished conversation (PLN-260810 P3). */
+export function rateChat(
+  sessionToken: string,
+  conversationId: string,
+  rating: number,
+): Promise<{ rating: number }> {
+  return apiClient.post('/chat/csat', {
+    session_token: sessionToken,
+    conversation_id: conversationId,
+    rating,
+  });
+}
+
 export function escalate(sessionToken: string, conversationId: string): Promise<unknown> {
   return apiClient.post('/chat/escalate', {
     session_token: sessionToken,

@@ -3,10 +3,12 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { isAuthError } from '../lib/errors';
 import {
+  endChat as endChatApi,
   escalate as escalateApi,
   getConversation,
   sendMessage,
   sendScenario,
+  rateChat,
 } from '../services/chatService';
 import type { ChatMessage, ChatReply, ScenarioPostAction } from '../lib/types';
 
@@ -34,6 +36,7 @@ export function useChat(sessionToken: string | null) {
   // 'none') — lets the UI say "an agent is typing…" instead of the AI wording
   // once the thread is handed off.
   const [status, setStatus] = useState<string>('none');
+  const [canRate, setCanRate] = useState(false);
   // Ref (not state) so the polling queryFn always sees the current value.
   const inFlight = useRef(false);
   // Highest server message id seen — the ?after_id= delta cursor (PERF-1).
@@ -48,6 +51,9 @@ export function useChat(sessionToken: string | null) {
       const conv = await getConversation(sessionToken!, after);
       if (!inFlight.current) {
         if (conv.status) setStatus(conv.status);
+        // The server decides whether rating is still open (24h window); the
+        // widget must not offer stars the API would refuse.
+        setCanRate(conv.canRate === true);
         if (conv.conversationId != null) setConversationId(String(conv.conversationId));
         const serverMsgs = conv.messages ?? [];
         trackCursor(lastServerId, serverMsgs);
@@ -82,6 +88,9 @@ export function useChat(sessionToken: string | null) {
       try {
         const res: ChatReply = await sendMessage(sessionToken, text);
         setConversationId(res.conversationId);
+        // A message after an ended thread opened a fresh conversation — clear
+        // the ended banner now rather than waiting for the next poll.
+        setStatus((s) => (s === 'ended' ? 'ai_active' : s));
         // reply === null → agent mode: the human reply arrives via polling.
         if (res.reply) {
           append({
@@ -176,7 +185,44 @@ export function useChat(sessionToken: string | null) {
     });
   }, [conversationId, sessionToken, append, t]);
 
-  return { messages, send, scenario, sending, status, escalate, append, conversationId };
+  /**
+   * Customer-side end chat (PLN-260808 Track B). The session (and sign-in)
+   * survives — the next message simply starts a fresh conversation.
+   */
+  const endChat = useCallback(async () => {
+    if (!sessionToken) return;
+    try {
+      await endChatApi(sessionToken);
+      setStatus('ended');
+    } catch {
+      append({
+        id: `err-${Date.now()}`,
+        senderType: 'system',
+        body: t('chat.sendFailed'),
+        createdAt: new Date().toISOString(),
+      });
+    }
+  }, [sessionToken, append, t]);
+
+  const rate = async (rating: number) => {
+    if (!sessionToken || !conversationId) return;
+    await rateChat(sessionToken, conversationId, rating);
+    setCanRate(false);
+  };
+
+  return {
+    messages,
+    send,
+    scenario,
+    sending,
+    status,
+    escalate,
+    endChat,
+    append,
+    conversationId,
+    canRate,
+    rate,
+  };
 }
 
 /**

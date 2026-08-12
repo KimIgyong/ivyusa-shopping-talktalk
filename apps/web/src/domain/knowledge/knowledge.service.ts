@@ -1,4 +1,4 @@
-import { apiGet, apiGetList, apiPost, apiPostForm, apiPatch, apiDelete } from '@/lib/api-client';
+import { apiGet, apiGetList, apiPost, apiPostForm, apiPatch, apiPut, apiDelete } from '@/lib/api-client';
 import type { Paginated } from '@/lib/types';
 
 /** Shapes mirror KnowledgeMapper (apps/api knowledge.mapper.ts). */
@@ -86,6 +86,63 @@ export interface CategoryCount {
   category: string | null;
   total: number;
   active: number;
+}
+
+/** Dry-run plan for the storefront catalogue → knowledge conversion (PLN-260807 P1). */
+export interface CatalogSyncPreview {
+  scanned: number;
+  families: number;
+  absorbed: number;
+  created: number;
+  updated: number;
+  curatedKept: number;
+  unchanged: number;
+  held: number;
+  heldSamples: Array<{ handle: string; title: string }>;
+  familySamples: Array<{ representative: string; absorbed: number; variants: string[] }>;
+}
+
+/** What a catalogue sync actually did. */
+export interface CatalogSyncResult extends Omit<CatalogSyncPreview, 'heldSamples' | 'familySamples'> {
+  embedded: number;
+  embedFailed: number;
+}
+
+/** An answer a chat handler wants to become knowledge (PLN-260810 S4). */
+export interface AnswerProposal {
+  id: string;
+  conversationId: string | null;
+  question: string;
+  answer: string;
+  status: 'pending' | 'approved' | 'rejected';
+  proposedBy: string;
+  rejectReason: string | null;
+  documentId: string | null;
+  createdAt: string;
+}
+
+/** One product type's usage guide and how many products it serves (PLN-260807 P2). */
+export interface UsageGuide {
+  key: string;
+  productCount: number;
+  documentId: string | null;
+  title: string | null;
+  updatedAt: string | null;
+}
+
+/** Live state of the async conversion (PLN-260807 P1 / RPT-260808 D3). */
+export interface CatalogSyncJob {
+  id: string;
+  status: 'idle' | 'running' | 'succeeded' | 'failed';
+  phase: 'planning' | 'writing' | 'embedding' | 'done';
+  written: number;
+  writeTotal: number;
+  embedded: number;
+  embedTotal: number;
+  result: CatalogSyncResult | null;
+  error: string | null;
+  startedAt: string;
+  finishedAt: string | null;
 }
 
 export interface ProductImportResult {
@@ -221,6 +278,23 @@ export const knowledgeService = {
     // multipart boundary and the server sees an empty body.
     return apiPostForm<ProductImportResult>('/knowledge/documents/import/product', form);
   },
+  previewCatalogSync: () =>
+    apiGet<CatalogSyncPreview>('/knowledge/documents/import/catalog/preview'),
+  syncCatalog: () => apiPost<CatalogSyncJob>('/knowledge/documents/import/catalog', {}),
+  catalogSyncStatus: () =>
+    apiGet<CatalogSyncJob | null>('/knowledge/documents/import/catalog/status'),
+  proposals: (status = 'pending') =>
+    apiGet<AnswerProposal[]>('/knowledge/proposals', { status }),
+  approveProposal: (id: string, body: { title?: string; category?: string; answer?: string }) =>
+    apiPost<AnswerProposal>(`/knowledge/proposals/${id}/approve`, body),
+  rejectProposal: (id: string, reason: string) =>
+    apiPost<AnswerProposal>(`/knowledge/proposals/${id}/reject`, { reason }),
+  usageGuides: () => apiGet<UsageGuide[]>('/knowledge/usage-guides'),
+  saveUsageGuide: (key: string, body: { title: string; content: string }) =>
+    apiPut<{ id: string; embedded: number; embedFailed: number }>(
+      `/knowledge/usage-guides/${key}`,
+      body,
+    ),
   ask: (question: string, language: string) =>
     apiPost<KnowledgeAnswer>('/knowledge/ask', { question, language }),
   conflicts: (params: { status?: string; page: number; size: number }) =>

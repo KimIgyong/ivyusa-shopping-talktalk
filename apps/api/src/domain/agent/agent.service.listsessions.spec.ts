@@ -155,3 +155,78 @@ describe('toSessionResponse', () => {
     expect(res.lastMessagePreview).toBeNull();
   });
 });
+
+/**
+ * Channel filter (PLN-260810 PR-M4). Rows written before external channels
+ * existed carry 'widget' or NULL, so the widget view must accept both or those
+ * conversations vanish from the console.
+ */
+describe('listSessions — channel filter', () => {
+  function buildChannel() {
+    const wheres: Array<{ clause: string; params?: Record<string, unknown> }> = [];
+    const qb: Record<string, unknown> = {
+      where: jest.fn(() => qb),
+      andWhere: jest.fn((clause: string, params?: Record<string, unknown>) => {
+        wheres.push({ clause, params });
+        return qb;
+      }),
+      orderBy: jest.fn(() => qb),
+      addOrderBy: jest.fn(() => qb),
+      skip: jest.fn(() => qb),
+      take: jest.fn(() => qb),
+      getManyAndCount: jest.fn(async () => [[], 0]),
+    };
+    const convRepo = { createQueryBuilder: () => qb, wheres };
+    const svc = new AgentService(
+      convRepo as never,
+      { createQueryBuilder: () => ({ select: () => ({ where: () => ({ getMany: async () => [] }) }) }) } as never,
+      {} as never,
+      { find: jest.fn(async () => []) } as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      { contactsByIds: jest.fn(async () => new Map()) } as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+    );
+    return { svc, convRepo };
+  }
+
+  it('filters by an external channel', async () => {
+    const { svc, convRepo } = buildChannel();
+    await svc.listSessions(1, 1, 50, undefined, 'all', 'telegram');
+    const clause = convRepo.wheres.find((w) => w.clause.includes('c.channel'));
+    expect(clause?.params).toMatchObject({ channel: 'telegram' });
+  });
+
+  it('treats widget as "widget or legacy NULL"', async () => {
+    const { svc, convRepo } = buildChannel();
+    await svc.listSessions(1, 1, 50, undefined, 'all', 'widget');
+    expect(convRepo.wheres.some((w) => w.clause.includes('c.channel IS NULL'))).toBe(true);
+  });
+
+  it('adds no channel clause for "all" or when omitted', async () => {
+    for (const channel of ['all', undefined]) {
+      const { svc, convRepo } = buildChannel();
+      await svc.listSessions(1, 1, 50, undefined, 'all', channel);
+      expect(convRepo.wheres.some((w) => w.clause.includes('c.channel'))).toBe(false);
+    }
+  });
+});
+
+/** The queue row carries the origin channel so the console can badge it. */
+describe('toSessionResponse — channel', () => {
+  it('passes the conversation channel through', () => {
+    const row = toSessionResponse({ id: 1, status: 'waiting', channel: 'kakao', escalated: 0 } as Conversation, null);
+    expect(row.channel).toBe('kakao');
+  });
+
+  it('defaults a legacy NULL channel to widget', () => {
+    const row = toSessionResponse({ id: 1, status: 'waiting', channel: null, escalated: 0 } as unknown as Conversation, null);
+    expect(row.channel).toBe('widget');
+  });
+});

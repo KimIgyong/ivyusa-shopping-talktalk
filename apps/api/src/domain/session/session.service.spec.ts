@@ -130,6 +130,27 @@ describe('SessionService consent (PLN-Privacy-Control-Gap Stage 1-2)', () => {
         privacyPolicyUrl: 'https://shop.example/privacy',
         consentNoticeVersion: 'v9',
         widgetLoginMode: 'redirect',
+        widgetCopy: expect.objectContaining({ firstVisit: {}, loginGreeting: {} }),
+      });
+    });
+
+    it('resolves widgetCopy.displayName: configured name wins, else the tenant name', async () => {
+      tenant!.name = 'IVY USA';
+      tenant!.widgetCopy = null;
+      await expect(svc.privacyNotice(1)).resolves.toMatchObject({
+        widgetCopy: { displayName: 'IVY USA', firstVisit: {}, loginGreeting: {} },
+      });
+      tenant!.widgetCopy = {
+        displayName: 'IVY 뷰티샵',
+        firstVisit: { KO: '어서오세요!' },
+        loginGreeting: {},
+      };
+      await expect(svc.privacyNotice(1)).resolves.toMatchObject({
+        widgetCopy: {
+          displayName: 'IVY 뷰티샵',
+          firstVisit: { KO: '어서오세요!' },
+          loginGreeting: {},
+        },
       });
     });
   });

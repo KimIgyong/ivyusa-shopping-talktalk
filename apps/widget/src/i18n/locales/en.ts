@@ -22,15 +22,23 @@ export const en = {
 
   chat: {
     welcome:
-      "Hi! Welcome to IVY USA. How can we help you today? Pick a topic below or type your question.",
+      'Hi! Welcome to {{shop}}. How can we help you today? Pick a topic below or type your question.',
     welcomeNamed:
-      'Hi {{name}}! Welcome back to IVY USA. How can we help you today? Pick a topic below or type your question.',
+      'Hi {{name}}! Welcome back to {{shop}}. How can we help you today? Pick a topic below or type your question.',
     aiDisclosure:
       'This chat is AI-powered. Messages you send are processed by a third-party AI service provider in the United States to generate responses.',
     citations: 'Knowledge referenced',
     inputPlaceholder: 'Type a message…',
     send: 'Send',
     sendFailed: "Sorry, that didn't go through. Please try again.",
+    endChat: 'End chat',
+    endConfirm: 'End this conversation?',
+    endCancel: 'Cancel',
+    endedNotice: 'This conversation has ended. Send a message to start a new one.',
+    csatQuestion: 'How satisfied were you with this chat?',
+    csatThanks: 'Thanks for the feedback 🙏',
+    csatDismiss: 'Close',
+    csatStar: '{{count}} star',
     connectingAgent: 'You are being connected to a support agent. Please hold on…',
     contactEmail: {
       title: 'Where should we send the answer?',
@@ -127,12 +135,40 @@ export const en = {
   },
 
   orders: {
+    issues: {
+      status: {
+        received: 'Received',
+        in_progress: 'In progress',
+        resolved: 'Resolved',
+        rejected: 'Declined',
+        closed: 'Completed',
+      },
+      type: {
+        order_status: 'Order status',
+        delivery: 'Delivery',
+        cancel: 'Cancellation',
+        refund: 'Refund',
+        partnership: 'Partnership',
+        other: 'Inquiry',
+      },
+      line: {
+        received: 'Your inquiry has been received. We are looking into it.',
+        in_progress: 'An agent has been assigned and is working on it.',
+        resolved: 'This inquiry has been resolved.',
+        rejected: 'This inquiry could not be processed. See the notification for details.',
+        closed: 'This inquiry has been completed. Thank you.',
+      },
+    },
     subtabs: {
       payments: 'Payments',
       shipping: 'Shipping',
       inquiries: 'Inquiries',
     },
     empty: 'No orders found.',
+    emptyRecent: 'No orders in the last 30 days.',
+    more: 'View more',
+    moreInMyPage: 'For your full order history, please check My Page on the store.',
+    viewAllOnMall: 'View all my orders',
     ask: 'Ask about this order',
     askMessage: 'I have a question about order #{{orderNumber}}.',
     trackingSteps: ['Preparing', 'Shipped', 'In transit', 'Delivered'],

@@ -17,5 +17,27 @@
   "usersOf": "Users — {{name}}",
   "usersOfSubtitle": "Invite staff, issue temporary passwords and control access for this tenant.",
   "usersEmpty": "No users in this tenant yet.",
-  "loginUrl": "Login page"
+  "loginUrl": "Login page",
+  "manageMenus": "Menus",
+  "menus": {
+    "title": "Provided menus — {{name}}",
+    "menu": "Menu",
+    "planDefault": "Plan default",
+    "thisTenant": "This tenant",
+    "result": "Result",
+    "provided": "Provided",
+    "notProvided": "Not provided",
+    "noPlan": "no plan",
+    "planCount": "Plan provides {{count}} of {{total}}",
+    "planHint": "Rows left on \"Follow plan\" change with the plan. The others stay pinned.",
+    "exceptions": "{{count}} exception(s) differ from the plan (*)",
+    "issuesNote": "The issue board also needs the tenant's workflow mode; providing it alone shows a notice instead.",
+    "mode": {
+      "plan": "Follow plan",
+      "on": "Force provide",
+      "off": "Withhold"
+    },
+    "saved": "Provided menus saved",
+    "saveError": "Could not save the provided menus"
+  }
 }

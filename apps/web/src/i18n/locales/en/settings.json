@@ -42,7 +42,17 @@
     "redirectHint": "Clicking \"Sign in\" takes the shopper to the store's login page in the same tab; after signing in they return and the widget reopens on their orders.",
     "popupHint": "Clicking \"Sign in\" opens the store's login page in a popup window. Popup blockers may interfere; if the login stays on shopify.com the shopper must close the popup manually.",
     "saved": "Widget settings saved.",
-    "saveError": "Failed to save widget settings."
+    "saveError": "Failed to save widget settings.",
+    "timezone": "Default language by timezone",
+    "tzUnset": "Not set (English default)",
+    "timezoneHint": "Sets the widget's default language when the shopper hasn't chosen one — Asia/Seoul → Korean, America/New_York → English.",
+    "copyTitle": "Widget copy",
+    "displayName": "Display name",
+    "displayNameHint": "Shown in the widget header and used as {shop} in greetings. Empty = tenant name.",
+    "firstVisit": "First-visit welcome message",
+    "firstVisitHint": "Shown when a shopper opens the chat. {shop} inserts the display name. Empty = default message.",
+    "loginGreeting": "Signed-in greeting",
+    "loginGreetingHint": "Shown when a signed-in shopper is recognized. {name} inserts the customer's name. Empty = default message."
   },
   "shopify": {
     "title": "Shopify connection",
@@ -97,7 +107,8 @@
         "step2": "Open layout/theme.liquid.",
         "step3": "Paste the snippet just before the </body> tag and Save."
       }
-    }
+    },
+    "nonShopifyDomain": "This is not a *.myshopify.com domain. The field doubles as the tenant store domain, so a Cafe24 or custom domain here is fine — it just means this store is not connected to Shopify."
   },
   "integrations": {
     "configured": "Saved — enter a new value to replace",
@@ -123,7 +134,12 @@
       "db": "Database",
       "username": "Username",
       "api_key": "API key",
-      "shop_domain": "Shop domain"
+      "shop_domain": "Shop domain",
+      "app_key": "App (store) key",
+      "secret_key": "Secret key",
+      "subdomain": "Account subdomain",
+      "email": "Account email",
+      "webhook_secret": "Webhook secret (L2 status)"
     },
     "ph": {
       "mall_id": "your-mall",
@@ -131,7 +147,10 @@
       "url": "https://my-odoo.example.com",
       "db": "odoo-db",
       "username": "user@example.com",
-      "shop_domain": "your-store.myharavan.com"
+      "shop_domain": "your-store.myharavan.com",
+      "subdomain": "your-company (from your-company.gorgias.com)",
+      "email": "agent@example.com",
+      "app_key": "yotpo app key"
     },
     "cafe24": {
       "title": "Cafe24",
@@ -148,6 +167,18 @@
     "haravan": {
       "title": "Haravan",
       "subtitle": "Connect your Haravan store with an Admin API access token."
+    },
+    "klaviyo": {
+      "title": "Klaviyo",
+      "subtitle": "Email/SMS marketing — connect with your private API key."
+    },
+    "yotpo": {
+      "title": "Yotpo",
+      "subtitle": "Reviews & loyalty — connect with your app key and secret."
+    },
+    "gorgias": {
+      "title": "Gorgias",
+      "subtitle": "Helpdesk — escalated chats can be handed off as Gorgias tickets."
     }
   },
   "install": {
@@ -175,6 +206,186 @@
     "title": "Storefront",
     "url": "Shop URL",
     "hint": "Used to verify product links before showing them to customers. Only links on this origin appear in chat.",
-    "unsetWarning": "Not set — product recommendations will not appear as links in the chat widget."
+    "unsetWarning": "Not set — product recommendations will not appear as links in the chat widget.",
+    "shopDomain": "Store domain",
+    "shopDomainHint": "Identifies this tenant to the chat widget. Any platform's domain — Shopify, Cafe24, or your own — as long as it matches the site the widget runs on."
+  },
+  "cafe24": {
+    "oauth": {
+      "title": "Cafe24 (OAuth)",
+      "hint": "Connect your Cafe24 mall via OAuth to pull its orders and products into ShopTalk.",
+      "status": "Status",
+      "mallId": "Mall ID",
+      "connect": "Connect Cafe24",
+      "syncNow": "Sync now",
+      "connectedToast": "Cafe24 connected: {{mall}}",
+      "connectFailed": "Cafe24 connection failed",
+      "syncFailed": "Cafe24 sync failed",
+      "syncProducts": "Import products",
+      "productsSynced": "{{synced}} product(s) synced, {{archived}} archived — run the conversion on the Knowledge page",
+      "syncProductsFailed": "Cafe24 product import failed",
+      "errorInvalidScope": "Cafe24 rejected the requested permissions (invalid_scope) — add them to the app in Cafe24 Developers, then connect again",
+      "errorAccessDenied": "Cafe24 consent was denied (access_denied) — retry as the mall’s primary operator account"
+    }
+  },
+  "marketingTitle": "Marketing integrations",
+  "helpdeskTitle": "Helpdesk integrations",
+  "messenger": {
+    "groupTitle": "External messenger channels",
+    "groupHint": "Messages arrive in Live Chat and ShopTalk's AI answers on the same channel.",
+    "communicationTitle": "Communication",
+    "communicationHint": "Company mailboxes handled as conversations.",
+    "loading": "Loading channels…",
+    "label": "Display name",
+    "credential": "Credential",
+    "stored": "Stored — type to replace",
+    "autoReply": "AI auto-reply",
+    "consentMode": "Consent handling",
+    "on": "On",
+    "off": "Off",
+    "enabledLabel": "Channel",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "lastInbound": "Last inbound",
+    "lastError": "Last error",
+    "connectionStatus": "Connection",
+    "test": "Test connection",
+    "testing": "Testing…",
+    "testOk": "Connected — {{detail}}",
+    "testFailed": "Connection failed — {{detail}}",
+    "registerWebhook": "Register receive URL",
+    "webhookRegistered": "Receive URL registered with the provider.",
+    "webhookRegisterError": "Could not register the receive URL.",
+    "webhookUrl": "Receive URL",
+    "webhookHint": "Register it with the provider, or use the button below.",
+    "copy": "Copy",
+    "copied": "Copied.",
+    "copyFailed": "Copy failed.",
+    "saved": "Channel saved.",
+    "saveError": "Could not save the channel.",
+    "disconnect": "Disconnect",
+    "disconnected": "Channel disconnected.",
+    "disconnectError": "Could not disconnect the channel.",
+    "plannedHint": "Not available in this build yet.",
+    "unofficialWarning": "Unofficial channel: messages are relayed by an agent the merchant installs on their own device, and the merchant starts and stops it. AI auto-reply is off by default.",
+    "state": {
+      "connected": "Connected",
+      "error": "Error",
+      "unknown": "Not tested",
+      "planned": "Planned"
+    },
+    "consent": {
+      "notice": "Send a privacy notice on first contact",
+      "auto": "Rely on the platform's terms"
+    },
+    "fields": {
+      "bot_token": "Bot token",
+      "auth_token": "Auth token",
+      "email": "Account email",
+      "password": "Password",
+      "company_id": "Company (workspace) ID",
+      "base_url": "Server URL",
+      "imap_host": "IMAP host",
+      "smtp_host": "SMTP host",
+      "app_password": "App password",
+      "social_types": "Inbound channels",
+      "sender_name": "Sender name"
+    },
+    "ph": {
+      "social_types": "zalo, line, whatsapp",
+      "sender_name": "Support"
+    },
+    "provider": {
+      "telegram": {
+        "title": "Telegram",
+        "subtitle": "Direct — bot token, no platform review",
+        "defaultLabel": "Telegram"
+      },
+      "viber": {
+        "title": "Viber",
+        "subtitle": "Direct — public account token",
+        "defaultLabel": "Viber"
+      },
+      "amoebatalk": {
+        "title": "AmoebaTalk hub",
+        "subtitle": "Carries Zalo / LINE / WhatsApp with reviews already cleared",
+        "defaultLabel": "AmoebaTalk"
+      },
+      "btbz_relay": {
+        "title": "btbz messenger relay",
+        "subtitle": "KakaoTalk rooms + inbound SMS via the merchant's own device",
+        "defaultLabel": "btbz relay"
+      },
+      "gmail": {
+        "title": "Gmail",
+        "subtitle": "Work mailbox over IMAP/SMTP (app password)",
+        "defaultLabel": "Work 1"
+      },
+      "zalo": {
+        "title": "Zalo",
+        "subtitle": "Via the AmoebaTalk hub"
+      },
+      "line": {
+        "title": "LINE",
+        "subtitle": "Via the AmoebaTalk hub"
+      },
+      "whatsapp": {
+        "title": "WhatsApp",
+        "subtitle": "Via the AmoebaTalk hub"
+      }
+    },
+    "syncNow": "Fetch now",
+    "syncOk": "Fetched {{count}} new message(s).",
+    "syncFailed": "Fetch failed — {{detail}}",
+    "syncInactive": "Fetched {{count}} message(s), but this channel is disabled — nothing will arrive on its own until you enable it.",
+    "inactiveWarning": "Disabled — not receiving. Open Configure and set the channel to Enabled.",
+    "autoReplyScope": "Applies to messages received from now on. Each conversation can override it in Live Chat.",
+    "mode": {
+      "auto": "Auto — the AI answers by itself",
+      "approve": "Needs approval — the AI drafts, an agent sends",
+      "off": "Off"
+    }
+  },
+  "menuAccess": {
+    "title": "Menu access",
+    "subtitle": "Decide which console screens your team reaches. Greyed-out menus are not included in your plan.",
+    "tabRoles": "Role defaults",
+    "tabUsers": "Member exceptions",
+    "rankColumn": "Rank",
+    "menu": "Menu",
+    "member": "Member",
+    "exceptions": "Exceptions",
+    "edit": "Edit",
+    "editFor": "Exceptions — {{who}} ({{rank}})",
+    "rankDefault": "Rank default",
+    "thisUser": "This member",
+    "result": "Result",
+    "allowed": "Allowed",
+    "blocked": "Blocked",
+    "notProvided": "Not in plan",
+    "canAccess": "Can access",
+    "cannotAccess": "No access",
+    "readOnly": "read-only",
+    "masterExempt": "not subject to exceptions",
+    "save": "Save role defaults",
+    "saved": "Menu access saved",
+    "saveError": "Could not save menu access",
+    "loading": "Loading…",
+    "needsLabel": "(needs {{label}})",
+    "masterNote": "Master always reaches every menu your plan provides, so it cannot be locked out.",
+    "labelNote": "Menus marked with a job label stay hidden from members without it. To open one for a single person regardless, use a member exception.",
+    "notProvidedNote": "Struck-through menus are not provided by your plan; contact the platform admin to add them.",
+    "allowWaivesLabel": "\"Allow\" also waives the job-label requirement for this member. Actions inside the screen still follow their rank and labels.",
+    "mode": {
+      "default": "Rank default",
+      "allow": "Allow",
+      "deny": "Block"
+    },
+    "rank": {
+      "master": "Master",
+      "director": "Director",
+      "manager": "Manager",
+      "staff": "Staff"
+    }
   }
 }

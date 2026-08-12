@@ -1,5 +1,5 @@
 import { DOC_GROUP } from '../../entity/kb-document.entity';
-import { IsIn, IsInt, IsObject, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsIn, IsInt, IsObject, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
 
 /** Knowledge source ingestion modes (FR-064). */
 export const KNOWLEDGE_SOURCE_TYPES = ['board', 'repository', 'gdrive'] as const;
@@ -85,4 +85,33 @@ export class AskKnowledgeRequest {
 export class CreatePostRequest {
   @IsString() title: string;
   @IsOptional() @IsString() body?: string;
+}
+
+/** Usage guide body for one product type (PLN-260807 P2). */
+export class SaveUsageGuideRequest {
+  @IsString() @MaxLength(255) title: string;
+  @IsString() @MinLength(20) @MaxLength(20000) content: string;
+}
+
+/** POST /knowledge/gap-tasks/:id/accept — 승인 전 인라인 편집(P5). */
+export class AcceptGapTaskRequest {
+  @IsOptional() @IsString() @MaxLength(300) title?: string;
+  @IsOptional() @IsString() content?: string;
+}
+
+/** Chat handler proposes an answer for the knowledge base (PLN-260810 S4). */
+export class ProposeAnswerRequest {
+  @IsOptional() @IsInt() conversation_id?: number;
+  @IsString() @MaxLength(500) question: string;
+  @IsString() @MinLength(10) answer: string;
+}
+
+export class ApproveProposalRequest {
+  @IsOptional() @IsString() @MaxLength(255) title?: string;
+  @IsOptional() @IsString() @MaxLength(64) category?: string;
+  @IsOptional() @IsString() answer?: string;
+}
+
+export class RejectProposalRequest {
+  @IsString() @MinLength(2) @MaxLength(500) reason: string;
 }

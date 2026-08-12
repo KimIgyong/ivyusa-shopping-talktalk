@@ -1,11 +1,16 @@
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, Unique, UpdateDateColumn } from 'typeorm';
 import { bigintTransformer, decimalTransformer } from '../../../global/util/transformers';
 
-/** orders_cache — Shopify/Odoo order cache (FR-020). */
+/** orders_cache — multi-channel order cache (Shopify/Cafe24/Odoo…) (FR-020). */
 // Dashboard/list range scans per tenant (PERF-6).
 @Index('idx_ordc_tenant_created', ['tenantId', 'createdAt'])
 @Entity('orders_cache')
-@Unique('uk_orders_shopify', ['shopifyOrderId'])
+// Channel-scoped unique so the same external order id can exist under different
+// (tenant, provider) pairs — Cafe24 order "20260807-001" ≠ a Shopify order (PLN-260807).
+@Unique('uk_orders_channel', ['tenantId', 'provider', 'shopifyOrderId'])
+// Retro-link scans on sign-in (member_id → customer) and recent-orders windows.
+@Index('idx_ordc_tenant_member', ['tenantId', 'memberId'])
+@Index('idx_ordc_tenant_ordered', ['tenantId', 'orderedAt'])
 export class OrderCache {
   @PrimaryGeneratedColumn({ type: 'bigint' })
   id: number;
@@ -14,12 +19,23 @@ export class OrderCache {
   @Index('idx_ordc_tenant')
   tenantId: number | null;
 
+  /** Commerce platform this order came from — INTEGRATION_PROVIDER value. */
+  @Column({ type: 'varchar', length: 16, default: 'shopify' })
+  provider: string;
+
+  // The channel's order id (column name kept for back-compat; holds the Cafe24
+  // order_id for provider='cafe24', the Shopify order id for provider='shopify').
   @Column({ name: 'shopify_order_id', type: 'varchar', length: 64 })
   shopifyOrderId: string;
 
   @Column({ name: 'customer_id', type: 'bigint', nullable: true, transformer: bigintTransformer })
   @Index('idx_orders_customer')
   customerId: number | null;
+
+  // Platform member login id on the order (Cafe24 member_id). Kept even while the
+  // customer link is unresolved so a later sign-in can retro-link by member id.
+  @Column({ name: 'member_id', type: 'varchar', length: 64, nullable: true })
+  memberId: string | null;
 
   @Column({ name: 'order_number', type: 'varchar', length: 32 })
   @Index('idx_orders_number')
@@ -36,6 +52,11 @@ export class OrderCache {
 
   @Column({ type: 'varchar', length: 8, nullable: true, default: 'USD' })
   currency: string | null;
+
+  // When the order was PLACED on the platform (Cafe24 order_date). created_at is
+  // only the cache-insert time — a backfilled old order would otherwise read "today".
+  @Column({ name: 'ordered_at', type: 'datetime', nullable: true })
+  orderedAt: Date | null;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

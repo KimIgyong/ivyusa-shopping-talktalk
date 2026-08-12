@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { INTEGRATION_FIELDS, type EcommerceProvider } from './integration-providers';
+import { INTEGRATION_FIELDS, type GenericIntegrationProvider } from './integration-providers';
 import { Badge } from '@/components/Badge';
 import { Button } from '@/components/Button';
 import { Modal } from '@/components/Modal';
@@ -24,7 +24,7 @@ export function IntegrationConfigModal({
   open,
   onClose,
 }: {
-  provider: EcommerceProvider;
+  provider: GenericIntegrationProvider;
   open: boolean;
   onClose: () => void;
 }) {

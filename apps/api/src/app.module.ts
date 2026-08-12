@@ -16,8 +16,11 @@ import { RequestContextMiddleware } from './global/middleware/request-context.mi
 import { AuthModule } from './domain/auth/auth.module';
 import { SessionModule } from './domain/session/session.module';
 import { ChatModule } from './domain/chat/chat.module';
+import { AnswerReuseModule } from './domain/answer-reuse/answer-reuse.module';
+import { IssueModule } from './domain/issue/issue.module';
 import { ModerationModule } from './domain/moderation/moderation.module';
 import { TenantModule } from './domain/tenant/tenant.module';
+import { MenuAccessModule } from './domain/menu-access/menu-access.module';
 import { UserModule } from './domain/user/user.module';
 import { OrderModule } from './domain/order/order.module';
 import { ProductModule } from './domain/product/product.module';
@@ -35,6 +38,7 @@ import { KnowledgeModule } from './domain/knowledge/knowledge.module';
 import { CampaignModule } from './domain/campaign/campaign.module';
 import { CjmModule } from './domain/cjm/cjm.module';
 import { IntegrationModule } from './domain/integration/integration.module';
+import { MessengerModule } from './domain/messenger/messenger.module';
 import { AgentModule } from './domain/agent/agent.module';
 import { AuditModule } from './domain/audit/audit.module';
 import { AiEngineModule } from './domain/ai-engine/ai-engine.module';
@@ -44,6 +48,7 @@ import { CustomerModule } from './domain/customer/customer.module';
 import { PrivacyModule } from './domain/privacy/privacy.module';
 import { HealthModule } from './domain/health/health.module';
 import { ShopifyOAuthModule } from './domain/shopify-oauth/shopify-oauth.module';
+import { Cafe24Module } from './domain/cafe24/cafe24.module';
 import { ShopifyProxyModule } from './domain/shopify-proxy/shopify-proxy.module';
 
 @Module({
@@ -67,13 +72,17 @@ import { ShopifyProxyModule } from './domain/shopify-proxy/shopify-proxy.module'
     AuthModule,
     SessionModule,
     ChatModule,
+    AnswerReuseModule,
+    IssueModule,
     ModerationModule,
     TenantModule,
+    MenuAccessModule,
     UserModule,
     CustomerModule,
     OrderModule,
     ProductModule,
     ShopifyOAuthModule,
+    Cafe24Module,
     ShopifyProxyModule,
     NotificationModule,
     PushModule,
@@ -89,6 +98,7 @@ import { ShopifyProxyModule } from './domain/shopify-proxy/shopify-proxy.module'
     CampaignModule,
     CjmModule,
     IntegrationModule,
+    MessengerModule,
     AgentModule,
     AuditModule,
     AiEngineModule,

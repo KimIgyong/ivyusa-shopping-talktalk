@@ -1,6 +1,13 @@
 import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, Unique, UpdateDateColumn } from 'typeorm';
 import { bigintTransformer } from '../../../global/util/transformers';
 
+/** Shape of the `widget_copy` JSON column; languages keyed EN/ES/KO. */
+export interface TenantWidgetCopy {
+  displayName?: string | null;
+  firstVisit?: Record<string, string>;
+  loginGreeting?: Record<string, string>;
+}
+
 /** tenants — a tenant = a Shopify shop (FR-051). */
 @Entity('tenants')
 @Unique('uk_tenant_shop', ['shopDomain'])
@@ -61,6 +68,27 @@ export class Tenant {
   /** Widget "Sign in" behavior: 'redirect' (whole-tab, default) or 'popup'. */
   @Column({ name: 'widget_login_mode', type: 'varchar', length: 16, default: 'redirect' })
   widgetLoginMode: string;
+
+  /**
+   * Tenant-configurable widget copy (PLN-260808-Widget-Greetings): display name,
+   * first-visit welcome, login greeting — per-language JSON blob so future copy
+   * additions need no migration. Null/missing fields fall back to widget defaults.
+   */
+  @Column({ name: 'widget_copy', type: 'json', nullable: true })
+  widgetCopy: TenantWidgetCopy | null;
+
+  /**
+   * Issue-workflow entitlement (REQ-260807 §11.1, server-judged):
+   * 'native' (paid add-on: kanban/state machine) | 'bridge' (external helpdesk
+   * hand-off) | 'base' (chat list only, default — behavior unchanged).
+   */
+  @Column({ name: 'workflow_mode', type: 'varchar', length: 8, default: 'base' })
+  workflowMode: string;
+
+  // IANA timezone (e.g. 'Asia/Seoul', 'America/New_York'). Drives the default
+  // widget language when the shopper hasn't picked one (Seoul → ko, US → en).
+  @Column({ type: 'varchar', length: 40, nullable: true })
+  timezone: string | null;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

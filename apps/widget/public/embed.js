@@ -66,7 +66,13 @@
   if (document.getElementById('ivy-talktalk-frame')) return; // idempotent
 
   var cfg = window.IVY_WIDGET_CONFIG || {};
-  var shop = cfg.shop || (window.Shopify && window.Shopify.shop) || '';
+  // Cafe24 malls rarely set data-shop and expose no window.Shopify — but the page
+  // host IS the mall host, so fall back to it there. Without `shop` the widget
+  // can't render its "my page" order-history link.
+  var pageHost = (window.location.hostname || '').toLowerCase();
+  var isCafe24Host = /(^|\.)cafe24\.com$/.test(pageHost);
+  var shop =
+    cfg.shop || (window.Shopify && window.Shopify.shop) || (isCafe24Host ? pageHost : '');
   var base = String(cfg.widgetUrl || 'https://widget.ivyusa.app').replace(/\/+$/, '');
   // Origin only (scheme+host+port) — `base` may carry a sub-path (e.g. /widget),
   // but postMessage e.origin never includes a path, so compare against the origin.
@@ -106,10 +112,22 @@
   // verified logged_in_customer_id, letting the backend hand us a customer-bound
   // session token. Override with IVY_WIDGET_CONFIG.proxyPath if you use another.
   var proxyBase = String(cfg.proxyPath || '/apps/ivy').replace(/\/+$/, '');
-  // Storefront sign-in entrypoint. `/customer_authentication/login` is the
-  // canonical path that works for both classic and New Customer Accounts (it
-  // redirects to the store's hosted account login). Override if the store differs.
-  var loginPath = String(cfg.loginPath || '/customer_authentication/login');
+  // ShopTalk API base (same origin as the widget by default). Cafe24 has no App
+  // Proxy, so member sign-in runs through these public customer-auth endpoints.
+  var apiBase = String(cfg.apiBase || baseOrigin + '/api/v1').replace(/\/+$/, '');
+  // Storefront sign-in entrypoint. The login page + its return-URL parameter differ
+  // per commerce platform, auto-detected from the storefront host so it works with
+  // no per-mall config (cfg.loginPath / cfg.loginReturnParam still override, e.g. a
+  // Cafe24 mall on a custom domain):
+  //   Cafe24 classic mall (*.cafe24.com): /member/login.html?returnUrl=<page>
+  //   Shopify (*.myshopify.com / other):  /account/login?return_url=<page>
+  // Cafe24 has no credential-login API and its member session lives on the mall
+  // origin (unreadable from this cross-origin iframe), so login must happen in the
+  // top window here, then the reopen flag brings the widget back up (PLN-260807).
+  var loginPath = String(cfg.loginPath || (isCafe24Host ? '/member/login.html' : '/account/login'));
+  var loginReturnParam = String(
+    cfg.loginReturnParam || (isCafe24Host ? 'returnUrl' : 'return_url'),
+  );
   var identity = null; // resolved { authenticated, sessionToken } from the proxy
   var identityResolved = false; // the proxy answered (either way) — see below
   var widgetReady = false; // set once the widget iframe posts ivy:ready
@@ -235,16 +253,20 @@
   // so this loader runs again in the popup. Every part is same-origin and
   // loader-derived — no caller/URL input flows in, so there's no open redirect.
   function buildLoginUrl() {
+    // Return the shopper to the page they were on, so the reopen flag can bring the
+    // widget back up on the orders tab. Only the platform-correct return param is
+    // sent (Cafe24 classic wants `returnUrl`, not `return_to`); extra query, if any,
+    // comes from cfg.loginExtraQuery.
     var returnTo = window.location.pathname + window.location.search;
-    return (
+    var url =
       window.location.origin +
       loginPath +
-      '?return_to=' +
-      encodeURIComponent(returnTo) +
-      '&locale=' +
-      encodeURIComponent(locale) +
-      '&ui_hint=full'
-    );
+      (loginPath.indexOf('?') >= 0 ? '&' : '?') +
+      loginReturnParam +
+      '=' +
+      encodeURIComponent(returnTo);
+    if (cfg.loginExtraQuery) url += '&' + String(cfg.loginExtraQuery).replace(/^[?&]/, '');
+    return url;
   }
 
   // Redirect-mode sign-in: navigate this whole tab to the store's login page.
@@ -252,8 +274,118 @@
   // the current page (`return_to`), where the identity handshake authenticates
   // the widget and the reopen flag brings it back up on the orders tab.
   function redirectToLogin() {
+    // Cafe24 has no signed app-proxy identity, so a bare login to /member/login.html
+    // would sign the shopper in on the mall but tell the widget nothing. Route through
+    // the customer-auth flow instead: its authorize step handles the mall login when
+    // needed, then the callback returns a one-time ticket the widget redeems (P-A2).
+    if (isCafe24Host) {
+      startCafe24Login();
+      return;
+    }
     setReopenFlag('orders');
     window.location.assign(buildLoginUrl());
+  }
+
+  // Begin Cafe24 member authentication: navigate the top window to the backend
+  // start endpoint, which redirects to the mall's customer authorize. `return` is
+  // the current page (fragment stripped) so the callback can bring us back here with
+  // the sign-in ticket; the reopen flag reopens the widget on the orders tab.
+  function startCafe24Login() {
+    setReopenFlag('orders');
+    var ret = window.location.href.split('#')[0];
+    window.location.assign(
+      apiBase +
+        '/public/cafe24/customer-auth/start?shop=' +
+        encodeURIComponent(window.location.hostname) +
+        '&return=' +
+        encodeURIComponent(ret),
+    );
+  }
+
+  // Redeem a one-time Cafe24 sign-in ticket for a widget session token. Resolves to
+  // true on success (identity set), false otherwise. Shared by the redirect-return
+  // path and the popup path.
+  function exchangeCafe24Ticket(ticket) {
+    return fetch(apiBase + '/public/cafe24/customer-auth/exchange', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', accept: 'application/json' },
+      body: JSON.stringify({ ticket: ticket }),
+    })
+      .then(function (r) {
+        return r.ok ? r.json() : null;
+      })
+      .then(function (j) {
+        // Unwrap the standard { success, data } envelope (or a bare body).
+        var token = j && ((j.data && j.data.sessionToken) || j.sessionToken);
+        if (token) {
+          identity = { authenticated: true, sessionToken: token };
+          return true;
+        }
+        return false;
+      })
+      .catch(function () {
+        return false;
+      });
+  }
+
+  // On return from a top-window Cafe24 sign-in, redeem the `#ivy_ticket`. Returns true
+  // when a ticket was present. The ticket is stripped from the URL immediately so a
+  // reload can't replay it (it is also one-time server-side).
+  function consumeCafe24Ticket() {
+    var m = /[#&]ivy_ticket=([^&]+)/.exec(window.location.hash || '');
+    if (!m) return false;
+    var ticket = decodeURIComponent(m[1]);
+    try {
+      history.replaceState(null, '', window.location.pathname + window.location.search);
+    } catch (_) {
+      /* history unavailable — the ticket is one-time server-side anyway */
+    }
+    exchangeCafe24Ticket(ticket).then(function () {
+      identityResolved = true;
+      maybeSendIdentity();
+    });
+    return true;
+  }
+
+  // In-widget sign-in: open the Cafe24 customer-auth in a popup so the storefront page
+  // and the widget never navigate. The popup runs the mall login + authorize; its
+  // callback posts the ticket back here (ivy:cafe24-ticket), which we redeem. Falls
+  // back to a full-tab redirect when the popup is blocked.
+  var cafe24TicketSeen = false;
+  function openCafe24LoginPopup() {
+    if (authPopup && !authPopup.closed) {
+      authPopup.focus();
+      return;
+    }
+    cafe24TicketSeen = false;
+    var ret = window.location.href.split('#')[0];
+    var url =
+      apiBase +
+      '/public/cafe24/customer-auth/start?mode=popup&shop=' +
+      encodeURIComponent(window.location.hostname) +
+      '&return=' +
+      encodeURIComponent(ret);
+    var w = 480;
+    var h = 720;
+    var x = Math.max(0, (window.outerWidth - w) / 2 + (window.screenX || 0));
+    var y = Math.max(0, (window.outerHeight - h) / 2 + (window.screenY || 0));
+    authPopup = window.open(
+      url,
+      'ivy_cafe24_auth',
+      'width=' + w + ',height=' + h + ',left=' + Math.round(x) + ',top=' + Math.round(y),
+    );
+    if (!authPopup) {
+      // Popup blocked — fall back to the full-tab flow so sign-in still works.
+      startCafe24Login();
+      return;
+    }
+    authWatch = setInterval(function () {
+      if (!authPopup || authPopup.closed) {
+        stopAuthWatch();
+        // Closed without delivering a ticket → treat as cancelled.
+        if (!cafe24TicketSeen) sendToWidget({ type: 'ivy:login-cancelled' });
+      }
+    }, 700);
   }
 
   // Open the sign-in popup and watch for its return. Called only in response to
@@ -336,24 +468,58 @@
       // popup return leg doesn't fire when Shopify's hosted login keeps the
       // popup on shopify.com).
       if (e.source === frame.contentWindow) {
-        if (d.mode === 'popup') openLoginPopup();
-        else redirectToLogin();
+        if (isCafe24Host) {
+          // Cafe24 supports both: popup keeps the storefront + widget in place;
+          // redirect navigates the tab through the mall login. Honor the mode.
+          if (d.mode === 'popup') openCafe24LoginPopup();
+          else redirectToLogin();
+        } else if (d.mode === 'popup') {
+          openLoginPopup();
+        } else {
+          redirectToLogin();
+        }
       }
+    } else if (d.type === 'ivy:cafe24-ticket') {
+      // The Cafe24 sign-in popup (served by our API origin) posts the one-time
+      // ticket here. Redeem it, authenticate the widget, and close the popup — the
+      // storefront page never navigated.
+      cafe24TicketSeen = true;
+      if (authPopup && !authPopup.closed) {
+        try {
+          authPopup.close();
+        } catch (_) {
+          /* ignore */
+        }
+      }
+      stopAuthWatch();
+      exchangeCafe24Ticket(d.ticket).then(function (ok) {
+        identityResolved = true;
+        if (ok) maybeSendIdentity();
+        else sendToWidget({ type: 'ivy:login-cancelled' });
+      });
     } else if (d.type === 'ivy:signin') {
       // Back-compat with widgets that predate the popup flow: the sandboxed
-      // iframe cannot navigate the store page itself, so do it here.
-      // Storefront-relative so it works with classic and new customer accounts;
-      // after sign-in the app-proxy identity handshake authenticates the widget.
-      window.location.assign('/account/login');
+      // iframe cannot navigate the store page itself, so do it here. Uses the same
+      // platform-configured login URL as the modern flow (not a hardcoded path).
+      redirectToLogin();
     }
   });
 
   // Passive identity check on load: start authenticated if a customer is already
   // signed in. Any failure simply leaves the widget anonymous; never blocks render.
   // Either way we mark the question answered so the widget stops waiting.
-  fetchIdentity().then(function (j) {
-    if (j && j.authenticated && j.sessionToken) identity = j;
-    identityResolved = true;
-    maybeSendIdentity();
-  });
+  if (isCafe24Host) {
+    // No app proxy on Cafe24 — identity arrives only via the customer-auth ticket on
+    // the return leg. If there's no ticket, the shopper is simply anonymous.
+    if (!consumeCafe24Ticket()) {
+      identityResolved = true;
+      maybeSendIdentity();
+    }
+  } else {
+    fetchIdentity().then(function (j) {
+      if (j && j.authenticated && j.sessionToken) identity = j;
+      identityResolved = true;
+      maybeSendIdentity();
+    });
+  }
 })();

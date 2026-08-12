@@ -17,6 +17,8 @@ export class OrderListQuery {
   @IsOptional() @IsString() session_token?: string;
   @IsOptional() @IsString() page?: string;
   @IsOptional() @IsString() size?: string;
+  /** Only orders placed in the last N days (1–90); absent = no window. */
+  @IsOptional() @IsString() days?: string;
 }
 
 /** POST /webhooks/fulfillment — external fulfillment update (FR-021). */

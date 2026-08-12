@@ -15,7 +15,7 @@ import { UserService } from './user.service';
 import { MfaService } from '../auth/mfa.service';
 import { Paginated } from '../../global/interceptor/transform.interceptor';
 import { Public } from '../../global/decorator/public.decorator';
-import { RequireCapability, RequireRank } from '../../global/decorator/auth.decorator';
+import { RequireCapability, RequireMenu, RequireRank } from '../../global/decorator/auth.decorator';
 import { CurrentUser } from '../../global/decorator/current-user.decorator';
 import { asTenantUser } from './user-principal.util';
 import {
@@ -28,6 +28,8 @@ import {
 
 @ApiTags('Users')
 @Controller('users')
+// Screen gate (PLN-260812 S4).
+@RequireMenu('users')
 export class UserController {
   constructor(
     private readonly userService: UserService,

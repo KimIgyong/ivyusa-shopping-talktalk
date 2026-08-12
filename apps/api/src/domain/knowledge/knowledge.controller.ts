@@ -7,17 +7,20 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Put,
   Query,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { HttpStatus } from '@nestjs/common';
+import { HttpCode, HttpStatus } from '@nestjs/common';
 import { CAPABILITY, Principal } from '@ivy/types';
 import { Paginated } from '../../global/interceptor/transform.interceptor';
 import { buildPagination, normalizePage } from '@ivy/common';
-import { RequireCapability } from '../../global/decorator/auth.decorator';
+import { RequireCapability, RequireMenu } from '../../global/decorator/auth.decorator';
+import { CatalogSyncJobService } from './catalog-sync-job.service';
+import { AnswerProposalService } from './answer-proposal.service';
 import { CurrentUser } from '../../global/decorator/current-user.decorator';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
@@ -33,19 +36,67 @@ import {
   ResolveConflictRequest,
   UpdateDocumentRequest,
   UpdateSourceRequest,
+  SaveUsageGuideRequest,
+  ApproveProposalRequest,
+  RejectProposalRequest,
 } from './dto/request/knowledge.request';
 import { KbConflictService } from './kb-conflict.service';
 import { KbRevisionService } from './kb-revision.service';
+import { KnowledgeGapService } from './knowledge-gap.service';
+import { AcceptGapTaskRequest } from './dto/request/knowledge.request';
 
 /** Knowledge source & RAG corpus management (FR-064, FR-065). Tenant-scoped. */
 @ApiTags('Knowledge')
 @Controller('knowledge')
+// Screen gate (PLN-260812 S4): The agent-side /agent/knowledge/ask lives in its own controller and stays open to live chat.
+@RequireMenu('knowledge')
 export class KnowledgeController {
   constructor(
     private readonly knowledgeService: KnowledgeService,
     private readonly conflictService: KbConflictService,
     private readonly revisionService: KbRevisionService,
+    private readonly jobService: CatalogSyncJobService,
+    private readonly answerProposals: AnswerProposalService,
+    private readonly gapService: KnowledgeGapService,
   ) {}
+
+  // ---- Knowledge-gap proposals (P5, 결정 9: human approval only) ----
+
+  @Get('gap-tasks')
+  @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
+  @ApiOperation({ summary: 'Knowledge-gap proposals awaiting a decision (P5)' })
+  async listGapTasks(@CurrentUser() user: Principal, @Query('status') status?: string) {
+    const tasks = await this.gapService.list(
+      this.tenantUser(user).tenantId,
+      status === 'accepted' || status === 'dismissed' ? status : 'proposed',
+    );
+    return { tasks: tasks.map((t) => KnowledgeMapper.toGapTask(t)) };
+  }
+
+  @Post('gap-tasks/:id/accept')
+  @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
+  @ApiOperation({ summary: 'Approve a proposal → create+embed a KB document (existing pipeline)' })
+  async acceptGapTask(
+    @CurrentUser() user: Principal,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: AcceptGapTaskRequest,
+  ) {
+    const u = this.tenantUser(user);
+    const { task, document } = await this.gapService.accept(u.tenantId, u.userId, id, {
+      title: body.title,
+      content: body.content,
+    });
+    return { task: KnowledgeMapper.toGapTask(task), documentId: String(document.id) };
+  }
+
+  @Post('gap-tasks/:id/dismiss')
+  @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
+  @ApiOperation({ summary: 'Dismiss a proposal (never re-raised)' })
+  async dismissGapTask(@CurrentUser() user: Principal, @Param('id', ParseIntPipe) id: number) {
+    const u = this.tenantUser(user);
+    const task = await this.gapService.dismiss(u.tenantId, u.userId, id);
+    return { task: KnowledgeMapper.toGapTask(task) };
+  }
 
   /** Narrow to a tenant user; knowledge management is tenant-scoped only. */
   private tenantUser(user: Principal): { tenantId: number; userId: number } {
@@ -238,6 +289,92 @@ export class KnowledgeController {
       file.buffer.toString('utf8'),
       actor.userId,
       file.originalname,
+    );
+  }
+
+  @Get('documents/import/catalog/preview')
+  @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
+  @ApiOperation({ summary: 'Dry run: what a catalogue sync would create, update and hold back' })
+  async previewCatalogSync(@CurrentUser() user: Principal) {
+    return this.knowledgeService.previewCatalogSync(this.tenantUser(user).tenantId);
+  }
+
+  /**
+   * Starts the conversion and returns at once. The run takes minutes — held
+   * open it hit nginx's 60-second header timeout and the operator saw a 504
+   * for work that had actually succeeded (RPT-260808 D3). Progress is read
+   * from the status route below.
+   */
+  @Post('documents/import/catalog')
+  @HttpCode(HttpStatus.ACCEPTED)
+  @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
+  @ApiOperation({ summary: 'Start the catalogue → ProductInfo conversion (async)' })
+  async syncCatalog(@CurrentUser() user: Principal) {
+    const actor = this.tenantUser(user);
+    return this.jobService.start(actor.tenantId, (report) =>
+      this.knowledgeService.syncProductCatalog(actor.tenantId, actor.userId, report),
+    );
+  }
+
+  @Get('documents/import/catalog/status')
+  @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
+  @ApiOperation({ summary: 'Progress of the running (or most recent) catalogue conversion' })
+  async catalogSyncStatus(@CurrentUser() user: Principal) {
+    return this.jobService.get(this.tenantUser(user).tenantId);
+  }
+
+  @Get('proposals')
+  @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
+  @ApiOperation({ summary: 'Answer proposals awaiting review (PLN-260810 S4)' })
+  async proposals(@CurrentUser() user: Principal, @Query('status') status?: string) {
+    return this.answerProposals.list(this.tenantUser(user).tenantId, status || 'pending');
+  }
+
+  @Post('proposals/:id/approve')
+  @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
+  @ApiOperation({ summary: 'Approve a proposal — creates and indexes the document' })
+  async approveProposal(
+    @CurrentUser() user: Principal,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: ApproveProposalRequest,
+  ) {
+    const actor = this.tenantUser(user);
+    return this.answerProposals.approve(actor.tenantId, id, body, actor.userId);
+  }
+
+  @Post('proposals/:id/reject')
+  @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
+  @ApiOperation({ summary: 'Reject a proposal with a reason the proposer can read' })
+  async rejectProposal(
+    @CurrentUser() user: Principal,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: RejectProposalRequest,
+  ) {
+    const actor = this.tenantUser(user);
+    return this.answerProposals.reject(actor.tenantId, id, body.reason, actor.userId);
+  }
+
+  @Get('usage-guides')
+  @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
+  @ApiOperation({ summary: 'Usage guides per product type, with coverage and write state' })
+  async usageGuides(@CurrentUser() user: Principal) {
+    return this.knowledgeService.listUsageGuides(this.tenantUser(user).tenantId);
+  }
+
+  @Put('usage-guides/:key')
+  @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
+  @ApiOperation({ summary: 'Write or rewrite the usage guide for a product type' })
+  async saveUsageGuide(
+    @CurrentUser() user: Principal,
+    @Param('key') key: string,
+    @Body() body: SaveUsageGuideRequest,
+  ) {
+    const actor = this.tenantUser(user);
+    return this.knowledgeService.saveUsageGuide(
+      actor.tenantId,
+      key,
+      { title: body.title, content: body.content },
+      actor.userId,
     );
   }
 

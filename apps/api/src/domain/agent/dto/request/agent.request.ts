@@ -1,4 +1,4 @@
-import { IsEmail, IsInt, IsOptional, IsString, Min, MinLength } from 'class-validator';
+import { IsEmail, IsInt, IsOptional, IsString, MaxLength, Min, MinLength } from 'class-validator';
 
 export class ListSessionsQuery {
   @IsOptional() @IsString() page?: string;
@@ -7,6 +7,8 @@ export class ListSessionsQuery {
   @IsOptional() @IsString() q?: string;
   /** 'all' (default, includes live AI threads) | 'queue' | 'ended'. */
   @IsOptional() @IsString() status?: string;
+  /** Origin channel filter: 'all' (default) | widget | telegram | zalo | email … */
+  @IsOptional() @IsString() channel?: string;
 }
 
 /** Transcript paging for the console (PLN-260807): recent tail, then older blocks. */
@@ -23,6 +25,21 @@ export class ListStatsQuery {
 
 export class ListAlertsQuery {
   @IsOptional() @IsString() status?: string;
+}
+
+/** Operator display name for a session; blank/omitted clears it (PLN-260812). */
+export class SetSessionAliasRequest {
+  @IsOptional() @IsString() @MaxLength(60) alias?: string | null;
+}
+
+/** Per-session auto-reply choice: inherit | on | off (PLN-260812). */
+export class SetAutoReplyRequest {
+  @IsString() mode: string;
+}
+
+/** Approve the pending draft; `body` replaces it when the agent edited it. */
+export class ApproveDraftRequest {
+  @IsOptional() @IsString() body?: string;
 }
 
 export class AgentMessageRequest {

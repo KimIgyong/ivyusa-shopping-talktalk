@@ -1,8 +1,8 @@
 import { HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { In, Not, Repository } from 'typeorm';
 import { AI_FUNCTION, MODERATION_DECISION } from '@ivy/types';
-import { KbDocument } from './entity/kb-document.entity';
+import { DOC_GROUP, KbDocument } from './entity/kb-document.entity';
 import {
   CONFLICT_FAILURE,
   CONFLICT_RESOLUTION,
@@ -89,7 +89,15 @@ export class KbConflictService {
       return result;
     }
 
-    const docs = await this.docRepo.find({ where: { tenantId, active: 1 } });
+    // Counsel knowledge only. Product documents are near-duplicates by
+    // construction — a nail polish in 41 shades sits at ~1.0 similarity with
+    // itself, well past CANDIDATE_THRESHOLD — so including them spends the
+    // whole per-scan judgement budget on "the same product in another colour"
+    // and starves the contradictions this scan exists to find
+    // (PLN-260807 P1, measured: 1,038 of 2,275 catalogue rows are variants).
+    const docs = await this.docRepo.find({
+      where: { tenantId, active: 1, docGroup: Not(DOC_GROUP.PRODUCT) },
+    });
     result.scanned = docs.length;
     if (docs.length < 2) return result;
 

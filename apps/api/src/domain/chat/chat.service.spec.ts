@@ -101,6 +101,7 @@ describe('ChatService consent gate', () => {
       sessionRepo,
       tenantRepo,
       userRepo,
+      { update: jest.fn() } as never, // Assignment repo (end-chat release; unused here)
       { classifyIntent: ragClassify, answer: ragAnswer } as unknown as RagService,
       { moderate } as unknown as ModerationService,
       // orderService precedes sessionService: it supplies the signed-in shopper's own
@@ -112,6 +113,7 @@ describe('ChatService consent gate', () => {
       // an escalation, so the default (page agents, broadcast) is enough.
       {
         route: jest.fn(async () => ({ mode: 'agents', targetUserIds: [] })),
+        denyMatch: jest.fn(async () => null),
       } as unknown as HandoffRouterService,
       bus,
     );

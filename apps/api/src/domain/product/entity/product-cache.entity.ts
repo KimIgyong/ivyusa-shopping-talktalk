@@ -34,6 +34,15 @@ export class ProductCache {
   @Column({ type: 'varchar', length: 128, nullable: true })
   vendor: string | null;
 
+  /**
+   * Storefront variant SKU. A lookup aid for agents matching a chat to stock or
+   * an order line — never an identity key: it repeats across products and is
+   * blank on others (REQ-260804 §2-1), which is why the catalogue import keys
+   * on `handle` instead.
+   */
+  @Column({ type: 'varchar', length: 64, nullable: true })
+  sku: string | null;
+
   /** Plain text (HTML stripped), capped ~2000 chars — a display summary, not KB content. */
   @Column({ type: 'text', nullable: true })
   description: string | null;

@@ -2,11 +2,21 @@ import { randomUUID } from 'crypto';
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { FindOptionsWhere, Repository } from 'typeorm';
-import { Tenant } from './entity/tenant.entity';
+import { Tenant, TenantWidgetCopy } from './entity/tenant.entity';
 import { normalizeStorefrontUrl } from '../../global/util/storefront-url.util';
 import { IntegrationCredential } from './entity/integration-credential.entity';
 import { User } from '../user/entity/user.entity';
+import { JobLabel } from '../user/entity/job-label.entity';
 import { IntegrationStatusEntity } from '../integration/entity/integration-status.entity';
+import { ContentFilterRule } from '../moderation/entity/content-filter-rule.entity';
+import { DEFAULT_MODERATION_RULES } from '../moderation/moderation.defaults';
+
+/** Job labels every new tenant starts with (matches the seed for tenant ivyusa). */
+const DEFAULT_JOB_LABELS: ReadonlyArray<{ code: string; name: string }> = [
+  { code: 'consult', name: '상담' },
+  { code: 'accounting', name: '회계' },
+  { code: 'operations', name: '운영' },
+];
 import { IntegrationService } from '../integration/integration.service';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
@@ -39,6 +49,10 @@ export class TenantService {
     @InjectRepository(IntegrationCredential)
     private readonly credRepo: Repository<IntegrationCredential>,
     @InjectRepository(User) private readonly userRepo: Repository<User>,
+    @InjectRepository(ContentFilterRule)
+    private readonly cfrRepo: Repository<ContentFilterRule>,
+    @InjectRepository(JobLabel)
+    private readonly jobLabelRepo: Repository<JobLabel>,
     private readonly integrationService: IntegrationService,
     private readonly audit: AuditService,
   ) {}
@@ -108,6 +122,11 @@ export class TenantService {
     return creds.map((c) => c.tenantId).filter((id): id is number => id != null);
   }
 
+  async listCafe24TenantIds(): Promise<number[]> {
+    const creds = await this.credRepo.find({ where: { provider: 'cafe24' } });
+    return creds.map((c) => c.tenantId).filter((id): id is number => id != null);
+  }
+
   async create(shopDomain: string, name: string, plan: string, slug?: string): Promise<Tenant> {
     const existing = await this.tenantRepo.findOne({ where: { shopDomain } });
     if (existing) {
@@ -121,7 +140,48 @@ export class TenantService {
       plan,
       status: 'applied',
     });
-    return this.tenantRepo.save(tenant);
+    const saved = await this.tenantRepo.save(tenant);
+    await this.seedDefaultModeration(saved.id);
+    await this.seedDefaultJobLabels(saved.id);
+    return saved;
+  }
+
+  /**
+   * Seed a new tenant's starter job labels (consult/accounting/operations), so the
+   * user-edit label picker isn't empty on a fresh tenant. Idempotent — skips a tenant
+   * that already has any (never clobbers renamed/deleted labels).
+   */
+  private async seedDefaultJobLabels(tenantId: number): Promise<void> {
+    const existing = await this.jobLabelRepo.count({ where: { tenantId } });
+    if (existing > 0) return;
+    await this.jobLabelRepo.save(
+      DEFAULT_JOB_LABELS.map((l) => this.jobLabelRepo.create({ tenantId, code: l.code, name: l.name })),
+    );
+  }
+
+  /**
+   * Seed a new tenant's starter moderation rules (issue-2 fix). Idempotent — only
+   * runs when the tenant has none, so it never clobbers a tenant that deleted them
+   * on purpose. Response-rule defaults come from AiConfigService.DEFAULT_RULES (a
+   * read-time fallback), so only moderation — which is stored as rows — is seeded.
+   */
+  private async seedDefaultModeration(tenantId: number): Promise<void> {
+    const existing = await this.cfrRepo.count({ where: { tenantId } });
+    if (existing > 0) return;
+    await this.cfrRepo.save(
+      DEFAULT_MODERATION_RULES.map((r) =>
+        this.cfrRepo.create({
+          tenantId,
+          scope: r.scope,
+          type: r.type,
+          patternOrPrompt: r.patternOrPrompt,
+          lang: r.lang,
+          severity: r.severity,
+          action: r.action,
+          isActive: 1,
+        }),
+      ),
+    );
   }
 
   /** Find-or-create a tenant by shop domain (used by the Shopify OAuth callback). */
@@ -130,7 +190,7 @@ export class TenantService {
     if (existing) return existing;
     // e.g. "acme.myshopify.com" -> slug base "acme"
     const slug = await this.generateUniqueSlug(name ?? shopDomain.split('.')[0]);
-    return this.tenantRepo.save(
+    const saved = await this.tenantRepo.save(
       this.tenantRepo.create({
         uuid: randomUUID(),
         shopDomain,
@@ -139,6 +199,9 @@ export class TenantService {
         status: 'active',
       }),
     );
+    await this.seedDefaultModeration(saved.id);
+    await this.seedDefaultJobLabels(saved.id);
+    return saved;
   }
 
   /**
@@ -214,13 +277,15 @@ export class TenantService {
   ): Promise<Tenant> {
     const tenant = await this.findById(tenantId);
     tenant.widgetLoginMode = dto.login_mode;
+    if (dto.timezone !== undefined) tenant.timezone = dto.timezone?.trim() || null;
+    tenant.widgetCopy = mergeWidgetCopy(tenant.widgetCopy, dto);
     const saved = await this.tenantRepo.save(tenant);
     await this.audit.write({
       tenantId,
       actorType: 'user',
       actorId,
       action: 'tenant.widget_settings_updated',
-      target: saved.widgetLoginMode,
+      target: `${saved.widgetLoginMode}${saved.timezone ? ` · ${saved.timezone}` : ''}`,
     });
     return saved;
   }
@@ -518,4 +583,38 @@ export class TenantService {
     return { ok, detail };
   }
 
+}
+
+/**
+ * Fold the flat per-language DTO fields into the widget_copy JSON blob.
+ * PATCH semantics per field: undefined keeps the stored value, ''/null clears it
+ * (falling back to the widget default). Returns null when nothing remains set.
+ */
+function mergeWidgetCopy(
+  current: TenantWidgetCopy | null,
+  dto: UpdateWidgetSettingsRequest,
+): TenantWidgetCopy | null {
+  const copy: TenantWidgetCopy = {
+    displayName: current?.displayName ?? null,
+    firstVisit: { ...(current?.firstVisit ?? {}) },
+    loginGreeting: { ...(current?.loginGreeting ?? {}) },
+  };
+  if (dto.display_name !== undefined) copy.displayName = dto.display_name?.trim() || null;
+  const setLang = (bag: Record<string, string>, lang: string, v: string | null | undefined) => {
+    if (v === undefined) return;
+    const trimmed = v?.trim();
+    if (trimmed) bag[lang] = trimmed;
+    else delete bag[lang];
+  };
+  setLang(copy.firstVisit!, 'EN', dto.first_visit_en);
+  setLang(copy.firstVisit!, 'ES', dto.first_visit_es);
+  setLang(copy.firstVisit!, 'KO', dto.first_visit_ko);
+  setLang(copy.loginGreeting!, 'EN', dto.login_greeting_en);
+  setLang(copy.loginGreeting!, 'ES', dto.login_greeting_es);
+  setLang(copy.loginGreeting!, 'KO', dto.login_greeting_ko);
+  const empty =
+    !copy.displayName &&
+    Object.keys(copy.firstVisit!).length === 0 &&
+    Object.keys(copy.loginGreeting!).length === 0;
+  return empty ? null : copy;
 }

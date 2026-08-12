@@ -11,6 +11,10 @@
  * KEEP IN SYNC with packages/types/src/common/enum.types.ts.
  */
 export type EcommerceProvider = 'cafe24' | 'woocommerce' | 'odoo' | 'haravan';
+/** Marketing platforms + helpdesks on the same generic flow (PLN-260808). */
+export type MarketingProvider = 'klaviyo' | 'yotpo';
+export type HelpdeskProvider = 'gorgias';
+export type GenericIntegrationProvider = EcommerceProvider | MarketingProvider | HelpdeskProvider;
 
 export interface IntegrationFieldSpec {
   key: string;
@@ -23,8 +27,10 @@ export const ECOMMERCE_PROVIDERS: EcommerceProvider[] = [
   'odoo',
   'haravan',
 ];
+export const MARKETING_PROVIDERS: MarketingProvider[] = ['klaviyo', 'yotpo'];
+export const HELPDESK_PROVIDERS: HelpdeskProvider[] = ['gorgias'];
 
-export const INTEGRATION_FIELDS: Record<EcommerceProvider, IntegrationFieldSpec[]> = {
+export const INTEGRATION_FIELDS: Record<GenericIntegrationProvider, IntegrationFieldSpec[]> = {
   cafe24: [
     { key: 'mall_id', secret: false, required: true },
     { key: 'client_id', secret: true, required: false },
@@ -45,5 +51,16 @@ export const INTEGRATION_FIELDS: Record<EcommerceProvider, IntegrationFieldSpec[
   haravan: [
     { key: 'shop_domain', secret: false, required: true },
     { key: 'access_token', secret: true, required: true },
+  ],
+  klaviyo: [{ key: 'api_key', secret: true, required: true }],
+  yotpo: [
+    { key: 'app_key', secret: false, required: true },
+    { key: 'secret_key', secret: true, required: true },
+  ],
+  gorgias: [
+    { key: 'subdomain', secret: false, required: true },
+    { key: 'email', secret: false, required: true },
+    { key: 'api_key', secret: true, required: true },
+    { key: 'webhook_secret', secret: true, required: false },
   ],
 };

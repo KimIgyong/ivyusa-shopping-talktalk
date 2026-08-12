@@ -42,7 +42,17 @@
     "redirectHint": "\"로그인\" 클릭 시 같은 탭에서 스토어 로그인 페이지로 이동합니다. 로그인 후 돌아오면 위젯이 주문 내역 탭으로 자동으로 다시 열립니다.",
     "popupHint": "\"로그인\" 클릭 시 스토어 로그인 페이지가 팝업 창으로 열립니다. 팝업 차단의 영향을 받을 수 있으며, 로그인 창이 shopify.com에 머무는 경우 고객이 직접 팝업을 닫아야 합니다.",
     "saved": "위젯 설정이 저장되었습니다.",
-    "saveError": "위젯 설정 저장에 실패했습니다."
+    "saveError": "위젯 설정 저장에 실패했습니다.",
+    "timezone": "타임존 기반 기본 언어",
+    "tzUnset": "미설정 (기본 영어)",
+    "timezoneHint": "고객이 언어를 선택하지 않았을 때 위젯 기본 언어를 결정합니다 — Asia/Seoul → 한국어, America/New_York → 영어.",
+    "copyTitle": "위젯 문구",
+    "displayName": "표시 이름",
+    "displayNameHint": "위젯 헤더에 표시되고 인사말의 {shop}으로 치환됩니다. 비우면 테넌트 이름을 사용합니다.",
+    "firstVisit": "첫 방문 안내 문구",
+    "firstVisitHint": "고객이 채팅을 열 때 표시됩니다. {shop}은 표시 이름으로 치환됩니다. 비우면 기본 문구를 사용합니다.",
+    "loginGreeting": "로그인 인사말",
+    "loginGreetingHint": "로그인 고객을 인식하면 표시됩니다. {name}은 고객 이름으로 치환됩니다. 비우면 기본 문구를 사용합니다."
   },
   "shopify": {
     "title": "Shopify 연동",
@@ -97,7 +107,8 @@
         "step2": "layout/theme.liquid를 엽니다.",
         "step3": "</body> 태그 바로 앞에 스니펫을 붙여넣고 저장합니다."
       }
-    }
+    },
+    "nonShopifyDomain": "*.myshopify.com 도메인이 아닙니다. 이 칸은 테넌트 스토어 도메인을 겸하므로 Cafe24나 자체 도메인이 들어와도 정상이며, 단지 이 스토어가 Shopify에 연결돼 있지 않다는 뜻입니다."
   },
   "integrations": {
     "configured": "저장됨 — 교체하려면 새 값을 입력",
@@ -123,7 +134,12 @@
       "db": "데이터베이스",
       "username": "사용자명",
       "api_key": "API 키",
-      "shop_domain": "쇼핑몰 주소"
+      "shop_domain": "쇼핑몰 주소",
+      "app_key": "App(스토어) 키",
+      "secret_key": "시크릿 키",
+      "subdomain": "계정 서브도메인",
+      "email": "계정 이메일",
+      "webhook_secret": "웹훅 시크릿 (L2 상태회신)"
     },
     "ph": {
       "mall_id": "your-mall",
@@ -131,7 +147,10 @@
       "url": "https://my-odoo.example.com",
       "db": "odoo-db",
       "username": "user@example.com",
-      "shop_domain": "your-store.myharavan.com"
+      "shop_domain": "your-store.myharavan.com",
+      "subdomain": "your-company (your-company.gorgias.com의 앞부분)",
+      "email": "agent@example.com",
+      "app_key": "yotpo app key"
     },
     "cafe24": {
       "title": "Cafe24",
@@ -148,6 +167,18 @@
     "haravan": {
       "title": "Haravan",
       "subtitle": "Admin API 액세스 토큰으로 Haravan 상점을 연결합니다."
+    },
+    "klaviyo": {
+      "title": "Klaviyo",
+      "subtitle": "이메일/SMS 마케팅 — Private API Key로 연결합니다."
+    },
+    "yotpo": {
+      "title": "Yotpo",
+      "subtitle": "리뷰·로열티 — App Key와 Secret Key로 연결합니다."
+    },
+    "gorgias": {
+      "title": "Gorgias",
+      "subtitle": "헬프데스크 — 에스컬레이션된 상담을 Gorgias 티켓으로 전달할 수 있습니다."
     }
   },
   "install": {
@@ -175,6 +206,186 @@
     "title": "스토어프론트",
     "url": "상점 주소",
     "hint": "고객에게 보여줄 상품 링크를 검증하는 기준입니다. 이 주소의 링크만 채팅에 노출됩니다.",
-    "unsetWarning": "미설정 — 채팅 위젯에 상품추천 링크가 표시되지 않습니다."
+    "unsetWarning": "미설정 — 채팅 위젯에 상품추천 링크가 표시되지 않습니다.",
+    "shopDomain": "스토어 도메인",
+    "shopDomainHint": "채팅 위젯이 이 테넌트를 식별하는 도메인입니다. Shopify·Cafe24·자체 도메인 등 플랫폼과 무관하며, 위젯이 설치된 사이트 주소와 일치하면 됩니다."
+  },
+  "cafe24": {
+    "oauth": {
+      "title": "Cafe24 (OAuth)",
+      "hint": "Cafe24 몰을 OAuth로 연결하면 주문과 상품을 ShopTalk으로 가져올 수 있습니다.",
+      "status": "상태",
+      "mallId": "몰 ID",
+      "connect": "Cafe24 연결",
+      "syncNow": "지금 동기화",
+      "connectedToast": "Cafe24 연결됨: {{mall}}",
+      "connectFailed": "Cafe24 연결 실패",
+      "syncFailed": "Cafe24 동기화 실패",
+      "syncProducts": "상품 가져오기",
+      "productsSynced": "상품 {{synced}}건 동기화, {{archived}}건 보관됨 — 지식 메뉴에서 변환을 실행하세요",
+      "syncProductsFailed": "Cafe24 상품 가져오기 실패",
+      "errorInvalidScope": "Cafe24가 요청 권한을 거부했습니다(invalid_scope) — 개발자센터에서 앱 권한에 해당 항목을 추가한 뒤 다시 연결하세요",
+      "errorAccessDenied": "Cafe24 동의가 거부되었습니다(access_denied) — 몰 대표 운영자 계정으로 다시 시도하세요"
+    }
+  },
+  "marketingTitle": "마케팅 연동",
+  "helpdeskTitle": "헬프데스크 연동",
+  "messenger": {
+    "groupTitle": "외부 메신저 연동",
+    "groupHint": "메시지가 실시간 채팅으로 들어오고, 샵톡 AI가 같은 채널로 응답합니다.",
+    "communicationTitle": "커뮤니케이션 연동",
+    "communicationHint": "회사 업무용 메일함을 대화로 처리합니다.",
+    "loading": "채널 불러오는 중…",
+    "label": "표시명",
+    "credential": "자격증명",
+    "stored": "저장됨 — 입력하면 교체",
+    "autoReply": "AI 자동응답",
+    "consentMode": "동의 처리",
+    "on": "켜짐",
+    "off": "꺼짐",
+    "enabledLabel": "채널",
+    "enabled": "활성",
+    "disabled": "비활성",
+    "lastInbound": "최근 수신",
+    "lastError": "최근 오류",
+    "connectionStatus": "연결 상태",
+    "test": "연결 테스트",
+    "testing": "테스트 중…",
+    "testOk": "연결됨 — {{detail}}",
+    "testFailed": "연결 실패 — {{detail}}",
+    "registerWebhook": "수신 URL 등록",
+    "webhookRegistered": "수신 URL을 제공자에 등록했습니다.",
+    "webhookRegisterError": "수신 URL을 등록하지 못했습니다.",
+    "webhookUrl": "수신 URL",
+    "webhookHint": "제공자 콘솔에 등록하거나 아래 버튼을 사용하세요.",
+    "copy": "복사",
+    "copied": "복사했습니다.",
+    "copyFailed": "복사하지 못했습니다.",
+    "saved": "채널을 저장했습니다.",
+    "saveError": "채널을 저장하지 못했습니다.",
+    "disconnect": "연동 해제",
+    "disconnected": "채널 연동을 해제했습니다.",
+    "disconnectError": "연동을 해제하지 못했습니다.",
+    "plannedHint": "이번 빌드에서는 아직 제공되지 않습니다.",
+    "unofficialWarning": "비공식 채널입니다. 가맹점주 본인 기기에 직접 설치한 에이전트가 메시지를 중계하며, 개시·중단도 본인이 선택합니다. AI 자동응답은 기본 꺼짐입니다.",
+    "state": {
+      "connected": "연결됨",
+      "error": "오류",
+      "unknown": "미검증",
+      "planned": "지원 예정"
+    },
+    "consent": {
+      "notice": "첫 접촉 시 개인정보 안내 발송",
+      "auto": "플랫폼 약관에 근거"
+    },
+    "fields": {
+      "bot_token": "봇 토큰",
+      "auth_token": "인증 토큰",
+      "email": "계정 이메일",
+      "password": "비밀번호",
+      "company_id": "회사(워크스페이스) ID",
+      "base_url": "서버 URL",
+      "imap_host": "IMAP 호스트",
+      "smtp_host": "SMTP 호스트",
+      "app_password": "앱 비밀번호",
+      "social_types": "인입 채널",
+      "sender_name": "발신자 이름"
+    },
+    "ph": {
+      "social_types": "zalo, line, whatsapp",
+      "sender_name": "고객지원"
+    },
+    "provider": {
+      "telegram": {
+        "title": "텔레그램",
+        "subtitle": "직접 연동 — 봇 토큰만 있으면 되고 플랫폼 심사 없음",
+        "defaultLabel": "텔레그램"
+      },
+      "viber": {
+        "title": "바이버",
+        "subtitle": "직접 연동 — 퍼블릭 계정 토큰",
+        "defaultLabel": "바이버"
+      },
+      "amoebatalk": {
+        "title": "아메바톡 허브",
+        "subtitle": "심사를 이미 통과한 잘로·라인·와츠앱을 함께 확보",
+        "defaultLabel": "아메바톡"
+      },
+      "btbz_relay": {
+        "title": "btbz 메신저 릴레이",
+        "subtitle": "가맹점주 본인 기기로 카카오톡 대화방·SMS 수신",
+        "defaultLabel": "btbz 릴레이"
+      },
+      "gmail": {
+        "title": "지메일",
+        "subtitle": "업무용 메일함 IMAP/SMTP (앱 비밀번호)",
+        "defaultLabel": "업무용 1"
+      },
+      "zalo": {
+        "title": "잘로",
+        "subtitle": "아메바톡 허브 경유"
+      },
+      "line": {
+        "title": "라인",
+        "subtitle": "아메바톡 허브 경유"
+      },
+      "whatsapp": {
+        "title": "와츠앱",
+        "subtitle": "아메바톡 허브 경유"
+      }
+    },
+    "syncNow": "지금 가져오기",
+    "syncOk": "새 메시지 {{count}}건을 가져왔습니다.",
+    "syncFailed": "가져오기 실패 — {{detail}}",
+    "syncInactive": "메시지 {{count}}건을 가져왔지만 이 채널은 비활성입니다 — 활성화하기 전까지 자동으로는 들어오지 않습니다.",
+    "inactiveWarning": "비활성 — 수신하지 않습니다. [설정]에서 채널을 활성으로 바꿔주세요.",
+    "autoReplyScope": "새로 수신되는 메시지부터 적용됩니다. 대화별로 실시간 채팅에서 따로 켜고 끌 수 있습니다.",
+    "mode": {
+      "auto": "자동 — AI가 바로 답변",
+      "approve": "승인 후 발송 — AI가 초안, 상담원이 발송",
+      "off": "끔"
+    }
+  },
+  "menuAccess": {
+    "title": "메뉴 접근권한",
+    "subtitle": "팀원이 볼 수 있는 콘솔 화면을 정합니다. 회색 처리된 메뉴는 플랜에 포함되지 않습니다.",
+    "tabRoles": "역할 기본값",
+    "tabUsers": "사용자 예외",
+    "rankColumn": "직급",
+    "menu": "메뉴",
+    "member": "팀원",
+    "exceptions": "예외",
+    "edit": "편집",
+    "editFor": "예외 — {{who}} ({{rank}})",
+    "rankDefault": "직급 기본",
+    "thisUser": "이 사용자",
+    "result": "결과",
+    "allowed": "허용",
+    "blocked": "차단",
+    "notProvided": "미제공",
+    "canAccess": "접근 가능",
+    "cannotAccess": "접근 불가",
+    "readOnly": "읽기 전용",
+    "masterExempt": "예외 대상 아님",
+    "save": "역할 기본값 저장",
+    "saved": "메뉴 접근권한을 저장했습니다",
+    "saveError": "메뉴 접근권한을 저장하지 못했습니다",
+    "loading": "불러오는 중…",
+    "needsLabel": "({{label}} 라벨 필요)",
+    "masterNote": "마스터는 플랜이 제공하는 모든 메뉴에 항상 접근합니다(자기잠금 방지).",
+    "labelNote": "직무 라벨이 붙은 메뉴는 해당 라벨이 없는 팀원에게 계속 숨겨집니다. 라벨과 무관하게 한 사람에게만 열어주려면 사용자 예외를 쓰세요.",
+    "notProvidedNote": "취소선이 그어진 메뉴는 플랜에 없습니다. 추가하려면 플랫폼 관리자에게 문의하세요.",
+    "allowWaivesLabel": "‘허용’은 이 팀원에 한해 직무 라벨 요건도 면제합니다. 화면 안에서의 작업 권한은 여전히 직급·라벨을 따릅니다.",
+    "mode": {
+      "default": "직급 기본",
+      "allow": "허용",
+      "deny": "차단"
+    },
+    "rank": {
+      "master": "마스터",
+      "director": "디렉터",
+      "manager": "매니저",
+      "staff": "스태프"
+    }
   }
 }

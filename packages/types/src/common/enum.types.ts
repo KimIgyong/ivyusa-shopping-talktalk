@@ -59,18 +59,26 @@ export type SenderType = (typeof SENDER_TYPE)[keyof typeof SENDER_TYPE];
 
 // ---- Orders (POL-014 taxonomy) ----
 export const ORDER_STATUS_INTERNAL = {
+  // Cafe24 N00(입금전) — the shopper hasn't paid yet. Shopify orders never carry
+  // this (they enter the cache already paid); it only appears on channels that
+  // expose a pre-payment stage (PLN-260807 §3.3).
+  PENDING_PAYMENT: 'pending_payment',
   PAID: 'paid',
   PREPARING: 'preparing',
   SHIPPING: 'shipping',
   DELIVERED: 'delivered',
+  // Cafe24 C00(취소신청) — a cancel was requested; off the main fulfilment flow.
+  CANCEL_REQUESTED: 'cancel_requested',
 } as const;
 export type OrderStatusInternal = (typeof ORDER_STATUS_INTERNAL)[keyof typeof ORDER_STATUS_INTERNAL];
 
 export const ORDER_STATUS_UI = {
+  PENDING_PAYMENT: 'Pending payment',
   CONFIRMED: 'Confirmed',
   IN_TRANSIT: 'In Transit',
   DELIVERED: 'Delivered',
   REVIEW: 'Review',
+  CANCEL_REQUESTED: 'Cancel requested',
 } as const;
 export type OrderStatusUi = (typeof ORDER_STATUS_UI)[keyof typeof ORDER_STATUS_UI];
 
@@ -171,6 +179,8 @@ export const INTEGRATION_PROVIDER = {
   HARAVAN: 'haravan',
   FULFILLMENT: 'fulfillment',
   KLAVIYO: 'klaviyo',
+  YOTPO: 'yotpo',
+  GORGIAS: 'gorgias',
   GOOGLE_DRIVE: 'google_drive',
 } as const;
 export type IntegrationProvider = (typeof INTEGRATION_PROVIDER)[keyof typeof INTEGRATION_PROVIDER];
@@ -187,6 +197,29 @@ export const ECOMMERCE_PROVIDERS = [
   INTEGRATION_PROVIDER.HARAVAN,
 ] as const;
 export type EcommerceProvider = (typeof ECOMMERCE_PROVIDERS)[number];
+
+/**
+ * Non-commerce connected apps sharing the SAME generic credential flow
+ * (PLN-260808-Marketing-Integrations): marketing platforms and helpdesks.
+ * Kept as separate axes so the console can group tiles and P2 can add more
+ * helpdesk connectors (Zendesk/Front/Freshdesk) without touching commerce.
+ */
+export const MARKETING_PROVIDERS = [
+  INTEGRATION_PROVIDER.KLAVIYO,
+  INTEGRATION_PROVIDER.YOTPO,
+] as const;
+export type MarketingProvider = (typeof MARKETING_PROVIDERS)[number];
+
+export const HELPDESK_PROVIDERS = [INTEGRATION_PROVIDER.GORGIAS] as const;
+export type HelpdeskProvider = (typeof HELPDESK_PROVIDERS)[number];
+
+/** Every provider served by the generic settings/save/test flow. */
+export const GENERIC_INTEGRATION_PROVIDERS = [
+  ...ECOMMERCE_PROVIDERS,
+  ...MARKETING_PROVIDERS,
+  ...HELPDESK_PROVIDERS,
+] as const;
+export type GenericIntegrationProvider = (typeof GENERIC_INTEGRATION_PROVIDERS)[number];
 
 /** One credential field of an integration. `secret` fields are write-only (masked on read). */
 export interface IntegrationFieldSpec {
@@ -205,7 +238,7 @@ export interface IntegrationFieldSpec {
 // tenant can manage it from the console; the API falls back to a global env secret
 // when it is unset. (Shopify is intentionally NOT here — its webhook secret is the
 // app-level API secret shared across all shops, sourced from env.)
-export const INTEGRATION_FIELDS: Record<EcommerceProvider, IntegrationFieldSpec[]> = {
+export const INTEGRATION_FIELDS: Record<GenericIntegrationProvider, IntegrationFieldSpec[]> = {
   cafe24: [
     { key: 'mall_id', secret: false, required: true },
     { key: 'client_id', secret: true, required: false },
@@ -230,5 +263,93 @@ export const INTEGRATION_FIELDS: Record<EcommerceProvider, IntegrationFieldSpec[
     { key: 'shop_domain', secret: false, required: true },
     { key: 'access_token', secret: true, required: true },
     { key: 'webhook_secret', secret: true, required: false },
+  ],
+  // Marketing (PLN-260808): Klaviyo private API key; Yotpo core API app/secret pair.
+  klaviyo: [{ key: 'api_key', secret: true, required: true }],
+  yotpo: [
+    { key: 'app_key', secret: false, required: true },
+    { key: 'secret_key', secret: true, required: true },
+  ],
+  // Helpdesk (Rev.2, pre-provisions the P2 Gorgias L1 connector): REST Basic auth
+  // = account email + REST API key on the account subdomain (REQ-260807 §11.2.1).
+  gorgias: [
+    { key: 'subdomain', secret: false, required: true },
+    { key: 'email', secret: false, required: true },
+    { key: 'api_key', secret: true, required: true },
+    // L2 status webhook auth token (POST /webhooks/gorgias) — optional until the
+    // tenant wires the Gorgias HTTP Integration (PLN-260809 P3).
+    { key: 'webhook_secret', secret: true, required: false },
+  ],
+};
+
+/**
+ * External messenger channels (PLN-260810). Distinct from INTEGRATION_PROVIDER:
+ * these carry *conversations* (inbound messages become ShopTalk conversations and
+ * outbound replies go back out), not store/marketing credentials.
+ */
+export const MESSENGER_PROVIDER = {
+  TELEGRAM: 'telegram',
+  VIBER: 'viber',
+  AMOEBATALK: 'amoebatalk',
+  BTBZ_RELAY: 'btbz_relay',
+  GMAIL: 'gmail',
+} as const;
+export type MessengerProvider = (typeof MESSENGER_PROVIDER)[keyof typeof MESSENGER_PROVIDER];
+
+/** Channels ShopTalk speaks to directly (own webhook + own send API) — PR-M1. */
+export const DIRECT_MESSENGER_PROVIDERS = [
+  MESSENGER_PROVIDER.TELEGRAM,
+  MESSENGER_PROVIDER.VIBER,
+] as const;
+
+/** How a channel is reached: 'direct' = platform API, 'hub' = via an aggregator. */
+export const MESSENGER_MODE = { DIRECT: 'direct', HUB: 'hub' } as const;
+export type MessengerMode = (typeof MESSENGER_MODE)[keyof typeof MESSENGER_MODE];
+
+/**
+ * Consent handling for a channel with no widget consent banner (REQ G3):
+ * 'notice' sends the privacy notice on first contact and records the grant;
+ * 'auto' relies on the platform's own terms (tenant's call).
+ */
+export const MESSENGER_CONSENT_MODE = { NOTICE: 'notice', AUTO: 'auto' } as const;
+export type MessengerConsentMode =
+  (typeof MESSENGER_CONSENT_MODE)[keyof typeof MESSENGER_CONSENT_MODE];
+
+/**
+ * Outbound delivery state. 'unconfirmed' exists because some relays (btbz KSR)
+ * cannot prove delivery — reporting those as 'sent' would be a false claim.
+ */
+export const OUTBOX_STATUS = {
+  PENDING: 'pending',
+  SENT: 'sent',
+  UNCONFIRMED: 'unconfirmed',
+  FAILED: 'failed',
+} as const;
+export type OutboxStatus = (typeof OUTBOX_STATUS)[keyof typeof OUTBOX_STATUS];
+
+export const CHANNEL_DIRECTION = { INBOUND: 'inbound', OUTBOUND: 'outbound' } as const;
+export type ChannelDirection = (typeof CHANNEL_DIRECTION)[keyof typeof CHANNEL_DIRECTION];
+
+/** Credential fields per messenger provider (console renders, API stores/masks). */
+export const MESSENGER_FIELDS: Record<MessengerProvider, IntegrationFieldSpec[]> = {
+  // Bot token from BotFather — the only credential Telegram needs.
+  telegram: [{ key: 'bot_token', secret: true, required: true }],
+  // Viber public-account auth token; also the HMAC key for inbound signatures.
+  viber: [{ key: 'auth_token', secret: true, required: true }],
+  amoebatalk: [
+    { key: 'email', secret: false, required: true },
+    { key: 'password', secret: true, required: true },
+    { key: 'company_id', secret: false, required: false },
+  ],
+  btbz_relay: [
+    { key: 'base_url', secret: false, required: true },
+    { key: 'email', secret: false, required: true },
+    { key: 'password', secret: true, required: true },
+  ],
+  gmail: [
+    { key: 'email', secret: false, required: true },
+    { key: 'imap_host', secret: false, required: true },
+    { key: 'smtp_host', secret: false, required: true },
+    { key: 'app_password', secret: true, required: true },
   ],
 };

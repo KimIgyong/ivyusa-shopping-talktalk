@@ -24,6 +24,11 @@ const MAP: Record<string, { tone: 'gray' | 'success' | 'warning' | 'error' | 'in
   open: { tone: 'info' },
   in_progress: { tone: 'info', label: 'in progress' },
   live: { tone: 'primary' },
+  // Cafe24 order statuses (PLN-260807).
+  'pending payment': { tone: 'warning' },
+  pending_payment: { tone: 'warning', label: 'pending payment' },
+  'cancel requested': { tone: 'error' },
+  cancel_requested: { tone: 'error', label: 'cancel requested' },
 };
 
 export function StatusBadge({ status }: { status?: string | null }) {

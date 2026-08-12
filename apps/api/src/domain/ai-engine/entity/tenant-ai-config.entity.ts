@@ -41,12 +41,33 @@ export interface HandoffConfig {
      */
     breaks?: Array<{ start: string; end: string }>;
   };
+  /**
+   * Wording shown when an agent hands the thread back to the AI (PLN-260810 S1).
+   * Blank falls back to the built-in text. The customer should learn that the
+   * person stepped out — a silent switch back reads as the agent ignoring them.
+   */
+  handbackNotice?: Partial<Record<'EN' | 'ES' | 'KO', string>>;
   /** Where to send the conversation outside business hours. */
   offHours?: {
     email?: string;
     /** Customer-facing notice; blank falls back to the built-in wording. */
     notice?: Partial<Record<'EN' | 'ES' | 'KO', string>>;
   };
+  /**
+   * Policy deny-list (PLN-260808-Issue-Workflow-P2, REQ §5.3): a customer
+   * message matching any keyword is force-handed to an agent regardless of AI
+   * confidence — the LLM is not even asked. Optional type/label stamp the
+   * promoted issue (결정 4).
+   */
+  denyRules?: Array<{
+    keywords: string[];
+    /** IssueType to stamp (order_status|delivery|cancel|refund|partnership|other). */
+    type?: string;
+    /** JobLabel to route/stamp (consult|accounting|operations). */
+    label?: string;
+  }>;
+  /** SLA targets for the issue board (백로그 B2, 결정 5); defaults 24h/4h. */
+  sla?: { normalHours?: number; urgentHours?: number };
 }
 
 export interface ScenarioOverride {

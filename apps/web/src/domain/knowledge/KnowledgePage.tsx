@@ -9,11 +9,15 @@ import { StatusBadge } from '@/components/StatusBadge';
 import { Table } from '@/components/Table';
 import type { Column } from '@/components/Table';
 import { Modal } from '@/components/Modal';
+import { knowledgeService } from './knowledge.service';
+import type { UsageGuide } from './knowledge.service';
+import { Progress } from '@/components/Progress';
 import { Pagination } from '@/components/Pagination';
 import { FormRow, Input, Select } from '@/components/Field';
 import { ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { KnowledgeQaPanel } from './KnowledgeQaPanel';
+import { GapTasksSection } from './GapTasksSection';
 import { ConflictReview } from './ConflictReview';
 import { RevisionHistory } from './RevisionHistory';
 import {
@@ -27,6 +31,14 @@ import {
   useDocument,
   useCreateDocument,
   useImportProducts,
+  useCatalogSyncPreview,
+  useSyncCatalog,
+  useCatalogSyncStatus,
+  useCatalogSyncCompletion,
+  useUsageGuides,
+  useProposals,
+  useProposalDecision,
+  useSaveUsageGuide,
   useUpdateDocument,
   useDeleteDocument,
 } from './knowledge.hooks';
@@ -192,6 +204,47 @@ export function KnowledgePage() {
   const [importOpen, setImportOpen] = useState(false);
   const [importFile, setImportFile] = useState<File | null>(null);
   const importProducts = useImportProducts();
+
+  const [catalogOpen, setCatalogOpen] = useState(false);
+  const catalogPreview = useCatalogSyncPreview(catalogOpen);
+  const syncCatalog = useSyncCatalog();
+  // Poll while the dialog is open OR a run is still in flight, so closing the
+  // dialog does not orphan a job the operator started.
+  const catalogJob = useCatalogSyncStatus(catalogOpen || syncCatalog.isSuccess);
+  const job = catalogJob.data ?? null;
+  const jobRunning = job?.status === 'running';
+  useCatalogSyncCompletion(job);
+
+  const proposals = useProposals();
+  const proposalDecision = useProposalDecision();
+  const [rejecting, setRejecting] = useState<string | null>(null);
+  const [rejectReason, setRejectReason] = useState('');
+  const usageGuides = useUsageGuides();
+  const saveUsageGuide = useSaveUsageGuide();
+  const [guideKey, setGuideKey] = useState<string | null>(null);
+  const [guideTitle, setGuideTitle] = useState('');
+  const [guideBody, setGuideBody] = useState('');
+  const openGuide = async (g: UsageGuide) => {
+    setGuideKey(g.key);
+    setGuideTitle(g.title ?? t(`usageType_${g.key}`));
+    setGuideBody('');
+    // Editing starts from what is stored — a blank box would let a save
+    // silently replace a written guide with whatever is typed next.
+    if (g.documentId) {
+      try {
+        const doc = await knowledgeService.document(g.documentId);
+        setGuideBody(doc.content ?? '');
+      } catch {
+        setGuideBody('');
+      }
+    }
+  };
+  // A run with nothing to create or update would still spend a round trip and
+  // read as if something happened; the button says so instead.
+  const nothingToApply =
+    !!catalogPreview.data &&
+    catalogPreview.data.created === 0 &&
+    catalogPreview.data.updated === 0;
 
   const [docOpen, setDocOpen] = useState(false);
   const [docTitle, setDocTitle] = useState('');
@@ -402,6 +455,9 @@ export function KnowledgePage() {
     <div>
       <PageHeader title={t('title')} subtitle={t('subtitle')} />
 
+      {/* Knowledge-gap proposal inbox (P5) — renders nothing when empty. */}
+      <GapTasksSection />
+
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_400px]">
         <div className="space-y-6">
         <Card
@@ -418,10 +474,148 @@ export function KnowledgePage() {
           />
         </Card>
 
+        {/* Answer proposals (PLN-260810 S4). Rendered only when something is
+            waiting: an empty review queue should not take up the screen, but a
+            full one must be impossible to miss. */}
+        {(proposals.data?.length ?? 0) > 0 && (
+          <Card title={`${t('proposals')} ${proposals.data!.length}`}>
+            <ul className="space-y-3">
+              {proposals.data!.map((p) => (
+                <li key={p.id} className="rounded-lg border border-gray-200 p-3">
+                  <dl className="space-y-1 text-sm">
+                    <div className="flex gap-2">
+                      <dt className="w-16 shrink-0 text-gray-500">{t('proposalQuestion')}</dt>
+                      <dd className="font-medium text-gray-800">{p.question}</dd>
+                    </div>
+                    <div className="flex gap-2">
+                      <dt className="w-16 shrink-0 text-gray-500">{t('proposalAnswer')}</dt>
+                      <dd className="whitespace-pre-wrap text-gray-700">{p.answer}</dd>
+                    </div>
+                  </dl>
+                  <div className="mt-2 flex items-center justify-between gap-2">
+                    <span className="text-xs text-gray-500">
+                      {p.conversationId ? (
+                        <a
+                          className="underline-offset-2 hover:underline"
+                          href={`/live-chat?c=${p.conversationId}`}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          {t('proposalFromConversation', { id: p.conversationId })}
+                        </a>
+                      ) : (
+                        t('proposalNoConversation')
+                      )}
+                    </span>
+                    <span className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          setRejecting(p.id);
+                          setRejectReason('');
+                        }}
+                      >
+                        {t('proposalReject')}
+                      </Button>
+                      <Button
+                        size="sm"
+                        disabled={proposalDecision.approve.isPending}
+                        onClick={() => proposalDecision.approve.mutate({ id: p.id })}
+                      >
+                        {t('proposalApprove')}
+                      </Button>
+                    </span>
+                  </div>
+
+                  {rejecting === p.id && (
+                    <div className="mt-2 border-t border-gray-100 pt-2">
+                      <Input
+                        value={rejectReason}
+                        placeholder={t('proposalRejectReason')}
+                        onChange={(e) => setRejectReason(e.target.value)}
+                      />
+                      <div className="mt-2 flex justify-end gap-2">
+                        <Button size="sm" variant="ghost" onClick={() => setRejecting(null)}>
+                          {tc('close')}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="danger"
+                          disabled={rejectReason.trim().length < 2}
+                          onClick={() =>
+                            proposalDecision.reject.mutate(
+                              { id: p.id, reason: rejectReason.trim() },
+                              { onSuccess: () => setRejecting(null) },
+                            )
+                          }
+                        >
+                          {t('proposalReject')}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </Card>
+        )}
+
+        {/* Usage guides (PLN-260807 P2). The storefront publishes no usage text
+            at all — 31 of 2,275 products carry any — so these ten guides are
+            where "how do I apply this?" gets answered. Types with no guide are
+            listed on purpose: a gap nobody can see is a gap nobody fills. */}
+        <Card title={t('usageGuides')}>
+          <p className="mb-2 text-xs text-gray-500">{t('usageGuidesHint')}</p>
+          <Table<UsageGuide>
+            columns={[
+              {
+                key: 'key',
+                header: t('usageType'),
+                render: (g) => <span className="font-medium">{t(`usageType_${g.key}`)}</span>,
+              },
+              {
+                key: 'productCount',
+                header: t('usageProducts'),
+                render: (g) => (
+                  <span className="tabular-nums">{g.productCount.toLocaleString()}</span>
+                ),
+              },
+              {
+                key: 'state',
+                header: t('usageState'),
+                render: (g) =>
+                  g.documentId ? (
+                    <Badge tone="success">{t('usageWritten')}</Badge>
+                  ) : (
+                    <Badge tone="warning">{t('usageMissing')}</Badge>
+                  ),
+              },
+              {
+                key: 'action',
+                header: '',
+                render: (g) => (
+                  <Button variant="ghost" onClick={() => void openGuide(g)}>
+                    {g.documentId ? t('usageEdit') : t('usageWrite')}
+                  </Button>
+                ),
+              },
+            ]}
+            data={usageGuides.data}
+            loading={usageGuides.isLoading}
+            error={usageGuides.error ? (usageGuides.error as Error).message : null}
+            emptyMessage={t('noUsageGuides')}
+            rowKey={(g) => g.key}
+          />
+        </Card>
+
         <Card
           title={t('documents')}
           action={
             <div className="flex gap-2">
+              <Button variant="secondary" onClick={() => setCatalogOpen(true)}>
+                {t('syncCatalog')}
+              </Button>
               <Button variant="secondary" onClick={() => setImportOpen(true)}>
                 {t('importProducts')}
               </Button>
@@ -502,6 +696,214 @@ export function KnowledgePage() {
           <ConflictReview onOpenDocument={(id) => setDetailId(id)} />
         </div>
       </div>
+
+      {/* Usage guide editor (PLN-260807 P2). */}
+      <Modal
+        open={guideKey !== null}
+        onClose={() => setGuideKey(null)}
+        title={guideKey ? t(`usageType_${guideKey}`) : ''}
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setGuideKey(null)}>
+              {tc('close')}
+            </Button>
+            <Button
+              disabled={guideBody.trim().length < 20 || saveUsageGuide.isPending}
+              onClick={() =>
+                guideKey &&
+                saveUsageGuide.mutate(
+                  { key: guideKey, title: guideTitle.trim(), content: guideBody.trim() },
+                  { onSuccess: () => setGuideKey(null) },
+                )
+              }
+            >
+              {saveUsageGuide.isPending ? tc('loading') : tc('save')}
+            </Button>
+          </>
+        }
+      >
+        <p className="mb-3 rounded-lg bg-blue-50 px-3 py-2 text-xs text-blue-800">
+          {t('usageGuideHelp')}
+        </p>
+        <FormRow label={t('title_column')}>
+          <Input value={guideTitle} onChange={(e) => setGuideTitle(e.target.value)} />
+        </FormRow>
+        <FormRow label={t('content')}>
+          <textarea
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-primary-500"
+            rows={12}
+            value={guideBody}
+            onChange={(e) => setGuideBody(e.target.value)}
+            placeholder={t('usageGuidePlaceholder')}
+          />
+        </FormRow>
+      </Modal>
+
+      {/* Catalogue → knowledge (PLN-260807 P1). Preview first: the run rewrites
+          the product half of the knowledge base and issues embedding calls, so
+          a human sees the plan — including which products merged — before it
+          lands. */}
+      <Modal
+        open={catalogOpen}
+        onClose={() => {
+          setCatalogOpen(false);
+          syncCatalog.reset();
+        }}
+        title={t('catalogSyncTitle')}
+        footer={
+          <>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setCatalogOpen(false);
+                syncCatalog.reset();
+              }}
+            >
+              {tc('close')}
+            </Button>
+            {job?.status !== 'succeeded' && (
+              <Button
+                disabled={
+                  !catalogPreview.data || syncCatalog.isPending || jobRunning || nothingToApply
+                }
+                onClick={() => syncCatalog.mutate()}
+              >
+                {syncCatalog.isPending || jobRunning ? t('catalogRunning') : t('catalogRun')}
+              </Button>
+            )}
+          </>
+        }
+      >
+        <div className="space-y-3 text-sm">
+          {catalogPreview.isPending && <p className="text-gray-500">{tc('loading')}</p>}
+          {catalogPreview.error && (
+            <p className="text-red-600">{(catalogPreview.error as Error).message}</p>
+          )}
+
+          {catalogPreview.data && !job && (
+            <>
+              <p className="text-gray-700">
+                {t('catalogSyncIntro', { scanned: catalogPreview.data.scanned })}
+              </p>
+              <dl className="divide-y divide-gray-100 rounded-lg border border-gray-200">
+                {[
+                  ['catalogCreated', catalogPreview.data.created],
+                  ['catalogUpdated', catalogPreview.data.updated],
+                  ['catalogCuratedKept', catalogPreview.data.curatedKept],
+                  ['catalogAbsorbed', catalogPreview.data.absorbed],
+                  ['catalogUnchanged', catalogPreview.data.unchanged],
+                  ['catalogHeld', catalogPreview.data.held],
+                ].map(([key, value]) => (
+                  <div key={key as string} className="flex justify-between px-3 py-1.5">
+                    <dt className="text-gray-600">{t(key as string)}</dt>
+                    <dd className="font-medium tabular-nums">{value as number}</dd>
+                  </div>
+                ))}
+              </dl>
+              <p className="text-xs text-gray-500">
+                {t('catalogEmbedEstimate', {
+                  batches: Math.ceil(
+                    (catalogPreview.data.created + catalogPreview.data.updated) / 64,
+                  ),
+                })}
+              </p>
+              <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                {t('catalogCuratedHint')}
+              </p>
+
+              {catalogPreview.data.familySamples.length > 0 && (
+                <details className="rounded-lg border border-gray-200 px-3 py-2">
+                  <summary className="cursor-pointer text-gray-700">
+                    {t('catalogMergeSamples')}
+                  </summary>
+                  <ul className="mt-2 space-y-2">
+                    {catalogPreview.data.familySamples.map((f) => (
+                      <li key={f.representative} className="text-xs">
+                        <span className="font-medium text-gray-800">{f.representative}</span>
+                        <span className="ml-1 text-gray-500">
+                          {t('catalogMergedInto', { count: f.absorbed })}
+                        </span>
+                        <ul className="mt-0.5 list-disc pl-5 text-gray-500">
+                          {f.variants.map((v) => (
+                            <li key={v}>{v}</li>
+                          ))}
+                        </ul>
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+              )}
+
+              {catalogPreview.data.held > 0 && (
+                <details className="rounded-lg border border-gray-200 px-3 py-2">
+                  <summary className="cursor-pointer text-gray-700">{t('catalogHeldList')}</summary>
+                  <p className="mt-1 text-xs text-gray-500">{t('catalogHeldHint')}</p>
+                  <ul className="mt-1 list-disc pl-5 text-xs text-gray-600">
+                    {catalogPreview.data.heldSamples.map((h) => (
+                      <li key={h.handle}>{h.title}</li>
+                    ))}
+                  </ul>
+                </details>
+              )}
+
+              {nothingToApply && <p className="text-gray-500">{t('catalogNothingToDo')}</p>}
+            </>
+          )}
+
+          {job && (
+            <div className="space-y-3">
+              {/* Progress, not a spinner: the run is minutes long and the
+                  operator needs to see it move (RPT-260808 D3). */}
+              {job.status === 'running' && (
+                <div className="space-y-2">
+                  <Progress
+                    label={t('catalogPhaseWriting')}
+                    done={job.written}
+                    total={job.writeTotal}
+                  />
+                  <Progress
+                    label={t('catalogPhaseEmbedding')}
+                    done={job.embedded}
+                    total={job.embedTotal}
+                  />
+                  <p className="text-xs text-gray-500">{t('catalogKeepOpenHint')}</p>
+                </div>
+              )}
+
+              {job.status === 'failed' && (
+                <p className="text-red-600">
+                  {t('catalogFailed')}: {job.error}
+                </p>
+              )}
+
+              {job.status === 'succeeded' && job.result && (
+                <>
+                  <p className="font-medium text-gray-800">{t('catalogDone')}</p>
+                  <dl className="divide-y divide-gray-100 rounded-lg border border-gray-200">
+                    {[
+                      ['catalogCreated', job.result.created],
+                      ['catalogUpdated', job.result.updated],
+                      ['catalogCuratedKept', job.result.curatedKept],
+                      ['catalogHeld', job.result.held],
+                      ['importEmbedded', job.result.embedded],
+                    ].map(([key, value]) => (
+                      <div key={key as string} className="flex justify-between px-3 py-1.5">
+                        <dt className="text-gray-600">{t(key as string)}</dt>
+                        <dd className="font-medium tabular-nums">{value as number}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                  {job.result.embedFailed > 0 && (
+                    <p className="text-red-600">
+                      {t('catalogNotIndexed')}: {job.result.embedFailed}
+                    </p>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+        </div>
+      </Modal>
 
       <Modal
         open={importOpen}

@@ -1,6 +1,6 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { FindOptionsWhere, In, Repository } from 'typeorm';
+import { FindOptionsWhere, In, IsNull, Repository } from 'typeorm';
 import { Customer } from './entity/customer.entity';
 import { blindIndex } from '../../global/util/crypto.util';
 import { OrderCache } from '../order/entity/order-cache.entity';
@@ -354,6 +354,145 @@ export class CustomerService {
       email: null,
       name: null,
       shopifyCustomerId,
+      tier: 'guest',
+    });
+    return this.customerRepo.save(customer);
+  }
+
+  /** The customer bound to a verified Cafe24 member identifier, or null. */
+  async findByCafe24Identifier(
+    tenantId: number,
+    userIdentifier: string,
+  ): Promise<Customer | null> {
+    return this.customerRepo.findOne({ where: { tenantId, cafe24UserIdentifier: userIdentifier } });
+  }
+
+  /**
+   * Lookup-or-create by Cafe24 member identifier (PLN-260808 P-A2). Called from the
+   * customer-auth callback, where we hold the server-verified `user_identifier` but
+   * not necessarily an email — the row is enriched later when order sync links the
+   * same identifier to an address. Mirrors findOrCreateByShopifyId: an email-less row
+   * here converges with the order-synced row via linkCafe24Customer, never duplicates.
+   */
+  async findOrCreateByCafe24Identifier(
+    tenantId: number,
+    userIdentifier: string,
+  ): Promise<Customer> {
+    const existing = await this.findByCafe24Identifier(tenantId, userIdentifier);
+    if (existing) return existing;
+    const customer = this.customerRepo.create({
+      tenantId,
+      email: null,
+      name: null,
+      cafe24UserIdentifier: userIdentifier,
+      tier: 'guest',
+    });
+    return this.customerRepo.save(customer);
+  }
+
+  /** The customer holding this Cafe24 member login id, or null. */
+  async findByCafe24MemberId(tenantId: number, memberId: string): Promise<Customer | null> {
+    return this.customerRepo.findOne({ where: { tenantId, cafe24MemberId: memberId } });
+  }
+
+  /**
+   * Stamp the server-verified Cafe24 member login id (`user_id` from the token
+   * response) onto the session-bound customer, then retro-link any orders that
+   * were synced before we knew who this member is (member_id saved, customer link
+   * unresolved). PLN-260808-Cafe24-MemberId-RecentOrders.
+   *
+   * If ANOTHER row already holds this member id (order sync stamped it onto an
+   * email row before this member ever signed in), converge on the session row the
+   * same way linkCafe24Customer does: repoint its orders, copy contact fields the
+   * session row lacks, and drop the duplicate — "my orders" must never split.
+   */
+  async adoptCafe24MemberId(
+    tenantId: number,
+    customerId: number,
+    memberId: string,
+  ): Promise<void> {
+    const target = await this.customerRepo.findOne({ where: { tenantId, id: customerId } });
+    if (!target) return;
+    const holder = await this.findByCafe24MemberId(tenantId, memberId);
+    if (holder && holder.id !== target.id) {
+      await this.orderRepo.update({ tenantId, customerId: holder.id }, { customerId: target.id });
+      if (!target.email && holder.email) target.email = holder.email;
+      if (!target.name && holder.name) target.name = holder.name;
+      await this.customerRepo.remove(holder);
+    }
+    if (target.cafe24MemberId !== memberId) {
+      target.cafe24MemberId = memberId;
+      await this.customerRepo.save(target);
+    }
+    // Orders synced before any sign-in carry member_id but no customer link —
+    // adopt them now. Never steals rows already linked elsewhere.
+    await this.orderRepo.update(
+      { tenantId, memberId, customerId: IsNull() },
+      { customerId: target.id },
+    );
+  }
+
+  /**
+   * Order-sync convergence for Cafe24 (PLN-260808 P-A2): attach email/name to the
+   * member's row and stamp the `user_identifier` so the customer-auth session and
+   * the email-synced orders land on ONE row. Adopts an identifier-only row created
+   * earlier by the auth path (the reverse of findOrCreateByEmail's shopify merge),
+   * so "my orders" is never split across two customers. Returns null for a
+   * suppressed (erased) address.
+   */
+  async linkCafe24Customer(
+    tenantId: number,
+    email: string,
+    name: string | undefined,
+    userIdentifier: string | null,
+  ): Promise<Customer | null> {
+    if (await this.suppression.isSuppressed(tenantId, { email })) return null;
+    const emailHash = blindIndex(email) ?? '__none__';
+    const idRow = userIdentifier
+      ? await this.customerRepo.findOne({ where: { tenantId, cafe24UserIdentifier: userIdentifier } })
+      : null;
+    const emailRow = await this.customerRepo.findOne({ where: { tenantId, emailHash } });
+
+    // Two distinct rows — the sign-in created an identifier row (session-bound, no
+    // orders) and order sync created an email row (orders, no identifier). Merge the
+    // order row INTO the session row so "my orders" resolves, then drop the now-empty
+    // duplicate. Order rows are the only reference an order-synced customer carries
+    // (it never chatted), so repointing orders_cache is a complete merge.
+    if (idRow && emailRow && idRow.id !== emailRow.id) {
+      await this.orderRepo.update(
+        { tenantId, customerId: emailRow.id },
+        { customerId: idRow.id },
+      );
+      idRow.email = email; // @BeforeUpdate re-syncs email_hash
+      if (name != null) idRow.name = name;
+      else if (!idRow.name && emailRow.name) idRow.name = emailRow.name;
+      const merged = await this.customerRepo.save(idRow);
+      await this.customerRepo.remove(emailRow);
+      return merged;
+    }
+
+    const existing = idRow ?? emailRow;
+    if (existing) {
+      let dirty = false;
+      if (existing.email !== email) {
+        existing.email = email; // @BeforeUpdate re-syncs email_hash
+        dirty = true;
+      }
+      if (name != null && existing.name !== name) {
+        existing.name = name;
+        dirty = true;
+      }
+      if (userIdentifier && existing.cafe24UserIdentifier !== userIdentifier) {
+        existing.cafe24UserIdentifier = userIdentifier;
+        dirty = true;
+      }
+      return dirty ? this.customerRepo.save(existing) : existing;
+    }
+    const customer = this.customerRepo.create({
+      tenantId,
+      email,
+      name: name ?? null,
+      cafe24UserIdentifier: userIdentifier ?? null,
       tier: 'guest',
     });
     return this.customerRepo.save(customer);

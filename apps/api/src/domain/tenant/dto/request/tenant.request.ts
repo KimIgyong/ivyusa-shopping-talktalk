@@ -127,4 +127,22 @@ export class UpdateStorefrontRequest {
 export class UpdateWidgetSettingsRequest {
   @IsIn(Object.values(WIDGET_LOGIN_MODE))
   login_mode: WidgetLoginMode;
+
+  // IANA timezone (e.g. 'Asia/Seoul'); drives the default widget language. Empty
+  // string / null clears it. Optional so a login-mode-only update leaves it intact.
+  @IsOptional()
+  @IsString()
+  @Matches(/^$|^[A-Za-z]+\/[A-Za-z_+-]+$/)
+  timezone?: string | null;
+
+  // Widget copy (PLN-260808-Widget-Greetings). PATCH semantics per field:
+  // undefined = keep, ''/null = clear back to the widget default. Flat per-language
+  // fields keep validation trivial; the service folds them into the JSON blob.
+  @IsOptional() @IsString() @MaxLength(80) display_name?: string | null;
+  @IsOptional() @IsString() @MaxLength(500) first_visit_en?: string | null;
+  @IsOptional() @IsString() @MaxLength(500) first_visit_es?: string | null;
+  @IsOptional() @IsString() @MaxLength(500) first_visit_ko?: string | null;
+  @IsOptional() @IsString() @MaxLength(500) login_greeting_en?: string | null;
+  @IsOptional() @IsString() @MaxLength(500) login_greeting_es?: string | null;
+  @IsOptional() @IsString() @MaxLength(500) login_greeting_ko?: string | null;
 }

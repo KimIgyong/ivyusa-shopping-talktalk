@@ -42,7 +42,17 @@
     "redirectHint": "Al hacer clic en \"Iniciar sesión\", el comprador va a la página de inicio de sesión de la tienda en la misma pestaña; al volver, el widget se reabre en sus pedidos.",
     "popupHint": "Al hacer clic en \"Iniciar sesión\" se abre la página de inicio de sesión en una ventana emergente. Los bloqueadores de ventanas emergentes pueden interferir; si el inicio de sesión permanece en shopify.com, el comprador debe cerrar la ventana manualmente.",
     "saved": "Configuración del widget guardada.",
-    "saveError": "No se pudo guardar la configuración del widget."
+    "saveError": "No se pudo guardar la configuración del widget.",
+    "timezone": "Idioma por defecto según zona horaria",
+    "tzUnset": "Sin definir (inglés por defecto)",
+    "timezoneHint": "Define el idioma por defecto del widget cuando el cliente no ha elegido — Asia/Seoul → coreano, America/New_York → inglés.",
+    "copyTitle": "Textos del widget",
+    "displayName": "Nombre para mostrar",
+    "displayNameHint": "Se muestra en el encabezado del widget y como {shop} en los saludos. Vacío = nombre del tenant.",
+    "firstVisit": "Mensaje de bienvenida (primera visita)",
+    "firstVisitHint": "Se muestra al abrir el chat. {shop} inserta el nombre para mostrar. Vacío = mensaje por defecto.",
+    "loginGreeting": "Saludo para clientes identificados",
+    "loginGreetingHint": "Se muestra al reconocer a un cliente con sesión iniciada. {name} inserta su nombre. Vacío = mensaje por defecto."
   },
   "shopify": {
     "title": "Conexión de Shopify",
@@ -97,7 +107,8 @@
         "step2": "Abre layout/theme.liquid.",
         "step3": "Pega el fragmento justo antes de la etiqueta </body> y guarda."
       }
-    }
+    },
+    "nonShopifyDomain": "No es un dominio *.myshopify.com. Este campo también es el dominio de la tienda del inquilino, así que un dominio de Cafe24 o propio es válido: solo significa que esta tienda no está conectada a Shopify."
   },
   "integrations": {
     "configured": "Guardado — introduce un nuevo valor para reemplazar",
@@ -123,7 +134,12 @@
       "db": "Base de datos",
       "username": "Usuario",
       "api_key": "API key",
-      "shop_domain": "Dominio de la tienda"
+      "shop_domain": "Dominio de la tienda",
+      "app_key": "App (store) key",
+      "secret_key": "Clave secreta",
+      "subdomain": "Subdominio de la cuenta",
+      "email": "Email de la cuenta",
+      "webhook_secret": "Secreto del webhook (estado L2)"
     },
     "ph": {
       "mall_id": "your-mall",
@@ -131,7 +147,10 @@
       "url": "https://my-odoo.example.com",
       "db": "odoo-db",
       "username": "user@example.com",
-      "shop_domain": "your-store.myharavan.com"
+      "shop_domain": "your-store.myharavan.com",
+      "subdomain": "su-empresa (de su-empresa.gorgias.com)",
+      "email": "agente@ejemplo.com",
+      "app_key": "yotpo app key"
     },
     "cafe24": {
       "title": "Cafe24",
@@ -148,6 +167,18 @@
     "haravan": {
       "title": "Haravan",
       "subtitle": "Conecta tu tienda Haravan con un token de la Admin API."
+    },
+    "klaviyo": {
+      "title": "Klaviyo",
+      "subtitle": "Email/SMS marketing — conecte con su clave API privada."
+    },
+    "yotpo": {
+      "title": "Yotpo",
+      "subtitle": "Reseñas y fidelización — conecte con su app key y secreto."
+    },
+    "gorgias": {
+      "title": "Gorgias",
+      "subtitle": "Helpdesk — los chats escalados pueden transferirse como tickets de Gorgias."
     }
   },
   "install": {
@@ -175,6 +206,186 @@
     "title": "Tienda",
     "url": "URL de la tienda",
     "hint": "Se usa para verificar los enlaces de producto antes de mostrarlos a los clientes. Solo aparecen en el chat los enlaces de este origen.",
-    "unsetWarning": "Sin configurar — las recomendaciones de producto no aparecerán como enlaces en el chat."
+    "unsetWarning": "Sin configurar — las recomendaciones de producto no aparecerán como enlaces en el chat.",
+    "shopDomain": "Dominio de la tienda",
+    "shopDomainHint": "Identifica a este inquilino ante el widget de chat. Sirve el dominio de cualquier plataforma —Shopify, Cafe24 o propio— siempre que coincida con el sitio donde corre el widget."
+  },
+  "cafe24": {
+    "oauth": {
+      "title": "Cafe24 (OAuth)",
+      "hint": "Conecte su tienda Cafe24 mediante OAuth para importar sus pedidos y productos a ShopTalk.",
+      "status": "Estado",
+      "mallId": "ID de tienda",
+      "connect": "Conectar Cafe24",
+      "syncNow": "Sincronizar ahora",
+      "connectedToast": "Cafe24 conectado: {{mall}}",
+      "connectFailed": "Fallo al conectar Cafe24",
+      "syncFailed": "Fallo al sincronizar Cafe24",
+      "syncProducts": "Importar productos",
+      "productsSynced": "{{synced}} producto(s) sincronizados, {{archived}} archivados: ejecute la conversión en Conocimiento",
+      "syncProductsFailed": "Error al importar productos de Cafe24",
+      "errorInvalidScope": "Cafe24 rechazó los permisos solicitados (invalid_scope): agréguelos a la app en Cafe24 Developers y vuelva a conectar",
+      "errorAccessDenied": "Se denegó el consentimiento de Cafe24 (access_denied): reinténtelo con la cuenta del operador principal de la tienda"
+    }
+  },
+  "marketingTitle": "Integraciones de marketing",
+  "helpdeskTitle": "Integraciones de helpdesk",
+  "messenger": {
+    "groupTitle": "Canales de mensajería externos",
+    "groupHint": "Los mensajes llegan a Chat en vivo y la IA de ShopTalk responde por el mismo canal.",
+    "communicationTitle": "Comunicación",
+    "communicationHint": "Buzones de la empresa tratados como conversaciones.",
+    "loading": "Cargando canales…",
+    "label": "Nombre visible",
+    "credential": "Credencial",
+    "stored": "Guardada — escribe para reemplazar",
+    "autoReply": "Respuesta automática de IA",
+    "consentMode": "Gestión del consentimiento",
+    "on": "Activada",
+    "off": "Desactivada",
+    "enabledLabel": "Canal",
+    "enabled": "Habilitado",
+    "disabled": "Deshabilitado",
+    "lastInbound": "Última recepción",
+    "lastError": "Último error",
+    "connectionStatus": "Conexión",
+    "test": "Probar conexión",
+    "testing": "Probando…",
+    "testOk": "Conectado — {{detail}}",
+    "testFailed": "Falló la conexión — {{detail}}",
+    "registerWebhook": "Registrar URL de recepción",
+    "webhookRegistered": "URL de recepción registrada en el proveedor.",
+    "webhookRegisterError": "No se pudo registrar la URL de recepción.",
+    "webhookUrl": "URL de recepción",
+    "webhookHint": "Regístrala en el proveedor o usa el botón de abajo.",
+    "copy": "Copiar",
+    "copied": "Copiado.",
+    "copyFailed": "No se pudo copiar.",
+    "saved": "Canal guardado.",
+    "saveError": "No se pudo guardar el canal.",
+    "disconnect": "Desconectar",
+    "disconnected": "Canal desconectado.",
+    "disconnectError": "No se pudo desconectar el canal.",
+    "plannedHint": "Aún no disponible en esta versión.",
+    "unofficialWarning": "Canal no oficial: los mensajes los retransmite un agente que el comerciante instala en su propio dispositivo, y él mismo lo inicia y lo detiene. La respuesta automática está desactivada por defecto.",
+    "state": {
+      "connected": "Conectado",
+      "error": "Error",
+      "unknown": "Sin probar",
+      "planned": "Previsto"
+    },
+    "consent": {
+      "notice": "Enviar el aviso de privacidad en el primer contacto",
+      "auto": "Basarse en los términos de la plataforma"
+    },
+    "fields": {
+      "bot_token": "Token del bot",
+      "auth_token": "Token de autenticación",
+      "email": "Correo de la cuenta",
+      "password": "Contraseña",
+      "company_id": "ID de empresa (workspace)",
+      "base_url": "URL del servidor",
+      "imap_host": "Servidor IMAP",
+      "smtp_host": "Servidor SMTP",
+      "app_password": "Contraseña de aplicación",
+      "social_types": "Canales de entrada",
+      "sender_name": "Nombre del remitente"
+    },
+    "ph": {
+      "social_types": "zalo, line, whatsapp",
+      "sender_name": "Soporte"
+    },
+    "provider": {
+      "telegram": {
+        "title": "Telegram",
+        "subtitle": "Directo — token de bot, sin revisión de plataforma",
+        "defaultLabel": "Telegram"
+      },
+      "viber": {
+        "title": "Viber",
+        "subtitle": "Directo — token de cuenta pública",
+        "defaultLabel": "Viber"
+      },
+      "amoebatalk": {
+        "title": "Hub AmoebaTalk",
+        "subtitle": "Aporta Zalo / LINE / WhatsApp con las revisiones ya superadas",
+        "defaultLabel": "AmoebaTalk"
+      },
+      "btbz_relay": {
+        "title": "Relé btbz messenger",
+        "subtitle": "Salas de KakaoTalk y SMS entrantes desde el dispositivo del comerciante",
+        "defaultLabel": "Relé btbz"
+      },
+      "gmail": {
+        "title": "Gmail",
+        "subtitle": "Buzón de trabajo por IMAP/SMTP (contraseña de aplicación)",
+        "defaultLabel": "Trabajo 1"
+      },
+      "zalo": {
+        "title": "Zalo",
+        "subtitle": "A través del hub AmoebaTalk"
+      },
+      "line": {
+        "title": "LINE",
+        "subtitle": "A través del hub AmoebaTalk"
+      },
+      "whatsapp": {
+        "title": "WhatsApp",
+        "subtitle": "A través del hub AmoebaTalk"
+      }
+    },
+    "syncNow": "Recibir ahora",
+    "syncOk": "Se recibieron {{count}} mensaje(s) nuevo(s).",
+    "syncFailed": "Fallo al recibir — {{detail}}",
+    "syncInactive": "Se recibieron {{count}} mensaje(s), pero el canal está deshabilitado: no llegará nada por sí solo hasta que lo habilites.",
+    "inactiveWarning": "Deshabilitado: no recibe. Abre Configurar y habilita el canal.",
+    "autoReplyScope": "Se aplica a los mensajes que lleguen a partir de ahora. Cada conversación puede anularlo en Chat en vivo.",
+    "mode": {
+      "auto": "Automática — la IA responde sola",
+      "approve": "Requiere aprobación — la IA redacta, un agente envía",
+      "off": "Desactivada"
+    }
+  },
+  "menuAccess": {
+    "title": "Acceso a los menús",
+    "subtitle": "Define a qué pantallas de la consola llega tu equipo. Los menús en gris no están incluidos en tu plan.",
+    "tabRoles": "Valores por rol",
+    "tabUsers": "Excepciones por persona",
+    "rankColumn": "Rango",
+    "menu": "Menú",
+    "member": "Miembro",
+    "exceptions": "Excepciones",
+    "edit": "Editar",
+    "editFor": "Excepciones — {{who}} ({{rank}})",
+    "rankDefault": "Según el rango",
+    "thisUser": "Este miembro",
+    "result": "Resultado",
+    "allowed": "Permitido",
+    "blocked": "Bloqueado",
+    "notProvided": "Fuera del plan",
+    "canAccess": "Con acceso",
+    "cannotAccess": "Sin acceso",
+    "readOnly": "solo lectura",
+    "masterExempt": "no admite excepciones",
+    "save": "Guardar valores por rol",
+    "saved": "Acceso a los menús guardado",
+    "saveError": "No se pudo guardar el acceso a los menús",
+    "loading": "Cargando…",
+    "needsLabel": "(requiere {{label}})",
+    "masterNote": "El máster siempre llega a todos los menús que provee el plan, así que no puede quedar bloqueado.",
+    "labelNote": "Los menús con etiqueta de función siguen ocultos para quien no la tenga. Para abrirlo a una sola persona, usa una excepción.",
+    "notProvidedNote": "Los menús tachados no los provee tu plan; contacta al administrador de la plataforma para añadirlos.",
+    "allowWaivesLabel": "«Permitir» también exime del requisito de etiqueta para este miembro. Las acciones dentro de la pantalla siguen su rango y etiquetas.",
+    "mode": {
+      "default": "Según el rango",
+      "allow": "Permitir",
+      "deny": "Bloquear"
+    },
+    "rank": {
+      "master": "Máster",
+      "director": "Director",
+      "manager": "Gerente",
+      "staff": "Personal"
+    }
   }
 }

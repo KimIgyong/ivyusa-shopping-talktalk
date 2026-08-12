@@ -11,11 +11,17 @@ import {
   XCircle,
   RefreshCw,
   BookPlus,
+  BookOpen,
+  Bot,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { PageHeader } from '@/components/PageHeader';
 import { Button } from '@/components/Button';
 import { StatusBadge } from '@/components/StatusBadge';
+import { ChannelBadge, CHANNEL_FILTERS, RECEIVE_ONLY_CHANNELS } from './ChannelBadge';
+import { SessionAlias } from './SessionAlias';
+import { AutoReplyControl } from './AutoReplyControl';
+import { DraftPanel } from './DraftPanel';
 import { Badge } from '@/components/Badge';
 import { Modal } from '@/components/Modal';
 import { Input, FormRow } from '@/components/Field';
@@ -25,9 +31,12 @@ import {
   useBriefing,
   useConversation,
   useConversationActions,
+  useAskKnowledge,
+  useProposeAnswer,
   useCustomerActions,
 } from './live-chat.hooks';
 import { KnowledgeCaptureModal } from './KnowledgeCaptureModal';
+import { IssuePanel } from './IssuePanel';
 import { useAuthStore } from '@/store/auth-store';
 import { liveChatService } from './live-chat.service';
 import type { ChatMessage, CustomerContext } from './live-chat.service';
@@ -57,6 +66,7 @@ function absTime(value: string | undefined | null): string {
 
 export function LiveChatPage() {
   const { t } = useTranslation('livechat');
+  const { t: tc } = useTranslation('common');
 
   /** Compact relative time for the queue rows; absolute time goes in the tooltip. */
   const timeAgo = (value: string | undefined | null): string => {
@@ -71,7 +81,11 @@ export function LiveChatPage() {
     return t('daysAgo', { n: Math.floor(h / 24) });
   };
   const [searchParams] = useSearchParams();
-  const [selected, setSelected] = useState<string | null>(null);
+  // Deep-link from the issue board (P4): /live-chat?conversation={id} opens
+  // that thread directly (session-row ids ARE conversation ids).
+  const [selected, setSelected] = useState<string | null>(
+    () => searchParams.get('conversation'),
+  );
   const [draft, setDraft] = useState('');
   /** In-flight latch for the reply send — see onSend. */
   const sendingRef = useRef(false);
@@ -79,6 +93,10 @@ export function LiveChatPage() {
   // 'all' by default: the queue-only view is what hid the conversation a shopper
   // was having right now with the bot (PLN-260807 D1).
   const [scope, setScope] = useState<'all' | 'queue' | 'ended'>('all');
+
+  // Origin-channel filter (PLN-260810 PR-M4). Kept separate from `scope` so an
+  // agent can watch, say, only KakaoTalk without losing the queue/ended split.
+  const [channel, setChannel] = useState<string>('all');
 
   // Queue search box (customer name/email) — debounced into the list query.
   const [listQuery, setListQuery] = useState('');
@@ -94,10 +112,16 @@ export function LiveChatPage() {
   useEffect(() => {
     if (deepLink) setSelected(deepLink);
   }, [deepLink]);
-  const { data: sessions, isLoading: sessionsLoading } = useSessions(listSearch, scope);
+  const { data: sessions, isLoading: sessionsLoading } = useSessions(listSearch, scope, channel);
   const { data: convo, isLoading: convoLoading, isFetching: convoFetching, refetch: refetchConvo } =
     useConversation(selected);
   const { data: briefingData, isLoading: briefingLoading } = useBriefing(selected);
+
+  // Prefer the detail's channel (a deep-linked thread may not be in the list).
+  const activeChannel = (
+    convo?.channel ?? sessions?.find((s) => s.id === selected)?.channel ?? 'widget'
+  ).toLowerCase();
+  const receiveOnly = RECEIVE_ONLY_CHANNELS.has(activeChannel);
   // KB writes belong to knowledge owners; an agent handling the chat does not
   // automatically get to publish knowledge (PLN-260807 D3). Mirrors the server
   // rule — knowledge_source.manage is granted to master/director — so the
@@ -136,7 +160,17 @@ export function LiveChatPage() {
       setLoadingOlder(false);
     }
   };
-  const { accept, end, send } = useConversationActions(selected);
+  const { accept, end, send, handBack } = useConversationActions(selected);
+  const [handBackOpen, setHandBackOpen] = useState(false);
+
+  // Knowledge lookup (PLN-260810 S2/S3). Answer lives in component state, not
+  // in the conversation: it is the agent checking, not a customer turn.
+  const askKnowledge = useAskKnowledge();
+  const proposeAnswer = useProposeAnswer();
+  const [kbQuestion, setKbQuestion] = useState('');
+  const lastCustomerMessage = [...(convo?.messages ?? [])]
+    .reverse()
+    .find((m) => m.senderType === 'user')?.body;
   const { link, create } = useCustomerActions(selected);
 
   // Customer match / create modals (FR-057).
@@ -247,6 +281,18 @@ export function LiveChatPage() {
                 {t(`scope.${key}`)}
               </button>
             ))}
+            <select
+              value={channel}
+              onChange={(e) => setChannel(e.target.value)}
+              aria-label={t('channel.filterLabel')}
+              className="ml-auto rounded-full border border-gray-200 bg-white px-2 py-1 text-xs text-gray-600 outline-none focus:border-primary-400"
+            >
+              {CHANNEL_FILTERS.map((key) => (
+                <option key={key} value={key}>
+                  {key === 'all' ? t('channel.filterAll') : t(`channel.${key}`, { defaultValue: key })}
+                </option>
+              ))}
+            </select>
           </div>
           <div className="border-b border-gray-100 p-2">
             <div className="relative">
@@ -271,28 +317,55 @@ export function LiveChatPage() {
           <ul className="divide-y divide-gray-100">
             {sessions?.map((s) => (
               <li key={s.id}>
-                <button
+                {/* A div, not a button: the row now contains its own controls
+                    (alias edit + input) and a button may not nest interactive
+                    elements. Keyboard access is kept explicitly. */}
+                <div
+                  role="button"
+                  tabIndex={0}
                   onClick={() => setSelected(s.id)}
+                  onKeyDown={(e) => {
+                    if (e.target !== e.currentTarget) return; // let the alias input type
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      setSelected(s.id);
+                    }
+                  }}
                   className={cn(
-                    'w-full px-4 py-3 text-left hover:bg-gray-50',
+                    'w-full cursor-pointer px-4 py-3 text-left hover:bg-gray-50',
                     selected === s.id && 'bg-primary-500/5',
                   )}
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="truncate text-sm font-medium text-gray-800">
-                      {s.customerName ||
+                    {/* Alias first, session label kept behind it — an agent
+                        needs to know who this is, and still refers to the
+                        thread by its label (PLN-260812). */}
+                    <SessionAlias
+                      conversationId={s.id}
+                      alias={s.alias}
+                      fallback={
+                        s.customerName ||
                         s.customerEmail ||
-                        t('sessionLabel', { id: s.id.slice(0, 6) })}
-                    </span>
-                    <StatusBadge status={s.status} />
+                        t('sessionLabel', { id: s.id.slice(0, 6) })
+                      }
+                      sessionLabel={t('sessionLabel', { id: s.id.slice(0, 6) })}
+                      compact
+                    />
+                    <div className="flex shrink-0 items-center gap-1">
+                      {/* Silent thread, at a glance: the AI is not answering
+                          this one and no agent has taken it either. */}
+                      {s.autoReplyEffective === false && s.status !== 'agent' && (
+                        <span
+                          className="rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-500"
+                          title={t('autoReply.offHint')}
+                        >
+                          {t('autoReply.offShort')}
+                        </span>
+                      )}
+                      <ChannelBadge channel={s.channel} />
+                      <StatusBadge status={s.status} />
+                    </div>
                   </div>
-                  {/* Keep the session label visible even when we can name the
-                      shopper — agents refer to threads by it. */}
-                  {(s.customerName || s.customerEmail) && (
-                    <p className="text-[11px] text-gray-400">
-                      {t('sessionLabel', { id: s.id.slice(0, 6) })}
-                    </p>
-                  )}
                   <p className="mt-1 truncate text-xs text-gray-500">
                     {s.lastMessagePreview ?? '—'}
                   </p>
@@ -305,7 +378,7 @@ export function LiveChatPage() {
                     {t('createdShort')} {timeAgo(s.createdAt)} · {t('lastReplyShort')}{' '}
                     {timeAgo(s.lastMessageAt)}
                   </p>
-                </button>
+                </div>
               </li>
             ))}
           </ul>
@@ -321,11 +394,23 @@ export function LiveChatPage() {
           {selected && (
             <>
               <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-gray-800">
-                    {convo?.customer?.name ?? t('conversation')}
-                  </span>
+                <div className="flex min-w-0 items-center gap-2">
+                  {/* Same editor as the list row, so the name can be set from
+                      wherever the agent happens to be (PLN-260812 D-2). */}
+                  <SessionAlias
+                    conversationId={selected}
+                    alias={convo?.alias}
+                    fallback={convo?.customer?.name ?? t('conversation')}
+                    sessionLabel={t('sessionLabel', { id: selected.slice(0, 6) })}
+                  />
                   <StatusBadge status={convo?.status} />
+                  <AutoReplyControl
+                    conversationId={selected}
+                    mode={convo?.autoReplyMode}
+                    effective={convo?.autoReplyEffective}
+                    agentOwns={convo?.status === 'agent'}
+                    awaitingApproval={!!convo?.pendingDraft}
+                  />
                 </div>
                 <div className="flex gap-2">
                   <Button
@@ -346,6 +431,19 @@ export function LiveChatPage() {
                   >
                     <CheckCircle2 className="h-4 w-4" /> {t('accept')}
                   </Button>
+                  {/* Handing back is only meaningful while a person owns the
+                      thread; on any other status the API refuses it (409). */}
+                  {convo?.status === 'agent' && (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      title={t('handBackHint')}
+                      onClick={() => setHandBackOpen(true)}
+                      disabled={handBack.isPending}
+                    >
+                      <Bot className="h-4 w-4" /> {t('handBack')}
+                    </Button>
+                  )}
                   <Button
                     size="sm"
                     variant="danger"
@@ -356,6 +454,9 @@ export function LiveChatPage() {
                   </Button>
                 </div>
               </div>
+
+              {/* Issue P1 (native tenants only — renders nothing when no issue). */}
+              <IssuePanel conversationId={selected} />
 
               <div
                 role="log"
@@ -461,6 +562,10 @@ export function LiveChatPage() {
                 )}
               </div>
 
+              {convo?.pendingDraft && (
+                <DraftPanel conversationId={selected} draft={convo.pendingDraft} />
+              )}
+
               <div className="flex items-center gap-2 border-t border-gray-100 p-3">
                 <input
                   value={draft}
@@ -472,12 +577,15 @@ export function LiveChatPage() {
                     if (e.key !== 'Enter' || e.nativeEvent.isComposing) return;
                     void onSend();
                   }}
-                  placeholder={t('replyPlaceholder')}
-                  className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  disabled={receiveOnly}
+                  placeholder={receiveOnly ? t('channel.receiveOnlyHint') : t('replyPlaceholder')}
+                  className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-400"
                 />
                 <Button
                   onClick={onSend}
-                  disabled={send.isPending || !draft.trim()}
+                  // The platform rejects a reply on these threads (SMS relay),
+                  // so the composer says so instead of failing after the send.
+                  disabled={receiveOnly || send.isPending || !draft.trim()}
                   aria-label={t('send')}
                 >
                   <Send className="h-4 w-4" />
@@ -500,6 +608,109 @@ export function LiveChatPage() {
                   ? t('briefingLoading')
                   : briefingData?.briefing || t('noBriefing')}
             </p>
+          </div>
+
+          {/* Knowledge lookup + draft delivery (PLN-260810 S2/S3). Read-only:
+              asking never touches the conversation, and sending goes through
+              the normal agent-reply path so moderation and the audit trail
+              apply exactly as they do to anything a person types. */}
+          <div className="rounded-lg border border-gray-200 bg-white p-4">
+            <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-gray-800">
+              <BookOpen className="h-4 w-4 text-primary-500" /> {t('kbLookup')}
+            </div>
+            <textarea
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-primary-500"
+              rows={2}
+              value={kbQuestion}
+              onChange={(e) => setKbQuestion(e.target.value)}
+              placeholder={t('kbQuestionPlaceholder')}
+            />
+            <div className="mt-2 flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled={!lastCustomerMessage}
+                onClick={() => setKbQuestion(lastCustomerMessage ?? '')}
+              >
+                {t('kbUseLastMessage')}
+              </Button>
+              <Button
+                size="sm"
+                disabled={!kbQuestion.trim() || askKnowledge.isPending}
+                onClick={() =>
+                  askKnowledge.mutate({ question: kbQuestion.trim(), language: 'EN' })
+                }
+              >
+                {askKnowledge.isPending ? tc('loading') : t('kbAsk')}
+              </Button>
+            </div>
+
+            {askKnowledge.data && (
+              <div className="mt-3 space-y-2 border-t border-gray-100 pt-3">
+                {askKnowledge.data.blocked ? (
+                  <p className="text-sm text-red-600">{t('kbBlocked')}</p>
+                ) : (
+                  <p className="whitespace-pre-wrap text-sm text-gray-800">
+                    {askKnowledge.data.answer}
+                  </p>
+                )}
+                <p className="text-xs text-gray-500">
+                  {askKnowledge.data.sources.length === 0
+                    ? t('kbNoSources')
+                    : t('kbSourceCount', { count: askKnowledge.data.sources.length })}
+                </p>
+                <ul className="space-y-1 text-xs">
+                  {askKnowledge.data.sources.map((src) => (
+                    <li key={src.id} className="flex items-center gap-1 text-gray-600">
+                      <a
+                        className="truncate underline-offset-2 hover:underline"
+                        href={`/knowledge?doc=${src.id}`}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        {src.title}
+                      </a>
+                      {src.stale && <Badge tone="warning">{t('kbStale')}</Badge>}
+                      {src.conflicted && <Badge tone="error">{t('kbConflicted')}</Badge>}
+                    </li>
+                  ))}
+                </ul>
+                {!askKnowledge.data.blocked && askKnowledge.data.answer && (
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    <Button
+                      size="sm"
+                      disabled={!selected || send.isPending || receiveOnly}
+                      onClick={() => void send.mutateAsync(askKnowledge.data!.answer)}
+                    >
+                      {t('kbSendToCustomer')}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => setDraft(askKnowledge.data!.answer)}
+                    >
+                      {t('kbEditThenSend')}
+                    </Button>
+                    {/* Anyone handling a chat may propose; only a knowledge
+                        owner can approve it (PLN-260810 D3). */}
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      disabled={proposeAnswer.isPending || !kbQuestion.trim()}
+                      onClick={() =>
+                        proposeAnswer.mutate({
+                          conversationId: selected ? Number(selected) : undefined,
+                          question: kbQuestion.trim(),
+                          answer: askKnowledge.data!.answer,
+                        })
+                      }
+                    >
+                      {t('kbProposeKnowledge')}
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="rounded-lg border border-gray-200 bg-white p-4">
@@ -555,6 +766,37 @@ export function LiveChatPage() {
       </div>
 
       {/* Match an existing customer to this chat (FR-057). */}
+      {/* Handback confirmation (PLN-260810 S1). The thread keeps running, so
+          the dialog says what changes and what does not — an agent reading
+          "hand back" could reasonably fear it closes the conversation. */}
+      <Modal
+        open={handBackOpen}
+        onClose={() => setHandBackOpen(false)}
+        title={t('handBack')}
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setHandBackOpen(false)}>
+              {tc('close')}
+            </Button>
+            <Button
+              disabled={handBack.isPending}
+              onClick={() =>
+                handBack.mutate(undefined, { onSuccess: () => setHandBackOpen(false) })
+              }
+            >
+              {handBack.isPending ? tc('loading') : t('handBack')}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-2 text-sm text-gray-700">
+          <p>{t('handBackExplain')}</p>
+          <p className="rounded-lg bg-blue-50 px-3 py-2 text-xs text-blue-800">
+            {t('handBackNoticePreview')}
+          </p>
+        </div>
+      </Modal>
+
       <KnowledgeCaptureModal
         open={!!capture}
         question={capture?.question ?? ''}

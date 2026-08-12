@@ -8,9 +8,10 @@ import { getShopDomain } from '../../hooks/useSession';
 import { ensureSession, setConsent } from '../../services/sessionService';
 import { getStoredConsent, setStoredConsent } from '../../lib/consent';
 import { useAnalytics } from '../../lib/analytics';
-import type { ScenarioButton, ScenarioPostAction } from '../../lib/types';
+import type { ScenarioButton, ScenarioPostAction, WidgetCopyText } from '../../lib/types';
 import { MessageBubble } from './MessageBubble';
 import { TypingBubble } from './TypingBubble';
+import { CsatCard } from './CsatCard';
 import { ContactEmailCard } from './ContactEmailCard';
 import { ConsentBanner } from './ConsentBanner';
 import { ScenarioMenu, type SubAction } from './ScenarioMenu';
@@ -19,6 +20,17 @@ import { ContactCard } from './ContactCard';
 import { AffiliateCard } from './AffiliateCard';
 
 type Inline = 'auth' | 'contact' | 'affiliate' | 'contactEmail' | null;
+
+/** Pick the tenant-configured copy for the active language, if any. */
+function pickCopy(bag: WidgetCopyText | undefined, language: string): string | null {
+  const key = (language || 'en').toUpperCase() as keyof WidgetCopyText;
+  return bag?.[key]?.trim() || null;
+}
+
+/** Substitute a template placeholder everywhere (ES2020-safe replaceAll). */
+function fill(template: string, key: string, value: string): string {
+  return template.split(key).join(value);
+}
 
 export function ChatTab() {
   const { t } = useTranslation();
@@ -36,7 +48,8 @@ export function ChatTab() {
   const consumeChatMessage = useWidgetStore((s) => s.consumeChatMessage);
   const analytics = useAnalytics();
 
-  const { messages, send, scenario, sending, status, escalate } = useChat(sessionToken);
+  const { messages, send, scenario, sending, status, escalate, endChat, canRate, rate, conversationId } =
+    useChat(sessionToken);
   // Reply-pending indicator (PLN-260804, corrected by FIX-260806).
   //  · sending  → the AI completion runs synchronously inside the send request.
   //  · agent    → a human took the thread; their reply arrives via the poll.
@@ -61,14 +74,46 @@ export function ChatTab() {
   const [input, setInput] = useState('');
   const [inline, setInline] = useState<Inline>(null);
   const [showEscalate, setShowEscalate] = useState(false);
+  // End-chat confirm row (요구 3, PLN-260808 Track B).
+  const [endConfirm, setEndConfirm] = useState(false);
+  const chatLive = status === 'ai_active' || status === 'waiting' || status === 'agent';
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Tenant-configured greetings (session/ensure); fall back to the built-in
+  // defaults with {shop} = tenant display name (no hardcoded brand — a second
+  // tenant's shoppers must never be welcomed to "IVY USA").
+  const widgetCopy = useWidgetStore((s) => s.widgetCopy);
+  const shopName = widgetCopy?.displayName || t('appName');
+  const greetingFor = (name: string | null): string => {
+    if (name) {
+      const custom = pickCopy(widgetCopy?.loginGreeting, language);
+      return custom
+        ? fill(fill(custom, '{name}', name), '{shop}', shopName)
+        : t('chat.welcomeNamed', { name, shop: shopName });
+    }
+    const custom = pickCopy(widgetCopy?.firstVisit, language);
+    return custom ? fill(custom, '{shop}', shopName) : t('chat.welcome', { shop: shopName });
+  };
+
+  // Requirement 4 (PLN-260808-Widget-Greetings): when the shopper signs in
+  // mid-conversation, greet them by name once. Render-only — never persisted.
+  const [loginGreeting, setLoginGreeting] = useState<string | null>(null);
+  const prevNameRef = useRef<string | null>(customerName);
+  useEffect(() => {
+    if (!prevNameRef.current && customerName && messages.length > 0) {
+      setLoginGreeting(greetingFor(customerName));
+    }
+    prevNameRef.current = customerName;
+    // greetingFor is stable enough for this transition-only effect.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [customerName]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({
       top: scrollRef.current.scrollHeight,
       behavior: 'smooth',
     });
-  }, [messages, inline, showEscalate, waitMode]);
+  }, [messages, inline, showEscalate, waitMode, endConfirm, status]);
 
   /**
    * Fail-closed consent recording (ConsentBanner awaits this): the banner only
@@ -240,10 +285,18 @@ export function ChatTab() {
 
   return (
     <div className="flex h-full flex-col">
-      {/* AI disclosure */}
+      {/* AI disclosure + end-chat control */}
       <div className="flex items-center gap-1.5 border-b border-gray-100 bg-gray-50 px-3 py-1.5 text-[11px] text-gray-500">
-        <Sparkles className="h-3 w-3 text-primary-400" />
-        {t('chat.aiDisclosure')}
+        <Sparkles className="h-3 w-3 flex-shrink-0 text-primary-400" />
+        <span className="min-w-0 flex-1">{t('chat.aiDisclosure')}</span>
+        {chatLive && (
+          <button
+            onClick={() => setEndConfirm(true)}
+            className="flex-shrink-0 whitespace-nowrap font-medium text-gray-400 underline-offset-2 hover:text-gray-600 hover:underline"
+          >
+            {t('chat.endChat')}
+          </button>
+        )}
       </div>
 
       {/* Thread */}
@@ -267,14 +320,12 @@ export function ChatTab() {
           />
         )}
 
-        {/* Welcome bubble — greets a signed-in shopper by name when we know it. */}
+        {/* Welcome bubble — tenant-configured copy; greets by name when known. */}
         <MessageBubble
           message={{
             id: 'welcome',
             senderType: 'ai',
-            body: customerName
-              ? t('chat.welcomeNamed', { name: customerName })
-              : t('chat.welcome'),
+            body: greetingFor(customerName),
             createdAt: new Date().toISOString(),
           }}
         />
@@ -305,6 +356,57 @@ export function ChatTab() {
             )}
           </div>
         ))}
+
+        {/* Sign-in greeting for a mid-conversation login (render-only, once). */}
+        {loginGreeting && (
+          <MessageBubble
+            message={{
+              id: 'login-greeting',
+              senderType: 'ai',
+              body: loginGreeting,
+              createdAt: new Date().toISOString(),
+            }}
+          />
+        )}
+
+        {/* End-chat confirm (render-only; the session and sign-in survive). */}
+        {endConfirm && chatLive && (
+          <div className="flex flex-col items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 p-3">
+            <span className="text-xs text-gray-600">{t('chat.endConfirm')}</span>
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  setEndConfirm(false);
+                  void endChat();
+                }}
+                className="rounded-full bg-gray-700 px-4 py-1 text-xs font-medium text-white hover:bg-gray-800"
+              >
+                {t('chat.endChat')}
+              </button>
+              <button
+                onClick={() => setEndConfirm(false)}
+                className="rounded-full border border-gray-300 bg-white px-4 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100"
+              >
+                {t('chat.endCancel')}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Ended divider — set by our end button OR an agent ending the thread. */}
+        {status === 'ended' && (
+          <div className="flex items-center gap-2 py-1 text-[11px] text-gray-400">
+            <span className="h-px flex-1 bg-gray-200" />
+            <span className="whitespace-nowrap">{t('chat.endedNotice')}</span>
+            <span className="h-px flex-1 bg-gray-200" />
+          </div>
+        )}
+
+        {/* Satisfaction (PLN-260810 P3). The server decides whether the window
+            is still open, so the card cannot outlive what the API accepts. */}
+        {status === 'ended' && canRate && conversationId && (
+          <CsatCard conversationId={conversationId} onRate={rate} />
+        )}
 
         {waitMode && <TypingBubble mode={waitMode} />}
 

@@ -73,5 +73,146 @@
     "save": "지식으로 저장",
     "saved": "지식으로 저장했습니다.",
     "saveFailed": "지식 문서를 저장하지 못했습니다."
+  },
+  "issue": {
+    "status": {
+      "received": "접수",
+      "in_progress": "진행중",
+      "resolved": "해결",
+      "rejected": "반려",
+      "closed": "종료"
+    },
+    "type": {
+      "order_status": "주문상태",
+      "delivery": "배송",
+      "cancel": "취소",
+      "refund": "환불",
+      "partnership": "제휴",
+      "other": "기타"
+    },
+    "resolve": "해결",
+    "reject": "반려",
+    "rejectConfirm": "반려 확정",
+    "reopen": "재오픈",
+    "timeline": "타임라인",
+    "reopened": "재오픈 ×{{count}}",
+    "notePlaceholder": "메모 (선택)",
+    "rejectReason": {
+      "policy_impossible": "정책상 불가",
+      "misrouted": "오분류",
+      "spam": "스팸"
+    },
+    "event": {
+      "created": "이슈 생성",
+      "status_changed": "상태 변경",
+      "assigned": "배정",
+      "tier_advanced": "상담원 이관",
+      "memo": "메모",
+      "reopened": "재오픈"
+    },
+    "transitioned": "이슈가 업데이트되었습니다.",
+    "transitionError": "이슈 업데이트에 실패했습니다.",
+    "transfer": "이관…",
+    "assigned": "이슈가 이관되었습니다.",
+    "label": {
+      "consult": "상담",
+      "accounting": "회계",
+      "operations": "운영"
+    }
+  },
+  "board": {
+    "title": "이슈 보드",
+    "subtitle": "에스컬레이션된 문의를 상태별로 — 카드를 드래그해 전이합니다.",
+    "notNative": "이 스토어에는 이슈 워크플로우 애드온이 활성화되어 있지 않습니다. 활성화는 플랫폼 운영자에게 문의하세요.",
+    "unassigned": "미배정",
+    "avgResolution": "평균 해결",
+    "reopenRate": "재오픈율",
+    "noAssignee": "미배정",
+    "priorityToggle": "우선순위 전환",
+    "urgent": "긴급",
+    "normal": "일반",
+    "cancel": "취소",
+    "move": "이동…"
+  },
+  "channel": {
+    "filterLabel": "채널 필터",
+    "filterAll": "전체 채널",
+    "widget": "위젯",
+    "telegram": "텔레그램",
+    "viber": "바이버",
+    "zalo": "잘로",
+    "line": "라인",
+    "whatsapp": "와츠앱",
+    "kakao": "카카오톡",
+    "sms": "SMS",
+    "email": "이메일",
+    "receiveOnlyShort": "수신 전용",
+    "receiveOnlyHint": "이 채널은 답장할 수 없습니다 — SMS 릴레이는 수신 전용입니다."
+  },
+  "handBack": "AI에게 넘기기",
+  "handBackHint": "대화를 종료하지 않고 이후 응답을 AI에게 넘깁니다",
+  "handBackExplain": "이후 고객 문의는 AI 상담원이 응답합니다. 대화는 종료되지 않으며, 고객이 다시 상담사를 요청하면 대기열에 올라옵니다.",
+  "handBackNoticePreview": "고객에게는 \"상담사 확인이 끝나 이후 문의는 AI 상담원이 도와드립니다\"라는 안내가 표시됩니다. (문구는 AI 설정에서 변경 가능)",
+  "kbLookup": "지식 조회",
+  "kbQuestionPlaceholder": "고객 질문을 넣고 지식에 있는지 확인하세요",
+  "kbUseLastMessage": "마지막 고객 메시지",
+  "kbAsk": "조회",
+  "kbBlocked": "모더레이션에 걸려 표시할 수 없는 답변입니다",
+  "kbNoSources": "근거 문서 없음 — 지식에 없는 질문입니다",
+  "kbSourceCount": "근거 {{count}}건",
+  "kbStale": "검토기한 경과",
+  "kbConflicted": "충돌",
+  "kbSendToCustomer": "고객에게 전달",
+  "kbEditThenSend": "편집 후 전달",
+  "alias": {
+    "add": "별칭 추가",
+    "edit": "별칭 수정",
+    "placeholder": "예: 강남점 사장님",
+    "saved": "세션 별칭을 저장했습니다.",
+    "cleared": "세션 별칭을 해제했습니다.",
+    "saveError": "세션 별칭을 저장하지 못했습니다."
+  },
+  "preview": {
+    "title": "이슈 #{{no}} 미리보기",
+    "loading": "대화 불러오는 중…",
+    "openSession": "관련 세션으로 이동",
+    "close": "닫기"
+  },
+  "sender": {
+    "user": "고객",
+    "ai": "AI",
+    "agent": "상담원",
+    "system": "시스템"
+  },
+  "autoReply": {
+    "label": "AI 자동응답",
+    "inherit": "채널 기본값 ({{state}})",
+    "on": "켬",
+    "off": "끔",
+    "hint": "지금 이후 수신되는 메시지부터 적용됩니다. 이미 쌓인 대화에 소급 응답하지 않습니다.",
+    "aiAnswering": "AI 응답 중",
+    "agentAnswering": "상담원 응대",
+    "agentOwnsHint": "상담원이 응대 중이라 AI는 답하지 않습니다.",
+    "offShort": "AI 끔",
+    "offHint": "이 세션은 AI가 답하지 않습니다.",
+    "savedOn": "다음 메시지부터 이 세션에 AI가 답합니다.",
+    "savedOff": "이 세션은 AI가 답하지 않습니다.",
+    "saveError": "이 세션의 자동응답을 변경하지 못했습니다.",
+    "auto": "자동",
+    "approve": "승인 후 발송",
+    "awaitingApproval": "승인 대기"
+  },
+  "kbProposeKnowledge": "확정 지식으로 제안",
+  "draft": {
+    "title": "AI 제안",
+    "confidence": "신뢰도 {{value}}",
+    "approve": "승인 후 발송",
+    "sending": "발송 중…",
+    "discard": "폐기",
+    "hint": "보내기 전에 수정할 수 있습니다 — 상담원 답변으로 나갑니다.",
+    "sent": "고객에게 발송했습니다.",
+    "sendError": "초안을 발송하지 못했습니다.",
+    "discarded": "초안을 폐기했습니다.",
+    "discardError": "초안을 폐기하지 못했습니다."
   }
 }

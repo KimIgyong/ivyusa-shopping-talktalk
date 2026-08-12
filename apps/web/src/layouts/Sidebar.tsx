@@ -5,7 +5,7 @@ import { useAuthStore } from '@/store/auth-store';
 import { useUiStore } from '@/store/ui-store';
 import { authService } from '@/domain/auth/auth.service';
 import { Badge } from '@/components/Badge';
-import { makeCan } from '@/lib/rbac';
+import { useMenuAccess } from '@/lib/use-menu-access';
 import { TENANT_NAV, ADMIN_NAV, type NavItem } from './nav-config';
 import { cn } from '@/lib/cn';
 
@@ -19,13 +19,10 @@ export function Sidebar() {
   const navigate = useNavigate();
   const isAdmin = principal?.actorType === 'admin';
 
-  let items: NavItem[];
-  if (isAdmin) {
-    items = ADMIN_NAV;
-  } else {
-    const can = makeCan(principal);
-    items = TENANT_NAV.filter((i) => !i.capability || can(i.capability));
-  }
+  const { canSeeMenu } = useMenuAccess();
+  const items: NavItem[] = isAdmin
+    ? ADMIN_NAV
+    : TENANT_NAV.filter((i) => canSeeMenu(i.code, i.capability));
 
   const logout = () => {
     // Best-effort server-side revocation of the (in-memory) refresh token;
@@ -44,7 +41,14 @@ export function Sidebar() {
         collapsed ? 'w-[64px]' : 'w-[240px]',
       )}
     >
-      <div className="flex h-16 items-center gap-2 border-b border-gray-100 px-4">
+      {/* The logo goes somewhere now: it used to be inert, and a logo that does
+          nothing when clicked reads as broken. It opens the all-menus overview. */}
+      <NavLink
+        to={isAdmin ? '/admin/menu' : '/menu'}
+        aria-label={t('allMenus')}
+        title={t('allMenus')}
+        className="flex h-16 items-center gap-2 border-b border-gray-100 px-4 transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500"
+      >
         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary-500 text-white">
           <Sparkles className="h-5 w-5" />
         </div>
@@ -66,7 +70,7 @@ export function Sidebar() {
             )}
           </div>
         )}
-      </div>
+      </NavLink>
 
       <nav className="flex-1 space-y-1 overflow-y-auto p-3">
         {items.map((item) => {

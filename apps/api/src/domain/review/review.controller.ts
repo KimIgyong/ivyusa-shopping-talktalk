@@ -5,7 +5,7 @@ import { buildPagination, normalizePage } from '@ivy/common';
 import { ReviewService } from './review.service';
 import { Review } from './entity/review.entity';
 import { Public } from '../../global/decorator/public.decorator';
-import { RequireCapability } from '../../global/decorator/auth.decorator';
+import { RequireCapability, RequireMenu } from '../../global/decorator/auth.decorator';
 import { CurrentUser } from '../../global/decorator/current-user.decorator';
 import { Paginated } from '../../global/interceptor/transform.interceptor';
 import { BusinessException } from '../../global/exception/business.exception';
@@ -54,6 +54,7 @@ export class ReviewController {
 
   @Get('admin/reviews')
   @RequireCapability(CAPABILITY.MODULE_OPERATIONS)
+  @RequireMenu('reviews')
   @ApiOperation({ summary: 'List reviews (tenant admin)' })
   async adminList(
     @CurrentUser() user: Principal,
@@ -67,6 +68,7 @@ export class ReviewController {
 
   @Patch('admin/reviews/:id')
   @RequireCapability(CAPABILITY.MODULE_OPERATIONS)
+  @RequireMenu('reviews')
   @ApiOperation({ summary: 'Hide or unhide a review (tenant admin, D3)' })
   async adminSetStatus(
     @CurrentUser() user: Principal,

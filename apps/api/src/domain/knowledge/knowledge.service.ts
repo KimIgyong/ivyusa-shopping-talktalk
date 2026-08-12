@@ -22,6 +22,8 @@ import {
 import { KbConflictService, isStale } from './kb-conflict.service';
 import { KbRevisionService } from './kb-revision.service';
 import { ProductImportService } from './product-import.service';
+import { CatalogSyncPreview, CatalogSyncService } from './catalog-sync.service';
+import { UsageGuideService, UsageGuideSummary } from './usage-guide.service';
 import { SourceSyncService } from './source-sync.service';
 import { REVISION_KIND } from './entity/kb-document-revision.entity';
 import { BusinessException } from '../../global/exception/business.exception';
@@ -54,6 +56,8 @@ export class KnowledgeService {
     private readonly conflicts: KbConflictService,
     private readonly revisions: KbRevisionService,
     private readonly productImport: ProductImportService,
+    private readonly catalogSync: CatalogSyncService,
+    private readonly usageGuides: UsageGuideService,
     private readonly sourceSync: SourceSyncService,
   ) {}
 
@@ -325,6 +329,70 @@ export class KnowledgeService {
     return saved;
   }
 
+  /** Usage guides per product type, written or not (PLN-260807 P2). */
+  async listUsageGuides(tenantId: number): Promise<UsageGuideSummary[]> {
+    return this.usageGuides.list(tenantId);
+  }
+
+  /**
+   * Write one usage guide and index it immediately — it is a single document,
+   * so the batch path buys nothing and the operator expects it searchable by
+   * the time the dialog closes.
+   */
+  async saveUsageGuide(
+    tenantId: number,
+    typeKey: string,
+    input: { title: string; content: string },
+    actorUserId: number,
+  ): Promise<Record<string, unknown>> {
+    const doc = await this.usageGuides.upsert(tenantId, typeKey, input, actorUserId);
+    const { embedded, failed } = await this.embedDocuments([doc]);
+    await this.revisions.recordAudit(
+      tenantId,
+      Number(doc.id),
+      'knowledge.usage_guide_saved',
+      actorUserId,
+      { typeKey, embedded, embedFailed: failed },
+    );
+    return { id: String(doc.id), typeKey, embedded, embedFailed: failed };
+  }
+
+  /** Dry run of the catalogue → knowledge conversion (PLN-260807 P1). */
+  async previewCatalogSync(tenantId: number): Promise<CatalogSyncPreview> {
+    return this.catalogSync.preview(tenantId);
+  }
+
+  /**
+   * Convert the storefront catalogue into product knowledge, then embed what
+   * changed in batches — same two-phase shape as the CSV import, for the same
+   * reason (single-text embedding calls are not retried and die under rate
+   * limiting, PR #95).
+   */
+  async syncProductCatalog(
+    tenantId: number,
+    actorUserId: number,
+    report?: {
+      write: (done: number, total: number) => void;
+      embed: (done: number, total: number) => void;
+    },
+  ): Promise<Record<string, unknown>> {
+    const { counts, touchedIds } = await this.catalogSync.sync(tenantId, actorUserId, report?.write);
+    const docs = await this.productImport.pendingByIds(tenantId, touchedIds);
+    const { embedded, failed } = await this.embedDocuments(docs, report?.embed);
+
+    await this.revisions.recordAudit(tenantId, 0, 'knowledge.catalog_synced', actorUserId, {
+      ...counts,
+      embedded,
+      embedFailed: failed,
+    });
+    this.logger.log(
+      `catalog sync: scanned=${counts.scanned} families=${counts.families} ` +
+        `created=${counts.created} updated=${counts.updated} curatedKept=${counts.curatedKept} ` +
+        `unchanged=${counts.unchanged} held=${counts.held} embedded=${embedded} embedFailed=${failed}`,
+    );
+    return { ...counts, embedded, embedFailed: failed };
+  }
+
   /**
    * Import a product catalogue CSV (PLN-260804 P3).
    *
@@ -459,11 +527,15 @@ export class KnowledgeService {
    * usable vector: stub pseudo-vectors share no space with real ones and would
    * corrupt the collection.
    */
-  async embedDocuments(docs: KbDocument[]): Promise<{ embedded: number; failed: number }> {
+  async embedDocuments(
+    docs: KbDocument[],
+    onBatch?: (done: number, total: number) => void,
+  ): Promise<{ embedded: number; failed: number }> {
     const realKeySet = !!process.env.VOYAGE_API_KEY;
     let embedded = 0;
     let failed = 0;
     for (let i = 0; i < docs.length; i += KnowledgeService.REINDEX_BATCH) {
+      onBatch?.(i, docs.length);
       const batch = docs.slice(i, i + KnowledgeService.REINDEX_BATCH);
       const texts = batch.map((d) =>
         `${d.title}\n${d.content ?? ''}`.slice(0, KnowledgeService.EMBED_MAX_CHARS),

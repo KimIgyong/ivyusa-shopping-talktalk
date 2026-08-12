@@ -8,6 +8,7 @@ import {
   SESSION_IDENTITY,
   SESSION_LANGUAGE,
   WIDGET_LOGIN_MODE,
+  WidgetCopy,
   WidgetLoginMode,
 } from '@ivy/types';
 import { generateToken } from '@ivy/common';
@@ -34,6 +35,8 @@ export interface PrivacyNoticeInfo {
   consentNoticeVersion: string;
   /** How the widget's "Sign in" opens the storefront login. */
   widgetLoginMode: WidgetLoginMode;
+  /** Tenant widget copy; displayName already resolved (config ?? tenant name). */
+  widgetCopy: WidgetCopy;
 }
 
 /** TTL for the token→session Redis cache (PERF-11). */
@@ -82,7 +85,7 @@ export class SessionService {
       this.sessionRepo.create({
         sessionToken: generateToken(),
         tenantId: tenant.id,
-        language: this.resolveLanguage(locale),
+        language: this.resolveLanguage(locale, tenant.timezone),
         consentState: CONSENT_STATE.PENDING,
         customerId: null,
         identityLevel: SESSION_IDENTITY.GUEST,
@@ -348,6 +351,13 @@ export class SessionService {
         tenant?.widgetLoginMode === WIDGET_LOGIN_MODE.POPUP
           ? WIDGET_LOGIN_MODE.POPUP
           : WIDGET_LOGIN_MODE.REDIRECT,
+      widgetCopy: {
+        // Resolved here so the widget never needs the tenant entity: configured
+        // name ?? tenant name (kills the hardcoded-brand greeting for tenant 2).
+        displayName: tenant?.widgetCopy?.displayName?.trim() || tenant?.name || null,
+        firstVisit: tenant?.widgetCopy?.firstVisit ?? {},
+        loginGreeting: tenant?.widgetCopy?.loginGreeting ?? {},
+      },
     };
   }
 
@@ -364,19 +374,65 @@ export class SessionService {
   async setLanguage(token: string, language: string): Promise<Session> {
     const session = await this.loadByToken(token);
     session.language = this.resolveLanguage(language);
+    // An explicit choice outranks detection from here on (PLN-260813 D3).
+    session.languageLocked = 1;
     const saved = await this.sessionRepo.save(session);
     await this.redis.del(sessionCacheKey(token));
     return saved;
+  }
+
+  /**
+   * Move a session to the language the shopper is actually writing in
+   * (PLN-260813 P2). Unlike `setLanguage` this does NOT lock: it is an
+   * inference, and a later explicit pick must still win.
+   *
+   * The caller holds the `Session` object the rest of the turn reads from, so
+   * it is mutated here too — otherwise the system message of the very turn that
+   * triggered the switch would still go out in the old language.
+   */
+  async applyDetectedLanguage(session: Session, language: string): Promise<void> {
+    session.language = language;
+    await this.sessionRepo.update({ id: session.id }, { language });
+    await this.redis.del(sessionCacheKey(session.sessionToken));
+    this.logger.log(`session language detected: session=${session.id} → ${language}`);
   }
 
   async bindCustomer(sessionId: number, customerId: number): Promise<void> {
     await this.sessionRepo.update({ id: sessionId }, { customerId });
   }
 
-  private resolveLanguage(locale?: string): string {
+  /**
+   * Resolve a session's UI language. An explicit non-English locale (es/ko) is
+   * always honoured; when the shopper gives no clear preference, the tenant's
+   * configured timezone decides the default (요구사항: Asia/Seoul → Korean,
+   * America/New_York → English). Falls back to English when neither applies.
+   */
+  /**
+   * Language for a session opened from an external messenger (PLN-260812 S3).
+   *
+   * Platform hint first, then the tenant's own default. Relay channels send no
+   * locale at all, and defaulting straight to English put English privacy and
+   * handoff notices into Korean KakaoTalk rooms.
+   */
+  async languageForChannel(tenantId: number | null, localeHint?: string | null): Promise<string> {
+    const tenant = tenantId != null ? await this.tenantRepo.findOne({ where: { id: tenantId } }) : null;
+    return this.resolveLanguage(localeHint ?? undefined, tenant?.timezone);
+  }
+
+  private resolveLanguage(locale?: string, timezone?: string | null): string {
     const l = (locale ?? '').toLowerCase();
     if (l.startsWith('es')) return SESSION_LANGUAGE.ES;
     if (l.startsWith('ko')) return SESSION_LANGUAGE.KO;
-    return SESSION_LANGUAGE.EN;
+    // No explicit non-English preference (en / empty / unknown) → tenant default.
+    return this.languageForTimezone(timezone) ?? SESSION_LANGUAGE.EN;
+  }
+
+  /** Default UI language for a tenant's IANA timezone, or null if unmapped. */
+  private languageForTimezone(timezone?: string | null): string | null {
+    const tz = (timezone ?? '').trim().toLowerCase();
+    if (!tz) return null;
+    if (tz === 'asia/seoul') return SESSION_LANGUAGE.KO;
+    if (tz.startsWith('america/')) return SESSION_LANGUAGE.EN;
+    return null; // unmapped timezone → caller falls back to English
   }
 }

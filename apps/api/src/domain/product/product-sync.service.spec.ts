@@ -4,8 +4,12 @@ import { Tenant } from '../tenant/entity/tenant.entity';
 
 /** ProductSyncService — storefront /products.json → products_cache (PLN-260807 F1). */
 describe('ProductSyncService.syncTenant', () => {
+  // `id` is a STRING on purpose: Tenant's bigint PK has no transformer, so this
+  // is the shape TypeORM actually hands back. A number here hid a real bug —
+  // the Cafe24 skip compared against transformer-converted numbers and never
+  // matched, so staging kept crawling the mall (RPT-260808 D5).
   const tenant = {
-    id: 7,
+    id: '7' as unknown as number,
     shopDomain: 'ivy.myshopify.com',
     storefrontUrl: 'https://ivyusa.com/',
   } as Tenant;
@@ -19,7 +23,7 @@ describe('ProductSyncService.syncTenant', () => {
     vendor: 'IVY',
     product_type: 'Serum',
     tags: ['vitamin', 'glow'],
-    variants: [{ price: '25.00' }, { price: '99.00' }],
+    variants: [{ price: '25.00' }, { price: '99.00', sku: 'IVY-VITC-2' }],
     images: [{ src: 'https://cdn.shopify.com/serum.jpg' }],
     ...over,
   });
@@ -49,7 +53,7 @@ describe('ProductSyncService.syncTenant', () => {
     return fn;
   }
 
-  function build(existing: Partial<ProductCache>[] = []) {
+  function build(existing: Partial<ProductCache>[] = [], cafe24TenantIds: number[] = []) {
     const saved: ProductCache[] = [];
     let nextId = 100;
     const productRepo = {
@@ -67,8 +71,15 @@ describe('ProductSyncService.syncTenant', () => {
       find: jest.fn().mockResolvedValue([tenant]),
       findOne: jest.fn().mockResolvedValue(tenant),
     };
-    const svc = new ProductSyncService(productRepo as never, tenantRepo as never);
-    return { svc, saved, productRepo, tenantRepo };
+    const credRepo = {
+      find: jest.fn().mockResolvedValue(cafe24TenantIds.map((tenantId) => ({ tenantId }))),
+    };
+    const svc = new ProductSyncService(
+      productRepo as never,
+      tenantRepo as never,
+      credRepo as never,
+    );
+    return { svc, saved, productRepo, tenantRepo, credRepo };
   }
 
   afterEach(() => {
@@ -88,7 +99,8 @@ describe('ProductSyncService.syncTenant', () => {
       expect.objectContaining({ headers: { accept: 'application/json' } }),
     );
     expect(saved[0]).toMatchObject({
-      tenantId: 7,
+      // Carried through as TypeORM handed it over (bigint PK → string).
+      tenantId: '7',
       handle: 'vita-c-serum',
       title: 'Vita C Serum',
       vendor: 'IVY',
@@ -96,12 +108,36 @@ describe('ProductSyncService.syncTenant', () => {
       tags: 'vitamin, glow',
       description: "Bright & glowy skin",
       price: 25,
+      sku: 'IVY-VITC-2',
       imageUrl: 'https://cdn.shopify.com/serum.jpg',
       productUrl: 'https://ivyusa.com/products/vita-c-serum',
       status: 'active',
     });
     expect(saved[0].publishedAt?.toISOString()).toBe('2026-08-01T00:00:00.000Z');
     expect(saved[0].syncedAt).toBeInstanceOf(Date);
+  });
+
+  it('takes the first NON-EMPTY variant sku, not variants[0]', async () => {
+    // A placeholder first variant ("Default Title", no code) is common; taking
+    // position 0 would drop the real SKU sitting on the next variant.
+    mockFetch([[product({ variants: [{ price: '9.00', sku: '  ' }, { price: '9.00', sku: 'REAL-1' }] })]]);
+    const { svc, saved } = build();
+    await svc.syncTenant(tenant);
+    expect(saved[0].sku).toBe('REAL-1');
+  });
+
+  it('nulls sku when no variant carries one (29 of 2,275 live products)', async () => {
+    mockFetch([[product({ variants: [{ price: '9.00' }, { price: '9.00', sku: null }] })]]);
+    const { svc, saved } = build();
+    await svc.syncTenant(tenant);
+    expect(saved[0].sku).toBeNull();
+  });
+
+  it('caps an over-long sku at the column width', async () => {
+    mockFetch([[product({ variants: [{ price: '9.00', sku: 'S'.repeat(80) }] })]]);
+    const { svc, saved } = build();
+    await svc.syncTenant(tenant);
+    expect(saved[0].sku).toHaveLength(64);
   });
 
   it('accepts tags as a comma string and nulls out missing price/image', async () => {
@@ -181,6 +217,33 @@ describe('ProductSyncService.syncTenant', () => {
     expect(tenantRepo.findOne).toHaveBeenCalledWith({ where: { id: 7 } });
     tenantRepo.findOne.mockResolvedValue(null);
     await expect(svc.syncTenantById(404)).rejects.toThrow();
+  });
+
+  describe('Cafe24 tenants', () => {
+    // A Cafe24 mall answers /products.json with a 404 HTML page, so polling one
+    // is pure noise — its catalogue comes from Cafe24ProductSyncService.
+    it('are skipped by the scheduled run', async () => {
+      const fetchMock = mockFetch([[product()]]);
+      const { svc } = build([], [7]);
+      await svc.runAll();
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it('are skipped by the initial fill', async () => {
+      const fetchMock = mockFetch([[product()]]);
+      const { svc } = build([], [7]);
+      await svc.initialSyncAll();
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it('get an explanatory result from the manual trigger, not a 404 crawl', async () => {
+      const fetchMock = mockFetch([[product()]]);
+      const { svc } = build([], [7]);
+      const res = await svc.syncTenantById(7);
+      expect(res).toMatchObject({ ok: false, synced: 0 });
+      expect(res.detail).toContain('Cafe24');
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
   });
 });
 

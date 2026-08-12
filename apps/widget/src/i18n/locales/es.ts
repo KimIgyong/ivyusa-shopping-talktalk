@@ -24,15 +24,23 @@ export const es: Translation = {
 
   chat: {
     welcome:
-      '¡Hola! Te damos la bienvenida a IVY USA. ¿En qué podemos ayudarte hoy? Elige un tema abajo o escribe tu pregunta.',
+      '¡Hola! Te damos la bienvenida a {{shop}}. ¿En qué podemos ayudarte hoy? Elige un tema abajo o escribe tu pregunta.',
     welcomeNamed:
-      '¡Hola {{name}}! Bienvenido de nuevo a IVY USA. ¿En qué podemos ayudarte hoy? Elige un tema abajo o escribe tu pregunta.',
+      '¡Hola {{name}}! Bienvenido de nuevo a {{shop}}. ¿En qué podemos ayudarte hoy? Elige un tema abajo o escribe tu pregunta.',
     aiDisclosure:
       'Este chat funciona con IA. Los mensajes que envías son procesados por un proveedor externo de IA en Estados Unidos para generar respuestas.',
     citations: 'Conocimiento consultado',
     inputPlaceholder: 'Escribe un mensaje…',
     send: 'Enviar',
     sendFailed: 'Lo sentimos, no se pudo enviar. Inténtalo de nuevo.',
+    endChat: 'Finalizar chat',
+    endConfirm: '¿Finalizar esta conversación?',
+    endCancel: 'Cancelar',
+    endedNotice: 'La conversación ha finalizado. Envía un mensaje para iniciar una nueva.',
+    csatQuestion: '¿Qué tan satisfecho quedaste con este chat?',
+    csatThanks: 'Gracias por tu opinión 🙏',
+    csatDismiss: 'Cerrar',
+    csatStar: '{{count}} estrella',
     connectingAgent: 'Te estamos conectando con un agente de soporte. Espera un momento…',
     contactEmail: {
       title: '¿A qué correo enviamos la respuesta?',
@@ -128,12 +136,40 @@ export const es: Translation = {
   },
 
   orders: {
+    issues: {
+      status: {
+        received: 'Recibida',
+        in_progress: 'En curso',
+        resolved: 'Resuelta',
+        rejected: 'Rechazada',
+        closed: 'Completada',
+      },
+      type: {
+        order_status: 'Estado del pedido',
+        delivery: 'Entrega',
+        cancel: 'Cancelación',
+        refund: 'Reembolso',
+        partnership: 'Alianzas',
+        other: 'Consulta',
+      },
+      line: {
+        received: 'Hemos recibido tu consulta. La estamos revisando.',
+        in_progress: 'Un agente asignado la está atendiendo.',
+        resolved: 'Esta consulta ha sido resuelta.',
+        rejected: 'No pudimos procesar esta consulta. Revisa la notificación para más detalles.',
+        closed: 'Esta consulta ha sido completada. Gracias.',
+      },
+    },
     subtabs: {
       payments: 'Pagos',
       shipping: 'Envíos',
       inquiries: 'Consultas',
     },
     empty: 'No se encontraron pedidos.',
+    emptyRecent: 'No hay pedidos en los últimos 30 días.',
+    more: 'Ver más',
+    moreInMyPage: 'Para ver tu historial completo de pedidos, visita Mi Página en la tienda.',
+    viewAllOnMall: 'Ver todos mis pedidos',
     ask: 'Preguntar sobre este pedido',
     askMessage: 'Tengo una pregunta sobre el pedido n.º {{orderNumber}}.',
     trackingSteps: ['En preparación', 'Enviado', 'En tránsito', 'Entregado'],

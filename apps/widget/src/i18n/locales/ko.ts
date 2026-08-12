@@ -24,15 +24,23 @@ export const ko: Translation = {
 
   chat: {
     welcome:
-      '안녕하세요! IVY USA에 오신 것을 환영합니다. 무엇을 도와드릴까요? 아래에서 주제를 선택하거나 궁금한 점을 입력해 주세요.',
+      '안녕하세요! {{shop}}에 오신 것을 환영합니다. 무엇을 도와드릴까요? 아래에서 주제를 선택하거나 궁금한 점을 입력해 주세요.',
     welcomeNamed:
-      '{{name}}님, 안녕하세요! IVY USA에 다시 오신 것을 환영합니다. 무엇을 도와드릴까요? 아래에서 주제를 선택하거나 궁금한 점을 입력해 주세요.',
+      '{{name}}님 반갑습니다. 무엇을 도와드릴까요? 아래에서 주제를 선택하거나 궁금한 점을 입력해 주세요.',
     aiDisclosure:
       '이 채팅은 AI 기반으로 운영됩니다. 보내신 메시지는 응답 생성을 위해 미국에 있는 외부 AI 서비스 제공업체에서 처리됩니다.',
     citations: '지식참조',
     inputPlaceholder: '메시지를 입력하세요…',
     send: '보내기',
     sendFailed: '전송하지 못했습니다. 다시 시도해 주세요.',
+    endChat: '상담 종료',
+    endConfirm: '상담을 종료할까요?',
+    endCancel: '취소',
+    endedNotice: '상담이 종료되었습니다. 새 메시지를 보내면 새 상담이 시작됩니다.',
+    csatQuestion: '상담에 만족하셨나요?',
+    csatThanks: '평가해 주셔서 감사합니다 🙏',
+    csatDismiss: '닫기',
+    csatStar: '별 {{count}}개',
     connectingAgent: '상담원에게 연결하고 있습니다. 잠시만 기다려 주세요…',
     contactEmail: {
       title: '답변을 받으실 이메일을 알려주세요',
@@ -128,12 +136,40 @@ export const ko: Translation = {
   },
 
   orders: {
+    issues: {
+      status: {
+        received: '접수',
+        in_progress: '진행중',
+        resolved: '해결',
+        rejected: '반려',
+        closed: '완료',
+      },
+      type: {
+        order_status: '주문상태',
+        delivery: '배송',
+        cancel: '취소',
+        refund: '환불',
+        partnership: '제휴',
+        other: '문의',
+      },
+      line: {
+        received: '문의가 접수되었습니다. 확인 중입니다.',
+        in_progress: '담당자가 배정되어 처리 중입니다.',
+        resolved: '문의가 해결되었습니다.',
+        rejected: '처리할 수 없어 반려되었습니다. 자세한 내용은 알림을 확인해 주세요.',
+        closed: '문의 처리가 완료되었습니다. 감사합니다.',
+      },
+    },
     subtabs: {
       payments: '결제',
       shipping: '배송',
       inquiries: '문의',
     },
     empty: '주문 내역이 없습니다.',
+    emptyRecent: '최근 30일 내 주문이 없습니다.',
+    more: '더보기',
+    moreInMyPage: '전체 주문 내역은 쇼핑몰 마이페이지에서 확인해 주세요.',
+    viewAllOnMall: '마이페이지 바로가기',
     ask: '이 주문에 대해 문의하기',
     askMessage: '{{orderNumber}}번 주문에 대해 문의드립니다.',
     trackingSteps: ['발송준비', '배송시작', '배송중', '배송완료'],

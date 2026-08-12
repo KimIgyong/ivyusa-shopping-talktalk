@@ -71,6 +71,18 @@ export interface Storefront {
 
 export interface WidgetSettings {
   loginMode: WidgetLoginMode;
+  timezone: string | null;
+  displayName: string | null;
+  firstVisit: Record<string, string>;
+  loginGreeting: Record<string, string>;
+  displayNameFallback: string | null;
+}
+
+/** Console-side draft of the widget copy fields (PLN-260808-Widget-Greetings). */
+export interface WidgetCopyDraft {
+  displayName: string;
+  firstVisit: Record<string, string>;
+  loginGreeting: Record<string, string>;
 }
 
 export const settingsService = {
@@ -79,8 +91,26 @@ export const settingsService = {
   storefront: () => apiGet<Storefront>('/tenants/storefront'),
   updateStorefront: (storefrontUrl: string) =>
     apiPatch<Storefront>('/tenants/storefront', { storefront_url: storefrontUrl }),
-  saveWidgetSettings: (loginMode: WidgetLoginMode) =>
-    apiPatch<WidgetSettings>('/tenants/widget-settings', { login_mode: loginMode }),
+  saveWidgetSettings: (
+    loginMode: WidgetLoginMode,
+    timezone?: string | null,
+    copy?: WidgetCopyDraft,
+  ) =>
+    apiPatch<WidgetSettings>('/tenants/widget-settings', {
+      login_mode: loginMode,
+      ...(timezone !== undefined ? { timezone } : {}),
+      ...(copy
+        ? {
+            display_name: copy.displayName,
+            first_visit_en: copy.firstVisit.EN ?? '',
+            first_visit_es: copy.firstVisit.ES ?? '',
+            first_visit_ko: copy.firstVisit.KO ?? '',
+            login_greeting_en: copy.loginGreeting.EN ?? '',
+            login_greeting_es: copy.loginGreeting.ES ?? '',
+            login_greeting_ko: copy.loginGreeting.KO ?? '',
+          }
+        : {}),
+    }),
   updateCredential: (provider: string, body: UpdateCredentialBody) =>
     apiPut<CredentialStatus>(`/tenants/me/credentials/${provider}`, body),
   shopify: () => apiGet<ShopifySettings>('/tenants/me/shopify'),
@@ -95,4 +125,23 @@ export const settingsService = {
     apiPut<IntegrationSettings>(`/tenants/me/integrations/${provider}`, { config }),
   testIntegration: (provider: string) =>
     apiPost<IntegrationTestResult>(`/tenants/me/integrations/${provider}/test`),
+  // Cafe24 OAuth (PLN-260807 P-A1): begin the flow (returns the authorize URL the
+  // browser navigates to) and run an on-demand order sync.
+  connectCafe24: (mallId: string) =>
+    apiPost<{ authorizeUrl: string }>('/tenants/me/cafe24/connect', { mall_id: mallId }),
+  syncCafe24: () => apiPost<Cafe24SyncResult>('/tenants/me/cafe24/sync'),
+  // Catalogue pull (PLN-260808-Cafe24-Product-Knowledge). Fills products_cache;
+  // turning those rows into knowledge stays a separate, previewed step.
+  syncCafe24Products: () =>
+    apiPost<Cafe24ProductSyncResult>('/tenants/me/cafe24/products/sync'),
 };
+
+export interface Cafe24SyncResult {
+  ok: boolean;
+  synced: number;
+  detail: string;
+}
+
+export interface Cafe24ProductSyncResult extends Cafe24SyncResult {
+  archived: number;
+}

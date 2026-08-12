@@ -1,6 +1,7 @@
+import { useEffect, useRef } from 'react';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { knowledgeService } from './knowledge.service';
-import type { DocumentListParams } from './knowledge.service';
+import type { CatalogSyncJob, DocumentListParams } from './knowledge.service';
 import { toast } from '@/store/toast-store';
 import { useTenantKey } from '@/lib/use-tenant-key';
 
@@ -289,6 +290,140 @@ export function useRestoreRevision() {
       qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'document', vars.documentId] });
       qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'revisions', vars.documentId] });
       toast.success('Restored');
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+}
+
+/** Dry run of the catalogue → knowledge conversion (PLN-260807 P1). */
+export function useCatalogSyncPreview(enabled: boolean) {
+  const tenantKey = useTenantKey();
+  return useQuery({
+    queryKey: ['knowledge', tenantKey, 'catalog-preview'],
+    queryFn: () => knowledgeService.previewCatalogSync(),
+    // Only while the dialog is open, and never from cache: the plan is only
+    // meaningful against the catalogue as it stands right now.
+    enabled,
+    staleTime: 0,
+    gcTime: 0,
+  });
+}
+
+/**
+ * Live progress of the conversion. Polls only while a run is in flight — the
+ * job is minutes long, so the console must show movement rather than a spinner
+ * that used to end in a 504 (RPT-260808 D3).
+ */
+export function useCatalogSyncStatus(enabled: boolean) {
+  const tenantKey = useTenantKey();
+  return useQuery({
+    queryKey: ['knowledge', tenantKey, 'catalog-status'],
+    queryFn: () => knowledgeService.catalogSyncStatus(),
+    enabled,
+    refetchInterval: (q) => (q.state.data?.status === 'running' ? 2000 : false),
+    staleTime: 0,
+    gcTime: 0,
+  });
+}
+
+/** Start the catalogue conversion (PLN-260807 P1). Returns once the job is queued. */
+export function useSyncCatalog() {
+  const qc = useQueryClient();
+  const tenantKey = useTenantKey();
+  return useMutation({
+    mutationFn: () => knowledgeService.syncCatalog(),
+    onSuccess: () => {
+      // Nothing has changed yet — the run has only started. The status poll
+      // reports the outcome, and invalidation happens when it finishes.
+      qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'catalog-status'] });
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+}
+
+/** Refresh the document lists once a run finishes, and say how it went. */
+export function useCatalogSyncCompletion(job: CatalogSyncJob | null | undefined) {
+  const qc = useQueryClient();
+  const tenantKey = useTenantKey();
+  const seen = useRef<string | null>(null);
+  useEffect(() => {
+    if (!job || job.status === 'running' || seen.current === job.id) return;
+    seen.current = job.id;
+    if (job.status === 'failed') {
+      toast.error(job.error ?? 'Catalog sync failed');
+      return;
+    }
+    if (job.status !== 'succeeded' || !job.result) return;
+    qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'documents'] });
+    qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'categories'] });
+    const r = job.result;
+    const parts = [`${r.created} created`, `${r.updated} updated`];
+    if (r.curatedKept) parts.push(`${r.curatedKept} curated kept`);
+    if (r.held) parts.push(`${r.held} held`);
+    if (r.embedFailed) parts.push(`${r.embedFailed} not indexed`);
+    toast[r.embedFailed ? 'error' : 'success'](`Catalog sync: ${parts.join(', ')}`);
+  }, [job, qc, tenantKey]);
+}
+
+/** Answer proposals awaiting a knowledge owner's decision (PLN-260810 S4). */
+export function useProposals(status = 'pending') {
+  const tenantKey = useTenantKey();
+  return useQuery({
+    queryKey: ['knowledge', tenantKey, 'proposals', status],
+    queryFn: () => knowledgeService.proposals(status),
+  });
+}
+
+/** Approve or reject a proposal. Approval creates and indexes the document. */
+export function useProposalDecision() {
+  const qc = useQueryClient();
+  const tenantKey = useTenantKey();
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'proposals'] });
+    qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'documents'] });
+  };
+  const approve = useMutation({
+    mutationFn: (v: { id: string; title?: string; category?: string; answer?: string }) =>
+      knowledgeService.approveProposal(v.id, { title: v.title, category: v.category, answer: v.answer }),
+    onSuccess: () => {
+      invalidate();
+      toast.success('Approved — the answer is now searchable');
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+  const reject = useMutation({
+    mutationFn: (v: { id: string; reason: string }) =>
+      knowledgeService.rejectProposal(v.id, v.reason),
+    onSuccess: () => {
+      invalidate();
+      toast.success('Rejected — the reason is shown to whoever proposed it');
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+  return { approve, reject };
+}
+
+/** Usage guides per product type, written or not (PLN-260807 P2). */
+export function useUsageGuides() {
+  const tenantKey = useTenantKey();
+  return useQuery({
+    queryKey: ['knowledge', tenantKey, 'usage-guides'],
+    queryFn: () => knowledgeService.usageGuides(),
+  });
+}
+
+/** Write one usage guide. It is indexed on save, so the toast can promise it. */
+export function useSaveUsageGuide() {
+  const qc = useQueryClient();
+  const tenantKey = useTenantKey();
+  return useMutation({
+    mutationFn: (v: { key: string; title: string; content: string }) =>
+      knowledgeService.saveUsageGuide(v.key, { title: v.title, content: v.content }),
+    onSuccess: (r) => {
+      qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'usage-guides'] });
+      qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'documents'] });
+      if (r.embedFailed) toast.error('Saved, but not indexed — retry to make it searchable');
+      else toast.success('Usage guide saved');
     },
     onError: (err: Error) => toast.error(err.message),
   });

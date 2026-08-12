@@ -1,0 +1,49 @@
+{
+  "title": "Productos",
+  "subtitle": "El catálogo sincronizado desde su tienda. Ejecute la importación en Configuración.",
+  "kpi": {
+    "total": "Productos",
+    "active": "En venta",
+    "archived": "Archivados",
+    "inKnowledge": "En base de conocimiento",
+    "lastSynced": "Última sincronización {{at}}"
+  },
+  "filters": {
+    "searchPlaceholder": "Buscar nombre o etiquetas",
+    "allCategories": "Todas las categorías",
+    "allStatuses": "Todos los estados"
+  },
+  "columns": {
+    "product": "Producto",
+    "category": "Categoría",
+    "price": "Precio",
+    "status": "Estado",
+    "knowledge": "Conocimiento",
+    "openInShop": "Abrir en la tienda"
+  },
+  "status": {
+    "active": "En venta",
+    "archived": "Archivado"
+  },
+  "knowledge": {
+    "registered": "Registrado",
+    "missing": "No registrado"
+  },
+  "empty": "Todavía no se han importado productos.",
+  "emptyFiltered": "Ningún producto coincide con estos filtros.",
+  "emptyHint": "Importe su catálogo primero:",
+  "emptyHintLink": "ir a Configuración",
+  "detail": {
+    "title": "Detalle del producto",
+    "loading": "Cargando…",
+    "vendor": "Marca",
+    "tags": "Etiquetas",
+    "sku": "SKU",
+    "handle": "Clave",
+    "publishedAt": "Publicado",
+    "syncedAt": "Última sincronización",
+    "description": "Descripción",
+    "noDescription": "Sin descripción. Si tampoco tiene etiquetas, este producto no llega a la base de conocimiento.",
+    "openInShop": "Abrir en la tienda"
+  }
+}

@@ -1,10 +1,15 @@
 import { Type } from 'class-transformer';
-import { IsEmail, IsInt, IsString, MaxLength, MinLength } from 'class-validator';
+import { IsEmail, IsInt, IsString, Max, MaxLength, Min, MinLength } from 'class-validator';
 
 /** Request DTOs — snake_case (amoeba_code_convention). */
 export class SendMessageRequest {
   @IsString() session_token: string;
   @IsString() @MinLength(1) message: string;
+}
+
+/** POST /chat/end — customer ends the current conversation (PLN-260808 Track B). */
+export class EndChatRequest {
+  @IsString() session_token: string;
 }
 
 export class EscalateRequest {
@@ -22,4 +27,11 @@ export class ScenarioRequest {
 export class ContactEmailRequest {
   @IsString() session_token: string;
   @IsEmail() @MaxLength(255) email: string;
+}
+
+/** Star rating for a finished conversation (PLN-260810 P2). */
+export class RateChatRequest {
+  @IsString() session_token: string;
+  @Type(() => Number) @IsInt() conversation_id: number;
+  @Type(() => Number) @IsInt() @Min(1) @Max(5) rating: number;
 }

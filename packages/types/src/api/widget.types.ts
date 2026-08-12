@@ -19,6 +19,26 @@
 import type { WidgetLoginMode } from '../common/enum.types';
 
 // ---- session -------------------------------------------------------------
+/** Per-language customer-facing copy; keys are uppercase language codes. */
+export interface WidgetCopyText {
+  EN?: string;
+  ES?: string;
+  KO?: string;
+}
+
+/**
+ * Tenant-configured widget copy (PLN-260808-Widget-Greetings). Missing/empty
+ * fields fall back to the widget's built-in defaults with `{shop}` = displayName.
+ */
+export interface WidgetCopy {
+  /** Store display name for the widget header and greeting templates. */
+  displayName: string | null;
+  /** First-visit welcome bubble text; `{shop}` substituted. */
+  firstVisit: WidgetCopyText;
+  /** Signed-in greeting template; `{name}` (and `{shop}`) substituted. */
+  loginGreeting: WidgetCopyText;
+}
+
 export interface SessionResponse {
   sessionToken: string;
   language: string;
@@ -36,6 +56,8 @@ export interface SessionResponse {
   consentAt: string | null;
   /** How the widget's "Sign in" opens the storefront login (tenant console setting). */
   widgetLoginMode: WidgetLoginMode;
+  /** Tenant widget copy (display name + greetings); displayName pre-falls back to the tenant name. */
+  widgetCopy: WidgetCopy;
 }
 
 // ---- chat ---------------------------------------------------------------
@@ -78,6 +100,13 @@ export interface ConversationResponse {
   conversationId: string | null;
   status: string;
   messages: ChatMessageResponse[];
+  /**
+   * Satisfaction state for the ended thread (PLN-260810 P2/P3). `canRate` is
+   * false once the 24-hour window closes, so the widget never shows stars that
+   * the API would reject.
+   */
+  csatRating?: number | null;
+  canRate?: boolean;
 }
 
 export interface ChatTurnResponse {
@@ -140,6 +169,8 @@ export interface OrderListItemResponse {
   total: number | null;
   currency: string | null;
   createdAt: string;
+  /** When the order was placed on the platform; null for rows that predate it. */
+  orderedAt: string | null;
   itemCount: number;
 }
 
@@ -161,6 +192,8 @@ export interface OrderDetailResponse {
   total: number | null;
   currency: string | null;
   createdAt: string;
+  /** When the order was placed on the platform; null for rows that predate it. */
+  orderedAt: string | null;
   items: OrderItemResponse[];
 }
 

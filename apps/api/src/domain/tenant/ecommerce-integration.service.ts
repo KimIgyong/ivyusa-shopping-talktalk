@@ -1,7 +1,11 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { ECOMMERCE_PROVIDERS, EcommerceProvider, INTEGRATION_FIELDS } from '@ivy/types';
+import {
+  GENERIC_INTEGRATION_PROVIDERS,
+  GenericIntegrationProvider,
+  INTEGRATION_FIELDS,
+} from '@ivy/types';
 import { IntegrationCredential } from './entity/integration-credential.entity';
 import { IntegrationService } from '../integration/integration.service';
 import { BusinessException } from '../../global/exception/business.exception';
@@ -26,11 +30,12 @@ export class EcommerceIntegrationService {
     private readonly integrationService: IntegrationService,
   ) {}
 
-  private assertProvider(provider: string): EcommerceProvider {
-    if (!(ECOMMERCE_PROVIDERS as readonly string[]).includes(provider)) {
+  // Commerce + marketing + helpdesk all share this generic flow (PLN-260808).
+  private assertProvider(provider: string): GenericIntegrationProvider {
+    if (!(GENERIC_INTEGRATION_PROVIDERS as readonly string[]).includes(provider)) {
       throw new BusinessException(ERROR_CODE.VALIDATION_FAILED, HttpStatus.BAD_REQUEST);
     }
-    return provider as EcommerceProvider;
+    return provider as GenericIntegrationProvider;
   }
 
   private parseConfig(cred: IntegrationCredential | null): Record<string, string> {

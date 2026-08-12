@@ -73,5 +73,146 @@
     "save": "Save as knowledge",
     "saved": "Saved to the knowledge base.",
     "saveFailed": "Could not save the knowledge document."
+  },
+  "issue": {
+    "status": {
+      "received": "Received",
+      "in_progress": "In progress",
+      "resolved": "Resolved",
+      "rejected": "Rejected",
+      "closed": "Closed"
+    },
+    "type": {
+      "order_status": "Order status",
+      "delivery": "Delivery",
+      "cancel": "Cancellation",
+      "refund": "Refund",
+      "partnership": "Partnership",
+      "other": "Other"
+    },
+    "resolve": "Resolve",
+    "reject": "Reject",
+    "rejectConfirm": "Confirm reject",
+    "reopen": "Reopen",
+    "timeline": "Timeline",
+    "reopened": "reopened ×{{count}}",
+    "notePlaceholder": "Note (optional)",
+    "rejectReason": {
+      "policy_impossible": "Not possible by policy",
+      "misrouted": "Misrouted / misclassified",
+      "spam": "Spam"
+    },
+    "event": {
+      "created": "Issue created",
+      "status_changed": "Status changed",
+      "assigned": "Assigned",
+      "tier_advanced": "Escalated to agent",
+      "memo": "Memo",
+      "reopened": "Reopened"
+    },
+    "transitioned": "Issue updated.",
+    "transitionError": "Failed to update the issue.",
+    "transfer": "Transfer to…",
+    "assigned": "Issue reassigned.",
+    "label": {
+      "consult": "Consult",
+      "accounting": "Accounting",
+      "operations": "Operations"
+    }
+  },
+  "board": {
+    "title": "Issue board",
+    "subtitle": "Escalated inquiries by status — drag cards to transition.",
+    "notNative": "The issue workflow add-on is not enabled for this store. Contact the platform operator to enable it.",
+    "unassigned": "Unassigned",
+    "avgResolution": "Avg. resolution",
+    "reopenRate": "Reopen rate",
+    "noAssignee": "Unassigned",
+    "priorityToggle": "Toggle priority",
+    "urgent": "URGENT",
+    "normal": "normal",
+    "cancel": "Cancel",
+    "move": "Move…"
+  },
+  "channel": {
+    "filterLabel": "Filter by channel",
+    "filterAll": "All channels",
+    "widget": "Widget",
+    "telegram": "Telegram",
+    "viber": "Viber",
+    "zalo": "Zalo",
+    "line": "LINE",
+    "whatsapp": "WhatsApp",
+    "kakao": "KakaoTalk",
+    "sms": "SMS",
+    "email": "Email",
+    "receiveOnlyShort": "receive only",
+    "receiveOnlyHint": "This channel cannot be replied to — SMS relay is receive-only."
+  },
+  "handBack": "Hand back to AI",
+  "handBackHint": "Return replies to the AI without ending the conversation",
+  "handBackExplain": "The AI assistant answers from here on. The conversation stays open, and if the customer asks for a person again it returns to the queue.",
+  "handBackNoticePreview": "The customer is shown: \"Our agent has finished looking into this, so the AI assistant will take it from here.\" (editable in AI settings)",
+  "kbLookup": "Knowledge lookup",
+  "kbQuestionPlaceholder": "Paste the customer's question to see what the knowledge base says",
+  "kbUseLastMessage": "Use last message",
+  "kbAsk": "Ask",
+  "kbBlocked": "Moderation blocked this answer",
+  "kbNoSources": "No sources — the knowledge base does not cover this",
+  "kbSourceCount": "{{count}} source(s)",
+  "kbStale": "review overdue",
+  "kbConflicted": "conflict",
+  "kbSendToCustomer": "Send to customer",
+  "kbEditThenSend": "Edit then send",
+  "alias": {
+    "add": "Add a name",
+    "edit": "Edit name",
+    "placeholder": "e.g. Gangnam store owner",
+    "saved": "Session name saved.",
+    "cleared": "Session name cleared.",
+    "saveError": "Could not save the session name."
+  },
+  "preview": {
+    "title": "Issue #{{no}} preview",
+    "loading": "Loading conversation…",
+    "openSession": "Open the session",
+    "close": "Close"
+  },
+  "sender": {
+    "user": "Customer",
+    "ai": "AI",
+    "agent": "Agent",
+    "system": "System"
+  },
+  "autoReply": {
+    "label": "AI auto-reply",
+    "inherit": "Channel default ({{state}})",
+    "on": "On",
+    "off": "Off",
+    "hint": "Applies to messages received from now on. Nothing already in the thread is answered retroactively.",
+    "aiAnswering": "AI answering",
+    "agentAnswering": "Agent answers",
+    "agentOwnsHint": "An agent is handling this thread, so the AI stays quiet.",
+    "offShort": "AI off",
+    "offHint": "The AI is not answering this session.",
+    "savedOn": "The AI will answer this session from the next message.",
+    "savedOff": "The AI will not answer this session.",
+    "saveError": "Could not change auto-reply for this session.",
+    "auto": "Auto",
+    "approve": "Needs approval",
+    "awaitingApproval": "Draft waiting"
+  },
+  "kbProposeKnowledge": "Propose as knowledge",
+  "draft": {
+    "title": "AI suggestion",
+    "confidence": "confidence {{value}}",
+    "approve": "Approve & send",
+    "sending": "Sending…",
+    "discard": "Discard",
+    "hint": "Edit before sending — it goes out as your reply.",
+    "sent": "Sent to the customer.",
+    "sendError": "Could not send the draft.",
+    "discarded": "Draft discarded.",
+    "discardError": "Could not discard the draft."
   }
 }

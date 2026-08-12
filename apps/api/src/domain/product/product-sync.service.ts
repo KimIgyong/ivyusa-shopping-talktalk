@@ -1,8 +1,10 @@
 import { HttpStatus, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { INTEGRATION_PROVIDER } from '@ivy/types';
 import { PRODUCT_STATUS, ProductCache } from './entity/product-cache.entity';
 import { Tenant } from '../tenant/entity/tenant.entity';
+import { IntegrationCredential } from '../tenant/entity/integration-credential.entity';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
 
@@ -30,7 +32,7 @@ interface StorefrontProduct {
   vendor?: string | null;
   product_type?: string | null;
   tags?: string[] | string | null;
-  variants?: Array<{ price?: string | number | null }>;
+  variants?: Array<{ price?: string | number | null; sku?: string | null }>;
   images?: Array<{ src?: string | null }>;
 }
 
@@ -76,6 +78,8 @@ export class ProductSyncService implements OnModuleInit, OnModuleDestroy {
   constructor(
     @InjectRepository(ProductCache) private readonly productRepo: Repository<ProductCache>,
     @InjectRepository(Tenant) private readonly tenantRepo: Repository<Tenant>,
+    @InjectRepository(IntegrationCredential)
+    private readonly credRepo: Repository<IntegrationCredential>,
   ) {}
 
   onModuleInit(): void {
@@ -99,10 +103,34 @@ export class ProductSyncService implements OnModuleInit, OnModuleDestroy {
     if (this.timer) clearInterval(this.timer);
   }
 
+  /**
+   * Tenants whose catalogue comes from Cafe24, not a Shopify storefront.
+   *
+   * `/products.json` is a Shopify route: a Cafe24 mall answers it with a 404 HTML
+   * page (measured on amoebaorder.cafe24.com), so polling one produces nothing
+   * but an `aborted:` warning every tick. Their catalogue arrives through
+   * Cafe24ProductSyncService instead.
+   *
+   * Compared as strings, not numbers. `Tenant.id` is a bigint PK with no
+   * transformer, so TypeORM hands it back as a string, while the credential's
+   * `tenant_id` carries `bigintTransformer` and arrives as a number — a
+   * `Set<number>.has('3')` miss that let the Cafe24 tenant get crawled anyway
+   * (measured on staging: `Initial product sync tenant 3: aborted: HTTP 404`).
+   */
+  private async cafe24TenantIds(): Promise<Set<string>> {
+    const creds = await this.credRepo.find({
+      where: { provider: INTEGRATION_PROVIDER.CAFE24 },
+      select: ['tenantId'],
+    });
+    return new Set(creds.filter((c) => c.tenantId != null).map((c) => String(c.tenantId)));
+  }
+
   /** First-boot fill: sync each storefront-capable tenant that has no cached products yet. */
   async initialSyncAll(): Promise<void> {
     const tenants = await this.tenantRepo.find();
+    const cafe24 = await this.cafe24TenantIds();
     for (const tenant of tenants) {
+      if (cafe24.has(String(tenant.id))) continue;
       if (!tenant.storefrontUrl && !tenant.shopDomain) continue;
       const count = await this.productRepo.count({ where: { tenantId: tenant.id } });
       if (count > 0) continue;
@@ -124,7 +152,9 @@ export class ProductSyncService implements OnModuleInit, OnModuleDestroy {
     this.running = true;
     try {
       const tenants = await this.tenantRepo.find();
+      const cafe24 = await this.cafe24TenantIds();
       for (const tenant of tenants) {
+        if (cafe24.has(String(tenant.id))) continue;
         if (!tenant.storefrontUrl && !tenant.shopDomain) continue;
         try {
           const res = await this.syncTenant(tenant);
@@ -143,6 +173,14 @@ export class ProductSyncService implements OnModuleInit, OnModuleDestroy {
     const tenant = await this.tenantRepo.findOne({ where: { id: tenantId } });
     if (!tenant) {
       throw new BusinessException(ERROR_CODE.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND);
+    }
+    if ((await this.cafe24TenantIds()).has(String(tenant.id))) {
+      return {
+        ok: false,
+        synced: 0,
+        archived: 0,
+        detail: 'This tenant’s catalogue comes from Cafe24 — use the Cafe24 product sync',
+      };
     }
     return this.syncTenant(tenant);
   }
@@ -241,6 +279,7 @@ export class ProductSyncService implements OnModuleInit, OnModuleDestroy {
       tags: this.joinTags(raw.tags),
       description: stripHtml(raw.body_html),
       price: this.firstVariantPrice(raw),
+      sku: this.firstVariantSku(raw),
       imageUrl: raw.images?.[0]?.src ? String(raw.images[0].src).slice(0, 1024) : null,
       productUrl: `${origin}/products/${handle}`.slice(0, 1024),
       publishedAt: this.parseDate(raw.published_at),
@@ -274,6 +313,19 @@ export class ProductSyncService implements OnModuleInit, OnModuleDestroy {
   private firstVariantPrice(raw: StorefrontProduct): number | null {
     const price = Number(raw.variants?.[0]?.price);
     return Number.isFinite(price) ? price : null;
+  }
+
+  /**
+   * First non-empty variant SKU — not `variants[0].sku`. A product whose first
+   * variant is a placeholder ("Default Title" with no SKU) still carries real
+   * codes on the variants that follow, and taking position 0 would drop them.
+   */
+  private firstVariantSku(raw: StorefrontProduct): string | null {
+    for (const v of raw.variants ?? []) {
+      const sku = typeof v?.sku === 'string' ? v.sku.trim() : '';
+      if (sku) return sku.slice(0, 64);
+    }
+    return null;
   }
 
   private parseDate(value: string | null | undefined): Date | null {

@@ -3,6 +3,7 @@ import { KbDocument } from './entity/kb-document.entity';
 import { KbBoardPost } from './entity/kb-board-post.entity';
 import { isStale } from './kb-conflict.service';
 import { KbDocumentRevision } from './entity/kb-document-revision.entity';
+import { KnowledgeGapTask } from './entity/knowledge-gap-task.entity';
 
 /** When this document next falls due for review, or null if no cadence is set. */
 function reviewDueAt(d: KbDocument): Date | null {
@@ -16,6 +17,19 @@ function reviewDueAt(d: KbDocument): Date | null {
 
 /** Entity -> camelCase response mapping for the knowledge domain. */
 export class KnowledgeMapper {
+  /** Gap task → console response (P5). */
+  static toGapTask(t: KnowledgeGapTask) {
+    return {
+      id: String(t.id),
+      source: t.source,
+      title: t.title,
+      detail: t.detail,
+      metric: t.metricJson ?? {},
+      status: t.status,
+      createdAt: t.createdAt ? new Date(t.createdAt).toISOString() : '',
+    };
+  }
+
   /**
    * `supported` says whether this source type can actually ingest today.
    *

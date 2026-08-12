@@ -17,18 +17,41 @@ import {
   useCredentials,
   useIntegration,
   useSaveWidgetSettings,
+  useSaveShopify,
   useShopifySettings,
   useUpdateCredential,
   useStorefront,
   useUpdateStorefront,
   useWidgetSettings,
 } from './settings.hooks';
-import type { CredentialStatus } from './settings.service';
-import { ECOMMERCE_PROVIDERS, type EcommerceProvider } from './integration-providers';
+import type { CredentialStatus, WidgetCopyDraft } from './settings.service';
+import {
+  ECOMMERCE_PROVIDERS,
+  HELPDESK_PROVIDERS,
+  MARKETING_PROVIDERS,
+  type GenericIntegrationProvider,
+} from './integration-providers';
 import { ProviderTile } from './ProviderTile';
 import { ShopifyConfigModal } from './ShopifyConfigModal';
 import { IntegrationConfigModal } from './IntegrationConfigModal';
+import { Cafe24ConnectCard } from './Cafe24ConnectCard';
+import { MenuAccessSection } from './MenuAccessSection';
+import { MessengerChannelCard } from './MessengerChannelCard';
+import { MessengerChannelModal } from './MessengerChannelModal';
+import {
+  useMessengerChannels,
+  useSyncMessengerChannel,
+  useTestMessengerChannel,
+} from './messenger.hooks';
+import {
+  COMMUNICATION_PROVIDERS,
+  MESSENGER_PROVIDERS,
+  PLANNED_MESSENGER_PROVIDERS,
+  type AnyMessengerProvider,
+  type MessengerChannel,
+} from './messenger.service';
 import { toast } from '@/store/toast-store';
+import { useAuthStore } from '@/store/auth-store';
 
 function fmtDate(value?: string | null): string {
   if (!value) return '—';
@@ -45,7 +68,7 @@ const WIDGET_URL = (
 type InstallMethod = 'appEmbed' | 'scriptTag' | 'manual';
 
 /** Which store's config modal is open: Shopify, an e-commerce provider, or none. */
-type ConfiguringStore = 'shopify' | EcommerceProvider | null;
+type ConfiguringStore = 'shopify' | GenericIntegrationProvider | null;
 
 async function copyToClipboard(text: string): Promise<boolean> {
   try {
@@ -98,6 +121,97 @@ function CodeBlock({ code, label }: { code: string; label: string }) {
 
 type InstallPlatform = 'shopify' | 'cafe24' | 'woocommerce' | 'odoo';
 
+/**
+ * External messenger + communication channels (PLN-260810 PR-M5).
+ *
+ * Unlike the credential tiles above, a channel is a *conversation source*: the
+ * card carries live operating state (last inbound, last error, whether AI
+ * answers) because a channel that quietly stopped receiving is otherwise
+ * invisible until a customer complains.
+ */
+/** Providers where several accounts make sense (one card per mailbox). */
+const MULTI_ACCOUNT_PROVIDERS = new Set<string>(['gmail']);
+
+function MessengerChannelsSection() {
+  const { t } = useTranslation('settings');
+  const { data, isLoading } = useMessengerChannels();
+  const test = useTestMessengerChannel();
+  const sync = useSyncMessengerChannel();
+  const [editing, setEditing] = useState<{
+    provider: AnyMessengerProvider;
+    channel?: MessengerChannel;
+  } | null>(null);
+
+  const channels = data?.channels ?? [];
+  const supported = new Set(data?.supported ?? []);
+  const byProvider = (provider: string) => channels.filter((c) => c.provider === provider);
+
+  const renderCards = (providers: readonly string[]) =>
+    providers.flatMap((provider) => {
+      const existing = byProvider(provider);
+      const cards = existing.map((channel) => (
+        <MessengerChannelCard
+          key={channel.id}
+          provider={provider}
+          channel={channel}
+          onConfigure={() => setEditing({ provider: provider as AnyMessengerProvider, channel })}
+          onTest={() => test.mutate(channel.id)}
+          onSync={() => sync.mutate(channel.id)}
+        />
+      ));
+      // An empty "add" card only where a second account is meaningful — Gmail
+      // has one card per mailbox, but a bot or hub account is single, and a
+      // trailing blank card there just reads as a duplicate of the real one.
+      const acceptsMore = MULTI_ACCOUNT_PROVIDERS.has(provider) || existing.length === 0;
+      if (acceptsMore) {
+        cards.push(
+          <MessengerChannelCard
+            key={`${provider}:new`}
+            provider={provider}
+            planned={!supported.has(provider)}
+            onConfigure={() => setEditing({ provider: provider as AnyMessengerProvider })}
+          />,
+        );
+      }
+      return cards;
+    });
+
+  return (
+    <>
+      <section>
+        <h2 className="mb-1 text-sm font-semibold text-gray-700">{t('messenger.groupTitle')}</h2>
+        <p className="mb-3 text-xs text-gray-500">{t('messenger.groupHint')}</p>
+        {isLoading ? (
+          <p className="text-sm text-gray-400">{t('messenger.loading')}</p>
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {renderCards([...MESSENGER_PROVIDERS, ...PLANNED_MESSENGER_PROVIDERS])}
+          </div>
+        )}
+      </section>
+
+      <section>
+        <h2 className="mb-1 text-sm font-semibold text-gray-700">
+          {t('messenger.communicationTitle')}
+        </h2>
+        <p className="mb-3 text-xs text-gray-500">{t('messenger.communicationHint')}</p>
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {renderCards(COMMUNICATION_PROVIDERS)}
+        </div>
+      </section>
+
+      {editing && (
+        <MessengerChannelModal
+          provider={editing.provider}
+          channel={editing.channel}
+          open
+          onClose={() => setEditing(null)}
+        />
+      )}
+    </>
+  );
+}
+
 function InstallGuideCard() {
   const { t } = useTranslation('settings');
   const { data } = useShopifySettings();
@@ -114,6 +228,21 @@ function InstallGuideCard() {
     `  window.IVY_WIDGET_CONFIG = {\n` +
     `    shop: ${JSON.stringify(shop)},\n` +
     `    widgetUrl: ${JSON.stringify(WIDGET_URL)}\n` +
+    `  };\n` +
+    `</script>\n` +
+    `<script src="${WIDGET_URL}/embed.js" defer></script>`;
+
+  // Cafe24 classic mall: point sign-in at the mall's own login page (no login API;
+  // login happens in the top window, then the widget reopens) — PLN-260807.
+  const cafe24Snippet =
+    `<!-- ShopTalk widget (Cafe24) -->\n` +
+    `<script>\n` +
+    `  window.IVY_WIDGET_CONFIG = {\n` +
+    `    shop: ${JSON.stringify(shop)},\n` +
+    `    locale: "ko",\n` +
+    `    widgetUrl: ${JSON.stringify(WIDGET_URL)},\n` +
+    `    loginPath: "/member/login.html",\n` +
+    `    loginReturnParam: "returnUrl"\n` +
     `  };\n` +
     `</script>\n` +
     `<script src="${WIDGET_URL}/embed.js" defer></script>`;
@@ -246,21 +375,31 @@ function InstallGuideCard() {
         </>
       )}
 
-      {platform === 'cafe24' && simpleGuide('cafe24', htmlSnippet)}
+      {platform === 'cafe24' && simpleGuide('cafe24', cafe24Snippet)}
       {platform === 'woocommerce' && simpleGuide('woocommerce', wooSnippet)}
       {platform === 'odoo' && simpleGuide('odoo', htmlSnippet)}
     </Card>
   );
 }
 
+/** True for a Shopify store domain; the tenant field also holds Cafe24 malls etc. */
+export function isShopifyDomain(domain?: string | null): boolean {
+  return /\.myshopify\.com\/?$/i.test((domain ?? '').trim());
+}
+
 /** Shopify summary tile — data comes from the dedicated Shopify settings view. */
 function ShopifyTile({ onConfigure }: { onConfigure: () => void }) {
   const { t } = useTranslation('settings');
   const { data } = useShopifySettings();
+  // `shop_domain` is the tenant's store domain for ANY platform (the widget
+  // resolves the tenant by it), so a Cafe24 mall lives there too. Showing it
+  // here made those tenants look like Shopify stores — only a real
+  // *.myshopify.com domain belongs on this tile.
+  const domain = isShopifyDomain(data?.shopDomain) ? data?.shopDomain : null;
   return (
     <ProviderTile
       title={t('shopify.title')}
-      subtitle={data?.shopDomain || t('shopify.shopDomainPlaceholder')}
+      subtitle={domain || t('shopify.shopDomainPlaceholder')}
       status={data?.integration?.status}
       configured={data?.credential.configured}
       lastTested={data?.integration?.lastSyncAt}
@@ -274,7 +413,7 @@ function EcommerceTile({
   provider,
   onConfigure,
 }: {
-  provider: EcommerceProvider;
+  provider: GenericIntegrationProvider;
   onConfigure: () => void;
 }) {
   const { t } = useTranslation('settings');
@@ -307,6 +446,15 @@ function StorefrontCard() {
   const current = value ?? data?.storefrontUrl ?? '';
   const dirty = data != null && current !== (data.storefrontUrl ?? '');
 
+  // The store domain that identifies this tenant to the widget. It is platform
+  // neutral — Shopify, Cafe24, anything — but the only editor used to be inside
+  // the Shopify modal, which is why a Cafe24 mall appeared as a Shopify store.
+  const shopify = useShopifySettings();
+  const saveShopDomain = useSaveShopify();
+  const [domainDraft, setDomainDraft] = useState<string | null>(null);
+  const shopDomain = domainDraft ?? shopify.data?.shopDomain ?? '';
+  const domainDirty = shopify.data != null && shopDomain !== (shopify.data.shopDomain ?? '');
+
   return (
     <Card title={t('storefront.title')}>
       {isLoading ? (
@@ -327,6 +475,24 @@ function StorefrontCard() {
           <Button disabled={!dirty || save.isPending} onClick={() => save.mutate(current)}>
             {tc('save')}
           </Button>
+
+          <div className="mt-4 border-t border-gray-100 pt-4">
+            <FormRow label={t('storefront.shopDomain')}>
+              <Input
+                value={shopDomain}
+                placeholder="your-store.myshopify.com / your-mall.cafe24.com"
+                onChange={(e) => setDomainDraft(e.target.value)}
+              />
+            </FormRow>
+            <p className="text-xs text-gray-500">{t('storefront.shopDomainHint')}</p>
+            <Button
+              className="mt-2"
+              disabled={!domainDirty || saveShopDomain.isPending}
+              onClick={() => saveShopDomain.mutate({ shop_domain: shopDomain.trim() })}
+            >
+              {tc('save')}
+            </Button>
+          </div>
         </div>
       )}
     </Card>
@@ -338,6 +504,9 @@ function StorefrontCard() {
  * to the store's hosted login (default) vs a popup window. Delivered to the
  * widget via session/ensure; takes effect on the shopper's next page load.
  */
+const COPY_LANGS = ['EN', 'ES', 'KO'] as const;
+type CopyLang = (typeof COPY_LANGS)[number];
+
 function WidgetBehaviorCard() {
   const { t } = useTranslation('settings');
   const { t: tc } = useTranslation('common');
@@ -345,8 +514,26 @@ function WidgetBehaviorCard() {
   const save = useSaveWidgetSettings();
   // Local pick, if any; otherwise whatever is stored (redirect until loaded).
   const [picked, setPicked] = useState<WidgetLoginMode | null>(null);
+  const [tzPicked, setTzPicked] = useState<string | null>(null);
   const value: WidgetLoginMode = picked ?? data?.loginMode ?? 'redirect';
-  const dirty = data != null && value !== data.loginMode;
+  const tz = tzPicked ?? data?.timezone ?? '';
+
+  // Widget copy draft (PLN-260808-Widget-Greetings) — lazily seeded from the
+  // stored values; one language tab shared by both message editors.
+  const [copyLang, setCopyLang] = useState<CopyLang>('EN');
+  const [copyDraft, setCopyDraft] = useState<WidgetCopyDraft | null>(null);
+  const storedCopy: WidgetCopyDraft = {
+    displayName: data?.displayName ?? '',
+    firstVisit: data?.firstVisit ?? {},
+    loginGreeting: data?.loginGreeting ?? {},
+  };
+  const copy = copyDraft ?? storedCopy;
+  const setCopyText = (field: 'firstVisit' | 'loginGreeting', text: string) =>
+    setCopyDraft({ ...copy, [field]: { ...copy[field], [copyLang]: text } });
+
+  const copyDirty = copyDraft != null && JSON.stringify(copyDraft) !== JSON.stringify(storedCopy);
+  const dirty =
+    data != null && (value !== data.loginMode || tz !== (data.timezone ?? '') || copyDirty);
 
   return (
     <Card title={t('widgetBehavior.title')}>
@@ -365,7 +552,78 @@ function WidgetBehaviorCard() {
         <p className="mb-4 text-xs text-gray-400">
           {value === 'popup' ? t('widgetBehavior.popupHint') : t('widgetBehavior.redirectHint')}
         </p>
-        <Button onClick={() => save.mutate(value)} disabled={!dirty || save.isPending}>
+        <FormRow label={t('widgetBehavior.timezone')}>
+          <Select value={tz} disabled={isLoading} onChange={(e) => setTzPicked(e.target.value)}>
+            <option value="">{t('widgetBehavior.tzUnset')}</option>
+            <option value="Asia/Seoul">Asia/Seoul — 한국어</option>
+            <option value="America/New_York">America/New_York — English</option>
+          </Select>
+        </FormRow>
+        <p className="mb-4 text-xs text-gray-400">{t('widgetBehavior.timezoneHint')}</p>
+
+        {/* Widget copy (display name + greetings) — PLN-260808-Widget-Greetings */}
+        <div className="mb-2 border-t border-gray-100 pt-4 text-sm font-medium text-gray-700">
+          {t('widgetBehavior.copyTitle')}
+        </div>
+        <FormRow label={t('widgetBehavior.displayName')}>
+          <Input
+            value={copy.displayName}
+            maxLength={80}
+            disabled={isLoading}
+            placeholder={data?.displayNameFallback ?? ''}
+            onChange={(e) => setCopyDraft({ ...copy, displayName: e.target.value })}
+          />
+        </FormRow>
+        <p className="mb-3 text-xs text-gray-400">{t('widgetBehavior.displayNameHint')}</p>
+
+        <div className="mb-2 flex gap-1">
+          {COPY_LANGS.map((l) => (
+            <button
+              key={l}
+              type="button"
+              onClick={() => setCopyLang(l)}
+              className={`rounded px-2 py-1 text-xs font-medium ${
+                copyLang === l
+                  ? 'bg-primary-500 text-white'
+                  : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+              }`}
+            >
+              {l}
+            </button>
+          ))}
+        </div>
+        <FormRow label={t('widgetBehavior.firstVisit')}>
+          <textarea
+            className="w-full rounded-lg border border-gray-200 p-2 text-sm focus:border-primary-400 focus:outline-none"
+            rows={3}
+            maxLength={500}
+            disabled={isLoading}
+            value={copy.firstVisit[copyLang] ?? ''}
+            onChange={(e) => setCopyText('firstVisit', e.target.value)}
+          />
+        </FormRow>
+        <p className="mb-3 text-xs text-gray-400">{t('widgetBehavior.firstVisitHint')}</p>
+        <FormRow label={t('widgetBehavior.loginGreeting')}>
+          <textarea
+            className="w-full rounded-lg border border-gray-200 p-2 text-sm focus:border-primary-400 focus:outline-none"
+            rows={3}
+            maxLength={500}
+            disabled={isLoading}
+            value={copy.loginGreeting[copyLang] ?? ''}
+            onChange={(e) => setCopyText('loginGreeting', e.target.value)}
+          />
+        </FormRow>
+        <p className="mb-4 text-xs text-gray-400">{t('widgetBehavior.loginGreetingHint')}</p>
+
+        <Button
+          onClick={() =>
+            save.mutate(
+              { loginMode: value, timezone: tz, ...(copyDirty ? { copy } : {}) },
+              { onSuccess: () => setCopyDraft(null) },
+            )
+          }
+          disabled={!dirty || save.isPending}
+        >
           {save.isPending ? tc('saving') : tc('save')}
         </Button>
       </div>
@@ -378,6 +636,8 @@ export function SettingsPage() {
   const { t: tc } = useTranslation('common');
   const { data, isLoading, error } = useCredentials();
   const updateCredential = useUpdateCredential();
+
+  const isMaster = useAuthStore((s) => s.principal?.rank) === 'master';
 
   const [configuring, setConfiguring] = useState<ConfiguringStore>(null);
   const [editing, setEditing] = useState<CredentialStatus | null>(null);
@@ -439,6 +699,29 @@ export function SettingsPage() {
         </div>
       </section>
 
+      {/* Marketing platforms + helpdesk on the same generic credential flow
+          (PLN-260808-Marketing-Integrations, Rev.2 adds Gorgias). */}
+      <section>
+        <h2 className="mb-3 text-sm font-semibold text-gray-700">{t('marketingTitle')}</h2>
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {MARKETING_PROVIDERS.map((p) => (
+            <EcommerceTile key={p} provider={p} onConfigure={() => setConfiguring(p)} />
+          ))}
+        </div>
+      </section>
+      <section>
+        <h2 className="mb-3 text-sm font-semibold text-gray-700">{t('helpdeskTitle')}</h2>
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {HELPDESK_PROVIDERS.map((p) => (
+            <EcommerceTile key={p} provider={p} onConfigure={() => setConfiguring(p)} />
+          ))}
+        </div>
+      </section>
+
+      <MessengerChannelsSection />
+
+      <Cafe24ConnectCard />
+
       <InstallGuideCard />
 
       <WidgetBehaviorCard />
@@ -446,6 +729,11 @@ export function SettingsPage() {
       {/* Live-support routing: business hours, break, off-hours mailbox. */}
       <HandoffSection />
       <StorefrontCard />
+
+      {/* Who on the team reaches which screen (PLN-260812 S3). Master-only:
+          the API gates it on TENANT_SETTINGS_MANAGE, and rendering it for
+          ranks that will only get a 403 is worse than not showing it. */}
+      {isMaster && <MenuAccessSection />}
 
       <Card title={t('integrationCredentials')}>
         <Table<CredentialStatus>
@@ -459,7 +747,7 @@ export function SettingsPage() {
       </Card>
 
       <ShopifyConfigModal open={configuring === 'shopify'} onClose={() => setConfiguring(null)} />
-      {ECOMMERCE_PROVIDERS.map((p) => (
+      {[...ECOMMERCE_PROVIDERS, ...MARKETING_PROVIDERS, ...HELPDESK_PROVIDERS].map((p) => (
         <IntegrationConfigModal
           key={p}
           provider={p}

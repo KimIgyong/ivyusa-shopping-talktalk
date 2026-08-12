@@ -114,6 +114,10 @@ Copy the `.example` to the real filename on the server and fill in secrets — t
 | `ANTHROPIC_MODEL` | claude-opus-4-8 | claude-opus-4-8 | claude-opus-4-8 | |
 | `OPENAI_API_KEY` | — | optional | optional | fallback route; per-engine key in the console wins |
 | `OPENAI_MODEL` | gpt-4o-mini | gpt-4o-mini | gpt-4o-mini | used when the engine row names no model |
+| `IDLE_SWEEP_INTERVAL_SEC` | 30 | 30 | 30 | 방치 대화 순회 주기(0=비활성) |
+| `IDLE_PROMPT_AFTER_MIN` | 30 | 30 | 30 | 이 시간 무응답이면 "더 도와드릴까요?" |
+| `IDLE_CLOSE_AFTER_SEC` | 60 | 60 | 60 | 그 질문 후 대기 시간 |
+| `IDLE_STALE_AFTER_DAYS` | 7 | 7 | 7 | 이보다 오래된 방치는 질문 없이 종료 |
 | `CONVERSATION_LOG_RETENTION_DAYS` | 365 | 90 | 365 | POL-003 retention purge |
 | `KB_STORAGE_DIR` | ./storage/kb | — | — | local KB uploads (dev) |
 | `SEED_ON_BOOT` | — | true→false after 1st boot | true→false after 1st boot | idempotent bootstrap seed at startup |
@@ -136,6 +140,17 @@ regardless of these.
 
 > App Proxy customer identity uses `SHOPIFY_API_SECRET` to verify Shopify-signed
 > `/apps/{prefix}/{subpath}` storefront requests (route `/api/v1/shopify/proxy`).
+
+### 4.3b Cafe24 (optional — features default-safe/disabled when unset)
+| Variable | Purpose |
+|---|---|
+| `CAFE24_CLIENT_ID` / `CAFE24_CLIENT_SECRET` | Developer-center app credentials; empty → Cafe24 endpoints 501 |
+| `CAFE24_SCOPES` | admin OAuth scopes — `mall.read_order,mall.read_product,mall.read_customer` (`mall.read_personal` NOT needed since PLN-260808-MemberId) |
+| `CAFE24_REDIRECT_URI` | the ONE redirect URI registered on the app (shared by admin install + customer auth), default `https://shoptalk.amoeba.site/api/v1/auth/cafe24/callback` |
+| `CAFE24_CUSTOMER_SCOPES` | customer-auth scope, default `mall.read_customer_identifier` (token response carries `user_id` = member login id) |
+| `CAFE24_LOGIN_SYNC_LOOKBACK_DAYS` | order backfill window on member sign-in, default 30, clamped ≤ 90 (Cafe24 range cap 3 months) |
+| `CAFE24_SYNC_INTERVAL_MIN` | scheduled order sync (0/unset = disabled) |
+| `CAFE24_API_VERSION` | admin API version header, default `2025-09-01` |
 
 ### 4.4 Frontend (`apps/web`, `apps/widget`) — build-time (baked into image)
 | Variable | Dev | Staging |
@@ -204,7 +219,7 @@ Docker templates exist (`docker/production/`: Dockerfiles api/web, compose, ngin
    strong `DB_*`, `RABBITMQ_*`, `JWT_*`, `CRED_ENC_KEY`, real `ANTHROPIC_API_KEY`,
    strong `SEED_PASSWORD` (with `SEED_DEMO_DATA=false`), `SHOPIFY_WEBHOOK_SECRET`,
    and `VITE_API_BASE_URL` = the production API URL.
-3. Apply schema via `sql/01-schema.sql` / init-sql (production keeps `DB_SYNCHRONIZE=false`).
+3. Apply schema via `docker/init-sql/01-schema.sql` (production keeps `DB_SYNCHRONIZE=false`).
 4. `bash docker/production/deploy-production.sh`, then turn `SEED_ON_BOOT` off after the first successful boot.
 
 Production hardening (vs staging): `restart: always`; DB/redis/rabbitmq have **no** host

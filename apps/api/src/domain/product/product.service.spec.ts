@@ -27,7 +27,16 @@ describe('ProductService', () => {
     const saveRepo = {
       find: jest.fn().mockResolvedValue(saves),
     };
-    return { svc: new ProductService(repo as never, saveRepo as never), repo, saveRepo };
+    const docRepo = {
+      find: jest.fn().mockResolvedValue([]),
+      count: jest.fn().mockResolvedValue(0),
+    };
+    return {
+      svc: new ProductService(repo as never, saveRepo as never, docRepo as never),
+      repo,
+      saveRepo,
+      docRepo,
+    };
   }
 
   describe('list', () => {
@@ -165,4 +174,91 @@ describe('ProductService', () => {
       expect(saveRepo.find).not.toHaveBeenCalled();
     });
   });
+
+  describe('adminList (console)', () => {
+    it('includes archived rows — the customer-facing list hides them, this one must not', async () => {
+      const { svc, repo } = build([{ handle: 'a' }]);
+      await svc.adminList(7, {}, 1, 20);
+      expect(repo.findAndCount).toHaveBeenCalledWith({
+        where: { tenantId: 7 },
+        order: { status: 'ASC', publishedAt: 'DESC', id: 'DESC' },
+        skip: 0,
+        take: 20,
+      });
+    });
+
+    it('narrows to one status when asked, and ignores a value that is neither', async () => {
+      const { svc, repo } = build([{ handle: 'a' }]);
+      await svc.adminList(7, { status: 'archived' }, 1, 20);
+      expect(repo.findAndCount.mock.calls[0][0].where).toEqual({
+        tenantId: 7,
+        status: 'archived',
+      });
+
+      await svc.adminList(7, { status: 'nonsense' }, 1, 20);
+      expect(repo.findAndCount.mock.calls[1][0].where).toEqual({ tenantId: 7 });
+    });
+
+    it('searches title OR tags, keeping the other filters on both branches', async () => {
+      const { svc, repo } = build([{ handle: 'a' }]);
+      await svc.adminList(7, { q: ' 립 ', category: '립', status: 'active' }, 1, 20);
+      expect(repo.findAndCount.mock.calls[0][0].where).toEqual([
+        { tenantId: 7, category: '립', status: 'active', title: Like('%립%') },
+        { tenantId: 7, category: '립', status: 'active', tags: Like('%립%') },
+      ]);
+    });
+
+    it('returns nothing for a principal with no tenant, rather than everyone\'s catalogue', async () => {
+      const { svc, repo } = build([{ handle: 'a' }]);
+      await expect(svc.adminList(null, {}, 1, 20)).resolves.toEqual([[], 0]);
+      expect(repo.findAndCount).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('adminSummary', () => {
+    it('counts by status and reports the most recent sync', async () => {
+      const { svc } = build([
+        { handle: 'a', status: 'active', syncedAt: new Date('2026-08-08T01:00:00Z') },
+        { handle: 'b', status: 'active', syncedAt: new Date('2026-08-08T03:00:00Z') },
+        { handle: 'c', status: 'archived', syncedAt: null },
+      ]);
+      await expect(svc.adminSummary(7)).resolves.toEqual({
+        total: 3,
+        active: 2,
+        archived: 1,
+        lastSyncedAt: '2026-08-08T03:00:00.000Z',
+      });
+    });
+
+    it('is empty for a principal with no tenant', async () => {
+      const { svc } = build([{ handle: 'a', status: 'active' }]);
+      await expect(svc.adminSummary(null)).resolves.toEqual({
+        total: 0,
+        active: 0,
+        archived: 0,
+        lastSyncedAt: null,
+      });
+    });
+  });
+
+  describe('knowledgeHandles', () => {
+    it('resolves in ONE query for the whole page, keyed by handle', async () => {
+      const { svc, docRepo } = build();
+      docRepo.find.mockResolvedValue([{ externalKey: 'a' }, { externalKey: null }]);
+
+      await expect(svc.knowledgeHandles(7, ['a', 'b'])).resolves.toEqual(new Set(['a']));
+      expect(docRepo.find).toHaveBeenCalledTimes(1);
+      expect(docRepo.find.mock.calls[0][0].where).toMatchObject({
+        tenantId: 7,
+        docGroup: 'product',
+      });
+    });
+
+    it('does not query at all for an empty page', async () => {
+      const { svc, docRepo } = build();
+      await expect(svc.knowledgeHandles(7, [])).resolves.toEqual(new Set());
+      expect(docRepo.find).not.toHaveBeenCalled();
+    });
+  });
+
 });

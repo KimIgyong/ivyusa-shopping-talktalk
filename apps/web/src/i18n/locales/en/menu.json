@@ -1,0 +1,26 @@
+{
+  "title": "All menus",
+  "subtitle": "Every screen available to you in the {{scope}} console.",
+  "items": {
+    "dashboard": "Support activity and key numbers at a glance",
+    "liveChat": "Answer conversations that are happening now",
+    "history": "Search and revisit past conversations",
+    "workLog": "What each agent actually handled",
+    "statistics": "Analyse support metrics over time",
+    "aiSettings": "Persona, scenarios and handoff rules for the AI",
+    "knowledge": "The knowledge the AI grounds its answers in",
+    "products": "The catalogue you imported, and whether it reached the knowledge base",
+    "customers": "Customer records and their support history",
+    "orders": "Order status and delivery details",
+    "campaigns": "Notifications and promotional sends",
+    "reviews": "Review and moderate customer reviews",
+    "users": "Team accounts, ranks and job labels",
+    "settings": "Store integrations and widget behaviour",
+    "privacyNotice": "Consent notice shown to shoppers",
+    "myPage": "Your account, password and two-factor settings",
+    "overview": "Platform-wide status",
+    "tenants": "Approve and manage tenants",
+    "aiEngines": "AI engines and routing",
+    "audit": "Platform audit log"
+  }
+}
