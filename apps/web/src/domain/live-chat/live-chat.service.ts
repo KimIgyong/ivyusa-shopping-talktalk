@@ -59,12 +59,21 @@ export interface CustomerContext {
   recentOrders?: { id: number; status?: string | null; total?: number | null; createdAt?: string }[];
 }
 
+export interface PendingDraft {
+  id: string;
+  body: string;
+  confidence?: number | null;
+  createdAt?: string;
+}
+
 export interface ConversationDetail {
   conversationId?: number;
   sessionId?: string;
   alias?: string | null;
   autoReplyMode?: string;
   autoReplyEffective?: boolean;
+  /** AI answer waiting for the agent to send it (approval mode). */
+  pendingDraft?: PendingDraft | null;
   status?: string;
   /** Origin surface — the composer is disabled on receive-only channels. */
   channel?: string | null;
@@ -108,6 +117,10 @@ export const liveChatService = {
       `/agent/conversations/${id}/auto-reply`,
       { mode },
     ),
+  approveDraft: (id: string, body?: string) =>
+    apiPost<{ approved: boolean }>(`/agent/conversations/${id}/draft/approve`, body ? { body } : {}),
+  discardDraft: (id: string) =>
+    apiPost<{ discarded: boolean }>(`/agent/conversations/${id}/draft/discard`),
   conversation: (id: string, beforeId?: string) =>
     apiGet<ConversationDetail>(
       `/agent/conversations/${id}`,

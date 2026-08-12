@@ -197,7 +197,22 @@
     "offHint": "The AI is not answering this session.",
     "savedOn": "The AI will answer this session from the next message.",
     "savedOff": "The AI will not answer this session.",
-    "saveError": "Could not change auto-reply for this session."
+    "saveError": "Could not change auto-reply for this session.",
+    "auto": "Auto",
+    "approve": "Needs approval",
+    "awaitingApproval": "Draft waiting"
   },
-  "kbProposeKnowledge": "Propose as knowledge"
+  "kbProposeKnowledge": "Propose as knowledge",
+  "draft": {
+    "title": "AI suggestion",
+    "confidence": "confidence {{value}}",
+    "approve": "Approve & send",
+    "sending": "Sending…",
+    "discard": "Discard",
+    "hint": "Edit before sending — it goes out as your reply.",
+    "sent": "Sent to the customer.",
+    "sendError": "Could not send the draft.",
+    "discarded": "Draft discarded.",
+    "discardError": "Could not discard the draft."
+  }
 }

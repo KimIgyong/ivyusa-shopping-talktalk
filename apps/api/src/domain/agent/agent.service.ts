@@ -34,6 +34,7 @@ import { ERROR_CODE } from '../../global/constant/error-code.constant';
 import { UpsertProfileRequest } from './dto/request/agent.request';
 import { ChannelThread } from '../messenger/entity/channel-thread.entity';
 import { MessengerChannel } from '../messenger/entity/messenger-channel.entity';
+import { ReplyDraft } from '../chat/entity/reply-draft.entity';
 import {
   AUTO_REPLY_MODE,
   isAutoReplyMode,
@@ -132,6 +133,8 @@ export class AgentService {
     private readonly threadRepo?: Repository<ChannelThread>,
     @InjectRepository(MessengerChannel)
     private readonly channelRepo?: Repository<MessengerChannel>,
+    @InjectRepository(ReplyDraft)
+    private readonly draftRepo?: Repository<ReplyDraft>,
   ) {}
 
   /**
@@ -355,6 +358,61 @@ export class AgentService {
       autoReplyMode: mode,
       autoReplyEffective: resolveAutoReply(defaults.get(String(conversationId)) ?? null, mode),
     };
+  }
+
+  /** The AI answer waiting for approval on this conversation, if any. */
+  async pendingDraft(conversationId: number, tenantId: number): Promise<ReplyDraft | null> {
+    if (!this.draftRepo) return null;
+    return this.draftRepo.findOne({
+      where: { conversationId, tenantId, status: 'pending' },
+      order: { id: 'DESC' },
+    });
+  }
+
+  /**
+   * Send the pending draft (optionally edited) as the agent's own reply.
+   *
+   * Deliberately routed through `sendMessage`: moderation, duplicate
+   * suppression and the channel outbox already live there, and a second
+   * delivery path would be a second set of those rules to keep in step.
+   */
+  async approveDraft(
+    conversationId: number,
+    tenantId: number,
+    agentId: number,
+    body?: string,
+  ): Promise<{ approved: boolean }> {
+    const draft = await this.pendingDraft(conversationId, tenantId);
+    if (!draft) throw new BusinessException(ERROR_CODE.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND);
+
+    const text = (body ?? draft.body).trim();
+    if (!text) throw new BusinessException(ERROR_CODE.VALIDATION_FAILED, HttpStatus.BAD_REQUEST);
+
+    await this.sendMessage(conversationId, agentId, tenantId, text);
+    await this.draftRepo!.update(
+      { id: draft.id },
+      { status: 'sent', resolvedBy: agentId, resolvedAt: new Date() },
+    );
+    await this.auditAgentAction(agentId, tenantId, 'agent.draft.approve', `conversation:${conversationId}`, {
+      edited: body != null && body.trim() !== draft.body,
+    });
+    return { approved: true };
+  }
+
+  /** Drop the pending draft without sending anything. */
+  async discardDraft(
+    conversationId: number,
+    tenantId: number,
+    agentId: number,
+  ): Promise<{ discarded: boolean }> {
+    const draft = await this.pendingDraft(conversationId, tenantId);
+    if (!draft) throw new BusinessException(ERROR_CODE.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND);
+    await this.draftRepo!.update(
+      { id: draft.id },
+      { status: 'discarded', resolvedBy: agentId, resolvedAt: new Date() },
+    );
+    await this.auditAgentAction(agentId, tenantId, 'agent.draft.discard', `conversation:${conversationId}`);
+    return { discarded: true };
   }
 
   /**

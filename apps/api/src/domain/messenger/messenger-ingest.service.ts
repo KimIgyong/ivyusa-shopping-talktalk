@@ -14,6 +14,7 @@ import { generateToken } from '@ivy/common';
 import { Session } from '../session/entity/session.entity';
 import { Conversation } from '../chat/entity/conversation.entity';
 import { Message } from '../chat/entity/message.entity';
+import { ReplyDraft } from '../chat/entity/reply-draft.entity';
 import { ChatService } from '../chat/chat.service';
 import { SessionService } from '../session/session.service';
 import { MessengerChannel } from './entity/messenger-channel.entity';
@@ -21,7 +22,7 @@ import { ChannelThread } from './entity/channel-thread.entity';
 import { ChannelMessageMap } from './entity/channel-message-map.entity';
 import { NormalizedInbound } from './adapter/messenger-adapter';
 import { MessengerOutboxService } from './messenger-outbox.service';
-import { resolveAutoReply } from './auto-reply.util';
+import { REPLY_MODE, resolveReplyMode } from './auto-reply.util';
 
 /**
  * Privacy notice sent on first contact for `consent_mode='notice'` channels.
@@ -52,6 +53,7 @@ export class MessengerIngestService {
     @InjectRepository(Session) private readonly sessionRepo: Repository<Session>,
     @InjectRepository(Conversation) private readonly convRepo: Repository<Conversation>,
     @InjectRepository(Message) private readonly msgRepo: Repository<Message>,
+    @InjectRepository(ReplyDraft) private readonly draftRepo: Repository<ReplyDraft>,
     private readonly chatService: ChatService,
     private readonly sessionService: SessionService,
     private readonly outbox: MessengerOutboxService,
@@ -97,11 +99,32 @@ export class MessengerIngestService {
 
     // Session choice beats the channel default; an agent on the thread beats
     // both (PLN-260812 §2 S1).
-    const autoReply = resolveAutoReply(channel.autoReply === 1, session.autoReplyMode);
+    const mode = humanOwnsThread
+      ? REPLY_MODE.OFF
+      : resolveReplyMode(channel.replyMode, session.autoReplyMode);
 
-    if (autoReply && !humanOwnsThread) {
+    if (mode === REPLY_MODE.AUTO) {
       // Full pipeline: consent gate, intent, deny-list, RAG, moderation, handoff.
       await this.chatService.handleUserMessage(session, inbound.text);
+    } else if (mode === REPLY_MODE.APPROVE) {
+      // Same pipeline, but the answer stops at a draft an agent has to send.
+      const turn = await this.chatService.handleUserMessage(session, inbound.text, { draft: true });
+      if (turn.draft) {
+        await this.draftRepo.save(
+          this.draftRepo.create({
+            tenantId: channel.tenantId,
+            conversationId: conversation.id,
+            body: turn.draft.body,
+            confidence: turn.draft.confidence ?? null,
+          }),
+        );
+      }
+      // A draft nobody sees is a draft nobody sends — put the thread in the queue.
+      if (conversation.escalated !== 1) {
+        await this.chatService.escalate(session, conversation.id).catch((e) => {
+          this.logger.warn(`escalation failed for conversation ${conversation.id}: ${(e as Error).message}`);
+        });
+      }
     } else {
       // Auto-reply off (or a human already owns the thread): keep the message,
       // let the console answer. Nothing is generated on the shopper's behalf.

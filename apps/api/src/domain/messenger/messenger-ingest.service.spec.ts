@@ -41,6 +41,7 @@ describe('MessengerIngestService', () => {
       tenantId: 1,
       provider: 'telegram',
       autoReply: 1,
+      replyMode: 'auto',
       consentMode: 'notice',
       ...opts.channel,
     } as MessengerChannel;
@@ -104,8 +105,27 @@ describe('MessengerIngestService', () => {
       }),
     } as unknown as Repository<Message>;
 
+    const savedDrafts: Array<Record<string, unknown>> = [];
+    const draftRepo = {
+      create: (d: Record<string, unknown>) => d,
+      save: jest.fn(async (d: Record<string, unknown>) => {
+        savedDrafts.push(d);
+        return d;
+      }),
+    } as unknown as Repository<never>;
+
     const chatService = {
-      handleUserMessage: jest.fn(async () => ({ conversationId: '300', reply: null, escalate: false, needsAuth: false })),
+      handleUserMessage: jest.fn(async (_s: unknown, _t: string, o?: { draft?: boolean }) =>
+        o?.draft
+          ? {
+              conversationId: '300',
+              reply: null,
+              draft: { body: 'proposed answer', confidence: 0.82 },
+              escalate: false,
+              needsAuth: false,
+            }
+          : { conversationId: '300', reply: null, escalate: false, needsAuth: false },
+      ),
       findOpenConversation: jest.fn(async () => (opts.openConversation ?? null) as Conversation | null),
       escalate: jest.fn(async () => undefined),
     } as unknown as ChatService;
@@ -125,6 +145,7 @@ describe('MessengerIngestService', () => {
       sessionRepo,
       convRepo,
       msgRepo,
+      draftRepo,
       chatService,
       sessionService,
       outbox,
@@ -139,6 +160,7 @@ describe('MessengerIngestService', () => {
       savedSessions,
       savedConversations,
       savedMessages,
+      savedDrafts,
       threadUpdates,
     };
   }
@@ -183,7 +205,7 @@ describe('MessengerIngestService', () => {
   });
 
   it('stores and escalates instead of answering when auto-reply is off', async () => {
-    const h = build({ channel: { autoReply: 0 } });
+    const h = build({ channel: { replyMode: 'off' } });
     await h.service.ingestOne(h.channel, inbound);
 
     expect(h.chatService.handleUserMessage).not.toHaveBeenCalled();
@@ -203,14 +225,14 @@ describe('MessengerIngestService', () => {
   });
 
   it('lets a session override turn the AI on where the channel default is off', async () => {
-    const h = build({ channel: { autoReply: 0 }, sessionMode: 'on' });
+    const h = build({ channel: { replyMode: 'off' }, sessionMode: 'auto' });
     await h.service.ingestOne(h.channel, inbound);
 
     expect(h.chatService.handleUserMessage).toHaveBeenCalled();
   });
 
   it('lets a session override silence a channel whose default is on', async () => {
-    const h = build({ channel: { autoReply: 1 }, sessionMode: 'off' });
+    const h = build({ channel: { replyMode: 'auto' }, sessionMode: 'off' });
     await h.service.ingestOne(h.channel, inbound);
 
     expect(h.chatService.handleUserMessage).not.toHaveBeenCalled();
@@ -219,7 +241,7 @@ describe('MessengerIngestService', () => {
 
   it('escalates once, not on every message of an already-escalated thread', async () => {
     const h = build({
-      channel: { autoReply: 0 },
+      channel: { replyMode: 'off' },
       openConversation: { id: 300, status: 'waiting', agentId: null, sessionId: 90, escalated: 1 },
     });
     await h.service.ingestOne(h.channel, inbound);
@@ -234,6 +256,38 @@ describe('MessengerIngestService', () => {
     await h.service.ingestOne(h.channel, { ...inbound, languageHint: null });
 
     expect(h.sessionService.languageForChannel).toHaveBeenCalledWith(1, null);
+  });
+
+  it('stores a draft instead of answering when the channel needs approval', async () => {
+    const h = build({ channel: { replyMode: 'approve' } });
+    await h.service.ingestOne(h.channel, inbound);
+
+    expect(h.chatService.handleUserMessage).toHaveBeenCalledWith(
+      expect.anything(),
+      inbound.text,
+      { draft: true },
+    );
+    expect(h.savedDrafts[0]).toMatchObject({ body: 'proposed answer', confidence: 0.82 });
+    // A draft nobody sees is a draft nobody sends.
+    expect(h.chatService.escalate).toHaveBeenCalled();
+  });
+
+  it('lets a session ask for approval on an otherwise automatic channel', async () => {
+    const h = build({ channel: { replyMode: 'auto' }, sessionMode: 'approve' });
+    await h.service.ingestOne(h.channel, inbound);
+
+    expect(h.savedDrafts).toHaveLength(1);
+  });
+
+  it('never drafts while an agent holds the thread', async () => {
+    const h = build({
+      channel: { replyMode: 'approve' },
+      openConversation: { id: 300, status: 'agent', agentId: 7, sessionId: 90 },
+    });
+    await h.service.ingestOne(h.channel, inbound);
+
+    expect(h.savedDrafts).toHaveLength(0);
+    expect(h.chatService.handleUserMessage).not.toHaveBeenCalled();
   });
 
   it('records the inbound cursor for poll adapters', async () => {

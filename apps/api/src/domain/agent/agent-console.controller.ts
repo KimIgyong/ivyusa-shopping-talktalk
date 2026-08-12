@@ -24,6 +24,7 @@ import {
   ConversationQuery,
   ListSessionsQuery,
   ListStatsQuery,
+  ApproveDraftRequest,
   SetAutoReplyRequest,
   SetSessionAliasRequest,
   UpsertProfileRequest,
@@ -125,6 +126,24 @@ export class AgentConsoleController {
     return this.agentService.setSessionAutoReply(id, tenantOf(user), actorIdOf(user), body.mode);
   }
 
+  @Post('conversations/:id/draft/approve')
+  @RequireCapability(CAPABILITY.CONVERSATION_HANDLE)
+  @ApiOperation({ summary: 'Send the pending AI draft as the agent reply (optionally edited)' })
+  async approveDraft(
+    @CurrentUser() user: Principal,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: ApproveDraftRequest,
+  ) {
+    return this.agentService.approveDraft(id, tenantOf(user), actorIdOf(user), body.body);
+  }
+
+  @Post('conversations/:id/draft/discard')
+  @RequireCapability(CAPABILITY.CONVERSATION_HANDLE)
+  @ApiOperation({ summary: 'Drop the pending AI draft without sending it' })
+  async discardDraft(@CurrentUser() user: Principal, @Param('id', ParseIntPipe) id: number) {
+    return this.agentService.discardDraft(id, tenantOf(user), actorIdOf(user));
+  }
+
   @Get('customers/search')
   @RequireCapability(CAPABILITY.CONVERSATION_HANDLE)
   @ApiOperation({ summary: 'Search existing customers to link to a chat' })
@@ -154,8 +173,18 @@ export class AgentConsoleController {
     const customer = await this.agentService.customerContext(id, tenantId);
     const conversation = await this.agentService.findConversation(id, tenantId);
     const sessionState = await this.agentService.sessionStateFor(id, conversation.sessionId);
+    const draft = await this.agentService.pendingDraft(id, tenantId);
     return {
       conversationId: id,
+      // Approval mode: the agent sends this, so it travels with the transcript.
+      pendingDraft: draft
+        ? {
+            id: String(draft.id),
+            body: draft.body,
+            confidence: draft.confidence,
+            createdAt: draft.createdAt,
+          }
+        : null,
       sessionId: String(conversation.sessionId),
       ...sessionState,
       // Carried on the detail as well as the list row: a deep link from the

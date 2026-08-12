@@ -54,6 +54,37 @@ export function useSetSessionAutoReply() {
   });
 }
 
+/** Approve or drop the AI draft waiting on this conversation (PLN-260812). */
+export function useDraftActions(id: string | null) {
+  const { t } = useTranslation('livechat');
+  const qc = useQueryClient();
+  const tenantKey = useTenantKey();
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ['agent', tenantKey, 'conversation', id] });
+    qc.invalidateQueries({ queryKey: ['agent', tenantKey, 'sessions'] });
+  };
+
+  const approve = useMutation({
+    mutationFn: (body?: string) => liveChatService.approveDraft(id as string, body),
+    onSuccess: () => {
+      invalidate();
+      toast.success(t('draft.sent'));
+    },
+    onError: (e: Error) => toast.error(e.message || t('draft.sendError'), { sticky: true }),
+  });
+
+  const discard = useMutation({
+    mutationFn: () => liveChatService.discardDraft(id as string),
+    onSuccess: () => {
+      invalidate();
+      toast.success(t('draft.discarded'));
+    },
+    onError: (e: Error) => toast.error(e.message || t('draft.discardError'), { sticky: true }),
+  });
+
+  return { approve, discard };
+}
+
 export const useSessions = (q = '', status = 'all', channel = 'all') => {
   const tenantKey = useTenantKey();
   return useQuery({

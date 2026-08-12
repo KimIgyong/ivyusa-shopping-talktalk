@@ -88,8 +88,19 @@ export function sysMsg(key: keyof typeof SYSTEM_MESSAGES, lang: string): string 
   return (set as Record<string, string>)[lang] ?? set.EN;
 }
 
-/** Response shape lives in `@ivy/types` — the widget imports the same contract. */
-export type ChatTurnResult = ChatTurnResponse;
+/** An answer produced but NOT delivered — approval mode (PLN-260812). */
+export interface ChatDraft {
+  body: string;
+  confidence: number;
+  citations?: unknown;
+}
+
+/**
+ * Response shape lives in `@ivy/types` — the widget imports the same contract.
+ * `draft` is additive and only ever set for callers that asked for draft mode,
+ * so the widget contract is unchanged.
+ */
+export type ChatTurnResult = ChatTurnResponse & { draft?: ChatDraft };
 
 export type EscalationReason = 'low_confidence' | 'moderation_blocked' | 'user_request' | 'policy';
 
@@ -377,7 +388,11 @@ export class ChatService {
     return map;
   }
 
-  async handleUserMessage(session: Session, text: string): Promise<ChatTurnResult> {
+  async handleUserMessage(
+    session: Session,
+    text: string,
+    opts: { draft?: boolean } = {},
+  ): Promise<ChatTurnResult> {
     // Consent gate (PRV-M4, PLN-Privacy-Control-Gap D-1: fail-closed). Only an
     // effective GRANTED — fresh (uncached) read, current notice version — lets
     // the turn proceed; PENDING, DECLINED, and an outdated grant all soft-block:
@@ -588,6 +603,23 @@ export class ChatService {
         escalate: true,
         needsAuth: false,
         needsContactEmail: handoff.needsContactEmail,
+      };
+    }
+
+    if (opts.draft) {
+      // Approval mode: the answer is a proposal, not a message. Persisting it
+      // would deliver it — the widget poll and the channel outbox both read
+      // `messages` — and reuse must not learn from an answer nobody approved.
+      return {
+        conversationId: String(conversation.id),
+        reply: null,
+        draft: {
+          body: moderated.text,
+          confidence: answer.confidence,
+          citations: answer.citations,
+        },
+        escalate: false,
+        needsAuth: false,
       };
     }
 

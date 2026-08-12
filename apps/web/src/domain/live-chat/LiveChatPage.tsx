@@ -21,6 +21,7 @@ import { StatusBadge } from '@/components/StatusBadge';
 import { ChannelBadge, CHANNEL_FILTERS, RECEIVE_ONLY_CHANNELS } from './ChannelBadge';
 import { SessionAlias } from './SessionAlias';
 import { AutoReplyControl } from './AutoReplyControl';
+import { DraftPanel } from './DraftPanel';
 import { Badge } from '@/components/Badge';
 import { Modal } from '@/components/Modal';
 import { Input, FormRow } from '@/components/Field';
@@ -408,6 +409,7 @@ export function LiveChatPage() {
                     mode={convo?.autoReplyMode}
                     effective={convo?.autoReplyEffective}
                     agentOwns={convo?.status === 'agent'}
+                    awaitingApproval={!!convo?.pendingDraft}
                   />
                 </div>
                 <div className="flex gap-2">
@@ -559,6 +561,10 @@ export function LiveChatPage() {
                   <p className="text-center text-sm text-gray-400">{t('noMessages')}</p>
                 )}
               </div>
+
+              {convo?.pendingDraft && (
+                <DraftPanel conversationId={selected} draft={convo.pendingDraft} />
+              )}
 
               <div className="flex items-center gap-2 border-t border-gray-100 p-3">
                 <input
