@@ -41,6 +41,25 @@ const ESCALATION_CONFIDENCE = 0.45;
 const AGENT_REQUEST_CONFIDENCE = 0.6;
 
 /**
+ * Turns with nothing to look up (PLN-260813 P2). They score 0.2 for the same
+ * reason a greeting resembles no document, and that used to page a human.
+ */
+const NON_QUESTION_INTENTS = new Set(['smalltalk', 'out_of_scope', 'unintelligible']);
+
+/**
+ * How many consecutive turns with nothing to answer before the shopper is
+ * offered a person (PLN-260813 D5). Offered — not transferred: someone circling
+ * may need help, but that call is theirs to make.
+ */
+const NON_QUESTION_STREAK_FOR_OFFER = 3;
+
+const AGENT_OFFER_COPY: Record<string, string> = {
+  EN: 'If you would like to speak with one of our team, just say so and I will connect you.',
+  ES: 'Si prefieres hablar con nuestro equipo, dímelo y te conecto.',
+  KO: '혹시 상담원 연결이 필요하시면 말씀해 주세요.',
+};
+
+/**
  * Second signal, for when the classifier misses or fails: phrasings that ask
  * for a human, in the three supported languages.
  *
@@ -541,6 +560,61 @@ export class ChatService {
       };
     }
 
+    // Nothing to look up (PLN-260813 P2). Placed before retrieval on purpose:
+    // searching the knowledge base for "hello" produces "no similar document",
+    // and the old code read that as "no answer found" and paged an agent — 19
+    // of 34 low-confidence handoffs on staging were greetings, compliments,
+    // off-topic questions or noise (REQ-260813).
+    const nonQuestion = this.nonQuestionKind(intent);
+    if (nonQuestion) {
+      const streak = await this.nonQuestionStreak(conversation.id);
+      const drafted = await this.rag.answerWithoutKnowledge(
+        tenantId,
+        nonQuestion,
+        egressText,
+        session.language,
+      );
+      // Same gate as any other AI egress (FR-069, non-bypassable).
+      const checked = await this.moderation.moderate({
+        tenantId,
+        scope: 'ai',
+        authorType: 'ai',
+        conversationId: conversation.id,
+        text: drafted,
+      });
+      if (checked.decision === MODERATION_DECISION.BLOCKED) {
+        const handoff = await this.handoff(conversation.id, session, tenantId, 'moderation_blocked', text);
+        return {
+          conversationId: String(conversation.id),
+          reply: { senderType: 'system', body: handoff.body },
+          escalate: true,
+          needsAuth: false,
+          needsContactEmail: handoff.needsContactEmail,
+        };
+      }
+      const offer =
+        streak + 1 >= NON_QUESTION_STREAK_FOR_OFFER
+          ? ` ${AGENT_OFFER_COPY[session.language?.toUpperCase() ?? 'EN'] ?? AGENT_OFFER_COPY.EN}`
+          : '';
+      const body = `${checked.text}${offer}`;
+      await this.persist(tenantId, conversation.id, SENDER_TYPE.AI, body, session.language, {
+        // Recorded so a misclassification can be found later without guessing
+        // which turns took this path (PLN-260813 P4).
+        answeredFrom: 'no_knowledge',
+        nonQuestionKind: nonQuestion,
+        intentConfidence: intent.confidence ?? null,
+      });
+      this.logger.log(
+        `handoff skipped: ${nonQuestion} (conf ${intent.confidence ?? 0}) conversation=${conversation.id}`,
+      );
+      return {
+        conversationId: String(conversation.id),
+        reply: { senderType: 'ai', body },
+        escalate: false,
+        needsAuth: false,
+      };
+    }
+
     if (intent.needsOrderData && session.customerId == null) {
       const body = sysMsg('authRequired', session.language);
       await this.persist(tenantId, conversation.id, SENDER_TYPE.SYSTEM, body, session.language);
@@ -735,6 +809,50 @@ export class ChatService {
    * notice, mark the thread waiting, and publish the escalation event that
    * fans out to console modal / email / Slack alerts.
    */
+  /**
+   * Which "nothing to answer" kind this turn is, or null (PLN-260813 P2).
+   *
+   * The same two guards as the handoff trigger: a failed classification is not
+   * a signal, and low confidence is not either. Getting this wrong in the
+   * permissive direction is the worse failure — a real question answered with
+   * a greeting and no human — so both gates stay closed by default.
+   */
+  private nonQuestionKind(intent: {
+    intent?: string | null;
+    confidence?: number | null;
+    fallback?: boolean;
+  }): 'smalltalk' | 'out_of_scope' | 'unintelligible' | null {
+    if (intent.fallback) return null;
+    const label = intent.intent ?? '';
+    if (!NON_QUESTION_INTENTS.has(label)) return null;
+    if ((intent.confidence ?? 0) < AGENT_REQUEST_CONFIDENCE) {
+      this.logger.log(`non-question below threshold (${intent.confidence ?? 0}) — answering normally`);
+      return null;
+    }
+    return label as 'smalltalk' | 'out_of_scope' | 'unintelligible';
+  }
+
+  /**
+   * How many of the immediately preceding customer turns had nothing to answer.
+   * Read from `messages.intent`, which is already written every turn — no new
+   * column, and it survives a restart.
+   */
+  private async nonQuestionStreak(conversationId: number): Promise<number> {
+    const recent = await this.msgRepo.find({
+      where: { conversationId, senderType: SENDER_TYPE.USER },
+      order: { id: 'DESC' },
+      take: NON_QUESTION_STREAK_FOR_OFFER,
+      select: ['id', 'intent'],
+    });
+    // The current turn is already persisted, so skip it and count backwards.
+    let streak = 0;
+    for (const message of recent.slice(1)) {
+      if (!message.intent || !NON_QUESTION_INTENTS.has(message.intent)) break;
+      streak += 1;
+    }
+    return streak;
+  }
+
   /**
    * Does this turn mean "get me a person"? (PLN-260813 P1, D1/D2)
    *
