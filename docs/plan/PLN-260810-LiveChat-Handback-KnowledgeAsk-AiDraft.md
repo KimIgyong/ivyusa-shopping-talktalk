@@ -4,7 +4,7 @@
 |---|---|
 | Doc ID | CHATWIDGET-PLN-LCIMP-1.0.0 |
 | 작성일 | 2026-08-10 |
-| 상태 | **승인 대기 — 구현 착수 전** |
+| 상태 | **승인·구현 완료** — S1~S4 (PR #225/#232/#247), 결과는 `RPT-260813-LiveChat-Improvements` |
 | 선행 | `docs/analysis/REQ-260810-LiveChat-Handback-KnowledgeAsk-AiDraft.md` (PR #223) |
 | 확정된 결정 | **D2 = 읽기 전용 라우트** · **D3 = 승인형(상담사 제안 → 관리자 승인)** · D1 안내 노출 · D4 KB 문서 승격 · D5 가산점 보류 · D6 초안은 `rag` |
 
