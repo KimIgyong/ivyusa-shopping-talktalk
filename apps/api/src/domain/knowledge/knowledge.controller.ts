@@ -18,7 +18,7 @@ import { HttpCode, HttpStatus } from '@nestjs/common';
 import { CAPABILITY, Principal } from '@ivy/types';
 import { Paginated } from '../../global/interceptor/transform.interceptor';
 import { buildPagination, normalizePage } from '@ivy/common';
-import { RequireCapability } from '../../global/decorator/auth.decorator';
+import { RequireCapability, RequireMenu } from '../../global/decorator/auth.decorator';
 import { CatalogSyncJobService } from './catalog-sync-job.service';
 import { CurrentUser } from '../../global/decorator/current-user.decorator';
 import { BusinessException } from '../../global/exception/business.exception';
@@ -45,6 +45,8 @@ import { AcceptGapTaskRequest } from './dto/request/knowledge.request';
 /** Knowledge source & RAG corpus management (FR-064, FR-065). Tenant-scoped. */
 @ApiTags('Knowledge')
 @Controller('knowledge')
+// Screen gate (PLN-260812 S4): The agent-side /agent/knowledge/ask lives in its own controller and stays open to live chat.
+@RequireMenu('knowledge')
 export class KnowledgeController {
   constructor(
     private readonly knowledgeService: KnowledgeService,
