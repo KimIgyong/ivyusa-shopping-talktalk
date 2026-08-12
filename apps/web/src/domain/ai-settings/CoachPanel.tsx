@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { AlertTriangle, Info, Plus, Send } from 'lucide-react';
+import { AlertTriangle, Info, Plus, Send, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/Button';
 import { Badge } from '@/components/Badge';
@@ -16,7 +16,15 @@ import { ProposalCard } from './ProposalCard';
  * one talks to the agent about its own behavior and turns the conclusions into
  * proposals the admin approves.
  */
-export function CoachPanel() {
+interface CoachPanelProps {
+  /** An answer handed over from the preview tab, pending attachment to the next turn. */
+  target?: { messageId: number; question: string; answer: string } | null;
+  onClearTarget?: () => void;
+  /** Send a question back to the preview tab to be re-asked after a change. */
+  onVerifyInPreview?: (question: string) => void;
+}
+
+export function CoachPanel({ target, onClearTarget, onVerifyInPreview }: CoachPanelProps = {}) {
   const { t } = useTranslation('aiSetting');
   const { t: tc } = useTranslation('common');
 
@@ -48,11 +56,11 @@ export function CoachPanel() {
     if (!text || busy) return;
 
     // No thread yet (first use) — open one, then send into it.
-    let target = threadId;
-    if (target === null) {
+    let threadTarget = threadId;
+    if (threadTarget === null) {
       try {
         const created = await createThread.mutateAsync(undefined);
-        target = created.id;
+        threadTarget = created.id;
         setThreadId(created.id);
       } catch {
         return; // the hook already surfaced the error
@@ -62,7 +70,8 @@ export function CoachPanel() {
     setInput('');
     setBusy(true);
     try {
-      await coachService.send(target, text);
+      await coachService.send(threadTarget, text, target?.messageId);
+      onClearTarget?.(); // the turn now owns the reference; the chip is done
       await refetch();
     } catch (e) {
       toast.error((e as Error).message);
@@ -78,6 +87,16 @@ export function CoachPanel() {
   // to know about both: the engine is configured that way, or a real engine was
   // configured and failed at request time (bad key), which the gateway hides by
   // degrading to the stub. Configuration alone would miss the second.
+  /** The customer question behind an agent turn, when one was attached upstream. */
+  function refQuestionFor(agentMessageId: number): string | undefined {
+    const idx = messages.findIndex((m) => m.id === agentMessageId);
+    if (idx < 0) return undefined;
+    for (let i = idx; i >= 0; i--) {
+      if (messages[i].refTurn) return messages[i].refTurn!.question;
+    }
+    return undefined;
+  }
+
   const coachSetting = aiSettings?.find((s) => s.function === 'coach');
   const lastAgentProvider = [...messages].reverse().find((m) => m.role === 'agent')?.provider;
   const onStub = coachSetting?.effectiveProvider === 'stub' || lastAgentProvider === 'stub';
@@ -197,13 +216,44 @@ export function CoachPanel() {
             )}
 
             {(proposalsByMessage.get(m.id) ?? []).map((p) => (
-              <ProposalCard key={p.id} proposal={p} />
+              <ProposalCard
+                key={p.id}
+                proposal={p}
+                // The question to re-ask is the referenced customer turn when
+                // there is one, else the coaching message that produced it.
+                onVerifyInPreview={
+                  onVerifyInPreview
+                    ? () => onVerifyInPreview(refQuestionFor(m.id) ?? m.body)
+                    : undefined
+                }
+              />
             ))}
           </div>
         ))}
 
         {busy && <p className="text-xs text-gray-400">{t('coach.thinking')}</p>}
       </div>
+
+      {/* An answer carried over from the preview tab, attached to the next turn. */}
+      {target && (
+        <div className="mt-2 rounded-lg border border-primary-200 bg-primary-50/40 px-2.5 py-2 text-[11px] text-gray-600">
+          <div className="mb-1 flex items-center justify-between">
+            <span className="font-semibold text-primary-700">{t('coach.attachedTurn')}</span>
+            <button
+              type="button"
+              onClick={onClearTarget}
+              className="rounded p-0.5 text-gray-400 hover:text-gray-600"
+              aria-label={t('coach.detach')}
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </div>
+          <p className="line-clamp-2 whitespace-pre-wrap">
+            <span className="text-gray-400">{t('coach.refAgent')} </span>
+            {target.answer}
+          </p>
+        </div>
+      )}
 
       <div className="mt-2 flex items-center gap-2">
         <input

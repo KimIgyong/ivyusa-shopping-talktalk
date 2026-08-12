@@ -43,6 +43,11 @@ export const ERROR_CODE = {
   // The config moved between proposing and applying, so the stored diff no
   // longer describes the change it claimed to make.
   COACH_PROPOSAL_STALE: { code: 'E4015', message: 'Target changed since this proposal was made' },
+  // Knowledge documents roll back through their own revision history instead.
+  COACH_REVERT_UNSUPPORTED: {
+    code: 'E4016',
+    message: 'Undo this from the knowledge document revision history',
+  },
 
   // E5xxx — domain
   ORDER_NOT_FOUND: { code: 'E5001', message: 'Order not found' },

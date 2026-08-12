@@ -75,7 +75,8 @@
     "agentPlaceholder": "Type an agent reply…",
     "agentBadge": "Agent (preview)",
     "escalated": "Escalated",
-    "agentMode": "(bot silent — thread is with an agent)"
+    "agentMode": "(bot silent — thread is with an agent)",
+    "coachThis": "Coach this"
   },
   "editReply": "Edit reply",
   "postAction_none": "Stay in chat",
@@ -184,7 +185,16 @@
     "toastRejected": "Proposal dismissed.",
     "toastReverted": "Change undone.",
     "stubWarningTitle": "Running on the built-in stub.",
-    "stubWarningBody": "Replies are canned text and no change proposals will be produced. Assign a real engine to Coaching under AI functions."
+    "stubWarningBody": "Replies are canned text and no change proposals will be produced. Assign a real engine to Coaching under AI functions.",
+    "type_kb_upsert": "Knowledge document",
+    "type_scenario_override": "Scenario reply",
+    "kbNew": "New document",
+    "kbRevise": "Revise document #{{id}}",
+    "kbRevertHint": "Undo from the document's revision history.",
+    "scenarioTarget": "Button: {{action}}",
+    "verifyInPreview": "Check in simulation",
+    "attachedTurn": "Coaching this answer",
+    "detach": "Detach"
   },
   "effectiveEngine": "Currently served by: {{name}}",
   "routing_inherited": "Inherited",
