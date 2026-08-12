@@ -22,7 +22,14 @@ const MASTER = { userId: 9, rank: 'master' as const, labels: [] };
 /** A manager may coach (AI_SETTINGS_MANAGE) but may not write knowledge. */
 const MANAGER = { userId: 11, rank: 'manager' as const, labels: [] };
 
-function serviceFor(state: ConfigState, stored: Partial<CoachingProposal> = {}) {
+function serviceFor(
+  state: ConfigState,
+  stored: Partial<CoachingProposal> = {},
+  repoOverrides: Partial<{
+    find: () => Promise<CoachingProposal[]>;
+    update: (ids: number[], patch: Record<string, unknown>) => Promise<void>;
+  }> = {},
+) {
   const saved: CoachingProposal[] = [];
   const kbCalls: Array<{ op: 'create' | 'update'; id?: number; body: Record<string, unknown> }> = [];
   const aiConfig = {
@@ -71,8 +78,8 @@ function serviceFor(state: ConfigState, stored: Partial<CoachingProposal> = {}) 
       saved.push(p);
       return p;
     },
-    find: async () => [],
-    update: async () => undefined,
+    find: repoOverrides.find ?? (async () => []),
+    update: repoOverrides.update ?? (async () => undefined),
     create: (v: Partial<CoachingProposal>) => v as CoachingProposal,
   };
 
@@ -263,6 +270,43 @@ describe('CoachProposalService — knowledge and scenario proposals (W3)', () =>
       my_orders: { reply: { EN: 'Existing.' } },
       cancel_refund: { reply: { EN: 'New copy.' } },
     });
+  });
+
+  it('supersedes another pending proposal aimed at the same scenario action', async () => {
+    // Two coaching turns about the same button leave two pending cards. Once
+    // one is approved the other describes a config that no longer exists, and
+    // approving it later would quietly overwrite the change just made.
+    const peer = { id: 2, payload: { scenarioAction: 'cancel_refund' }, type: PROPOSAL_TYPE.SCENARIO_OVERRIDE };
+    const other = { id: 3, payload: { scenarioAction: 'my_orders' }, type: PROPOSAL_TYPE.SCENARIO_OVERRIDE };
+    const superseded: number[][] = [];
+    const { service } = serviceFor(
+      { persona: 'p', rules: [] },
+      {
+        type: PROPOSAL_TYPE.SCENARIO_OVERRIDE,
+        payload: { scenarioAction: 'cancel_refund', scenarioReply: { EN: 'New.' } },
+      },
+      {
+        find: async () => [peer, other] as never,
+        update: async (ids: number[]) => {
+          superseded.push(ids);
+        },
+      },
+    );
+    await service.apply(1, MASTER, 1);
+    expect(superseded).toEqual([[2]]); // the same-action peer only
+  });
+
+  it('leaves two new-document proposals alone — neither invalidates the other', async () => {
+    const peer = { id: 2, payload: { docTitle: 'Another doc' }, type: PROPOSAL_TYPE.KB_UPSERT };
+    const superseded: number[][] = [];
+    const { service } = serviceFor({ persona: 'p', rules: [] }, KB, {
+      find: async () => [peer] as never,
+      update: async (ids: number[]) => {
+        superseded.push(ids);
+      },
+    });
+    await service.apply(1, MASTER, 1);
+    expect(superseded).toEqual([]);
   });
 
   it('restores every scenario override the change replaced', async () => {
