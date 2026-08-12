@@ -76,7 +76,40 @@
 
 | # | 내용 |
 |---|---|
-| **V10** | `agent_alerts` 중 `low_confidence` 비중(배포 전 **33/48 = 69%**) 감소는 **트래픽이 쌓여야** 판정 가능. 과거 데이터가 대부분이라 즉시 측정은 무의미 |
+| **V10** | `agent_alerts` 중 `low_confidence` 비중(배포 전 **33/48 = 69%**) 감소 — **미측정, 트래픽 축적 후 재측정**(§5) |
 | O6 | 리뷰 작성 절차 문서 보강(지식 공백) |
 | O2 | 세션 언어 고정(기존) |
 | O3 | 프로덕션 미배포 |
+
+---
+
+## 5. V10 기준선 (재측정용)
+
+2026-08-13에 한 번 재봤으나 **경과 21분·고객 턴 10건(전부 검증 트래픽)** 으로 표본이 부족해 판정을 보류했습니다. 비율을 계산할 수는 있지만 그것은 테스트 문장의 비율이지 운영 실태가 아닙니다.
+
+**기준선**
+
+| 항목 | 값 |
+|---|---|
+| 배포 컷오프 (UTC) | `2026-08-12 17:03:42` — api 컨테이너 기동 시각 |
+| 배포 전 알림 | `low_confidence` 33 · `user_request` 15 (총 48, 저신뢰 **69%**) |
+
+**중간 관측** (결론 아님): 배포 후 10턴 중 **7턴이 `answeredFrom=no_knowledge`** 로 처리돼 알림이 0건이었고(smalltalk 5·out_of_scope 1·unintelligible 1), 같은 창의 알림 1건은 `이 제품 성분이 뭔가요?`(진짜 지식 공백)였습니다. 메커니즘은 의도대로지만 표본이 자체 테스트라 비율 근거로는 쓸 수 없습니다.
+
+**재측정 방법** — 스테이징 MySQL에서:
+
+```sql
+-- 사유별 알림, 배포 전/후
+SELECT CASE WHEN created_at < '2026-08-12 17:03:42' THEN 'before' ELSE 'after' END AS period,
+       reason, COUNT(*) n
+FROM agent_alerts WHERE tenant_id = 1 GROUP BY period, reason;
+
+-- 이관을 건너뛴 턴 (예전이라면 알림이 됐을 턴)
+SELECT JSON_UNQUOTE(JSON_EXTRACT(retrieval_trace,'$.nonQuestionKind')) kind, COUNT(*) n
+FROM messages
+WHERE tenant_id = 1 AND created_at >= '2026-08-12 17:03:42'
+  AND JSON_EXTRACT(retrieval_trace,'$.answeredFrom') = 'no_knowledge'
+GROUP BY kind;
+```
+
+**판정 기준**: 배포 후 구간의 고객 턴이 **최소 수백 건** 쌓였을 때, `low_confidence` 비중이 69%보다 유의하게 낮으면 성공. 그 전에는 수치를 기록하지 않습니다.
