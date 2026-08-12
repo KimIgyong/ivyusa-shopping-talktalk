@@ -4,7 +4,7 @@
 |---|---|
 | Doc ID | CHATWIDGET-PLN-CAT2KB-1.0.0 |
 | 작성일 | 2026-08-07 |
-| 상태 | **승인 대기 — 구현 착수 전** |
+| 상태 | **승인·구현 완료** — P0~P2 (PR #147/#150/#153), 결과는 `RPT-260807-Catalog-To-RAG-Product-Knowledge` |
 | 선행 | `docs/analysis/REQ-260807-Catalog-To-RAG-Product-Knowledge.md` (v1.0.1, PR #140) |
 | 승인된 결정 | ① **ㄴ안** — 제품유형별 공통 사용법 문서 ② **Detail만 있는 상품도 등록** ③ **SKU 수집 포함** |
 | 범위 | `products_cache` 2,275건 → `kb_documents(doc_group='product')` 전환 + 유형별 사용법 지식 + SKU 수집 |
