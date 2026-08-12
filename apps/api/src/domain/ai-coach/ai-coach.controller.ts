@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, HttpStatus, Param, ParseIntPipe, Post, Query } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { CAPABILITY, Principal } from '@ivy/types';
+import { CAPABILITY, JobLabel, Principal, UserRank } from '@ivy/types';
 import { buildPagination, normalizePage } from '@ivy/common';
 import { Paginated } from '../../global/interceptor/transform.interceptor';
 import { RequireCapability } from '../../global/decorator/auth.decorator';
@@ -30,11 +30,23 @@ export class AiCoachController {
     private readonly proposals: CoachProposalService,
   ) {}
 
-  private tenantUser(user: Principal): { tenantId: number; userId: number } {
+  private tenantUser(user: Principal): {
+    tenantId: number;
+    userId: number;
+    rank: UserRank;
+    labels: JobLabel[];
+  } {
     if (user.actorType !== 'user') {
       throw new BusinessException(ERROR_CODE.FORBIDDEN, HttpStatus.FORBIDDEN);
     }
-    return { tenantId: user.tenantId, userId: user.userId };
+    // rank/labels ride along because applying a kb_upsert additionally requires
+    // KNOWLEDGE_SOURCE_MANAGE, which the route-level guard does not cover.
+    return {
+      tenantId: user.tenantId,
+      userId: user.userId,
+      rank: user.rank,
+      labels: user.labels ?? [],
+    };
   }
 
   @Get('threads')
@@ -104,10 +116,12 @@ export class AiCoachController {
     @Param('id', ParseIntPipe) id: number,
     @Body() body: ApplyProposalRequest,
   ) {
-    const { tenantId, userId } = this.tenantUser(user);
-    const proposal = await this.proposals.apply(tenantId, userId, id, {
+    const { tenantId, userId, rank, labels } = this.tenantUser(user);
+    const proposal = await this.proposals.apply(tenantId, { userId, rank, labels }, id, {
       persona: body.persona,
       rule: body.rule,
+      docContent: body.doc_content,
+      scenarioReply: body.scenario_reply,
     });
     return AiCoachMapper.toProposal(proposal);
   }

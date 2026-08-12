@@ -75,7 +75,8 @@
     "agentPlaceholder": "Escribe una respuesta del agente…",
     "agentBadge": "Agente (vista previa)",
     "escalated": "Escalado",
-    "agentMode": "(bot en silencio — la conversación está con un agente)"
+    "agentMode": "(bot en silencio — la conversación está con un agente)",
+    "coachThis": "Entrenar"
   },
   "editReply": "Editar respuesta",
   "postAction_none": "Seguir en el chat",
@@ -184,7 +185,16 @@
     "toastRejected": "Propuesta descartada.",
     "toastReverted": "Cambio deshecho.",
     "stubWarningTitle": "Funcionando con el stub integrado.",
-    "stubWarningBody": "Las respuestas son texto predefinido y no se generarán propuestas de cambio. Asigna un motor real a Entrenamiento en funciones de IA."
+    "stubWarningBody": "Las respuestas son texto predefinido y no se generarán propuestas de cambio. Asigna un motor real a Entrenamiento en funciones de IA.",
+    "type_kb_upsert": "Documento de conocimiento",
+    "type_scenario_override": "Respuesta de escenario",
+    "kbNew": "Documento nuevo",
+    "kbRevise": "Revisar documento #{{id}}",
+    "kbRevertHint": "Deshaz desde el historial de revisiones del documento.",
+    "scenarioTarget": "Botón: {{action}}",
+    "verifyInPreview": "Comprobar en la simulación",
+    "attachedTurn": "Entrenando sobre esta respuesta",
+    "detach": "Quitar"
   },
   "effectiveEngine": "En uso actualmente: {{name}}",
   "routing_inherited": "Heredado",

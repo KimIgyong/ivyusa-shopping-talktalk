@@ -43,19 +43,30 @@ export class CoachContextService {
       'When the administrator asks for a behavior change, propose it as a structured change.',
       'Append exactly one fenced ```json block at the very end of your reply, shaped as:',
       '{"proposals":[{"type":"...","rule":"...","targetRule":"...","persona":"...",' +
+        '"docId":123,"docTitle":"...","docCategory":"...","docContent":"...",' +
+        '"scenarioAction":"...","scenarioReply":{"EN":"...","KO":"..."},' +
         '"rationale":"...","conflictsWith":["..."]}]}',
       'Types: persona_patch (persona = the FULL replacement persona text),',
       'rule_add (rule = the new rule), rule_edit (targetRule = the existing rule verbatim,',
-      'rule = its replacement), rule_remove (targetRule = the existing rule verbatim).',
+      'rule = its replacement), rule_remove (targetRule = the existing rule verbatim),',
+      'kb_upsert (docTitle + docCategory + docContent; include docId ONLY when revising a',
+      'document listed under KNOWLEDGE below — omit it to create a new one, and then',
+      'docCategory MUST be one of the existing categories listed there),',
+      'scenario_override (scenarioAction = one of the actions listed under CURRENT_CONFIG,',
+      'scenarioReply = the replacement reply keyed by language code).',
       'Omit the block entirely when nothing should change — questions, diagnoses and',
       'explanations need no proposal. Never invent a proposal to seem useful.',
+      'Do not announce the absence of a proposal; just answer.',
       '',
       'RULES YOU MUST FOLLOW WHEN PROPOSING',
       '1. FACTS ARE NOT RULES. Prices, deadlines, policy numbers, product details and',
-      '   shipping terms belong in the knowledge base, not in a response rule. If the',
-      '   administrator is correcting a FACT, propose nothing — tell them it needs a',
-      '   knowledge document and offer to help word it. Registering documents from this',
-      '   chat is not available yet; point them at the Knowledge console.',
+      '   shipping terms belong in a knowledge document (kb_upsert), never in a response',
+      '   rule. If a document under KNOWLEDGE already covers the topic, revise THAT one',
+      '   (kb_upsert with its docId) instead of creating a second one that will contradict',
+      '   it. If the new fact contradicts a document, say so and ask which is correct',
+      '   before proposing anything — do not silently overwrite.',
+      '   Write document content as complete prose a shopper could be answered from, not',
+      '   as an instruction to yourself.',
       '2. Response rules reach the model as an UNORDERED list. Any instruction whose',
       '   steps depend on each other must be written inside ONE rule, never split.',
       '3. If an existing rule already covers the topic, use rule_edit on it instead of',
@@ -63,6 +74,8 @@ export class CoachContextService {
       '4. One directive per rule. Keep each rule under ' + RULE_LIMITS.MAX_RULE_CHARS + ' characters.',
       '5. If a proposal could contradict existing rules, list them in conflictsWith.',
       '6. Tone, formality, greeting style and refusal wording are persona/rule material.',
+      '7. A scenario_override changes ONE menu button\'s scripted reply. Use it only when',
+      '   the administrator is talking about a specific button, not about general tone.',
       '',
       'EXPLAINING PAST ANSWERS',
       'When a referenced turn is attached, explain it ONLY from the retrieval figures',
@@ -79,15 +92,20 @@ export class CoachContextService {
     const rules = cfg.rules.length
       ? cfg.rules.map((r, i) => `${i + 1}. ${r}`).join('\n')
       : '(none)';
+    // Actions, not labels: a scenario_override is keyed by action, so listing
+    // only the human label would leave the model guessing the key.
     const scenarios = cfg.scenarioButtons
       .filter((b) => b.enabled)
-      .map((b) => b.label)
-      .join(', ');
+      .map((b) => {
+        const edited = cfg.scenarioOverrides?.[b.action]?.reply ? ' [has a tenant edit]' : '';
+        return `- ${b.action} ("${b.label}")${edited}`;
+      })
+      .join('\n');
     return [
       'CURRENT_CONFIG_START',
       `PERSONA:\n${cfg.persona}`,
       `\nRESPONSE_RULES (${cfg.rules.length}/${RULE_LIMITS.MAX_RULES}):\n${rules}`,
-      `\nSCENARIO_BUTTONS: ${scenarios || '(none)'}`,
+      `\nSCENARIO_ACTIONS:\n${scenarios || '(none)'}`,
       'CURRENT_CONFIG_END',
     ].join('\n');
   }
@@ -116,12 +134,34 @@ export class CoachContextService {
     ].join('\n');
   }
 
-  /** Retrieved KB context, so the coach can tell a gap from a wording problem. */
-  private kbBlock(citations: NonNullable<CoachingMessageMeta['citations']>, snippets: string[]): string {
+  /**
+   * Retrieved KB context, so the coach can tell a gap from a wording problem.
+   * Document ids are included because a kb_upsert that revises the right
+   * document needs one — without them the model can only ever propose new
+   * documents, which is how a knowledge base ends up contradicting itself.
+   */
+  private kbBlock(
+    citations: NonNullable<CoachingMessageMeta['citations']>,
+    snippets: string[],
+    categories: string[],
+  ): string {
+    const cats = categories.length ? categories.join(', ') : '(none yet)';
     if (!citations.length) {
-      return '\nKNOWLEDGE_START\n(no documents matched this topic)\nKNOWLEDGE_END';
+      return [
+        '',
+        'KNOWLEDGE_START',
+        '(no documents matched this topic — a new document may be needed)',
+        `EXISTING_CATEGORIES: ${cats}`,
+        'KNOWLEDGE_END',
+      ].join('\n');
     }
-    return `\nKNOWLEDGE_START\n${snippets.join('\n')}\nKNOWLEDGE_END`;
+    return [
+      '',
+      'KNOWLEDGE_START',
+      snippets.join('\n'),
+      `EXISTING_CATEGORIES: ${cats}`,
+      'KNOWLEDGE_END',
+    ].join('\n');
   }
 
   /**
@@ -149,13 +189,14 @@ export class CoachContextService {
     question: string;
     citations: NonNullable<CoachingMessageMeta['citations']>;
     snippets: string[];
+    categories: string[];
     refTurn?: CoachingMessageMeta['refTurn'];
   }): Promise<CoachContext> {
     const system = [
       this.instructions(),
       '',
       await this.currentConfig(params.tenantId),
-      this.kbBlock(params.citations, params.snippets),
+      this.kbBlock(params.citations, params.snippets, params.categories),
       params.refTurn ? this.refTurnBlock(params.refTurn) : '',
     ].join('\n');
 

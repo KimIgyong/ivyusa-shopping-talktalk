@@ -9,6 +9,7 @@ import { CoachContextService } from './coach-context.service';
 import { CoachProposalService } from './coach-proposal.service';
 import { AiCoachController } from './ai-coach.controller';
 import { ChatModule } from '../chat/chat.module';
+import { KnowledgeModule } from '../knowledge/knowledge.module';
 import { AiEngineModule } from '../ai-engine/ai-engine.module';
 import { ModerationModule } from '../moderation/moderation.module';
 import { AuditModule } from '../audit/audit.module';
@@ -22,6 +23,7 @@ import { AuditModule } from '../audit/audit.module';
   imports: [
     TypeOrmModule.forFeature([CoachingThread, CoachingMessage, CoachingProposal, Message]),
     ChatModule,
+    KnowledgeModule,
     AiEngineModule,
     ModerationModule,
     AuditModule,

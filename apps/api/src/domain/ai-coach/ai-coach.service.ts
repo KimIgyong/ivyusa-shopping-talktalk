@@ -5,6 +5,7 @@ import { AI_FUNCTION, MODERATION_DECISION } from '@ivy/types';
 import { AiGatewayService } from '../../infrastructure/external/ai/ai-gateway.service';
 import { ModerationService } from '../moderation/moderation.service';
 import { RagService } from '../chat/rag.service';
+import { KnowledgeService } from '../knowledge/knowledge.service';
 import { Message } from '../chat/entity/message.entity';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
@@ -39,6 +40,7 @@ export class AiCoachService {
     private readonly ai: AiGatewayService,
     private readonly moderation: ModerationService,
     private readonly rag: RagService,
+    private readonly knowledge: KnowledgeService,
     private readonly context: CoachContextService,
     private readonly proposals: CoachProposalService,
   ) {}
@@ -181,7 +183,13 @@ export class AiCoachService {
       title: c.title,
       similarity: c.similarity,
     }));
-    const snippets = chunks.map((c) => `- [${c.category ?? 'general'}] ${c.title}: ${c.snippet}`);
+    // The id is what makes a revision proposal possible — see kbBlock.
+    const snippets = chunks.map(
+      (c) => `- [docId=${Number(c.id)}] [${c.category ?? 'general'}] ${c.title}: ${c.snippet}`,
+    );
+    const categories = (await this.knowledge.categoryCounts(params.tenantId))
+      .map((c) => c.category)
+      .filter((c): c is string => !!c);
 
     const ctx = await this.context.build({
       tenantId: params.tenantId,
@@ -189,6 +197,7 @@ export class AiCoachService {
       question: cleanText,
       citations,
       snippets,
+      categories,
       refTurn,
     });
 

@@ -2,20 +2,23 @@ import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn } from 
 import { bigintTransformer } from '../../../global/util/transformers';
 
 /**
- * What a proposal changes. W1 covers the tenant AI config only; kb_upsert and
- * scenario_override arrive in W3.
+ * What a proposal changes.
  *
- * Note what is deliberately absent: there is no proposal type for facts. A
- * factual correction ("our refund window is 30 days") belongs in a knowledge
- * document, not in a response rule — encoding policy numbers as instructions is
- * a documented anti-pattern (REQ §13.1). Until kb_upsert ships, the coach is
- * instructed to say so rather than to smuggle the fact into a rule.
+ * The split matters more than the list: a factual correction ("our refund
+ * window is 30 days") must land in a knowledge document, never in a response
+ * rule — encoding policy numbers as instructions is a documented anti-pattern
+ * (REQ §13.1). W1 could only refuse such feedback; `kb_upsert` (W3) gives it
+ * somewhere correct to go.
  */
 export const PROPOSAL_TYPE = {
   PERSONA_PATCH: 'persona_patch',
   RULE_ADD: 'rule_add',
   RULE_EDIT: 'rule_edit',
   RULE_REMOVE: 'rule_remove',
+  /** New knowledge document, or a revision of an existing one. */
+  KB_UPSERT: 'kb_upsert',
+  /** Tenant edit to one scenario button's scripted reply. */
+  SCENARIO_OVERRIDE: 'scenario_override',
 } as const;
 export type ProposalType = (typeof PROPOSAL_TYPE)[keyof typeof PROPOSAL_TYPE];
 
@@ -45,12 +48,27 @@ export interface ProposalPayload {
   rule?: string;
   /** rule_edit / rule_remove: the existing rule this targets, matched exactly. */
   targetRule?: string;
+
+  /** kb_upsert: the document to revise. Absent means "create a new one". */
+  docId?: number;
+  docTitle?: string;
+  docCategory?: string;
+  docContent?: string;
+
+  /** scenario_override: which scenario action, and its replacement reply per language. */
+  scenarioAction?: string;
+  scenarioReply?: Record<string, string>;
+
   /** Why the agent proposed this — shown to humans, never sent back to the model. */
   rationale?: string;
   /** Existing rules the agent flagged as possibly contradicting this one. */
   conflictsWith?: string[];
   /** Value replaced at apply time, for one-step revert. */
-  previous?: { persona?: string; rules?: string[] };
+  previous?: {
+    persona?: string;
+    rules?: string[];
+    scenarioOverrides?: Record<string, unknown> | null;
+  };
 }
 
 /** agent_coaching_proposals — a reviewable config diff produced by coaching (FR-072). */

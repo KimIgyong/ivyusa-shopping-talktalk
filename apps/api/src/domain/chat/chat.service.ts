@@ -772,6 +772,8 @@ export class ChatService {
         body: moderated.text,
         citations: answer.citations,
         confidence: answer.confidence,
+        // Lets the /ai-setting preview hand this exact turn to the coaching tab.
+        messageId: String(aiTurn.id),
       },
       escalate: false,
       needsAuth: false,

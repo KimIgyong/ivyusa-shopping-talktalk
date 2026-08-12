@@ -123,6 +123,11 @@ export interface ChatTurnResponse {
     citations?: ChatCitation[];
     /** RAG grounding confidence — surfaced for the admin preview diagnostics. */
     confidence?: number;
+    /**
+     * Persisted id of this turn. The admin preview uses it to anchor a coaching
+     * thread to the exact answer under discussion; the widget ignores it.
+     */
+    messageId?: string;
   } | null;
   escalate: boolean;
   needsAuth: boolean;
