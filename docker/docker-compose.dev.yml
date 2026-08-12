@@ -14,7 +14,7 @@ services:
     volumes:
       - ivy_mysql_data:/var/lib/mysql
       # Schema is built by TypeORM synchronize in dev (npm run db:seed).
-      # The DDL in sql/01-schema.sql is the staging/production migration reference.
+      # The DDL in docker/init-sql/01-schema.sql is the staging/production reference.
     healthcheck:
       test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost']
       interval: 10s

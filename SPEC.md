@@ -116,7 +116,7 @@ ivy-talktalk/
 ├── packages/{types,common}      # shared enums/response envelope/RBAC matrix/utils
 ├── docker/                      # compose {dev,staging,production} + Dockerfiles + nginx + deploy-*.sh
 ├── env/{backend,frontend}/      # .env.development (committed; staging/prod gitignored)
-├── sql/                         # 01-schema.sql (staging/prod migration reference)
+├── sql/                         # migration_*.sql (DDL: docker/init-sql/01-schema.sql)
 ├── docs/{analysis,plan,implementation,test,report,guide,design,log}
 ├── reference/                   # Amoeba standard docs (knowledge)
 ├── scripts/dev/                 # kill-ports.sh, start-all.sh
@@ -166,7 +166,7 @@ crossed with job labels (Consult/Accounting/Operations). ACL owner-visibility la
 
 ### 6.1 Database Information
 Name `db_ivy_talktalk` · MySQL 8 · utf8mb4 / InnoDB · 39 tables / 41 TypeORM entities.
-Source of truth for orders = Shopify/Odoo (cached locally). DDL: `sql/01-schema.sql`
+Source of truth for orders = Shopify/Odoo (cached locally). DDL: `docker/init-sql/01-schema.sql`
 (= `design/chat-widget-schema.sql`); dev/staging build via TypeORM `synchronize`.
 
 ### 6.2 Naming Conventions (project)
@@ -191,7 +191,7 @@ Mapper per domain (entity→camelCase response). `@CreateDateColumn/@UpdateDateC
 
 ### 6.5 Schema Migration
 Dev: TypeORM `synchronize=true` (+ `npm run db:seed`). Staging/prod: `synchronize=false`,
-run `sql/01-schema.sql` then feature migrations manually.
+run `docker/init-sql/01-schema.sql` then feature migrations manually.
 
 ---
 
