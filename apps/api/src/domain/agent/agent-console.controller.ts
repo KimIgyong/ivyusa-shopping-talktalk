@@ -24,6 +24,7 @@ import {
   ConversationQuery,
   ListSessionsQuery,
   ListStatsQuery,
+  SetAutoReplyRequest,
   SetSessionAliasRequest,
   UpsertProfileRequest,
 } from './dto/request/agent.request';
@@ -87,8 +88,11 @@ export class AgentConsoleController {
       query.channel,
     );
     return new Paginated(
-      items.map(({ conversation, lastMessage, contact, alias }) =>
-        toSessionResponse(conversation, lastMessage, contact, alias),
+      items.map(({ conversation, lastMessage, contact, alias, autoReplyMode, autoReplyEffective }) =>
+        toSessionResponse(conversation, lastMessage, contact, alias, {
+          mode: autoReplyMode,
+          effective: autoReplyEffective,
+        }),
       ),
       buildPagination(page, size, total),
     );
@@ -108,6 +112,17 @@ export class AgentConsoleController {
       actorIdOf(user),
       body.alias ?? null,
     );
+  }
+
+  @Patch('conversations/:id/auto-reply')
+  @RequireCapability(CAPABILITY.CONVERSATION_HANDLE)
+  @ApiOperation({ summary: 'Set whether the AI answers this session (inherit/on/off)' })
+  async setAutoReply(
+    @CurrentUser() user: Principal,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: SetAutoReplyRequest,
+  ) {
+    return this.agentService.setSessionAutoReply(id, tenantOf(user), actorIdOf(user), body.mode);
   }
 
   @Get('customers/search')
@@ -138,8 +153,11 @@ export class AgentConsoleController {
     const names = await this.agentService.resolveSenderNames(messages);
     const customer = await this.agentService.customerContext(id, tenantId);
     const conversation = await this.agentService.findConversation(id, tenantId);
+    const sessionState = await this.agentService.sessionStateFor(id, conversation.sessionId);
     return {
       conversationId: id,
+      sessionId: String(conversation.sessionId),
+      ...sessionState,
       // Carried on the detail as well as the list row: a deep link from the
       // escalation alarm opens a conversation the filtered list may not hold,
       // and the composer needs the channel to know whether a reply is possible.

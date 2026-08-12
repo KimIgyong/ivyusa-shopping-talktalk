@@ -183,5 +183,20 @@
     "ai": "IA",
     "agent": "Agente",
     "system": "Sistema"
+  },
+  "autoReply": {
+    "label": "Respuesta automática de IA",
+    "inherit": "Valor del canal ({{state}})",
+    "on": "Activada",
+    "off": "Desactivada",
+    "hint": "Se aplica a los mensajes que lleguen a partir de ahora. Nada de lo ya escrito se responde retroactivamente.",
+    "aiAnswering": "Responde la IA",
+    "agentAnswering": "Responde un agente",
+    "agentOwnsHint": "Un agente lleva esta conversación, así que la IA se mantiene en silencio.",
+    "offShort": "IA off",
+    "offHint": "La IA no responde en esta sesión.",
+    "savedOn": "La IA responderá esta sesión a partir del próximo mensaje.",
+    "savedOff": "La IA no responderá esta sesión.",
+    "saveError": "No se pudo cambiar la respuesta automática de esta sesión."
   }
 }

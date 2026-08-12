@@ -44,6 +44,14 @@ export class Session {
   @Column({ type: 'varchar', length: 60, nullable: true })
   alias: string | null;
 
+  /**
+   * Whether the AI answers this session: 'inherit' follows the channel default
+   * from Settings, 'on'/'off' are the operator overriding it here (PLN-260812).
+   * An agent holding the thread outranks all three.
+   */
+  @Column({ name: 'auto_reply_mode', type: 'varchar', length: 8, default: 'inherit' })
+  autoReplyMode: string;
+
   @Column({ type: 'varchar', length: 8, default: 'EN' })
   language: string; // EN/ES/KO
 

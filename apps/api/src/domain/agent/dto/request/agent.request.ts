@@ -32,6 +32,11 @@ export class SetSessionAliasRequest {
   @IsOptional() @IsString() @MaxLength(60) alias?: string | null;
 }
 
+/** Per-session auto-reply choice: inherit | on | off (PLN-260812). */
+export class SetAutoReplyRequest {
+  @IsString() mode: string;
+}
+
 export class AgentMessageRequest {
   @IsString() @MinLength(1) body: string;
 }

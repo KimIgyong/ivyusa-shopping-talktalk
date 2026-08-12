@@ -210,6 +210,8 @@ export function MessengerChannelModal({
         </Select>
       </FormRow>
 
+      <p className="-mt-2 mb-3 text-xs text-gray-500">{t('messenger.autoReplyScope')}</p>
+
       <FormRow label={t('messenger.consentMode')}>
         <Select value={consentMode} onChange={(e) => setConsentMode(e.target.value)}>
           <option value="notice">{t('messenger.consent.notice')}</option>

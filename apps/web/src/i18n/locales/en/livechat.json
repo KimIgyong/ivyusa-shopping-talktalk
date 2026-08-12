@@ -183,5 +183,20 @@
     "ai": "AI",
     "agent": "Agent",
     "system": "System"
+  },
+  "autoReply": {
+    "label": "AI auto-reply",
+    "inherit": "Channel default ({{state}})",
+    "on": "On",
+    "off": "Off",
+    "hint": "Applies to messages received from now on. Nothing already in the thread is answered retroactively.",
+    "aiAnswering": "AI answering",
+    "agentAnswering": "Agent answers",
+    "agentOwnsHint": "An agent is handling this thread, so the AI stays quiet.",
+    "offShort": "AI off",
+    "offHint": "The AI is not answering this session.",
+    "savedOn": "The AI will answer this session from the next message.",
+    "savedOff": "The AI will not answer this session.",
+    "saveError": "Could not change auto-reply for this session."
   }
 }

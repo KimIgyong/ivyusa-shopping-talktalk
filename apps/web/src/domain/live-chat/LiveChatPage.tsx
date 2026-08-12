@@ -20,6 +20,7 @@ import { Button } from '@/components/Button';
 import { StatusBadge } from '@/components/StatusBadge';
 import { ChannelBadge, CHANNEL_FILTERS, RECEIVE_ONLY_CHANNELS } from './ChannelBadge';
 import { SessionAlias } from './SessionAlias';
+import { AutoReplyControl } from './AutoReplyControl';
 import { Badge } from '@/components/Badge';
 import { Modal } from '@/components/Modal';
 import { Input, FormRow } from '@/components/Field';
@@ -348,6 +349,16 @@ export function LiveChatPage() {
                       compact
                     />
                     <div className="flex shrink-0 items-center gap-1">
+                      {/* Silent thread, at a glance: the AI is not answering
+                          this one and no agent has taken it either. */}
+                      {s.autoReplyEffective === false && s.status !== 'agent' && (
+                        <span
+                          className="rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-500"
+                          title={t('autoReply.offHint')}
+                        >
+                          {t('autoReply.offShort')}
+                        </span>
+                      )}
                       <ChannelBadge channel={s.channel} />
                       <StatusBadge status={s.status} />
                     </div>
@@ -390,6 +401,12 @@ export function LiveChatPage() {
                     sessionLabel={t('sessionLabel', { id: selected.slice(0, 6) })}
                   />
                   <StatusBadge status={convo?.status} />
+                  <AutoReplyControl
+                    conversationId={selected}
+                    mode={convo?.autoReplyMode}
+                    effective={convo?.autoReplyEffective}
+                    agentOwns={convo?.status === 'agent'}
+                  />
                 </div>
                 <div className="flex gap-2">
                   <Button

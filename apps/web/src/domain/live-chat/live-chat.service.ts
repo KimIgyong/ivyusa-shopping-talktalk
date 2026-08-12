@@ -7,6 +7,10 @@ export interface AgentSession {
   sessionId?: string;
   /** Operator-set session name; shown ahead of the derived one. */
   alias?: string | null;
+  /** Session auto-reply choice: inherit | on | off. */
+  autoReplyMode?: string;
+  /** That choice resolved against the channel default — is the AI answering? */
+  autoReplyEffective?: boolean;
   customerName?: string | null;
   /** Shown when the shopper left an address but no name (off-hours capture). */
   customerEmail?: string | null;
@@ -59,6 +63,8 @@ export interface ConversationDetail {
   conversationId?: number;
   sessionId?: string;
   alias?: string | null;
+  autoReplyMode?: string;
+  autoReplyEffective?: boolean;
   status?: string;
   /** Origin surface — the composer is disabled on receive-only channels. */
   channel?: string | null;
@@ -97,6 +103,11 @@ export const liveChatService = {
     apiPatch<{ sessionId: string; alias: string | null }>(`/agent/conversations/${id}/alias`, {
       alias,
     }),
+  setAutoReply: (id: string, mode: string) =>
+    apiPatch<{ sessionId: string; autoReplyMode: string; autoReplyEffective: boolean }>(
+      `/agent/conversations/${id}/auto-reply`,
+      { mode },
+    ),
   conversation: (id: string, beforeId?: string) =>
     apiGet<ConversationDetail>(
       `/agent/conversations/${id}`,
