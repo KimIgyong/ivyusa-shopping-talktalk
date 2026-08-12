@@ -46,7 +46,7 @@
 | 11 | 테스트·운영 데이터 분리 | 부분 충족 | dev Docker DB/seed와 staging/production compose가 분리됨 | staging의 실제 Shopify 데이터 처리 가능성, 운영 PII 반입 금지, 접근권한 분리·익명화 절차 증빙 필요 | P1 | PCB-10 |
 | 12 | DLP 전략 | 부분 충족 | 로그 PII 마스킹, AI egress 스크럽, 비밀값 암호화, 처리자 활성화 사전 검토 규칙 | CI 비밀 탐지, 로그/파일/egress DLP, 경보·격리·오탐 SLA가 문서·운영 증빙으로 부족 | P1 | PCB-07 |
 | 13 | 직원 PII 접근 제한 | 부분 충족 | JWT/RBAC/capability, tenant scope, agent 대화 테넌트 검증 및 상담원 열람 감사 | 역할별 필드/export 제한, 분기 권한 재검토, break-glass 절차와 운영 기록 필요 | P1 | PCB-08 |
-| 14 | 강한 직원 비밀번호 | 부분 충족 | 12자·3문자류·1,286개 블록리스트·identity/reuse 검증, bcrypt 12, TOTP MFA 및 recovery code | `MFA_ENFORCE_FROM`가 staging 유예 상태이며, 실제 강제 전환·관리자 MFA 등록률 확인 필요 | P0 | PCB-04 |
+| 14 | 강한 직원 비밀번호 | 부분 충족 | 12자·3문자류·1,286개 블록리스트·identity/reuse 검증, bcrypt 12, TOTP MFA 및 recovery code | MFA 강제는 **프로덕션 전용**으로 결정(2026-08-13), 스테이징은 해제. 컷오버 시 등록률 확인·강제 전환·E1010 락아웃 확인 필요 | P0 | PCB-04 |
 | 15 | PII 접근 로그 | 부분 충족 | `audit_logs`에 actor/action/target 외 IP/request ID/result/metadata, DSAR·상담원 열람·인증·MFA 감사 기록 | 감사 로그 보존기간, 변조 방지/분리 보관, 이상 접근 경보와 정기 검토 증빙 필요 | P1 | PCB-09 |
 | 16 | 보안 사고 대응 | 부분 충족 | SEV 분류, RACI, 격리·통지·증거 보존·훈련 템플릿이 담긴 `INCIDENT-RESPONSE.md` | IC/기술/법무/커뮤니케이션 담당자는 placeholder이며, tabletop·기술 모의훈련 기록 없음 | P0 | PCB-03 |
 
@@ -63,7 +63,7 @@
 | PCB-01 | 04 | P0 | Shopify·Anthropic·Voyage·호스팅·GA4의 DPA/SCC/ZDR을 실제 계정·계약으로 확정하고 `PROCESSOR-REGISTER.md`에 계약 식별자·만료일 기재 (잔존 법무 액션 5건 포함) | 법무/구매 | 2026-08-31 | 대장에 처리자별 계약 ID·만료일·하위 처리자 기재 확인 |
 | PCB-02 | 09, 10 | P0 | 암호화 정기 백업(운영 DB 키와 분리) 구축, RPO/RTO·보존기간 승인, 격리 DB 복구 리허설 1회 + 볼륨/Redis/RabbitMQ at-rest 암호화 범위 확정 | 보안/인프라 | 2026-08-31 | 백업 작업 로그·복구 리허설 기록·암호화 구성표 |
 | PCB-03 | 16 | P0 | `INCIDENT-RESPONSE.md` RACI 실명·연락망 확정 + tabletop 훈련 1회 실시, 개선 항목 티켓화 | 보안 책임자 | 2026-08-31 | 훈련 기록과 개선 티켓 |
-| PCB-04 | 14 | P0 | MFA 유예 종료(2026-08-14) 전 관리자·master/director 등록률 확인 후 강제 전환, E1010 락아웃 실전 확인 및 웹 화면 브라우저 스모크 | 개발/운영 | 2026-08-14 | staging·운영 로그인 스모크 결과 |
+| PCB-04 | 14 | P0 | **MFA 강제는 프로덕션에서만 수행한다(결정 2026-08-13).** 스테이징은 `MFA_ENFORCE_FROM` 주석 처리로 강제 해제(테스트 계정 16개가 등록 화면에 묶여 수동 스모크가 막히므로). 프로덕션 컷오버 시 계정 발급 → 등록률 확인 → 날짜 설정 → E1010 락아웃·브라우저 스모크. 절차는 `docs/guide/PRODUCTION-CUTOVER.md` §3-1 | 개발/운영 | **프로덕션 컷오버 시**(기존 2026-08-14 → 변경) | 운영 로그인 스모크 결과 |
 | PCB-05 | 01, 02, 08 | P0 | 데이터 인벤토리·보존 매트릭스·테넌트별 방침 URL을 법무 검토 후 승인란 서명, 운영 테넌트에 실제 방침 URL 설정 확인 | 개인정보 책임자 | 2026-08-31 | `REQ-Data-Inventory-20260731.md` 승인란 기재 + 테넌트 설정 캡처 |
 | PCB-06 | 08 | P1 | 보존 미정 저장소(G-1~G-7: customers, orders_cache, users 퇴직자, invitations, alerts/moderation 파생본, audit_logs, 앱 로그) retention 확장 — 코드 변경이므로 별도 PLN 제출 | 개발 | 2026-09-30 | 후속 PLN/TCR/RPT |
 | PCB-07 | 12 | P1 | CI 비밀 탐지 도입, 로그/egress DLP 규칙과 경보 소유자·오탐 SLA 지정 | 보안/인프라 | 2026-09-30 | CI 파이프라인 증적·경보 정책 문서 |
