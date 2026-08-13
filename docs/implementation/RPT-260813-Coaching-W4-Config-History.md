@@ -67,9 +67,28 @@
 
 | 환경 | 상태 |
 |---|---|
-| main | PR 대기 |
-| staging | ⬜ 미배포 — **SQL 선적용 필요** |
+| main | ✅ PR [#270](https://github.com/KimIgyong/ivyusa-shopping-talktalk/pull/270) `c2843ac` |
+| staging | ✅ **배포 완료 2026-08-13** — SQL 선적용 → 배포 → 검증 |
 | production | ⬜ (호스트 미확보) |
+
+### 배포 후 검증 (스테이징, 실 경로)
+
+배포 직후 이력 0건에서 시작해 네 경로를 전부 태웠다.
+
+| 순서 | 동작 | 기록된 리비전 |
+|---|---|---|
+| 1 | 코칭 제안 승인 | **#1 `baseline`**(변경 전 상태) + **#2 `coaching`** — `changedFields=rules`, `proposalId=13`, note=제안 rationale |
+| 2 | 설정 폼 수동 저장(한글 note) | **#3 `manual`** — `changedFields=persona`, note **한글 정상** |
+| 3 | 제안 되돌리기 | **#4 `revert`** |
+| 4 | 원래 값으로 복원 저장 | **#5 `manual`** |
+
+즉 **코칭 승인이 익명 덮어쓰기가 아니라 사유를 달고 기록된다**는 설계 목표가 실환경에서 확인됐다.
+검증 후 persona·rules(10건)를 원복하고, 검증 리비전과 스레드는 정리했다(다음 실제 변경 시
+베이스라인이 새로 잡힌다).
+
+⚠️ **관측**: #2/#4의 note가 깨져 보였는데, 원인은 제가 mysql CLI로 넣은 **제안 픽스처의 rationale이
+이미 깨져 있던 것**이다. 같은 화면에서 앱 경로로 저장한 #3의 한글 note는 정상이었다 — 앱은 문제없다.
+(CLI로 한글을 넣을 때 반복되는 클라이언트 charset 문제이며, 이번이 세 번째다.)
 
 ```bash
 docker cp sql/migration_ai_config_revisions.sql ivy_mysql_staging:/tmp/m.sql
@@ -80,7 +99,8 @@ docker exec ivy_mysql_staging sh -c 'mysql -u ivy -p"$MYSQL_PASSWORD" db_ivy_tal
 
 ## 7. 남은 일
 
-1. 스테이징 확인: 코칭 제안 승인 → 이력에 **kind=coaching + rationale이 노트로** 들어오는지,
-   되돌리기가 `kind=revert`로 남는지, 편집기 불러오기가 저장 전까지 반영되지 않는지.
+1. ~~스테이징 확인(코칭 승인 → kind=coaching + rationale 노트, 되돌리기 → kind=revert)~~ →
+   **완료** (§6). ⬜ 남은 것: **편집기 불러오기가 저장 전까지 반영되지 않는지**는 화면 동작이라
+   브라우저로 봐야 한다.
 2. 이력 보관 정책(무한 누적) — 지금은 목록 30건 제한만 있다. 보존 기간은 프라이버시 백로그 PCB-06 계열.
 3. `scenarioOverrides`도 스냅샷에 포함되지만 화면에는 페르소나·규칙만 보여준다.
