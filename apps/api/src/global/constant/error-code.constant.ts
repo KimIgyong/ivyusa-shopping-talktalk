@@ -100,6 +100,13 @@ export const ERROR_CODE = {
   MENU_ACCESS_DENIED: { code: 'E5030', message: 'You do not have access to this menu' },
   MENU_CODE_UNKNOWN: { code: 'E5031', message: 'Unknown menu code' },
 
+  // E5032-E5034 — AMA SSO (PLN-260813-AMA-Iframe-SSO S2).
+  AMA_SSO_DISABLED: { code: 'E5032', message: 'AMA SSO is not configured' },
+  AMA_TOKEN_INVALID: { code: 'E5033', message: 'AMA token exchange failed' },
+  AMA_SSO_USER_NOT_MAPPED: {
+    code: 'E5034',
+    message: 'No active console account matches the AMA identity for this tenant',
+  },
   // E9xxx — system
   INTERNAL_ERROR: { code: 'E9001', message: 'Internal server error' },
   EXTERNAL_SERVICE_ERROR: { code: 'E9002', message: 'External service error' },
