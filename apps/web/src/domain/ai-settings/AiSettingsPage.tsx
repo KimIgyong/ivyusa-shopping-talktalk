@@ -12,6 +12,7 @@ import { cn } from '@/lib/cn';
 import { AiStudioPanel } from './AiStudioPanel';
 import { RegressionSection } from './RegressionSection';
 import { ConfigHistorySection } from './ConfigHistorySection';
+import { ChangeNoteRow } from './ChangeNoteRow';
 import { AnswerReuseSection } from './AnswerReuseSection';
 import { ScenarioReplyEditor } from './ScenarioReplyEditor';
 import { Link } from 'react-router-dom';
@@ -91,10 +92,18 @@ function PersonaSection({ draft }: { draft?: string }) {
     if (config) setPersona(config.persona ?? '');
   }, [config]);
 
+  const [note, setNote] = useState('');
+
   // A restored version fills the editor and waits — nothing is live until save.
   useEffect(() => {
     if (draft !== undefined) setPersona(draft);
   }, [draft]);
+
+  const save = () =>
+    updateConfig.mutate(
+      { persona, note: note.trim() || undefined },
+      { onSuccess: () => setNote('') },
+    );
 
   return (
     <Card title={t('persona')}>
@@ -111,15 +120,12 @@ function PersonaSection({ draft }: { draft?: string }) {
             rows={5}
             className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-800 outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
           />
-          <div className="flex justify-end">
-            <Button
-              size="sm"
-              disabled={updateConfig.isPending}
-              onClick={() => updateConfig.mutate({ persona })}
-            >
-              {t('save')}
-            </Button>
-          </div>
+          <ChangeNoteRow
+            value={note}
+            onChange={setNote}
+            onSave={save}
+            saving={updateConfig.isPending}
+          />
         </div>
       )}
     </Card>
@@ -141,6 +147,8 @@ function ResponseRulesSection({ draft }: { draft?: string[] }) {
     if (config) setRules(config.rules ?? []);
   }, [config]);
 
+  const [note, setNote] = useState('');
+
   // A restored version fills the editor and waits — nothing is live until save.
   useEffect(() => {
     if (draft !== undefined) setRules(draft);
@@ -152,7 +160,13 @@ function ResponseRulesSection({ draft }: { draft?: string[] }) {
   const addRule = () => setRules((prev) => [...prev, '']);
 
   const save = () =>
-    updateConfig.mutate({ rules: rules.map((r) => r.trim()).filter((r) => r.length > 0) });
+    updateConfig.mutate(
+      {
+        rules: rules.map((r) => r.trim()).filter((r) => r.length > 0),
+        note: note.trim() || undefined,
+      },
+      { onSuccess: () => setNote('') },
+    );
 
   return (
     <Card
@@ -187,11 +201,12 @@ function ResponseRulesSection({ draft }: { draft?: string[] }) {
               </Button>
             </div>
           ))}
-          <div className="flex justify-end">
-            <Button size="sm" disabled={updateConfig.isPending} onClick={save}>
-              {t('save')}
-            </Button>
-          </div>
+          <ChangeNoteRow
+            value={note}
+            onChange={setNote}
+            onSave={save}
+            saving={updateConfig.isPending}
+          />
         </div>
       )}
     </Card>
@@ -210,6 +225,7 @@ function ScenarioButtonsSection() {
   const [buttons, setButtons] = useState<ScenarioButton[]>([]);
   const [overrides, setOverrides] = useState<Record<string, ScenarioOverride>>({});
   const [editing, setEditing] = useState<string | null>(null);
+  const [note, setNote] = useState('');
 
   useEffect(() => {
     if (config) {
@@ -241,10 +257,14 @@ function ScenarioButtonsSection() {
     ]);
 
   const save = () =>
-    updateConfig.mutate({
-      scenario_buttons: buttons.filter((b) => b.label.trim().length > 0),
-      scenario_overrides: overrides,
-    });
+    updateConfig.mutate(
+      {
+        scenario_buttons: buttons.filter((b) => b.label.trim().length > 0),
+        scenario_overrides: overrides,
+        note: note.trim() || undefined,
+      },
+      { onSuccess: () => setNote('') },
+    );
 
   return (
     <Card
@@ -337,11 +357,12 @@ function ScenarioButtonsSection() {
               )}
             </div>
           ))}
-          <div className="flex justify-end">
-            <Button size="sm" disabled={updateConfig.isPending} onClick={save}>
-              {t('save')}
-            </Button>
-          </div>
+          <ChangeNoteRow
+            value={note}
+            onChange={setNote}
+            onSave={save}
+            saving={updateConfig.isPending}
+          />
         </div>
       )}
     </Card>

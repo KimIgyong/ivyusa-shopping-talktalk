@@ -264,6 +264,7 @@
     "kind_revert": "되돌림",
     "field_persona": "페르소나",
     "field_rules": "응답 규칙",
-    "field_scenarioOverrides": "시나리오 답변"
+    "field_scenarioOverrides": "시나리오 답변",
+    "notePlaceholder": "변경 사유 (선택 — 이력에 남습니다)"
   }
 }
