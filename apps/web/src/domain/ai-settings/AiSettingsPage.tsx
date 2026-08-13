@@ -11,6 +11,7 @@ import { Table, type Column } from '@/components/Table';
 import { cn } from '@/lib/cn';
 import { AiStudioPanel } from './AiStudioPanel';
 import { RegressionSection } from './RegressionSection';
+import { ConfigHistorySection } from './ConfigHistorySection';
 import { AnswerReuseSection } from './AnswerReuseSection';
 import { ScenarioReplyEditor } from './ScenarioReplyEditor';
 import { Link } from 'react-router-dom';
@@ -44,6 +45,9 @@ const SCENARIO_ACTIONS = [
 
 export function AiSettingsPage() {
   const { t } = useTranslation('aiSetting');
+  // A version loaded from history lands in the editors, not in production —
+  // restoring must go through the same review-and-save a manual edit does.
+  const [restoreDraft, setRestoreDraft] = useState<{ persona: string; rules: string[] } | null>(null);
 
   return (
     <div>
@@ -54,12 +58,13 @@ export function AiSettingsPage() {
           reachable on tablets. */}
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_400px]">
         <div className="space-y-6">
-          <PersonaSection />
-          <ResponseRulesSection />
+          <PersonaSection draft={restoreDraft?.persona} />
+          <ResponseRulesSection draft={restoreDraft?.rules} />
           <ScenarioButtonsSection />
           <AiFunctionsSection />
           <ModerationSection />
           <RegressionSection />
+          <ConfigHistorySection onRestore={setRestoreDraft} />
           <AnswerReuseSection />
           <HandoffMovedNotice />
         </div>
@@ -75,7 +80,7 @@ export function AiSettingsPage() {
 /* a. Bot persona                                                             */
 /* -------------------------------------------------------------------------- */
 
-function PersonaSection() {
+function PersonaSection({ draft }: { draft?: string }) {
   const { t } = useTranslation('aiSetting');
   const { t: tc } = useTranslation('common');
   const { data: config, isLoading, error } = useAiConfig();
@@ -85,6 +90,11 @@ function PersonaSection() {
   useEffect(() => {
     if (config) setPersona(config.persona ?? '');
   }, [config]);
+
+  // A restored version fills the editor and waits — nothing is live until save.
+  useEffect(() => {
+    if (draft !== undefined) setPersona(draft);
+  }, [draft]);
 
   return (
     <Card title={t('persona')}>
@@ -120,7 +130,7 @@ function PersonaSection() {
 /* b. Response rules                                                          */
 /* -------------------------------------------------------------------------- */
 
-function ResponseRulesSection() {
+function ResponseRulesSection({ draft }: { draft?: string[] }) {
   const { t } = useTranslation('aiSetting');
   const { t: tc } = useTranslation('common');
   const { data: config, isLoading, error } = useAiConfig();
@@ -130,6 +140,11 @@ function ResponseRulesSection() {
   useEffect(() => {
     if (config) setRules(config.rules ?? []);
   }, [config]);
+
+  // A restored version fills the editor and waits — nothing is live until save.
+  useEffect(() => {
+    if (draft !== undefined) setRules(draft);
+  }, [draft]);
 
   const setRuleAt = (i: number, value: string) =>
     setRules((prev) => prev.map((r, idx) => (idx === i ? value : r)));

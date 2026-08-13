@@ -4,6 +4,11 @@ import { Not, Repository } from 'typeorm';
 import { CAPABILITY, JobLabel, UserRank } from '@ivy/types';
 import { userCan } from '@ivy/common';
 import { AiConfigService } from '../ai-engine/ai-config.service';
+import type { RecordRevisionMeta } from '../ai-engine/ai-config-revision.service';
+import {
+  CONFIG_REVISION_KIND,
+  ConfigRevisionKind,
+} from '../ai-engine/entity/tenant-ai-config-revision.entity';
 import { KnowledgeService } from '../knowledge/knowledge.service';
 import type { ScenarioOverride } from '../ai-engine/entity/tenant-ai-config.entity';
 import { AuditService } from '../audit/audit.service';
@@ -185,12 +190,18 @@ export class CoachProposalService {
         payload.scenarioReply = reply;
       }
       overrides[action] = { ...(overrides[action] ?? {}), reply };
-      await this.aiConfig.upsertConfig(tenantId, {
-        scenarioOverrides: overrides as Record<string, ScenarioOverride>,
-      });
+      await this.aiConfig.upsertConfig(
+        tenantId,
+        { scenarioOverrides: overrides as Record<string, ScenarioOverride> },
+        this.revisionMeta(proposal, payload, CONFIG_REVISION_KIND.COACHING, userId),
+      );
     } else if (proposal.type === PROPOSAL_TYPE.PERSONA_PATCH) {
       payload.previous = { persona: config.persona };
-      await this.aiConfig.upsertConfig(tenantId, { persona: payload.persona });
+      await this.aiConfig.upsertConfig(
+        tenantId,
+        { persona: payload.persona },
+        this.revisionMeta(proposal, payload, CONFIG_REVISION_KIND.COACHING, userId),
+      );
     } else {
       const rules = [...config.rules];
       payload.previous = { rules: [...rules] };
@@ -211,7 +222,11 @@ export class CoachProposalService {
         else rules.splice(idx, 1);
       }
 
-      await this.aiConfig.upsertConfig(tenantId, { rules });
+      await this.aiConfig.upsertConfig(
+        tenantId,
+        { rules },
+        this.revisionMeta(proposal, payload, CONFIG_REVISION_KIND.COACHING, userId),
+      );
     }
 
     proposal.payload = payload;
@@ -323,6 +338,27 @@ export class CoachProposalService {
     }
   }
 
+  /**
+   * What the history entry should say. The agent's rationale becomes the
+   * version note, so a coached change carries its reason instead of appearing
+   * as an anonymous overwrite.
+   */
+  private revisionMeta(
+    proposal: CoachingProposal,
+    payload: ProposalPayload,
+    kind: ConfigRevisionKind,
+    actorUserId: number,
+  ): RecordRevisionMeta {
+    return {
+      kind,
+      // Passed in rather than read off the proposal: `appliedBy` is not set
+      // until after the config write, so reading it here records nobody.
+      actorUserId,
+      note: payload.rationale ?? null,
+      proposalId: Number(proposal.id),
+    };
+  }
+
   async reject(tenantId: number, userId: number, id: number): Promise<CoachingProposal> {
     const proposal = await this.find(tenantId, id);
     if (proposal.status !== PROPOSAL_STATUS.PENDING) {
@@ -358,13 +394,23 @@ export class CoachProposalService {
       if (config.persona !== proposal.payload.persona) {
         throw new BusinessException(ERROR_CODE.COACH_PROPOSAL_STALE, HttpStatus.CONFLICT);
       }
-      await this.aiConfig.upsertConfig(tenantId, { persona: previous.persona });
+      await this.aiConfig.upsertConfig(
+        tenantId,
+        { persona: previous.persona },
+        this.revisionMeta(proposal, proposal.payload, CONFIG_REVISION_KIND.REVERT, userId),
+      );
     } else if (proposal.type === PROPOSAL_TYPE.SCENARIO_OVERRIDE) {
-      await this.aiConfig.upsertConfig(tenantId, {
-        scenarioOverrides: (previous.scenarioOverrides ?? {}) as Record<string, ScenarioOverride>,
-      });
+      await this.aiConfig.upsertConfig(
+        tenantId,
+        { scenarioOverrides: (previous.scenarioOverrides ?? {}) as Record<string, ScenarioOverride> },
+        this.revisionMeta(proposal, proposal.payload, CONFIG_REVISION_KIND.REVERT, userId),
+      );
     } else {
-      await this.aiConfig.upsertConfig(tenantId, { rules: previous.rules ?? [] });
+      await this.aiConfig.upsertConfig(
+        tenantId,
+        { rules: previous.rules ?? [] },
+        this.revisionMeta(proposal, proposal.payload, CONFIG_REVISION_KIND.REVERT, userId),
+      );
     }
 
     proposal.status = PROPOSAL_STATUS.REVERTED;
