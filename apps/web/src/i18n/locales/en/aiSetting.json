@@ -264,6 +264,7 @@
     "kind_revert": "Undo",
     "field_persona": "persona",
     "field_rules": "rules",
-    "field_scenarioOverrides": "scenario replies"
+    "field_scenarioOverrides": "scenario replies",
+    "notePlaceholder": "Why this change? (optional, saved to the history)"
   }
 }

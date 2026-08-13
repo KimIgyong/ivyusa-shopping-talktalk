@@ -264,6 +264,7 @@
     "kind_revert": "Deshecho",
     "field_persona": "persona",
     "field_rules": "reglas",
-    "field_scenarioOverrides": "respuestas de escenario"
+    "field_scenarioOverrides": "respuestas de escenario",
+    "notePlaceholder": "¿Por qué este cambio? (opcional, se guarda en el historial)"
   }
 }
