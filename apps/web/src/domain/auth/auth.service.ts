@@ -19,6 +19,11 @@ export const authService = {
     apiPost<LoginResult>('/auth/user/login', { email, password, tenant_slug: tenantSlug }),
   adminLogin: (email: string, password: string) =>
     apiPost<LoginResult>('/auth/admin/login', { email, password }),
+  // AMA-portal SSO (PLN-260813 S3): the iframe URL carries a short-lived
+  // ama_token; the server exchanges + maps it and returns normal tokens
+  // (never an MFA challenge — SSO is step-up exempt by decision D4).
+  amaSso: (ama_token: string, tenantSlug: string) =>
+    apiPost<LoginResponse>('/auth/sso/ama', { ama_token, tenant_slug: tenantSlug }),
   // Public: resolves the /<slug> login page (404 when the tenant does not exist).
   publicTenant: (slug: string) => apiGet<PublicTenant>(`/tenants/by-slug/${encodeURIComponent(slug)}`),
   me: () => apiGet<Principal>('/auth/me'),
