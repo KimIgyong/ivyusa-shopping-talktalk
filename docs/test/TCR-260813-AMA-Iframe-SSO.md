@@ -25,13 +25,16 @@ PLN-260813-AMA-Iframe-SSO 테스트 케이스·결과. 스키마 변경 없음(S
 | L3 | 자격증명 설정(가짜 client) + **실제 ama 운영 서버** 교환 시도 → ama 거절 → **401 E5033**, 306ms, `logger.warn` HTTP 로그 확인 | ✅ |
 | L4 | web `tsc --noEmit` + `turbo build --filter=@ivy/web` | ✅ |
 
-## 3. 스테이징 (배포 후 기록)
+## 3. 스테이징 (2026-08-13 배포, PR #283 `fbab873`)
 | # | 케이스 | 확인 방법 | 결과 |
 |---|---|---|---|
-| S1 | 콘솔 응답 헤더 `frame-ancestors 'self' https://ama.amoeba.site`, `X-Frame-Options` 제거됨 | `curl -sI https://shoptalk.amoeba.site/` | (배포 후) |
-| S2 | 위젯/PWA 헤더 불변 | 위젯 임베드 회귀 | (배포 후) |
-| S3 | 신규 라우트 배포 확인: env 미설정 → **501**(=배포됨+게이트 off), 404면 미배포 | `curl -X POST .../auth/sso/ama` | (배포 후) |
-| S4 | 기존 로그인 플로우 무회귀(일반 로그인·MFA 계정) | 콘솔 로그인 | (배포 후) |
+| S1 | 콘솔 응답 헤더 `frame-ancestors 'self' https://ama.amoeba.site`, `X-Frame-Options` 제거됨 | `curl -sI https://shoptalk.amoeba.site/` | ✅ |
+| S2 | 위젯 헤더 불변(프레임 제한 없음 유지) | `curl -sI .../widget/` | ✅ |
+| S3 | 신규 라우트 배포 확인: env 미설정 → **501 E5032**(=배포됨+게이트 off) | `curl -X POST .../auth/sso/ama` | ✅ |
+| S4 | 기존 로그인 라우트 무회귀 | `/auth/user/login` 오입력 → 401 E1002 | ✅ |
+
+부트 로그 `successfully started`·컨테이너 재생성(Up seconds) 확인. env `AMA_SSO_*`는
+ama 파트너앱 등록 전까지 의도적으로 미설정(기능 게이트 off = 안전 상태).
 
 ## 4. E2E — ama 측 준비 후 (G5/G6 대기)
 | # | 시나리오 | 전제 |
