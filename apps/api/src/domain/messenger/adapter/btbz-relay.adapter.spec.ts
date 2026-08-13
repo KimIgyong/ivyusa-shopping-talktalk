@@ -235,6 +235,50 @@ describe('BtbzRelayAdapter — server URL', () => {
     expect(result.detail).toContain('https://wrong.example/login/api/auth/login');
   });
 
+  it('reports a rejected account as credentials, not as a failed connection', async () => {
+    // The staging case (FIX-260813): messenger.amoeba.site was up and answering
+    // 401 to a ShopTalk console login, and the console said "connection failed".
+    stubLogin(401);
+    const adapter = new BtbzRelayAdapter(redis);
+
+    const result = await adapter.test({
+      channel: channelWith({ base_url: 'https://messenger.amoeba.site', email: 'a@b.c' }),
+      secret: 'pw',
+    });
+
+    expect(result).toMatchObject({ ok: false, reason: 'credentials' });
+    expect(result.detail).toContain('rejected the account: 401');
+    expect(result.detail).toContain('not the ShopTalk console login');
+  });
+
+  it('still blames the URL, not the account, on a 404', async () => {
+    stubLogin(404);
+    const adapter = new BtbzRelayAdapter(redis);
+
+    const result = await adapter.test({
+      channel: channelWith({ base_url: 'https://wrong.example', email: 'a@b.c' }),
+      secret: 'pw',
+    });
+
+    expect(result).toMatchObject({ ok: false, reason: 'not_found' });
+    expect(result.detail).toContain('check the server URL');
+  });
+
+  it('separates "never answered" from any status the relay could return', async () => {
+    global.fetch = jest.fn(async () => {
+      throw new TypeError('fetch failed');
+    }) as unknown as typeof fetch;
+    const adapter = new BtbzRelayAdapter(redis);
+
+    const result = await adapter.test({
+      channel: channelWith({ base_url: 'https://down.example', email: 'a@b.c' }),
+      secret: 'pw',
+    });
+
+    expect(result).toMatchObject({ ok: false, reason: 'unreachable' });
+    expect(result.detail).toContain('https://down.example');
+  });
+
   it('accepts a host pasted without a scheme', async () => {
     const urls = stubLogin(200);
     const adapter = new BtbzRelayAdapter(redis);

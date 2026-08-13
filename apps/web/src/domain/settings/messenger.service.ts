@@ -102,10 +102,26 @@ export interface ChannelSyncResult {
   inactive?: boolean;
 }
 
+/**
+ * Failure class from the API's TestResult — KEEP IN SYNC with
+ * apps/api/src/domain/messenger/adapter/messenger-adapter.ts. The console
+ * localizes it: "connection failed" for a rejected password sent an operator
+ * after the network for two days (FIX-260813).
+ */
+export const TEST_FAILURE_REASONS = [
+  'credentials',
+  'not_found',
+  'unreachable',
+  'provider_error',
+] as const;
+export type TestFailureReason = (typeof TEST_FAILURE_REASONS)[number];
+
 export interface ChannelTestResult {
   ok: boolean;
   detail: string;
   accountId?: string | null;
+  /** Unset when the adapter could not tell the cases apart. */
+  reason?: TestFailureReason;
 }
 
 export const messengerService = {

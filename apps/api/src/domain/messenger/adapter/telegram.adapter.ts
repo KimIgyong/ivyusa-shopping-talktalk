@@ -9,8 +9,10 @@ import {
   MessengerAdapter,
   NormalizedInbound,
   SendResult,
+  TEST_FAILURE_REASON,
   TestResult,
 } from './messenger-adapter';
+import { failedTest } from './adapter-failure.util';
 
 const API_BASE = 'https://api.telegram.org';
 /** Telegram truncates beyond this; split rather than lose the tail. */
@@ -62,13 +64,15 @@ export class TelegramAdapter implements MessengerAdapter {
   }
 
   async test(ctx: AdapterContext): Promise<TestResult> {
-    if (!ctx.secret) return { ok: false, detail: 'bot token not set' };
+    if (!ctx.secret) {
+      return { ok: false, detail: 'bot token not set', reason: TEST_FAILURE_REASON.CREDENTIALS };
+    }
     try {
       const me = await this.call<{ username?: string; first_name?: string }>(ctx.secret, 'getMe');
       const handle = me.username ? `@${me.username}` : (me.first_name ?? 'bot');
       return { ok: true, detail: `connected as ${handle}`, accountId: handle };
     } catch (e) {
-      return { ok: false, detail: (e as Error).message.slice(0, 200) };
+      return failedTest(e);
     }
   }
 

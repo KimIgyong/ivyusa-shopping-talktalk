@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { messengerService } from './messenger.service';
-import type { UpdateChannelBody, UpsertChannelBody } from './messenger.service';
+import type { TestFailureReason, UpdateChannelBody, UpsertChannelBody } from './messenger.service';
 import { toast } from '@/store/toast-store';
 import { useTenantKey } from '@/lib/use-tenant-key';
 
@@ -59,6 +59,18 @@ export function useDeleteMessengerChannel() {
   });
 }
 
+/**
+ * Failure class → headline. "Connection failed" for every case is what made a
+ * 401 from a healthy relay read as a dead server (FIX-260813); each of these
+ * names a different thing to go fix.
+ */
+const TEST_FAILURE_KEY: Record<TestFailureReason, string> = {
+  credentials: 'messenger.testRejected',
+  not_found: 'messenger.testNotFound',
+  unreachable: 'messenger.testUnreachable',
+  provider_error: 'messenger.testProviderError',
+};
+
 export function useTestMessengerChannel() {
   const { t } = useTranslation('settings');
   const qc = useQueryClient();
@@ -69,8 +81,14 @@ export function useTestMessengerChannel() {
       qc.invalidateQueries({ queryKey: key(tenantKey) });
       // The provider can answer "reachable but wrong credential" — that is a
       // failed test, not a failed request, so it must not read as success.
-      if (result.ok) toast.success(t('messenger.testOk', { detail: result.detail }));
-      else toast.error(t('messenger.testFailed', { detail: result.detail }), { sticky: true });
+      if (result.ok) {
+        toast.success(t('messenger.testOk', { detail: result.detail }));
+        return;
+      }
+      // An adapter that could not classify the failure keeps the generic copy
+      // rather than being given a guessed-at cause.
+      const headline = result.reason ? TEST_FAILURE_KEY[result.reason] : 'messenger.testFailed';
+      toast.error(t(headline, { detail: result.detail }), { sticky: true });
     },
     onError: (e: Error) => toast.error(e.message || t('messenger.testFailed', { detail: '' }), { sticky: true }),
   });

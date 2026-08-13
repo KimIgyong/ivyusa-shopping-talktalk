@@ -12,8 +12,16 @@ import {
   TestResult,
   ThreadCursor,
 } from './messenger-adapter';
+import {
+  failedTest,
+  httpStatusOf,
+  loginFailure,
+  unreachableFailure,
+} from './adapter-failure.util';
 
 const DEFAULT_BASE_URL = 'https://api-talk.amoeba.site';
+/** How the hub is named to operators — and what its account is called. */
+const PROVIDER_LABEL = 'amoebatalk';
 /** Conversations scanned per poll — the list is ordered by last activity. */
 const CONVERSATION_PAGE = 20;
 /** Messages read per changed conversation. */
@@ -74,7 +82,7 @@ export class AmoebaTalkHubAdapter implements MessengerAdapter {
       const account = this.fields(ctx).email || null;
       return { ok: true, detail: `connected (${count} conversation(s) visible)`, accountId: account };
     } catch (e) {
-      return { ok: false, detail: (e as Error).message.slice(0, 200) };
+      return failedTest(e);
     }
   }
 
@@ -182,9 +190,21 @@ export class AmoebaTalkHubAdapter implements MessengerAdapter {
     }
 
     const fields = this.fields(ctx);
+    const signinUrl = `${this.baseUrl(ctx.channel)}/api/auth/signin`;
     const signin = await this.post<{
       data?: { temp_token?: string; access_token?: string; companies?: Array<{ id?: number | string }> };
-    }>(ctx, null, '/api/auth/signin', { email: fields.email, password: fields.password });
+    }>(ctx, null, '/api/auth/signin', { email: fields.email, password: fields.password }).catch(
+      (e: unknown) => {
+        // Same trap as the relay's (FIX-260813): the hub answering 401 is a
+        // wrong hub account, not a network problem, and the raw status alone
+        // does not say so. No status at all means no answer was read — that
+        // one really is the network.
+        const status = httpStatusOf(e);
+        throw status === null
+          ? unreachableFailure(PROVIDER_LABEL, this.baseUrl(ctx.channel), e)
+          : loginFailure(PROVIDER_LABEL, status, signinUrl);
+      },
+    );
 
     const tempToken = signin?.data?.temp_token;
     let accessToken = signin?.data?.access_token;
