@@ -8,9 +8,11 @@ import {
   MessengerAdapter,
   NormalizedInbound,
   SendResult,
+  TEST_FAILURE_REASON,
   TestResult,
   ThreadCursor,
 } from './messenger-adapter';
+import { failedTest } from './adapter-failure.util';
 import { replySubject, stripQuotedReply, threadIdOf } from './mail-text.util';
 
 const DEFAULT_IMAP_HOST = 'imap.gmail.com';
@@ -47,7 +49,11 @@ export class GmailImapAdapter implements MessengerAdapter {
   async test(ctx: AdapterContext): Promise<TestResult> {
     const account = this.account(ctx);
     if (!account.email || !account.password) {
-      return { ok: false, detail: 'mailbox address or app password not set' };
+      return {
+        ok: false,
+        detail: 'mailbox address or app password not set',
+        reason: TEST_FAILURE_REASON.CREDENTIALS,
+      };
     }
     try {
       const client = await this.connect(ctx);
@@ -62,7 +68,10 @@ export class GmailImapAdapter implements MessengerAdapter {
         await client.logout().catch(() => undefined);
       }
     } catch (e) {
-      return { ok: false, detail: sanitize((e as Error).message) };
+      // ImapFlow says 'AUTHENTICATIONFAILED' in words, not a status code — the
+      // classifier reads both, so a wrong app password stops reading as a
+      // mail-server outage (FIX-260813).
+      return failedTest(e, sanitize((e as Error).message));
     }
   }
 

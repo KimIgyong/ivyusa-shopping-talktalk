@@ -9,11 +9,20 @@ import {
   MessengerAdapter,
   NormalizedInbound,
   SendResult,
+  TEST_FAILURE_REASON,
   TestResult,
   ThreadCursor,
 } from './messenger-adapter';
+import {
+  AdapterFailure,
+  failedTest,
+  loginFailure,
+  unreachableFailure,
+} from './adapter-failure.util';
 
 const DEFAULT_BASE_URL = 'https://messenger.amoeba.site';
+/** How the relay is named to operators — and what its account is called. */
+const PROVIDER_LABEL = 'btbz relay';
 /** The operator JWT lives 12h; refresh well before that (no refresh token exists). */
 const TOKEN_TTL_SEC = 10 * 3600;
 const WATERMARK_TTL_SEC = 7 * 24 * 3600;
@@ -86,7 +95,7 @@ export class BtbzRelayAdapter implements MessengerAdapter {
         accountId: this.fields(ctx).email || null,
       };
     } catch (e) {
-      return { ok: false, detail: (e as Error).message.slice(0, 200) };
+      return failedTest(e);
     }
   }
 
@@ -219,17 +228,29 @@ export class BtbzRelayAdapter implements MessengerAdapter {
     // Posting an empty body would come back as a plain 401 and read as "wrong
     // password" — say which side is actually missing.
     if (!fields.email || !fields.password) {
-      throw new Error('btbz relay account email or password is not set');
+      throw new AdapterFailure(
+        TEST_FAILURE_REASON.CREDENTIALS,
+        'btbz relay account email or password is not set',
+      );
     }
-    const res = await fetch(`${this.baseUrl(ctx.channel)}/api/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: fields.email, password: fields.password }),
-    });
+    const loginUrl = `${this.baseUrl(ctx.channel)}/api/auth/login`;
+    let res: Response;
+    try {
+      res = await fetch(loginUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: fields.email, password: fields.password }),
+      });
+    } catch (e) {
+      // No answer at all — a wrong host or a down server. Distinct from any
+      // status the relay could return, and the operator fixes it elsewhere.
+      throw unreachableFailure(PROVIDER_LABEL, this.baseUrl(ctx.channel), e);
+    }
     if (!res.ok) {
-      // Name the URL: a 404 here almost always means the server URL is wrong,
-      // and "login failed: 404" alone gives the operator nothing to fix.
-      throw new Error(`btbz relay login failed: ${res.status} at ${this.baseUrl(ctx.channel)}/api/auth/login`);
+      // Name the URL and the case: 401 is a wrong operator account (the relay
+      // is answering), 404 is a wrong server URL. One message for both sent
+      // operators after the network instead of the account (FIX-260813).
+      throw loginFailure(PROVIDER_LABEL, res.status, loginUrl);
     }
 
     const token = extractCookieToken(res.headers.get('set-cookie'));

@@ -9,8 +9,10 @@ import {
   MessengerAdapter,
   NormalizedInbound,
   SendResult,
+  TEST_FAILURE_REASON,
   TestResult,
 } from './messenger-adapter';
+import { failedTest } from './adapter-failure.util';
 import { splitText } from './telegram.adapter';
 
 const API_BASE = 'https://chatapi.viber.com/pa';
@@ -57,13 +59,15 @@ export class ViberAdapter implements MessengerAdapter {
   }
 
   async test(ctx: AdapterContext): Promise<TestResult> {
-    if (!ctx.secret) return { ok: false, detail: 'auth token not set' };
+    if (!ctx.secret) {
+      return { ok: false, detail: 'auth token not set', reason: TEST_FAILURE_REASON.CREDENTIALS };
+    }
     try {
       const info = await this.call<{ uri?: string; name?: string }>(ctx.secret, 'get_account_info', {});
       const account = info.uri ? `@${info.uri}` : (info.name ?? 'account');
       return { ok: true, detail: `connected as ${account}`, accountId: account };
     } catch (e) {
-      return { ok: false, detail: (e as Error).message.slice(0, 200) };
+      return failedTest(e);
     }
   }
 
