@@ -6,13 +6,13 @@ PLN-260813-AMA-Iframe-SSO 테스트 케이스·결과. 스키마 변경 없음(S
 | # | 케이스 | 결과 |
 |---|---|---|
 | U1 | 교환 성공 + 매핑 성공 → ShopTalk 토큰 발급, ama_session 페이로드 검증, 감사 `auth.sso_ama`, 리미터 성공 처리 | ✅ |
-| U2 | env 미설정 → E5029, 네트워크 호출 없음(기능 게이트) | ✅ |
-| U3 | ama 교환 거절(non-2xx) → E5030 + 실패 카운트, 발급 미호출 | ✅ |
-| U4 | ama 도달 불가(fetch throw) → E5030 | ✅ |
-| U5 | 교환 성공이나 email 클레임 없음 → E5030 (감사 reason=no_email_claim) | ✅ |
-| U6 | slug 테넌트에 email 일치 계정 없음 → E5031 + 실패 카운트 | ✅ |
-| U7 | 사용자 suspended / 테넌트 suspended → 동일하게 E5031 | ✅ |
-| U8 | 존재하지 않는 slug → E5031 (존재 여부 비노출 — 단일 코드 수렴) | ✅ |
+| U2 | env 미설정 → E5032, 네트워크 호출 없음(기능 게이트) | ✅ |
+| U3 | ama 교환 거절(non-2xx) → E5033 + 실패 카운트, 발급 미호출 | ✅ |
+| U4 | ama 도달 불가(fetch throw) → E5033 | ✅ |
+| U5 | 교환 성공이나 email 클레임 없음 → E5033 (감사 reason=no_email_claim) | ✅ |
+| U6 | slug 테넌트에 email 일치 계정 없음 → E5034 + 실패 카운트 | ✅ |
+| U7 | 사용자 suspended / 테넌트 suspended → 동일하게 E5034 | ✅ |
+| U8 | 존재하지 않는 slug → E5034 (존재 여부 비노출 — 단일 코드 수렴) | ✅ |
 | U9 | 레이트리밋 잠금 → 네트워크 호출 전에 차단 전파 | ✅ |
 
 픽스처는 bigint PK 문자열 규칙 준수(id '3'/'7').
@@ -21,8 +21,8 @@ PLN-260813-AMA-Iframe-SSO 테스트 케이스·결과. 스키마 변경 없음(S
 | # | 케이스 | 결과 |
 |---|---|---|
 | L1 | 부팅 `successfully started` (DI/모듈 등록 검증) | ✅ |
-| L2 | env 미설정 상태 `POST /auth/sso/ama` → **501 E5029** | ✅ |
-| L3 | 자격증명 설정(가짜 client) + **실제 ama 운영 서버** 교환 시도 → ama 거절 → **401 E5030**, 306ms, `logger.warn` HTTP 로그 확인 | ✅ |
+| L2 | env 미설정 상태 `POST /auth/sso/ama` → **501 E5032** | ✅ |
+| L3 | 자격증명 설정(가짜 client) + **실제 ama 운영 서버** 교환 시도 → ama 거절 → **401 E5033**, 306ms, `logger.warn` HTTP 로그 확인 | ✅ |
 | L4 | web `tsc --noEmit` + `turbo build --filter=@ivy/web` | ✅ |
 
 ## 3. 스테이징 (배포 후 기록)

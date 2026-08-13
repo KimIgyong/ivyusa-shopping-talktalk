@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { RotateCcw, Send } from 'lucide-react';
+import { GraduationCap, RotateCcw, Send } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
@@ -16,11 +16,30 @@ interface PreviewMessage {
   id: number;
   role: Role;
   body: string;
+  /** Server-side message id, present on AI turns — the coaching anchor. */
+  messageId?: string;
   meta?: {
     confidence?: number;
     citations?: { title: string }[];
     escalate?: boolean;
   };
+}
+
+export interface CoachTarget {
+  messageId: number;
+  question: string;
+  answer: string;
+}
+
+interface PreviewPanelProps {
+  /** Hand an AI turn to the coaching tab. Omit to hide the coach affordance. */
+  onCoach?: (target: CoachTarget) => void;
+  /**
+   * A question to re-ask, set when coaching applied a change and the admin
+   * wants to see its effect. Cleared through `onReplayed` once sent.
+   */
+  replayQuestion?: string | null;
+  onReplayed?: () => void;
 }
 
 const LANGS = ['en', 'es', 'ko'] as const;
@@ -32,7 +51,7 @@ let nextId = 1;
  * pipeline (persona, rules, KB retrieval, moderation, scenario scripts) on an
  * isolated preview session — no agent alerts, no queue entries, no analytics.
  */
-export function PreviewPanel() {
+export function PreviewPanel({ onCoach, replayQuestion, onReplayed }: PreviewPanelProps = {}) {
   const { t } = useTranslation('aiSetting');
   const { data: config } = useAiConfig();
 
@@ -73,6 +92,15 @@ export function PreviewPanel() {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
   }, [messages]);
 
+  // Coaching applied a change and asked to see it: re-ask the same question on
+  // the live session so the before/after difference is visible in one place.
+  useEffect(() => {
+    if (!replayQuestion || !sessionToken || busy) return;
+    onReplayed?.();
+    void sendCustomer(replayQuestion);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [replayQuestion, sessionToken]);
+
   function replyMeta(reply: PreviewReply, escalate: boolean) {
     return {
       confidence: reply.confidence,
@@ -93,6 +121,7 @@ export function PreviewPanel() {
         push({
           role: (res.reply.senderType as Role) ?? 'ai',
           body: res.reply.body,
+          messageId: res.reply.messageId,
           meta: replyMeta(res.reply, res.escalate),
         });
       } else {
@@ -176,8 +205,8 @@ export function PreviewPanel() {
         {messages.length === 0 && (
           <p className="pt-16 text-center text-sm text-gray-400">{t('preview.empty')}</p>
         )}
-        {messages.map((m) => (
-          <div key={m.id} className="flex flex-col">
+        {messages.map((m, idx) => (
+          <div key={m.id} className="group flex flex-col">
             <div
               className={cn(
                 'max-w-[85%] whitespace-pre-wrap rounded-xl px-3 py-2 text-sm',
@@ -191,6 +220,24 @@ export function PreviewPanel() {
               )}
               {m.body}
             </div>
+
+            {/* Hand this exact answer to the coaching tab. Only AI turns that
+                were persisted carry an id, so scripted/system copy has none. */}
+            {onCoach && m.role === 'ai' && m.messageId && (
+              <button
+                type="button"
+                onClick={() =>
+                  onCoach({
+                    messageId: Number(m.messageId),
+                    question: [...messages.slice(0, idx)].reverse().find((p) => p.role === 'user')?.body ?? '',
+                    answer: m.body,
+                  })
+                }
+                className="mr-auto mt-1 flex items-center gap-1 rounded-full border border-gray-200 px-2 py-0.5 text-[11px] text-gray-500 opacity-0 transition hover:bg-gray-50 hover:text-gray-700 focus:opacity-100 group-hover:opacity-100"
+              >
+                <GraduationCap className="h-3 w-3" /> {t('preview.coachThis')}
+              </button>
+            )}
             {m.meta && (m.meta.confidence !== undefined || m.meta.citations?.length || m.meta.escalate) && (
               <div className="mr-auto mt-1 flex max-w-[85%] flex-wrap items-center gap-1">
                 {m.meta.confidence !== undefined && (

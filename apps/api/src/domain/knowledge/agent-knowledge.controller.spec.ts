@@ -13,8 +13,9 @@ describe('AgentKnowledgeController', () => {
   };
   const build = () => {
     const knowledgeService = { ask: jest.fn(async () => answer) };
+    const proposals = { propose: jest.fn(async () => ({ id: 11 })) };
     return {
-      ctrl: new AgentKnowledgeController(knowledgeService as never),
+      ctrl: new AgentKnowledgeController(knowledgeService as never, proposals as never),
       knowledgeService,
     };
   };
@@ -57,12 +58,33 @@ describe('AgentKnowledgeController', () => {
     expect(knowledgeService.ask).not.toHaveBeenCalled();
   });
 
-  it('exposes exactly one route, and it is a read', () => {
-    // A regression here would be somebody adding a write path to the surface
-    // whose whole justification is that it has none.
+  it('exposes only lookup and proposal — nothing that publishes knowledge', async () => {
+    // The justification for this surface is what it lacks. `propose` is on it
+    // because a proposal is inert until an owner approves it (D3); a method
+    // that wrote a document would defeat the whole arrangement.
     const methods = Object.getOwnPropertyNames(AgentKnowledgeController.prototype).filter(
       (m) => m !== 'constructor',
     );
-    expect(methods).toEqual(['ask']);
+    expect(methods.sort()).toEqual(['ask', 'propose']);
   });
+
+  it('queues a proposal instead of writing knowledge', async () => {
+    const proposals = { propose: jest.fn(async () => ({ id: 11 })) };
+    const knowledgeService = { ask: jest.fn(), createDocument: jest.fn() };
+    const ctrl = new AgentKnowledgeController(knowledgeService as never, proposals as never);
+
+    await ctrl.propose(agent, {
+      conversation_id: 42,
+      question: 'Do you ship to Canada?',
+      answer: 'US only for now.',
+    } as never);
+
+    expect(proposals.propose).toHaveBeenCalledWith(
+      1,
+      { conversationId: 42, question: 'Do you ship to Canada?', answer: 'US only for now.' },
+      7,
+    );
+    expect(knowledgeService.createDocument).not.toHaveBeenCalled();
+  });
+
 });

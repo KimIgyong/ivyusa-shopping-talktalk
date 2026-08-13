@@ -141,6 +141,8 @@ export const aiSettingsService = {
     scenario_buttons?: ScenarioButton[];
     scenario_overrides?: Record<string, ScenarioOverride>;
     handoff_config?: HandoffConfig;
+    /** Why this change was made — recorded on the config revision. */
+    note?: string;
   }) =>
     apiPut<AiConfig>('/ai-config', body),
   rules: () => apiGet<ModerationRule[]>('/moderation/rules'),

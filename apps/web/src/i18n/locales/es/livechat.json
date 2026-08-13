@@ -163,5 +163,56 @@
   "kbStale": "revisión vencida",
   "kbConflicted": "conflicto",
   "kbSendToCustomer": "Enviar al cliente",
-  "kbEditThenSend": "Editar y enviar"
+  "kbEditThenSend": "Editar y enviar",
+  "alias": {
+    "add": "Añadir un nombre",
+    "edit": "Editar nombre",
+    "placeholder": "p. ej. Dueño de la tienda de Gangnam",
+    "saved": "Nombre de la sesión guardado.",
+    "cleared": "Nombre de la sesión borrado.",
+    "saveError": "No se pudo guardar el nombre de la sesión."
+  },
+  "preview": {
+    "title": "Vista previa de la incidencia #{{no}}",
+    "loading": "Cargando la conversación…",
+    "openSession": "Abrir la sesión",
+    "close": "Cerrar"
+  },
+  "sender": {
+    "user": "Cliente",
+    "ai": "IA",
+    "agent": "Agente",
+    "system": "Sistema"
+  },
+  "autoReply": {
+    "label": "Respuesta automática de IA",
+    "inherit": "Valor del canal ({{state}})",
+    "on": "Activada",
+    "off": "Desactivada",
+    "hint": "Se aplica a los mensajes que lleguen a partir de ahora. Nada de lo ya escrito se responde retroactivamente.",
+    "aiAnswering": "Responde la IA",
+    "agentAnswering": "Responde un agente",
+    "agentOwnsHint": "Un agente lleva esta conversación, así que la IA se mantiene en silencio.",
+    "offShort": "IA off",
+    "offHint": "La IA no responde en esta sesión.",
+    "savedOn": "La IA responderá esta sesión a partir del próximo mensaje.",
+    "savedOff": "La IA no responderá esta sesión.",
+    "saveError": "No se pudo cambiar la respuesta automática de esta sesión.",
+    "auto": "Automática",
+    "approve": "Requiere aprobación",
+    "awaitingApproval": "Borrador pendiente"
+  },
+  "kbProposeKnowledge": "Proponer como conocimiento",
+  "draft": {
+    "title": "Sugerencia de IA",
+    "confidence": "confianza {{value}}",
+    "approve": "Aprobar y enviar",
+    "sending": "Enviando…",
+    "discard": "Descartar",
+    "hint": "Edítalo antes de enviar: sale como tu respuesta.",
+    "sent": "Enviado al cliente.",
+    "sendError": "No se pudo enviar el borrador.",
+    "discarded": "Borrador descartado.",
+    "discardError": "No se pudo descartar el borrador."
+  }
 }

@@ -29,4 +29,7 @@ export class UpdateAiConfigRequest {
 
   /** Escalation routing; shape is documented on HandoffConfig (entity). */
   @IsOptional() @IsObject() handoff_config?: Record<string, unknown>;
+
+  /** Why this change was made — stored on the revision, never sent to the model. */
+  @IsOptional() @IsString() note?: string;
 }

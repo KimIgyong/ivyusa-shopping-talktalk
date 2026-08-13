@@ -28,7 +28,7 @@ ama 웹(부모) ──iframe──▶ shoptalk.amoeba.site/{tenant_slug}?ama_tok
 | 발급물 | client_id / client_secret → ShopTalk 운영자에게 전달(안전 채널) |
 
 ShopTalk 스테이징 env에 반영: `AMA_SSO_TOKEN_URL=https://ama.amoeba.site/api/v1/oauth/token`,
-`AMA_SSO_CLIENT_ID`, `AMA_SSO_CLIENT_SECRET`. 셋 중 하나라도 비면 기능 자체가 비활성(E5029).
+`AMA_SSO_CLIENT_ID`, `AMA_SSO_CLIENT_SECRET`. 셋 중 하나라도 비면 기능 자체가 비활성(E5032).
 
 ### 2b. 메뉴/런처 추가
 `AppStorePage` 패턴 재사용 — iframe src:
@@ -43,7 +43,7 @@ https://shoptalk.amoeba.site/{tenant_slug}?ama_token={SSO JWT}
 `ama_session` 그랜트로 교환 가능한 ama JWT — 기존 세션 JWT 또는 백엔드 발급 SSO JWT.
 | 요건 | 이유 |
 |---|---|
-| **`email` 클레임 포함** | ShopTalk 계정 매핑 축. ama `/oauth/userinfo`는 email을 반환하지 않으므로 토큰 클레임이 유일한 전달로 — email 없으면 E5030 거절 |
+| **`email` 클레임 포함** | ShopTalk 계정 매핑 축. ama `/oauth/userinfo`는 email을 반환하지 않으므로 토큰 클레임이 유일한 전달로 — email 없으면 E5033 거절 |
 | `sub` + `entityId` 포함 | ama exchangeSession 필수 필드 |
 | `type != 'oauth_access'` | ama가 OAuth 토큰 재교환을 거부 |
 | **TTL 수분 이내** 권장 | URL 쿼리로 전달되므로 노출면 최소화 |
@@ -60,7 +60,7 @@ https://shoptalk.amoeba.site/{tenant_slug}?ama_token={SSO JWT}
 | 수용 엔드포인트 | `POST /api/v1/auth/sso/ama` — body `{ ama_token, tenant_slug }` |
 | 매핑 규칙 (D1/D2) | slug의 테넌트에서 email 일치 + `active` 상태 계정만. 자동 생성 없음 |
 | MFA (D4) | SSO 진입은 ShopTalk MFA 면제(ama 인증 신뢰). 최초 비밀번호 변경 잠금은 유지 |
-| 에러 | `E5029` 미설정 / `E5030` 교환 실패·email 없음 / `E5031` 계정 미매핑(테넌트 부재·정지 포함, 존재 여부 비노출) |
+| 에러 | `E5032` 미설정 / `E5033` 교환 실패·email 없음 / `E5034` 계정 미매핑(테넌트 부재·정지 포함, 존재 여부 비노출) |
 | 레이트리밋 | IP+slug 축, 기존 로그인 리미터와 동일 창 |
 | 감사 | `auth.sso_ama`(성공) / `auth.sso_ama_failed`(사유 메타) |
 | iframe 허용 | 콘솔 응답 헤더 `Content-Security-Policy: frame-ancestors 'self' https://ama.amoeba.site` |
@@ -69,4 +69,4 @@ https://shoptalk.amoeba.site/{tenant_slug}?ama_token={SSO JWT}
 1. ama에 로그인한 브라우저에서 ShopTalk 메뉴 클릭 → iframe 콘솔이 로그인 화면 없이 열림.
 2. ShopTalk 감사 로그에 `auth.sso_ama` 1건.
 3. ama 계정 email이 ShopTalk에 없는 사용자로 재시도 → "SSO 로그인 실패" 배너 + 일반 로그인 폼.
-4. `curl -s -o /dev/null -w '%{http_code}' -X POST .../auth/sso/ama -d '{"ama_token":"x…x","tenant_slug":"ivyusa"}' -H 'Content-Type: application/json'` → 401 (E5030).
+4. `curl -s -o /dev/null -w '%{http_code}' -X POST .../auth/sso/ama -d '{"ama_token":"x…x","tenant_slug":"ivyusa"}' -H 'Content-Type: application/json'` → 401 (E5033).

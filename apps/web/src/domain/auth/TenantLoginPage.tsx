@@ -70,7 +70,7 @@ export function TenantLoginPage() {
       })
       .catch((err: unknown) => {
         if (cancelled) return;
-        setSsoNotMapped((err as { code?: string })?.code === 'E5031');
+        setSsoNotMapped((err as { code?: string })?.code === 'E5034');
         setSsoState('failed');
       });
     return () => {

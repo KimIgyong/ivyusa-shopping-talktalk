@@ -2,7 +2,7 @@ import { Body, Controller, Get, Param, ParseIntPipe, Patch, Post } from '@nestjs
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CAPABILITY, Principal } from '@ivy/types';
 import { UserService } from './user.service';
-import { Auth, RequireCapability } from '../../global/decorator/auth.decorator';
+import { Auth, RequireCapability, RequireMenu } from '../../global/decorator/auth.decorator';
 import { CurrentUser } from '../../global/decorator/current-user.decorator';
 import { asTenantUser } from './user-principal.util';
 import {
@@ -12,6 +12,8 @@ import {
 
 @ApiTags('Job Labels')
 @Controller('job-labels')
+// Screen gate (PLN-260812 S4): Job labels are edited from the user-management screen.
+@RequireMenu('users')
 export class JobLabelController {
   constructor(private readonly userService: UserService) {}
 

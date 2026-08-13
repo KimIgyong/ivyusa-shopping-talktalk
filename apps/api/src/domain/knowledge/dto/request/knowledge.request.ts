@@ -98,3 +98,20 @@ export class AcceptGapTaskRequest {
   @IsOptional() @IsString() @MaxLength(300) title?: string;
   @IsOptional() @IsString() content?: string;
 }
+
+/** Chat handler proposes an answer for the knowledge base (PLN-260810 S4). */
+export class ProposeAnswerRequest {
+  @IsOptional() @IsInt() conversation_id?: number;
+  @IsString() @MaxLength(500) question: string;
+  @IsString() @MinLength(10) answer: string;
+}
+
+export class ApproveProposalRequest {
+  @IsOptional() @IsString() @MaxLength(255) title?: string;
+  @IsOptional() @IsString() @MaxLength(64) category?: string;
+  @IsOptional() @IsString() answer?: string;
+}
+
+export class RejectProposalRequest {
+  @IsString() @MinLength(2) @MaxLength(500) reason: string;
+}

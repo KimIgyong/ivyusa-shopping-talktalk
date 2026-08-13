@@ -49,11 +49,37 @@ export interface SendResult {
   unconfirmed?: boolean;
 }
 
+/**
+ * Why a credential check failed, in the only distinction an operator can act
+ * on: fix the account, fix the URL, or wait for the other side.
+ *
+ * It exists because "connection failed" was the console's answer to all four.
+ * A relay that answered 401 — reachable, credentials wrong — read as a dead
+ * server, and the wrong thing got investigated (FIX-260813).
+ */
+export const TEST_FAILURE_REASON = {
+  /** Reached the provider; it rejected the account (401/403). */
+  CREDENTIALS: 'credentials',
+  /** Reached a server, but not the provider's API — usually a wrong base URL. */
+  NOT_FOUND: 'not_found',
+  /** Never got an answer: DNS, TLS, refused connection, timeout. */
+  UNREACHABLE: 'unreachable',
+  /** The provider answered, and its answer was a failure of its own (5xx). */
+  PROVIDER_ERROR: 'provider_error',
+} as const;
+export type TestFailureReason = (typeof TEST_FAILURE_REASON)[keyof typeof TEST_FAILURE_REASON];
+
 export interface TestResult {
   ok: boolean;
   detail: string;
   /** Provider-side account identity to display on the card (@bot, OA name…). */
   accountId?: string | null;
+  /**
+   * Failure class for the console to localize. Optional: an adapter that
+   * cannot tell the cases apart leaves it unset and the console falls back to
+   * the plain "connection failed" copy rather than guessing.
+   */
+  reason?: TestFailureReason;
 }
 
 /**

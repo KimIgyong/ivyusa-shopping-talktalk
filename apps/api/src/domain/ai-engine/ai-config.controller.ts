@@ -1,7 +1,10 @@
-import { Body, Controller, Get, Post, Put, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseIntPipe, Post, Put, Query } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CAPABILITY, Principal } from '@ivy/types';
 import { AiConfigService } from './ai-config.service';
+import { AiConfigRevisionService } from './ai-config-revision.service';
+import { AiConfigMapper } from './ai-config.mapper';
+import { CONFIG_REVISION_KIND } from './entity/tenant-ai-config-revision.entity';
 import type { HandoffConfig, ScenarioOverride } from './entity/tenant-ai-config.entity';
 import { SessionService } from '../session/session.service';
 import { UpdateAiConfigRequest, CreatePreviewSessionRequest } from './dto/request/ai-config.request';
@@ -19,6 +22,7 @@ export class AiConfigController {
   constructor(
     private readonly aiConfig: AiConfigService,
     private readonly sessionService: SessionService,
+    private readonly revisionService: AiConfigRevisionService,
   ) {}
 
   @Get()
@@ -32,14 +36,37 @@ export class AiConfigController {
   @RequireCapability(CAPABILITY.AI_SETTINGS_MANAGE)
   @ApiOperation({ summary: 'Update tenant AI config' })
   update(@CurrentUser() user: Principal, @Body() body: UpdateAiConfigRequest) {
-    return this.aiConfig.upsertConfig(this.tenantId(user), {
-      persona: body.persona,
-      rules: body.rules,
-      scenarioButtons: body.scenario_buttons,
-      // Shape is pruned/validated in the service (sanitizeOverrides).
-      scenarioOverrides: body.scenario_overrides as Record<string, ScenarioOverride> | undefined,
-      handoffConfig: body.handoff_config as HandoffConfig | undefined,
-    });
+    if (user.actorType !== 'user') {
+      throw new BusinessException(ERROR_CODE.FORBIDDEN, HttpStatus.FORBIDDEN);
+    }
+    return this.aiConfig.upsertConfig(
+      user.tenantId,
+      {
+        persona: body.persona,
+        rules: body.rules,
+        scenarioButtons: body.scenario_buttons,
+        // Shape is pruned/validated in the service (sanitizeOverrides).
+        scenarioOverrides: body.scenario_overrides as Record<string, ScenarioOverride> | undefined,
+        handoffConfig: body.handoff_config as HandoffConfig | undefined,
+      },
+      { kind: CONFIG_REVISION_KIND.MANUAL, actorUserId: user.userId, note: body.note ?? null },
+    );
+  }
+
+  @Get('revisions')
+  @RequireCapability(CAPABILITY.AI_SETTINGS_MANAGE)
+  @ApiOperation({ summary: 'Version history for the persona and response rules' })
+  async revisions(@CurrentUser() user: Principal) {
+    const rows = await this.revisionService.list(this.tenantId(user));
+    return { items: rows.map((r) => AiConfigMapper.toRevisionSummary(r)) };
+  }
+
+  @Get('revisions/:id')
+  @RequireCapability(CAPABILITY.AI_SETTINGS_MANAGE)
+  @ApiOperation({ summary: 'One past version, for review before restoring it' })
+  async revision(@CurrentUser() user: Principal, @Param('id', ParseIntPipe) id: number) {
+    const row = await this.revisionService.get(this.tenantId(user), id);
+    return AiConfigMapper.toRevision(row);
   }
 
   @Post('preview-session')

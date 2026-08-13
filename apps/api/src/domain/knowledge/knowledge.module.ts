@@ -13,6 +13,8 @@ import { KbRevisionService } from './kb-revision.service';
 import { ProductImportService } from './product-import.service';
 import { CatalogSyncService } from './catalog-sync.service';
 import { CatalogSyncJobService } from './catalog-sync-job.service';
+import { AnswerProposalService } from './answer-proposal.service';
+import { KbAnswerProposal } from './entity/kb-answer-proposal.entity';
 import { UsageGuideService } from './usage-guide.service';
 import { SourceSyncService } from './source-sync.service';
 import { BoardAdapter } from './adapters/board.adapter';
@@ -35,6 +37,7 @@ import { ModerationModule } from '../moderation/moderation.module';
       KbFile,
       KbConflict,
       KbDocumentRevision,
+      KbAnswerProposal,
       // Repository only — the CSV import's optional Price/Image bridge writes
       // into the display catalog (PLN-260807 F1). No ProductModule import.
       ProductCache,
@@ -58,6 +61,7 @@ import { ModerationModule } from '../moderation/moderation.module';
     ProductImportService,
     CatalogSyncService,
     CatalogSyncJobService,
+    AnswerProposalService,
     UsageGuideService,
     SourceSyncService,
     BoardAdapter,

@@ -115,51 +115,51 @@ describe('AmaSsoService (PLN-260813-AMA-Iframe-SSO S2)', () => {
     expect(limiter.recordSuccess).toHaveBeenCalled();
   });
 
-  it('rejects E5029 when AMA_SSO_* env is not configured (feature gate)', async () => {
+  it('rejects E5032 when AMA_SSO_* env is not configured (feature gate)', async () => {
     envOn = false;
-    await expectCode(svc.login(AMA_TOKEN, 'amoebaorder', '1.2.3.4'), 'E5029');
+    await expectCode(svc.login(AMA_TOKEN, 'amoebaorder', '1.2.3.4'), 'E5032');
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('rejects E5030 when AMA declines the exchange, and counts the failure', async () => {
+  it('rejects E5033 when AMA declines the exchange, and counts the failure', async () => {
     fetchMock.mockResolvedValue({ ok: false, json: async () => ({ message: 'invalid' }) });
-    await expectCode(svc.login(AMA_TOKEN, 'amoebaorder', '1.2.3.4'), 'E5030');
+    await expectCode(svc.login(AMA_TOKEN, 'amoebaorder', '1.2.3.4'), 'E5033');
     expect(limiter.recordFailure).toHaveBeenCalled();
     expect(authService.issueForSso).not.toHaveBeenCalled();
   });
 
-  it('rejects E5030 when AMA is unreachable (fetch throws)', async () => {
+  it('rejects E5033 when AMA is unreachable (fetch throws)', async () => {
     fetchMock.mockRejectedValue(new Error('ECONNREFUSED'));
-    await expectCode(svc.login(AMA_TOKEN, 'amoebaorder', '1.2.3.4'), 'E5030');
+    await expectCode(svc.login(AMA_TOKEN, 'amoebaorder', '1.2.3.4'), 'E5033');
   });
 
-  it('rejects E5030 when the exchanged token has no email claim', async () => {
+  it('rejects E5033 when the exchanged token has no email claim', async () => {
     const noEmail = fakeJwt({ sub: 'usr-1', entityId: 'ent-1' });
-    await expectCode(svc.login(noEmail, 'amoebaorder', '1.2.3.4'), 'E5030');
+    await expectCode(svc.login(noEmail, 'amoebaorder', '1.2.3.4'), 'E5033');
     expect(audit.write).toHaveBeenCalledWith(
       expect.objectContaining({ metadata: expect.objectContaining({ reason: 'no_email_claim' }) }),
     );
   });
 
-  it('rejects E5031 when no account matches the email in the slug tenant', async () => {
+  it('rejects E5034 when no account matches the email in the slug tenant', async () => {
     userRow = null;
-    await expectCode(svc.login(AMA_TOKEN, 'amoebaorder', '1.2.3.4'), 'E5031');
+    await expectCode(svc.login(AMA_TOKEN, 'amoebaorder', '1.2.3.4'), 'E5034');
     expect(limiter.recordFailure).toHaveBeenCalled();
   });
 
-  it('rejects E5031 for a suspended user and for a suspended tenant alike', async () => {
+  it('rejects E5034 for a suspended user and for a suspended tenant alike', async () => {
     userRow = { ...user, status: 'suspended' } as unknown as User;
-    await expectCode(svc.login(AMA_TOKEN, 'amoebaorder', '1.2.3.4'), 'E5031');
+    await expectCode(svc.login(AMA_TOKEN, 'amoebaorder', '1.2.3.4'), 'E5034');
 
     userRow = user;
     tenantRow = { ...tenant, status: 'suspended' } as unknown as Tenant;
-    await expectCode(svc.login(AMA_TOKEN, 'amoebaorder', '1.2.3.4'), 'E5031');
+    await expectCode(svc.login(AMA_TOKEN, 'amoebaorder', '1.2.3.4'), 'E5034');
     expect(authService.issueForSso).not.toHaveBeenCalled();
   });
 
-  it('rejects E5031 for an unknown tenant slug without leaking which part failed', async () => {
+  it('rejects E5034 for an unknown tenant slug without leaking which part failed', async () => {
     tenantRow = null;
-    await expectCode(svc.login(AMA_TOKEN, 'nope', '1.2.3.4'), 'E5031');
+    await expectCode(svc.login(AMA_TOKEN, 'nope', '1.2.3.4'), 'E5034');
   });
 
   it('propagates the lockout from the rate limiter before any network call', async () => {

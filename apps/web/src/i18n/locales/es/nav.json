@@ -26,5 +26,10 @@
   "myPage": "Mi página",
   "products": "Productos",
   "allMenus": "Todos los menús",
-  "issueBoard": "Tablero de issues"
+  "issueBoard": "Tablero de issues",
+  "blocked": {
+    "title": "No puedes abrir este menú",
+    "description": "Esta pantalla no está disponible para tu cuenta. Pídesela al máster de tu espacio si la necesitas.",
+    "goHome": "Ir al panel"
+  }
 }

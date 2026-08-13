@@ -157,4 +157,52 @@ describe('AnswerReuseService', () => {
       expect(vector.delete).toHaveBeenCalledWith([4, 9]);
     });
   });
+
+  /**
+   * FIX-260813. Storage embedded questions as 'document' while lookup embedded
+   * them as 'query'; Voyage returns a different vector per input_type, so the
+   * same sentence scored 0.61 against itself and the store never replayed once.
+   * The failure was silent — a miss just falls through to the LLM.
+   */
+  describe('embedding input_type (FIX-260813)', () => {
+    it('embeds stored questions as a query, matching how lookup embeds them', async () => {
+      const { svc, ai } = build({});
+      await svc.recordAgentAnswer({
+        tenantId: 1,
+        lang: 'KO',
+        question: '반품 배송비는 누가 부담하나요?',
+        answerText: '고객님이 부담하시며 $6.95입니다.',
+        sourceMessageId: 1,
+      });
+      const storeCall = (ai.embed as jest.Mock).mock.calls.at(-1);
+      expect(storeCall?.[1]).toBe('query');
+    });
+
+    it('uses the same input_type on both sides, or nothing can ever match', async () => {
+      const { svc, ai } = build({});
+      await svc.lookup(1, 'KO', '반품 배송비는 누가 부담하나요?');
+      const lookupType = (ai.embed as jest.Mock).mock.calls.at(-1)?.[1];
+      (ai.embed as jest.Mock).mockClear();
+      await svc.recordAgentAnswer({
+        tenantId: 1,
+        lang: 'KO',
+        question: '반품 배송비는 누가 부담하나요?',
+        answerText: '고객님이 부담하시며 $6.95입니다.',
+        sourceMessageId: 1,
+      });
+      const storeType = (ai.embed as jest.Mock).mock.calls.at(-1)?.[1];
+      expect(storeType).toBe(lookupType);
+    });
+
+    it('reindex re-embeds every row so pre-fix vectors stop being dead weight', async () => {
+      const { svc, repo, vector } = build({});
+      (repo.find as jest.Mock) = jest.fn(async () => [
+        activeRow({ id: 1, questionText: 'a' }),
+        activeRow({ id: 2, questionText: 'b' }),
+      ]);
+      const res = await svc.reindex(1);
+      expect(res).toEqual({ total: 2, reindexed: 2, failed: 0 });
+      expect((vector.upsert as jest.Mock).mock.calls.length).toBe(2);
+    });
+  });
 });

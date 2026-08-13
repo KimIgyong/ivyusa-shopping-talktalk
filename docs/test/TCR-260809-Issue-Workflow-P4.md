@@ -30,3 +30,36 @@ PLN-260809-Issue-Workflow-P4 — PR #205(백엔드+콘솔) 테스트 케이스·
 ## 4. 메모
 - SLA는 계산형(스키마 무변경) — 목표시간 조정은 코드 상수(urgent 4h/normal 24h), 콘솔 설정화는 후속.
 - 드래그는 HTML5 네이티브 — 모바일 터치 드래그는 미지원(카드 클릭→라이브챗 IssuePanel 버튼으로 대체 가능).
+
+---
+
+## 실행 기록 (2026-08-13, 스테이징 API)
+
+tenant 3(amoebaorder) `gray.kim@amoeba.group`(master). ⚠️ 로그인은 **`tenant_slug`** 로 해야 한다 —
+`shop_domain`으로는 테넌트가 안 잡히고, 같은 이메일이 tenant 2에도 있어 E1002가 난다.
+
+| # | 항목 | 결과 | 관측 |
+|---|---|---|---|
+| E1 | KPI + 5컬럼 보드 | ✅ | `workflowMode=native`, 접수 49·진행 3·종료 3, 평균해결 0.4h·재오픈율 0, SLA(normal 2h·urgent 1h) |
+| E2 | 진행→해결 전이 | ✅ | 접수→진행→해결→종료 전부 201, 타임라인에 `status_changed` 누적 |
+| E3 | 반려(사유) | ✅ | **사유 없이 400**, `misrouted` 지정 시 201 + `rejectReason` 기록 |
+| E5 | 우선순위 토글 | ✅ | normal→urgent 반영, 타임라인에 `memo: priority → urgent` |
+| E4·E6·E7 | staff 드래그 403 · 딥링크 · base 안내 | ⬜/✅ | E7은 tenant 1에서 `workflowMode=base` 확인(프론트가 `!== 'native'`일 때 안내). E4·E6은 화면 조작 필요 |
+
+**P1 겸용 확인**: E2(수락·타임라인)·E3(해결→종료 전이)·E6(base 테넌트 미노출)이 위와 같이 통과.
+
+### 타임라인이 비어 보였던 것은 오독이었다
+
+`GET /agent/issues/:id/events`가 빈 배열로 보여 결함을 의심했으나, 응답이 `data.events`인데
+`data.items`를 읽은 **내 파싱 오류**였다. DB·API 모두 4건(생성·우선순위 메모·전이 2건)을 정상 반환한다.
+
+### 허용 값 메모 (문서에 없어 헤맨 것)
+
+- 전이 필드는 `status`가 아니라 **`to`**
+- 반려 사유는 **`policy_impossible` / `misrouted` / `spam`** 세 가지뿐
+
+### 남긴 상태
+
+검증으로 이슈 #55는 `closed`, #54는 `rejected(misrouted)`가 됐다. **원복하지 않았다** — 이슈 상태는
+설정이 아니라 업무 기록이고, 되돌리면 타임라인에 허위 전이가 하나 더 쌓인다. 파일럿 테넌트의
+테스트 이슈이므로 그대로 두는 편이 이력상 정직하다.

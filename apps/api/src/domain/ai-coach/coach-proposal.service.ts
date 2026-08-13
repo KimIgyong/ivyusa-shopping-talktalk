@@ -1,7 +1,16 @@
 import { HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Not, Repository } from 'typeorm';
+import { CAPABILITY, JobLabel, UserRank } from '@ivy/types';
+import { userCan } from '@ivy/common';
 import { AiConfigService } from '../ai-engine/ai-config.service';
+import type { RecordRevisionMeta } from '../ai-engine/ai-config-revision.service';
+import {
+  CONFIG_REVISION_KIND,
+  ConfigRevisionKind,
+} from '../ai-engine/entity/tenant-ai-config-revision.entity';
+import { KnowledgeService } from '../knowledge/knowledge.service';
+import type { ScenarioOverride } from '../ai-engine/entity/tenant-ai-config.entity';
 import { AuditService } from '../audit/audit.service';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
@@ -37,6 +46,7 @@ export class CoachProposalService {
   constructor(
     @InjectRepository(CoachingProposal) private readonly proposalRepo: Repository<CoachingProposal>,
     private readonly aiConfig: AiConfigService,
+    private readonly knowledge: KnowledgeService,
     private readonly audit: AuditService,
   ) {}
 
@@ -89,6 +99,32 @@ export class CoachProposalService {
         : undefined,
     };
 
+    if (type === PROPOSAL_TYPE.KB_UPSERT) {
+      const docId = Number(p.docId);
+      if (Number.isFinite(docId) && docId > 0) payload.docId = docId;
+      payload.docTitle = str(p.docTitle, 200);
+      payload.docCategory = str(p.docCategory, 100);
+      payload.docContent = str(p.docContent, 20000);
+      if (!payload.docContent) return [];
+      // A new document needs a title and a category to be findable at all; a
+      // revision may legitimately change only the body.
+      if (!payload.docId && !(payload.docTitle && payload.docCategory)) return [];
+      return [{ type: type as ProposalType, payload }];
+    }
+
+    if (type === PROPOSAL_TYPE.SCENARIO_OVERRIDE) {
+      payload.scenarioAction = str(p.scenarioAction, 60);
+      const reply = p.scenarioReply as Record<string, unknown> | undefined;
+      const langs: Record<string, string> = {};
+      for (const lang of ['EN', 'ES', 'KO']) {
+        const v = typeof reply?.[lang] === 'string' ? (reply[lang] as string).trim() : '';
+        if (v) langs[lang] = v.slice(0, 2000);
+      }
+      if (!payload.scenarioAction || !Object.keys(langs).length) return [];
+      payload.scenarioReply = langs;
+      return [{ type: type as ProposalType, payload }];
+    }
+
     if (type === PROPOSAL_TYPE.PERSONA_PATCH) {
       payload.persona = str(p.persona, RULE_LIMITS.MAX_PERSONA_CHARS);
       if (!payload.persona) return [];
@@ -119,10 +155,11 @@ export class CoachProposalService {
    */
   async apply(
     tenantId: number,
-    userId: number,
+    actor: { userId: number; rank: UserRank; labels: JobLabel[] },
     id: number,
-    override?: { persona?: string; rule?: string },
+    override?: { persona?: string; rule?: string; docContent?: string; scenarioReply?: string },
   ): Promise<CoachingProposal> {
+    const userId = actor.userId;
     const proposal = await this.find(tenantId, id);
     if (proposal.status !== PROPOSAL_STATUS.PENDING) {
       throw new BusinessException(ERROR_CODE.COACH_PROPOSAL_NOT_PENDING, HttpStatus.CONFLICT);
@@ -132,10 +169,39 @@ export class CoachProposalService {
     const payload: ProposalPayload = { ...proposal.payload };
     if (override?.persona) payload.persona = override.persona.slice(0, RULE_LIMITS.MAX_PERSONA_CHARS);
     if (override?.rule) payload.rule = override.rule.slice(0, RULE_LIMITS.MAX_RULE_CHARS);
+    if (override?.docContent) payload.docContent = override.docContent.slice(0, 20000);
 
-    if (proposal.type === PROPOSAL_TYPE.PERSONA_PATCH) {
+    if (proposal.type === PROPOSAL_TYPE.KB_UPSERT) {
+      // Writing knowledge is a different privilege from tuning the agent's
+      // voice, and the coaching thread must not become a way around it.
+      if (!userCan(actor.rank, actor.labels, CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)) {
+        throw new BusinessException(ERROR_CODE.FORBIDDEN, HttpStatus.FORBIDDEN);
+      }
+      await this.applyKbUpsert(tenantId, userId, payload);
+    } else if (proposal.type === PROPOSAL_TYPE.SCENARIO_OVERRIDE) {
+      const overrides = { ...(config.scenarioOverrides ?? {}) };
+      payload.previous = { scenarioOverrides: config.scenarioOverrides ?? null };
+      const action = payload.scenarioAction!;
+      const reply = { ...(payload.scenarioReply ?? {}) };
+      if (override?.scenarioReply) {
+        // The editor is single-field, so an edited reply replaces every language
+        // the proposal carried rather than silently updating only one of them.
+        for (const lang of Object.keys(reply)) reply[lang] = override.scenarioReply.slice(0, 2000);
+        payload.scenarioReply = reply;
+      }
+      overrides[action] = { ...(overrides[action] ?? {}), reply };
+      await this.aiConfig.upsertConfig(
+        tenantId,
+        { scenarioOverrides: overrides as Record<string, ScenarioOverride> },
+        this.revisionMeta(proposal, payload, CONFIG_REVISION_KIND.COACHING, userId),
+      );
+    } else if (proposal.type === PROPOSAL_TYPE.PERSONA_PATCH) {
       payload.previous = { persona: config.persona };
-      await this.aiConfig.upsertConfig(tenantId, { persona: payload.persona });
+      await this.aiConfig.upsertConfig(
+        tenantId,
+        { persona: payload.persona },
+        this.revisionMeta(proposal, payload, CONFIG_REVISION_KIND.COACHING, userId),
+      );
     } else {
       const rules = [...config.rules];
       payload.previous = { rules: [...rules] };
@@ -156,7 +222,11 @@ export class CoachProposalService {
         else rules.splice(idx, 1);
       }
 
-      await this.aiConfig.upsertConfig(tenantId, { rules });
+      await this.aiConfig.upsertConfig(
+        tenantId,
+        { rules },
+        this.revisionMeta(proposal, payload, CONFIG_REVISION_KIND.COACHING, userId),
+      );
     }
 
     proposal.payload = payload;
@@ -182,6 +252,42 @@ export class CoachProposalService {
   }
 
   /**
+   * Create or revise a knowledge document through KnowledgeService, so the
+   * re-embedding, revision history and conflict scan that every other KB write
+   * gets happen here too. `previous` is not captured: KB documents already have
+   * `kb_document_revisions` with a restore endpoint, which is a better rollback
+   * than a snapshot on a coaching row (see `revert`).
+   */
+  private async applyKbUpsert(
+    tenantId: number,
+    userId: number,
+    payload: ProposalPayload,
+  ): Promise<void> {
+    if (payload.docId) {
+      await this.knowledge.updateDocument(
+        tenantId,
+        payload.docId,
+        {
+          ...(payload.docTitle ? { title: payload.docTitle } : {}),
+          ...(payload.docCategory ? { category: payload.docCategory } : {}),
+          content: payload.docContent!,
+        },
+        userId,
+      );
+      return;
+    }
+    await this.knowledge.createDocument(
+      tenantId,
+      {
+        category: payload.docCategory!,
+        title: payload.docTitle!,
+        content: payload.docContent!,
+      },
+      userId,
+    );
+  }
+
+  /**
    * Other pending proposals against the same target now describe a diff from a
    * config that no longer exists. Marking them superseded stops an admin from
    * applying a stale second opinion minutes later.
@@ -194,18 +300,63 @@ export class CoachProposalService {
         id: Not(applied.id),
       },
     });
-    const isPersona = applied.type === PROPOSAL_TYPE.PERSONA_PATCH;
-    const target = applied.payload.targetRule;
-    const stale = peers.filter((p) =>
-      isPersona
-        ? p.type === PROPOSAL_TYPE.PERSONA_PATCH
-        : !!target && p.payload?.targetRule === target,
-    );
+    const stale = peers.filter((p) => this.sharesTargetWith(applied, p));
     if (!stale.length) return;
     await this.proposalRepo.update(
       stale.map((p) => p.id),
       { status: PROPOSAL_STATUS.SUPERSEDED },
     );
+  }
+
+  /**
+   * Whether a pending proposal aims at the same thing one just applied.
+   *
+   * Each type is addressed differently, and a type missing from here silently
+   * stops superseding: two pending edits to the same target both stay
+   * applicable, and whichever is approved last quietly wins.
+   */
+  private sharesTargetWith(applied: CoachingProposal, other: CoachingProposal): boolean {
+    if (applied.type !== other.type) return false;
+    switch (applied.type) {
+      case PROPOSAL_TYPE.PERSONA_PATCH:
+        return true; // one persona, so any other patch is against a stale copy
+      case PROPOSAL_TYPE.RULE_EDIT:
+      case PROPOSAL_TYPE.RULE_REMOVE:
+        return !!applied.payload.targetRule && other.payload?.targetRule === applied.payload.targetRule;
+      case PROPOSAL_TYPE.SCENARIO_OVERRIDE:
+        return (
+          !!applied.payload.scenarioAction &&
+          other.payload?.scenarioAction === applied.payload.scenarioAction
+        );
+      case PROPOSAL_TYPE.KB_UPSERT:
+        // Only revisions share a target. Two "create a new document" proposals
+        // are independent — neither invalidates the other.
+        return !!applied.payload.docId && other.payload?.docId === applied.payload.docId;
+      default:
+        // rule_add appends; two additions do not conflict.
+        return false;
+    }
+  }
+
+  /**
+   * What the history entry should say. The agent's rationale becomes the
+   * version note, so a coached change carries its reason instead of appearing
+   * as an anonymous overwrite.
+   */
+  private revisionMeta(
+    proposal: CoachingProposal,
+    payload: ProposalPayload,
+    kind: ConfigRevisionKind,
+    actorUserId: number,
+  ): RecordRevisionMeta {
+    return {
+      kind,
+      // Passed in rather than read off the proposal: `appliedBy` is not set
+      // until after the config write, so reading it here records nobody.
+      actorUserId,
+      note: payload.rationale ?? null,
+      proposalId: Number(proposal.id),
+    };
   }
 
   async reject(tenantId: number, userId: number, id: number): Promise<CoachingProposal> {
@@ -227,6 +378,12 @@ export class CoachProposalService {
     if (proposal.status !== PROPOSAL_STATUS.APPLIED) {
       throw new BusinessException(ERROR_CODE.COACH_PROPOSAL_NOT_PENDING, HttpStatus.CONFLICT);
     }
+    // Knowledge documents keep their own revision history with a restore
+    // endpoint. Reimplementing rollback here would be a second, worse mechanism
+    // that could silently discard edits made in the Knowledge console since.
+    if (proposal.type === PROPOSAL_TYPE.KB_UPSERT) {
+      throw new BusinessException(ERROR_CODE.COACH_REVERT_UNSUPPORTED, HttpStatus.CONFLICT);
+    }
     const previous = proposal.payload.previous;
     if (!previous) {
       throw new BusinessException(ERROR_CODE.COACH_PROPOSAL_STALE, HttpStatus.CONFLICT);
@@ -237,9 +394,23 @@ export class CoachProposalService {
       if (config.persona !== proposal.payload.persona) {
         throw new BusinessException(ERROR_CODE.COACH_PROPOSAL_STALE, HttpStatus.CONFLICT);
       }
-      await this.aiConfig.upsertConfig(tenantId, { persona: previous.persona });
+      await this.aiConfig.upsertConfig(
+        tenantId,
+        { persona: previous.persona },
+        this.revisionMeta(proposal, proposal.payload, CONFIG_REVISION_KIND.REVERT, userId),
+      );
+    } else if (proposal.type === PROPOSAL_TYPE.SCENARIO_OVERRIDE) {
+      await this.aiConfig.upsertConfig(
+        tenantId,
+        { scenarioOverrides: (previous.scenarioOverrides ?? {}) as Record<string, ScenarioOverride> },
+        this.revisionMeta(proposal, proposal.payload, CONFIG_REVISION_KIND.REVERT, userId),
+      );
     } else {
-      await this.aiConfig.upsertConfig(tenantId, { rules: previous.rules ?? [] });
+      await this.aiConfig.upsertConfig(
+        tenantId,
+        { rules: previous.rules ?? [] },
+        this.revisionMeta(proposal, proposal.payload, CONFIG_REVISION_KIND.REVERT, userId),
+      );
     }
 
     proposal.status = PROPOSAL_STATUS.REVERTED;

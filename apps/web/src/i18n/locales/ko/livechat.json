@@ -163,5 +163,56 @@
   "kbStale": "검토기한 경과",
   "kbConflicted": "충돌",
   "kbSendToCustomer": "고객에게 전달",
-  "kbEditThenSend": "편집 후 전달"
+  "kbEditThenSend": "편집 후 전달",
+  "alias": {
+    "add": "별칭 추가",
+    "edit": "별칭 수정",
+    "placeholder": "예: 강남점 사장님",
+    "saved": "세션 별칭을 저장했습니다.",
+    "cleared": "세션 별칭을 해제했습니다.",
+    "saveError": "세션 별칭을 저장하지 못했습니다."
+  },
+  "preview": {
+    "title": "이슈 #{{no}} 미리보기",
+    "loading": "대화 불러오는 중…",
+    "openSession": "관련 세션으로 이동",
+    "close": "닫기"
+  },
+  "sender": {
+    "user": "고객",
+    "ai": "AI",
+    "agent": "상담원",
+    "system": "시스템"
+  },
+  "autoReply": {
+    "label": "AI 자동응답",
+    "inherit": "채널 기본값 ({{state}})",
+    "on": "켬",
+    "off": "끔",
+    "hint": "지금 이후 수신되는 메시지부터 적용됩니다. 이미 쌓인 대화에 소급 응답하지 않습니다.",
+    "aiAnswering": "AI 응답 중",
+    "agentAnswering": "상담원 응대",
+    "agentOwnsHint": "상담원이 응대 중이라 AI는 답하지 않습니다.",
+    "offShort": "AI 끔",
+    "offHint": "이 세션은 AI가 답하지 않습니다.",
+    "savedOn": "다음 메시지부터 이 세션에 AI가 답합니다.",
+    "savedOff": "이 세션은 AI가 답하지 않습니다.",
+    "saveError": "이 세션의 자동응답을 변경하지 못했습니다.",
+    "auto": "자동",
+    "approve": "승인 후 발송",
+    "awaitingApproval": "승인 대기"
+  },
+  "kbProposeKnowledge": "확정 지식으로 제안",
+  "draft": {
+    "title": "AI 제안",
+    "confidence": "신뢰도 {{value}}",
+    "approve": "승인 후 발송",
+    "sending": "발송 중…",
+    "discard": "폐기",
+    "hint": "보내기 전에 수정할 수 있습니다 — 상담원 답변으로 나갑니다.",
+    "sent": "고객에게 발송했습니다.",
+    "sendError": "초안을 발송하지 못했습니다.",
+    "discarded": "초안을 폐기했습니다.",
+    "discardError": "초안을 폐기하지 못했습니다."
+  }
 }

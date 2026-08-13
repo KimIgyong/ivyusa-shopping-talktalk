@@ -24,6 +24,7 @@ export function MessengerChannelCard({
   planned,
   onConfigure,
   onTest,
+  onSync,
 }: {
   provider: string;
   channel?: MessengerChannel;
@@ -31,6 +32,7 @@ export function MessengerChannelCard({
   planned?: boolean;
   onConfigure: () => void;
   onTest?: () => void;
+  onSync?: () => void;
 }) {
   const { t } = useTranslation('settings');
   const unofficial = UNOFFICIAL_PROVIDERS.has(provider);
@@ -63,6 +65,15 @@ export function MessengerChannelCard({
         )}
       </div>
 
+      {/* Credentials verified but the channel is off: nothing is being
+          received, and "연결됨" alone reads as if it were. */}
+      {channel?.credentialSet && !channel.active && (
+        <p className="mb-3 flex items-start gap-1.5 rounded-lg bg-red-50 p-2 text-[11px] leading-snug text-red-700">
+          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+          {t('messenger.inactiveWarning')}
+        </p>
+      )}
+
       {unofficial && (
         <p className="mb-3 flex items-start gap-1.5 rounded-lg bg-amber-50 p-2 text-[11px] leading-snug text-amber-800">
           <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
@@ -81,9 +92,16 @@ export function MessengerChannelCard({
             </p>
             <p>
               {t('messenger.autoReply')}:{' '}
-              {channel ? (channel.autoReply ? t('messenger.on') : t('messenger.off')) : '—'}
+              {channel
+                ? t(`messenger.mode.${channel.replyMode ?? (channel.autoReply ? 'auto' : 'off')}`, {
+                    defaultValue: channel.replyMode ?? '',
+                  })
+                : '—'}
               {channel ? ` · ${channel.active ? t('messenger.enabled') : t('messenger.disabled')}` : ''}
             </p>
+            {/* Half of the "the toggle does nothing" report was this sentence
+                missing: the channel value is a default for future messages. */}
+            {channel && <p className="text-gray-400">{t('messenger.autoReplyScope')}</p>}
             <p className="text-gray-400">
               {t('messenger.lastInbound')}: {fmtDate(channel?.lastSyncAt)}
             </p>
@@ -105,6 +123,11 @@ export function MessengerChannelCard({
         {channel && onTest && (
           <Button variant="secondary" size="sm" onClick={onTest}>
             {t('messenger.test')}
+          </Button>
+        )}
+        {channel && onSync && (
+          <Button variant="secondary" size="sm" onClick={onSync}>
+            {t('messenger.syncNow')}
           </Button>
         )}
       </div>

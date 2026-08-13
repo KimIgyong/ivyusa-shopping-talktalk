@@ -14,6 +14,8 @@ const SWEEP_INTERVAL_SEC = Number(process.env.IDLE_SWEEP_INTERVAL_SEC ?? '30');
 const PROMPT_AFTER_MIN = Number(process.env.IDLE_PROMPT_AFTER_MIN ?? '30');
 /** Grace period after that question before the thread closes. */
 const CLOSE_AFTER_SEC = Number(process.env.IDLE_CLOSE_AFTER_SEC ?? '60');
+/** The only channel this sweeper owns; everything else belongs to an agent. */
+const CONVERSATION_CHANNEL_WIDGET = 'widget';
 /**
  * Past this, a thread is closed without asking anything. Reopening a
  * conversation that went quiet six weeks ago to say "anything else?" reads as a
@@ -115,14 +117,14 @@ export class IdleConversationService implements OnModuleInit, OnModuleDestroy {
   /** Threads that were asked and did not answer inside the grace period. */
   private async closeDue(): Promise<number> {
     const due = await this.convRepo.find({
-      where: {
+      where: this.sweepable({
         status: this.openStatuses(),
         idlePromptAt: LessThan(new Date(Date.now() - CLOSE_AFTER_SEC * 1000)),
         // Also excluded here, not just in the ask pass: a thread can be asked
         // and only then slip off hours, and closing it would cancel the email
         // reply the customer was promised in between.
         replyChannel: IsNull(),
-      },
+      }),
       take: BATCH,
     });
 
@@ -151,13 +153,13 @@ export class IdleConversationService implements OnModuleInit, OnModuleDestroy {
   private async promptIdle(): Promise<{ prompted: number; silentlyClosed: number }> {
     const quietSince = new Date(Date.now() - PROMPT_AFTER_MIN * 60_000);
     const candidates = await this.convRepo.find({
-      where: {
+      where: this.sweepable({
         status: this.openStatuses(),
         idlePromptAt: IsNull(),
         // An off-hours thread is waiting on a promised email reply; closing it
         // would cancel an answer the customer was told to expect.
         replyChannel: IsNull(),
-      },
+      }),
       take: BATCH * 4,
     });
 
@@ -248,6 +250,23 @@ export class IdleConversationService implements OnModuleInit, OnModuleDestroy {
 
   private openStatuses() {
     return In([CONVERSATION_STATUS.AGENT, CONVERSATION_STATUS.WAITING]);
+  }
+
+  /**
+   * Only widget threads are swept (PLN-260812 S5).
+   *
+   * "Idle" is a widget idea: the visitor closed the tab. A KakaoTalk room or a
+   * mail thread does not go idle — the person is simply not typing — and
+   * closing it sent "Anything else? / Rate this chat" into someone's personal
+   * chat room 52 times on staging. Messenger threads are ended by an agent.
+   *
+   * Expressed as two alternatives so legacy NULL rows keep being swept.
+   */
+  private sweepable<T extends Record<string, unknown>>(where: T): T[] {
+    return [
+      { ...where, channel: IsNull() },
+      { ...where, channel: CONVERSATION_CHANNEL_WIDGET },
+    ];
   }
 
   private after(date: Date) {

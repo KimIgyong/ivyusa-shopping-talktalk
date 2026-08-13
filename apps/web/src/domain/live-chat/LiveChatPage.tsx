@@ -19,6 +19,9 @@ import { PageHeader } from '@/components/PageHeader';
 import { Button } from '@/components/Button';
 import { StatusBadge } from '@/components/StatusBadge';
 import { ChannelBadge, CHANNEL_FILTERS, RECEIVE_ONLY_CHANNELS } from './ChannelBadge';
+import { SessionAlias } from './SessionAlias';
+import { AutoReplyControl } from './AutoReplyControl';
+import { DraftPanel } from './DraftPanel';
 import { Badge } from '@/components/Badge';
 import { Modal } from '@/components/Modal';
 import { Input, FormRow } from '@/components/Field';
@@ -29,6 +32,7 @@ import {
   useConversation,
   useConversationActions,
   useAskKnowledge,
+  useProposeAnswer,
   useCustomerActions,
 } from './live-chat.hooks';
 import { KnowledgeCaptureModal } from './KnowledgeCaptureModal';
@@ -162,6 +166,7 @@ export function LiveChatPage() {
   // Knowledge lookup (PLN-260810 S2/S3). Answer lives in component state, not
   // in the conversation: it is the agent checking, not a customer turn.
   const askKnowledge = useAskKnowledge();
+  const proposeAnswer = useProposeAnswer();
   const [kbQuestion, setKbQuestion] = useState('');
   const lastCustomerMessage = [...(convo?.messages ?? [])]
     .reverse()
@@ -312,31 +317,55 @@ export function LiveChatPage() {
           <ul className="divide-y divide-gray-100">
             {sessions?.map((s) => (
               <li key={s.id}>
-                <button
+                {/* A div, not a button: the row now contains its own controls
+                    (alias edit + input) and a button may not nest interactive
+                    elements. Keyboard access is kept explicitly. */}
+                <div
+                  role="button"
+                  tabIndex={0}
                   onClick={() => setSelected(s.id)}
+                  onKeyDown={(e) => {
+                    if (e.target !== e.currentTarget) return; // let the alias input type
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      setSelected(s.id);
+                    }
+                  }}
                   className={cn(
-                    'w-full px-4 py-3 text-left hover:bg-gray-50',
+                    'w-full cursor-pointer px-4 py-3 text-left hover:bg-gray-50',
                     selected === s.id && 'bg-primary-500/5',
                   )}
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="truncate text-sm font-medium text-gray-800">
-                      {s.customerName ||
+                    {/* Alias first, session label kept behind it — an agent
+                        needs to know who this is, and still refers to the
+                        thread by its label (PLN-260812). */}
+                    <SessionAlias
+                      conversationId={s.id}
+                      alias={s.alias}
+                      fallback={
+                        s.customerName ||
                         s.customerEmail ||
-                        t('sessionLabel', { id: s.id.slice(0, 6) })}
-                    </span>
+                        t('sessionLabel', { id: s.id.slice(0, 6) })
+                      }
+                      sessionLabel={t('sessionLabel', { id: s.id.slice(0, 6) })}
+                      compact
+                    />
                     <div className="flex shrink-0 items-center gap-1">
+                      {/* Silent thread, at a glance: the AI is not answering
+                          this one and no agent has taken it either. */}
+                      {s.autoReplyEffective === false && s.status !== 'agent' && (
+                        <span
+                          className="rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-500"
+                          title={t('autoReply.offHint')}
+                        >
+                          {t('autoReply.offShort')}
+                        </span>
+                      )}
                       <ChannelBadge channel={s.channel} />
                       <StatusBadge status={s.status} />
                     </div>
                   </div>
-                  {/* Keep the session label visible even when we can name the
-                      shopper — agents refer to threads by it. */}
-                  {(s.customerName || s.customerEmail) && (
-                    <p className="text-[11px] text-gray-400">
-                      {t('sessionLabel', { id: s.id.slice(0, 6) })}
-                    </p>
-                  )}
                   <p className="mt-1 truncate text-xs text-gray-500">
                     {s.lastMessagePreview ?? '—'}
                   </p>
@@ -349,7 +378,7 @@ export function LiveChatPage() {
                     {t('createdShort')} {timeAgo(s.createdAt)} · {t('lastReplyShort')}{' '}
                     {timeAgo(s.lastMessageAt)}
                   </p>
-                </button>
+                </div>
               </li>
             ))}
           </ul>
@@ -365,11 +394,23 @@ export function LiveChatPage() {
           {selected && (
             <>
               <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-gray-800">
-                    {convo?.customer?.name ?? t('conversation')}
-                  </span>
+                <div className="flex min-w-0 items-center gap-2">
+                  {/* Same editor as the list row, so the name can be set from
+                      wherever the agent happens to be (PLN-260812 D-2). */}
+                  <SessionAlias
+                    conversationId={selected}
+                    alias={convo?.alias}
+                    fallback={convo?.customer?.name ?? t('conversation')}
+                    sessionLabel={t('sessionLabel', { id: selected.slice(0, 6) })}
+                  />
                   <StatusBadge status={convo?.status} />
+                  <AutoReplyControl
+                    conversationId={selected}
+                    mode={convo?.autoReplyMode}
+                    effective={convo?.autoReplyEffective}
+                    agentOwns={convo?.status === 'agent'}
+                    awaitingApproval={!!convo?.pendingDraft}
+                  />
                 </div>
                 <div className="flex gap-2">
                   <Button
@@ -521,6 +562,10 @@ export function LiveChatPage() {
                 )}
               </div>
 
+              {convo?.pendingDraft && (
+                <DraftPanel conversationId={selected} draft={convo.pendingDraft} />
+              )}
+
               <div className="flex items-center gap-2 border-t border-gray-100 p-3">
                 <input
                   value={draft}
@@ -645,6 +690,22 @@ export function LiveChatPage() {
                       onClick={() => setDraft(askKnowledge.data!.answer)}
                     >
                       {t('kbEditThenSend')}
+                    </Button>
+                    {/* Anyone handling a chat may propose; only a knowledge
+                        owner can approve it (PLN-260810 D3). */}
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      disabled={proposeAnswer.isPending || !kbQuestion.trim()}
+                      onClick={() =>
+                        proposeAnswer.mutate({
+                          conversationId: selected ? Number(selected) : undefined,
+                          question: kbQuestion.trim(),
+                          answer: askKnowledge.data!.answer,
+                        })
+                      }
+                    >
+                      {t('kbProposeKnowledge')}
                     </Button>
                   </div>
                 )}

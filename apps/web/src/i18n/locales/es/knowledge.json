@@ -220,5 +220,13 @@
     "accepted": "Documento creado e indexado.",
     "dismissed": "Propuesta descartada.",
     "actionError": "No se pudo procesar la propuesta."
-  }
+  },
+  "proposals": "Propuestas de respuesta",
+  "proposalQuestion": "Pregunta",
+  "proposalAnswer": "Respuesta",
+  "proposalApprove": "Aprobar",
+  "proposalReject": "Rechazar",
+  "proposalRejectReason": "Motivo (visible para quien la propuso)",
+  "proposalFromConversation": "Abrir conversación #{{id}}",
+  "proposalNoConversation": "Sin conversación vinculada"
 }

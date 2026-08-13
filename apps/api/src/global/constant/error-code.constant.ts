@@ -43,6 +43,13 @@ export const ERROR_CODE = {
   // The config moved between proposing and applying, so the stored diff no
   // longer describes the change it claimed to make.
   COACH_PROPOSAL_STALE: { code: 'E4015', message: 'Target changed since this proposal was made' },
+  // Knowledge documents roll back through their own revision history instead.
+  COACH_REVERT_UNSUPPORTED: {
+    code: 'E4016',
+    message: 'Undo this from the knowledge document revision history',
+  },
+  // Nothing to re-ask, so a before/after comparison would be empty.
+  GOLDEN_SET_EMPTY: { code: 'E4017', message: 'Add a regression question first' },
 
   // E5xxx — domain
   ORDER_NOT_FOUND: { code: 'E5001', message: 'Order not found' },
@@ -86,11 +93,18 @@ export const ERROR_CODE = {
     code: 'E5028',
     message: 'Only a conversation an agent is handling can be handed back',
   },
-  // E5029-E5031 — AMA SSO (PLN-260813-AMA-Iframe-SSO S2).
-  AMA_SSO_DISABLED: { code: 'E5029', message: 'AMA SSO is not configured' },
-  AMA_TOKEN_INVALID: { code: 'E5030', message: 'AMA token exchange failed' },
+  // E5029-E5031 — menu provisioning & access (PLN-260812).
+  /** The tenant's plan/provisioning does not include this menu at all. */
+  MENU_NOT_PROVIDED: { code: 'E5029', message: 'This menu is not provided for this tenant' },
+  /** Provided to the tenant, but this member is not allowed to reach it. */
+  MENU_ACCESS_DENIED: { code: 'E5030', message: 'You do not have access to this menu' },
+  MENU_CODE_UNKNOWN: { code: 'E5031', message: 'Unknown menu code' },
+
+  // E5032-E5034 — AMA SSO (PLN-260813-AMA-Iframe-SSO S2).
+  AMA_SSO_DISABLED: { code: 'E5032', message: 'AMA SSO is not configured' },
+  AMA_TOKEN_INVALID: { code: 'E5033', message: 'AMA token exchange failed' },
   AMA_SSO_USER_NOT_MAPPED: {
-    code: 'E5031',
+    code: 'E5034',
     message: 'No active console account matches the AMA identity for this tenant',
   },
   // E9xxx — system
