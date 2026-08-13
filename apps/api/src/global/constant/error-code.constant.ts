@@ -86,6 +86,13 @@ export const ERROR_CODE = {
     code: 'E5028',
     message: 'Only a conversation an agent is handling can be handed back',
   },
+  // E5029-E5031 — AMA SSO (PLN-260813-AMA-Iframe-SSO S2).
+  AMA_SSO_DISABLED: { code: 'E5029', message: 'AMA SSO is not configured' },
+  AMA_TOKEN_INVALID: { code: 'E5030', message: 'AMA token exchange failed' },
+  AMA_SSO_USER_NOT_MAPPED: {
+    code: 'E5031',
+    message: 'No active console account matches the AMA identity for this tenant',
+  },
   // E9xxx — system
   INTERNAL_ERROR: { code: 'E9001', message: 'Internal server error' },
   EXTERNAL_SERVICE_ERROR: { code: 'E9002', message: 'External service error' },

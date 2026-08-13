@@ -243,6 +243,12 @@ JWT (admin + tenant user). Customer widget: opaque session token. Customer ident
 customer** authenticated via Shopify **App Proxy** (Shopify-signed storefront request
 identifies the logged-in customer to the cross-origin widget). Guest order lookup: max 5
 attempts/15 min, Redis rate-limited.
+**AMA portal SSO** (PLN-260813): `POST auth/sso/ama` exchanges an AMA-minted `ama_token`
+via AMA OAuth `ama_session` grant (server-to-server, `AMA_SSO_*` env; unset = disabled
+E5029), maps email→existing active user in the slug tenant (no provisioning), issues our
+own JWT; MFA step-up exempt, must-change-password kept. Errors E5029–E5031. Console
+`frame-ancestors 'self' https://ama.amoeba.site` (web nginx) for the AMA iframe embed —
+guide `docs/guide/AMA-SSO-INTEGRATION.md`.
 
 ### 8.2 Token Policy
 Access 15 min (`JWT_ACCESS_TTL`) · Refresh 7 days (`JWT_REFRESH_TTL`). Passwords bcrypt

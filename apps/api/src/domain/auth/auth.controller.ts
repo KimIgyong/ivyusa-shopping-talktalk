@@ -2,6 +2,7 @@ import { Body, Controller, Get, Headers, Ip, Post } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Principal } from '@ivy/types';
 import { AuthService } from './auth.service';
+import { AmaSsoService } from './ama-sso.service';
 import { MfaService } from './mfa.service';
 import {
   ChangePasswordRequest,
@@ -9,6 +10,7 @@ import {
   LogoutRequest,
   RefreshRequest,
 } from './dto/request/login.request';
+import { AmaSsoLoginRequest } from './dto/request/ama-sso.request';
 import {
   MfaDisableRequest,
   MfaEnrollVerifyRequest,
@@ -32,6 +34,7 @@ function clientIp(xff: string | undefined, ip: string): string {
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
+    private readonly amaSsoService: AmaSsoService,
     private readonly mfaService: MfaService,
   ) {}
 
@@ -61,6 +64,17 @@ export class AuthController {
       body.shop_domain,
       body.tenant_slug,
     );
+  }
+
+  @Post('sso/ama')
+  @Public()
+  @ApiOperation({ summary: 'AMA-portal SSO: exchange an ama_token for tenant-console tokens' })
+  loginWithAma(
+    @Body() body: AmaSsoLoginRequest,
+    @Ip() ip: string,
+    @Headers('x-forwarded-for') xff?: string,
+  ) {
+    return this.amaSsoService.login(body.ama_token, body.tenant_slug, clientIp(xff, ip));
   }
 
   // ---- MFA (PLN-MFA Stage M1) ----
