@@ -2,7 +2,7 @@
 
 - 발견: 스테이징 `/settings` (tenant `amoebaorder`) btbz 릴레이 채널 연결 테스트, 2026-08-13
 - 대상: `apps/api/src/domain/messenger/adapter/*`, `apps/web/src/domain/settings/messenger.hooks.ts`
-- 상태: **수정 적용** — 브랜치 `fix/relay-401-copy`
+- 상태: **스테이징 배포 완료** — PR #281 squash merge, main `1303212`, 2026-08-13 08:18 배포
 
 ---
 
@@ -81,7 +81,30 @@ npm run typecheck: 9/9 passed
 주요 케이스: 401→credentials(+계정 힌트), 404→not_found(비밀번호 언급 없음), fetch 실패→unreachable,
 `conversation 404 has no messages` 같은 문장을 상태코드로 오독하지 않을 것, 미분류는 `undefined` 유지.
 
-## 5. 예방 패턴
+## 5. 배포 · 데이터 상태
+
+| 항목 | 상태 |
+|---|---|
+| 코드 | PR #281 → main `1303212` → 스테이징 배포 2026-08-13 08:18 (스키마 변경 없음, 마이그레이션 불필요) |
+| 배포 검증 | 부트 로그 `Nest application successfully started` · api healthy · `/api/v1/health` 200 · 컨테이너 내 `dist/domain/messenger/adapter/adapter-failure.util.js` 존재 · 콘솔 번들에 문구 3종(en·ko·es) 포함 |
+| 회귀 | 채널 1 연결 테스트 `ok: true, connected (42 conversation(s))` |
+| 미실측 | 실패 경로 문구는 살아 있는 채널을 깨야 재현되므로 실환경 확인 안 함 — 단위 테스트 12건으로만 커버 |
+
+**데이터 수정(코드와 별개)** — 스테이징 `messenger_channels` 두 건 모두 릴레이 운영자 계정
+(`admin@amoeba.group`)으로 정정.
+
+| id | tenant | 경로 | 결과 |
+|---|---|---|---|
+| 1 | 3 amoebaorder | 콘솔 API PATCH | connected, 폴링 정상 복귀 (첫 틱 6분간 42대화 따라잡기, 매핑 3,529 → 3,596) |
+| 2 | 1 ivyusa | DB 직접 갱신 (tenant 1 로그인 미확보, **audit 로그 없음**) | 자격증명 검증 완료, `active=0` 유지 |
+
+채널 2를 켜지 않은 이유: 두 채널이 같은 릴레이 계정 = 같은 받은편지함이라, 활성화하면
+두 테넌트가 동일 대화 42건을 중복 수신한다.
+
+**파생 백로그**: 콘솔 입력단 재발 방지(어느 시스템 계정인지 필드에 명시) ·
+SMS 수신전용 스레드에 답변을 만들어 큐잉했다 영구 실패하는 건 63건.
+
+## 6. 예방 패턴
 
 **실패를 한 문구로 합치지 말 것 — 조치할 곳이 다르면 다른 문구다.**
 특히 **인증 거부(401/403)와 도달 실패는 정반대 진단**이다. 401은 "상대가 살아 있다"는 증거인데,
