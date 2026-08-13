@@ -69,6 +69,18 @@ export class AnswerReuseController {
     return { deactivated: affected };
   }
 
+  /**
+   * Re-embed every stored question. Run after an embedding change — the
+   * FIX-260813 input_type correction left older rows with vectors a lookup can
+   * never match, and nothing else rewrites them.
+   */
+  @Post('reindex')
+  @RequireCapability(CAPABILITY.AI_ENGINE_MANAGE)
+  @ApiOperation({ summary: 'Re-embed and re-index every stored question' })
+  async reindex(@CurrentUser() user: Principal) {
+    return this.service.reindex(this.tenantId(user));
+  }
+
   private tenantId(user: Principal): number {
     if (user.actorType !== 'user') {
       throw new BusinessException(ERROR_CODE.FORBIDDEN, HttpStatus.FORBIDDEN);

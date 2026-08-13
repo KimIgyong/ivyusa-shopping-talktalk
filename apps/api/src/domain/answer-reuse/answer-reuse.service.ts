@@ -259,7 +259,12 @@ export class AnswerReuseService {
     const answer = scrubPii(input.answerText).text.trim();
     if (question.length < MIN_QUESTION_LEN || answer.length < MIN_ANSWER_LEN) return;
 
-    const embedded = await this.ai.embed([question], 'document');
+    // 'query', not 'document' — this store matches questions against questions,
+    // and Voyage returns a different vector per input_type. Embedding one side
+    // as a document put the two in different spaces: the same sentence scored
+    // 0.61 against itself, so nothing ever cleared THRESHOLD and the store
+    // never replayed once (FIX-260813).
+    const embedded = await this.ai.embed([question], 'query');
     if (embedded.provider === 'stub') return;
     const vector = embedded.vectors[0];
 
@@ -292,5 +297,43 @@ export class AnswerReuseService {
       lang: input.lang,
       active: true,
     });
+  }
+
+  /**
+   * Re-embed every stored question and overwrite its vector.
+   *
+   * Needed whenever the embedding changes shape — the FIX-260813 input_type
+   * correction being the first case: rows written before it still carry
+   * 'document' vectors that can never match a 'query' lookup. Also the recovery
+   * path if the embedding model is ever swapped.
+   *
+   * Sequential on purpose: the embedding provider's free tier rate-limits, and
+   * a reindex is rare enough that speed does not matter.
+   */
+  async reindex(tenantId: number): Promise<{ total: number; reindexed: number; failed: number }> {
+    const rows = await this.repo.find({ where: { tenantId } });
+    let reindexed = 0;
+    let failed = 0;
+    for (const row of rows) {
+      try {
+        const embedded = await this.ai.embed([row.questionText], 'query');
+        if (embedded.provider === 'stub') {
+          failed++;
+          continue;
+        }
+        await this.vector.upsert(Number(row.id), embedded.vectors[0], {
+          tenant_id: tenantId,
+          lang: row.lang,
+          active: row.active === 1,
+        });
+        reindexed++;
+      } catch (e) {
+        // One bad row must not abandon the rest — report the count instead.
+        this.logger.warn(`reuse reindex failed for row ${row.id}: ${(e as Error).message}`);
+        failed++;
+      }
+    }
+    this.logger.log(`reuse reindex tenant ${tenantId}: ${reindexed}/${rows.length} ok, ${failed} failed`);
+    return { total: rows.length, reindexed, failed };
   }
 }
