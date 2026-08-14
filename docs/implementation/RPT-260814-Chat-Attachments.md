@@ -105,13 +105,37 @@
 | 항목 | 상태 |
 |---|---|
 | PR | **#287** (`feature/chat-attachments` → `main`) |
-| 커밋 | `61a6b7a`(S1) · `9f5f814`(S2+S3) · `38301d4`(S4) · `c9aa079`(S5) · `ab3e650`(S6) |
-| 머지 | ❌ 미머지 |
-| 마이그레이션(staging) | ❌ 미적용 — `sql/migration_message_attachments.sql` |
-| 배포(staging) | ❌ 미배포 |
+| 머지 | ✅ 2026-08-14 squash → main `35f765d` |
+| 마이그레이션(staging) | ✅ 적용 — `message_attachments` 19컬럼 + 인덱스 5종 확인 (코드 배포 **전**) |
+| env(staging) | ✅ `UPLOAD_DIR=/data/uploads`, `FILE_URL_SECRET`(신규 생성), `ATTACHMENT_MAX_*` — 기존 `.env.staging` 백업 후 추가 |
+| 배포(staging) | ✅ 2026-08-14 `deploy-staging.sh` (api/web/widget/pwa/nginx 재생성) |
+| 볼륨 | ✅ `staging_ivy_uploads_staging → /data/uploads` 마운트 확인 |
 | 프로덕션 | ❌ (프로덕션 환경 자체가 미구축) |
 
-### 배포 순서 (kit 04 §3)
+
+### 스테이징 스모크 결과 (2026-08-14, 대화 #260)
+
+| ID | 항목 | 결과 |
+|---|---|---|
+| S-01 | 부팅 로그 | ✅ `successfully started`, api healthy |
+| S-02 | `GET /api/v1/files/<uuid>` 무서명 | ✅ **401** (=배포됨) |
+| S-03 | 위젯 업로드(900×600 PNG) | ✅ 320×213 webp 썸네일 생성 — **alpine 이미지에서 sharp 정상**(§11 리스크 미발생) |
+| S-04 | 콘솔 대화 조회 | ✅ 썸네일 + 파일 카드 노출 (한국어 UI) |
+| S-05 | 라이트박스 | ✅ 확대·원본 열기·다운로드·ESC |
+| S-06 | PDF 첨부 | ✅ `Content-Disposition: attachment`, nosniff |
+| S-07 | 상담원 이미지 회신 → 고객 폴링 | ✅ 위젯 응답에 노출 |
+| S-08 | 11MB 이미지 | ✅ **400 E5037** (앱 상한). 30MB는 nginx가 **413** |
+| S-09 | svg / `.png`로 위장한 svg | ✅ 둘 다 **400 E5036** |
+| S-10 | **API 컨테이너 강제 재생성 후 재조회** | ✅ **200 + 바이트 동일** — 볼륨 영속 확인 |
+| 서명 | 위조 서명 / 무서명 | ✅ 둘 다 401 |
+| 캐시 | 서명 다운로드 응답 | ✅ `private, max-age=600` |
+| S-11~13 | 텔레그램·Gmail 실계정 첨부 | ⏸ 미실행(실계정 상호작용 필요) |
+| S-14 | 링크 만료(15분) | ⏸ 미실행(유닛 테스트로 커버) |
+
+스모크 데이터: 스테이징 tenant 1에 대화 **#260**(첨부 3건)이 남아 있다 — 테스트 흔적이며
+리텐션 창(365일) 안에서 정리되거나 필요 시 수동 삭제.
+
+### 배포 순서 (kit 04 §3, 실제 수행 순서)
 1. staging MySQL에 `sql/migration_message_attachments.sql` **선적용**
 2. staging `.env.staging`에 `UPLOAD_DIR=/data/uploads` (필요 시 `FILE_URL_SECRET`)
 3. API 재배포 → 부팅 로그 확인 → `GET /api/v1/files/<uuid>`가 **401**인지 확인
@@ -122,7 +146,7 @@
 
 | ID | 내용 |
 |---|---|
-| R-1 | 스테이징 배포 + 수동 스모크 15건 |
+| R-1 | ~~스테이징 배포 + 스모크~~ ✅ 완료(§7). 잔여는 S-11~S-14(실계정 채널·링크 만료) |
 | R-2 | 아메바톡 허브 미디어 payload 실물 확인(현재 `content_type` 기반 추론) |
 | R-3 | 텔레그램·Gmail 실계정 첨부 E2E |
 | R-4 | 업로드 볼륨 백업 절차(운영 문서) — DB 백업에 포함되지 않는다 |
