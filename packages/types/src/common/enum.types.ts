@@ -343,8 +343,18 @@ export const MESSENGER_FIELDS: Record<MessengerProvider, IntegrationFieldSpec[]>
   ],
   btbz_relay: [
     { key: 'base_url', secret: false, required: true },
+    // Operator account — still what sends replies (the provider surface has no
+    // write route yet; PLN-260814 D1a hybrid).
     { key: 'email', secret: false, required: true },
     { key: 'password', secret: true, required: true },
+    // Provider API key (PLN-260814): when key_id + api_secret are both set the
+    // adapter reads via the signed provider API instead of the operator inbox.
+    { key: 'key_id', secret: false, required: false },
+    { key: 'api_secret', secret: true, required: false },
+    // Optional binding assertion: the relay rejects the call (E5101) when the
+    // instance does not serve this customerRef — a mispointed base_url is
+    // detected before any data is stored.
+    { key: 'expected_customer', secret: false, required: false },
   ],
   gmail: [
     { key: 'email', secret: false, required: true },

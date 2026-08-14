@@ -300,3 +300,250 @@ describe('BtbzRelayAdapter — server URL', () => {
     expect(result.detail).toContain('email or password is not set');
   });
 });
+
+/**
+ * Signed provider mode (PLN-260814): key_id + api_secret switch reads to the
+ * HMAC-signed provider API; replies stay on the operator account (D1a hybrid).
+ */
+describe('BtbzRelayAdapter — signed provider mode', () => {
+  const OLD_ENV = process.env;
+  const originalFetch = global.fetch;
+  beforeAll(() => {
+    process.env = { ...OLD_ENV, CRED_ENC_KEY: Buffer.alloc(32, 11).toString('base64') };
+  });
+  afterAll(() => {
+    process.env = OLD_ENV;
+    global.fetch = originalFetch;
+  });
+
+  const signedChannel = (extraConfig: Record<string, unknown> = {}) =>
+    ({
+      id: 7,
+      tenantId: 1,
+      provider: 'btbz_relay',
+      config: { base_url: 'https://relay.test', key_id: 'ksrk_test', ...extraConfig },
+      secretEnc: encryptChannelSecret({
+        email: 'ops@amoeba.group',
+        password: 'pw',
+        api_secret: 'ksrsk_unit_secret',
+      }),
+    }) as unknown as MessengerChannel;
+
+  interface Captured {
+    url: string;
+    headers: Record<string, string>;
+  }
+
+  /** Stub keyed by URL substring; captures the signed headers of every call. */
+  function stubProvider(responses: Record<string, { status?: number; body: unknown }>) {
+    const calls: Captured[] = [];
+    global.fetch = jest.fn(async (url: unknown, init?: RequestInit) => {
+      const href = String(url);
+      calls.push({ url: href, headers: (init?.headers ?? {}) as Record<string, string> });
+      if (href.includes('/api/auth/login')) {
+        return {
+          ok: true,
+          status: 200,
+          headers: { get: () => 'ksr_token=jwt-abc; Path=/' },
+          text: async () => JSON.stringify({ success: true }),
+        } as unknown as Response;
+      }
+      const key = Object.keys(responses).find((k) => href.includes(k));
+      const hit = key === undefined ? undefined : responses[key];
+      return {
+        ok: hit !== undefined && (hit.status ?? 200) < 400,
+        status: hit === undefined ? 404 : (hit.status ?? 200),
+        headers: { get: () => null },
+        text: async () => JSON.stringify(hit === undefined ? {} : hit.body),
+      } as unknown as Response;
+    }) as unknown as typeof fetch;
+    return calls;
+  }
+
+  function freshRedis(store: Record<string, string> = {}) {
+    return {
+      get: jest.fn(async (k: string) => store[k] ?? null),
+      set: jest.fn(async (k: string, v: string) => {
+        store[k] = v;
+      }),
+    } as unknown as RedisService;
+  }
+
+  const MSG = (id: number, conv: number, body: string, extra: Record<string, unknown> = {}) => ({
+    messageId: id,
+    conversationId: conv,
+    origin: 'relay_kakao_pc',
+    direction: 'inbound',
+    senderName: '김철수',
+    body,
+    bodyType: 'text',
+    occurredAt: '2026-08-14T02:00:00.000Z',
+    customerRef: 'CUST-1',
+    ...extra,
+  });
+
+  it('pulls via /messages?since_id= with signed headers, one meta fetch per conversation', async () => {
+    const calls = stubProvider({
+      '/api/provider/v1/messages': {
+        body: {
+          data: [
+            MSG(11, 9, '재고 있나요?'),
+            MSG(12, 9, '색상은요?'),
+            MSG(13, 9, 'our own reply', { direction: 'outbound' }),
+          ],
+          nextCursor: 13,
+          hasMore: false,
+        },
+      },
+      '/api/provider/v1/conversations/9': {
+        body: { data: { conversationId: 9, origin: 'relay_kakao_pc', counterpartDisplay: '김철수', replyEnabled: true } },
+      },
+    });
+    const store: Record<string, string> = {};
+    const adapter = new BtbzRelayAdapter(freshRedis(store));
+
+    const out = await adapter.pull({ channel: signedChannel(), secret: '' }, []);
+
+    expect(out).toHaveLength(2);
+    expect(out[0]).toMatchObject({
+      externalThreadId: '9',
+      externalMessageId: '11',
+      subChannel: 'kakao',
+      replyEnabled: true,
+    });
+    // Cursor advanced to the page's nextCursor.
+    expect(store['ksr:pcursor:7']).toBe('13');
+    // Conversation meta fetched exactly once for the two messages.
+    expect(calls.filter((c) => c.url.includes('/conversations/9'))).toHaveLength(1);
+    // Signed request shape: as-sent path (prefix + query) and well-formed headers.
+    const msgCall = calls.find((c) => c.url.includes('/messages'))!;
+    expect(msgCall.url).toBe(
+      'https://relay.test/api/provider/v1/messages?since_id=0&direction=inbound&limit=100',
+    );
+    expect(msgCall.headers['X-KSR-Key-Id']).toBe('ksrk_test');
+    expect(msgCall.headers['X-KSR-Signature']).toMatch(/^v1=[0-9a-f]{64}$/);
+  });
+
+  it('re-signs every request — no two calls share a nonce', async () => {
+    const calls = stubProvider({
+      '/api/provider/v1/messages': { body: { data: [MSG(1, 2, 'a'), MSG(3, 4, 'b')], hasMore: false } },
+      '/api/provider/v1/conversations/': { body: { data: { replyEnabled: true } } },
+    });
+    const adapter = new BtbzRelayAdapter(freshRedis());
+
+    await adapter.pull({ channel: signedChannel(), secret: '' }, []);
+
+    const nonces = calls.map((c) => c.headers['X-KSR-Nonce']).filter(Boolean);
+    expect(nonces.length).toBeGreaterThanOrEqual(3);
+    expect(new Set(nonces).size).toBe(nonces.length);
+  });
+
+  it('aborts the pull when a row carries a different customerRef than expected', async () => {
+    stubProvider({
+      '/api/provider/v1/messages': {
+        body: { data: [MSG(11, 9, 'hello', { customerRef: 'CUST-OTHER' })], hasMore: false },
+      },
+    });
+    const adapter = new BtbzRelayAdapter(freshRedis());
+
+    await expect(
+      adapter.pull({ channel: signedChannel({ expected_customer: 'CUST-1' }), secret: '' }, []),
+    ).rejects.toThrow(/wrong instance/);
+  });
+
+  it('confirm() reads the single-command endpoint and maps SENT_UNCONFIRMED', async () => {
+    stubProvider({
+      '/api/provider/v1/commands/55': { body: { data: { status: 'SENT_UNCONFIRMED' } } },
+    });
+    const adapter = new BtbzRelayAdapter(freshRedis());
+    const thread = { externalThreadId: '9' } as unknown as ChannelThread;
+
+    await expect(
+      adapter.confirm({ channel: signedChannel(), secret: '' }, thread, '55'),
+    ).resolves.toBe('unconfirmed');
+  });
+
+  it('confirm() treats a swept command (404) as failed, not as delivered', async () => {
+    stubProvider({});
+    const adapter = new BtbzRelayAdapter(freshRedis());
+    const thread = { externalThreadId: '9' } as unknown as ChannelThread;
+
+    await expect(
+      adapter.confirm({ channel: signedChannel(), secret: '' }, thread, '99'),
+    ).resolves.toBe('failed');
+  });
+
+  it('test() verifies the instance binding and probes the reply path', async () => {
+    const calls = stubProvider({
+      '/api/provider/v1/instance': {
+        body: { data: { customerRef: 'CUST-1', relayState: 'ONLINE' } },
+      },
+    });
+    const adapter = new BtbzRelayAdapter(freshRedis());
+
+    const result = await adapter.test({
+      channel: signedChannel({ expected_customer: 'CUST-1' }),
+      secret: '',
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.detail).toContain('CUST-1');
+    expect(result.detail).toContain('reply path ok');
+    expect(result.accountId).toBe('ksrk_test');
+    const instanceCall = calls.find((c) => c.url.includes('/instance'))!;
+    expect(instanceCall.headers['X-KSR-Expected-Customer']).toBe('CUST-1');
+  });
+
+  it('test() names a rejected key as a credentials failure (E1103)', async () => {
+    stubProvider({
+      '/api/provider/v1/instance': {
+        status: 401,
+        body: { error: { code: 'E1103', message: 'signature mismatch' } },
+      },
+    });
+    const adapter = new BtbzRelayAdapter(freshRedis());
+
+    const result = await adapter.test({ channel: signedChannel(), secret: '' });
+
+    expect(result.ok).toBe(false);
+    expect(result.reason).toBe('credentials');
+    expect(result.detail).toContain('E1103');
+  });
+
+  it('test() names a mispointed instance (E5101) instead of a generic failure', async () => {
+    stubProvider({
+      '/api/provider/v1/instance': {
+        status: 409,
+        body: { error: { code: 'E5101', message: 'this instance does not serve the customer you asserted' } },
+      },
+    });
+    const adapter = new BtbzRelayAdapter(freshRedis());
+
+    const result = await adapter.test({
+      channel: signedChannel({ expected_customer: 'CUST-1' }),
+      secret: '',
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.detail).toContain('different customer');
+  });
+
+  it('stays on the legacy operator path when no provider key is configured', async () => {
+    const calls = stubProvider({
+      '/api/inbox/conversations': { body: { data: [] } },
+    });
+    const legacy = {
+      id: 4,
+      tenantId: 1,
+      provider: 'btbz_relay',
+      config: { base_url: 'https://relay.test' },
+      secretEnc: encryptChannelSecret({ email: 'ops@amoeba.group', password: 'pw' }),
+    } as unknown as MessengerChannel;
+    const adapter = new BtbzRelayAdapter(freshRedis());
+
+    await adapter.pull({ channel: legacy, secret: '' }, []);
+
+    expect(calls.some((c) => c.url.includes('/api/provider/'))).toBe(false);
+    expect(calls.some((c) => c.url.includes('/api/inbox/conversations'))).toBe(true);
+  });
+});
