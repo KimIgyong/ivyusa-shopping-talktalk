@@ -24,6 +24,7 @@ import { AnswerReuseModule } from '../answer-reuse/answer-reuse.module';
 import { JobLabel } from '../user/entity/job-label.entity';
 import { UserJobLabel } from '../user/entity/user-job-label.entity';
 import { IssueModule } from '../issue/issue.module';
+import { AttachmentModule } from '../attachment/attachment.module';
 
 @Module({
   imports: [
@@ -51,6 +52,8 @@ import { IssueModule } from '../issue/issue.module';
     ModerationModule,
     CustomerModule,
     AuditModule,
+    // Files on a transcript's turns (PLN-260814).
+    AttachmentModule,
     SessionModule,
     // Answer reuse (PLN-260808 Track C): agent replies feed the reuse store.
     AnswerReuseModule,

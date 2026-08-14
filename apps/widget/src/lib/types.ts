@@ -14,6 +14,7 @@
 import type {
   AffiliateStatusResponse,
   ChatCitation,
+  ChatAttachmentResponse,
   ChatMessageResponse,
   ChatTurnResponse,
   ConversationResponse,
@@ -64,6 +65,9 @@ export interface ChatMessage extends Omit<ChatMessageResponse, 'senderName'> {
   /** Optimistic bubble still in flight — never sent by the server. */
   pending?: boolean;
 }
+
+/** A file on a turn (PLN-260814); `url`/`thumbUrl` are signed and short-lived. */
+export type ChatAttachment = ChatAttachmentResponse;
 
 export type Conversation = ConversationResponse;
 export type ChatReply = ChatTurnResponse;

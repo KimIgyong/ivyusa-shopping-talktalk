@@ -29,6 +29,8 @@ import { SessionService, sessionCacheKey } from '../session/session.service';
 import { CustomerService } from '../customer/customer.service';
 import { HandoffRouterService } from '../ai-engine/handoff-router.service';
 import { EventBusService, EVENTS, RedisService } from '../../infrastructure/infrastructure.module';
+import { AttachmentService } from '../attachment/attachment.service';
+import { MessageAttachment } from '../attachment/entity/message-attachment.entity';
 import { scrubPii } from '../../global/util/pii-scrub.util';
 import { detectLanguage } from '../../global/util/detect-language.util';
 
@@ -117,6 +119,15 @@ const SYSTEM_MESSAGES = {
     ES: 'No podemos procesar mensajes de chat hasta que aceptes el aviso de privacidad. Para usar el chat, acepta el aviso de privacidad en el banner de consentimiento.',
     KO: '개인정보 처리 안내에 동의하시기 전에는 채팅 메시지를 처리할 수 없습니다. 채팅을 이용하려면 동의 배너에서 개인정보 처리 안내에 동의해 주세요.',
   },
+  // A file arrived with nothing written alongside it. There is nothing to
+  // retrieve an answer from, so the bot acknowledges receipt instead of
+  // guessing — and instead of the silence that made shoppers give up before
+  // (FIX-260806 A1).
+  attachmentReceived: {
+    EN: "Got your file — thanks. Could you tell me briefly what you'd like help with?",
+    ES: 'Recibimos tu archivo, gracias. ¿Nos cuentas brevemente en qué podemos ayudarte?',
+    KO: '파일 잘 받았습니다. 어떤 점을 도와드리면 될지 간단히 알려주시겠어요?',
+  },
 } as const;
 
 /** Localized system-turn copy — shared with ScenarioService's consent gate. */
@@ -196,7 +207,27 @@ export class ChatService {
     // existing positional test doubles keep working.
     @InjectRepository(AgentDailyStat)
     private readonly statRepo?: Repository<AgentDailyStat>,
+    /** Files uploaded before the send call are claimed here (PLN-260814). */
+    private readonly attachments?: AttachmentService,
   ) {}
+
+  /**
+   * Bind pre-uploaded files to the turn that carries them. Failure is logged,
+   * not thrown: the message itself is already persisted, and losing the whole
+   * turn because a file could not be claimed would be the worse outcome.
+   */
+  private async attachUploads(
+    ids: string[] | undefined,
+    params: { tenantId: number; messageId: number; conversationId: number; sessionId?: number | null },
+  ): Promise<MessageAttachment[]> {
+    if (!ids?.length || !this.attachments) return [];
+    try {
+      return await this.attachments.attachToMessage(ids, params);
+    } catch (err) {
+      this.logger.warn(`attachment claim failed (message ${params.messageId}): ${String(err)}`);
+      return [];
+    }
+  }
 
   async getOrCreateConversation(sessionId: number): Promise<Conversation> {
     // Reuse waiting/agent conversations too — a customer replying during or
@@ -428,7 +459,7 @@ export class ChatService {
   async handleUserMessage(
     session: Session,
     text: string,
-    opts: { draft?: boolean } = {},
+    opts: { draft?: boolean; attachmentIds?: string[] } = {},
   ): Promise<ChatTurnResult> {
     // Consent gate (PRV-M4, PLN-Privacy-Control-Gap D-1: fail-closed). Only an
     // effective GRANTED — fresh (uncached) read, current notice version — lets
@@ -454,6 +485,15 @@ export class ChatService {
     const conversation = await this.getOrCreateConversation(session.id);
 
     const userTurn = await this.persist(tenantId, conversation.id, SENDER_TYPE.USER, text, session.language);
+    // Files were uploaded before this call and are claimed here, inside the
+    // tenant + session scope — an id from someone else's upload attaches
+    // nothing (PLN-260814 §2).
+    const attached = await this.attachUploads(opts.attachmentIds, {
+      tenantId,
+      messageId: Number(userTurn.id),
+      conversationId: Number(conversation.id),
+      sessionId: Number(session.id),
+    });
     await this.bus.publish(EVENTS.CJM, {
       tenantId,
       sessionId: session.id,
@@ -464,8 +504,9 @@ export class ChatService {
 
     // Which language is this shopper actually writing in? Runs before any reply
     // is produced so the switch takes effect on the turn that earned it, not
-    // the next one (PLN-260813 P2).
-    await this.syncSessionLanguage(session, conversation.id, text);
+    // the next one (PLN-260813 P2). A photo carries no script to detect, so a
+    // file-only turn must not vote on the language.
+    if (text.trim()) await this.syncSessionLanguage(session, conversation.id, text);
 
     // The customer answered the idle check, so the thread is alive again. This
     // must happen BEFORE the agent-mode return below: the threads most likely
@@ -492,6 +533,27 @@ export class ChatService {
       return { conversationId: String(conversation.id), reply: null, escalate: false, needsAuth: false };
     }
     const queued = conversation.status === CONVERSATION_STATUS.WAITING;
+
+    // A file with nothing written alongside it (PLN-260814 SI-2). There is no
+    // question to classify, nothing to retrieve against and no text to
+    // moderate, so the whole AI path is skipped — running it on an empty
+    // string would spend a model call to answer nothing. The turn is still
+    // persisted, still counts as customer activity, and a queued thread stays
+    // silent exactly as it does for a typed message.
+    if (!text.trim() && attached.length) {
+      if (queued) {
+        return { conversationId: String(conversation.id), reply: null, escalate: false, needsAuth: false };
+      }
+      const body = sysMsg('attachmentReceived', session.language);
+      await this.persist(tenantId, conversation.id, SENDER_TYPE.SYSTEM, body, session.language);
+      return {
+        conversationId: String(conversation.id),
+        reply: { senderType: 'system', body },
+        escalate: false,
+        needsAuth: false,
+      };
+    }
+
     // They are typing in the widget again — but that only means replies belong
     // here if somebody is actually on shift to write one. A shopper who follows
     // up five minutes later is still off hours, and clearing the channel then

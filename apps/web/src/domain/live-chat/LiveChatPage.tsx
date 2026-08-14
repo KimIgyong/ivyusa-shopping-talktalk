@@ -36,6 +36,7 @@ import {
   useCustomerActions,
 } from './live-chat.hooks';
 import { KnowledgeCaptureModal } from './KnowledgeCaptureModal';
+import { MessageAttachments } from './MessageAttachments';
 import { IssuePanel } from './IssuePanel';
 import { useAuthStore } from '@/store/auth-store';
 import { liveChatService } from './live-chat.service';
@@ -528,6 +529,9 @@ export function LiveChatPage() {
                           </span>
                         )}
                         {m.body}
+                        {m.attachments && m.attachments.length > 0 && (
+                          <MessageAttachments attachments={m.attachments} outbound={outbound} />
+                        )}
                         {m.senderType === 'ai' && canManageKnowledge && (
                           <button
                             type="button"

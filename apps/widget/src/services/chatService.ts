@@ -1,5 +1,5 @@
 import { apiClient } from '../lib/api-client';
-import type { ChatReply, Conversation, ScenarioReply } from '../lib/types';
+import type { ChatAttachment, ChatReply, Conversation, ScenarioReply } from '../lib/types';
 
 export function getConversation(
   sessionToken: string,
@@ -15,11 +15,26 @@ export function getConversation(
 export function sendMessage(
   sessionToken: string,
   message: string,
+  attachmentIds?: string[],
 ): Promise<ChatReply> {
   return apiClient.post<ChatReply>('/chat/message', {
     session_token: sessionToken,
     message,
+    attachment_ids: attachmentIds?.length ? attachmentIds : undefined,
   });
+}
+
+/**
+ * Upload one file and get back the record the send call will reference
+ * (PLN-260814 §2). Uploading before sending is what keeps progress and retry
+ * out of the message path.
+ */
+export function uploadAttachment(
+  sessionToken: string,
+  file: File,
+  onProgress?: (percent: number) => void,
+): Promise<ChatAttachment> {
+  return apiClient.upload<ChatAttachment>('/files/upload', file, sessionToken, onProgress);
 }
 
 /** Store the address for an off-hours email reply (PLN-260806). */

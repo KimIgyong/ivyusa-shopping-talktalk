@@ -3,6 +3,8 @@ import { Message } from '../chat/entity/message.entity';
 import { AgentProfile } from './entity/agent-profile.entity';
 import { AgentDailyStat } from './entity/agent-daily-stat.entity';
 import { AgentAlert } from './entity/agent-alert.entity';
+import { MessageAttachment } from '../attachment/entity/message-attachment.entity';
+import { AttachmentMapper } from '../attachment/attachment.mapper';
 
 /** Escalation alert row for the console alarm modal (FR-S3). */
 export function toAlertResponse(a: AgentAlert) {
@@ -53,7 +55,11 @@ export function toSessionResponse(
 }
 
 /** Message row in an agent conversation view. */
-export function toMessageResponse(m: Message, senderName: string | null = null) {
+export function toMessageResponse(
+  m: Message,
+  senderName: string | null = null,
+  attachments?: MessageAttachment[],
+) {
   return {
     id: m.id,
     senderType: m.senderType,
@@ -61,6 +67,8 @@ export function toMessageResponse(m: Message, senderName: string | null = null) 
     senderName,
     body: m.body,
     createdAt: m.createdAt,
+    // Signed links, minted per response (PLN-260814).
+    attachments: AttachmentMapper.toResponseList(attachments),
   };
 }
 

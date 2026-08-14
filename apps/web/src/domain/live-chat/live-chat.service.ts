@@ -42,12 +42,26 @@ export interface AgentKnowledgeAnswer {
   }>;
 }
 
+/** A file on a turn (PLN-260814). `url`/`thumbUrl` are signed and short-lived. */
+export interface ChatAttachment {
+  id: string;
+  kind: 'image' | 'file';
+  filename: string;
+  mime: string;
+  size: number;
+  width?: number | null;
+  height?: number | null;
+  url: string;
+  thumbUrl?: string | null;
+}
+
 export interface ChatMessage {
   id: string;
   senderType: MessageSenderType;
   senderName?: string | null;
   body: string;
   createdAt?: string;
+  attachments?: ChatAttachment[];
 }
 
 export interface CustomerContext {

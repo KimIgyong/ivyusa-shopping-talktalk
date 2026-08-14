@@ -14,6 +14,7 @@ import { CAPABILITY, Principal } from '@ivy/types';
 import { normalizePage, buildPagination } from '@ivy/common';
 import { AgentService } from './agent.service';
 import { AgentAlertService } from './agent-alert.service';
+import { AttachmentService } from '../attachment/attachment.service';
 import { RequireCapability } from '../../global/decorator/auth.decorator';
 import { CurrentUser } from '../../global/decorator/current-user.decorator';
 import { Paginated } from '../../global/interceptor/transform.interceptor';
@@ -52,6 +53,7 @@ export class AgentConsoleController {
   constructor(
     private readonly agentService: AgentService,
     private readonly alertService: AgentAlertService,
+    private readonly attachments: AttachmentService,
   ) {}
 
   @Get('alerts')
@@ -170,6 +172,9 @@ export class AgentConsoleController {
     // PII-access audit (PRV-H4): the agent sees the transcript + customer panel.
     await this.agentService.auditConversationView(actorIdOf(user), tenantId, id);
     const names = await this.agentService.resolveSenderNames(messages);
+    // One query for the page — the console re-fetches a conversation on every
+    // poll, so a per-message lookup would multiply with the transcript length.
+    const attachments = await this.attachments.findByMessageIds(messages.map((m) => Number(m.id)));
     const customer = await this.agentService.customerContext(id, tenantId);
     const conversation = await this.agentService.findConversation(id, tenantId);
     const sessionState = await this.agentService.sessionStateFor(id, conversation.sessionId);
@@ -193,7 +198,11 @@ export class AgentConsoleController {
       channel: conversation.channel || 'widget',
       status: conversation.status,
       messages: messages.map((m) =>
-        toMessageResponse(m, m.senderId != null ? names.get(String(m.senderId)) ?? null : null),
+        toMessageResponse(
+          m,
+          m.senderId != null ? names.get(String(m.senderId)) ?? null : null,
+          attachments.get(String(m.id)),
+        ),
       ),
       hasMore,
       customer,
