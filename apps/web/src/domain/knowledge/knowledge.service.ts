@@ -2,6 +2,17 @@ import { apiGet, apiGetList, apiPost, apiPostForm, apiPatch, apiPut, apiDelete }
 import type { Paginated } from '@/lib/types';
 
 /** Shapes mirror KnowledgeMapper (apps/api knowledge.mapper.ts). */
+export interface GdriveCredentialStatus {
+  connected: boolean;
+  clientEmail: string | null;
+}
+
+export interface GdriveTestResult {
+  ok: boolean;
+  message: string;
+  files?: number;
+}
+
 export interface SyncResult {
   fetched: number;
   created: number;
@@ -231,7 +242,13 @@ export interface DocumentListParams {
 
 export const knowledgeService = {
   sources: () => apiGet<KnowledgeSource[]>('/knowledge/sources'),
-  createSource: (body: { name: string; type: string }) =>
+  gdriveCredential: () => apiGet<GdriveCredentialStatus>('/knowledge/gdrive/credential'),
+  saveGdriveCredential: (keyJson: string) =>
+    apiPut<{ clientEmail: string }>('/knowledge/gdrive/credential', { key_json: keyJson }),
+  deleteGdriveCredential: () => apiDelete<{ removed: boolean }>('/knowledge/gdrive/credential'),
+  testGdrive: (folderId?: string) =>
+    apiPost<GdriveTestResult>('/knowledge/gdrive/test', { folder_id: folderId }),
+  createSource: (body: { name: string; type: string; config_json?: Record<string, unknown> }) =>
     apiPost<KnowledgeSource>('/knowledge/sources', body),
   setSourceStatus: (id: string, status: 'active' | 'inactive') =>
     apiPatch<KnowledgeSource>(`/knowledge/sources/${id}`, { status }),

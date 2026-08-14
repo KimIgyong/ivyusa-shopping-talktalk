@@ -17,7 +17,8 @@ export function useCreateSource() {
   const qc = useQueryClient();
   const tenantKey = useTenantKey();
   return useMutation({
-    mutationFn: (body: { name: string; type: string }) => knowledgeService.createSource(body),
+    mutationFn: (body: { name: string; type: string; config_json?: Record<string, unknown> }) =>
+      knowledgeService.createSource(body),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'sources'] });
       toast.success('Source added');
@@ -36,6 +37,54 @@ export function useSetSourceStatus() {
       qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'sources'] });
       toast.success('Source updated');
     },
+    onError: (err: Error) => toast.error(err.message),
+  });
+}
+
+/** Drive service-account key: status, registration, removal, connection test. */
+export function useGdriveCredential() {
+  const tenantKey = useTenantKey();
+  return useQuery({
+    queryKey: ['knowledge', tenantKey, 'gdrive-credential'],
+    queryFn: () => knowledgeService.gdriveCredential(),
+  });
+}
+
+export function useSaveGdriveCredential() {
+  const qc = useQueryClient();
+  const tenantKey = useTenantKey();
+  return useMutation({
+    mutationFn: (keyJson: string) => knowledgeService.saveGdriveCredential(keyJson),
+    onSuccess: (r) => {
+      qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'gdrive-credential'] });
+      qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'sources'] });
+      // Echo the address, because sharing the folder with it is the next step
+      // and nothing else on screen says what it is.
+      toast.success(`Connected as ${r.clientEmail}`);
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+}
+
+export function useDeleteGdriveCredential() {
+  const qc = useQueryClient();
+  const tenantKey = useTenantKey();
+  return useMutation({
+    mutationFn: () => knowledgeService.deleteGdriveCredential(),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'gdrive-credential'] });
+      toast.success('Service account removed');
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+}
+
+export function useTestGdrive() {
+  return useMutation({
+    mutationFn: (folderId?: string) => knowledgeService.testGdrive(folderId),
+    // A failed check is a result, not a request error: the message explains
+    // which half is wrong (key or folder sharing).
+    onSuccess: (r) => (r.ok ? toast.success(r.message) : toast.error(r.message)),
     onError: (err: Error) => toast.error(err.message),
   });
 }

@@ -13,6 +13,15 @@ export class CreateSourceRequest {
   @IsOptional() @IsObject() config_json?: Record<string, unknown>;
 }
 
+/** Service-account key, pasted whole (PLN-260815 G1). */
+export class SaveGdriveCredentialRequest {
+  @IsString() key_json: string;
+}
+
+export class TestGdriveRequest {
+  @IsOptional() @IsString() folder_id?: string;
+}
+
 export class UpdateSourceRequest {
   @IsOptional() @IsString() name?: string;
   @IsOptional() @IsString() status?: string; // active/inactive
