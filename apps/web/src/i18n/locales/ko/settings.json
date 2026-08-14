@@ -293,11 +293,15 @@
       "smtp_host": "SMTP 호스트",
       "app_password": "앱 비밀번호",
       "social_types": "인입 채널",
-      "sender_name": "발신자 이름"
+      "sender_name": "발신자 이름",
+      "key_id": "Provider API 키 ID",
+      "api_secret": "Provider API 시크릿",
+      "expected_customer": "기대 고객 참조값"
     },
     "ph": {
       "social_types": "zalo, line, whatsapp",
-      "sender_name": "고객지원"
+      "sender_name": "고객지원",
+      "expected_customer": "예: CUST-… (릴레이 콘솔에서 확인; 잘못된 서버 지정 차단)"
     },
     "provider": {
       "telegram": {

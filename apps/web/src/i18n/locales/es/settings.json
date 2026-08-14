@@ -293,11 +293,15 @@
       "smtp_host": "Servidor SMTP",
       "app_password": "Contraseña de aplicación",
       "social_types": "Canales de entrada",
-      "sender_name": "Nombre del remitente"
+      "sender_name": "Nombre del remitente",
+      "key_id": "ID de clave API del proveedor",
+      "api_secret": "Secreto API del proveedor",
+      "expected_customer": "Ref. de cliente esperado"
     },
     "ph": {
       "social_types": "zalo, line, whatsapp",
-      "sender_name": "Soporte"
+      "sender_name": "Soporte",
+      "expected_customer": "p. ej. CUST-… (de la consola del relay; rechaza un servidor mal apuntado)"
     },
     "provider": {
       "telegram": {

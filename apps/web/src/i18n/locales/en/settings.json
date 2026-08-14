@@ -293,11 +293,15 @@
       "smtp_host": "SMTP host",
       "app_password": "App password",
       "social_types": "Inbound channels",
-      "sender_name": "Sender name"
+      "sender_name": "Sender name",
+      "key_id": "Provider API key ID",
+      "api_secret": "Provider API secret",
+      "expected_customer": "Expected customer ref"
     },
     "ph": {
       "social_types": "zalo, line, whatsapp",
-      "sender_name": "Support"
+      "sender_name": "Support",
+      "expected_customer": "e.g. CUST-… (from the relay console; rejects a mispointed server)"
     },
     "provider": {
       "telegram": {

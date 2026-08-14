@@ -4,6 +4,7 @@ import { RedisService } from '../../../infrastructure/cache/redis.service';
 import { ChannelThread } from '../entity/channel-thread.entity';
 import { MessengerChannel } from '../entity/messenger-channel.entity';
 import { channelField } from '../messenger-secret.util';
+import { ksrHeaders } from '../ksr-signature.util';
 import {
   AdapterContext,
   MessengerAdapter,
@@ -28,11 +29,30 @@ const TOKEN_TTL_SEC = 10 * 3600;
 const WATERMARK_TTL_SEC = 7 * 24 * 3600;
 const MESSAGE_LIMIT = 100;
 
+/** Cold start ingests at most this many provider pages per pull (resumes next tick). */
+const MAX_PROVIDER_PAGES = 20;
+/** Channel-level provider cursor survives restarts; re-ingest is dedup-safe anyway. */
+const PROVIDER_CURSOR_TTL_SEC = 30 * 24 * 3600;
+
 /** relay_channel.channel_type → the short name the console badges. */
 const SUB_CHANNEL: Record<string, string> = {
   relay_kakao_pc: 'kakao',
   relay_sms: 'sms',
 };
+
+/**
+ * Provider-API `origin` → console badge. Origins are open-ended
+ * ('relay_kakao_pc', 'line_android_notification', 'sms'…), so substring
+ * matching beats a closed map: an unknown origin stays visible as 'relay'
+ * instead of silently borrowing another channel's badge.
+ */
+function subChannelFromOrigin(origin: string | null | undefined): string {
+  const o = (origin ?? '').toLowerCase();
+  if (o.includes('kakao')) return 'kakao';
+  if (o.includes('sms')) return 'sms';
+  if (o.includes('line')) return 'line';
+  return 'relay';
+}
 
 interface RelayConversation {
   id?: number;
@@ -61,6 +81,49 @@ interface RelayCommand {
   fail_reason?: string;
 }
 
+// ---- provider API v1 shapes (camelCase — unlike the operator inbox API) ----
+
+interface ProviderInstance {
+  instanceId?: string;
+  customerRef?: string;
+  relayState?: string;
+  capabilities?: string[];
+}
+
+interface ProviderConversation {
+  conversationId?: number;
+  origin?: string | null;
+  counterpartDisplay?: string | null;
+  replyEnabled?: boolean;
+  customerRef?: string;
+}
+
+interface ProviderMessage {
+  messageId?: number;
+  conversationId?: number;
+  origin?: string;
+  direction?: string;
+  senderName?: string | null;
+  senderNumber?: string | null;
+  body?: string | null;
+  bodyType?: string;
+  occurredAt?: string;
+  customerRef?: string;
+}
+
+interface ProviderPage<T> {
+  data?: T[];
+  nextCursor?: number | null;
+  hasMore?: boolean;
+  /** History was purged before the cursor — a recorded gap, not a silence. */
+  truncated?: boolean;
+}
+
+interface ProviderCommand {
+  status?: string;
+  failReason?: string | null;
+}
+
 /**
  * btbz-messenger (KSR) relay adapter (PLN-260810 PR-M3).
  *
@@ -80,6 +143,7 @@ export class BtbzRelayAdapter implements MessengerAdapter {
   constructor(private readonly redis: RedisService) {}
 
   async test(ctx: AdapterContext): Promise<TestResult> {
+    if (this.signed(ctx)) return this.testSigned(ctx);
     try {
       const token = await this.token(ctx, true);
       const list = await this.request<{ data?: RelayConversation[] }>(
@@ -99,7 +163,47 @@ export class BtbzRelayAdapter implements MessengerAdapter {
     }
   }
 
+  /**
+   * Signed mode (PLN-260814 S2): the provider `instance` call verifies key,
+   * signature AND — when expected_customer is set — that this base_url points
+   * at the customer the operator believes it does (E5101 on mismatch, checked
+   * server-side before anything is returned). Replies still ride the operator
+   * account (D1a hybrid), so a configured reply path is probed too: reads
+   * working while replies silently cannot log in is exactly the half-broken
+   * state an operator needs named.
+   */
+  private async testSigned(ctx: AdapterContext): Promise<TestResult> {
+    const provider = this.providerFields(ctx);
+    let instance: ProviderInstance;
+    try {
+      instance = await this.providerGetData<ProviderInstance>(
+        ctx,
+        '/api/provider/v1/instance',
+        provider.expectedCustomer ? { 'X-KSR-Expected-Customer': provider.expectedCustomer } : {},
+      );
+    } catch (e) {
+      return failedTest(e);
+    }
+
+    let detail =
+      `provider api connected (customer ${instance.customerRef ?? '?'}, ` +
+      `relay ${instance.relayState ?? '?'})`;
+    const operator = this.fields(ctx);
+    if (operator.email && operator.password) {
+      try {
+        await this.token(ctx, true);
+        detail += '; reply path ok';
+      } catch (e) {
+        return failedTest(e, `${detail}; reply path FAILED: ${(e as Error).message}`);
+      }
+    } else {
+      detail += '; no operator account — replies disabled';
+    }
+    return { ok: true, detail, accountId: provider.keyId };
+  }
+
   async pull(ctx: AdapterContext, cursors: ThreadCursor[]): Promise<NormalizedInbound[]> {
+    if (this.signed(ctx)) return this.pullSigned(ctx);
     const token = await this.token(ctx);
     const known = new Map(cursors.map((c) => [c.externalThreadId, c]));
     const list = await this.request<{ data?: RelayConversation[] }>(
@@ -164,6 +268,103 @@ export class BtbzRelayAdapter implements MessengerAdapter {
   }
 
   /**
+   * Signed-mode pull: one channel-level incremental cursor over
+   * `GET /messages?since_id=` (insertion-order id) replaces the legacy
+   * conversation-list-plus-watermark walk — no N+1, no timestamp parsing.
+   * Thread metadata (display name, reply_enabled) is fetched once per distinct
+   * conversation in the batch. A lost cursor only re-ingests: the pipeline
+   * dedups on (thread, externalMessageId).
+   */
+  private async pullSigned(ctx: AdapterContext): Promise<NormalizedInbound[]> {
+    const expected = this.providerFields(ctx).expectedCustomer;
+    const cursorKey = `ksr:pcursor:${ctx.channel.id}`;
+    let since = Number((await this.redis.get(cursorKey)) ?? 0);
+    if (!Number.isFinite(since) || since < 0) since = 0;
+
+    const out: NormalizedInbound[] = [];
+    const convCache = new Map<number, ProviderConversation | null>();
+
+    for (let page = 0; page < MAX_PROVIDER_PAGES; page++) {
+      const batch = await this.providerGetPage<ProviderMessage>(
+        ctx,
+        `/api/provider/v1/messages?since_id=${since}&direction=inbound&limit=${MESSAGE_LIMIT}`,
+      );
+      if (batch.truncated) {
+        // History was purged past our cursor — a gap to record, not to hide.
+        this.logger.warn(
+          `ksr provider history truncated before cursor ${since} (channel ${ctx.channel.id})`,
+        );
+      }
+
+      for (const msg of batch.data ?? []) {
+        if (msg.messageId == null || msg.conversationId == null) continue;
+        // The server already filtered direction=inbound; keep the guard anyway —
+        // ingesting our own relayed replies would loop them back to customers.
+        if ((msg.direction ?? '').toLowerCase() !== 'inbound') continue;
+        // Every provider row carries the instance's customerRef (FR-052): a
+        // mismatch means this base_url serves someone else's mall — stop before
+        // storing anything against the wrong tenant.
+        if (expected && msg.customerRef && msg.customerRef !== expected) {
+          throw new Error(
+            `ksr provider customerRef '${msg.customerRef}' != expected '${expected}' — ` +
+              `channel ${ctx.channel.id} points at the wrong instance; pull aborted`,
+          );
+        }
+        const text = (msg.body ?? '').trim();
+        if (!text) continue;
+
+        let conv = convCache.get(msg.conversationId);
+        if (conv === undefined) {
+          conv = await this.conversationMeta(ctx, msg.conversationId);
+          convCache.set(msg.conversationId, conv);
+        }
+
+        out.push({
+          externalThreadId: String(msg.conversationId),
+          externalMessageId: String(msg.messageId),
+          // Masked by the relay per consumer policy; SMS identity is the number.
+          externalUserId: msg.senderNumber ?? null,
+          externalUserName: msg.senderName ?? conv?.counterpartDisplay ?? null,
+          text,
+          languageHint: null,
+          subChannel: subChannelFromOrigin(msg.origin ?? conv?.origin),
+          replyEnabled: conv?.replyEnabled ?? true,
+          occurredAt: parseDate(msg.occurredAt),
+        });
+      }
+
+      if (batch.nextCursor != null && Number(batch.nextCursor) > since) {
+        since = Number(batch.nextCursor);
+      }
+      if (!batch.hasMore) break;
+      if (page === MAX_PROVIDER_PAGES - 1) {
+        this.logger.warn(
+          `ksr provider pull capped at ${MAX_PROVIDER_PAGES} pages (channel ${ctx.channel.id}); resuming next tick`,
+        );
+      }
+    }
+
+    await this.redis.set(cursorKey, String(since), PROVIDER_CURSOR_TTL_SEC);
+    return out;
+  }
+
+  /** Single conversation's metadata; null (not a throw) keeps one bad row from killing the batch. */
+  private async conversationMeta(
+    ctx: AdapterContext,
+    conversationId: number,
+  ): Promise<ProviderConversation | null> {
+    try {
+      return await this.providerGetData<ProviderConversation>(
+        ctx,
+        `/api/provider/v1/conversations/${conversationId}`,
+      );
+    } catch (e) {
+      this.logger.warn(`ksr conversation ${conversationId} meta fetch failed: ${(e as Error).message}`);
+      return null;
+    }
+  }
+
+  /**
    * A reply is queued as a command for the capturing device agent, so this
    * returns `unconfirmed`: the message left ShopTalk but nothing yet proves it
    * reached the room. `confirm` resolves it later.
@@ -187,6 +388,21 @@ export class BtbzRelayAdapter implements MessengerAdapter {
     thread: ChannelThread,
     externalCommandId: string,
   ): Promise<'sent' | 'unconfirmed' | 'failed' | 'pending'> {
+    if (this.signed(ctx)) {
+      // Provider surface has the single-command lookup the operator API lacks.
+      let command: ProviderCommand;
+      try {
+        command = await this.providerGetData<ProviderCommand>(
+          ctx,
+          `/api/provider/v1/commands/${encodeURIComponent(externalCommandId)}`,
+        );
+      } catch (e) {
+        // A command the relay no longer knows (E5103 / TTL sweep) is not a success.
+        if ((e as Error).message.includes('404')) return 'failed';
+        throw e;
+      }
+      return mapCommandStatus(command.status);
+    }
     const token = await this.token(ctx);
     const res = await this.request<{ data?: RelayCommand[] }>(
       ctx,
@@ -197,17 +413,111 @@ export class BtbzRelayAdapter implements MessengerAdapter {
     const command = (res?.data ?? []).find((c) => String(c.id) === String(externalCommandId));
     // A command that vanished (TTL sweep) is not a success — treat it as failed.
     if (!command) return 'failed';
+    return mapCommandStatus(command.status);
+  }
 
-    switch ((command.status ?? '').toUpperCase()) {
-      case 'SENT':
-        return 'sent';
-      case 'SENT_UNCONFIRMED':
-        return 'unconfirmed';
-      case 'FAILED':
-        return 'failed';
-      default:
-        return 'pending'; // PENDING / DISPATCHED — the agent has not finished
+  // ---- provider API v1 (signed mode, PLN-260814) ----
+
+  /** key_id + api_secret both set = reads go through the signed provider API. */
+  private signed(ctx: AdapterContext): boolean {
+    const { keyId, apiSecret } = this.providerFields(ctx);
+    return !!keyId && !!apiSecret;
+  }
+
+  private providerFields(ctx: AdapterContext): {
+    keyId: string;
+    apiSecret: string;
+    expectedCustomer: string;
+  } {
+    return {
+      keyId: channelField(ctx.channel, 'key_id'),
+      apiSecret: channelField(ctx.channel, 'api_secret', { secret: true }),
+      expectedCustomer: channelField(ctx.channel, 'expected_customer'),
+    };
+  }
+
+  /** Signed GET returning the envelope's `data`. */
+  private async providerGetData<T>(
+    ctx: AdapterContext,
+    pathWithQuery: string,
+    extraHeaders: Record<string, string> = {},
+  ): Promise<T> {
+    const envelope = await this.providerFetch<{ data?: T }>(ctx, pathWithQuery, extraHeaders);
+    return (envelope.data ?? {}) as T;
+  }
+
+  /** Signed GET returning the whole page envelope (data + nextCursor/hasMore/truncated). */
+  private async providerGetPage<T>(
+    ctx: AdapterContext,
+    pathWithQuery: string,
+  ): Promise<ProviderPage<T>> {
+    return this.providerFetch<ProviderPage<T>>(ctx, pathWithQuery);
+  }
+
+  /**
+   * One signed request. Headers are minted here, per call — a retry re-enters
+   * this method and re-signs, because replaying a (timestamp, nonce) pair is a
+   * 409 to the server even when the first attempt died on the wire.
+   */
+  private async providerFetch<T>(
+    ctx: AdapterContext,
+    pathWithQuery: string,
+    extraHeaders: Record<string, string> = {},
+  ): Promise<T> {
+    const { keyId, apiSecret } = this.providerFields(ctx);
+    const base = this.baseUrl(ctx.channel);
+    let res: Response;
+    try {
+      res = await fetch(`${base}${pathWithQuery}`, {
+        method: 'GET',
+        // Signed over the path AS SENT (incl. /api/provider/v1 and query order) —
+        // the server verifies req.originalUrl, so the URL string here and the one
+        // in the signature must be the same value, never rebuilt separately.
+        headers: { ...ksrHeaders(keyId, apiSecret, 'GET', pathWithQuery), ...extraHeaders },
+      });
+    } catch (e) {
+      throw unreachableFailure(PROVIDER_LABEL, base, e);
     }
+    const text = await res.text();
+    let parsed: { error?: { code?: string; message?: string } } = {};
+    try {
+      parsed = text ? JSON.parse(text) : {};
+    } catch {
+      /* non-JSON body — the status carries the story */
+    }
+    if (!res.ok) {
+      const code = parsed.error?.code ?? '';
+      const message = parsed.error?.message ?? '';
+      // The auth ladder, named for operators: key problems are fixable in the
+      // relay console, skew is fixable on the clock, binding on the base_url.
+      if (code === 'E1101' || code === 'E1102' || code === 'E1103') {
+        throw new AdapterFailure(
+          TEST_FAILURE_REASON.CREDENTIALS,
+          `${PROVIDER_LABEL} rejected the API key (${code}) at ${base} — check key id / secret`,
+        );
+      }
+      if (code === 'E1104') {
+        throw new Error(
+          `${PROVIDER_LABEL} rejected the request clock (E1104): server/relay time differ by >300s`,
+        );
+      }
+      if (code === 'E5101') {
+        throw new Error(
+          `${PROVIDER_LABEL} instance serves a different customer (E5101) — check base_url / expected customer`,
+        );
+      }
+      if (code === 'E5109') {
+        throw new Error(
+          `${PROVIDER_LABEL} has not enabled provider delivery for this consumer (E5109) — enable it in the relay console`,
+        );
+      }
+      throw new Error(
+        `${PROVIDER_LABEL} GET ${pathWithQuery.split('?')[0]} failed: ${res.status}` +
+          (code ? ` ${code}` : '') +
+          (message ? ` ${message}` : ''),
+      );
+    }
+    return parsed as T;
   }
 
   // ---- auth ----
@@ -318,6 +628,20 @@ export function extractCookieToken(setCookie: string | null): string | null {
   if (!setCookie) return null;
   const match = /(?:^|[,;\s])ksr_token=([^;,\s]+)/.exec(setCookie);
   return match ? match[1] : null;
+}
+
+/** Relay command status → outbox delivery state (shared by both API surfaces). */
+function mapCommandStatus(status: string | undefined): 'sent' | 'unconfirmed' | 'failed' | 'pending' {
+  switch ((status ?? '').toUpperCase()) {
+    case 'SENT':
+      return 'sent';
+    case 'SENT_UNCONFIRMED':
+      return 'unconfirmed';
+    case 'FAILED':
+      return 'failed';
+    default:
+      return 'pending'; // PENDING / DISPATCHED — the agent has not finished
+  }
 }
 
 function truthy(value: boolean | number | undefined): boolean {
