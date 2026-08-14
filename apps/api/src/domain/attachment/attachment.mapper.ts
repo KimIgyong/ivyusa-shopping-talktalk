@@ -20,8 +20,9 @@ export class AttachmentMapper {
     variant: FileVariant,
     now: number = Date.now(),
     baseUrl = '',
+    ttlSec: number = ATTACHMENT_URL_TTL_SEC,
   ): string {
-    const exp = Math.floor(now / 1000) + ATTACHMENT_URL_TTL_SEC;
+    const exp = Math.floor(now / 1000) + ttlSec;
     const sig = signFileUrl(uuid, variant, exp);
     const query = `exp=${exp}&sig=${sig}${variant === 'thumb' ? '&v=thumb' : ''}`;
     return `${baseUrl.replace(/\/+$/, '')}/api/v1/files/${uuid}?${query}`;

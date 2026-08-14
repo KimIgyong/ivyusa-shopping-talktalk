@@ -7,6 +7,7 @@ import {
   AdapterContext,
   MessengerAdapter,
   NormalizedInbound,
+  OutboundAttachment,
   SendResult,
   TEST_FAILURE_REASON,
   TestResult,
@@ -118,7 +119,15 @@ export class GmailImapAdapter implements MessengerAdapter {
           if (!threadId) continue;
 
           const text = stripQuotedReply(extractPlainText(source));
-          if (!text) continue;
+          // A mail whose whole content is a photo ("here's the damage") has no
+          // body worth keeping — but it is still a message (PLN-260814 S5).
+          const attachments = extractAttachments(source).map((a) => ({
+            data: a.data,
+            filename: a.filename,
+            mime: a.mime,
+            size: a.data.length,
+          }));
+          if (!text && !attachments.length) continue;
 
           out.push({
             externalThreadId: threadId,
@@ -130,6 +139,7 @@ export class GmailImapAdapter implements MessengerAdapter {
             subChannel: 'email',
             replyEnabled: true,
             occurredAt: envelope.date ?? null,
+            attachments: attachments.length ? attachments : undefined,
           });
 
           // Marked read only after it is queued for ingest, so a crash re-reads
@@ -146,7 +156,14 @@ export class GmailImapAdapter implements MessengerAdapter {
   }
 
   /** Reply into the same mail thread (In-Reply-To/References), from the mailbox itself. */
-  async send(ctx: AdapterContext, thread: ChannelThread, text: string): Promise<SendResult> {
+  readonly supportsAttachments = true;
+
+  async send(
+    ctx: AdapterContext,
+    thread: ChannelThread,
+    text: string,
+    attachments?: OutboundAttachment[],
+  ): Promise<SendResult> {
     const account = this.account(ctx);
     if (!account.email || !account.password) throw new Error('gmail credential not set');
     if (!thread.externalUserId) throw new Error('gmail thread has no recipient address');
@@ -174,6 +191,11 @@ export class GmailImapAdapter implements MessengerAdapter {
       to: thread.externalUserId,
       subject: replySubject((ctx.channel.config?.subject as string) ?? thread.externalUserName ?? null),
       text,
+      // nodemailer fetches each URL and embeds the bytes, so the mail carries
+      // the real file rather than a link that expires before it is read.
+      attachments: attachments?.length
+        ? attachments.map((a) => ({ filename: a.filename, path: a.url }))
+        : undefined,
       inReplyTo,
       references: [thread.externalThreadId, inReplyTo].filter(Boolean).join(' '),
     });
@@ -257,6 +279,46 @@ export function extractPlainText(source: string): string {
   const headers = split >= 0 ? normalized.slice(0, split) : '';
   const body = split >= 0 ? normalized.slice(split + 2) : normalized;
   return decodeBody(body, headers);
+}
+
+/**
+ * Attachments on a raw MIME message (PLN-260814 S5).
+ *
+ * Only parts that name a file are taken: an inline `text/html` alternative has
+ * no filename and is the body, not an attachment. Base64 is the encoding
+ * essentially every mail client uses for binaries; a part encoded otherwise is
+ * skipped rather than stored as bytes we cannot trust to be intact.
+ */
+export function extractAttachments(
+  source: string,
+  max = 5,
+): { filename: string; mime: string | null; data: Buffer }[] {
+  if (!source) return [];
+  const normalized = source.replace(/\r\n/g, '\n');
+  const boundaryMatch = /boundary="?([^"\n;]+)"?/i.exec(normalized);
+  if (!boundaryMatch) return [];
+
+  const out: { filename: string; mime: string | null; data: Buffer }[] = [];
+  for (const part of normalized.split(`--${boundaryMatch[1]}`)) {
+    if (out.length >= max) break;
+    const split = part.indexOf('\n\n');
+    if (split < 0) continue;
+    const headers = part.slice(0, split);
+    const filename =
+      /filename\*?=(?:"([^"]+)"|([^\s;]+))/i.exec(headers)?.slice(1).find(Boolean) ??
+      /name\*?=(?:"([^"]+)"|([^\s;]+))/i.exec(headers)?.slice(1).find(Boolean);
+    if (!filename) continue;
+    if (!/content-transfer-encoding:\s*base64/i.test(headers)) continue;
+
+    const mime = /content-type:\s*([\w.+-]+\/[\w.+-]+)/i.exec(headers)?.[1] ?? null;
+    try {
+      const data = Buffer.from(part.slice(split + 2).replace(/\s+/g, ''), 'base64');
+      if (data.length) out.push({ filename: filename.trim(), mime, data });
+    } catch {
+      // A part we cannot decode is dropped; the message body still arrives.
+    }
+  }
+  return out;
 }
 
 function decodePart(part: string): string {
