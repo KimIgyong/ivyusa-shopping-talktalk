@@ -16,6 +16,22 @@ const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/
 
 export const http = axios.create({ baseURL });
 
+/**
+ * Absolute URL for an attachment link (PLN-260814). The API returns the path
+ * (`/api/v1/files/…`) because the widget and the console reach the API on
+ * different origins; each client resolves it against its own base. Resolving
+ * against the base's ORIGIN, not the base path, is what keeps `/api/v1` from
+ * appearing twice.
+ */
+export const resolveFileUrl = (path: string): string => {
+  if (/^https?:\/\//i.test(path)) return path;
+  try {
+    return new URL(path, new URL(baseURL, window.location.href).origin).href;
+  } catch {
+    return path;
+  }
+};
+
 http.interceptors.request.use((config) => {
   const token = useAuthStore.getState().accessToken;
   if (token) {
@@ -101,6 +117,21 @@ export const apiPost = async <T>(url: string, data?: unknown): Promise<T> => {
  */
 export const apiPostForm = async <T>(url: string, form: FormData): Promise<T> => {
   const res = await http.post<T>(url, form);
+  return res.data;
+};
+
+/** apiPostForm plus upload progress — same Content-Type caveat applies. */
+export const apiUpload = async <T>(
+  url: string,
+  form: FormData,
+  onProgress?: (percent: number) => void,
+): Promise<T> => {
+  const res = await http.post<T>(url, form, {
+    onUploadProgress: (e) => {
+      if (!onProgress || !e.total) return;
+      onProgress(Math.min(99, Math.round((e.loaded / e.total) * 100)));
+    },
+  });
   return res.data;
 };
 

@@ -1,10 +1,27 @@
 import { Type } from 'class-transformer';
-import { IsEmail, IsInt, IsString, Max, MaxLength, Min, MinLength } from 'class-validator';
+import {
+  IsArray,
+  IsEmail,
+  IsInt,
+  IsOptional,
+  IsString,
+  Max,
+  MaxLength,
+  Min,
+  MinLength,
+} from 'class-validator';
 
 /** Request DTOs — snake_case (amoeba_code_convention). */
 export class SendMessageRequest {
   @IsString() session_token: string;
-  @IsString() @MinLength(1) message: string;
+  /**
+   * May be empty when the turn carries files instead (PLN-260814). "Neither
+   * text nor attachments" is refused in the controller — the DTO alone cannot
+   * express that either-or.
+   */
+  @IsString() message: string;
+  /** Attachment uuids from POST /files/upload, in display order. */
+  @IsOptional() @IsArray() @IsString({ each: true }) attachment_ids?: string[];
 }
 
 /** POST /chat/end — customer ends the current conversation (PLN-260808 Track B). */

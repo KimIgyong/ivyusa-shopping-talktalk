@@ -79,12 +79,32 @@ export interface ScenarioFollowUpResponse {
   label: string;
 }
 
+/**
+ * A file exchanged in the conversation (PLN-260814). `url`/`thumbUrl` are signed
+ * and short-lived, so they are re-minted on every response that carries them —
+ * a URL held from an earlier poll stops working, by design.
+ */
+export interface ChatAttachmentResponse {
+  id: string;
+  kind: 'image' | 'file';
+  filename: string;
+  mime: string;
+  size: number;
+  width?: number | null;
+  height?: number | null;
+  url: string;
+  /** Images only; null when thumbnailing was unavailable (render the original). */
+  thumbUrl?: string | null;
+}
+
 export interface ChatMessageResponse {
   id: string;
   senderType: string;
   senderName: string | null;
   body: string;
   createdAt: string;
+  /** Files sent with this turn. Absent when the turn is text-only. */
+  attachments?: ChatAttachmentResponse[];
   /** Present only on a scripted turn that carries chips. */
   quickReplies?: ScenarioFollowUpResponse[];
   /**

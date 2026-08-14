@@ -2,21 +2,29 @@ import {
   Body,
   Controller,
   Get,
+  HttpStatus,
   Param,
   ParseIntPipe,
   Patch,
   Post,
   Put,
   Query,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CAPABILITY, Principal } from '@ivy/types';
 import { normalizePage, buildPagination } from '@ivy/common';
 import { AgentService } from './agent.service';
 import { AgentAlertService } from './agent-alert.service';
+import { AttachmentService, UploadInput } from '../attachment/attachment.service';
+import { AttachmentMapper } from '../attachment/attachment.mapper';
 import { RequireCapability } from '../../global/decorator/auth.decorator';
 import { CurrentUser } from '../../global/decorator/current-user.decorator';
 import { Paginated } from '../../global/interceptor/transform.interceptor';
+import { BusinessException } from '../../global/exception/business.exception';
+import { ERROR_CODE } from '../../global/constant/error-code.constant';
 import {
   AgentMessageRequest,
   CreateCustomerRequest,
@@ -52,6 +60,7 @@ export class AgentConsoleController {
   constructor(
     private readonly agentService: AgentService,
     private readonly alertService: AgentAlertService,
+    private readonly attachments: AttachmentService,
   ) {}
 
   @Get('alerts')
@@ -170,6 +179,9 @@ export class AgentConsoleController {
     // PII-access audit (PRV-H4): the agent sees the transcript + customer panel.
     await this.agentService.auditConversationView(actorIdOf(user), tenantId, id);
     const names = await this.agentService.resolveSenderNames(messages);
+    // One query for the page — the console re-fetches a conversation on every
+    // poll, so a per-message lookup would multiply with the transcript length.
+    const attachments = await this.attachments.findByMessageIds(messages.map((m) => Number(m.id)));
     const customer = await this.agentService.customerContext(id, tenantId);
     const conversation = await this.agentService.findConversation(id, tenantId);
     const sessionState = await this.agentService.sessionStateFor(id, conversation.sessionId);
@@ -193,7 +205,11 @@ export class AgentConsoleController {
       channel: conversation.channel || 'widget',
       status: conversation.status,
       messages: messages.map((m) =>
-        toMessageResponse(m, m.senderId != null ? names.get(String(m.senderId)) ?? null : null),
+        toMessageResponse(
+          m,
+          m.senderId != null ? names.get(String(m.senderId)) ?? null : null,
+          attachments.get(String(m.id)),
+        ),
       ),
       hasMore,
       customer,
@@ -273,19 +289,68 @@ export class AgentConsoleController {
     @Param('id', ParseIntPipe) id: number,
     @Body() body: AgentMessageRequest,
   ) {
+    // Either-or: text, files, or both — never an empty reply (PLN-260814).
+    if (!body.body?.trim() && !body.attachment_ids?.length) {
+      throw new BusinessException(ERROR_CODE.VALIDATION_FAILED, HttpStatus.BAD_REQUEST);
+    }
     const agentId = actorIdOf(user);
-    const saved = await this.agentService.sendMessage(id, agentId, tenantOf(user), body.body);
-    // Length only — the message itself lives in the transcript, which has a
-    // different retention life than the audit trail.
+    const saved = await this.agentService.sendMessage(
+      id,
+      agentId,
+      tenantOf(user),
+      body.body,
+      body.attachment_ids,
+    );
+    const attachments = await this.attachments.findByMessageIds([Number(saved.id)]);
+    // Length and file count only — the message itself lives in the transcript,
+    // which has a different retention life than the audit trail.
     await this.agentService.auditAgentAction(
       agentId,
       tenantOf(user),
       'agent.message_sent',
       `conversation:${id}`,
-      { messageId: saved.id, length: saved.body.length },
+      {
+        messageId: saved.id,
+        length: saved.body.length,
+        attachments: attachments.get(String(saved.id))?.length ?? 0,
+      },
     );
     const senderName = await this.agentService.agentName(agentId);
-    return toMessageResponse(saved, senderName);
+    return toMessageResponse(saved, senderName, attachments.get(String(saved.id)));
+  }
+
+  @Post('conversations/:id/attachments')
+  @RequireCapability(CAPABILITY.CONVERSATION_HANDLE)
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 25 * 1024 * 1024, files: 1 } }))
+  @ApiOperation({ summary: 'Upload a file to send with an agent reply (PLN-260814 S4)' })
+  async uploadAttachment(
+    @CurrentUser() user: Principal,
+    @Param('id', ParseIntPipe) id: number,
+    @UploadedFile() file?: UploadInput,
+  ) {
+    if (!file) throw new BusinessException(ERROR_CODE.VALIDATION_FAILED, HttpStatus.BAD_REQUEST);
+    const tenantId = tenantOf(user);
+    const agentId = actorIdOf(user);
+    // Ownership before storage: an agent may only attach to a conversation of
+    // their own tenant, and this throws if it is not.
+    await this.agentService.findConversation(id, tenantId);
+
+    const saved = await this.attachments.store(file, {
+      tenantId,
+      conversationId: id,
+      sessionId: null,
+      uploaderType: 'agent',
+      uploaderId: agentId,
+      source: 'console',
+    });
+    await this.agentService.auditAgentAction(
+      agentId,
+      tenantId,
+      'chat.attachment_uploaded',
+      `attachment:${saved.uuid}`,
+      { kind: saved.kind, mime: saved.mime, size: Number(saved.size), source: 'console' },
+    );
+    return AttachmentMapper.toResponse(saved);
   }
 
   @Post('conversations/:id/handback')

@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import type { ChatMessage } from '../../lib/types';
 import { formatTime } from '../../lib/format';
+import { MessageAttachments } from './MessageAttachments';
 
 /**
  * Citation URLs come from tenant-editable KB sources — only allow http(s) so a
@@ -24,16 +25,23 @@ export function MessageBubble({ message }: { message: ChatMessage }) {
         {message.senderType === 'agent' && message.senderName && (
           <div className="mb-0.5 text-[11px] font-medium text-gray-500">{message.senderName}</div>
         )}
-        <div
-          className={[
-            'whitespace-pre-wrap break-words rounded-lg px-3 py-2 text-sm',
-            mine
-              ? 'rounded-br-none bg-primary-500 text-white'
-              : 'rounded-bl-none bg-gray-100 text-gray-800',
-          ].join(' ')}
-        >
-          {message.body}
-        </div>
+        {/* A file sent with no words is a valid turn (PLN-260814) — render the
+            attachments alone rather than an empty bubble above them. */}
+        {message.body?.trim() && (
+          <div
+            className={[
+              'whitespace-pre-wrap break-words rounded-lg px-3 py-2 text-sm',
+              mine
+                ? 'rounded-br-none bg-primary-500 text-white'
+                : 'rounded-bl-none bg-gray-100 text-gray-800',
+            ].join(' ')}
+          >
+            {message.body}
+          </div>
+        )}
+        {message.attachments && message.attachments.length > 0 && (
+          <MessageAttachments attachments={message.attachments} mine={mine} />
+        )}
         {message.citations && message.citations.length > 0 && (
           <div className="mt-1.5 border-t border-gray-200 pt-1.5">
             <p className="mb-0.5 text-[10px] font-medium text-gray-500">{t('chat.citations')}</p>

@@ -33,3 +33,6 @@ npm-debug.log*
 
 # uploads (local dev kb files)
 apps/api/storage/
+# chat attachments written by the dev UPLOAD_DIR default (PLN-260814)
+apps/api/.uploads/
+.uploads/

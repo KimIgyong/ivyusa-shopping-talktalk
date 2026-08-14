@@ -13,10 +13,14 @@ describe('CacheControlInterceptor', () => {
   function ctxFor(
     type: 'http' | 'rpc',
     res: { setHeader?: unknown; headersSent?: boolean } = {},
+    req?: { method?: string; path?: string; query?: Record<string, unknown> },
   ): ExecutionContext {
     return {
       getType: () => type,
-      switchToHttp: () => ({ getResponse: () => res }),
+      switchToHttp: () => ({
+        getResponse: () => res,
+        ...(req ? { getRequest: () => req } : {}),
+      }),
     } as unknown as ExecutionContext;
   }
 
@@ -70,6 +74,49 @@ describe('CacheControlInterceptor', () => {
     ).not.toThrow();
     expect(res.setHeader).not.toHaveBeenCalled();
     expect(next.handle).toHaveBeenCalled();
+  });
+
+  // The one opted-out route (PLN-260814): a signed attachment read. `no-store`
+  // there re-downloads every thumbnail on every poll-driven re-render.
+  describe('signed attachment reads', () => {
+    const signed = {
+      method: 'GET',
+      path: '/api/v1/files/abc-123',
+      query: { sig: 'deadbeef', exp: '1760000000' },
+    };
+
+    it('allows a private cache, shorter than the signature lifetime', () => {
+      const res = httpRes();
+      new CacheControlInterceptor().intercept(ctxFor('http', res, signed), handler());
+      expect(res.setHeader).toHaveBeenCalledWith('Cache-Control', 'private, max-age=600');
+    });
+
+    it('still stamps no-store on the same path without a signature', () => {
+      const res = httpRes();
+      new CacheControlInterceptor().intercept(
+        ctxFor('http', res, { ...signed, query: {} }),
+        handler(),
+      );
+      expect(res.setHeader).toHaveBeenCalledWith('Cache-Control', 'no-store');
+    });
+
+    it('does not extend the exemption to writes', () => {
+      const res = httpRes();
+      new CacheControlInterceptor().intercept(
+        ctxFor('http', res, { ...signed, method: 'POST' }),
+        handler(),
+      );
+      expect(res.setHeader).toHaveBeenCalledWith('Cache-Control', 'no-store');
+    });
+
+    it('does not exempt a nested path that merely contains /files/', () => {
+      const res = httpRes();
+      new CacheControlInterceptor().intercept(
+        ctxFor('http', res, { ...signed, path: '/api/v1/files/abc/secrets' }),
+        handler(),
+      );
+      expect(res.setHeader).toHaveBeenCalledWith('Cache-Control', 'no-store');
+    });
   });
 
   it('does not throw when there is no usable response object', () => {

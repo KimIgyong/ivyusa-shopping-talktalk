@@ -10,7 +10,7 @@ import {
   sendScenario,
   rateChat,
 } from '../services/chatService';
-import type { ChatMessage, ChatReply, ScenarioPostAction } from '../lib/types';
+import type { ChatAttachment, ChatMessage, ChatReply, ScenarioPostAction } from '../lib/types';
 
 export interface SendResult {
   escalate: boolean;
@@ -73,8 +73,10 @@ export function useChat(sessionToken: string | null) {
   }, []);
 
   const send = useCallback(
-    async (text: string): Promise<SendResult> => {
-      if (!sessionToken || !text.trim()) {
+    async (text: string, attachments?: ChatAttachment[]): Promise<SendResult> => {
+      // A turn is now valid with files and no words (PLN-260814) — but still
+      // never with neither.
+      if (!sessionToken || (!text.trim() && !attachments?.length)) {
         return { escalate: false, needsAuth: false };
       }
       append({
@@ -82,11 +84,18 @@ export function useChat(sessionToken: string | null) {
         senderType: 'user',
         body: text,
         createdAt: new Date().toISOString(),
+        // Shown from the upload response, so the shopper sees their own photo
+        // in the thread before the next poll returns the stored row.
+        attachments,
       });
       setSending(true);
       inFlight.current = true;
       try {
-        const res: ChatReply = await sendMessage(sessionToken, text);
+        const res: ChatReply = await sendMessage(
+          sessionToken,
+          text,
+          attachments?.map((a) => a.id),
+        );
         setConversationId(res.conversationId);
         // A message after an ended thread opened a fresh conversation — clear
         // the ended banner now rather than waiting for the next poll.

@@ -14,6 +14,7 @@ import { RagService } from './rag.service';
 import { ScenarioService } from './scenario.service';
 import { ChatController } from './chat.controller';
 import { SessionModule } from '../session/session.module';
+import { AttachmentModule } from '../attachment/attachment.module';
 import { AuditModule } from '../audit/audit.module';
 import { ModerationModule } from '../moderation/moderation.module';
 import { AiEngineModule } from '../ai-engine/ai-engine.module';
@@ -38,6 +39,10 @@ import { IssueModule } from '../issue/issue.module';
       AgentDailyStat,
     ]),
     SessionModule,
+    // Files a customer sent with a turn (PLN-260814). Attachment does not
+    // depend on Chat — it only registers the Conversation repository — so this
+    // stays acyclic.
+    AttachmentModule,
     // Idle sweep records who (nothing) closed a thread and when.
     AuditModule,
     ModerationModule,

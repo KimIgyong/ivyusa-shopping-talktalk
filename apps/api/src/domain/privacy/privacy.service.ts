@@ -27,6 +27,7 @@ import { AuditService } from '../audit/audit.service';
 import { RedisService } from '../../infrastructure/cache/redis.service';
 import { SessionService, sessionCacheKey } from '../session/session.service';
 import { AnswerReuseService } from '../answer-reuse/answer-reuse.service';
+import { AttachmentService } from '../attachment/attachment.service';
 import { TenantService } from '../tenant/tenant.service';
 import { ShopifyAdminClient } from '../order/shopify-admin.client';
 import { ErasureSuppressionService } from './erasure-suppression.service';
@@ -80,6 +81,8 @@ export class PrivacyService {
     private readonly adminClient: ShopifyAdminClient,
     // Appended last so positional test doubles stay valid; uses `?.`-guarded.
     private readonly answerReuse?: AnswerReuseService,
+    /** Attachments carry the same personal data as the text (PLN-260814 SI-5). */
+    private readonly attachments?: AttachmentService,
   ) {}
 
   // ---- session resolution (widget DSAR/CCPA) ----
@@ -208,6 +211,16 @@ export class PrivacyService {
    * deleted by tenant_id (they also carry tenant_id), alongside the order cache.
    */
   private async purgeTenant(tenantId: number): Promise<void> {
+    // Files first, outside the transaction: unlinking bytes cannot be rolled
+    // back, so it must not run inside one that might. Deleting them before the
+    // rows means a failure leaves rows pointing at missing files (visible, and
+    // fixable) rather than files nothing points at (invisible, and permanent).
+    if (this.attachments) {
+      await this.attachments
+        .deleteByTenant(tenantId)
+        .catch((e: Error) => this.logger.warn(`attachment purge failed: ${e.message}`));
+    }
+
     // Deliberately does NOT add these customers to the erasure suppression list.
     // shop/redact means the app was uninstalled, not that each shopper objected to
     // processing — and a merchant who reinstalls has a lawful basis again. Blocking
@@ -554,6 +567,15 @@ export class PrivacyService {
               msgs.map((m) => Number(m.id)),
             )
             .catch((e: Error) => this.logger.warn(`reuse erasure failed: ${e.message}`));
+        }
+        // Attachments are deleted, not redacted: a photo has no body to
+        // overwrite, and redacting the text while the picture of the person's
+        // parcel stays on disk is exactly the failure this erasure exists to
+        // prevent (PLN-260814 SI-5).
+        if (this.attachments) {
+          await this.attachments
+            .deleteByConversationIds(conversationIds.map((id) => Number(id)))
+            .catch((e: Error) => this.logger.warn(`attachment erasure failed: ${e.message}`));
         }
         await this.messageRepo.update(
           { conversationId: In(conversationIds) },

@@ -214,5 +214,24 @@
     "sendError": "No se pudo enviar el borrador.",
     "discarded": "Borrador descartado.",
     "discardError": "No se pudo descartar el borrador."
+  },
+  "attachment": {
+    "open": "Abrir {{name}}",
+    "close": "Cerrar",
+    "previous": "Imagen anterior",
+    "next": "Imagen siguiente",
+    "openOriginal": "Abrir original",
+    "download": "Descargar",
+    "unavailable": "Imagen no disponible",
+    "attach": "Adjuntar un archivo",
+    "uploading": "Subiendo…",
+    "uploadFailed": "No se pudo subir {{name}}",
+    "uploaded": "{{count}} archivo adjuntado",
+    "uploaded_other": "{{count}} archivos adjuntados",
+    "remove": "Quitar {{name}}",
+    "tooLarge": "{{name}} supera el límite de {{limit}} MB",
+    "typeNotAllowed": "{{name}} no es un tipo de archivo permitido",
+    "tooMany": "Puedes adjuntar hasta {{max}} archivos por mensaje",
+    "imageLabel": "Imagen"
   }
 }

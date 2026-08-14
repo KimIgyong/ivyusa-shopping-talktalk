@@ -6,6 +6,8 @@ import type {
 } from '@ivy/types';
 import { Conversation } from './entity/conversation.entity';
 import { Message } from './entity/message.entity';
+import { MessageAttachment } from '../attachment/entity/message-attachment.entity';
+import { AttachmentMapper } from '../attachment/attachment.mapper';
 
 /** How long after the thread ends a rating is still accepted (PLN-260810 D5). */
 export const CSAT_WINDOW_MS = 24 * 60 * 60 * 1000;
@@ -45,7 +47,11 @@ function citationsOf(m: Message): ChatCitation[] | undefined {
 }
 
 export class ChatMapper {
-  static toMessageResponse(m: Message, senderName: string | null = null): MessageResponse {
+  static toMessageResponse(
+    m: Message,
+    senderName: string | null = null,
+    attachments?: MessageAttachment[],
+  ): MessageResponse {
     return {
       id: String(m.id),
       senderType: m.senderType,
@@ -54,6 +60,8 @@ export class ChatMapper {
       createdAt: m.createdAt.toISOString(),
       quickReplies: followUpsOf(m),
       citations: citationsOf(m),
+      // Links are minted per response and expire; see AttachmentMapper.
+      attachments: AttachmentMapper.toResponseList(attachments),
     };
   }
 
@@ -61,6 +69,7 @@ export class ChatMapper {
     conversation: Conversation,
     messages: Message[],
     senderNames?: Map<string, string>,
+    attachments?: Map<string, MessageAttachment[]>,
   ): ConversationResponse {
     const endedAt = conversation.endedAt?.getTime() ?? null;
     return {
@@ -77,6 +86,7 @@ export class ChatMapper {
         ChatMapper.toMessageResponse(
           m,
           m.senderId != null ? senderNames?.get(String(m.senderId)) ?? null : null,
+          attachments?.get(String(m.id)),
         ),
       ),
     };

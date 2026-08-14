@@ -8,6 +8,7 @@ import { CjmEvent } from '../cjm/entity/cjm-event.entity';
 import { Notification } from '../notification/entity/notification.entity';
 import { Session } from '../session/entity/session.entity';
 import { AuditService } from '../audit/audit.service';
+import { AttachmentService } from '../attachment/attachment.service';
 
 export interface RetentionPurgeResult {
   retentionDays: number;
@@ -17,6 +18,8 @@ export interface RetentionPurgeResult {
   cjmEvents: number;
   notifications: number;
   sessions: number;
+  /** Attachment rows disposed of, files included (PLN-260814 SI-5). */
+  attachments: number;
 }
 
 /** First scheduled run fires shortly after boot so frequent restarts can't starve disposal. */
@@ -43,6 +46,7 @@ export class RetentionService implements OnModuleInit, OnModuleDestroy {
     @InjectRepository(Session) private readonly sessionRepo: Repository<Session>,
     private readonly config: ConfigService,
     private readonly audit: AuditService,
+    private readonly attachments: AttachmentService,
   ) {}
 
   onModuleInit(): void {
@@ -85,6 +89,12 @@ export class RetentionService implements OnModuleInit, OnModuleDestroy {
     const retentionDays = this.retentionDays();
     const cutoff = new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000);
 
+    // Attachments before their messages: the row is the only pointer to the file
+    // on disk, so deleting the message first would strand the bytes forever
+    // (PLN-260814 SI-5). Uploads abandoned before they were ever sent go too.
+    const attachments =
+      (await this.attachments.deleteOlderThan(cutoff)) + (await this.attachments.purgeUnattached());
+
     // Messages first (child of conversations), then conversations, then journey events.
     const msg = await this.messageRepo.delete({ createdAt: LessThan(cutoff) });
     const conv = await this.conversationRepo.delete({ createdAt: LessThan(cutoff) });
@@ -110,6 +120,7 @@ export class RetentionService implements OnModuleInit, OnModuleDestroy {
       cjmEvents: cjm.affected ?? 0,
       notifications: notif.affected ?? 0,
       sessions: sess.affected ?? 0,
+      attachments,
     };
 
     // Scheduler-driven purge — 'system' actor, not a phantom admin (Stage 4).
@@ -126,6 +137,7 @@ export class RetentionService implements OnModuleInit, OnModuleDestroy {
         cjmEvents: result.cjmEvents,
         notifications: result.notifications,
         sessions: result.sessions,
+        attachments: result.attachments,
       },
     });
 

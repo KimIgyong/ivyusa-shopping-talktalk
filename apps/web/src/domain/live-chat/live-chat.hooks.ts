@@ -189,7 +189,11 @@ export function useConversationActions(id: string | null) {
   });
 
   const send = useMutation({
-    mutationFn: (body: string) => liveChatService.sendMessage(id as string, body),
+    // A reply may carry files, text, or both (PLN-260814 S4).
+    mutationFn: (input: string | { body: string; attachmentIds?: string[] }) =>
+      typeof input === 'string'
+        ? liveChatService.sendMessage(id as string, input)
+        : liveChatService.sendMessage(id as string, input.body, input.attachmentIds),
     onSuccess: invalidate,
   });
 

@@ -20,8 +20,15 @@ import { SessionService } from '../session/session.service';
 import { MessengerChannel } from './entity/messenger-channel.entity';
 import { ChannelThread } from './entity/channel-thread.entity';
 import { ChannelMessageMap } from './entity/channel-message-map.entity';
-import { NormalizedInbound } from './adapter/messenger-adapter';
+import {
+  InboundAttachmentRef,
+  MessengerAdapter,
+  NormalizedInbound,
+} from './adapter/messenger-adapter';
 import { MessengerOutboxService } from './messenger-outbox.service';
+import { AdapterRegistry } from './adapter/adapter.registry';
+import { decryptChannelSecret } from './messenger-secret.util';
+import { AttachmentService } from '../attachment/attachment.service';
 import { REPLY_MODE, resolveReplyMode } from './auto-reply.util';
 
 /**
@@ -57,6 +64,9 @@ export class MessengerIngestService {
     private readonly chatService: ChatService,
     private readonly sessionService: SessionService,
     private readonly outbox: MessengerOutboxService,
+    /** Files delivered with an inbound message (PLN-260814 S5). */
+    private readonly attachments?: AttachmentService,
+    private readonly registry?: AdapterRegistry,
   ) {}
 
   /** Ingest a batch; one bad message never blocks the rest of the delivery. */
@@ -103,12 +113,21 @@ export class MessengerIngestService {
       ? REPLY_MODE.OFF
       : resolveReplyMode(channel.replyMode, session.autoReplyMode);
 
+    // Files are downloaded and stored BEFORE the turn is handled, so the chat
+    // pipeline sees them exactly as it sees a widget upload: ids to claim. That
+    // is also what makes a caption-less photo skip the AI instead of asking it
+    // to answer an empty string (PLN-260814 SI-2).
+    const attachmentIds = await this.storeInboundAttachments(channel, inbound, conversation.id);
+
     if (mode === REPLY_MODE.AUTO) {
       // Full pipeline: consent gate, intent, deny-list, RAG, moderation, handoff.
-      await this.chatService.handleUserMessage(session, inbound.text);
+      await this.chatService.handleUserMessage(session, inbound.text, { attachmentIds });
     } else if (mode === REPLY_MODE.APPROVE) {
       // Same pipeline, but the answer stops at a draft an agent has to send.
-      const turn = await this.chatService.handleUserMessage(session, inbound.text, { draft: true });
+      const turn = await this.chatService.handleUserMessage(session, inbound.text, {
+        draft: true,
+        attachmentIds,
+      });
       if (turn.draft) {
         await this.draftRepo.save(
           this.draftRepo.create({
@@ -128,7 +147,7 @@ export class MessengerIngestService {
     } else {
       // Auto-reply off (or a human already owns the thread): keep the message,
       // let the console answer. Nothing is generated on the shopper's behalf.
-      await this.msgRepo.save(
+      const stored = await this.msgRepo.save(
         this.msgRepo.create({
           tenantId: channel.tenantId,
           conversationId: conversation.id,
@@ -137,6 +156,15 @@ export class MessengerIngestService {
           lang: session.language,
         }),
       );
+      if (attachmentIds.length && this.attachments) {
+        await this.attachments
+          .attachToMessage(attachmentIds, {
+            tenantId: channel.tenantId,
+            messageId: Number(stored.id),
+            conversationId: Number(conversation.id),
+          })
+          .catch((e: Error) => this.logger.warn(`attachment claim failed: ${e.message}`));
+      }
       // Escalate once per conversation, not once per message. Calling it on
       // every inbound paged the agents again for a thread already sitting in
       // their queue — 400 messages across 37 conversations on staging.
@@ -181,6 +209,84 @@ export class MessengerIngestService {
     await this.outbox.flushThread(thread.id).catch((e) => {
       this.logger.warn(`outbox flush failed for thread ${thread.id}: ${(e as Error).message}`);
     });
+  }
+
+  /**
+   * Download the files a platform delivered and store them as unattached
+   * uploads, returning their ids for the turn to claim (PLN-260814 S5).
+   *
+   * Failure is per-file and never fatal: one unreachable photo must not cost us
+   * the message it came with. A file that cannot be fetched is logged, not
+   * silently forgotten — the agent still sees the text, and the log says why
+   * the picture is missing.
+   */
+  private async storeInboundAttachments(
+    channel: MessengerChannel,
+    inbound: NormalizedInbound,
+    conversationId: number,
+  ): Promise<string[]> {
+    const refs = inbound.attachments ?? [];
+    if (!refs.length || !this.attachments) return [];
+
+    const adapter = this.registry?.find(channel.provider);
+    const ids: string[] = [];
+    for (const ref of refs.slice(0, this.attachments.maxPerMessage())) {
+      try {
+        const fetched = await this.fetchInbound(channel, adapter, ref);
+        if (!fetched) continue;
+        const saved = await this.attachments.store(
+          {
+            originalname: fetched.filename,
+            mimetype: fetched.mime ?? '',
+            size: fetched.buffer.length,
+            buffer: fetched.buffer,
+          },
+          {
+            tenantId: channel.tenantId,
+            conversationId,
+            sessionId: null,
+            uploaderType: 'user',
+            uploaderId: null,
+            source: channel.provider,
+          },
+        );
+        ids.push(saved.uuid);
+      } catch (e) {
+        this.logger.warn(
+          `inbound attachment dropped (channel ${channel.id}, thread ${inbound.externalThreadId}): ${(e as Error).message}`,
+        );
+      }
+    }
+    return ids;
+  }
+
+  /** Bytes for one reference: adapter resolve → inline data → plain fetch. */
+  private async fetchInbound(
+    channel: MessengerChannel,
+    adapter: { downloadAttachment?: MessengerAdapter['downloadAttachment'] } | undefined,
+    ref: InboundAttachmentRef,
+  ): Promise<{ buffer: Buffer; filename: string; mime: string | null } | null> {
+    if (ref.data?.length) {
+      return { buffer: ref.data, filename: ref.filename || 'file', mime: ref.mime ?? null };
+    }
+    if (ref.fileId && adapter?.downloadAttachment) {
+      const secret = decryptChannelSecret(channel);
+      const got = await adapter.downloadAttachment({ channel, secret }, ref);
+      return got ? { ...got, mime: got.mime ?? ref.mime ?? null } : null;
+    }
+    if (!ref.url) return null;
+
+    const res = await fetch(ref.url);
+    if (!res.ok) throw new Error(`download failed: ${res.status}`);
+    const buffer = Buffer.from(await res.arrayBuffer());
+    // Name from the reference, else the URL's last path segment — the stored
+    // type check needs an extension it can read.
+    const fromUrl = decodeURIComponent(new URL(ref.url).pathname.split('/').pop() || '');
+    return {
+      buffer,
+      filename: ref.filename || fromUrl || 'file',
+      mime: ref.mime ?? res.headers.get('content-type'),
+    };
   }
 
   /**

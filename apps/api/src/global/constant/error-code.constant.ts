@@ -107,6 +107,19 @@ export const ERROR_CODE = {
     code: 'E5034',
     message: 'No active console account matches the AMA identity for this tenant',
   },
+  // E5035-E5041 — chat attachments (PLN-260814).
+  ATTACHMENT_NOT_FOUND: { code: 'E5035', message: 'Attachment not found' },
+  ATTACHMENT_TYPE_NOT_ALLOWED: { code: 'E5036', message: 'File type is not allowed' },
+  ATTACHMENT_TOO_LARGE: { code: 'E5037', message: 'File exceeds the size limit' },
+  ATTACHMENT_LIMIT_EXCEEDED: { code: 'E5038', message: 'Too many attachments' },
+  /** Signature mismatch or expired link — the download route's only 401. */
+  ATTACHMENT_URL_INVALID: { code: 'E5039', message: 'Attachment link is invalid or expired' },
+  ATTACHMENT_STORAGE_FAILED: { code: 'E5040', message: 'Attachment storage failed' },
+  ATTACHMENT_CHANNEL_UNSUPPORTED: {
+    code: 'E5041',
+    message: 'This channel cannot deliver attachments',
+  },
+
   // E9xxx — system
   INTERNAL_ERROR: { code: 'E9001', message: 'Internal server error' },
   EXTERNAL_SERVICE_ERROR: { code: 'E9002', message: 'External service error' },

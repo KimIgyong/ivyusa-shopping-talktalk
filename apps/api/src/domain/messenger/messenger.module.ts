@@ -24,6 +24,7 @@ import { MessengerSyncService } from './messenger-sync.service';
 import { ChatModule } from '../chat/chat.module';
 import { SessionModule } from '../session/session.module';
 import { AuditModule } from '../audit/audit.module';
+import { AttachmentModule } from '../attachment/attachment.module';
 
 /**
  * External messenger channels (PLN-260810). Telegram and Viber speak to
@@ -48,6 +49,9 @@ import { AuditModule } from '../audit/audit.module';
     ChatModule,
     SessionModule,
     AuditModule,
+    // Files delivered with an inbound message, and files sent back out
+    // (PLN-260814 S5).
+    AttachmentModule,
   ],
   controllers: [MessengerController, MessengerWebhookController],
   providers: [

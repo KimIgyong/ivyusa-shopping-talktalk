@@ -214,5 +214,24 @@
     "sendError": "Could not send the draft.",
     "discarded": "Draft discarded.",
     "discardError": "Could not discard the draft."
+  },
+  "attachment": {
+    "open": "Open {{name}}",
+    "close": "Close",
+    "previous": "Previous image",
+    "next": "Next image",
+    "openOriginal": "Open original",
+    "download": "Download",
+    "unavailable": "Image unavailable",
+    "attach": "Attach a file",
+    "uploading": "Uploading…",
+    "uploadFailed": "Could not upload {{name}}",
+    "uploaded": "{{count}} file attached",
+    "uploaded_other": "{{count}} files attached",
+    "remove": "Remove {{name}}",
+    "tooLarge": "{{name}} is larger than the {{limit}} MB limit",
+    "typeNotAllowed": "{{name}} is not an allowed file type",
+    "tooMany": "You can attach up to {{max}} files per message",
+    "imageLabel": "Image"
   }
 }

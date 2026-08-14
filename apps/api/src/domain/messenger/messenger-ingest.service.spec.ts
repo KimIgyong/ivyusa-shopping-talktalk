@@ -169,7 +169,13 @@ describe('MessengerIngestService', () => {
     const h = build({});
     await h.service.ingestOne(h.channel, inbound);
 
-    expect(h.chatService.handleUserMessage).toHaveBeenCalledWith(expect.objectContaining({ id: 90 }), inbound.text);
+    // The third argument carries the (here empty) attachment ids — a text-only
+    // turn still goes through the same call shape (PLN-260814 S5).
+    expect(h.chatService.handleUserMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 90 }),
+      inbound.text,
+      { attachmentIds: [] },
+    );
     expect(h.savedMaps[0]).toMatchObject({ externalMessageId: 'ext-100', direction: 'inbound', messageId: 501 });
     // The AI answer must not wait for the worker tick.
     expect(h.outbox.flushThread).toHaveBeenCalled();
@@ -265,7 +271,7 @@ describe('MessengerIngestService', () => {
     expect(h.chatService.handleUserMessage).toHaveBeenCalledWith(
       expect.anything(),
       inbound.text,
-      { draft: true },
+      { draft: true, attachmentIds: [] },
     );
     expect(h.savedDrafts[0]).toMatchObject({ body: 'proposed answer', confidence: 0.82 });
     // A draft nobody sees is a draft nobody sends.
