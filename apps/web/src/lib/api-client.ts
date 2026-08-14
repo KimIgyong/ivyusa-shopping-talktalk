@@ -120,6 +120,21 @@ export const apiPostForm = async <T>(url: string, form: FormData): Promise<T> =>
   return res.data;
 };
 
+/** apiPostForm plus upload progress — same Content-Type caveat applies. */
+export const apiUpload = async <T>(
+  url: string,
+  form: FormData,
+  onProgress?: (percent: number) => void,
+): Promise<T> => {
+  const res = await http.post<T>(url, form, {
+    onUploadProgress: (e) => {
+      if (!onProgress || !e.total) return;
+      onProgress(Math.min(99, Math.round((e.loaded / e.total) * 100)));
+    },
+  });
+  return res.data;
+};
+
 export const apiPut = async <T>(url: string, data?: unknown): Promise<T> => {
   const res = await http.put<T>(url, data);
   return res.data;

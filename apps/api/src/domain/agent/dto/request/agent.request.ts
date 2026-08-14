@@ -1,4 +1,13 @@
-import { IsEmail, IsInt, IsOptional, IsString, MaxLength, Min, MinLength } from 'class-validator';
+import {
+  IsArray,
+  IsEmail,
+  IsInt,
+  IsOptional,
+  IsString,
+  MaxLength,
+  Min,
+  MinLength,
+} from 'class-validator';
 
 export class ListSessionsQuery {
   @IsOptional() @IsString() page?: string;
@@ -43,7 +52,11 @@ export class ApproveDraftRequest {
 }
 
 export class AgentMessageRequest {
-  @IsString() @MinLength(1) body: string;
+  /** May be empty when files carry the reply (PLN-260814); the controller
+   * refuses a reply that has neither text nor attachments. */
+  @IsString() body: string;
+  /** Attachment uuids from the console upload endpoint, in display order. */
+  @IsOptional() @IsArray() @IsString({ each: true }) attachment_ids?: string[];
 }
 
 export class LinkCustomerRequest {

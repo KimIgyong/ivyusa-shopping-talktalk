@@ -1,4 +1,4 @@
-import { apiGet, apiPatch, apiPost } from '@/lib/api-client';
+import { apiGet, apiPatch, apiPost, apiUpload } from '@/lib/api-client';
 
 /** Mirrors the API's toSessionResponse — no invented fields (they render as '—'). */
 export interface AgentSession {
@@ -144,8 +144,17 @@ export const liveChatService = {
   // must not wait for it (PLN-260807 D1).
   briefing: (id: string) => apiGet<{ briefing: string }>(`/agent/conversations/${id}/briefing`),
   accept: (id: string) => apiPost<ConversationDetail>(`/agent/conversations/${id}/accept`),
-  sendMessage: (id: string, body: string) =>
-    apiPost<ChatMessage>(`/agent/conversations/${id}/message`, { body }),
+  sendMessage: (id: string, body: string, attachmentIds?: string[]) =>
+    apiPost<ChatMessage>(`/agent/conversations/${id}/message`, {
+      body,
+      attachment_ids: attachmentIds?.length ? attachmentIds : undefined,
+    }),
+  /** Upload one file to send with a reply (PLN-260814 S4). */
+  uploadAttachment: (id: string, file: File, onProgress?: (percent: number) => void) => {
+    const form = new FormData();
+    form.append('file', file);
+    return apiUpload<ChatAttachment>(`/agent/conversations/${id}/attachments`, form, onProgress);
+  },
   end: (id: string) => apiPost<ConversationDetail>(`/agent/conversations/${id}/end`),
   /** Read-only knowledge lookup for chat handlers (PLN-260810 S2). */
   askKnowledge: (question: string, language: string) =>

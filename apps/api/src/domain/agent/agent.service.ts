@@ -35,6 +35,8 @@ import { UpsertProfileRequest } from './dto/request/agent.request';
 import { ChannelThread } from '../messenger/entity/channel-thread.entity';
 import { MessengerChannel } from '../messenger/entity/messenger-channel.entity';
 import { ReplyDraft } from '../chat/entity/reply-draft.entity';
+import { AttachmentService } from '../attachment/attachment.service';
+import { MessageAttachment } from '../attachment/entity/message-attachment.entity';
 import {
   AUTO_REPLY_MODE,
   isAutoReplyMode,
@@ -84,16 +86,21 @@ const REPLY_EMAIL_COPY = {
     subject: '[IVY USA] A reply to your question',
     footer: 'You can continue the conversation any time in the chat on our store.',
     note: 'This reply was emailed to the customer.',
+    // Attachment links expire in minutes, so an email cannot carry one — it
+    // points the shopper back to the chat, where the file is waiting.
+    attachments: 'A file was attached to this reply. Open the chat on our store to view it.',
   },
   ES: {
     subject: '[IVY USA] Respuesta a tu consulta',
     footer: 'Puedes continuar la conversación cuando quieras en el chat de nuestra tienda.',
     note: 'Esta respuesta se envió por correo al cliente.',
+    attachments: 'Esta respuesta incluye un archivo adjunto. Ábrelo en el chat de nuestra tienda.',
   },
   KO: {
     subject: '[IVY USA] 문의하신 내용에 대한 답변',
     footer: '추가 문의는 스토어의 채팅에서 언제든 이어가실 수 있어요.',
     note: '이 답변은 고객 이메일로 발송되었습니다.',
+    attachments: '이 답변에는 첨부 파일이 있습니다. 스토어 채팅에서 확인해 주세요.',
   },
 } as const;
 
@@ -135,7 +142,27 @@ export class AgentService {
     private readonly channelRepo?: Repository<MessengerChannel>,
     @InjectRepository(ReplyDraft)
     private readonly draftRepo?: Repository<ReplyDraft>,
+    /** Files the agent uploaded before sending (PLN-260814 S4). */
+    private readonly attachments?: AttachmentService,
   ) {}
+
+  /**
+   * Bind the agent's pre-uploaded files to the reply. Logged and swallowed on
+   * failure: the reply is already persisted and delivered, and throwing here
+   * would tell the agent the whole message failed when only the file did.
+   */
+  private async attachUploads(
+    ids: string[] | undefined,
+    params: { tenantId: number; messageId: number; conversationId: number },
+  ): Promise<MessageAttachment[]> {
+    if (!ids?.length || !this.attachments) return [];
+    try {
+      return await this.attachments.attachToMessage(ids, params);
+    } catch (err) {
+      this.logger.warn(`attachment claim failed (message ${params.messageId}): ${String(err)}`);
+      return [];
+    }
+  }
 
   /**
    * Audit an agent opening a conversation (transcript + customer PII — PRV-H4/
@@ -658,6 +685,7 @@ export class AgentService {
     agentId: number,
     tenantId: number,
     body: string,
+    attachmentIds?: string[],
   ): Promise<Message> {
     const conversation = await this.requireConversation(conversationId, tenantId);
     // Consent gate (PLN-Privacy-Control-Gap D-1, fail-closed): an agent reply is
@@ -679,10 +707,16 @@ export class AgentService {
     // off-hours thread it mails the customer the same answer twice. Re-sending
     // the identical text within a few seconds returns the message already
     // stored instead of creating a second one.
-    const recent = await this.msgRepo.findOne({
-      where: { conversationId, senderType: SENDER_TYPE.AGENT, senderId: agentId, body },
-      order: { id: 'DESC' },
-    });
+    //
+    // A reply that carries files is exempt: two sends of the same caption with
+    // different photos are two different replies, and suppressing the second
+    // would drop a file the agent watched upload (PLN-260814 S4).
+    const recent = attachmentIds?.length
+      ? null
+      : await this.msgRepo.findOne({
+          where: { conversationId, senderType: SENDER_TYPE.AGENT, senderId: agentId, body },
+          order: { id: 'DESC' },
+        });
     if (recent && Date.now() - new Date(recent.createdAt).getTime() < DUPLICATE_REPLY_WINDOW_MS) {
       this.logger.warn(
         `duplicate agent reply suppressed: conversation=${conversationId} agent=${agentId}`,
@@ -690,14 +724,19 @@ export class AgentService {
       return recent;
     }
 
-    const moderated = await this.moderation.moderate({
-      tenantId,
-      scope: 'agent',
-      authorType: 'agent',
-      authorId: agentId,
-      conversationId,
-      text: body,
-    });
+    // Moderation reads text. A files-only reply has none, so there is nothing
+    // to send it — the file itself is not moderated, which REQ §5 states
+    // outright rather than implying safety we do not provide.
+    const moderated = body.trim()
+      ? await this.moderation.moderate({
+          tenantId,
+          scope: 'agent',
+          authorType: 'agent',
+          authorId: agentId,
+          conversationId,
+          text: body,
+        })
+      : { decision: MODERATION_DECISION.DELIVERED, text: body };
     if (moderated.decision === MODERATION_DECISION.BLOCKED) {
       throw new BusinessException(ERROR_CODE.MODERATION_BLOCKED, HttpStatus.UNPROCESSABLE_ENTITY);
     }
@@ -713,12 +752,18 @@ export class AgentService {
         retrievalTrace: null,
       }),
     );
+    const attached = await this.attachUploads(attachmentIds, {
+      tenantId,
+      messageId: Number(saved.id),
+      conversationId,
+    });
     await this.notifyCustomerOfReply(conversation.sessionId, tenantId);
-    await this.mailReplyIfOffHoursThread(conversation, tenantId, moderated.text);
+    await this.mailReplyIfOffHoursThread(conversation, tenantId, moderated.text, attached.length);
     // Answer reuse ingest (PLN-260808 Track C, D-C1): a human's moderated reply
     // paired with the question it answered is the highest-trust reuse source.
     // Fire-and-forget — a reuse hiccup must never fail the reply.
-    void this.ingestReplyForReuse(conversationId, tenantId, saved);
+    // A files-only reply has no answer text to reuse (PLN-260814 SI-4).
+    if (moderated.text.trim()) void this.ingestReplyForReuse(conversationId, tenantId, saved);
     return saved;
   }
 
@@ -758,6 +803,7 @@ export class AgentService {
     conversation: Conversation,
     tenantId: number,
     body: string,
+    attachmentCount = 0,
   ): Promise<void> {
     if (conversation.replyChannel !== 'email') return;
     try {
@@ -767,10 +813,13 @@ export class AgentService {
       if (!to) return;
       const copy =
         REPLY_EMAIL_COPY[session.language as keyof typeof REPLY_EMAIL_COPY] ?? REPLY_EMAIL_COPY.EN;
+      // The signed link would be dead long before the shopper reads the mail,
+      // so the email says a file is waiting and where (PLN-260814 S4).
+      const attachmentNote = attachmentCount > 0 ? `\n\n${copy.attachments}` : '';
       const sent = await this.mailer.send({
         to,
         subject: copy.subject,
-        text: `${body}\n\n---\n${copy.footer}`,
+        text: `${body}${attachmentNote}\n\n---\n${copy.footer}`,
       });
       if (!sent) return;
       await this.msgRepo.save(
