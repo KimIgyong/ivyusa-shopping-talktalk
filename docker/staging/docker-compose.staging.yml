@@ -20,6 +20,12 @@ services:
         condition: service_started
     expose:
       - '3000'
+    volumes:
+      # Chat attachments (PLN-260814). The API image is rebuilt on every deploy,
+      # so anything written outside this volume is gone by the next one — this
+      # is the difference between a photo the agent can still open next week and
+      # a broken thumbnail.
+      - ivy_uploads_staging:/data/uploads
     healthcheck:
       test: ['CMD', 'wget', '-qO-', 'http://localhost:3000/api/v1/health']
       interval: 15s
@@ -130,6 +136,7 @@ services:
       - '8080:80'
 
 volumes:
+  ivy_uploads_staging:
   ivy_mysql_staging_data:
   ivy_redis_staging_data:
   ivy_rabbitmq_staging_data:
