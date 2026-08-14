@@ -228,5 +228,15 @@
   "proposalReject": "거절",
   "proposalRejectReason": "거절 사유 (제안자에게 표시됩니다)",
   "proposalFromConversation": "대화 #{{id}} 열기",
-  "proposalNoConversation": "대화 연결 없음"
+  "proposalNoConversation": "대화 연결 없음",
+  "folderId": "폴더 ID",
+  "folderIdHint": "드라이브 폴더 URL의 마지막 부분입니다. 링크 전체가 아닙니다.",
+  "shareFolderWith": "이 주소에 폴더를 '뷰어'로 공유하세요:",
+  "registerKeyFirst": "아래에서 구글 서비스 계정 키를 먼저 등록해야 드라이브 소스를 추가할 수 있습니다.",
+  "testConnection": "연결 테스트",
+  "gdriveCredential": "구글 드라이브 서비스 계정",
+  "gdriveConnected": "연결됨",
+  "gdriveNotConnected": "미등록",
+  "gdriveKeyHint": "서비스 계정 JSON을 붙여넣으세요. 인증에 필요한 항목만 저장되며, 키는 다시 표시되지 않습니다.",
+  "gdriveRemoveConfirm": "서비스 계정 키를 삭제할까요? 드라이브 소스 동기화가 중단됩니다."
 }

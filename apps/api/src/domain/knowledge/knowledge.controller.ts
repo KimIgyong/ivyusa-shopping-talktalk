@@ -25,6 +25,7 @@ import { CurrentUser } from '../../global/decorator/current-user.decorator';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
 import { KnowledgeService } from './knowledge.service';
+import { GdriveCredentialService } from './gdrive-credential.service';
 import { KnowledgeMapper } from './knowledge.mapper';
 import {
   AskKnowledgeRequest,
@@ -39,6 +40,8 @@ import {
   SaveUsageGuideRequest,
   ApproveProposalRequest,
   RejectProposalRequest,
+  SaveGdriveCredentialRequest,
+  TestGdriveRequest,
 } from './dto/request/knowledge.request';
 import { KbConflictService } from './kb-conflict.service';
 import { KbRevisionService } from './kb-revision.service';
@@ -58,6 +61,7 @@ export class KnowledgeController {
     private readonly jobService: CatalogSyncJobService,
     private readonly answerProposals: AnswerProposalService,
     private readonly gapService: KnowledgeGapService,
+    private readonly gdriveCredentials: GdriveCredentialService,
   ) {}
 
   // ---- Knowledge-gap proposals (P5, 결정 9: human approval only) ----
@@ -172,6 +176,43 @@ export class KnowledgeController {
       body,
     );
     return KnowledgeMapper.toPost(post);
+  }
+
+  // ---- Google Drive credential (PLN-260815 G1) ----
+
+  @Get('gdrive/credential')
+  @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
+  @ApiOperation({ summary: 'Whether a Drive service account is registered' })
+  async gdriveCredentialStatus(@CurrentUser() user: Principal) {
+    return this.gdriveCredentials.status(this.tenantUser(user).tenantId);
+  }
+
+  @Put('gdrive/credential')
+  @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
+  @ApiOperation({ summary: 'Register a Drive service account key' })
+  async saveGdriveCredential(
+    @CurrentUser() user: Principal,
+    @Body() body: SaveGdriveCredentialRequest,
+  ) {
+    // Only the address comes back — the key itself is never echoed, so a
+    // console that leaks its own screenshot does not leak the secret.
+    return this.gdriveCredentials.save(this.tenantUser(user).tenantId, body.key_json);
+  }
+
+  @Delete('gdrive/credential')
+  @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
+  @ApiOperation({ summary: 'Remove the Drive service account key' })
+  async deleteGdriveCredential(@CurrentUser() user: Principal) {
+    await this.gdriveCredentials.remove(this.tenantUser(user).tenantId);
+    return { removed: true };
+  }
+
+  @Post('gdrive/test')
+  @HttpCode(HttpStatus.OK)
+  @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
+  @ApiOperation({ summary: 'Check the key, and a folder when given' })
+  async testGdrive(@CurrentUser() user: Principal, @Body() body: TestGdriveRequest) {
+    return this.gdriveCredentials.test(this.tenantUser(user).tenantId, body.folder_id);
   }
 
   @Post('sources/:id/sync')

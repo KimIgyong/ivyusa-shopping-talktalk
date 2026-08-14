@@ -228,5 +228,15 @@
   "proposalReject": "Reject",
   "proposalRejectReason": "Reason (shown to whoever proposed it)",
   "proposalFromConversation": "Open conversation #{{id}}",
-  "proposalNoConversation": "No linked conversation"
+  "proposalNoConversation": "No linked conversation",
+  "folderId": "Folder ID",
+  "folderIdHint": "The last part of the Drive folder URL, not the whole link.",
+  "shareFolderWith": "Share the folder with this address as a viewer:",
+  "registerKeyFirst": "Register a Google service account key below before adding a Drive source.",
+  "testConnection": "Test connection",
+  "gdriveCredential": "Google Drive service account",
+  "gdriveConnected": "Connected",
+  "gdriveNotConnected": "Not connected",
+  "gdriveKeyHint": "Paste the service account JSON. Only the fields needed to sign in are stored, and the key is never shown again.",
+  "gdriveRemoveConfirm": "Remove the service account key? Drive sources will stop syncing."
 }

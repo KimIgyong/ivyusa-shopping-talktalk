@@ -25,6 +25,7 @@ import { ProductImportService } from './product-import.service';
 import { CatalogSyncPreview, CatalogSyncService } from './catalog-sync.service';
 import { UsageGuideService, UsageGuideSummary } from './usage-guide.service';
 import { SourceSyncService } from './source-sync.service';
+import { GdriveCredentialService } from './gdrive-credential.service';
 import { REVISION_KIND } from './entity/kb-document-revision.entity';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
@@ -59,6 +60,7 @@ export class KnowledgeService {
     private readonly catalogSync: CatalogSyncService,
     private readonly usageGuides: UsageGuideService,
     private readonly sourceSync: SourceSyncService,
+    private readonly gdriveCredentials: GdriveCredentialService,
   ) {}
 
   // ---- Sources ----
@@ -73,6 +75,25 @@ export class KnowledgeService {
   }
 
   async createSource(tenantId: number, body: CreateSourceRequest): Promise<KnowledgeSource> {
+    // Validate before saving. Accepting a source whose configuration cannot
+    // work — no folder id, no credential — and only surfacing it at sync time
+    // is exactly the "registers fine, does nothing" behaviour this whole line
+    // of work set out to remove.
+    const adapter = this.sourceSync.adapterFor(body.type);
+    if (adapter) {
+      const reason = adapter.validateConfig(body.config_json ?? null);
+      if (reason) {
+        throw new BusinessException(ERROR_CODE.VALIDATION_FAILED, HttpStatus.BAD_REQUEST, {
+          config_json: [reason],
+        });
+      }
+    }
+    if (body.type === 'gdrive' && !(await this.gdriveCredentials.load(tenantId))) {
+      throw new BusinessException(ERROR_CODE.VALIDATION_FAILED, HttpStatus.BAD_REQUEST, {
+        credential: ['Register a Google service account key before adding a Drive source.'],
+      });
+    }
+
     const source = this.sourceRepo.create({
       tenantId,
       type: body.type,
@@ -646,7 +667,10 @@ export class KnowledgeService {
         ? await this.docRepo.find({ where: { tenantId, id: In(touchedIds) } })
         : [];
       const { embedded, failed } = await this.embedDocuments(docs);
-      await this.sourceSync.recordSyncState(source, 'ok', result);
+      // A guarded run kept the documents, but it did not succeed: something is
+      // wrong with the source's access, and a green "last synced" would hide
+      // that until someone noticed the answers had gone stale.
+      await this.sourceSync.recordSyncState(source, result.guardedEmpty ? 'failed' : 'ok', result);
       await this.revisions.recordAudit(tenantId, 0, 'knowledge.source_synced', actorUserId, {
         sourceId,
         type: source.type,

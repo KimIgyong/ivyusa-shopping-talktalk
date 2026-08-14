@@ -7,6 +7,7 @@ import { REVISION_KIND } from './entity/kb-document-revision.entity';
 import { KbRevisionService } from './kb-revision.service';
 import { SourceAdapter, SourceItem } from './source-adapter.interface';
 import { BoardAdapter } from './adapters/board.adapter';
+import { GdriveAdapter } from './adapters/gdrive.adapter';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
 
@@ -18,6 +19,12 @@ export interface SyncResult {
   /** Documents whose source item disappeared — hidden, never deleted (D7). */
   hidden: number;
   failed: number;
+  /**
+   * Set when an external source returned nothing while documents still exist,
+   * so hiding was refused. The sync is reported as failed: the likeliest cause
+   * is lost access, not an emptied folder (PLN-260815 §6).
+   */
+  guardedEmpty?: boolean;
 }
 
 /**
@@ -40,8 +47,10 @@ export class SourceSyncService {
     @InjectRepository(KnowledgeSource) private readonly sourceRepo: Repository<KnowledgeSource>,
     private readonly revisions: KbRevisionService,
     board: BoardAdapter,
+    gdrive: GdriveAdapter,
   ) {
     this.register(board);
+    this.register(gdrive);
   }
 
   private register(adapter: SourceAdapter): void {
@@ -154,6 +163,20 @@ export class SourceSyncService {
       await this.revisions.record(tenantId, saved, before, REVISION_KIND.UPDATE, actorUserId);
       touchedIds.push(Number(saved.id));
       result.updated += 1;
+    }
+
+    // An external source that returned nothing, while documents still exist, is
+    // far more likely to have lost access than to have been emptied. Hiding
+    // here would take the whole source out of retrieval on a transient
+    // permission problem, and nothing in the result would say why.
+    const liveDocs = existing.filter((d) => d.active === 1).length;
+    if (items.length === 0 && liveDocs > 0 && adapter.trustEmptyListing === false) {
+      result.guardedEmpty = true;
+      this.logger.warn(
+        `source ${source.id} (${source.type}) returned 0 items while ${liveDocs} document(s) are live — ` +
+          `refusing to hide them; check the source's access`,
+      );
+      return { result, touchedIds };
     }
 
     result.hidden = await this.hideMissing(tenantId, existing, seen, actorUserId);
