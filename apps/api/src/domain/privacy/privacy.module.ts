@@ -25,6 +25,7 @@ import { Tenant } from '../tenant/entity/tenant.entity';
 import { AuditModule } from '../audit/audit.module';
 import { TenantModule } from '../tenant/tenant.module';
 import { AnswerReuseModule } from '../answer-reuse/answer-reuse.module';
+import { AttachmentModule } from '../attachment/attachment.module';
 import { ShopifyAdminClient } from '../order/shopify-admin.client';
 import { PrivacyService } from './privacy.service';
 import { RetentionService } from './retention.service';
@@ -69,6 +70,9 @@ import { PrivacyController, ShopifyComplianceController } from './privacy.contro
     TenantModule,
     // Answer reuse (PLN-260808 Track C): DSAR erasure drops derived Q&A entries.
     AnswerReuseModule,
+    // Attachments (PLN-260814): retention, tenant purge and DSAR erasure must
+    // remove the files on disk, not just the rows that point at them.
+    AttachmentModule,
   ],
   controllers: [ShopifyComplianceController, PrivacyController],
   providers: [PrivacyService, RetentionService, ShopifyAdminClient],

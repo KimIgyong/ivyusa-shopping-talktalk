@@ -1,4 +1,4 @@
-import { createCipheriv, createDecipheriv, createHmac, randomBytes } from 'crypto';
+import { createCipheriv, createDecipheriv, createHmac, randomBytes, timingSafeEqual } from 'crypto';
 
 /**
  * AES-256-GCM credential encryption (POL-018). Stored layout in a single buffer:
@@ -64,4 +64,49 @@ export function decryptPii(stored: Buffer | null | undefined): string | null {
 export function blindIndex(value: string | null | undefined): string | null {
   if (value == null || value.trim() === '') return null;
   return createHmac('sha256', key()).update(value.trim().toLowerCase()).digest('hex');
+}
+
+/**
+ * Signed attachment URLs (PLN-260814 §4). The download route is public — the
+ * signature IS the authorisation — so ownership is checked when the URL is
+ * minted (the caller already proved it may read that conversation) and the
+ * signature only has to prove the URL was not forged or edited.
+ *
+ * Keyed by FILE_URL_SECRET when set; otherwise derived from CRED_ENC_KEY so a
+ * deployment that has not added the new variable yet still boots with a secret
+ * that is not guessable. The derivation is domain-separated so a signature can
+ * never collide with a blind index.
+ */
+function fileUrlKey(): Buffer {
+  const explicit = process.env.FILE_URL_SECRET ?? '';
+  if (explicit.trim()) return Buffer.from(explicit.trim(), 'utf8');
+  return createHmac('sha256', key()).update('file-url-signing-v1').digest();
+}
+
+export type FileVariant = 'full' | 'thumb';
+
+/** Hex HMAC over uuid|variant|expiry — the exact tuple the URL carries. */
+export function signFileUrl(uuid: string, variant: FileVariant, expiresAt: number): string {
+  return createHmac('sha256', fileUrlKey())
+    .update(`${uuid}|${variant}|${expiresAt}`)
+    .digest('hex');
+}
+
+/**
+ * True only for an unexpired, untampered signature. Comparison is constant-time,
+ * and a malformed signature fails closed rather than throwing.
+ */
+export function verifyFileUrl(
+  uuid: string,
+  variant: FileVariant,
+  expiresAt: number,
+  signature: string,
+  now: number = Date.now(),
+): boolean {
+  if (!Number.isFinite(expiresAt) || expiresAt * 1000 <= now) return false;
+  const expected = signFileUrl(uuid, variant, expiresAt);
+  const given = Buffer.from(signature ?? '', 'utf8');
+  const want = Buffer.from(expected, 'utf8');
+  if (given.length !== want.length) return false;
+  return timingSafeEqual(given, want);
 }

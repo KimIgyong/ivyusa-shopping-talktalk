@@ -1,5 +1,5 @@
 import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common';
-import { Response } from 'express';
+import { Request, Response } from 'express';
 import { Observable } from 'rxjs';
 
 /**
@@ -29,11 +29,31 @@ import { Observable } from 'rxjs';
 export class CacheControlInterceptor implements NestInterceptor {
   intercept(ctx: ExecutionContext, next: CallHandler): Observable<unknown> {
     if (ctx.getType() === 'http') {
-      const res = ctx.switchToHttp().getResponse<Response>();
+      const http = ctx.switchToHttp();
+      const res = http.getResponse<Response>();
+      const req = typeof http.getRequest === 'function' ? http.getRequest<Request>() : null;
       if (typeof res?.setHeader === 'function' && !res.headersSent) {
-        res.setHeader('Cache-Control', 'no-store');
+        res.setHeader('Cache-Control', isSignedFileRead(req) ? FILE_CACHE : 'no-store');
       }
     }
     return next.handle();
   }
+}
+
+/** Shorter than the 15-minute signature life, so a cached copy can never
+ * outlive the link that authorised it. `private` keeps it in the one browser
+ * that asked — shared caches are still forbidden. */
+const FILE_CACHE = 'private, max-age=600';
+
+/**
+ * The one opted-out route (PLN-260814): signed attachment reads. `no-store`
+ * there would re-download every thumbnail on every poll-driven re-render of a
+ * conversation. It is safe to cache because the URL is unguessable, carries its
+ * own expiry, and is unique per file+variant — a different shopper's request is
+ * a different cache key.
+ */
+function isSignedFileRead(req: Request | null): boolean {
+  if (!req || req.method !== 'GET') return false;
+  const path = (req.path ?? '').split('?')[0];
+  return /\/files\/[^/]+$/.test(path) && typeof req.query?.sig === 'string';
 }
