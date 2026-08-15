@@ -639,6 +639,11 @@ function mapCommandStatus(status: string | undefined): 'sent' | 'unconfirmed' | 
       return 'unconfirmed';
     case 'FAILED':
       return 'failed';
+    // Terminal on the relay (guarded transition from PENDING/DISPATCHED only): the device
+    // never picked the command up within its TTL, so the message definitively did not go out.
+    // Without this case it fell into 'pending' and the confirm sweep re-polled it forever.
+    case 'EXPIRED':
+      return 'failed';
     default:
       return 'pending'; // PENDING / DISPATCHED — the agent has not finished
   }
