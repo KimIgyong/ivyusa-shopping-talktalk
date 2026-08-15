@@ -124,6 +124,7 @@ describe('BtbzRelayAdapter', () => {
     ['SENT', 'sent'],
     ['SENT_UNCONFIRMED', 'unconfirmed'],
     ['FAILED', 'failed'],
+    ['EXPIRED', 'failed'],
     ['DISPATCHED', 'pending'],
   ])('maps command status %s → %s', async (status, expected) => {
     stubFetch({ '/commands': { data: [{ id: 77, status }] } });
@@ -461,6 +462,20 @@ describe('BtbzRelayAdapter — signed provider mode', () => {
     await expect(
       adapter.confirm({ channel: signedChannel(), secret: '' }, thread, '55'),
     ).resolves.toBe('unconfirmed');
+  });
+
+  it('confirm() maps EXPIRED (device never picked it up) to failed, ending the poll', async () => {
+    stubProvider({
+      '/api/provider/v1/commands/34': {
+        body: { data: { status: 'EXPIRED', failReason: 'handle_expired' } },
+      },
+    });
+    const adapter = new BtbzRelayAdapter(freshRedis());
+    const thread = { externalThreadId: '9' } as unknown as ChannelThread;
+
+    await expect(
+      adapter.confirm({ channel: signedChannel(), secret: '' }, thread, '34'),
+    ).resolves.toBe('failed');
   });
 
   it('confirm() treats a swept command (404) as failed, not as delivered', async () => {
