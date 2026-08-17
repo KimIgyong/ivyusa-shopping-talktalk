@@ -4,7 +4,17 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { FindOptionsWhere, Repository } from 'typeorm';
 import { Tenant, TenantWidgetCopy } from './entity/tenant.entity';
 import { normalizeStorefrontUrl } from '../../global/util/storefront-url.util';
-import { WIDGET_TABS_DEFAULT, normalizeWidgetTabs } from '@ivy/types';
+import {
+  EXTERNAL_CHANNELS,
+  NOTIFICATION_CATEGORY,
+  WIDGET_TABS_DEFAULT,
+  normalizeWidgetTabs,
+} from '@ivy/types';
+
+/** Real categories the policy may mention ('all' is a query filter, not a kind). */
+const NOTIFICATION_CATEGORY_KEYS: string[] = Object.values(NOTIFICATION_CATEGORY).filter(
+  (c) => c !== 'all',
+);
 import { IntegrationCredential } from './entity/integration-credential.entity';
 import { User } from '../user/entity/user.entity';
 import { JobLabel } from '../user/entity/job-label.entity';
@@ -308,6 +318,42 @@ export class TenantService {
         saved.timezone,
       ]
         .filter(Boolean)
+        .join(' · '),
+    });
+    return saved;
+  }
+
+  /**
+   * Update which external channels this shop may use per category.
+   *
+   * A ceiling on delivery, not a customer preference — so it is audited like
+   * any other setting that changes what shoppers receive.
+   */
+  async updateNotificationChannels(
+    tenantId: number,
+    actorId: number,
+    channels: Record<string, string[]>,
+  ): Promise<Tenant> {
+    const tenant = await this.findById(tenantId);
+    // Keep only known categories/channels: this lands in a JSON column that the
+    // delivery path reads on every send, and an unknown key there is dead weight
+    // that outlives whoever typed it.
+    const clean: Record<string, string[]> = {};
+    for (const [category, list] of Object.entries(channels ?? {})) {
+      if (!NOTIFICATION_CATEGORY_KEYS.includes(category)) continue;
+      clean[category] = (Array.isArray(list) ? list : []).filter((c) =>
+        EXTERNAL_CHANNELS.includes(c),
+      );
+    }
+    tenant.notificationChannels = clean;
+    const saved = await this.tenantRepo.save(tenant);
+    await this.audit.write({
+      tenantId,
+      actorType: 'user',
+      actorId,
+      action: 'tenant.notification_channels_updated',
+      target: Object.entries(clean)
+        .map(([cat, list]) => `${cat}:${list.join('+') || 'none'}`)
         .join(' · '),
     });
     return saved;

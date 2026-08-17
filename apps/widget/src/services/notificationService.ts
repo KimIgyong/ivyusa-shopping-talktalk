@@ -55,3 +55,23 @@ export function setPref(
     enabled,
   });
 }
+
+/**
+ * Marketing refusal — one call, because the server owns which categories count
+ * as marketing (PLN-260817-Widget-Header-Prefs-Cleanup §6.1).
+ */
+export function getMarketingOptOut(sessionToken: string): Promise<{ optOut: boolean }> {
+  return apiClient.get<{ optOut: boolean }>('/notifications/marketing-opt-out', {
+    session_token: sessionToken,
+  });
+}
+
+export function setMarketingOptOut(
+  sessionToken: string,
+  optOut: boolean,
+): Promise<{ optOut: boolean }> {
+  return apiClient.put<{ optOut: boolean }>('/notifications/marketing-opt-out', {
+    session_token: sessionToken,
+    opt_out: optOut,
+  });
+}

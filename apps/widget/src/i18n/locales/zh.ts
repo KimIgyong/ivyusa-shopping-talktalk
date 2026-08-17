@@ -236,6 +236,10 @@ export const zh: Translation = {
     stars_other: '{{count}} 星',
   },
 
+  header: {
+    greeting: '{{name}} 您好',
+  },
+
   prefs: {
     title: '通知偏好设置',
     channels: {
@@ -252,6 +256,11 @@ export const zh: Translation = {
     },
     alwaysOn: '始终开启',
     ccpa: 'CCPA：不出售或共享我的个人信息',
+    marketingTitle: '营销消息',
+    marketingOptOut: '不再接收营销消息',
+    marketingHint: '订单与配送通知不受影响，此项仅适用于促销、优惠券和评价邀请。',
+    marketingSaved: '偏好已保存。',
+    marketingFailed: '保存失败，请重试。',
   },
 
   privacy: {

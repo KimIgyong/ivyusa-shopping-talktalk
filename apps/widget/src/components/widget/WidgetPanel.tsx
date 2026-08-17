@@ -31,6 +31,7 @@ export function WidgetPanel() {
   const showSettings = useWidgetStore((s) => s.settingsOpen);
   const setShowSettings = useWidgetStore((s) => s.setSettingsOpen);
   const displayName = useWidgetStore((s) => s.widgetCopy?.displayName);
+  const customerName = useWidgetStore((s) => s.customerName);
   const visibleTabs = useWidgetStore((s) => s.visibleTabs);
   const tabPosition = useWidgetStore((s) => s.tabPosition);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -75,8 +76,15 @@ export function WidgetPanel() {
           from the design but kept deliberately (PLN §7 D-2): without the X, a
           shopper on a touch device has no way to dismiss the panel but Esc. */}
       <header className="flex items-center justify-between px-4 pb-2 pt-4">
+        {/* Greet the shopper by name once they are known (frame 34, "Hi, Lisa");
+            before that the tenant's own name identifies whose widget this is
+            (frames 48/49). The two design variants are the two sign-in states,
+            not a contradiction. `truncate` keeps a long name from pushing the
+            three controls on the right off the header. */}
         <span className="truncate text-xl font-bold text-gray-900">
-          {displayName || t('notificationCenter')}
+          {customerName
+            ? t('header.greeting', { name: customerName })
+            : displayName || t('notificationCenter')}
         </span>
         <div className="flex flex-shrink-0 items-center gap-0.5">
           <LanguageSwitcher />

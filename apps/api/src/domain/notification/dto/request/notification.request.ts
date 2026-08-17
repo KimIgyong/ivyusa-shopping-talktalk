@@ -26,3 +26,18 @@ export class ListNotificationsQuery {
   @IsOptional() @IsString() page?: string;
   @IsOptional() @IsString() size?: string;
 }
+
+/**
+ * Marketing refusal (PLN-260817-Widget-Header-Prefs-Cleanup). One boolean, not
+ * a grid: the server owns which categories count as marketing so the widget and
+ * the delivery rules cannot disagree about it.
+ */
+export class SetMarketingOptOutRequest {
+  // Carried in the body like the sibling PUT /prefs: @SessionToken() only reads
+  // the header, query and path, so a body-only token would 401 here.
+  @IsString()
+  session_token: string;
+
+  @IsBoolean()
+  opt_out: boolean;
+}

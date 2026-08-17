@@ -26,6 +26,8 @@ import { HandoffSection } from '../ai-settings/HandoffSection';
 import {
   useCredentials,
   useIntegration,
+  useNotificationChannels,
+  useSaveNotificationChannels,
   useSaveWidgetSettings,
   useSaveShopify,
   useShopifySettings,
@@ -710,6 +712,97 @@ function WidgetBehaviorCard() {
   );
 }
 
+
+/**
+ * Which channels this shop may use, per notification category
+ * (PLN-260817-Widget-Header-Prefs-Cleanup §2.2).
+ *
+ * A CEILING, not a customer preference: the widget's own control is now a single
+ * marketing opt-out, and the per-channel grid that used to live there is this.
+ * Below this ceiling a customer's stored preference — including the mobile app's
+ * push toggle — still decides.
+ */
+function NotificationChannelsCard() {
+  const { t } = useTranslation('settings');
+  const { t: tc } = useTranslation('common');
+  const { data, isLoading } = useNotificationChannels();
+  const save = useSaveNotificationChannels();
+  const [draft, setDraft] = useState<Record<string, string[]> | null>(null);
+
+  const stored = data?.channels ?? {};
+  const channels = draft ?? stored;
+  const dirty = draft != null && JSON.stringify(draft) !== JSON.stringify(stored);
+
+  // An absent category means "no ceiling", which reads as every channel allowed.
+  const isOn = (category: string, channel: string) =>
+    !Array.isArray(channels[category]) || channels[category].includes(channel);
+
+  const toggle = (category: string, channel: string) => {
+    const current = Array.isArray(channels[category])
+      ? channels[category]
+      : [...(data?.channelKeys ?? [])];
+    const next = current.includes(channel)
+      ? current.filter((c) => c !== channel)
+      : [...current, channel];
+    setDraft({ ...channels, [category]: next });
+  };
+
+  return (
+    <Card title={t('notifChannels.title')}>
+      <p className="mb-4 text-sm text-gray-500">{t('notifChannels.desc')}</p>
+      {isLoading ? (
+        <p className="text-sm text-gray-400">{tc('loading')}</p>
+      ) : (
+        <div className="max-w-2xl overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-gray-50 text-gray-500">
+                <th className="p-2 text-left font-medium">{t('notifChannels.category')}</th>
+                <th className="p-2 text-center font-medium">{t('notifChannels.inApp')}</th>
+                {(data?.channelKeys ?? []).map((ch) => (
+                  <th key={ch} className="p-2 text-center font-medium">
+                    {t(`notifChannels.channel.${ch}`, { defaultValue: ch })}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {(data?.categories ?? []).map((cat) => (
+                <tr key={cat} className="border-t border-gray-100">
+                  <td className="p-2 font-medium text-gray-700">
+                    {t(`notifChannels.category.${cat}`, { defaultValue: cat })}
+                  </td>
+                  {/* In-app is the widget's own feed — always on, never a choice. */}
+                  <td className="p-2 text-center text-xs text-gray-400">
+                    {t('notifChannels.always')}
+                  </td>
+                  {(data?.channelKeys ?? []).map((ch) => (
+                    <td key={ch} className="p-2 text-center">
+                      <input
+                        type="checkbox"
+                        checked={isOn(cat, ch)}
+                        onChange={() => toggle(cat, ch)}
+                      />
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <p className="mt-2 text-xs text-gray-400">{t('notifChannels.hint')}</p>
+      <p className="mb-4 text-xs text-gray-400">{t('notifChannels.unsetHint')}</p>
+      <Button
+        onClick={() => save.mutate(channels, { onSuccess: () => setDraft(null) })}
+        disabled={!dirty || save.isPending}
+      >
+        {save.isPending ? tc('saving') : tc('save')}
+      </Button>
+    </Card>
+  );
+}
+
 export function SettingsPage() {
   const { t } = useTranslation('settings');
   const { t: tc } = useTranslation('common');
@@ -804,6 +897,8 @@ export function SettingsPage() {
       <InstallGuideCard />
 
       <WidgetBehaviorCard />
+
+      <NotificationChannelsCard />
 
       {/* Live-support routing: business hours, break, off-hours mailbox. */}
       <HandoffSection />

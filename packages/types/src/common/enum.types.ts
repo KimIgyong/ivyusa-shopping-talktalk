@@ -92,6 +92,62 @@ export const ORDER_NOTIFICATION_CATEGORIES: readonly string[] = [
 export const NOTIFICATION_SCOPE = { ORDER: 'order', NOTICE: 'notice' } as const;
 export type NotificationScope = (typeof NOTIFICATION_SCOPE)[keyof typeof NOTIFICATION_SCOPE];
 
+/**
+ * Categories the shop sends because something happened to an order or a
+ * conversation. They are default-ALLOW on external channels; everything else is
+ * marketing and default-DENY (PLN-260817-Widget-Header-Prefs-Cleanup).
+ */
+export const TRANSACTIONAL_CATEGORIES: readonly string[] = [
+  'payment',
+  'shipping',
+  'chat',
+] as const;
+
+/** External delivery channels — everything except the always-on in-app feed. */
+export const EXTERNAL_CHANNELS: readonly string[] = [
+  'email',
+  'sms',
+  'web_push',
+  'push',
+] as const;
+
+/**
+ * Marketing is DERIVED, never listed.
+ *
+ * The widget's "do not send me marketing" toggle and the server's default-deny
+ * must cover exactly the same categories. Writing a second list would let them
+ * drift the first time a category is added — and the failure mode is silent
+ * marketing delivery to someone who opted out.
+ */
+export function isMarketingCategory(category: string): boolean {
+  return !TRANSACTIONAL_CATEGORIES.includes(category);
+}
+
+/**
+ * Per-tenant delivery policy: which external channels each category may use.
+ * A category absent from the object is unconstrained — the policy is a ceiling
+ * on what the SHOP sends, not a replacement for the customer's own preference.
+ */
+export type NotificationChannelPolicy = Record<string, string[]>;
+
+/**
+ * Does this tenant permit `channel` for `category`?
+ *
+ * `null`/absent policy means "not configured", which must behave exactly as the
+ * system did before the setting existed — allowed here, with the customer
+ * preference and the marketing default-deny below still deciding.
+ */
+export function channelAllowedByTenant(
+  policy: NotificationChannelPolicy | null | undefined,
+  category: string,
+  channel: string,
+): boolean {
+  if (!policy || typeof policy !== 'object') return true;
+  const allowed = policy[category];
+  if (!Array.isArray(allowed)) return true;
+  return allowed.includes(channel);
+}
+
 export const WIDGET_TAB_POSITION = { TOP: 'top', BOTTOM: 'bottom' } as const;
 export type WidgetTabPosition = (typeof WIDGET_TAB_POSITION)[keyof typeof WIDGET_TAB_POSITION];
 

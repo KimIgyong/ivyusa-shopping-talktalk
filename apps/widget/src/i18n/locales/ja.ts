@@ -243,6 +243,10 @@ export const ja: Translation = {
     stars_other: '星{{count}}つ',
   },
 
+  header: {
+    greeting: '{{name}}さん',
+  },
+
   prefs: {
     title: '通知設定',
     channels: {
@@ -259,6 +263,11 @@ export const ja: Translation = {
     },
     alwaysOn: '常にオン',
     ccpa: 'CCPA：個人情報の販売・共有を行わない',
+    marketingTitle: 'マーケティング配信',
+    marketingOptOut: 'マーケティングメッセージを受け取らない',
+    marketingHint: 'ご注文・配送のお知らせは対象外です。プロモーション・クーポン・レビュー依頼に適用されます。',
+    marketingSaved: '設定を保存しました。',
+    marketingFailed: '保存できませんでした。もう一度お試しください。',
   },
 
   privacy: {

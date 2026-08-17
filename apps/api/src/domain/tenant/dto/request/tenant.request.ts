@@ -179,3 +179,12 @@ export class UpdateWidgetSettingsRequest {
   @IsOptional() @IsString() @MaxLength(500) login_greeting_ja?: string | null;
   @IsOptional() @IsString() @MaxLength(500) login_greeting_zh?: string | null;
 }
+
+/**
+ * Per-category channel policy (PLN-260817-Widget-Header-Prefs-Cleanup).
+ * `{ [category]: channel[] }` — a category left out imposes no ceiling.
+ */
+export class UpdateNotificationChannelsRequest {
+  @IsObject()
+  channels: Record<string, string[]>;
+}

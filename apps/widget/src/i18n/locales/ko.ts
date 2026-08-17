@@ -239,6 +239,10 @@ export const ko: Translation = {
     stars_other: '별 {{count}}개',
   },
 
+  header: {
+    greeting: '{{name}}님',
+  },
+
   prefs: {
     title: '알림 설정',
     channels: {
@@ -255,6 +259,11 @@ export const ko: Translation = {
     },
     alwaysOn: '항상 켜짐',
     ccpa: 'CCPA: 내 개인정보를 판매하거나 공유하지 않음',
+    marketingTitle: '마케팅 수신',
+    marketingOptOut: '마케팅 메시지 수신 거부',
+    marketingHint: '주문·배송 알림은 이와 무관하게 발송됩니다. 프로모션·쿠폰·리뷰 요청에만 적용됩니다.',
+    marketingSaved: '설정을 저장했습니다.',
+    marketingFailed: '저장하지 못했습니다. 다시 시도해 주세요.',
   },
 
   privacy: {
