@@ -4,8 +4,8 @@ Figma "TalkTalk" Master Shots를 채팅 위젯에 적용한 구현 보고.
 
 - 작성일: 2026-08-17
 - 문서 체인: `REQ-260817-Widget-Figma-Design` → `PLN-260817-Widget-Figma-Design` → 구현 → `TCR-260817-Widget-Figma-Design` → 본 문서
-- 브랜치: `KimIgyong/work-ui` (base `main` @ `049b04f`)
-- PR: _(미생성)_ · 배포: **미배포**
+- PR: **#301** (squash-merge) · main 커밋 **`0178e83`** (base `049b04f`)
+- 배포: **스테이징 LIVE 2026-08-17 11:57 UTC** · 프로덕션 미배포
 
 ## 1. 무엇이 바뀌었나
 
@@ -80,7 +80,10 @@ CREATE INDEX `idx_notif_ref` ON `notifications` (`ref_type`, `ref_id`);
 - 적용 순서: **대상 DB 선적용 → 코드 배포**. 구코드+신컬럼은 안전, 신코드+구스키마는 insert마다 500.
 - 롤백: 인덱스 DROP 후 컬럼 2개 DROP (구코드는 두 컬럼을 읽지 않음).
 - **백필 없음** — 기존 리뷰 알림은 `ref_id` NULL이라 CTA가 표시되지 않는다(의도된 폴백).
-- 적용 상태: local ✅ (DB_SYNCHRONIZE로 생성 확인) · staging ⬜ · production ⬜
+- 적용 상태: local ✅ · **staging ✅ (2026-08-17, 코드 배포 전 선적용)** · production ⬜
+- 스테이징 적용 검증: `information_schema`로 `ref_type`/`ref_id` 존재 + `idx_notif_ref` 2컬럼 확인,
+  기존 145행 보존. 스키마 스냅샷 `~/backup-pre-notifref-20260817-204608.sql` 선취득.
+- 멱등성 실측: 전부 존재 상태 재실행 `exit=0`, **인덱스만 드롭한 중단 복구 경로**에서도 인덱스 재생성 확인.
 
 ## 4.1 리뷰 반영 (CodeRabbit, 2026-08-17)
 
@@ -123,3 +126,31 @@ CREATE INDEX `idx_notif_ref` ON `notifications` (`ref_type`, `ref_id`);
 | N-5 | ⚠️ `contact.phone: '1588-0000'` / `contact.email: 'help@ivy.com'`이 **en 번들에 하드코딩** | 본 작업 이전부터 존재. REQ §5-1이 경계한 바로 그 패턴이며, 테넌트 설정으로 옮기는 별도 과제 |
 | N-6 | 스테이징 배포 + 회귀 스모크 | 마이그레이션 선적용 필수 |
 | N-7 | **배지 대비(D-10) 결론** | 디자인 유지 / 배경 어둡게 / 전경색 tone별 지정 중 택1 필요 |
+
+## 8. 스테이징 배포 기록 (2026-08-17)
+
+순서는 런북(`pre-deploy-check`)대로 **SQL 선적용 → 코드 배포 → 검증**.
+
+| 단계 | 내용 | 결과 |
+|---|---|---|
+| 1 | 스키마 스냅샷 (`mysqldump --no-data notifications`) | ✅ `backup-pre-notifref-20260817-204608.sql` |
+| 2 | `docker cp` + 파일 실행으로 마이그레이션 적용 (stdin 사용 안 함 — kit lesson B-4) | ✅ exit 0 |
+| 3 | 적용 검증 (`information_schema`) | ✅ 컬럼 2개 + 인덱스 2컬럼, 145행 보존 |
+| 4 | `bash docker/staging/deploy-staging.sh` (서버에서 실행) | ✅ api/web/widget/pwa/nginx 재생성 |
+| 5 | 부팅 로그 | ✅ `Nest application successfully started` 11:57:41 |
+| 6 | 컨테이너 나이 | ✅ api/web/widget/nginx 모두 `Up 3 minutes` = 실제 재빌드됨 |
+| 7 | 스키마 에러 스캔 (`doesn't exist` / `Unknown column`) | ✅ 0건 |
+| 8 | `/api/v1/health` | ✅ `{"status":"ok"}` |
+| 9 | 배포 자산 실검증 | ✅ 위젯 CSS에 `#2b7fff` 존재·구 인디고 `#6366f1` **0건**, `bg-highlight`/`bg-review` 유틸리티 생성, JS 번들에 `오늘 받은 알림`·`리뷰 작성`·`ivy-tabpanel` 포함 |
+| 10 | `embed.js` 폭 | ✅ `min(444px, 100vw)` 반영 (SI-6) |
+| 11 | 라이브 스모크 | ✅ 흰 헤더 + 상단 2탭(`알림`/`채팅`) + 연파랑 퀵액션 칩 + pill 입력, 콘솔 에러 0 |
+| 12 | 레거시 `?reopen=orders` | ✅ 알림 탭으로 착지 |
+
+> ⚠️ 배포 중 `pgrep -f deploy-staging.sh`가 `RUNNING`을 반환했으나, 이는 **다른 세션이 5시간 전부터
+> 돌리던 `deploy-heic.log` 감시 루프**였다. 종료 판단은 프로세스가 아니라 배포 로그의 마지막 단계
+> (`==> Status:`)와 컨테이너 나이로 내렸다.
+
+### 스테이징 잔여 확인
+- N-1(모바일)·N-3(es/vi/ja/zh 육안)은 여전히 미확인.
+- N-4(배송완료인데 스테퍼 `preparing`)는 실 이행 데이터가 있는 주문에서 재확인 필요.
+- 회귀 스모크(첨부·동의·이관·종료/CSAT)는 미수행.
