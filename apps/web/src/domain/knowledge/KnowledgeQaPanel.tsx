@@ -7,8 +7,9 @@ import { Badge } from '@/components/Badge';
 import { Select } from '@/components/Field';
 import { useAskKnowledge } from './knowledge.hooks';
 import type { KnowledgeAnswer } from './knowledge.service';
+// Runtime table from the registry source (see apps/web/src/i18n/i18n.ts for why).
+import { LANGUAGES } from '../../../../../packages/types/src/common/language';
 
-const LANGS = ['ko', 'en', 'es'] as const;
 
 /**
  * Knowledge QA (PLN-Knowledge-QA-Console F1). Answers the admin's question from
@@ -37,9 +38,9 @@ export function KnowledgeQaPanel({ onEditSource }: { onEditSource: (documentId: 
       title={t('qa.title')}
       action={
         <Select value={language} onChange={(e) => setLanguage(e.target.value)}>
-          {LANGS.map((l) => (
-            <option key={l} value={l}>
-              {l.toUpperCase()}
+          {LANGUAGES.map((l) => (
+            <option key={l.code} value={l.code}>
+              {l.nativeLabel}
             </option>
           ))}
         </Select>

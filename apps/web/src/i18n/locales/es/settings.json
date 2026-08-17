@@ -45,7 +45,7 @@
     "saveError": "No se pudo guardar la configuración del widget.",
     "timezone": "Idioma por defecto según zona horaria",
     "tzUnset": "Sin definir (inglés por defecto)",
-    "timezoneHint": "Define el idioma por defecto del widget cuando el cliente no ha elegido — Asia/Seoul → coreano, America/New_York → inglés.",
+    "timezoneHint": "Define el idioma predeterminado del widget cuando el cliente no ha elegido uno: elige la zona donde están tus clientes.",
     "copyTitle": "Textos del widget",
     "displayName": "Nombre para mostrar",
     "displayNameHint": "Se muestra en el encabezado del widget y como {shop} en los saludos. Vacío = nombre del tenant.",

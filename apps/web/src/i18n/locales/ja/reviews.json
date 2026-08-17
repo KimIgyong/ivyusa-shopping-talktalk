@@ -1,0 +1,22 @@
+{
+  "title": "レビュー",
+  "subtitle": "お客様の商品レビュー — 不適切なものはストア表示から非表示にします",
+  "id": "ID",
+  "customer": "顧客",
+  "orderItem": "注文商品",
+  "rating": "評価",
+  "ratingOf": "5つ星中{{rating}}",
+  "body": "レビュー",
+  "status": "ステータス",
+  "created": "投稿日",
+  "hide": "非表示にする",
+  "unhide": "再表示する",
+  "toastHidden": "レビューを非表示にしました",
+  "toastUnhidden": "レビューを再表示しました",
+  "toastError": "レビューを更新できませんでした",
+  "empty": "レビューはまだありません。",
+  "statuses": {
+    "submitted": "投稿済み",
+    "hidden": "非表示"
+  }
+}

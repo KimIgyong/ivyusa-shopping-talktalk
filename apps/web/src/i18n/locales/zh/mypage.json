@@ -1,0 +1,11 @@
+{
+  "title": "我的页面",
+  "subtitle": "您的账户信息与安全设置。",
+  "profile": "个人资料",
+  "email": "邮箱",
+  "role": "角色",
+  "workspace": "工作区",
+  "labels": "工作标签",
+  "security": "安全",
+  "securityDesc": "修改您用于登录的密码。"
+}

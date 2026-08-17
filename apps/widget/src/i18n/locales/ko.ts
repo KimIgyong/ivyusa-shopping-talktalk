@@ -270,5 +270,6 @@ export const ko: Translation = {
     messageThread: '메시지 목록',
     verifyIdentity: '본인 인증',
     privacyNotice: '개인정보 처리 안내',
+    language: '언어',
   },
 };

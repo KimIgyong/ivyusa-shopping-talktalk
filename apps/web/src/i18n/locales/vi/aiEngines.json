@@ -1,0 +1,15 @@
+{
+  "title": "Công cụ AI",
+  "addEngine": "Thêm công cụ",
+  "editEngine": "Sửa công cụ",
+  "name": "Tên",
+  "provider": "Nhà cung cấp",
+  "model": "Mô hình",
+  "status": "Trạng thái",
+  "apiKey": "Khóa API",
+  "apiKeyEdit": "Khóa API (để trống để giữ nguyên)",
+  "created": "Ngày tạo",
+  "enable": "Bật",
+  "disable": "Tắt",
+  "empty": "Chưa cấu hình công cụ nào."
+}

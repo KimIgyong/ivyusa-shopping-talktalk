@@ -27,6 +27,7 @@
   "products": "상품",
   "allMenus": "전체 메뉴",
   "issueBoard": "이슈 보드",
+  "languageBetaHint": "β 기계번역 · 검수 대기",
   "blocked": {
     "title": "이 메뉴에 접근할 수 없습니다",
     "description": "이 화면은 현재 계정에서 사용할 수 없습니다. 필요하면 워크스페이스 마스터에게 요청하세요.",

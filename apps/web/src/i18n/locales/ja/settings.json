@@ -1,0 +1,399 @@
+{
+  "title": "テナント設定",
+  "subtitle": "連携と認証情報を管理します。",
+  "configure": "設定",
+  "storesTitle": "ストア連携",
+  "integrationCredentials": "連携の認証情報",
+  "provider": "プロバイダー",
+  "status": "ステータス",
+  "key": "キー",
+  "lastUpdated": "最終更新",
+  "connected": "接続済み",
+  "notSet": "未設定",
+  "updateCredential": "認証情報を更新",
+  "updateProvider": "{{provider}} を更新",
+  "apiKey": "APIキー",
+  "apiKeyPlaceholder": "APIキーを入力",
+  "secretOptional": "シークレット（任意）",
+  "secretPlaceholder": "シークレットを入力",
+  "empty": "利用できる連携がありません。",
+  "privacyNotice": {
+    "title": "プライバシーに関するお知らせ",
+    "subtitle": "ウィジェット訪問者に表示する同意のお知らせを設定します。",
+    "cardTitle": "同意のお知らせ設定",
+    "policyUrl": "プライバシーポリシーのURL",
+    "policyUrlPlaceholder": "https://your-store.com/privacy",
+    "policyUrlHint": "ウィジェットの同意バナーにリンクとして表示されます。空欄にするとリンクは表示されません。",
+    "invalidUrl": "http:// または https:// で始まる有効なURLを入力してください。",
+    "version": "同意のお知らせバージョン",
+    "versionPlaceholder": "例：2026-07",
+    "invalidVersion": "英数字・ドット・ハイフン・アンダースコアが使えます（先頭は英数字、最大32文字）。",
+    "versionDefaultHint": "空欄の場合はプラットフォームの既定バージョンが適用されます。",
+    "versionWarning": "バージョンを変更すると、すべてのお客様に再度同意を求めます。承諾または拒否されるまで、チャットにお知らせが表示され続けます。",
+    "saved": "プライバシーのお知らせ設定を保存しました。",
+    "saveError": "プライバシーのお知らせ設定を保存できませんでした。"
+  },
+  "widgetBehavior": {
+    "title": "ウィジェットの動作",
+    "desc": "ストアフロントでチャットウィジェットがどう動作するかを設定します。",
+    "loginMode": "お客様のログイン画面の開き方",
+    "redirect": "全画面（推奨）",
+    "popup": "ポップアップウィンドウ",
+    "redirectHint": "「ログイン」を押すと同じタブでストアのログインページに移動し、ログイン後は元のページに戻ってウィジェットが注文履歴を開きます。",
+    "popupHint": "「ログイン」を押すとストアのログインページがポップアップで開きます。ポップアップブロックの影響を受けることがあり、ログイン後もshopify.comのままの場合はお客様が手動でポップアップを閉じる必要があります。",
+    "saved": "ウィジェット設定を保存しました。",
+    "saveError": "ウィジェット設定を保存できませんでした。",
+    "timezone": "タイムゾーンによる既定言語",
+    "tzUnset": "未設定（既定は英語）",
+    "timezoneHint": "お客様が言語を選んでいない場合のウィジェットの既定言語を決めます。お客様がいる地域のタイムゾーンを選んでください。",
+    "copyTitle": "ウィジェットの文言",
+    "displayName": "表示名",
+    "displayNameHint": "ウィジェットのヘッダーに表示され、あいさつ文の {shop} に使われます。空欄の場合はテナント名になります。",
+    "firstVisit": "初回訪問時のあいさつ",
+    "firstVisitHint": "お客様がチャットを開いたときに表示されます。{shop} には表示名が入ります。空欄の場合は既定の文言になります。",
+    "loginGreeting": "ログイン済みのお客様へのあいさつ",
+    "loginGreetingHint": "ログイン済みのお客様と認識できたときに表示されます。{name} にはお客様の名前が入ります。空欄の場合は既定の文言になります。"
+  },
+  "shopify": {
+    "title": "Shopify連携",
+    "subtitle": "このウィジェットとShopifyストアを結び付けるショップアドレスとAPIトークンです。",
+    "shopDomain": "ショップドメイン",
+    "shopDomainPlaceholder": "your-store.myshopify.com",
+    "accessToken": "Admin APIアクセストークン",
+    "accessTokenPlaceholder": "shpat_…",
+    "accessTokenConfigured": "保存済み — 置き換えるには新しいトークンを入力",
+    "apiKeyOptional": "APIキー（任意）",
+    "apiKeyPlaceholder": "OAuth（パブリックアプリ）用",
+    "apiSecretOptional": "APIシークレット（任意）",
+    "apiSecretPlaceholder": "OAuth（パブリックアプリ）用",
+    "testConnection": "接続テスト",
+    "testing": "テスト中…",
+    "syncNow": "今すぐ同期",
+    "syncing": "同期中…",
+    "registerWebhooks": "Webhookを登録",
+    "registering": "登録中…",
+    "connectionStatus": "接続ステータス",
+    "credential": "認証情報",
+    "lastTested": "最終テスト",
+    "state": {
+      "connected": "接続済み",
+      "error": "エラー",
+      "unknown": "未テスト"
+    },
+    "install": {
+      "title": "ストアに導入する",
+      "subtitle": "Shopifyストアフロントにチャットウィジェットを追加します。環境に合う方法をお選びください。",
+      "shopHint": "スニペットはこのショップ用に入力済みです：{{shop}}",
+      "shopMissing": "スニペットが自動で入力されるよう、まず上のショップドメインを保存してください。",
+      "tabAppEmbed": "App embed（推奨）",
+      "tabScriptTag": "ScriptTag",
+      "tabManual": "手動スニペット",
+      "copy": "コピー",
+      "copied": "クリップボードにコピーしました",
+      "copyFailed": "コピーできませんでした。コードを選択して手動でコピーしてください。",
+      "appEmbed": {
+        "desc": "テーマのコード編集が不要で、オンオフの切り替えも簡単です。Online Store 2.0に最適です。",
+        "step1": "Shopify管理画面で「オンラインストア」→「テーマ」→「カスタマイズ」を開きます。",
+        "step2": "「テーマ設定」→「アプリ埋め込み」を開きます。",
+        "step3": "「IVY USA TalkTalk」をオンにして保存します。"
+      },
+      "scriptTag": {
+        "desc": "Admin API経由で全ページに読み込まれます。アプリのインストール時に自動登録されます。手動で登録する場合は以下のリクエストを使用してください。",
+        "note": "Admin APIアクセストークンを添えて送信してください。テーマの編集は不要です。"
+      },
+      "manual": {
+        "desc": "最も簡単な方法です。テーマにスニペットを1つ貼り付けるだけで、アプリは不要です。",
+        "step1": "「オンラインストア」→「テーマ」→「⋯」→「コードを編集」を開きます。",
+        "step2": "layout/theme.liquid を開きます。",
+        "step3": "</body> タグの直前にスニペットを貼り付けて保存します。"
+      }
+    },
+    "nonShopifyDomain": "これは *.myshopify.com ドメインではありません。このフィールドはテナントのストアドメインも兼ねているため、Cafe24や独自ドメインでも問題ありません。単にこのストアがShopifyと連携していないことを意味します。"
+  },
+  "integrations": {
+    "configured": "保存済み — 置き換えるには新しい値を入力",
+    "testConnection": "接続テスト",
+    "testing": "テスト中…",
+    "connectionStatus": "接続ステータス",
+    "credential": "認証情報",
+    "lastTested": "最終テスト",
+    "state": {
+      "connected": "接続済み",
+      "error": "エラー",
+      "unknown": "未テスト"
+    },
+    "fields": {
+      "mall_id": "モールID",
+      "client_id": "クライアントID",
+      "client_secret": "クライアントシークレット",
+      "access_token": "アクセストークン",
+      "store_url": "ストアURL",
+      "consumer_key": "コンシューマーキー",
+      "consumer_secret": "コンシューマーシークレット",
+      "url": "サーバーURL",
+      "db": "データベース",
+      "username": "ユーザー名",
+      "api_key": "APIキー",
+      "shop_domain": "ショップドメイン",
+      "app_key": "アプリ（ストア）キー",
+      "secret_key": "シークレットキー",
+      "subdomain": "アカウントのサブドメイン",
+      "email": "アカウントのメールアドレス",
+      "webhook_secret": "Webhookシークレット（L2ステータス）"
+    },
+    "ph": {
+      "mall_id": "your-mall",
+      "store_url": "https://store.example.com",
+      "url": "https://my-odoo.example.com",
+      "db": "odoo-db",
+      "username": "user@example.com",
+      "shop_domain": "your-store.myharavan.com",
+      "subdomain": "your-company（your-company.gorgias.com の部分）",
+      "email": "agent@example.com",
+      "app_key": "yotpo app key"
+    },
+    "cafe24": {
+      "title": "Cafe24",
+      "subtitle": "Admin API（OAuthアクセストークン）でCafe24ストアと連携します。"
+    },
+    "woocommerce": {
+      "title": "WooCommerce",
+      "subtitle": "REST APIのコンシューマーキーでWooCommerceストアと連携します。"
+    },
+    "odoo": {
+      "title": "Odoo",
+      "subtitle": "外部API（URL・データベース・ユーザー・APIキー）でOdooと連携します。"
+    },
+    "haravan": {
+      "title": "Haravan",
+      "subtitle": "Admin APIアクセストークンでHaravanストアと連携します。"
+    },
+    "klaviyo": {
+      "title": "Klaviyo",
+      "subtitle": "メール／SMSマーケティング — プライベートAPIキーで連携します。"
+    },
+    "yotpo": {
+      "title": "Yotpo",
+      "subtitle": "レビューとロイヤリティ — アプリキーとシークレットで連携します。"
+    },
+    "gorgias": {
+      "title": "Gorgias",
+      "subtitle": "ヘルプデスク — エスカレーションされたチャットをGorgiasのチケットとして引き継げます。"
+    }
+  },
+  "install": {
+    "subtitle": "ストアフロントにチャットウィジェットを追加します。プラットフォームを選択してください。",
+    "cafe24": {
+      "desc": "全ページでウィジェットが読み込まれるよう、Cafe24テーマのHTMLにスニペットを貼り付けます。",
+      "step1": "Cafe24管理画面で「デザイン（PC/モバイル）」→「スマートデザイン編集」を開きます。",
+      "step2": "使用中デザインのレイアウトHTMLを開きます。",
+      "step3": "</body> の直前にスニペットを貼り付け、保存・反映します。"
+    },
+    "woocommerce": {
+      "desc": "WordPressテーマ（またはコードスニペット系プラグイン）からウィジェットを登録します。",
+      "step1": "WordPress管理画面で「外観」→「テーマファイルエディター」を開きます（子テーマ推奨）。",
+      "step2": "functions.php を開くか、コードスニペットプラグインで新しいスニペットを追加します。",
+      "step3": "以下のコードを貼り付けて保存します。wp_footer 経由で全ページに読み込まれます。"
+    },
+    "odoo": {
+      "desc": "Odooのウェブサイトでは、サイト設定からサイト全体にカスタムコードを挿入できます。",
+      "step1": "Odooで「ウェブサイト」→「設定」→「設定」を開きます。",
+      "step2": "「カスタムコード」セクションまでスクロールします。",
+      "step3": "「end of body」の欄にスニペットを貼り付けて保存します。"
+    }
+  },
+  "storefront": {
+    "title": "ストアフロント",
+    "url": "ショップURL",
+    "hint": "お客様に表示する前に商品リンクを検証するために使用します。このオリジンのリンクのみがチャットに表示されます。",
+    "unsetWarning": "未設定です。このままではチャットウィジェットで商品のおすすめがリンクとして表示されません。",
+    "shopDomain": "ストアドメイン",
+    "shopDomainHint": "このテナントをチャットウィジェットに識別させるための値です。ウィジェットが動作するサイトと一致していれば、Shopify・Cafe24・独自ドメインのいずれでも構いません。"
+  },
+  "cafe24": {
+    "oauth": {
+      "title": "Cafe24（OAuth）",
+      "hint": "OAuthでCafe24モールと連携し、注文と商品をShopTalkに取り込みます。",
+      "status": "ステータス",
+      "mallId": "モールID",
+      "connect": "Cafe24と連携",
+      "syncNow": "今すぐ同期",
+      "connectedToast": "Cafe24と連携しました：{{mall}}",
+      "connectFailed": "Cafe24との連携に失敗しました",
+      "syncFailed": "Cafe24の同期に失敗しました",
+      "syncProducts": "商品を取り込む",
+      "productsSynced": "{{synced}}件の商品を同期し、{{archived}}件をアーカイブしました。ナレッジページで変換を実行してください",
+      "syncProductsFailed": "Cafe24からの商品取り込みに失敗しました",
+      "errorInvalidScope": "Cafe24が要求した権限を拒否しました（invalid_scope）。Cafe24 Developersでアプリに権限を追加してから、もう一度連携してください",
+      "errorAccessDenied": "Cafe24で連携が拒否されました（access_denied）。モールの代表運営者アカウントで再度お試しください"
+    }
+  },
+  "marketingTitle": "マーケティング連携",
+  "helpdeskTitle": "ヘルプデスク連携",
+  "messenger": {
+    "groupTitle": "外部メッセンジャーチャネル",
+    "groupHint": "メッセージはライブチャットに届き、ShopTalkのAIが同じチャネルで回答します。",
+    "communicationTitle": "コミュニケーション",
+    "communicationHint": "会社のメールボックスを会話として扱います。",
+    "loading": "チャネルを読み込み中…",
+    "label": "表示名",
+    "credential": "認証情報",
+    "stored": "保存済み — 入力すると置き換わります",
+    "autoReply": "AI自動返信",
+    "consentMode": "同意の扱い",
+    "on": "オン",
+    "off": "オフ",
+    "enabledLabel": "チャネル",
+    "enabled": "有効",
+    "disabled": "無効",
+    "lastInbound": "最終受信",
+    "lastError": "最新のエラー",
+    "connectionStatus": "接続",
+    "test": "接続テスト",
+    "testing": "テスト中…",
+    "testOk": "接続できました — {{detail}}",
+    "testFailed": "接続に失敗しました — {{detail}}",
+    "registerWebhook": "受信URLを登録",
+    "webhookRegistered": "受信URLをプロバイダーに登録しました。",
+    "webhookRegisterError": "受信URLを登録できませんでした。",
+    "webhookUrl": "受信URL",
+    "webhookHint": "プロバイダー側に登録するか、下のボタンをご利用ください。",
+    "copy": "コピー",
+    "copied": "コピーしました。",
+    "copyFailed": "コピーに失敗しました。",
+    "saved": "チャネルを保存しました。",
+    "saveError": "チャネルを保存できませんでした。",
+    "disconnect": "接続を解除",
+    "disconnected": "チャネルの接続を解除しました。",
+    "disconnectError": "チャネルの接続を解除できませんでした。",
+    "plannedHint": "このビルドではまだ利用できません。",
+    "unofficialWarning": "非公式チャネルです。メッセージは加盟店が自身の端末に導入したエージェントが中継し、開始・停止も加盟店が行います。AI自動返信は既定でオフです。",
+    "state": {
+      "connected": "接続済み",
+      "error": "エラー",
+      "unknown": "未テスト",
+      "planned": "予定"
+    },
+    "consent": {
+      "notice": "初回連絡時にプライバシーのお知らせを送る",
+      "auto": "プラットフォームの利用規約に委ねる"
+    },
+    "fields": {
+      "bot_token": "ボットトークン",
+      "auth_token": "認証トークン",
+      "email": "アカウントのメールアドレス",
+      "password": "パスワード",
+      "company_id": "会社（ワークスペース）ID",
+      "base_url": "サーバーURL",
+      "imap_host": "IMAPホスト",
+      "smtp_host": "SMTPホスト",
+      "app_password": "アプリパスワード",
+      "social_types": "受信チャネル",
+      "sender_name": "送信者名",
+      "key_id": "プロバイダーAPIキーID",
+      "api_secret": "プロバイダーAPIシークレット",
+      "expected_customer": "想定カスタマー参照"
+    },
+    "ph": {
+      "social_types": "zalo, line, whatsapp",
+      "sender_name": "サポート",
+      "expected_customer": "例：CUST-…（リレーコンソールで確認。誤ったサーバーを指した場合に拒否します）"
+    },
+    "provider": {
+      "telegram": {
+        "title": "Telegram",
+        "subtitle": "直接接続 — ボットトークンのみ、審査不要",
+        "defaultLabel": "Telegram"
+      },
+      "viber": {
+        "title": "Viber",
+        "subtitle": "直接接続 — パブリックアカウントのトークン",
+        "defaultLabel": "Viber"
+      },
+      "amoebatalk": {
+        "title": "AmoebaTalkハブ",
+        "subtitle": "審査通過済みのZalo／LINE／WhatsAppをまとめて扱えます",
+        "defaultLabel": "AmoebaTalk"
+      },
+      "btbz_relay": {
+        "title": "btbzメッセンジャーリレー",
+        "subtitle": "加盟店自身の端末経由のKakaoTalkルームと受信SMS",
+        "defaultLabel": "btbz relay"
+      },
+      "gmail": {
+        "title": "Gmail",
+        "subtitle": "IMAP/SMTPによる業務メールボックス（アプリパスワード）",
+        "defaultLabel": "業務 1"
+      },
+      "zalo": {
+        "title": "Zalo",
+        "subtitle": "AmoebaTalkハブ経由"
+      },
+      "line": {
+        "title": "LINE",
+        "subtitle": "AmoebaTalkハブ経由"
+      },
+      "whatsapp": {
+        "title": "WhatsApp",
+        "subtitle": "AmoebaTalkハブ経由"
+      }
+    },
+    "testRejected": "アカウントが拒否されました。サーバーは応答しましたが、メールアドレスとパスワードが一致しません。ShopTalkのログインではなく、プロバイダー側の運用アカウントをご利用ください。（{{detail}}）",
+    "testNotFound": "サーバーURLが誤っている可能性があります。応答はありましたが、このプロバイダーのAPIではありません。（{{detail}}）",
+    "testUnreachable": "サーバーに到達できませんでした。応答が一切ありません。アドレスとサービスの稼働状況をご確認ください。（{{detail}}）",
+    "testProviderError": "プロバイダーがエラーを返しました。こちら側で対応することはありません。しばらくしてからお試しください。（{{detail}}）",
+    "syncNow": "今すぐ取得",
+    "syncOk": "新着メッセージを{{count}}件取得しました。",
+    "syncFailed": "取得に失敗しました — {{detail}}",
+    "syncInactive": "{{count}}件取得しましたが、このチャネルは無効です。有効にするまで自動では届きません。",
+    "inactiveWarning": "無効 — 受信していません。「設定」を開いてチャネルを有効にしてください。",
+    "autoReplyScope": "これ以降に受信したメッセージに適用されます。会話ごとにライブチャットで上書きできます。",
+    "mode": {
+      "auto": "自動 — AIが自分で回答",
+      "approve": "承認が必要 — AIが下書きし、担当者が送信",
+      "off": "オフ"
+    }
+  },
+  "menuAccess": {
+    "title": "メニューのアクセス権",
+    "subtitle": "チームがどのコンソール画面に入れるかを決めます。灰色のメニューはご契約プランに含まれていません。",
+    "tabRoles": "権限ごとの既定",
+    "tabUsers": "メンバー個別の例外",
+    "rankColumn": "権限",
+    "menu": "メニュー",
+    "member": "メンバー",
+    "exceptions": "例外",
+    "edit": "編集",
+    "editFor": "例外 — {{who}}（{{rank}}）",
+    "rankDefault": "権限の既定",
+    "thisUser": "このメンバー",
+    "result": "結果",
+    "allowed": "許可",
+    "blocked": "ブロック",
+    "notProvided": "プラン対象外",
+    "canAccess": "アクセス可",
+    "cannotAccess": "アクセス不可",
+    "readOnly": "閲覧のみ",
+    "masterExempt": "例外の対象外",
+    "save": "権限ごとの既定を保存",
+    "saved": "メニューのアクセス権を保存しました",
+    "saveError": "メニューのアクセス権を保存できませんでした",
+    "loading": "読み込み中…",
+    "needsLabel": "（{{label}} が必要）",
+    "masterNote": "マスターはプランが提供するすべてのメニューに常にアクセスできるため、締め出すことはできません。",
+    "labelNote": "業務ラベル付きのメニューは、そのラベルを持たないメンバーには表示されません。ラベルに関係なく特定の人だけに開く場合は、メンバー個別の例外をご利用ください。",
+    "notProvidedNote": "取り消し線のメニューはご契約プランに含まれていません。追加はプラットフォーム管理者にご連絡ください。",
+    "allowWaivesLabel": "「許可」は、このメンバーについて業務ラベルの要件も免除します。画面内の操作は引き続き権限とラベルに従います。",
+    "mode": {
+      "default": "権限の既定",
+      "allow": "許可",
+      "deny": "ブロック"
+    },
+    "rank": {
+      "master": "マスター",
+      "director": "ディレクター",
+      "manager": "マネージャー",
+      "staff": "スタッフ"
+    }
+  }
+}

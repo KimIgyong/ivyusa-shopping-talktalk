@@ -9,6 +9,8 @@ import { cn } from '@/lib/cn';
 import { useAiConfig } from './ai-settings.hooks';
 import { previewService } from './preview.service';
 import type { PreviewReply } from './preview.service';
+// Runtime table from the registry source (see apps/web/src/i18n/i18n.ts for why).
+import { LANGUAGES } from '../../../../../packages/types/src/common/language';
 
 type Role = 'user' | 'ai' | 'system' | 'agent';
 
@@ -42,7 +44,6 @@ interface PreviewPanelProps {
   onReplayed?: () => void;
 }
 
-const LANGS = ['en', 'es', 'ko'] as const;
 
 let nextId = 1;
 
@@ -184,9 +185,9 @@ export function PreviewPanel({ onCoach, replayQuestion, onReplayed }: PreviewPan
               void resetSession(e.target.value);
             }}
           >
-            {LANGS.map((l) => (
-              <option key={l} value={l}>
-                {l.toUpperCase()}
+            {LANGUAGES.map((l) => (
+              <option key={l.code} value={l.code}>
+                {l.nativeLabel}
               </option>
             ))}
           </Select>

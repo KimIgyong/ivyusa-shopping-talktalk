@@ -1,0 +1,49 @@
+{
+  "title": "商品",
+  "subtitle": "从您的店铺同步的商品目录。请在「设置」中执行导入。",
+  "kpi": {
+    "total": "商品数",
+    "active": "在售",
+    "archived": "已归档",
+    "inKnowledge": "已入知识库",
+    "lastSynced": "上次同步 {{at}}"
+  },
+  "filters": {
+    "searchPlaceholder": "搜索名称或标签",
+    "allCategories": "全部分类",
+    "allStatuses": "全部状态"
+  },
+  "columns": {
+    "product": "商品",
+    "category": "分类",
+    "price": "价格",
+    "status": "状态",
+    "knowledge": "知识库",
+    "openInShop": "在店铺中打开"
+  },
+  "status": {
+    "active": "在售",
+    "archived": "已归档"
+  },
+  "knowledge": {
+    "registered": "已登记",
+    "missing": "未登记"
+  },
+  "empty": "尚未导入任何商品。",
+  "emptyFiltered": "没有符合筛选条件的商品。",
+  "emptyHint": "请先导入商品目录——",
+  "emptyHintLink": "前往设置",
+  "detail": {
+    "title": "商品详情",
+    "loading": "加载中…",
+    "vendor": "品牌",
+    "tags": "标签",
+    "sku": "SKU",
+    "handle": "标识",
+    "publishedAt": "上架时间",
+    "syncedAt": "上次同步",
+    "description": "描述",
+    "noDescription": "没有描述。由于也没有标签，此商品不会进入知识库。",
+    "openInShop": "在店铺中打开"
+  }
+}

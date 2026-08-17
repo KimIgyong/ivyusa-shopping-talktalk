@@ -13,7 +13,7 @@ Multi-tenant Shopify chat/support widget (Naver TalkTalk style) + tenant console
 platform admin. Turborepo monorepo: `apps/{api,web,widget}`, `packages/{types,common}`.
 Stack: **NestJS 10 + TypeORM + MySQL 8 + Redis + RabbitMQ** (backend); **React 18 + Vite +
 Tailwind + Zustand + React Query + react-i18next** (frontends). Pluggable AI gateway
-(stub adapter runs with no key; Anthropic ready). Languages: **en (default) / es / ko**.
+(stub adapter runs with no key; Anthropic ready). Languages: **en (default) / es / ko / vi / ja / zh**.
 
 ## 2. Conventions (MUST — `reference/amoeba_code_convention_v2`)
 - **DTO case**: request DTO `snake_case` (class-validator); response shaped `camelCase` via a static Mapper. Query params `snake_case`.
@@ -25,7 +25,7 @@ Tailwind + Zustand + React Query + react-i18next** (frontends). Pluggable AI gat
 - **Response**: never hand-build the envelope — return plain objects/entities (global `TransformInterceptor` wraps them) or `new Paginated(items, buildPagination(page,size,total))` for lists.
 - **Errors**: `throw new BusinessException(ERROR_CODE.X, HttpStatus.Y)` (Exxxx codes in `global/constant/error-code.constant.ts`). Backend messages English; client localizes by code. New modules allocate the next free Exxxx block sequentially (dev-kit §2.4). ⚠️ 4xx are not server-logged by default — "no error in logs ≠ request succeeded"; add `logger.warn` in rejecting guards.
 - **UX feedback (MUST)**: every save/update/create/delete shows explicit success/error feedback (toast; success auto-close, error manual close, i18n keys) — silent success is banned (dev-kit §4.3; retrofit cost AMA 120+ call sites). Exempt only when the result is immediately self-evident (navigate-away, toggles, live updates).
-- **i18n**: NO hardcoded UI text — use `t()` from `useTranslation()`; register namespaces in each app's `i18n.ts`; `fallbackLng: 'en'`; locales en/es/ko. Backend conversational strings localized by `session.language`; AI/RAG answers honor it.
+- **i18n**: NO hardcoded UI text — use `t()` from `useTranslation()`; register namespaces in each app's `i18n.ts` (console: `import.meta.glob`); `fallbackLng: 'en'`; locales en/es/ko/vi/ja/zh. The language set lives ONCE in `packages/types/src/common/language.ts` (codes, endonyms, session values, timezone defaults, review state) — never re-list languages in an app. ⚠️ Browser bundles deep-import that source file: a value import from `@ivy/types` fails the build (CJS `export *`). Backend conversational strings localized by `session.language`; AI/RAG answers honor it. Run `npm run i18n:check` after touching locales — a missing key is a silent English fallback otherwise.
 - **Moderation**: ALL AI + agent outbound MUST pass `ModerationService.moderate()` (fail-safe = block on error) — non-bypassable (FR-069/POL-020).
 - **Security/Privacy**: passwords bcrypt; credentials AES-256-GCM (`crypto.util`); PII masked in logs; privileged actions → `AuditService.write`. CCPA/GDPR posture (consent, opt-out) — see `reference/amoeba_privacy_compliance_v2`.
 - **Naming**: files kebab-case (`*.service.ts`, `*.entity.ts`, `*.dto.ts`); classes PascalCase; React components PascalCase; hooks `useX`; enums = const object + derived type.

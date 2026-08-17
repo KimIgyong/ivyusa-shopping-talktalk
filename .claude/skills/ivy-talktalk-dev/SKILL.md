@@ -16,8 +16,8 @@ Pair with `CLAUDE.md` and `SPEC.md`.
 ## 0. Stack & layout (ground truth)
 - Monorepo (Turborepo): `apps/{api,web,widget}`, `packages/{types,common}`.
 - Backend: **NestJS 10 + TypeORM + MySQL 8** + Redis + RabbitMQ. Frontends: **React 18 + Vite + Tailwind + Zustand + React Query + react-i18next**.
-- Languages: **en (default) / es / ko**. Pluggable AI gateway (stub | anthropic).
-- Approved deviations (do NOT "fix" without instruction): MySQL+BIGINT+bare table/column names, en/es/ko, scalar FKs, single-buffer AES-256-GCM. See `SPEC.md §13`.
+- Languages: **en (default) / es / ko / vi / ja / zh**, defined once in `packages/types/src/common/language.ts`. Pluggable AI gateway (stub | anthropic).
+- Approved deviations (do NOT "fix" without instruction): MySQL+BIGINT+bare table/column names, the language set (now a superset of the kit's ko/en/vi), scalar FKs, single-buffer AES-256-GCM. See `SPEC.md §13`.
 
 ## 1. Adding a backend domain module (NestJS)
 Create under `apps/api/src/domain/{domain}/`:
@@ -32,7 +32,7 @@ Create under `apps/api/src/domain/{domain}/`:
 - Service in `services/` using the shared `api-client` (unwraps the standard envelope).
 - React Query hook in `hooks/` — **include `tenantId` in the query key**; mutations invalidate the right keys.
 - Zustand store only for cross-component global state.
-- ALL visible text via `t('ns:key')`; add keys to en/es/ko locale files and register the namespace in `i18n.ts`. No hardcoded strings, no English-only aria-labels.
+- ALL visible text via `t('ns:key')`; add keys to **all six** locale files and register the namespace in `i18n.ts` (the console globs them). Verify with `npm run i18n:check` — a key missing in one language does not fail, it silently serves English. No hardcoded strings, no English-only aria-labels. Never re-declare the language list in an app: import it from the registry source (`@ivy/types` value imports break browser builds).
 - Use design tokens (Tailwind theme): primary `#6366F1`, header 64px, sidebar 240/64px, Pretendard font; reusable Button/Table/Modal/Badge/Pagination; modal `role="dialog"`+Esc, chat `aria-live`.
 
 ## 3. Cross-cutting rules (MUST)

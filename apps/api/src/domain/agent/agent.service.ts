@@ -7,7 +7,9 @@ import {
   CONVERSATION_STATUS,
   MODERATION_DECISION,
   SENDER_TYPE,
+  localized,
 } from '@ivy/types';
+import type { LocalizedText } from '@ivy/types';
 import { Conversation } from '../chat/entity/conversation.entity';
 import { Message } from '../chat/entity/message.entity';
 import { AnswerReuseService } from '../answer-reuse/answer-reuse.service';
@@ -63,17 +65,23 @@ const BRIEFING_CACHE_TTL_SEC = 900;
  * The customer is told, deliberately. Switching back in silence reads as the
  * person who was just talking to them walking off mid-sentence.
  */
-const DEFAULT_HANDBACK_NOTICE: Record<string, string> = {
+const DEFAULT_HANDBACK_NOTICE: LocalizedText = {
   EN: "Our agent has finished looking into this, so the AI assistant will take it from here. Just ask if you need a person again.",
   ES: 'Nuestro agente ha terminado de revisarlo, así que el asistente de IA continuará desde aquí. Solo dilo si necesitas hablar con una persona de nuevo.',
   KO: '상담사 확인이 끝나 이후 문의는 AI 상담원이 도와드립니다. 다시 상담사 연결이 필요하시면 말씀해 주세요.',
+  VI: 'Nhân viên của chúng tôi đã xem xong việc này, nên trợ lý AI sẽ tiếp tục hỗ trợ bạn từ đây. Nếu cần gặp lại nhân viên, bạn chỉ cần nói nhé.',
+  JA: '担当者による確認が完了しましたので、ここからはAIアシスタントが対応いたします。もう一度担当者をご希望の場合は、その旨お知らせください。',
+  ZH: '我们的客服人员已经处理完毕，接下来将由 AI 助手为您服务。如需再次转接人工客服，请随时告诉我。',
 };
 
-/** Localized generic copy for the agent-reply push (session.language EN/ES/KO). */
+/** Localized generic copy for the agent-reply push, keyed by session.language. */
 const AGENT_REPLY_COPY = {
   EN: { title: 'New reply from support', body: 'You have a new reply from support.' },
   ES: { title: 'Nueva respuesta de soporte', body: 'Tienes una nueva respuesta de soporte.' },
   KO: { title: '상담 답변 도착', body: '상담원 답변이 도착했습니다.' },
+  VI: { title: 'Có phản hồi từ hỗ trợ', body: 'Bạn có một phản hồi mới từ bộ phận hỗ trợ.' },
+  JA: { title: 'サポートから返信が届きました', body: 'サポートからの新しい返信があります。' },
+  ZH: { title: '客服已回复', body: '您有一条来自客服的新回复。' },
 } as const;
 
 /**
@@ -101,6 +109,24 @@ const REPLY_EMAIL_COPY = {
     footer: '추가 문의는 스토어의 채팅에서 언제든 이어가실 수 있어요.',
     note: '이 답변은 고객 이메일로 발송되었습니다.',
     attachments: '이 답변에는 첨부 파일이 있습니다. 스토어 채팅에서 확인해 주세요.',
+  },
+  VI: {
+    subject: '[IVY USA] Phản hồi cho câu hỏi của bạn',
+    footer: 'Bạn có thể tiếp tục cuộc trò chuyện bất cứ lúc nào qua khung chat trên cửa hàng của chúng tôi.',
+    note: 'Phản hồi này đã được gửi tới email của khách hàng.',
+    attachments: 'Phản hồi này có kèm tệp đính kèm. Hãy mở khung chat trên cửa hàng của chúng tôi để xem.',
+  },
+  JA: {
+    subject: '[IVY USA] お問い合わせへのご回答',
+    footer: 'ご不明な点は、ストアのチャットからいつでも続けてご相談いただけます。',
+    note: 'この返信はお客様のメール宛に送信されました。',
+    attachments: 'この返信にはファイルが添付されています。ストアのチャットからご確認ください。',
+  },
+  ZH: {
+    subject: '[IVY USA] 您咨询问题的回复',
+    footer: '如需继续咨询，您可以随时通过我们商店的在线聊天联系我们。',
+    note: '此回复已通过电子邮件发送给客户。',
+    attachments: '此回复带有附件。请在我们商店的在线聊天中查看。',
   },
 } as const;
 
@@ -1005,12 +1031,11 @@ export class AgentService {
 
   /** Tenant wording for the handback, falling back to the built-in text. */
   private async handbackNotice(tenantId: number, language: string): Promise<string> {
-    const lang = (language || 'EN').toUpperCase();
-    const fallback = DEFAULT_HANDBACK_NOTICE[lang] ?? DEFAULT_HANDBACK_NOTICE.EN;
+    const fallback = localized(DEFAULT_HANDBACK_NOTICE, language);
     try {
       const config = await this.aiConfigRepo?.findOne({ where: { tenantId } });
-      const custom = config?.handoffConfig?.handbackNotice as Record<string, string> | undefined;
-      return custom?.[lang]?.trim() || custom?.EN?.trim() || fallback;
+      const custom = config?.handoffConfig?.handbackNotice;
+      return localized(custom, language).trim() || fallback;
     } catch (e) {
       // Wording is not worth failing a state transition over.
       this.logger.warn(`handback notice lookup failed: ${(e as Error).message}`);

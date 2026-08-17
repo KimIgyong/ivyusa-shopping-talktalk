@@ -1,0 +1,15 @@
+{
+  "title": "顧客",
+  "subtitle": "顧客アカウントと会員ランクの管理",
+  "name": "氏名",
+  "email": "メールアドレス",
+  "tier": "ランク",
+  "orders": "注文数",
+  "totalSpent": "購入金額合計",
+  "created": "登録日",
+  "editTier": "ランクを編集",
+  "editTierTitle": "顧客ランクの編集",
+  "tierFor": "{{name}} のランク",
+  "searchPlaceholder": "氏名またはメールアドレスで検索",
+  "empty": "顧客が見つかりません。"
+}

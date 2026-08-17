@@ -1,0 +1,24 @@
+{
+  "title": "担当者の作業ログ",
+  "subtitle": "誰が、いつ、何をしたか",
+  "time": "日時",
+  "agent": "担当者",
+  "action": "操作",
+  "target": "対象",
+  "result": "結果",
+  "success": "成功",
+  "allActions": "すべての操作",
+  "from": "開始日",
+  "to": "終了日",
+  "empty": "この期間の操作はありません。",
+  "notice": "このログは運用のトレーサビリティのためのもので、人事評価には使用しません。",
+  "actions": {
+    "agent.conversation_accepted": "会話を受け付け",
+    "agent.message_sent": "返信を送信",
+    "agent.customer_linked": "顧客を紐付け",
+    "agent.customer_created": "顧客を作成",
+    "agent.conversation_ended": "会話を終了",
+    "agent.conversation_viewed": "会話を閲覧（個人情報）",
+    "agent.transcript_viewed": "会話内容を閲覧（個人情報）"
+  }
+}

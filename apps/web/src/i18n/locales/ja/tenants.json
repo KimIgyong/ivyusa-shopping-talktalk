@@ -1,0 +1,43 @@
+{
+  "title": "テナント",
+  "newTenant": "新規テナント",
+  "name": "名称",
+  "slug": "ログインパス",
+  "slugPlaceholder": "例：ivyusa",
+  "slugHint": "小文字・数字・ハイフンが使えます。空欄の場合は名称から自動生成します。担当者は /<パス> からログインします。",
+  "shopDomain": "ショップドメイン",
+  "plan": "プラン",
+  "status": "ステータス",
+  "users": "ユーザー",
+  "created": "作成日",
+  "suspend": "停止",
+  "activate": "有効化",
+  "empty": "テナントがありません。",
+  "manageUsers": "ユーザー",
+  "usersOf": "ユーザー — {{name}}",
+  "usersOfSubtitle": "このテナントの担当者を招待し、仮パスワードを発行し、アクセスを管理します。",
+  "usersEmpty": "このテナントにはまだユーザーがいません。",
+  "loginUrl": "ログインページ",
+  "manageMenus": "メニュー",
+  "menus": {
+    "title": "提供メニュー — {{name}}",
+    "menu": "メニュー",
+    "planDefault": "プラン既定",
+    "thisTenant": "このテナント",
+    "result": "結果",
+    "provided": "提供",
+    "notProvided": "提供しない",
+    "noPlan": "プランなし",
+    "planCount": "プランでは{{total}}件中{{count}}件を提供",
+    "planHint": "「プランに従う」のままの行はプラン変更に追従します。それ以外は固定されます。",
+    "exceptions": "プランと異なる例外が{{count}}件あります（*）",
+    "issuesNote": "問い合わせボードにはテナントのワークフローモードも必要です。メニューだけ提供した場合は、ボードの代わりに案内が表示されます。",
+    "mode": {
+      "plan": "プランに従う",
+      "on": "強制的に提供",
+      "off": "提供しない"
+    },
+    "saved": "提供メニューを保存しました",
+    "saveError": "提供メニューを保存できませんでした"
+  }
+}

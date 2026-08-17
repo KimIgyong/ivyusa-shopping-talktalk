@@ -1,7 +1,7 @@
 import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, Unique, UpdateDateColumn } from 'typeorm';
 import { bigintTransformer } from '../../../global/util/transformers';
 
-/** Shape of the `widget_copy` JSON column; languages keyed EN/ES/KO. */
+/** Shape of the `widget_copy` JSON column; keyed by session language (EN/ES/KO/VI/JA/ZH). */
 export interface TenantWidgetCopy {
   displayName?: string | null;
   firstVisit?: Record<string, string>;

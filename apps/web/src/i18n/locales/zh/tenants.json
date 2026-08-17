@@ -1,0 +1,43 @@
+{
+  "title": "租户",
+  "newTenant": "新建租户",
+  "name": "名称",
+  "slug": "登录路径",
+  "slugPlaceholder": "例如 ivyusa",
+  "slugHint": "可使用小写字母、数字和连字符。留空则根据名称自动生成。员工在 /<路径> 登录。",
+  "shopDomain": "店铺域名",
+  "plan": "套餐",
+  "status": "状态",
+  "users": "用户",
+  "created": "创建时间",
+  "suspend": "暂停",
+  "activate": "启用",
+  "empty": "暂无租户。",
+  "manageUsers": "用户",
+  "usersOf": "用户 — {{name}}",
+  "usersOfSubtitle": "为该租户邀请员工、发放临时密码并管理访问权限。",
+  "usersEmpty": "该租户还没有用户。",
+  "loginUrl": "登录页面",
+  "manageMenus": "菜单",
+  "menus": {
+    "title": "已提供的菜单 — {{name}}",
+    "menu": "菜单",
+    "planDefault": "套餐默认",
+    "thisTenant": "此租户",
+    "result": "结果",
+    "provided": "已提供",
+    "notProvided": "未提供",
+    "noPlan": "无套餐",
+    "planCount": "套餐提供 {{total}} 项中的 {{count}} 项",
+    "planHint": "保持「跟随套餐」的行会随套餐变化，其余行则固定不变。",
+    "exceptions": "有 {{count}} 项例外与套餐不同（*）",
+    "issuesNote": "问题看板还需要租户的工作流模式；仅提供菜单会显示提示而不是看板。",
+    "mode": {
+      "plan": "跟随套餐",
+      "on": "强制提供",
+      "off": "不提供"
+    },
+    "saved": "已保存提供的菜单",
+    "saveError": "无法保存提供的菜单"
+  }
+}

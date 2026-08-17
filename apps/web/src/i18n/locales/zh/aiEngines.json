@@ -1,0 +1,15 @@
+{
+  "title": "AI 引擎",
+  "addEngine": "添加引擎",
+  "editEngine": "编辑引擎",
+  "name": "名称",
+  "provider": "服务商",
+  "model": "模型",
+  "status": "状态",
+  "apiKey": "API 密钥",
+  "apiKeyEdit": "API 密钥（留空则保持不变）",
+  "created": "创建时间",
+  "enable": "启用",
+  "disable": "停用",
+  "empty": "尚未配置任何引擎。"
+}

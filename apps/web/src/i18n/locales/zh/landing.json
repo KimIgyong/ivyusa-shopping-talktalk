@@ -1,0 +1,19 @@
+{
+  "heroTitle": "为您的网店打造的 AI 聊天与客服",
+  "heroSubtitle": "ShopTalk 全天候回复您的顾客，在关键时刻转交给您的团队，并使用顾客的语言——英语、西班牙语、韩语、越南语、日语和中文。",
+  "workspaceLabel": "工作区",
+  "workspacePlaceholder": "your-workspace",
+  "signIn": "登录",
+  "adminLogin": "管理控制台",
+  "goToConsole": "进入控制台",
+  "continueTo": "前往 /{{slug}}",
+  "featureAiTitle": "AI 全天候回答",
+  "featureAiDesc": "基于知识库的助手可即时解决常见问题，每条回复在送达顾客之前都会经过内容审核。",
+  "featureChatTitle": "顺畅转接人工",
+  "featureChatDesc": "在线聊天并可路由至您的客服人员——包含会话记录、常用回复和完整上下文。",
+  "featureCommerceTitle": "为电商而生",
+  "featureCommerceDesc": "对接 Shopify：订单、客户和营销活动就在会话旁边。",
+  "featureI18nTitle": "天然支持多语言",
+  "featureI18nDesc": "顾客可以用六种语言中的任意一种聊天——小组件和 AI 会自动跟随他们的语言。",
+  "footerCopy": "ShopTalk — 聊天与客服小组件"
+}

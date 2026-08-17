@@ -1,3 +1,4 @@
+import type { SessionLanguage } from '@ivy/types';
 import { apiGet, apiPut, apiPost, apiDelete } from '@/lib/api-client';
 
 export type AiFunction = 'chat' | 'rag' | 'summary' | 'assist' | 'moderation' | 'coach';
@@ -56,7 +57,8 @@ export interface ScenarioButton {
   enabled: boolean;
 }
 
-export type ScenarioLang = 'EN' | 'ES' | 'KO';
+/** Session language the console edits copy for — one source of truth with the API. */
+export type ScenarioLang = SessionLanguage;
 
 /** Where the widget sends the shopper after a scripted reply (PLN-AiSetting W2). */
 export interface ScenarioPostAction {

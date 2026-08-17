@@ -1,0 +1,22 @@
+{
+  "title": "Đánh giá",
+  "subtitle": "Đánh giá sản phẩm của khách hàng — ẩn các đánh giá lạm dụng khỏi giao diện cửa hàng",
+  "id": "ID",
+  "customer": "Khách hàng",
+  "orderItem": "Sản phẩm trong đơn",
+  "rating": "Điểm",
+  "ratingOf": "{{rating}} trên 5 sao",
+  "body": "Nội dung đánh giá",
+  "status": "Trạng thái",
+  "created": "Ngày tạo",
+  "hide": "Ẩn",
+  "unhide": "Bỏ ẩn",
+  "toastHidden": "Đã ẩn đánh giá",
+  "toastUnhidden": "Đánh giá đã hiển thị trở lại",
+  "toastError": "Không cập nhật được đánh giá",
+  "empty": "Chưa có đánh giá nào.",
+  "statuses": {
+    "submitted": "Đã gửi",
+    "hidden": "Đã ẩn"
+  }
+}

@@ -5,9 +5,8 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useSession } from '../src/store/session-context';
 import { setOnboarded, setPendingMarketingOptIn } from '../src/lib/storage';
-import { SUPPORTED_LANGUAGES, type AppLanguage } from '../src/lib/config';
+import { LANGUAGE_OPTIONS, type AppLanguage } from '../src/lib/config';
 
-const LANGUAGE_LABELS: Record<AppLanguage, string> = { en: 'English', es: 'Español', ko: '한국어' };
 
 /** Onboarding: language → notification permission → marketing opt-in (G5). */
 export default function OnboardingScreen() {
@@ -39,14 +38,14 @@ export default function OnboardingScreen() {
 
         <Text style={styles.section}>{t('onboarding.chooseLanguage')}</Text>
         <View style={styles.langRow}>
-          {SUPPORTED_LANGUAGES.map((lang) => (
+          {LANGUAGE_OPTIONS.map(({ code: lang, nativeLabel }) => (
             <Pressable
               key={lang}
               style={[styles.langChip, language === lang && styles.langChipActive]}
               onPress={() => void changeLanguage(lang)}
             >
               <Text style={[styles.langText, language === lang && styles.langTextActive]}>
-                {LANGUAGE_LABELS[lang]}
+                {nativeLabel}
               </Text>
             </Pressable>
           ))}

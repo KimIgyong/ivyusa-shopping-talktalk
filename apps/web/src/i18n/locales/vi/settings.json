@@ -1,0 +1,399 @@
+{
+  "title": "Cài đặt gian hàng",
+  "subtitle": "Quản lý tích hợp và thông tin xác thực.",
+  "configure": "Cấu hình",
+  "storesTitle": "Tích hợp cửa hàng",
+  "integrationCredentials": "Thông tin xác thực tích hợp",
+  "provider": "Nhà cung cấp",
+  "status": "Trạng thái",
+  "key": "Khóa",
+  "lastUpdated": "Cập nhật lần cuối",
+  "connected": "Đã kết nối",
+  "notSet": "Chưa đặt",
+  "updateCredential": "Cập nhật thông tin xác thực",
+  "updateProvider": "Cập nhật {{provider}}",
+  "apiKey": "Khóa API",
+  "apiKeyPlaceholder": "Nhập khóa API",
+  "secretOptional": "Secret (không bắt buộc)",
+  "secretPlaceholder": "Nhập secret",
+  "empty": "Không có tích hợp nào khả dụng.",
+  "privacyNotice": {
+    "title": "Thông báo quyền riêng tư",
+    "subtitle": "Cấu hình thông báo đồng ý hiển thị cho khách truy cập widget.",
+    "cardTitle": "Cài đặt thông báo đồng ý",
+    "policyUrl": "URL chính sách quyền riêng tư",
+    "policyUrlPlaceholder": "https://cua-hang-cua-ban.com/privacy",
+    "policyUrlHint": "Hiển thị dưới dạng liên kết trong biểu ngữ đồng ý của widget. Để trống để ẩn liên kết.",
+    "invalidUrl": "Hãy nhập URL hợp lệ bắt đầu bằng http:// hoặc https://.",
+    "version": "Phiên bản thông báo đồng ý",
+    "versionPlaceholder": "ví dụ: 2026-07",
+    "invalidVersion": "Dùng chữ cái, chữ số, dấu chấm, gạch ngang hoặc gạch dưới (phải bắt đầu bằng chữ cái hoặc chữ số, tối đa 32 ký tự).",
+    "versionDefaultHint": "Để trống nghĩa là đang dùng phiên bản mặc định của nền tảng.",
+    "versionWarning": "Đổi phiên bản sẽ yêu cầu mọi khách hàng đồng ý lại. Khung trò chuyện sẽ hiện lại thông báo cho tới khi họ chấp nhận hoặc từ chối.",
+    "saved": "Đã lưu cài đặt thông báo quyền riêng tư.",
+    "saveError": "Lưu cài đặt thông báo quyền riêng tư thất bại."
+  },
+  "widgetBehavior": {
+    "title": "Hành vi của widget",
+    "desc": "Cách widget trò chuyện hoạt động trên cửa hàng của bạn.",
+    "loginMode": "Đăng nhập khách hàng mở bằng",
+    "redirect": "Toàn trang (khuyến nghị)",
+    "popup": "Cửa sổ popup",
+    "redirectHint": "Khi bấm “Đăng nhập”, khách được đưa tới trang đăng nhập của cửa hàng ngay trong tab hiện tại; sau khi đăng nhập họ quay lại và widget mở lại ở phần đơn hàng.",
+    "popupHint": "Khi bấm “Đăng nhập”, trang đăng nhập của cửa hàng mở trong cửa sổ popup. Trình chặn popup có thể gây cản trở; nếu trang đăng nhập vẫn ở shopify.com thì khách phải tự đóng popup.",
+    "saved": "Đã lưu cài đặt widget.",
+    "saveError": "Lưu cài đặt widget thất bại.",
+    "timezone": "Ngôn ngữ mặc định theo múi giờ",
+    "tzUnset": "Chưa đặt (mặc định tiếng Anh)",
+    "timezoneHint": "Đặt ngôn ngữ mặc định của widget khi khách chưa tự chọn — hãy chọn múi giờ nơi khách hàng của bạn ở.",
+    "copyTitle": "Nội dung hiển thị của widget",
+    "displayName": "Tên hiển thị",
+    "displayNameHint": "Hiển thị ở đầu widget và được dùng làm {shop} trong lời chào. Để trống = tên gian hàng.",
+    "firstVisit": "Lời chào lần đầu truy cập",
+    "firstVisitHint": "Hiển thị khi khách mở khung trò chuyện. {shop} sẽ được thay bằng tên hiển thị. Để trống = dùng nội dung mặc định.",
+    "loginGreeting": "Lời chào khi đã đăng nhập",
+    "loginGreetingHint": "Hiển thị khi nhận ra khách đã đăng nhập. {name} sẽ được thay bằng tên khách hàng. Để trống = dùng nội dung mặc định."
+  },
+  "shopify": {
+    "title": "Kết nối Shopify",
+    "subtitle": "Địa chỉ cửa hàng và token API gắn widget này với cửa hàng Shopify của bạn.",
+    "shopDomain": "Tên miền cửa hàng",
+    "shopDomainPlaceholder": "cua-hang-cua-ban.myshopify.com",
+    "accessToken": "Token truy cập Admin API",
+    "accessTokenPlaceholder": "shpat_…",
+    "accessTokenConfigured": "Đã lưu — nhập token mới để thay thế",
+    "apiKeyOptional": "Khóa API (không bắt buộc)",
+    "apiKeyPlaceholder": "Dùng cho OAuth (ứng dụng công khai)",
+    "apiSecretOptional": "API secret (không bắt buộc)",
+    "apiSecretPlaceholder": "Dùng cho OAuth (ứng dụng công khai)",
+    "testConnection": "Kiểm tra kết nối",
+    "testing": "Đang kiểm tra…",
+    "syncNow": "Đồng bộ ngay",
+    "syncing": "Đang đồng bộ…",
+    "registerWebhooks": "Đăng ký webhook",
+    "registering": "Đang đăng ký…",
+    "connectionStatus": "Trạng thái kết nối",
+    "credential": "Thông tin xác thực",
+    "lastTested": "Kiểm tra lần cuối",
+    "state": {
+      "connected": "Đã kết nối",
+      "error": "Lỗi",
+      "unknown": "Chưa kiểm tra"
+    },
+    "install": {
+      "title": "Cài đặt lên cửa hàng của bạn",
+      "subtitle": "Thêm widget trò chuyện vào cửa hàng Shopify. Hãy chọn cách phù hợp với bạn.",
+      "shopHint": "Các đoạn mã đã được điền sẵn cho cửa hàng: {{shop}}",
+      "shopMissing": "Hãy lưu tên miền cửa hàng ở trên trước để các đoạn mã tự động được điền.",
+      "tabAppEmbed": "App embed (khuyến nghị)",
+      "tabScriptTag": "ScriptTag",
+      "tabManual": "Dán mã thủ công",
+      "copy": "Sao chép",
+      "copied": "Đã sao chép vào clipboard",
+      "copyFailed": "Không sao chép được — hãy bôi đen đoạn mã và sao chép thủ công.",
+      "appEmbed": {
+        "desc": "Không cần sửa mã giao diện và có thể bật/tắt dễ dàng. Phù hợp nhất với Online Store 2.0.",
+        "step1": "Trong trang quản trị Shopify, mở Online Store → Themes → Customize.",
+        "step2": "Mở Theme settings → App embeds.",
+        "step3": "Bật “IVY USA TalkTalk” rồi bấm Save."
+      },
+      "scriptTag": {
+        "desc": "Tải trên mọi trang thông qua Admin API. Được đăng ký tự động khi cài ứng dụng; dùng yêu cầu bên dưới để đăng ký thủ công.",
+        "note": "Hãy gửi kèm token truy cập Admin API của bạn. Không cần sửa giao diện."
+      },
+      "manual": {
+        "desc": "Cách đơn giản nhất — dán một đoạn mã vào giao diện của bạn. Không cần cài ứng dụng.",
+        "step1": "Mở Online Store → Themes → ⋯ → Edit code.",
+        "step2": "Mở layout/theme.liquid.",
+        "step3": "Dán đoạn mã ngay trước thẻ </body> rồi Save."
+      }
+    },
+    "nonShopifyDomain": "Đây không phải tên miền *.myshopify.com. Trường này đồng thời là tên miền cửa hàng của gian hàng, nên tên miền Cafe24 hay tên miền riêng đều dùng được — chỉ có nghĩa là cửa hàng này không kết nối với Shopify."
+  },
+  "integrations": {
+    "configured": "Đã lưu — nhập giá trị mới để thay thế",
+    "testConnection": "Kiểm tra kết nối",
+    "testing": "Đang kiểm tra…",
+    "connectionStatus": "Trạng thái kết nối",
+    "credential": "Thông tin xác thực",
+    "lastTested": "Kiểm tra lần cuối",
+    "state": {
+      "connected": "Đã kết nối",
+      "error": "Lỗi",
+      "unknown": "Chưa kiểm tra"
+    },
+    "fields": {
+      "mall_id": "Mall ID",
+      "client_id": "Client ID",
+      "client_secret": "Client secret",
+      "access_token": "Access token",
+      "store_url": "URL cửa hàng",
+      "consumer_key": "Consumer key",
+      "consumer_secret": "Consumer secret",
+      "url": "URL máy chủ",
+      "db": "Cơ sở dữ liệu",
+      "username": "Tên đăng nhập",
+      "api_key": "Khóa API",
+      "shop_domain": "Tên miền cửa hàng",
+      "app_key": "App (store) key",
+      "secret_key": "Secret key",
+      "subdomain": "Subdomain tài khoản",
+      "email": "Email tài khoản",
+      "webhook_secret": "Webhook secret (trạng thái L2)"
+    },
+    "ph": {
+      "mall_id": "gian-hang-cua-ban",
+      "store_url": "https://store.example.com",
+      "url": "https://my-odoo.example.com",
+      "db": "odoo-db",
+      "username": "user@example.com",
+      "shop_domain": "cua-hang-cua-ban.myharavan.com",
+      "subdomain": "cong-ty-cua-ban (từ cong-ty-cua-ban.gorgias.com)",
+      "email": "agent@example.com",
+      "app_key": "yotpo app key"
+    },
+    "cafe24": {
+      "title": "Cafe24",
+      "subtitle": "Kết nối cửa hàng Cafe24 của bạn qua Admin API (token OAuth)."
+    },
+    "woocommerce": {
+      "title": "WooCommerce",
+      "subtitle": "Kết nối cửa hàng WooCommerce bằng khóa consumer của REST API."
+    },
+    "odoo": {
+      "title": "Odoo",
+      "subtitle": "Kết nối Odoo qua API bên ngoài (URL, cơ sở dữ liệu, người dùng, khóa API)."
+    },
+    "haravan": {
+      "title": "Haravan",
+      "subtitle": "Kết nối cửa hàng Haravan bằng token truy cập Admin API."
+    },
+    "klaviyo": {
+      "title": "Klaviyo",
+      "subtitle": "Marketing qua email/SMS — kết nối bằng khóa API riêng của bạn."
+    },
+    "yotpo": {
+      "title": "Yotpo",
+      "subtitle": "Đánh giá & khách hàng thân thiết — kết nối bằng app key và secret."
+    },
+    "gorgias": {
+      "title": "Gorgias",
+      "subtitle": "Helpdesk — các cuộc trò chuyện được chuyển tiếp có thể chuyển thành ticket Gorgias."
+    }
+  },
+  "install": {
+    "subtitle": "Thêm widget trò chuyện vào cửa hàng của bạn. Hãy chọn nền tảng.",
+    "cafe24": {
+      "desc": "Dán đoạn mã vào HTML giao diện Cafe24 để widget được tải trên mọi trang.",
+      "step1": "Trong quản trị Cafe24, mở Thiết kế (PC/Mobile) → chỉnh sửa Smart Design.",
+      "step2": "Mở phần HTML layout của thiết kế đang dùng.",
+      "step3": "Dán đoạn mã ngay trước </body> rồi lưu/triển khai."
+    },
+    "woocommerce": {
+      "desc": "Đăng ký widget từ giao diện WordPress của bạn (hoặc một plugin quản lý đoạn mã).",
+      "step1": "Trong quản trị WordPress, mở Appearance → Theme File Editor (nên dùng child theme).",
+      "step2": "Mở functions.php, hoặc thêm một đoạn mã mới trong plugin code-snippets.",
+      "step3": "Dán đoạn mã bên dưới rồi lưu — nó được tải qua wp_footer trên mọi trang."
+    },
+    "odoo": {
+      "desc": "Website Odoo có thể chèn mã tùy chỉnh cho toàn site từ phần cài đặt website.",
+      "step1": "Trong Odoo, mở Website → Configuration → Settings.",
+      "step2": "Cuộn tới phần Custom Code.",
+      "step3": "Dán đoạn mã vào ô “end of body” rồi lưu."
+    }
+  },
+  "storefront": {
+    "title": "Cửa hàng",
+    "url": "URL cửa hàng",
+    "hint": "Dùng để xác minh liên kết sản phẩm trước khi hiển thị cho khách hàng. Chỉ những liên kết thuộc tên miền này mới xuất hiện trong trò chuyện.",
+    "unsetWarning": "Chưa đặt — gợi ý sản phẩm sẽ không hiển thị dưới dạng liên kết trong widget trò chuyện.",
+    "shopDomain": "Tên miền cửa hàng",
+    "shopDomainHint": "Dùng để nhận diện gian hàng này với widget trò chuyện. Tên miền của bất kỳ nền tảng nào — Shopify, Cafe24 hay của riêng bạn — miễn là khớp với site nơi widget chạy."
+  },
+  "cafe24": {
+    "oauth": {
+      "title": "Cafe24 (OAuth)",
+      "hint": "Kết nối gian hàng Cafe24 qua OAuth để đưa đơn hàng và sản phẩm vào ShopTalk.",
+      "status": "Trạng thái",
+      "mallId": "Mall ID",
+      "connect": "Kết nối Cafe24",
+      "syncNow": "Đồng bộ ngay",
+      "connectedToast": "Đã kết nối Cafe24: {{mall}}",
+      "connectFailed": "Kết nối Cafe24 thất bại",
+      "syncFailed": "Đồng bộ Cafe24 thất bại",
+      "syncProducts": "Nhập sản phẩm",
+      "productsSynced": "Đã đồng bộ {{synced}} sản phẩm, {{archived}} đã lưu trữ — hãy chạy chuyển đổi ở trang Kho tri thức",
+      "syncProductsFailed": "Nhập sản phẩm từ Cafe24 thất bại",
+      "errorInvalidScope": "Cafe24 từ chối các quyền được yêu cầu (invalid_scope) — hãy thêm các quyền đó cho ứng dụng trong Cafe24 Developers rồi kết nối lại",
+      "errorAccessDenied": "Cafe24 đã từ chối cấp quyền (access_denied) — hãy thử lại bằng tài khoản vận hành chính của gian hàng"
+    }
+  },
+  "marketingTitle": "Tích hợp marketing",
+  "helpdeskTitle": "Tích hợp helpdesk",
+  "messenger": {
+    "groupTitle": "Kênh messenger bên ngoài",
+    "groupHint": "Tin nhắn sẽ vào mục Trò chuyện trực tiếp và AI của ShopTalk trả lời ngay trên kênh đó.",
+    "communicationTitle": "Liên lạc",
+    "communicationHint": "Hộp thư công ty được xử lý như các cuộc hội thoại.",
+    "loading": "Đang tải các kênh…",
+    "label": "Tên hiển thị",
+    "credential": "Thông tin xác thực",
+    "stored": "Đã lưu — nhập để thay thế",
+    "autoReply": "AI tự động trả lời",
+    "consentMode": "Cách xử lý đồng ý",
+    "on": "Bật",
+    "off": "Tắt",
+    "enabledLabel": "Kênh",
+    "enabled": "Đang bật",
+    "disabled": "Đã tắt",
+    "lastInbound": "Tin đến gần nhất",
+    "lastError": "Lỗi gần nhất",
+    "connectionStatus": "Kết nối",
+    "test": "Kiểm tra kết nối",
+    "testing": "Đang kiểm tra…",
+    "testOk": "Đã kết nối — {{detail}}",
+    "testFailed": "Kết nối thất bại — {{detail}}",
+    "registerWebhook": "Đăng ký URL nhận tin",
+    "webhookRegistered": "Đã đăng ký URL nhận tin với nhà cung cấp.",
+    "webhookRegisterError": "Không đăng ký được URL nhận tin.",
+    "webhookUrl": "URL nhận tin",
+    "webhookHint": "Hãy đăng ký URL này với nhà cung cấp, hoặc dùng nút bên dưới.",
+    "copy": "Sao chép",
+    "copied": "Đã sao chép.",
+    "copyFailed": "Sao chép thất bại.",
+    "saved": "Đã lưu kênh.",
+    "saveError": "Không lưu được kênh.",
+    "disconnect": "Ngắt kết nối",
+    "disconnected": "Đã ngắt kết nối kênh.",
+    "disconnectError": "Không ngắt kết nối được kênh.",
+    "plannedHint": "Chưa có trong bản dựng này.",
+    "unofficialWarning": "Kênh không chính thức: tin nhắn được chuyển tiếp bởi một chương trình do người bán tự cài trên thiết bị của mình, và người bán tự bật/tắt. AI tự động trả lời mặc định tắt.",
+    "state": {
+      "connected": "Đã kết nối",
+      "error": "Lỗi",
+      "unknown": "Chưa kiểm tra",
+      "planned": "Dự kiến"
+    },
+    "consent": {
+      "notice": "Gửi thông báo quyền riêng tư ở lần liên hệ đầu tiên",
+      "auto": "Dựa theo điều khoản của nền tảng"
+    },
+    "fields": {
+      "bot_token": "Bot token",
+      "auth_token": "Auth token",
+      "email": "Email tài khoản",
+      "password": "Mật khẩu",
+      "company_id": "ID công ty (workspace)",
+      "base_url": "URL máy chủ",
+      "imap_host": "Máy chủ IMAP",
+      "smtp_host": "Máy chủ SMTP",
+      "app_password": "Mật khẩu ứng dụng",
+      "social_types": "Kênh nhận tin",
+      "sender_name": "Tên người gửi",
+      "key_id": "ID khóa API của nhà cung cấp",
+      "api_secret": "API secret của nhà cung cấp",
+      "expected_customer": "Mã khách hàng mong đợi"
+    },
+    "ph": {
+      "social_types": "zalo, line, whatsapp",
+      "sender_name": "Hỗ trợ",
+      "expected_customer": "ví dụ: CUST-… (lấy từ bảng điều khiển relay; từ chối máy chủ trỏ sai)"
+    },
+    "provider": {
+      "telegram": {
+        "title": "Telegram",
+        "subtitle": "Trực tiếp — dùng bot token, không cần nền tảng duyệt",
+        "defaultLabel": "Telegram"
+      },
+      "viber": {
+        "title": "Viber",
+        "subtitle": "Trực tiếp — token tài khoản công khai",
+        "defaultLabel": "Viber"
+      },
+      "amoebatalk": {
+        "title": "Hub AmoebaTalk",
+        "subtitle": "Mang theo Zalo / LINE / WhatsApp đã qua kiểm duyệt",
+        "defaultLabel": "AmoebaTalk"
+      },
+      "btbz_relay": {
+        "title": "btbz messenger relay",
+        "subtitle": "Phòng chat KakaoTalk + SMS đến qua thiết bị của chính người bán",
+        "defaultLabel": "btbz relay"
+      },
+      "gmail": {
+        "title": "Gmail",
+        "subtitle": "Hộp thư công việc qua IMAP/SMTP (mật khẩu ứng dụng)",
+        "defaultLabel": "Công việc 1"
+      },
+      "zalo": {
+        "title": "Zalo",
+        "subtitle": "Thông qua hub AmoebaTalk"
+      },
+      "line": {
+        "title": "LINE",
+        "subtitle": "Thông qua hub AmoebaTalk"
+      },
+      "whatsapp": {
+        "title": "WhatsApp",
+        "subtitle": "Thông qua hub AmoebaTalk"
+      }
+    },
+    "testRejected": "Tài khoản bị từ chối — máy chủ có phản hồi nhưng email/mật khẩu không khớp. Hãy dùng tài khoản vận hành của chính nhà cung cấp, không phải tài khoản ShopTalk của bạn. ({{detail}})",
+    "testNotFound": "URL máy chủ có vẻ sai — địa chỉ có phản hồi nhưng không phải API của nhà cung cấp này. ({{detail}})",
+    "testUnreachable": "Không kết nối được tới máy chủ — hoàn toàn không có phản hồi. Hãy kiểm tra địa chỉ và xem dịch vụ có đang chạy không. ({{detail}})",
+    "testProviderError": "Nhà cung cấp trả về lỗi — phía bạn không có gì cần sửa; hãy thử lại sau. ({{detail}})",
+    "syncNow": "Lấy ngay",
+    "syncOk": "Đã lấy {{count}} tin nhắn mới.",
+    "syncFailed": "Lấy tin thất bại — {{detail}}",
+    "syncInactive": "Đã lấy {{count}} tin nhắn, nhưng kênh này đang tắt — sẽ không có tin nào tự động về cho tới khi bạn bật.",
+    "inactiveWarning": "Đã tắt — không nhận tin. Hãy mở Cấu hình và bật kênh.",
+    "autoReplyScope": "Áp dụng cho tin nhắn nhận từ bây giờ. Mỗi cuộc hội thoại có thể ghi đè trong Trò chuyện trực tiếp.",
+    "mode": {
+      "auto": "Tự động — AI tự trả lời",
+      "approve": "Cần duyệt — AI soạn, nhân viên gửi",
+      "off": "Tắt"
+    }
+  },
+  "menuAccess": {
+    "title": "Quyền truy cập menu",
+    "subtitle": "Quyết định nhóm của bạn vào được những màn hình nào. Menu bị làm mờ không nằm trong gói dịch vụ của bạn.",
+    "tabRoles": "Mặc định theo vai trò",
+    "tabUsers": "Ngoại lệ theo thành viên",
+    "rankColumn": "Cấp bậc",
+    "menu": "Menu",
+    "member": "Thành viên",
+    "exceptions": "Ngoại lệ",
+    "edit": "Sửa",
+    "editFor": "Ngoại lệ — {{who}} ({{rank}})",
+    "rankDefault": "Mặc định theo cấp bậc",
+    "thisUser": "Thành viên này",
+    "result": "Kết quả",
+    "allowed": "Được phép",
+    "blocked": "Bị chặn",
+    "notProvided": "Không có trong gói",
+    "canAccess": "Có quyền truy cập",
+    "cannotAccess": "Không có quyền",
+    "readOnly": "chỉ đọc",
+    "masterExempt": "không chịu ràng buộc bởi ngoại lệ",
+    "save": "Lưu mặc định theo vai trò",
+    "saved": "Đã lưu quyền truy cập menu",
+    "saveError": "Không lưu được quyền truy cập menu",
+    "loading": "Đang tải…",
+    "needsLabel": "(cần {{label}})",
+    "masterNote": "Master luôn vào được mọi menu mà gói của bạn cung cấp, nên không thể bị khóa.",
+    "labelNote": "Menu gắn nhãn công việc vẫn ẩn với thành viên không có nhãn đó. Muốn mở cho riêng một người bất kể nhãn, hãy dùng ngoại lệ theo thành viên.",
+    "notProvidedNote": "Các menu bị gạch ngang không được gói của bạn cung cấp; hãy liên hệ quản trị viên nền tảng để bổ sung.",
+    "allowWaivesLabel": "“Cho phép” cũng bỏ qua yêu cầu nhãn công việc với thành viên này. Các thao tác bên trong màn hình vẫn theo cấp bậc và nhãn của họ.",
+    "mode": {
+      "default": "Mặc định theo cấp bậc",
+      "allow": "Cho phép",
+      "deny": "Chặn"
+    },
+    "rank": {
+      "master": "Master",
+      "director": "Giám đốc",
+      "manager": "Quản lý",
+      "staff": "Nhân viên"
+    }
+  }
+}

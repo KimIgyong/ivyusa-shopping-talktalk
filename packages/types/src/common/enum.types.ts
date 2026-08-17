@@ -42,8 +42,10 @@ export type WidgetLoginMode = (typeof WIDGET_LOGIN_MODE)[keyof typeof WIDGET_LOG
 export const SESSION_IDENTITY = { GUEST: 'guest', VERIFIED: 'verified' } as const;
 export type SessionIdentity = (typeof SESSION_IDENTITY)[keyof typeof SESSION_IDENTITY];
 
-export const SESSION_LANGUAGE = { EN: 'EN', ES: 'ES', KO: 'KO' } as const;
-export type SessionLanguage = (typeof SESSION_LANGUAGE)[keyof typeof SESSION_LANGUAGE];
+// The language set moved to ./language.ts, which carries labels, timezone
+// defaults and review state alongside the codes (REQ-260817). Re-exported here
+// so the many `import { SESSION_LANGUAGE } from '@ivy/types'` sites keep working.
+export { SESSION_LANGUAGE, type SessionLanguage } from './language';
 
 // ---- Chat ----
 export const CONVERSATION_STATUS = {

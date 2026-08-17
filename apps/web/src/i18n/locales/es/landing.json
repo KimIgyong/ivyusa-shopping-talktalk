@@ -1,6 +1,6 @@
 {
   "heroTitle": "Chat y soporte con IA para tu tienda en línea",
-  "heroSubtitle": "ShopTalk responde a tus clientes 24/7, transfiere a tu equipo cuando importa y habla su idioma: inglés, español y coreano.",
+  "heroSubtitle": "ShopTalk responde a tus clientes 24/7, transfiere a tu equipo cuando importa y habla su idioma: inglés, español, coreano, vietnamita, japonés y chino.",
   "workspaceLabel": "Espacio de trabajo",
   "workspacePlaceholder": "tu-espacio",
   "signIn": "Iniciar sesión",
@@ -14,6 +14,6 @@
   "featureCommerceTitle": "Hecho para el comercio",
   "featureCommerceDesc": "Conectado a Shopify: pedidos, clientes y campañas junto a la conversación.",
   "featureI18nTitle": "Multilingüe por defecto",
-  "featureI18nDesc": "Los clientes chatean en inglés, español o coreano; el widget y la IA siguen su idioma automáticamente.",
+  "featureI18nDesc": "Los clientes chatean en cualquiera de los seis idiomas; el widget y la IA siguen su idioma automáticamente.",
   "footerCopy": "ShopTalk — widget de chat y soporte"
 }

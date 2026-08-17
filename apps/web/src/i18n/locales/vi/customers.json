@@ -1,0 +1,15 @@
+{
+  "title": "Khách hàng",
+  "subtitle": "Quản lý tài khoản và hạng khách hàng",
+  "name": "Tên",
+  "email": "Email",
+  "tier": "Hạng",
+  "orders": "Đơn hàng",
+  "totalSpent": "Tổng chi tiêu",
+  "created": "Ngày tạo",
+  "editTier": "Sửa hạng",
+  "editTierTitle": "Sửa hạng khách hàng",
+  "tierFor": "Hạng của {{name}}",
+  "searchPlaceholder": "Tìm theo tên hoặc email",
+  "empty": "Không tìm thấy khách hàng nào."
+}

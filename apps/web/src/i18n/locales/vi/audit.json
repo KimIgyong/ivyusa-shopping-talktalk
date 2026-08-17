@@ -1,0 +1,9 @@
+{
+  "title": "Nhật ký kiểm tra",
+  "time": "Thời gian",
+  "actor": "Người thực hiện",
+  "action": "Hành động",
+  "target": "Đối tượng",
+  "ip": "IP",
+  "empty": "Không có mục kiểm tra nào."
+}

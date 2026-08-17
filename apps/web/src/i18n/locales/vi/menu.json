@@ -1,0 +1,26 @@
+{
+  "title": "Tất cả menu",
+  "subtitle": "Mọi màn hình bạn có thể truy cập trong bảng điều khiển {{scope}}.",
+  "items": {
+    "dashboard": "Hoạt động hỗ trợ và các số liệu chính trong một cái nhìn",
+    "liveChat": "Trả lời các cuộc hội thoại đang diễn ra",
+    "history": "Tìm và xem lại các hội thoại đã qua",
+    "workLog": "Từng nhân viên đã thực sự xử lý những gì",
+    "statistics": "Phân tích các chỉ số hỗ trợ theo thời gian",
+    "aiSettings": "Persona, kịch bản và quy tắc chuyển tiếp cho AI",
+    "knowledge": "Kho tri thức mà AI dựa vào để trả lời",
+    "products": "Danh mục sản phẩm bạn đã nhập và việc chúng có vào kho tri thức hay không",
+    "customers": "Hồ sơ khách hàng và lịch sử hỗ trợ",
+    "orders": "Trạng thái đơn hàng và thông tin giao hàng",
+    "campaigns": "Thông báo và các đợt gửi khuyến mãi",
+    "reviews": "Xem xét và kiểm duyệt đánh giá của khách hàng",
+    "users": "Tài khoản nhóm, cấp bậc và nhãn công việc",
+    "settings": "Tích hợp cửa hàng và hành vi của widget",
+    "privacyNotice": "Thông báo đồng ý hiển thị cho người mua",
+    "myPage": "Tài khoản, mật khẩu và cài đặt xác thực hai yếu tố của bạn",
+    "overview": "Tình trạng toàn nền tảng",
+    "tenants": "Duyệt và quản lý gian hàng",
+    "aiEngines": "Công cụ AI và định tuyến",
+    "audit": "Nhật ký kiểm tra nền tảng"
+  }
+}

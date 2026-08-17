@@ -1,0 +1,21 @@
+{
+  "title": "Tổng quan",
+  "subtitle": "Bức tranh thời gian thực về hoạt động hỗ trợ của bạn",
+  "activeChats": "Cuộc trò chuyện đang diễn ra",
+  "todayNotifications": "Thông báo hôm nay",
+  "aiResolutionRate": "Tỷ lệ AI giải quyết",
+  "unresolvedTopN": "Chưa giải quyết (top N)",
+  "totalConversations": "Tổng số hội thoại",
+  "totalOrders": "Tổng số đơn hàng",
+  "popularQuestions": "Câu hỏi phổ biến",
+  "integrationStatus": "Trạng thái tích hợp",
+  "noIntegrations": "Chưa cấu hình tích hợp nào.",
+  "recentOrders": "Đơn hàng gần đây",
+  "viewCustomers": "Xem khách hàng",
+  "viewOrders": "Xem đơn hàng",
+  "noOrders": "Chưa có đơn hàng nào.",
+  "orderNumber": "Đơn hàng",
+  "status": "Trạng thái",
+  "amount": "Số tiền",
+  "date": "Ngày"
+}

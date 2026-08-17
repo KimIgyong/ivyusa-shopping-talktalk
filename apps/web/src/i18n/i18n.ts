@@ -1,202 +1,53 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
+import type { Resource, ResourceKey, ResourceLanguage } from 'i18next';
+// Imported from source rather than through '@ivy/types': the package publishes
+// CJS and the bundler cannot trace a named export through its `export *` chain.
+// Types come through the package as usual — only this runtime table is deep-imported.
+import { LANGUAGES, LANGUAGE_CODES } from '../../../../packages/types/src/common/language';
 
-// English
-import enCommon from './locales/en/common.json';
-import enNav from './locales/en/nav.json';
-import enAuth from './locales/en/auth.json';
-import enLanding from './locales/en/landing.json';
-import enMypage from './locales/en/mypage.json';
-import enDashboard from './locales/en/dashboard.json';
-import enLivechat from './locales/en/livechat.json';
-import enHistory from './locales/en/history.json';
-import enWorkLog from './locales/en/workLog.json';
-import enStatistics from './locales/en/statistics.json';
-import enAiSetting from './locales/en/aiSetting.json';
-import enKnowledge from './locales/en/knowledge.json';
-import enCustomers from './locales/en/customers.json';
-import enOrders from './locales/en/orders.json';
-import enProducts from './locales/en/products.json';
-import enMenu from './locales/en/menu.json';
-import enCampaigns from './locales/en/campaigns.json';
-import enReviews from './locales/en/reviews.json';
-import enUsers from './locales/en/users.json';
-import enSettings from './locales/en/settings.json';
-import enTenants from './locales/en/tenants.json';
-import enAiEngines from './locales/en/aiEngines.json';
-import enAudit from './locales/en/audit.json';
-import enOverview from './locales/en/overview.json';
+/**
+ * Locale resources are collected by glob rather than listed import by import.
+ * With three languages that was 72 import lines plus a matching resources
+ * block; six languages would have made it 144, and every new namespace meant
+ * editing the file in six places — the kind of chore where one language quietly
+ * gets skipped and silently falls back to English (REQ-260817 G8).
+ *
+ * The path stays a literal so Vite can statically resolve it at build time.
+ */
+const modules = import.meta.glob<ResourceKey>('./locales/*/*.json', {
+  eager: true,
+  import: 'default',
+});
 
-// Spanish
-import esCommon from './locales/es/common.json';
-import esNav from './locales/es/nav.json';
-import esAuth from './locales/es/auth.json';
-import esLanding from './locales/es/landing.json';
-import esMypage from './locales/es/mypage.json';
-import esDashboard from './locales/es/dashboard.json';
-import esLivechat from './locales/es/livechat.json';
-import esHistory from './locales/es/history.json';
-import esWorkLog from './locales/es/workLog.json';
-import esStatistics from './locales/es/statistics.json';
-import esAiSetting from './locales/es/aiSetting.json';
-import esKnowledge from './locales/es/knowledge.json';
-import esCustomers from './locales/es/customers.json';
-import esOrders from './locales/es/orders.json';
-import esProducts from './locales/es/products.json';
-import esMenu from './locales/es/menu.json';
-import esCampaigns from './locales/es/campaigns.json';
-import esReviews from './locales/es/reviews.json';
-import esUsers from './locales/es/users.json';
-import esSettings from './locales/es/settings.json';
-import esTenants from './locales/es/tenants.json';
-import esAiEngines from './locales/es/aiEngines.json';
-import esAudit from './locales/es/audit.json';
-import esOverview from './locales/es/overview.json';
+const resources: Resource = {};
+for (const [path, translation] of Object.entries(modules)) {
+  const [, lang, file] = path.match(/^\.\/locales\/([^/]+)\/(.+)\.json$/) ?? [];
+  if (!lang || !file) continue;
+  (resources[lang] ??= {} as ResourceLanguage)[file] = translation;
+}
 
-// Korean
-import koCommon from './locales/ko/common.json';
-import koNav from './locales/ko/nav.json';
-import koAuth from './locales/ko/auth.json';
-import koLanding from './locales/ko/landing.json';
-import koMypage from './locales/ko/mypage.json';
-import koDashboard from './locales/ko/dashboard.json';
-import koLivechat from './locales/ko/livechat.json';
-import koHistory from './locales/ko/history.json';
-import koWorkLog from './locales/ko/workLog.json';
-import koStatistics from './locales/ko/statistics.json';
-import koAiSetting from './locales/ko/aiSetting.json';
-import koKnowledge from './locales/ko/knowledge.json';
-import koCustomers from './locales/ko/customers.json';
-import koOrders from './locales/ko/orders.json';
-import koProducts from './locales/ko/products.json';
-import koMenu from './locales/ko/menu.json';
-import koCampaigns from './locales/ko/campaigns.json';
-import koReviews from './locales/ko/reviews.json';
-import koUsers from './locales/ko/users.json';
-import koSettings from './locales/ko/settings.json';
-import koTenants from './locales/ko/tenants.json';
-import koAiEngines from './locales/ko/aiEngines.json';
-import koAudit from './locales/ko/audit.json';
-import koOverview from './locales/ko/overview.json';
+export const SUPPORTED_LANGUAGES = LANGUAGE_CODES;
+export type SupportedLanguage = string;
 
-export const SUPPORTED_LANGUAGES = ['en', 'es', 'ko'] as const;
-export type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number];
+/** Code, endonym and review state for the language picker. */
+export const LANGUAGE_OPTIONS = LANGUAGES.map((l) => ({
+  code: l.code,
+  nativeLabel: l.nativeLabel,
+  shortLabel: l.shortLabel,
+  reviewed: l.reviewed,
+}));
 
 export const LANGUAGE_STORAGE_KEY = 'ivy_lang';
 
-export const ns = [
-  'common',
-  'nav',
-  'auth',
-  'landing',
-  'mypage',
-  'dashboard',
-  'livechat',
-  'history',
-  'workLog',
-  'statistics',
-  'aiSetting',
-  'knowledge',
-  'customers',
-  'orders',
-  'products',
-  'menu',
-  'campaigns',
-  'reviews',
-  'users',
-  'settings',
-  'tenants',
-  'aiEngines',
-  'audit',
-  'overview',
-] as const;
-
-const resources = {
-  en: {
-    common: enCommon,
-    nav: enNav,
-    auth: enAuth,
-    landing: enLanding,
-    mypage: enMypage,
-    dashboard: enDashboard,
-    livechat: enLivechat,
-    history: enHistory,
-    workLog: enWorkLog,
-    statistics: enStatistics,
-    aiSetting: enAiSetting,
-    knowledge: enKnowledge,
-    customers: enCustomers,
-    orders: enOrders,
-    products: enProducts,
-    menu: enMenu,
-    campaigns: enCampaigns,
-    reviews: enReviews,
-    users: enUsers,
-    settings: enSettings,
-    tenants: enTenants,
-    aiEngines: enAiEngines,
-    audit: enAudit,
-    overview: enOverview,
-  },
-  es: {
-    common: esCommon,
-    nav: esNav,
-    auth: esAuth,
-    landing: esLanding,
-    mypage: esMypage,
-    dashboard: esDashboard,
-    livechat: esLivechat,
-    history: esHistory,
-    workLog: esWorkLog,
-    statistics: esStatistics,
-    aiSetting: esAiSetting,
-    knowledge: esKnowledge,
-    customers: esCustomers,
-    orders: esOrders,
-    products: esProducts,
-    menu: esMenu,
-    campaigns: esCampaigns,
-    reviews: esReviews,
-    users: esUsers,
-    settings: esSettings,
-    tenants: esTenants,
-    aiEngines: esAiEngines,
-    audit: esAudit,
-    overview: esOverview,
-  },
-  ko: {
-    common: koCommon,
-    nav: koNav,
-    auth: koAuth,
-    landing: koLanding,
-    mypage: koMypage,
-    dashboard: koDashboard,
-    livechat: koLivechat,
-    history: koHistory,
-    workLog: koWorkLog,
-    statistics: koStatistics,
-    aiSetting: koAiSetting,
-    knowledge: koKnowledge,
-    customers: koCustomers,
-    orders: koOrders,
-    products: koProducts,
-    menu: koMenu,
-    campaigns: koCampaigns,
-    reviews: koReviews,
-    users: koUsers,
-    settings: koSettings,
-    tenants: koTenants,
-    aiEngines: koAiEngines,
-    audit: koAudit,
-    overview: koOverview,
-  },
-} as const;
+/** Namespaces available to `useTranslation`, derived from the English resources. */
+export const ns = Object.keys(resources.en ?? {}).sort();
 
 function getInitialLanguage(): SupportedLanguage {
   if (typeof localStorage !== 'undefined') {
     const stored = localStorage.getItem(LANGUAGE_STORAGE_KEY);
-    if (stored && (SUPPORTED_LANGUAGES as readonly string[]).includes(stored)) {
-      return stored as SupportedLanguage;
+    if (stored && SUPPORTED_LANGUAGES.includes(stored)) {
+      return stored;
     }
   }
   return 'en';
@@ -207,10 +58,16 @@ i18n.use(initReactI18next).init({
   lng: getInitialLanguage(),
   fallbackLng: 'en',
   defaultNS: 'common',
-  ns: ns as unknown as string[],
+  ns,
   interpolation: {
     escapeValue: false,
   },
 });
+
+// Han characters are shared between Japanese and Chinese but drawn differently;
+// the lang attribute is what lets the browser pick the right glyph shapes.
+if (typeof document !== 'undefined') {
+  document.documentElement.lang = i18n.language;
+}
 
 export default i18n;

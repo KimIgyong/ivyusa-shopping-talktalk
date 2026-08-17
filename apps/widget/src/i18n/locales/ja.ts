@@ -1,0 +1,284 @@
+import type { Translation } from './en';
+
+export const ja: Translation = {
+  appName: 'IVY USA',
+  notificationCenter: 'お知らせセンター',
+  settings: '設定',
+
+  tab: {
+    notifications: 'お知らせ',
+    chat: 'チャット',
+    orders: '注文',
+  },
+
+  notifications: {
+    empty: 'お知らせはまだありません。',
+    filters: {
+      all: 'すべて',
+      payment: 'お支払い',
+      shipping: '配送',
+      event: 'イベント',
+      review: 'レビュー',
+    },
+  },
+
+  chat: {
+    welcome:
+      'こんにちは！{{shop}}へようこそ。本日はどのようなご用件でしょうか。下のトピックからお選びいただくか、ご質問を入力してください。',
+    welcomeNamed:
+      '{{name}}さん、こんにちは！{{shop}}へおかえりなさい。本日はどのようなご用件でしょうか。下のトピックからお選びいただくか、ご質問を入力してください。',
+    aiDisclosure:
+      'このチャットはAIを利用しています。送信されたメッセージは、回答生成のため米国の第三者AIサービス提供者によって処理されます。',
+    citations: '参照した情報',
+    inputPlaceholder: 'メッセージを入力…',
+    send: '送信',
+    sendFailed: '申し訳ございません。送信できませんでした。もう一度お試しください。',
+    endChat: 'チャットを終了',
+    endConfirm: 'この会話を終了しますか。',
+    endCancel: 'キャンセル',
+    endedNotice: 'この会話は終了しました。メッセージを送信すると新しい会話が始まります。',
+    csatQuestion: '今回のチャットにどの程度ご満足いただけましたか。',
+    csatThanks: 'ご意見ありがとうございます 🙏',
+    csatDismiss: '閉じる',
+    csatStar: '星{{count}}つ',
+    connectingAgent: 'サポート担当者におつなぎしています。少々お待ちください…',
+    contactEmail: {
+      title: '回答はどちらへお送りしましょうか。',
+      body: 'ただいまサポート時間外のため、担当者よりメールでご返信いたします。',
+      placeholder: 'you@example.com',
+      submit: '保存',
+      failed: 'そのアドレスを保存できませんでした。ご確認のうえ、もう一度お試しください。',
+      privacy: 'このお問い合わせへの回答にのみ使用します。',
+    },
+    typingAi: '回答を作成しています…',
+    typingAgent: '担当者が回答を作成しています…',
+    waitingForAgent: 'サポート担当者をお待ちいただいています — 回答はこちらに表示されます。',
+    /** Fallback follow-ups so a reply never leaves the shopper at a dead end. */
+    nextActions: {
+      myOrders: '注文履歴',
+      shipping: '配送について',
+      returns: '返品・交換',
+      agent: '担当者と話す',
+    },
+    connectAgent: '担当者につなぐ',
+    consent: {
+      title: 'プライバシーに関するお知らせ',
+      body: 'CCPAに基づき、当社はサポート提供のためお客様のメッセージを処理し、アクセス状況の把握とサービス改善のために分析ツール（Google Analytics）を利用します。続けるにあたり同意いただけますか。',
+      accept: '同意する',
+      decline: '同意しない',
+      versionLabel: 'お知らせバージョン {{version}}',
+      updated:
+        'プライバシーに関するお知らせを変更しました。内容をご確認のうえ、あらためてご選択ください。',
+      items:
+        '取得する情報：チャットのメッセージ、お客様がご依頼された注文照会、基本的な端末情報。',
+      purpose: '利用目的：ご質問への回答およびカスタマーサポートの提供のため。',
+      retention: '保存期間：チャットデータは最長365日間保存し、その後削除します。',
+      aiProcessor: 'AI：メッセージは米国の第三者AI提供者によって処理されます。',
+      policyLink: 'プライバシーポリシー',
+      privacyChoices: 'プライバシー設定とマイデータ',
+      saveError: 'ご選択を保存できませんでした。もう一度お試しください。',
+      retry: '再試行',
+    },
+    scenarios: {
+      delivery: '配送状況',
+      cancelRefund: 'キャンセル・返金',
+      productHelp: '商品について',
+      contact: 'サポートに問い合わせ',
+      affiliate: 'アフィリエイト',
+      myOrders: '注文履歴',
+    },
+    productHelp: {
+      usage: '使い方',
+      ingredients: '成分',
+      exchange: '交換・返品',
+      restock: '再入荷通知',
+      back: '戻る',
+    },
+    attachment: {
+      attach: 'ファイルを添付',
+      open: '{{name}} を開く',
+      close: '閉じる',
+      remove: '{{name}} を削除',
+      unavailable: '画像を表示できません',
+      uploadFailed: '{{name}} をアップロードできませんでした',
+      processing: '処理中…',
+      convertFailed: '{{name}} を処理できませんでした。JPEGでお送りください。',
+      tooManyPixels: '{{name}} は解像度が高すぎます。小さいものをお送りください。',
+      tooLarge: '{{name}} は上限の {{limit}} MB を超えています',
+      typeNotAllowed: '{{name}} は受け付けていないファイル形式です',
+      tooMany: '1通あたり最大 {{max}} 件まで添付できます',
+    },
+    templates: {
+      cancelRefund: '注文のキャンセル、または返金をお願いしたいです。',
+      usage: 'この商品はどのように使いますか。',
+      ingredients: 'この商品の成分を教えてください。',
+      exchange: '商品を交換または返品したいです。',
+      restock: 'この商品が再入荷したら知らせてください。',
+    },
+  },
+
+  auth: {
+    title: '本人確認',
+    body: 'この情報をご覧いただくには、ログインするかゲスト注文照会をご利用ください。',
+    signIn: 'ログイン',
+    guestLookup: 'ゲスト注文照会',
+    orderNumber: '注文番号',
+    email: 'メールアドレス',
+    submit: '注文を照会',
+    cancel: 'キャンセル',
+    waiting: 'ログインをお待ちしています…',
+    lookupFailed:
+      'その注文番号とメールアドレスに一致するご注文が見つかりませんでした。両方をご確認のうえ、もう一度お試しください。',
+    lookupThrottled: '試行回数が多すぎます。数分お待ちいただいてから、もう一度お試しください。',
+    useGuestInstead: '注文番号で照会する',
+  },
+
+  contact: {
+    title: 'サポートに問い合わせ',
+    phone: '1588-0000',
+    hours: '月–金 10:00–18:00',
+    email: 'help@ivy.com',
+    chatAgent: '担当者とチャット',
+  },
+
+  affiliate: {
+    title: 'アフィリエイトプログラム',
+    steps: [
+      'プログラムへの参加を申し込む',
+      '審査は1〜3営業日',
+      'ご紹介につき10%の報酬を獲得',
+    ],
+    apply: '今すぐ申し込む',
+    pending: 'お申し込みを審査中です。',
+    approved: 'アフィリエイトとして承認されました。',
+  },
+
+  orders: {
+    issues: {
+      status: {
+        received: '受付済み',
+        in_progress: '対応中',
+        resolved: '解決済み',
+        rejected: 'お受けできません',
+        closed: '完了',
+      },
+      type: {
+        order_status: '注文状況',
+        delivery: '配送',
+        cancel: 'キャンセル',
+        refund: '返金',
+        partnership: '提携',
+        other: 'お問い合わせ',
+      },
+      line: {
+        received: 'お問い合わせを受け付けました。ただいま確認しております。',
+        in_progress: '担当者を割り当て、対応を進めています。',
+        resolved: 'このお問い合わせは解決しました。',
+        rejected: 'このお問い合わせは処理できませんでした。詳細はお知らせをご確認ください。',
+        closed: 'このお問い合わせは完了しました。ありがとうございました。',
+      },
+    },
+    subtabs: {
+      payments: 'お支払い',
+      shipping: '配送',
+      inquiries: 'お問い合わせ',
+    },
+    empty: 'ご注文が見つかりません。',
+    emptyRecent: '過去30日間のご注文はありません。',
+    more: 'もっと見る',
+    moreInMyPage: 'すべての注文履歴は、ストアのマイページからご確認ください。',
+    viewAllOnMall: '注文履歴をすべて見る',
+    ask: 'この注文について問い合わせる',
+    askMessage: '注文番号 #{{orderNumber}} について質問があります。',
+    trackingSteps: ['準備中', '発送済み', '配送中', '配達完了'],
+    track: '配送状況',
+    detail: '注文詳細',
+    items: '商品',
+    total: '合計',
+    writeReview: 'レビューを書く',
+    back: '戻る',
+  },
+
+  review: {
+    title: 'レビューを書く',
+    rating: '評価',
+    placeholder: 'ご感想をお聞かせください…',
+    submit: 'レビューを送信',
+    thanks: 'レビューありがとうございます。',
+    stars_one: '星{{count}}つ',
+    stars_other: '星{{count}}つ',
+  },
+
+  prefs: {
+    title: '通知設定',
+    channels: {
+      in_app: 'アプリ内',
+      email: 'メール',
+      sms: 'SMS',
+      web_push: 'Webプッシュ',
+    },
+    categories: {
+      payment: 'お支払い',
+      shipping: '配送',
+      event: 'イベント',
+      review: 'レビュー',
+    },
+    alwaysOn: '常にオン',
+    ccpa: 'CCPA：個人情報の販売・共有を行わない',
+  },
+
+  privacy: {
+    title: 'プライバシーとデータ',
+    consent: {
+      title: 'チャット・AIへの同意',
+      state: {
+        granted: '同意済み',
+        declined: '同意を撤回済み',
+        pending: '未選択',
+      },
+      grantedAt: '{{date}}',
+      version: 'お知らせバージョン {{version}}',
+      pendingHint:
+        'チャットタブを開いて、プライバシーに関するお知らせをご確認のうえご選択ください。',
+      withdraw: '同意を撤回する',
+      withdrawConfirm: 'もう一度クリックで撤回を確定',
+      withdrawHint:
+        '撤回されると、再度ご同意いただくまでチャットとAIによる処理は停止します。',
+      reconsent: 'あらためて同意する',
+      saved: 'ご選択を保存しました。',
+      error: 'ご選択を保存できませんでした。もう一度お試しください。',
+      unavailable:
+        '現在、同意状況を取得できません。通信環境をご確認のうえ、ウィジェットを開き直してください。',
+    },
+    optOutHint:
+      'お客様のアカウントについて、メール・SMS・Webプッシュの配信を停止します。アプリ内のお知らせは継続します。',
+    export: 'マイデータをダウンロード（JSON）',
+    exporting: 'ダウンロードデータを準備しています…',
+    delete: 'マイデータを削除',
+    deleteConfirm: 'もう一度クリックで確定 — この操作は取り消せません',
+    deleteDone: '個人データを匿名化しました。',
+    needVerified:
+      'まずストアのアカウントにログインしてください。この操作には本人確認が必要です。',
+  },
+
+  common: {
+    loading: '読み込み中…',
+    error: '問題が発生しました。',
+    crashTitle: '当社側で問題が発生しました。',
+    crashBody:
+      'ウィジェットのほかの機能はご利用いただけます。もう一度お試しいただくか、タブを切り替えてからお戻りください。',
+    retry: '再試行',
+    close: '閉じる',
+  },
+
+  a11y: {
+    supportWidget: 'サポートウィジェット',
+    openSupport: 'サポートを開く',
+    closeSupport: 'サポートを閉じる',
+    close: '閉じる',
+    messageThread: 'メッセージスレッド',
+    verifyIdentity: '本人確認',
+    privacyNotice: 'プライバシーに関するお知らせ',
+    language: '言語',
+  },
+};

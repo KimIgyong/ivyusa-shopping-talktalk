@@ -27,6 +27,7 @@
   "products": "Productos",
   "allMenus": "Todos los menús",
   "issueBoard": "Tablero de issues",
+  "languageBetaHint": "β traducción automática, pendiente de revisión",
   "blocked": {
     "title": "No puedes abrir este menú",
     "description": "Esta pantalla no está disponible para tu cuenta. Pídesela al máster de tu espacio si la necesitas.",

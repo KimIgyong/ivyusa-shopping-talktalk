@@ -1,0 +1,10 @@
+{
+  "title": "Tổng quan nền tảng",
+  "totalTenants": "Tổng số gian hàng",
+  "activeTenants": "Gian hàng đang hoạt động",
+  "aiEngines": "Công cụ AI",
+  "conversations": "Cuộc hội thoại",
+  "comingSoon": "sắp có",
+  "integrationStatus": "Trạng thái tích hợp",
+  "noIntegrations": "Chưa cấu hình tích hợp nào."
+}

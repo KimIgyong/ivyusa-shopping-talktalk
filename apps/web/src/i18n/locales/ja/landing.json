@@ -1,0 +1,19 @@
+{
+  "heroTitle": "オンラインストアのためのAIチャット＆サポート",
+  "heroSubtitle": "ShopTalkは24時間365日お客様に回答し、必要なときは担当チームへ引き継ぎ、英語・スペイン語・韓国語・ベトナム語・日本語・中国語でご案内します。",
+  "workspaceLabel": "ワークスペース",
+  "workspacePlaceholder": "your-workspace",
+  "signIn": "ログイン",
+  "adminLogin": "管理コンソール",
+  "goToConsole": "コンソールへ",
+  "continueTo": "/{{slug}} へ進む",
+  "featureAiTitle": "AIが24時間回答",
+  "featureAiDesc": "ナレッジベースに基づくアシスタントがよくある質問を即座に解決し、すべての回答はお客様に届く前にモデレーションを通過します。",
+  "featureChatTitle": "スムーズな有人引き継ぎ",
+  "featureChatDesc": "担当者へのルーティング付きライブチャット。会話履歴、定型返信、これまでの経緯もそのまま引き継ぎます。",
+  "featureCommerceTitle": "コマースのために作られています",
+  "featureCommerceDesc": "Shopifyと連携。注文・顧客・キャンペーンが会話のすぐ隣にあります。",
+  "featureI18nTitle": "はじめから多言語対応",
+  "featureI18nDesc": "お客様は6つの言語のいずれでもチャットでき、ウィジェットとAIが自動でその言語に合わせます。",
+  "footerCopy": "ShopTalk — チャット＆サポートウィジェット"
+}

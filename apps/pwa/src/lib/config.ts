@@ -11,5 +11,17 @@ export const SHOP_DOMAIN = import.meta.env.VITE_SHOP_DOMAIN ?? 'ambshop-dev.mysh
 /** Storefront opens in a NEW TAB — Shopify forbids iframing (REQ-PWA C1). */
 export const STOREFRONT_URL = `https://${SHOP_DOMAIN}`;
 
-export const SUPPORTED_LANGUAGES = ['en', 'es', 'ko'] as const;
-export type AppLanguage = (typeof SUPPORTED_LANGUAGES)[number];
+// Runtime table from the registry source: '@ivy/types' publishes CJS and the
+// bundler cannot trace a named export through its `export *` chain.
+import { LANGUAGES, LANGUAGE_CODES } from '../../../../packages/types/src/common/language';
+
+/** Languages this app offers — derived from the shared registry. */
+export const SUPPORTED_LANGUAGES = LANGUAGE_CODES;
+export type AppLanguage = string;
+
+/** Endonym + review state for the language picker. */
+export const LANGUAGE_OPTIONS = LANGUAGES.map((l) => ({
+  code: l.code,
+  nativeLabel: l.nativeLabel,
+  reviewed: l.reviewed,
+}));

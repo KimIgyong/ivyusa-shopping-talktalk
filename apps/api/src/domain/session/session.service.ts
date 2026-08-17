@@ -7,6 +7,8 @@ import {
   ConsentState,
   SESSION_IDENTITY,
   SESSION_LANGUAGE,
+  sessionLanguageForLocale,
+  sessionLanguageForTimezone,
   WIDGET_LOGIN_MODE,
   WidgetCopy,
   WidgetLoginMode,
@@ -402,10 +404,13 @@ export class SessionService {
   }
 
   /**
-   * Resolve a session's UI language. An explicit non-English locale (es/ko) is
-   * always honoured; when the shopper gives no clear preference, the tenant's
+   * Resolve a session's UI language. An explicit non-English locale is always
+   * honoured; when the shopper gives no clear preference, the tenant's
    * configured timezone decides the default (요구사항: Asia/Seoul → Korean,
    * America/New_York → English). Falls back to English when neither applies.
+   *
+   * Both mappings come from the @ivy/types registry, so a newly registered
+   * language is understood here without touching this file (REQ-260817 G6).
    */
   /**
    * Language for a session opened from an external messenger (PLN-260812 S3).
@@ -420,19 +425,11 @@ export class SessionService {
   }
 
   private resolveLanguage(locale?: string, timezone?: string | null): string {
-    const l = (locale ?? '').toLowerCase();
-    if (l.startsWith('es')) return SESSION_LANGUAGE.ES;
-    if (l.startsWith('ko')) return SESSION_LANGUAGE.KO;
-    // No explicit non-English preference (en / empty / unknown) → tenant default.
-    return this.languageForTimezone(timezone) ?? SESSION_LANGUAGE.EN;
-  }
-
-  /** Default UI language for a tenant's IANA timezone, or null if unmapped. */
-  private languageForTimezone(timezone?: string | null): string | null {
-    const tz = (timezone ?? '').trim().toLowerCase();
-    if (!tz) return null;
-    if (tz === 'asia/seoul') return SESSION_LANGUAGE.KO;
-    if (tz.startsWith('america/')) return SESSION_LANGUAGE.EN;
-    return null; // unmapped timezone → caller falls back to English
+    const explicit = sessionLanguageForLocale(locale);
+    // English is treated as "no preference expressed": an en-US browser in a
+    // Seoul tenant should still get Korean, which is the behaviour tenants
+    // configured their timezone for.
+    if (explicit && explicit !== SESSION_LANGUAGE.EN) return explicit;
+    return sessionLanguageForTimezone(timezone) ?? SESSION_LANGUAGE.EN;
   }
 }

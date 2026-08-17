@@ -1,0 +1,10 @@
+{
+  "title": "Đơn hàng",
+  "subtitle": "Toàn bộ đơn hàng của cửa hàng được đồng bộ từ Shopify",
+  "orderNumber": "Đơn hàng",
+  "status": "Trạng thái",
+  "amount": "Số tiền",
+  "items": "Sản phẩm",
+  "date": "Ngày",
+  "empty": "Không tìm thấy đơn hàng nào."
+}

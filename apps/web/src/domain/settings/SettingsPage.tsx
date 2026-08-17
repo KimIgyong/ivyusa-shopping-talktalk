@@ -10,6 +10,10 @@ import { Modal } from '@/components/Modal';
 import { FormRow, Input, Select } from '@/components/Field';
 // Type-only: @ivy/types ships CJS whose runtime exports Rollup cannot see.
 import type { WidgetLoginMode } from '@ivy/types';
+import { LanguageTabs } from '../ai-settings/LanguageTabs';
+// Runtime table from the registry source (see apps/web/src/i18n/i18n.ts for why).
+import { LANGUAGE_TIMEZONES } from '../../../../../packages/types/src/common/language';
+import type { ScenarioLang } from '../ai-settings/ai-settings.service';
 // Live-support routing lives here now (PLN-260806 D1); the editor itself stays
 // in the ai-settings domain because it saves through the same AI-config API.
 import { HandoffSection } from '../ai-settings/HandoffSection';
@@ -504,8 +508,7 @@ function StorefrontCard() {
  * to the store's hosted login (default) vs a popup window. Delivered to the
  * widget via session/ensure; takes effect on the shopper's next page load.
  */
-const COPY_LANGS = ['EN', 'ES', 'KO'] as const;
-type CopyLang = (typeof COPY_LANGS)[number];
+type CopyLang = ScenarioLang;
 
 function WidgetBehaviorCard() {
   const { t } = useTranslation('settings');
@@ -555,8 +558,11 @@ function WidgetBehaviorCard() {
         <FormRow label={t('widgetBehavior.timezone')}>
           <Select value={tz} disabled={isLoading} onChange={(e) => setTzPicked(e.target.value)}>
             <option value="">{t('widgetBehavior.tzUnset')}</option>
-            <option value="Asia/Seoul">Asia/Seoul — 한국어</option>
-            <option value="America/New_York">America/New_York — English</option>
+            {LANGUAGE_TIMEZONES.map((tz) => (
+              <option key={tz.zone} value={tz.zone}>
+                {tz.zone} — {tz.label}
+              </option>
+            ))}
           </Select>
         </FormRow>
         <p className="mb-4 text-xs text-gray-400">{t('widgetBehavior.timezoneHint')}</p>
@@ -576,21 +582,8 @@ function WidgetBehaviorCard() {
         </FormRow>
         <p className="mb-3 text-xs text-gray-400">{t('widgetBehavior.displayNameHint')}</p>
 
-        <div className="mb-2 flex gap-1">
-          {COPY_LANGS.map((l) => (
-            <button
-              key={l}
-              type="button"
-              onClick={() => setCopyLang(l)}
-              className={`rounded px-2 py-1 text-xs font-medium ${
-                copyLang === l
-                  ? 'bg-primary-500 text-white'
-                  : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-              }`}
-            >
-              {l}
-            </button>
-          ))}
+        <div className="mb-2">
+          <LanguageTabs value={copyLang} onChange={setCopyLang} filled={copy.firstVisit} />
         </div>
         <FormRow label={t('widgetBehavior.firstVisit')}>
           <textarea

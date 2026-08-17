@@ -179,6 +179,7 @@ export function LiveChatPage() {
 
   // Knowledge lookup (PLN-260810 S2/S3). Answer lives in component state, not
   // in the conversation: it is the agent checking, not a customer turn.
+  const { i18n } = useTranslation();
   const askKnowledge = useAskKnowledge();
   const proposeAnswer = useProposeAnswer();
   const [kbQuestion, setKbQuestion] = useState('');
@@ -748,7 +749,13 @@ export function LiveChatPage() {
                 size="sm"
                 disabled={!kbQuestion.trim() || askKnowledge.isPending}
                 onClick={() =>
-                  askKnowledge.mutate({ question: kbQuestion.trim(), language: 'EN' })
+                  // The agent is the reader here, so the console's language is
+                  // the right one. (The customer's session language is not part
+                  // of the conversation DTO this view receives.)
+                  askKnowledge.mutate({
+                    question: kbQuestion.trim(),
+                    language: i18n.language.toUpperCase(),
+                  })
                 }
               >
                 {askKnowledge.isPending ? tc('loading') : t('kbAsk')}

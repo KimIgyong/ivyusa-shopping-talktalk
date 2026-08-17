@@ -10,7 +10,8 @@ body,
 
 body {
   margin: 0;
-  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Hiragino Sans',
+    'Noto Sans JP', 'PingFang SC', 'Noto Sans SC', 'Segoe UI', Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
