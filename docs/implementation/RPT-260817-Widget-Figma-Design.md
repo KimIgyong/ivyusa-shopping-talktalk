@@ -82,12 +82,19 @@ CREATE INDEX `idx_notif_ref` ON `notifications` (`ref_type`, `ref_id`);
 - **백필 없음** — 기존 리뷰 알림은 `ref_id` NULL이라 CTA가 표시되지 않는다(의도된 폴백).
 - 적용 상태: local ✅ (DB_SYNCHRONIZE로 생성 확인) · staging ⬜ · production ⬜
 
+## 4.1 리뷰 반영 (CodeRabbit, 2026-08-17)
+
+`60196ce`에서 8건 수정. 상세는 커밋 메시지 참조.
+- **Major**: 버튼 중첩(무효 HTML) · 문의 피드의 오해 유발 빈 상태 · `returnObjects` 캐스트로 인한 배송 필터 전체 다운 가능성
+- **Minor**: 인증 후 주문 답변 소실 · CSAT 실패 무표시(dev-kit §4.3 위반) · 터치 기기 타임스탬프 도달 불가 · 마이그레이션 재실행 시 인덱스 누락
+- **미반영 2건**: 배지 대비(D-10, 디자인 판단 대기) · 컴포넌트 파일명(레포 기존 PascalCase 규약과 일치)
+
 ## 5. 테스트 결과
 
 | 항목 | 결과 |
 |---|---|
 | 신규 단위 테스트 | 6건 추가 (U-1~U-6) |
-| 전체 스위트 | **1,273 + 93 통과 / 실패 0** |
+| 전체 스위트 | **1,279 + 93 통과 / 실패 0** |
 | typecheck / build | ✅ 9/9, 6/6 |
 | `npm run i18n:check` | ✅ 5개 언어 complete |
 | API 실부팅 | ✅ `Nest application successfully started` |
@@ -102,7 +109,8 @@ CREATE INDEX `idx_notif_ref` ON `notifications` (`ref_type`, `ref_id`);
 | D-5 | 신규 강조 = 최상단 미읽음 1건 | PLN 승인 |
 | D-7 | CSAT **5단** 이모지 (디자인 4단) | **구현 중 판단** — 평점이 1–5로 저장되고 `csat_avg`가 이미 그 척도로 집계 중. 4단은 척도에 구멍을 내거나 과거 평균의 의미를 바꾼다 |
 | D-8 | Affiliate 단계 카드 제목만 | **구현 중 판단** — 디자인 설명문이 IVY 고유 조건(`10% 적립`)이라 멀티테넌트 위젯에 넣을 수 없다 |
-| D-9 | 타임스탬프 hover/focus 노출 | D-1의 구현 형태 |
+| D-9 | 타임스탬프 hover 노출 (+ 터치 기기는 상시 노출) | D-1의 구현 형태. 리뷰 지적 반영: hover가 없는 터치 기기에서는 영영 안 보였다 |
+| D-10 | **상태 배지 대비 미달을 그대로 둠** | 디자인이 `#00C950` 위 흰 글씨(약 2.2:1)를 쓴다. WCAG AA(4.5:1) 미달이지만, 샘플링한 브랜드 색을 임의로 어둡게 바꾸면 이 PR의 목적 자체가 무너진다. **디자인 소유자 판단 대기** |
 
 ## 7. 잔여 / 후속
 
@@ -114,3 +122,4 @@ CREATE INDEX `idx_notif_ref` ON `notifications` (`ref_type`, `ref_id`);
 | N-4 | 배송완료 주문이 스테퍼 `preparing`으로 표시 | `fulfillments` 없으면 stepIndex 0 — **기존 백엔드 동작**. 실 이행 데이터가 있는 스테이징에서 재확인 |
 | N-5 | ⚠️ `contact.phone: '1588-0000'` / `contact.email: 'help@ivy.com'`이 **en 번들에 하드코딩** | 본 작업 이전부터 존재. REQ §5-1이 경계한 바로 그 패턴이며, 테넌트 설정으로 옮기는 별도 과제 |
 | N-6 | 스테이징 배포 + 회귀 스모크 | 마이그레이션 선적용 필수 |
+| N-7 | **배지 대비(D-10) 결론** | 디자인 유지 / 배경 어둡게 / 전경색 tone별 지정 중 택1 필요 |
