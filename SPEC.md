@@ -71,13 +71,25 @@ docker nginx `:8080`); production stack templated. Full env/config reference: `C
 TypeScript, ESLint/Prettier, Swagger (`/api/v1/docs`), Turborepo pipeline, Jest + ts-jest
 (62 passing unit tests: types 8 · common 12 · api 42).
 
-### 2.5 Internationalization (i18n) — en/es/ko
-react-i18next; all UI text via `t()`; namespaces registered in each app's `i18n.ts`;
-`fallbackLng: 'en'`. **Languages: English (en, default) / Spanish (es) / Korean (ko)** —
-per NFR-003 (North-America storefront: EN+ES primary, KO internal). Backend error
-messages stay English (client localizes by Exxxx code); AI/RAG answers honor
-`session.language`; backend conversational system strings localized en/es/ko.
-> Deviation from the standard's `ko/en/vi`; justified by NFR-003 (§13).
+### 2.5 Internationalization (i18n) — en/es/ko/vi/ja/zh
+react-i18next; all UI text via `t()`; namespaces registered in each app's `i18n.ts`
+(the console collects them with `import.meta.glob`); `fallbackLng: 'en'`.
+**Languages: English (en, default) / Spanish (es) / Korean (ko) / Vietnamese (vi) /
+Japanese (ja) / Simplified Chinese (zh)** — en+es per NFR-003 (North-America
+storefront), ko internal, vi/ja/zh added 2026-08-17 (REQ/PLN-260817).
+`packages/types/src/common/language.ts` is the **single registry**: codes, endonyms,
+session values, timezone defaults and review state. A seventh language is one row
+there plus its translation files — the four apps and the backend read from it, and
+the browser bundles deep-import that source file because `@ivy/types` publishes CJS.
+Backend error messages stay English (client localizes by Exxxx code); AI/RAG answers
+honor `session.language` (the prompt passes the code through, so no code change per
+language); backend conversational system strings are localized in all six.
+`npm run i18n:check` compares every app's locales against the English baseline and
+fails on a missing, stray or empty key — without it, an untranslated key is an
+invisible English fallback rather than an error.
+> Chinese is Simplified under the plain `zh` code; `zh-TW`/`zh-HK` resolve to it until
+> a Traditional row is added. vi/ja/zh ship as LLM first-pass translations pending
+> native review (`reviewed: false`, shown as β in the console picker).
 
 ---
 
@@ -360,7 +372,7 @@ Intentional, design-driven choices — NOT compliance failures:
 | DB engine | PostgreSQL 15 | MySQL 8 | `design/chat-widget-schema.sql` (ERD artifact) |
 | PK | UUID | BIGINT AUTO_INCREMENT | Same source |
 | Table/column naming | `{prefix}_{plural}` + 3-char col prefix | bare snake_case | ERD predates prefix rule |
-| i18n languages | ko/en/vi | en/es/ko | NFR-003 (NA storefront) |
+| i18n languages | ko/en/vi | en/es/ko/vi/ja/zh | NFR-003 (NA storefront) + 2026-08-17 expansion; now a superset of the standard's set |
 | FK mapping | `@ManyToOne` relations | scalar FK ids (+indexes) | avoid circular deps, perf |
 | Credential encryption | 3-field `_encrypted/_iv/_tag` | single varbinary `[IV][tag][ct]` | cryptographically equivalent |
 | Pagination field | `limit` (dev-kit v3.0) | `size` (`{page, size, totalCount, totalPages, hasNext, hasPrev}`) | shipped API contract across api/web/widget; rename = breaking change |
