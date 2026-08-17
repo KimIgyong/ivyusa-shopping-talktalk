@@ -1,0 +1,30 @@
+{
+  "title": "質問統計",
+  "subtitle": "お客様が何を尋ね、どれだけ回答できているか",
+  "from": "開始日",
+  "to": "終了日",
+  "tab": {
+    "intent": "インテント",
+    "document": "使用したナレッジ",
+    "keyword": "キーワード",
+    "cluster": "類似の質問"
+  },
+  "dimension": {
+    "intent": "インテント",
+    "category": "カテゴリ",
+    "document": "ドキュメント",
+    "keyword": "キーワード",
+    "cluster": "質問グループ"
+  },
+  "asked": "質問数",
+  "share": "割合",
+  "escalationRate": "引き継ぎ率",
+  "noSource": "参照元なし",
+  "avgConfidence": "平均確信度",
+  "trendTitle": "質問件数",
+  "noTrend": "この期間のデータはありません。",
+  "trendAria": "{{count}}日間の質問件数",
+  "empty": "この期間に記録された質問はありません。",
+  "attentionHint": "印の付いた行は引き継ぎ率が高いか確信度が低い項目です。ナレッジベースで優先的に改善すべきトピックです。",
+  "snapshotNote": "数値は日次スナップショットから算出しているため、会話ログの削除後も参照できます。"
+}

@@ -6,9 +6,9 @@ import { Input, Label, Select } from '@/components/Field';
 import { cn } from '@/lib/cn';
 import { useUsers } from '../users/users.hooks';
 import { useAiConfig, useUpdateAiConfig } from './ai-settings.hooks';
+import { LanguageTabs } from './LanguageTabs';
 import type { HandoffConfig, ScenarioLang } from './ai-settings.service';
 
-const LANGS: ScenarioLang[] = ['EN', 'ES', 'KO'];
 const DAYS = [0, 1, 2, 3, 4, 5, 6];
 /** A short, safe list — the server accepts any IANA zone. */
 const TIMEZONES = [
@@ -266,23 +266,7 @@ export function HandoffSection() {
 
             <div className="flex items-center gap-2 pt-1">
               <Label>{t('handoff.offHoursNotice')}</Label>
-              <div className="flex gap-1">
-                {LANGS.map((l) => (
-                  <button
-                    key={l}
-                    type="button"
-                    onClick={() => setLang(l)}
-                    className={cn(
-                      'rounded px-2 py-0.5 text-xs',
-                      l === lang
-                        ? 'bg-primary-500 text-white'
-                        : 'border border-gray-200 bg-white text-gray-600',
-                    )}
-                  >
-                    {l}
-                  </button>
-                ))}
-              </div>
+              <LanguageTabs value={lang} onChange={setLang} filled={notice} />
             </div>
             <textarea
               rows={2}

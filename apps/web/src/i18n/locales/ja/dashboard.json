@@ -1,0 +1,21 @@
+{
+  "title": "ダッシュボード",
+  "subtitle": "サポート業務のリアルタイム概況",
+  "activeChats": "対応中のチャット",
+  "todayNotifications": "本日の通知",
+  "aiResolutionRate": "AI解決率",
+  "unresolvedTopN": "未解決（上位N件）",
+  "totalConversations": "会話総数",
+  "totalOrders": "注文総数",
+  "popularQuestions": "よくある質問",
+  "integrationStatus": "連携ステータス",
+  "noIntegrations": "連携が設定されていません。",
+  "recentOrders": "最近の注文",
+  "viewCustomers": "顧客を見る",
+  "viewOrders": "注文を見る",
+  "noOrders": "注文はまだありません。",
+  "orderNumber": "注文",
+  "status": "ステータス",
+  "amount": "金額",
+  "date": "日付"
+}

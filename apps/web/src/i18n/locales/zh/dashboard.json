@@ -1,0 +1,21 @@
+{
+  "title": "仪表盘",
+  "subtitle": "客服运营的实时概览",
+  "activeChats": "进行中的会话",
+  "todayNotifications": "今日通知",
+  "aiResolutionRate": "AI 解决率",
+  "unresolvedTopN": "未解决（前 N 项）",
+  "totalConversations": "会话总数",
+  "totalOrders": "订单总数",
+  "popularQuestions": "热门问题",
+  "integrationStatus": "集成状态",
+  "noIntegrations": "尚未配置任何集成。",
+  "recentOrders": "最近订单",
+  "viewCustomers": "查看客户",
+  "viewOrders": "查看订单",
+  "noOrders": "暂无订单。",
+  "orderNumber": "订单",
+  "status": "状态",
+  "amount": "金额",
+  "date": "日期"
+}

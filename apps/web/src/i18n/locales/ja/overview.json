@@ -1,0 +1,10 @@
+{
+  "title": "プラットフォーム概要",
+  "totalTenants": "テナント総数",
+  "activeTenants": "稼働中テナント",
+  "aiEngines": "AIエンジン",
+  "conversations": "会話数",
+  "comingSoon": "準備中",
+  "integrationStatus": "連携ステータス",
+  "noIntegrations": "連携が設定されていません。"
+}

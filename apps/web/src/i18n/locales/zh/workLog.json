@@ -1,0 +1,24 @@
+{
+  "title": "客服工作日志",
+  "subtitle": "谁在什么时候做了什么",
+  "time": "时间",
+  "agent": "客服",
+  "action": "操作",
+  "target": "对象",
+  "result": "结果",
+  "success": "成功",
+  "allActions": "全部操作",
+  "from": "开始日期",
+  "to": "结束日期",
+  "empty": "此时间范围内没有操作记录。",
+  "notice": "此日志用于运营追溯，不用于绩效考核。",
+  "actions": {
+    "agent.conversation_accepted": "接入会话",
+    "agent.message_sent": "发送回复",
+    "agent.customer_linked": "关联客户",
+    "agent.customer_created": "创建客户",
+    "agent.conversation_ended": "结束会话",
+    "agent.conversation_viewed": "查看会话（个人信息）",
+    "agent.transcript_viewed": "查看会话内容（个人信息）"
+  }
+}

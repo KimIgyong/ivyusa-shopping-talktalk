@@ -1,0 +1,10 @@
+{
+  "title": "平台概览",
+  "totalTenants": "租户总数",
+  "activeTenants": "活跃租户",
+  "aiEngines": "AI 引擎",
+  "conversations": "会话数",
+  "comingSoon": "即将推出",
+  "integrationStatus": "集成状态",
+  "noIntegrations": "尚未配置任何集成。"
+}

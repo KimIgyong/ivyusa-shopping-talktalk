@@ -1,0 +1,338 @@
+{
+  "title": "租户设置",
+  "subtitle": "管理集成与凭据。",
+  "configure": "配置",
+  "storesTitle": "店铺集成",
+  "integrationCredentials": "集成凭据",
+  "provider": "服务商",
+  "status": "状态",
+  "key": "密钥",
+  "lastUpdated": "上次更新",
+  "connected": "已连接",
+  "notSet": "未设置",
+  "updateCredential": "更新凭据",
+  "updateProvider": "更新 {{provider}}",
+  "apiKey": "API 密钥",
+  "apiKeyPlaceholder": "请输入 API 密钥",
+  "secretOptional": "Secret（选填）",
+  "secretPlaceholder": "请输入 secret",
+  "empty": "暂无可用的集成。",
+  "privacyNotice": {
+    "title": "隐私声明",
+    "subtitle": "配置向小组件访客展示的同意声明。",
+    "cardTitle": "同意声明设置",
+    "policyUrl": "隐私政策 URL",
+    "policyUrlPlaceholder": "https://your-store.com/privacy",
+    "policyUrlHint": "会作为链接显示在小组件的同意横幅中。留空则隐藏该链接。",
+    "invalidUrl": "请输入以 http:// 或 https:// 开头的有效 URL。",
+    "version": "同意声明版本",
+    "versionPlaceholder": "例如 2026-07",
+    "invalidVersion": "可使用字母、数字、点、连字符或下划线（须以字母或数字开头，最长 32 个字符）。",
+    "versionDefaultHint": "留空表示当前生效的是平台默认版本。",
+    "versionWarning": "更改版本会要求所有客户重新确认同意。在他们接受或拒绝之前，聊天中会再次显示该声明。",
+    "saved": "已保存隐私声明设置。",
+    "saveError": "保存隐私声明设置失败。"
+  },
+  "widgetBehavior": {
+    "title": "小组件行为",
+    "desc": "聊天小组件在您店铺前台的行为方式。",
+    "loginMode": "客户登录的打开方式",
+    "redirect": "整页跳转（推荐）",
+    "popup": "弹出窗口",
+    "redirectHint": "点击「登录」会在同一标签页跳转到店铺登录页；登录后返回原页面，小组件会重新打开并显示其订单。",
+    "popupHint": "点击「登录」会在弹出窗口中打开店铺登录页。弹窗拦截器可能会造成干扰；如果登录后仍停留在 shopify.com，顾客需要手动关闭弹窗。",
+    "saved": "已保存小组件设置。",
+    "saveError": "保存小组件设置失败。",
+    "timezone": "按时区设定默认语言",
+    "tzUnset": "未设置（默认英语）",
+    "timezoneHint": "在顾客尚未自行选择时，决定小组件的默认语言——请选择您的顾客所在的时区。",
+    "copyTitle": "小组件文案",
+    "displayName": "显示名称",
+    "displayNameHint": "显示在小组件顶部，并作为问候语中的 {shop}。留空则使用租户名称。",
+    "firstVisit": "首次访问欢迎语",
+    "firstVisitHint": "顾客打开聊天时显示。{shop} 会替换为显示名称。留空则使用默认文案。",
+    "loginGreeting": "已登录顾客的问候语",
+    "loginGreetingHint": "识别出已登录顾客时显示。{name} 会替换为客户姓名。留空则使用默认文案。"
+  },
+  "shopify": {
+    "title": "Shopify 连接",
+    "subtitle": "将此小组件与您的 Shopify 店铺绑定的店铺地址与 API 令牌。",
+    "shopDomain": "店铺域名",
+    "shopDomainPlaceholder": "your-store.myshopify.com",
+    "accessToken": "Admin API 访问令牌",
+    "accessTokenPlaceholder": "shpat_…",
+    "accessTokenConfigured": "已保存——输入新令牌可替换",
+    "apiKeyOptional": "API 密钥（选填）",
+    "apiKeyPlaceholder": "用于 OAuth（公开应用）",
+    "apiSecretOptional": "API secret（选填）",
+    "apiSecretPlaceholder": "用于 OAuth（公开应用）",
+    "testConnection": "测试连接",
+    "testing": "测试中…",
+    "syncNow": "立即同步",
+    "syncing": "同步中…",
+    "registerWebhooks": "注册 Webhook",
+    "registering": "注册中…",
+    "connectionStatus": "连接状态",
+    "credential": "凭据",
+    "lastTested": "上次测试",
+    "state": {
+      "connected": "已连接",
+      "error": "错误",
+      "unknown": "未测试"
+    },
+    "install": {
+      "title": "安装到您的店铺",
+      "subtitle": "将聊天小组件添加到 Shopify 店铺前台。请选择适合您的方式。",
+      "shopHint": "代码片段已按此店铺填好：{{shop}}",
+      "shopMissing": "请先保存上方的店铺域名，代码片段才能自动填充。",
+      "tabAppEmbed": "App embed（推荐）",
+      "tabScriptTag": "ScriptTag",
+      "tabManual": "手动粘贴代码",
+      "copy": "复制",
+      "copied": "已复制到剪贴板",
+      "copyFailed": "无法复制——请选中代码手动复制。",
+      "appEmbed": {
+        "desc": "无需编辑主题代码，且可随时开关。最适合 Online Store 2.0。",
+        "step1": "在 Shopify 后台打开「在线商店」→「主题」→「自定义」。",
+        "step2": "打开「主题设置」→「应用嵌入」。",
+        "step3": "开启「IVY USA TalkTalk」并点击保存。"
+      },
+      "scriptTag": {
+        "desc": "通过 Admin API 在每个页面加载。安装应用时会自动注册；如需手动注册，请使用下方请求。",
+        "note": "请携带您的 Admin API 访问令牌发送。无需修改主题。"
+      },
+      "manual": {
+        "desc": "最简单的方式——把一段代码粘贴到主题中，无需安装应用。",
+        "step1": "打开「在线商店」→「主题」→「⋯」→「编辑代码」。",
+        "step2": "打开 layout/theme.liquid。",
+        "step3": "把代码粘贴到 </body> 标签之前并保存。"
+      }
+    },
+    "nonShopifyDomain": "这不是 *.myshopify.com 域名。该字段同时也是租户的店铺域名，因此填写 Cafe24 或自有域名都可以——这只表示此店铺未与 Shopify 连接。"
+  },
+  "integrations": {
+    "configured": "已保存——输入新值可替换",
+    "testConnection": "测试连接",
+    "testing": "测试中…",
+    "connectionStatus": "连接状态",
+    "credential": "凭据",
+    "lastTested": "上次测试",
+    "state": {
+      "connected": "已连接",
+      "error": "错误",
+      "unknown": "未测试"
+    },
+    "fields": {
+      "mall_id": "商城 ID",
+      "client_id": "Client ID",
+      "client_secret": "Client secret",
+      "access_token": "Access token",
+      "store_url": "店铺 URL",
+      "consumer_key": "Consumer key",
+      "consumer_secret": "Consumer secret",
+      "url": "服务器 URL",
+      "db": "数据库",
+      "username": "用户名",
+      "api_key": "API 密钥",
+      "shop_domain": "店铺域名",
+      "app_key": "应用（店铺）密钥",
+      "secret_key": "Secret key",
+      "subdomain": "账户子域名",
+      "email": "账户邮箱",
+      "webhook_secret": "Webhook secret（L2 状态）"
+    },
+    "ph": {
+      "mall_id": "your-mall",
+      "store_url": "https://store.example.com",
+      "url": "https://my-odoo.example.com",
+      "db": "odoo-db",
+      "username": "user@example.com",
+      "shop_domain": "your-store.myharavan.com",
+      "subdomain": "your-company（取自 your-company.gorgias.com）",
+      "email": "agent@example.com",
+      "app_key": "yotpo app key"
+    },
+    "cafe24": {
+      "title": "Cafe24",
+      "subtitle": "通过 Admin API（OAuth 访问令牌）连接您的 Cafe24 店铺。"
+    },
+    "woocommerce": {
+      "title": "WooCommerce",
+      "subtitle": "使用 REST API 的 consumer key 连接您的 WooCommerce 店铺。"
+    },
+    "odoo": {
+      "title": "Odoo",
+      "subtitle": "通过外部 API（URL、数据库、用户、API 密钥）连接 Odoo。"
+    },
+    "haravan": {
+      "title": "Haravan",
+      "subtitle": "使用 Admin API 访问令牌连接您的 Haravan 店铺。"
+    },
+    "klaviyo": {
+      "title": "Klaviyo",
+      "subtitle": "邮件/短信营销——使用您的私有 API 密钥连接。"
+    },
+    "yotpo": {
+      "title": "Yotpo",
+      "subtitle": "评价与会员忠诚度——使用应用密钥和 secret 连接。"
+    },
+    "gorgias": {
+      "title": "Gorgias",
+      "subtitle": "工单系统——升级的会话可作为 Gorgias 工单转交。"
+    }
+  },
+  "install": {
+    "subtitle": "将聊天小组件添加到您的店铺前台。请选择您的平台。",
+    "cafe24": {
+      "desc": "把代码片段粘贴到 Cafe24 主题 HTML 中，使小组件在每个页面加载。",
+      "step1": "在 Cafe24 后台打开「设计（PC/移动）」→「智能设计编辑」。",
+      "step2": "打开当前设计的布局 HTML。",
+      "step3": "把代码片段粘贴到 </body> 之前，然后保存并发布。"
+    },
+    "woocommerce": {
+      "desc": "从您的 WordPress 主题（或代码片段插件）注册该小组件。",
+      "step1": "在 WordPress 后台打开「外观」→「主题文件编辑器」（建议使用子主题）。",
+      "step2": "打开 functions.php，或在代码片段插件中新增一段代码。",
+      "step3": "粘贴下方代码并保存——它会通过 wp_footer 在每个页面加载。"
+    },
+    "odoo": {
+      "desc": "Odoo 网站可以在网站设置中为整站注入自定义代码。",
+      "step1": "在 Odoo 中打开「网站」→「配置」→「设置」。",
+      "step2": "滚动到「自定义代码」部分。",
+      "step3": "把代码片段粘贴到「end of body」字段并保存。"
+    }
+  },
+  "storefront": {
+    "title": "店铺前台",
+    "url": "店铺 URL",
+    "hint": "用于在向客户展示之前校验商品链接。只有该域下的链接才会出现在聊天中。",
+    "unsetWarning": "未设置——商品推荐将不会以链接形式出现在聊天小组件中。",
+    "shopDomain": "店铺域名",
+    "shopDomainHint": "用于让聊天小组件识别此租户。任何平台的域名均可——Shopify、Cafe24 或您自有的域名——只要与运行小组件的站点一致。"
+  },
+  "cafe24": {
+    "oauth": {
+      "title": "Cafe24（OAuth）",
+      "hint": "通过 OAuth 连接您的 Cafe24 商城，将订单和商品导入 ShopTalk。",
+      "status": "状态",
+      "mallId": "商城 ID",
+      "connect": "连接 Cafe24",
+      "syncNow": "立即同步",
+      "connectedToast": "已连接 Cafe24：{{mall}}",
+      "connectFailed": "连接 Cafe24 失败",
+      "syncFailed": "Cafe24 同步失败",
+      "syncProducts": "导入商品",
+      "productsSynced": "已同步 {{synced}} 个商品，{{archived}} 个已归档——请到知识库页面执行转换",
+      "syncProductsFailed": "从 Cafe24 导入商品失败",
+      "errorInvalidScope": "Cafe24 拒绝了所请求的权限（invalid_scope）——请在 Cafe24 Developers 中为应用添加这些权限后重新连接",
+      "errorAccessDenied": "Cafe24 拒绝了授权（access_denied）——请使用商城的主运营账户重试"
+    }
+  },
+  "marketingTitle": "营销集成",
+  "helpdeskTitle": "工单系统集成",
+  "messenger": {
+    "groupTitle": "外部即时通讯渠道",
+    "groupHint": "消息会进入在线聊天，ShopTalk 的 AI 会在同一渠道回复。",
+    "communicationTitle": "沟通",
+    "communicationHint": "把公司邮箱当作会话来处理。",
+    "loading": "正在加载渠道…",
+    "label": "显示名称",
+    "credential": "凭据",
+    "stored": "已保存——输入内容即可替换",
+    "autoReply": "AI 自动回复",
+    "consentMode": "同意处理方式",
+    "on": "开",
+    "off": "关",
+    "enabledLabel": "渠道",
+    "enabled": "已启用",
+    "disabled": "已停用",
+    "lastInbound": "最近接收",
+    "lastError": "最近错误",
+    "connectionStatus": "连接",
+    "test": "测试连接",
+    "testing": "测试中…",
+    "testOk": "已连接——{{detail}}",
+    "testFailed": "连接失败——{{detail}}",
+    "registerWebhook": "注册接收 URL",
+    "webhookRegistered": "已向服务商注册接收 URL。",
+    "webhookRegisterError": "无法注册接收 URL。",
+    "webhookUrl": "接收 URL",
+    "webhookHint": "请在服务商处注册，或使用下方按钮。",
+    "copy": "复制",
+    "copied": "已复制。",
+    "copyFailed": "复制失败。",
+    "saved": "已保存渠道。",
+    "saveError": "无法保存该渠道。",
+    "disconnect": "断开连接",
+    "disconnected": "已断开该渠道。",
+    "disconnectError": "无法断开该渠道。",
+    "plannedHint": "此版本尚不支持。",
+    "unofficialWarning": "非官方渠道：消息由商家自行在其设备上安装的代理程序中转，并由商家自行启停。AI 自动回复默认关闭。",
+    "state": {
+      "connected": "已连接",
+      "error": "错误",
+      "unknown": "未测试",
+      "planned": "计划中"
+    },
+    "consent": {
+      "notice": "首次联系时发送隐私声明",
+      "auto": "依据平台条款处理"
+    },
+    "fields": {
+      "bot_token": "机器人令牌",
+      "auth_token": "认证令牌",
+      "email": "账户邮箱",
+      "password": "密码",
+      "company_id": "公司（工作区）ID",
+      "base_url": "服务器 URL",
+      "imap_host": "IMAP 主机",
+      "smtp_host": "SMTP 主机",
+      "app_password": "应用专用密码",
+      "social_types": "接收渠道",
+      "sender_name": "发件人名称"
+    },
+    "ph": {
+      "social_types": "zalo, line, whatsapp",
+      "sender_name": "客服"
+    },
+    "provider": {
+      "telegram": {
+        "title": "Telegram",
+        "subtitle": "直连——使用机器人令牌，无需平台审核",
+        "defaultLabel": "Telegram"
+      },
+      "viber": {
+        "title": "Viber",
+        "subtitle": "直连——公开账户令牌",
+        "defaultLabel": "Viber"
+      },
+      "amoebatalk": {
+        "title": "AmoebaTalk 中枢",
+        "subtitle": "承载已通过审核的 Zalo / LINE / WhatsApp",
+        "defaultLabel": "AmoebaTalk"
+      },
+      "btbz_relay": {
+        "title": "btbz 消息中继",
+        "subtitle": "通过商家自有设备接入 KakaoTalk 聊天室与接收短信",
+        "defaultLabel": "btbz relay"
+      },
+      "gmail": {
+        "title": "Gmail",
+        "subtitle": "通过 IMAP/SMTP 接入企业邮箱（应用专用密码）",
+        "defaultLabel": "工作 1"
+      },
+      "zalo": {
+        "title": "Zalo",
+        "subtitle": "通过 AmoebaTalk 中枢"
+      },
+      "line": {
+        "title": "LINE",
+        "subtitle": "通过 AmoebaTalk 中枢"
+      },
+      "whatsapp": {
+        "title": "WhatsApp",
+        "subtitle": "通过 AmoebaTalk 中枢"
+      }
+    }
+  }
+}

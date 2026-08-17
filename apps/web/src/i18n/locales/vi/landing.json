@@ -1,0 +1,19 @@
+{
+  "heroTitle": "Trò chuyện & hỗ trợ bằng AI cho cửa hàng trực tuyến của bạn",
+  "heroSubtitle": "ShopTalk trả lời khách hàng 24/7, chuyển cho đội ngũ của bạn khi cần, và nói đúng ngôn ngữ của họ — tiếng Anh, Tây Ban Nha, Hàn, Việt, Nhật và Trung.",
+  "workspaceLabel": "Không gian làm việc",
+  "workspacePlaceholder": "khong-gian-cua-ban",
+  "signIn": "Đăng nhập",
+  "adminLogin": "Bảng quản trị",
+  "goToConsole": "Vào bảng điều khiển",
+  "continueTo": "Tiếp tục tới /{{slug}}",
+  "featureAiTitle": "AI trả lời, suốt ngày đêm",
+  "featureAiDesc": "Trợ lý dựa trên kho tri thức giải đáp ngay các câu hỏi thường gặp, và mọi câu trả lời đều qua kiểm duyệt trước khi đến với khách hàng.",
+  "featureChatTitle": "Chuyển cho người thật một cách liền mạch",
+  "featureChatDesc": "Trò chuyện trực tiếp với định tuyến tới tư vấn viên của bạn — kèm lịch sử hội thoại, câu trả lời mẫu và đầy đủ ngữ cảnh.",
+  "featureCommerceTitle": "Được xây dựng cho thương mại điện tử",
+  "featureCommerceDesc": "Kết nối Shopify: đơn hàng, khách hàng và chiến dịch nằm ngay cạnh cuộc hội thoại.",
+  "featureI18nTitle": "Đa ngôn ngữ ngay từ đầu",
+  "featureI18nDesc": "Khách hàng trò chuyện bằng bất kỳ ngôn ngữ nào trong sáu ngôn ngữ — widget và AI tự động theo ngôn ngữ của họ.",
+  "footerCopy": "ShopTalk — widget trò chuyện & hỗ trợ"
+}

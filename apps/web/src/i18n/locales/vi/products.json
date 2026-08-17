@@ -1,0 +1,49 @@
+{
+  "title": "Sản phẩm",
+  "subtitle": "Danh mục sản phẩm được đồng bộ từ cửa hàng. Chạy nhập dữ liệu trong phần Cài đặt.",
+  "kpi": {
+    "total": "Sản phẩm",
+    "active": "Đang bán",
+    "archived": "Đã lưu trữ",
+    "inKnowledge": "Trong kho tri thức",
+    "lastSynced": "Đồng bộ lần cuối {{at}}"
+  },
+  "filters": {
+    "searchPlaceholder": "Tìm theo tên hoặc thẻ",
+    "allCategories": "Tất cả danh mục",
+    "allStatuses": "Tất cả trạng thái"
+  },
+  "columns": {
+    "product": "Sản phẩm",
+    "category": "Danh mục",
+    "price": "Giá",
+    "status": "Trạng thái",
+    "knowledge": "Tri thức",
+    "openInShop": "Mở trên cửa hàng"
+  },
+  "status": {
+    "active": "Đang bán",
+    "archived": "Đã lưu trữ"
+  },
+  "knowledge": {
+    "registered": "Đã đăng ký",
+    "missing": "Chưa đăng ký"
+  },
+  "empty": "Chưa nhập sản phẩm nào.",
+  "emptyFiltered": "Không có sản phẩm nào khớp bộ lọc.",
+  "emptyHint": "Hãy nhập danh mục sản phẩm trước —",
+  "emptyHintLink": "tới phần Cài đặt",
+  "detail": {
+    "title": "Chi tiết sản phẩm",
+    "loading": "Đang tải…",
+    "vendor": "Thương hiệu",
+    "tags": "Thẻ",
+    "sku": "SKU",
+    "handle": "Khóa",
+    "publishedAt": "Ngày đăng",
+    "syncedAt": "Đồng bộ lần cuối",
+    "description": "Mô tả",
+    "noDescription": "Không có mô tả. Vì cũng không có thẻ, sản phẩm này chưa được đưa vào kho tri thức.",
+    "openInShop": "Mở trên cửa hàng"
+  }
+}

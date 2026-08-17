@@ -1,0 +1,49 @@
+{
+  "title": "商品",
+  "subtitle": "ストアから同期した商品カタログです。取り込みは設定から実行します。",
+  "kpi": {
+    "total": "商品数",
+    "active": "販売中",
+    "archived": "アーカイブ済み",
+    "inKnowledge": "ナレッジ登録済み",
+    "lastSynced": "最終同期 {{at}}"
+  },
+  "filters": {
+    "searchPlaceholder": "商品名またはタグで検索",
+    "allCategories": "すべてのカテゴリ",
+    "allStatuses": "すべてのステータス"
+  },
+  "columns": {
+    "product": "商品",
+    "category": "カテゴリ",
+    "price": "価格",
+    "status": "ステータス",
+    "knowledge": "ナレッジ",
+    "openInShop": "ストアで開く"
+  },
+  "status": {
+    "active": "販売中",
+    "archived": "アーカイブ済み"
+  },
+  "knowledge": {
+    "registered": "登録済み",
+    "missing": "未登録"
+  },
+  "empty": "商品がまだ取り込まれていません。",
+  "emptyFiltered": "この条件に一致する商品はありません。",
+  "emptyHint": "まずカタログを取り込んでください —",
+  "emptyHintLink": "設定を開く",
+  "detail": {
+    "title": "商品詳細",
+    "loading": "読み込み中…",
+    "vendor": "ブランド",
+    "tags": "タグ",
+    "sku": "SKU",
+    "handle": "キー",
+    "publishedAt": "公開日",
+    "syncedAt": "最終同期",
+    "description": "説明",
+    "noDescription": "説明がありません。タグもないため、この商品はナレッジベースに登録されません。",
+    "openInShop": "ストアで開く"
+  }
+}

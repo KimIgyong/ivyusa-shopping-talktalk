@@ -1,0 +1,21 @@
+{
+  "title": "Gian hàng",
+  "newTenant": "Gian hàng mới",
+  "name": "Tên",
+  "slug": "Đường dẫn đăng nhập",
+  "slugPlaceholder": "ví dụ: ivyusa",
+  "slugHint": "Chữ thường, số và dấu gạch ngang. Để trống để tự tạo từ tên. Nhân viên đăng nhập tại /<đường-dẫn>.",
+  "shopDomain": "Tên miền cửa hàng",
+  "plan": "Gói dịch vụ",
+  "status": "Trạng thái",
+  "users": "Người dùng",
+  "created": "Ngày tạo",
+  "suspend": "Tạm ngưng",
+  "activate": "Kích hoạt",
+  "empty": "Chưa có gian hàng nào.",
+  "manageUsers": "Người dùng",
+  "usersOf": "Người dùng — {{name}}",
+  "usersOfSubtitle": "Mời nhân viên, cấp mật khẩu tạm thời và quản lý quyền truy cập cho gian hàng này.",
+  "usersEmpty": "Gian hàng này chưa có người dùng nào.",
+  "loginUrl": "Trang đăng nhập"
+}

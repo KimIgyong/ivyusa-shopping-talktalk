@@ -3,10 +3,9 @@ import { Plus, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/Button';
 import { Input, Label, Select } from '@/components/Field';
-import { cn } from '@/lib/cn';
 import type { ScenarioLang, ScenarioOverride, ScenarioPostAction } from './ai-settings.service';
+import { LanguageTabs } from './LanguageTabs';
 
-const LANGS: ScenarioLang[] = ['EN', 'ES', 'KO'];
 const POST_ACTIONS: ScenarioPostAction['type'][] = [
   'none',
   'open_orders',
@@ -58,21 +57,7 @@ export function ScenarioReplyEditor({
     <div className="mt-3 space-y-3 rounded-lg bg-gray-50 p-3">
       <div className="flex items-center gap-2">
         <Label>{t('editor.language')}</Label>
-        <div className="flex gap-1">
-          {LANGS.map((l) => (
-            <button
-              key={l}
-              type="button"
-              onClick={() => setLang(l)}
-              className={cn(
-                'rounded px-2 py-0.5 text-xs',
-                l === lang ? 'bg-primary-500 text-white' : 'bg-white text-gray-600 border border-gray-200',
-              )}
-            >
-              {l}
-            </button>
-          ))}
-        </div>
+        <LanguageTabs value={lang} onChange={setLang} filled={value.reply} />
       </div>
 
       {scripted ? (

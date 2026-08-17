@@ -1,0 +1,10 @@
+{
+  "title": "订单",
+  "subtitle": "从 Shopify 同步的全部店铺订单",
+  "orderNumber": "订单",
+  "status": "状态",
+  "amount": "金额",
+  "items": "商品",
+  "date": "日期",
+  "empty": "未找到订单。"
+}

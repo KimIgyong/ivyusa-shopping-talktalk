@@ -1,0 +1,15 @@
+{
+  "title": "客户",
+  "subtitle": "管理客户账户与等级",
+  "name": "姓名",
+  "email": "邮箱",
+  "tier": "等级",
+  "orders": "订单数",
+  "totalSpent": "累计消费",
+  "created": "创建时间",
+  "editTier": "修改等级",
+  "editTierTitle": "修改客户等级",
+  "tierFor": "{{name}} 的等级",
+  "searchPlaceholder": "按姓名或邮箱搜索",
+  "empty": "未找到客户。"
+}

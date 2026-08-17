@@ -30,9 +30,16 @@ export interface LanguageDef {
   reviewed: boolean;
   /**
    * IANA timezones whose tenants default to this language when the shopper
-   * expressed no preference (SessionService.languageForTimezone).
+   * expressed no preference (SessionService.languageForTimezone). Entries are
+   * matched by prefix, so 'america/' covers every US/CA zone.
    */
   timezones?: readonly string[];
+  /**
+   * The zone to offer in the console's timezone picker. Separate from
+   * `timezones` because a matching prefix ('america/') is not itself a zone a
+   * tenant can be asked to choose.
+   */
+  pickerTimezone?: string;
 }
 
 export const LANGUAGES: readonly LanguageDef[] = [
@@ -43,6 +50,7 @@ export const LANGUAGES: readonly LanguageDef[] = [
     shortLabel: 'EN',
     reviewed: true,
     timezones: ['america/'],
+    pickerTimezone: 'America/New_York',
   },
   { code: 'es', session: 'ES', nativeLabel: 'Español', shortLabel: 'ES', reviewed: true },
   {
@@ -52,6 +60,7 @@ export const LANGUAGES: readonly LanguageDef[] = [
     shortLabel: 'KO',
     reviewed: true,
     timezones: ['asia/seoul'],
+    pickerTimezone: 'Asia/Seoul',
   },
   {
     code: 'vi',
@@ -60,6 +69,7 @@ export const LANGUAGES: readonly LanguageDef[] = [
     shortLabel: 'VI',
     reviewed: false,
     timezones: ['asia/ho_chi_minh'],
+    pickerTimezone: 'Asia/Ho_Chi_Minh',
   },
   {
     code: 'ja',
@@ -68,6 +78,7 @@ export const LANGUAGES: readonly LanguageDef[] = [
     shortLabel: 'JA',
     reviewed: false,
     timezones: ['asia/tokyo'],
+    pickerTimezone: 'Asia/Tokyo',
   },
   {
     code: 'zh',
@@ -76,8 +87,15 @@ export const LANGUAGES: readonly LanguageDef[] = [
     shortLabel: 'ZH',
     reviewed: false,
     timezones: ['asia/shanghai', 'asia/chongqing', 'asia/harbin', 'asia/urumqi'],
+    pickerTimezone: 'Asia/Shanghai',
   },
 ] as const;
+
+/** Zones the console offers as "default language by timezone", with their label. */
+export const LANGUAGE_TIMEZONES = LANGUAGES.filter((l) => l.pickerTimezone).map((l) => ({
+  zone: l.pickerTimezone as string,
+  label: l.nativeLabel,
+}));
 
 /** i18next codes, in display order. */
 export const LANGUAGE_CODES = LANGUAGES.map((l) => l.code);

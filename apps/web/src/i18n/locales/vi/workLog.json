@@ -1,0 +1,24 @@
+{
+  "title": "Nhật ký công việc của nhân viên",
+  "subtitle": "Ai đã làm gì, vào lúc nào",
+  "time": "Thời gian",
+  "agent": "Nhân viên",
+  "action": "Hành động",
+  "target": "Đối tượng",
+  "result": "Kết quả",
+  "success": "Thành công",
+  "allActions": "Tất cả hành động",
+  "from": "Từ ngày",
+  "to": "Đến ngày",
+  "empty": "Không có hoạt động nào trong khoảng thời gian này.",
+  "notice": "Nhật ký này phục vụ truy vết vận hành, không dùng để đánh giá hiệu suất.",
+  "actions": {
+    "agent.conversation_accepted": "Nhận cuộc hội thoại",
+    "agent.message_sent": "Gửi phản hồi",
+    "agent.customer_linked": "Liên kết khách hàng",
+    "agent.customer_created": "Tạo khách hàng",
+    "agent.conversation_ended": "Kết thúc hội thoại",
+    "agent.conversation_viewed": "Xem hội thoại (dữ liệu cá nhân)",
+    "agent.transcript_viewed": "Xem nội dung hội thoại (dữ liệu cá nhân)"
+  }
+}

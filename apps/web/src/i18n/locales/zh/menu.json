@@ -1,0 +1,26 @@
+{
+  "title": "全部菜单",
+  "subtitle": "{{scope}}控制台中您可以使用的所有页面。",
+  "items": {
+    "dashboard": "一眼掌握客服活动与关键数据",
+    "liveChat": "回复正在进行中的会话",
+    "history": "搜索并回顾过往会话",
+    "workLog": "每位客服实际处理了哪些工作",
+    "statistics": "分析一段时间内的客服指标",
+    "aiSettings": "AI 的角色设定、场景脚本与转接规则",
+    "knowledge": "AI 作答所依据的知识",
+    "products": "您导入的商品目录，以及是否已进入知识库",
+    "customers": "客户档案及其客服历史",
+    "orders": "订单状态与配送详情",
+    "campaigns": "通知与促销发送",
+    "reviews": "查看并审核客户评价",
+    "users": "团队账户、职级与工作标签",
+    "settings": "店铺集成与小组件行为",
+    "privacyNotice": "向顾客展示的同意声明",
+    "myPage": "您的账户、密码与双因素认证设置",
+    "overview": "平台整体状态",
+    "tenants": "审批与管理租户",
+    "aiEngines": "AI 引擎与路由",
+    "audit": "平台审计日志"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "title": "租户",
+  "newTenant": "新建租户",
+  "name": "名称",
+  "slug": "登录路径",
+  "slugPlaceholder": "例如 ivyusa",
+  "slugHint": "可使用小写字母、数字和连字符。留空则根据名称自动生成。员工在 /<路径> 登录。",
+  "shopDomain": "店铺域名",
+  "plan": "套餐",
+  "status": "状态",
+  "users": "用户",
+  "created": "创建时间",
+  "suspend": "暂停",
+  "activate": "启用",
+  "empty": "暂无租户。",
+  "manageUsers": "用户",
+  "usersOf": "用户 — {{name}}",
+  "usersOfSubtitle": "为该租户邀请员工、发放临时密码并管理访问权限。",
+  "usersEmpty": "该租户还没有用户。",
+  "loginUrl": "登录页面"
+}

@@ -1,0 +1,22 @@
+{
+  "title": "评价",
+  "subtitle": "客户商品评价——将不当内容从店铺前台隐藏",
+  "id": "ID",
+  "customer": "客户",
+  "orderItem": "订单商品",
+  "rating": "评分",
+  "ratingOf": "5 星中的 {{rating}} 星",
+  "body": "评价内容",
+  "status": "状态",
+  "created": "创建时间",
+  "hide": "隐藏",
+  "unhide": "取消隐藏",
+  "toastHidden": "已隐藏该评价",
+  "toastUnhidden": "该评价已重新显示",
+  "toastError": "无法更新该评价",
+  "empty": "暂无评价。",
+  "statuses": {
+    "submitted": "已提交",
+    "hidden": "已隐藏"
+  }
+}

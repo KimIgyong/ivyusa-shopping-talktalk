@@ -1,0 +1,30 @@
+{
+  "title": "问题统计",
+  "subtitle": "客户问了什么，回答得如何",
+  "from": "开始日期",
+  "to": "结束日期",
+  "tab": {
+    "intent": "意图",
+    "document": "使用的知识",
+    "keyword": "关键词",
+    "cluster": "相似问题"
+  },
+  "dimension": {
+    "intent": "意图",
+    "category": "分类",
+    "document": "文档",
+    "keyword": "关键词",
+    "cluster": "问题分组"
+  },
+  "asked": "提问次数",
+  "share": "占比",
+  "escalationRate": "转人工率",
+  "noSource": "无来源",
+  "avgConfidence": "平均置信度",
+  "trendTitle": "提问量",
+  "noTrend": "此时间范围内没有数据。",
+  "trendAria": "{{count}} 天内的提问量",
+  "empty": "此时间范围内没有记录到问题。",
+  "attentionHint": "标记的行转人工率较高或置信度较低——这些是应优先补充到知识库的主题。",
+  "snapshotNote": "数据来自每日快照，因此在会话日志清理后仍可查看。"
+}

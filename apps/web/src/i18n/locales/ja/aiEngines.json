@@ -1,0 +1,15 @@
+{
+  "title": "AIエンジン",
+  "addEngine": "エンジンを追加",
+  "editEngine": "エンジンを編集",
+  "name": "名称",
+  "provider": "プロバイダー",
+  "model": "モデル",
+  "status": "ステータス",
+  "apiKey": "APIキー",
+  "apiKeyEdit": "APIキー（空欄で現在の値を維持）",
+  "created": "作成日",
+  "enable": "有効化",
+  "disable": "無効化",
+  "empty": "エンジンが設定されていません。"
+}

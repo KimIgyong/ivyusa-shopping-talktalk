@@ -1,0 +1,30 @@
+{
+  "title": "Thống kê câu hỏi",
+  "subtitle": "Khách hàng hỏi gì và được trả lời tốt đến đâu",
+  "from": "Từ ngày",
+  "to": "Đến ngày",
+  "tab": {
+    "intent": "Ý định",
+    "document": "Tri thức đã dùng",
+    "keyword": "Từ khóa",
+    "cluster": "Câu hỏi tương tự"
+  },
+  "dimension": {
+    "intent": "Ý định",
+    "category": "Danh mục",
+    "document": "Tài liệu",
+    "keyword": "Từ khóa",
+    "cluster": "Nhóm câu hỏi"
+  },
+  "asked": "Lượt hỏi",
+  "share": "Tỷ trọng",
+  "escalationRate": "Tỷ lệ chuyển tiếp",
+  "noSource": "Không có nguồn",
+  "avgConfidence": "Độ tin cậy TB",
+  "trendTitle": "Lượng câu hỏi",
+  "noTrend": "Không có dữ liệu trong khoảng này.",
+  "trendAria": "Lượng câu hỏi trong {{count}} ngày",
+  "empty": "Không có câu hỏi nào được ghi nhận trong khoảng này.",
+  "attentionHint": "Các dòng được đánh dấu có tỷ lệ chuyển tiếp cao hoặc độ tin cậy thấp — đây là những chủ đề nên bổ sung vào kho tri thức trước.",
+  "snapshotNote": "Số liệu lấy từ ảnh chụp hằng ngày nên vẫn xem được sau khi nhật ký hội thoại bị xóa."
+}

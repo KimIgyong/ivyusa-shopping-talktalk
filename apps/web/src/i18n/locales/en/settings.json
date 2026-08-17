@@ -45,7 +45,7 @@
     "saveError": "Failed to save widget settings.",
     "timezone": "Default language by timezone",
     "tzUnset": "Not set (English default)",
-    "timezoneHint": "Sets the widget's default language when the shopper hasn't chosen one — Asia/Seoul → Korean, America/New_York → English.",
+    "timezoneHint": "Sets the widget's default language when the shopper hasn't chosen one — pick the zone your customers are in.",
     "copyTitle": "Widget copy",
     "displayName": "Display name",
     "displayNameHint": "Shown in the widget header and used as {shop} in greetings. Empty = tenant name.",

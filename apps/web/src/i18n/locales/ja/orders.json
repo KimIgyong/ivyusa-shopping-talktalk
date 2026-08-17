@@ -1,0 +1,10 @@
+{
+  "title": "注文",
+  "subtitle": "Shopifyから同期されたストアの全注文",
+  "orderNumber": "注文",
+  "status": "ステータス",
+  "amount": "金額",
+  "items": "商品",
+  "date": "日付",
+  "empty": "注文が見つかりません。"
+}
