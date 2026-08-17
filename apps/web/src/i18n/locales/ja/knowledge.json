@@ -220,5 +220,23 @@
     "accepted": "文書を作成し、インデックスしました。",
     "dismissed": "提案を見送りました。",
     "actionError": "提案の処理に失敗しました。"
-  }
+  },
+  "proposals": "回答の提案",
+  "proposalQuestion": "質問",
+  "proposalAnswer": "回答",
+  "proposalApprove": "承認",
+  "proposalReject": "却下",
+  "proposalRejectReason": "理由（提案者に表示されます）",
+  "proposalFromConversation": "会話 #{{id}} を開く",
+  "proposalNoConversation": "紐づく会話はありません",
+  "folderId": "フォルダID",
+  "folderIdHint": "DriveフォルダURLの末尾部分です。リンク全体ではありません。",
+  "shareFolderWith": "このアドレスに閲覧者としてフォルダを共有してください：",
+  "registerKeyFirst": "Driveソースを追加する前に、下でGoogleサービスアカウントキーを登録してください。",
+  "testConnection": "接続テスト",
+  "gdriveCredential": "Google Driveサービスアカウント",
+  "gdriveConnected": "接続済み",
+  "gdriveNotConnected": "未接続",
+  "gdriveKeyHint": "サービスアカウントのJSONを貼り付けてください。ログインに必要な項目のみ保存され、キーが再表示されることはありません。",
+  "gdriveRemoveConfirm": "サービスアカウントキーを削除しますか。Driveソースの同期が停止します。"
 }

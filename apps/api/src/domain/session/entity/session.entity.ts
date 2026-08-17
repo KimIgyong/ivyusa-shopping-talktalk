@@ -35,8 +35,33 @@ export class Session {
   @Column({ name: 'identity_level', type: 'varchar', length: 16, default: 'guest' })
   identityLevel: string; // guest | verified
 
+  /**
+   * Operator-set display name for this session (PLN-260812). Wins over the
+   * derived name (customer → email → "Session {id}") in the console; blank
+   * clears it. Never shown to the shopper. It can hold a real person's name, so
+   * it is handled as PII: never logged, never put in audit metadata.
+   */
+  @Column({ type: 'varchar', length: 60, nullable: true })
+  alias: string | null;
+
+  /**
+   * Whether the AI answers this session: 'inherit' follows the channel default
+   * from Settings, 'on'/'off' are the operator overriding it here (PLN-260812).
+   * An agent holding the thread outranks all three.
+   */
+  @Column({ name: 'auto_reply_mode', type: 'varchar', length: 8, default: 'inherit' })
+  autoReplyMode: string;
+
   @Column({ type: 'varchar', length: 8, default: 'EN' })
   language: string; // EN/ES/KO
+
+  /**
+   * The shopper picked this language themselves (language selector), so
+   * auto-detection leaves it alone (PLN-260813 D3). Default 0 means every
+   * existing session stays open to detection — none of them were hand-picked.
+   */
+  @Column({ name: 'language_locked', type: 'tinyint', width: 1, default: 0 })
+  languageLocked: number;
 
   @Column({ name: 'consent_state', type: 'varchar', length: 16, default: 'pending' })
   consentState: string; // pending/granted/declined

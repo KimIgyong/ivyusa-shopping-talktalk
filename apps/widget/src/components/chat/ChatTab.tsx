@@ -1,14 +1,20 @@
 import { useEffect, useRef, useState } from 'react';
-import { Send, Sparkles, Headphones } from 'lucide-react';
+import { FileText, Paperclip, Send, Sparkles, Headphones, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useWidgetStore } from '../../store/widgetStore';
 import { useChat } from '../../hooks/useChat';
 import { useScenario } from '../../hooks/useScenario';
+import { useAttachmentUpload } from '../../hooks/useAttachmentUpload';
 import { getShopDomain } from '../../hooks/useSession';
 import { ensureSession, setConsent } from '../../services/sessionService';
 import { getStoredConsent, setStoredConsent } from '../../lib/consent';
 import { useAnalytics } from '../../lib/analytics';
-import type { ScenarioButton, ScenarioPostAction, WidgetCopyText } from '../../lib/types';
+import type {
+  ChatAttachment,
+  ScenarioButton,
+  ScenarioPostAction,
+  WidgetCopyText,
+} from '../../lib/types';
 import { MessageBubble } from './MessageBubble';
 import { TypingBubble } from './TypingBubble';
 import { CsatCard } from './CsatCard';
@@ -73,6 +79,10 @@ export function ChatTab() {
   );
   const [input, setInput] = useState('');
   const [inline, setInline] = useState<Inline>(null);
+  // Attachments the shopper picked but has not sent yet (PLN-260814 S3).
+  const uploads = useAttachmentUpload(sessionToken);
+  const [uploadNotice, setUploadNotice] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [showEscalate, setShowEscalate] = useState(false);
   // End-chat confirm row (요구 3, PLN-260808 Track B).
   const [endConfirm, setEndConfirm] = useState(false);
@@ -145,10 +155,14 @@ export function ChatTab() {
     ? consent.state === 'pending' || consent.noticeOutdated
     : consentChoice === null;
 
-  async function doSend(text: string, via: 'input' | 'scenario' | 'quick_reply' = 'input') {
+  async function doSend(
+    text: string,
+    attachments?: ChatAttachment[],
+    via: 'input' | 'scenario' | 'quick_reply' = 'input',
+  ) {
     analytics.chatStart();
     analytics.messageSent(via);
-    const res = await send(text);
+    const res = await send(text, attachments);
     setShowEscalate(res.escalate);
     if (res.needsAuth && !authenticated) setInline('auth');
     // Handed off outside business hours and we hold no address: the reply has
@@ -277,10 +291,21 @@ export function ChatTab() {
 
   function submitInput(e: React.FormEvent) {
     e.preventDefault();
-    if (!input.trim() || sending) return;
+    // Files alone are a valid turn; an upload still in flight is not — sending
+    // then would drop the file the shopper is watching upload (PLN-260814).
+    if ((!input.trim() && !uploads.ready.length) || sending || uploads.busy) return;
     const text = input;
+    const attachments = uploads.ready;
     setInput('');
-    void doSend(text);
+    uploads.clear();
+    void doSend(text, attachments);
+  }
+
+  async function pickFiles(files: FileList | null) {
+    if (!files?.length) return;
+    const problem = await uploads.add(Array.from(files));
+    // Rejections are reported, never swallowed (dev-kit §4.3).
+    if (problem) setUploadNotice(problem);
   }
 
   return (
@@ -464,11 +489,94 @@ export function ChatTab() {
         )}
       </div>
 
+      {/* Attachment tray: what is uploading, what failed, what is ready to send */}
+      {(uploads.pending.length > 0 || uploadNotice) && (
+        <div className="space-y-1 border-t border-gray-100 px-2 pt-2">
+          {uploadNotice && (
+            <div className="flex items-start gap-1.5 rounded bg-amber-50 px-2 py-1.5 text-[11px] text-amber-800">
+              <span className="min-w-0 flex-1">{uploadNotice}</span>
+              <button
+                type="button"
+                onClick={() => setUploadNotice(null)}
+                aria-label={t('chat.attachment.close')}
+                className="flex-shrink-0 opacity-70 hover:opacity-100"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </div>
+          )}
+          {uploads.pending.map((p) => (
+            <div
+              key={p.key}
+              className={`flex items-center gap-2 rounded border px-2 py-1 text-[11px] ${
+                p.error ? 'border-red-300 bg-red-50 text-red-700' : 'border-gray-200 bg-gray-50'
+              }`}
+            >
+              {p.previewUrl ? (
+                <img src={p.previewUrl} alt="" className="h-8 w-8 flex-shrink-0 rounded object-cover" />
+              ) : (
+                <FileText className="h-4 w-4 flex-shrink-0 text-gray-400" />
+              )}
+              <div className="min-w-0 flex-1">
+                <div className="truncate">{p.error ?? p.name}</div>
+                {!p.attachment && !p.error && (
+                  <>
+                    <div className="mt-0.5 h-1 w-full overflow-hidden rounded bg-gray-200">
+                      <div
+                        className="h-full bg-primary-500 transition-all"
+                        style={{ width: `${p.progress}%` }}
+                      />
+                    </div>
+                    {/* The bytes are up but the server is still converting (a HEIC
+                        takes about a second). Without this the bar sits at the end
+                        and looks stuck. */}
+                    {p.progress >= 99 && (
+                      <div className="mt-0.5 text-[10px] text-gray-500">
+                        {t('chat.attachment.processing')}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => uploads.remove(p.key)}
+                aria-label={t('chat.attachment.remove', { name: p.name })}
+                className="flex-shrink-0 text-gray-400 hover:text-gray-600"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Input */}
       <form
         onSubmit={submitInput}
         className="flex items-center gap-2 border-t border-gray-100 p-2"
       >
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          accept=".jpg,.jpeg,.png,.gif,.webp,.heic,.heif,.avif,.pdf,.txt,.csv,.docx,.xlsx"
+          className="hidden"
+          onChange={(e) => {
+            void pickFiles(e.target.files);
+            // Reset so picking the same file twice still fires a change event.
+            e.target.value = '';
+          }}
+        />
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={sending}
+          aria-label={t('chat.attachment.attach')}
+          className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 disabled:opacity-40"
+        >
+          <Paperclip className="h-4 w-4" />
+        </button>
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
@@ -477,7 +585,7 @@ export function ChatTab() {
         />
         <button
           type="submit"
-          disabled={sending || !input.trim()}
+          disabled={sending || uploads.busy || (!input.trim() && !uploads.ready.length)}
           aria-label={t('chat.send')}
           className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-primary-500 text-white hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-40"
         >

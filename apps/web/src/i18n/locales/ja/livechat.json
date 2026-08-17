@@ -163,5 +163,79 @@
   "kbStale": "見直し期限超過",
   "kbConflicted": "矛盾あり",
   "kbSendToCustomer": "お客様に送信",
-  "kbEditThenSend": "編集して送信"
+  "kbEditThenSend": "編集して送信",
+  "alias": {
+    "add": "名前を付ける",
+    "edit": "名前を編集",
+    "placeholder": "例：江南店オーナー",
+    "saved": "セッション名を保存しました。",
+    "cleared": "セッション名を削除しました。",
+    "saveError": "セッション名を保存できませんでした。"
+  },
+  "preview": {
+    "title": "問い合わせ #{{no}} のプレビュー",
+    "loading": "会話を読み込み中…",
+    "openSession": "セッションを開く",
+    "close": "閉じる"
+  },
+  "sender": {
+    "user": "顧客",
+    "ai": "AI",
+    "agent": "担当者",
+    "system": "システム"
+  },
+  "autoReply": {
+    "label": "AI自動返信",
+    "inherit": "チャネルの既定（{{state}}）",
+    "on": "オン",
+    "off": "オフ",
+    "hint": "これ以降に受信したメッセージに適用されます。すでにスレッドにあるものへ遡って返信はしません。",
+    "aiAnswering": "AIが対応中",
+    "agentAnswering": "担当者が対応",
+    "agentOwnsHint": "担当者がこのスレッドを対応しているため、AIは応答しません。",
+    "offShort": "AIオフ",
+    "offHint": "このセッションではAIは回答しません。",
+    "savedOn": "次のメッセージから、このセッションはAIが回答します。",
+    "savedOff": "このセッションではAIは回答しません。",
+    "saveError": "このセッションの自動返信を変更できませんでした。",
+    "auto": "自動",
+    "approve": "承認が必要",
+    "awaitingApproval": "下書き待ち"
+  },
+  "kbProposeKnowledge": "ナレッジとして提案",
+  "draft": {
+    "title": "AIの提案",
+    "confidence": "確信度 {{value}}",
+    "approve": "承認して送信",
+    "sending": "送信中…",
+    "discard": "破棄",
+    "hint": "送信前に編集してください。あなたの返信として送られます。",
+    "sent": "お客様に送信しました。",
+    "sendError": "下書きを送信できませんでした。",
+    "discarded": "下書きを破棄しました。",
+    "discardError": "下書きを破棄できませんでした。"
+  },
+  "attachment": {
+    "open": "{{name}} を開く",
+    "close": "閉じる",
+    "previous": "前の画像",
+    "next": "次の画像",
+    "openOriginal": "元の画像を開く",
+    "download": "ダウンロード",
+    "unavailable": "画像を表示できません",
+    "attach": "ファイルを添付",
+    "uploading": "アップロード中…",
+    "uploadFailed": "{{name}} をアップロードできませんでした",
+    "processing": "処理中…",
+    "convertFailed": "{{name}} を処理できませんでした（画像を読み取れません）",
+    "tooManyPixels": "{{name}} は解像度が高すぎて処理できません",
+    "inboundUndecodable": "お客様から届いた写真を開けませんでした（未対応の形式）。",
+    "uploaded": "{{count}}件のファイルを添付しました",
+    "uploaded_other": "{{count}}件のファイルを添付しました",
+    "remove": "{{name}} を削除",
+    "tooLarge": "{{name}} は上限の {{limit}} MB を超えています",
+    "typeNotAllowed": "{{name}} は許可されていないファイル形式です",
+    "tooMany": "1通あたり最大 {{max}} 件まで添付できます",
+    "imageLabel": "画像"
+  }
 }

@@ -12,8 +12,16 @@ import {
   TestResult,
   ThreadCursor,
 } from './messenger-adapter';
+import {
+  failedTest,
+  httpStatusOf,
+  loginFailure,
+  unreachableFailure,
+} from './adapter-failure.util';
 
 const DEFAULT_BASE_URL = 'https://api-talk.amoeba.site';
+/** How the hub is named to operators — and what its account is called. */
+const PROVIDER_LABEL = 'amoebatalk';
 /** Conversations scanned per poll — the list is ordered by last activity. */
 const CONVERSATION_PAGE = 20;
 /** Messages read per changed conversation. */
@@ -74,7 +82,7 @@ export class AmoebaTalkHubAdapter implements MessengerAdapter {
       const account = this.fields(ctx).email || null;
       return { ok: true, detail: `connected (${count} conversation(s) visible)`, accountId: account };
     } catch (e) {
-      return { ok: false, detail: (e as Error).message.slice(0, 200) };
+      return failedTest(e);
     }
   }
 
@@ -130,8 +138,27 @@ export class AmoebaTalkHubAdapter implements MessengerAdapter {
           // Loop prevention #1 — operator/bot turns (including our own replies).
           if (String(msg.user_type ?? '') !== USER_TYPE_CUSTOMER) continue;
           if (Number.isFinite(cursor) && Number(msg.id) <= cursor) continue;
-          const text = (msg.content ?? '').trim();
-          if (!text) continue;
+          const raw = (msg.content ?? '').trim();
+          // The hub types media turns and puts the file's URL in `content`
+          // (PLN-260814 S5). Treated as an attachment only when it really is a
+          // link — a mistyped text turn must not become a broken file card.
+          const isMedia =
+            /^(image|photo|picture|file|video|audio|document)$/i.test(msg.content_type ?? '') &&
+            /^https?:\/\//i.test(raw);
+          const text = isMedia ? '' : raw;
+          const media = isMedia
+            ? [
+                {
+                  url: raw,
+                  filename: null,
+                  mime: /^(image|photo|picture)$/i.test(msg.content_type ?? '')
+                    ? 'image/jpeg'
+                    : null,
+                  size: null,
+                },
+              ]
+            : [];
+          if (!text && !media.length) continue;
 
           out.push({
             externalThreadId: threadId,
@@ -144,6 +171,7 @@ export class AmoebaTalkHubAdapter implements MessengerAdapter {
             subChannel: normalizeSocialType(conv.social_type ?? socialType),
             replyEnabled: true,
             occurredAt: parseDate(msg.created_at ?? msg.written_date),
+            attachments: media.length ? media : undefined,
           });
         }
 
@@ -182,9 +210,21 @@ export class AmoebaTalkHubAdapter implements MessengerAdapter {
     }
 
     const fields = this.fields(ctx);
+    const signinUrl = `${this.baseUrl(ctx.channel)}/api/auth/signin`;
     const signin = await this.post<{
       data?: { temp_token?: string; access_token?: string; companies?: Array<{ id?: number | string }> };
-    }>(ctx, null, '/api/auth/signin', { email: fields.email, password: fields.password });
+    }>(ctx, null, '/api/auth/signin', { email: fields.email, password: fields.password }).catch(
+      (e: unknown) => {
+        // Same trap as the relay's (FIX-260813): the hub answering 401 is a
+        // wrong hub account, not a network problem, and the raw status alone
+        // does not say so. No status at all means no answer was read — that
+        // one really is the network.
+        const status = httpStatusOf(e);
+        throw status === null
+          ? unreachableFailure(PROVIDER_LABEL, this.baseUrl(ctx.channel), e)
+          : loginFailure(PROVIDER_LABEL, status, signinUrl);
+      },
+    );
 
     const tempToken = signin?.data?.temp_token;
     let accessToken = signin?.data?.access_token;

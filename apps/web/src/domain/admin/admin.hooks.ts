@@ -1,5 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { adminService } from './admin.service';
+import type { MenuProvisionMode } from './admin.service';
 import type { InviteUserBody } from '@/domain/users/users.service';
 import { toast } from '@/store/toast-store';
 
@@ -161,5 +163,30 @@ export function useAudit(params: { page: number; pageSize: number }) {
   return useQuery({
     queryKey: [...AUDIT_KEY, params],
     queryFn: () => adminService.audit(params),
+  });
+}
+
+// ---- Menu provisioning (PLN-260812 S2) ----
+
+export function useTenantMenus(tenantUuid: string, enabled = true) {
+  return useQuery({
+    queryKey: [...TENANTS_KEY, tenantUuid, 'menus'],
+    queryFn: () => adminService.tenantMenus(tenantUuid),
+    enabled: enabled && !!tenantUuid,
+  });
+}
+
+export function useSaveTenantMenus(tenantUuid: string) {
+  const { t } = useTranslation('tenants');
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (menus: { code: string; mode: MenuProvisionMode }[]) =>
+      adminService.saveTenantMenus(tenantUuid, menus),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [...TENANTS_KEY, tenantUuid, 'menus'] });
+      // Success auto-closes; errors stay until dismissed (dev-kit §4.3).
+      toast.success(t('menus.saved'));
+    },
+    onError: (err: Error) => toast.error(err.message || t('menus.saveError'), { sticky: true }),
   });
 }

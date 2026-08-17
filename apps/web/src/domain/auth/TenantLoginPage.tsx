@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Navigate, useNavigate, useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Loader2, SearchX, Ban } from 'lucide-react';
+import { Loader2, SearchX, Ban, ShieldAlert, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { authService } from './auth.service';
 import { AuthShell } from './AuthShell';
@@ -25,6 +25,16 @@ export function TenantLoginPage() {
   // Step-up token when the account has MFA enabled (null = password step).
   const [mfaToken, setMfaToken] = useState<string | null>(null);
 
+  // AMA-portal SSO (PLN-260813 S3): the iframe URL carries ?ama_token=. Capture
+  // it once, then scrub it from the address bar before anything else can log or
+  // copy the URL. 'pending' renders a full-page spinner instead of the form;
+  // 'failed' falls back to the form with a dismissible banner.
+  const [amaToken] = useState(() => new URLSearchParams(window.location.search).get('ama_token'));
+  const [ssoState, setSsoState] = useState<'idle' | 'pending' | 'failed'>(
+    amaToken ? 'pending' : 'idle',
+  );
+  const [ssoNotMapped, setSsoNotMapped] = useState(false);
+
   const { data: tenant, isLoading, error } = useQuery({
     queryKey: ['public-tenant', slug],
     queryFn: () => authService.publicTenant(slug),
@@ -35,9 +45,57 @@ export function TenantLoginPage() {
     staleTime: 60_000,
   });
 
+  // The SSO call may finish before the tenant query does — read the freshest
+  // tenant name through a ref instead of the effect's stale closure.
+  const tenantNameRef = useRef<string | undefined>(undefined);
+  tenantNameRef.current = tenant?.name ?? undefined;
+
+  useEffect(() => {
+    if (!amaToken) return;
+    // Scrub the token from the address bar first — it must never survive into
+    // history, logs, or a copied link (PLN-260813 §S3).
+    const url = new URL(window.location.href);
+    url.searchParams.delete('ama_token');
+    window.history.replaceState(null, '', url.pathname + url.search + url.hash);
+    if (principal) return; // already signed in — the redirect below handles it
+    let cancelled = false;
+    authService
+      .amaSso(amaToken, slug)
+      .then((res) => {
+        if (cancelled) return;
+        setAuth(res);
+        setTenant(slug, tenantNameRef.current ?? slug);
+        toast.success(t('signedIn'));
+        navigate('/dashboard', { replace: true });
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        setSsoNotMapped((err as { code?: string })?.code === 'E5034');
+        setSsoState('failed');
+      });
+    return () => {
+      cancelled = true;
+    };
+    // Runs exactly once per mount — amaToken and slug are fixed for this page.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Already signed in → straight to the matching home.
   if (principal) {
     return <Navigate to={principal.actorType === 'admin' ? '/admin' : '/dashboard'} replace />;
+  }
+
+  // SSO in flight — a full-page state instead of the login form (wireframe 1).
+  if (ssoState === 'pending') {
+    return (
+      <div
+        className="flex min-h-screen flex-col items-center justify-center gap-3 bg-gray-50"
+        role="status"
+      >
+        <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+        <p className="text-sm text-gray-600">{t('amaSsoSigningIn')}</p>
+      </div>
+    );
   }
 
   // Shared success path for both a plain login and a verified MFA challenge.
@@ -103,6 +161,26 @@ export function TenantLoginPage() {
 
   return (
     <AuthShell tenantName={tenant.name ?? tenant.slug}>
+      {ssoState === 'failed' && (
+        <div
+          className="mb-4 flex items-start gap-2 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700"
+          role="alert"
+        >
+          <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
+          <div className="flex-1">
+            <p className="font-medium">{t('amaSsoFailedTitle')}</p>
+            <p className="mt-0.5">{ssoNotMapped ? t('amaSsoNotMapped') : t('amaSsoFailedDesc')}</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setSsoState('idle')}
+            aria-label={t('amaSsoDismiss')}
+            className="rounded p-0.5 text-red-400 hover:bg-red-100 hover:text-red-600"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
       {mfaToken ? (
         <MfaChallengeForm
           mfaToken={mfaToken}

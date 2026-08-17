@@ -1,5 +1,5 @@
 import { Repository } from 'typeorm';
-import { MessengerIngestService, resolveLanguage } from './messenger-ingest.service';
+import { MessengerIngestService } from './messenger-ingest.service';
 import { MessengerChannel } from './entity/messenger-channel.entity';
 import { ChannelThread } from './entity/channel-thread.entity';
 import { ChannelMessageMap } from './entity/channel-message-map.entity';
@@ -30,15 +30,20 @@ describe('MessengerIngestService', () => {
 
   function build(opts: {
     channel?: Partial<MessengerChannel>;
+    /** Session auto-reply override for the resolved session. */
+    sessionMode?: string;
     thread?: Partial<ChannelThread> | null;
     duplicate?: boolean;
     openConversation?: Partial<Conversation> | null;
+    /** Stubbed AttachmentService.store — present only for the attachment cases. */
+    attachmentStore?: jest.Mock;
   }) {
     const channel = {
       id: 10,
       tenantId: 1,
       provider: 'telegram',
       autoReply: 1,
+      replyMode: 'auto',
       consentMode: 'notice',
       ...opts.channel,
     } as MessengerChannel;
@@ -71,7 +76,8 @@ describe('MessengerIngestService', () => {
     const savedSessions: Partial<Session>[] = [];
     const sessionRepo = {
       findOne: jest.fn(async () => null),
-      create: (s: Partial<Session>) => ({ id: 90, ...s }) as Session,
+      create: (s: Partial<Session>) =>
+        ({ id: 90, autoReplyMode: opts.sessionMode ?? 'inherit', ...s }) as Session,
       save: jest.fn(async (s: Session) => {
         savedSessions.push(s);
         return s;
@@ -101,17 +107,48 @@ describe('MessengerIngestService', () => {
       }),
     } as unknown as Repository<Message>;
 
+    const savedDrafts: Array<Record<string, unknown>> = [];
+    const draftRepo = {
+      create: (d: Record<string, unknown>) => d,
+      save: jest.fn(async (d: Record<string, unknown>) => {
+        savedDrafts.push(d);
+        return d;
+      }),
+    } as unknown as Repository<never>;
+
     const chatService = {
-      handleUserMessage: jest.fn(async () => ({ conversationId: '300', reply: null, escalate: false, needsAuth: false })),
+      handleUserMessage: jest.fn(async (_s: unknown, _t: string, o?: { draft?: boolean }) =>
+        o?.draft
+          ? {
+              conversationId: '300',
+              reply: null,
+              draft: { body: 'proposed answer', confidence: 0.82 },
+              escalate: false,
+              needsAuth: false,
+            }
+          : { conversationId: '300', reply: null, escalate: false, needsAuth: false },
+      ),
       findOpenConversation: jest.fn(async () => (opts.openConversation ?? null) as Conversation | null),
       escalate: jest.fn(async () => undefined),
     } as unknown as ChatService;
 
     const sessionService = {
       effectiveNoticeVersion: jest.fn(async () => '2026-07'),
+      languageForChannel: jest.fn(async (_tenantId: number, hint?: string | null) =>
+        (hint ?? '').toLowerCase().startsWith('ko') ? 'KO' : 'EN',
+      ),
     } as unknown as SessionService;
 
     const outbox = { flushThread: jest.fn(async () => undefined) } as unknown as MessengerOutboxService;
+
+    const attachments = opts.attachmentStore
+      ? ({
+          maxPerMessage: () => 5,
+          store: opts.attachmentStore,
+          attachToMessage: jest.fn(async () => []),
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any)
+      : undefined;
 
     const service = new MessengerIngestService(
       threadRepo,
@@ -119,18 +156,38 @@ describe('MessengerIngestService', () => {
       sessionRepo,
       convRepo,
       msgRepo,
+      draftRepo,
       chatService,
       sessionService,
       outbox,
+      attachments,
     );
-    return { service, channel, chatService, outbox, savedMaps, savedSessions, savedConversations, savedMessages, threadUpdates };
+    return {
+      service,
+      channel,
+      chatService,
+      sessionService,
+      outbox,
+      savedMaps,
+      savedSessions,
+      savedConversations,
+      savedMessages,
+      savedDrafts,
+      threadUpdates,
+    };
   }
 
   it('runs the chat pipeline and maps the inbound message', async () => {
     const h = build({});
     await h.service.ingestOne(h.channel, inbound);
 
-    expect(h.chatService.handleUserMessage).toHaveBeenCalledWith(expect.objectContaining({ id: 90 }), inbound.text);
+    // The third argument carries the (here empty) attachment ids — a text-only
+    // turn still goes through the same call shape (PLN-260814 S5).
+    expect(h.chatService.handleUserMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 90 }),
+      inbound.text,
+      { attachmentIds: [] },
+    );
     expect(h.savedMaps[0]).toMatchObject({ externalMessageId: 'ext-100', direction: 'inbound', messageId: 501 });
     // The AI answer must not wait for the worker tick.
     expect(h.outbox.flushThread).toHaveBeenCalled();
@@ -166,7 +223,7 @@ describe('MessengerIngestService', () => {
   });
 
   it('stores and escalates instead of answering when auto-reply is off', async () => {
-    const h = build({ channel: { autoReply: 0 } });
+    const h = build({ channel: { replyMode: 'off' } });
     await h.service.ingestOne(h.channel, inbound);
 
     expect(h.chatService.handleUserMessage).not.toHaveBeenCalled();
@@ -185,29 +242,133 @@ describe('MessengerIngestService', () => {
     expect(h.savedMessages.some((m) => m.senderType === 'user')).toBe(true);
   });
 
+  it('lets a session override turn the AI on where the channel default is off', async () => {
+    const h = build({ channel: { replyMode: 'off' }, sessionMode: 'auto' });
+    await h.service.ingestOne(h.channel, inbound);
+
+    expect(h.chatService.handleUserMessage).toHaveBeenCalled();
+  });
+
+  it('lets a session override silence a channel whose default is on', async () => {
+    const h = build({ channel: { replyMode: 'auto' }, sessionMode: 'off' });
+    await h.service.ingestOne(h.channel, inbound);
+
+    expect(h.chatService.handleUserMessage).not.toHaveBeenCalled();
+    expect(h.savedMessages.some((m) => m.senderType === 'user')).toBe(true);
+  });
+
+  it('escalates once, not on every message of an already-escalated thread', async () => {
+    const h = build({
+      channel: { replyMode: 'off' },
+      openConversation: { id: 300, status: 'waiting', agentId: null, sessionId: 90, escalated: 1 },
+    });
+    await h.service.ingestOne(h.channel, inbound);
+
+    // 400 inbound across 37 conversations paged the agents 400 times (B-1).
+    expect(h.chatService.escalate).not.toHaveBeenCalled();
+    expect(h.savedMessages.some((m) => m.senderType === 'user')).toBe(true);
+  });
+
+  it('asks for the tenant default language when the platform sends no hint', async () => {
+    const h = build({});
+    await h.service.ingestOne(h.channel, { ...inbound, languageHint: null });
+
+    expect(h.sessionService.languageForChannel).toHaveBeenCalledWith(1, null);
+  });
+
+  it('stores a draft instead of answering when the channel needs approval', async () => {
+    const h = build({ channel: { replyMode: 'approve' } });
+    await h.service.ingestOne(h.channel, inbound);
+
+    expect(h.chatService.handleUserMessage).toHaveBeenCalledWith(
+      expect.anything(),
+      inbound.text,
+      { draft: true, attachmentIds: [] },
+    );
+    expect(h.savedDrafts[0]).toMatchObject({ body: 'proposed answer', confidence: 0.82 });
+    // A draft nobody sees is a draft nobody sends.
+    expect(h.chatService.escalate).toHaveBeenCalled();
+  });
+
+  it('lets a session ask for approval on an otherwise automatic channel', async () => {
+    const h = build({ channel: { replyMode: 'auto' }, sessionMode: 'approve' });
+    await h.service.ingestOne(h.channel, inbound);
+
+    expect(h.savedDrafts).toHaveLength(1);
+  });
+
+  it('never drafts while an agent holds the thread', async () => {
+    const h = build({
+      channel: { replyMode: 'approve' },
+      openConversation: { id: 300, status: 'agent', agentId: 7, sessionId: 90 },
+    });
+    await h.service.ingestOne(h.channel, inbound);
+
+    expect(h.savedDrafts).toHaveLength(0);
+    expect(h.chatService.handleUserMessage).not.toHaveBeenCalled();
+  });
+
   it('records the inbound cursor for poll adapters', async () => {
     const h = build({});
     await h.service.ingestOne(h.channel, inbound);
     expect(h.threadUpdates.some((p) => p.inboundCursor === 'ext-100')).toBe(true);
   });
-});
 
-describe('resolveLanguage', () => {
-  it.each([
-    ['ko-KR', 'KO'],
-    ['ko', 'KO'],
-    ['es-ES', 'ES'],
-    ['en-US', 'EN'],
-    [null, 'EN'],
-    ['vi', 'VI'],
-    ['vi-VN', 'VI'],
-    ['ja-JP', 'JA'],
-    ['zh-CN', 'ZH'],
-    // Traditional resolves to Simplified while `zh` is the only Chinese row.
-    ['zh-TW', 'ZH'],
-    // Still unregistered — the fallback path stays exercised.
-    ['th-TH', 'EN'],
-  ])('maps %s → %s', (hint, expected) => {
-    expect(resolveLanguage(hint as string | null)).toBe(expected);
+  /**
+   * PLN-260817 §2.2 — a file we cannot store used to disappear between the
+   * customer's phone and the console, leaving only a log line.
+   */
+  describe('a file that cannot be stored', () => {
+    const withPhoto: NormalizedInbound = {
+      ...inbound,
+      // Inline bytes so the fetch path stays out of the test — what is under
+      // test is what happens after the file is in hand.
+      attachments: [
+        {
+          data: Buffer.from('not-really-a-photo'),
+          filename: 'IMG_0001.HEIC',
+          mime: 'image/heic',
+        },
+      ],
+    };
+
+    it('leaves a note in the conversation, in the session language', async () => {
+      const h = build({
+        // consent_mode=auto so the only system message in play is ours.
+        channel: { consentMode: 'auto' },
+        attachmentStore: jest.fn(async () => {
+          throw new Error('E5042');
+        }),
+      });
+      await h.service.ingestOne(h.channel, withPhoto);
+
+      const note = h.savedMessages.find((m) => m.senderType === 'system');
+      expect(note).toBeDefined();
+      // languageHint 'ko' resolves to KO, so the customer reads it in Korean.
+      expect(note?.body).toContain('열지 못했습니다');
+      expect(note?.lang).toBe('KO');
+      // The text still went through the normal pipeline — one bad file must not
+      // cost us the message it arrived with.
+      expect(h.chatService.handleUserMessage).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 90 }),
+        withPhoto.text,
+        { attachmentIds: [] },
+      );
+    });
+
+    it('says nothing when every file stored cleanly', async () => {
+      const h = build({
+        channel: { consentMode: 'auto' },
+        attachmentStore: jest.fn(async () => ({ uuid: 'uuid-1' })),
+      });
+      await h.service.ingestOne(h.channel, withPhoto);
+
+      expect(h.savedMessages.some((m) => m.senderType === 'system')).toBe(false);
+      expect(h.chatService.handleUserMessage).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 90 }),
+        withPhoto.text,
+        { attachmentIds: ['uuid-1'] },
+      );
+    });
   });
 });

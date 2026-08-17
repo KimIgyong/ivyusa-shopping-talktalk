@@ -163,5 +163,79 @@
   "kbStale": "quá hạn rà soát",
   "kbConflicted": "xung đột",
   "kbSendToCustomer": "Gửi cho khách hàng",
-  "kbEditThenSend": "Sửa rồi gửi"
+  "kbEditThenSend": "Sửa rồi gửi",
+  "alias": {
+    "add": "Thêm tên",
+    "edit": "Sửa tên",
+    "placeholder": "ví dụ: Chủ cửa hàng Gangnam",
+    "saved": "Đã lưu tên phiên.",
+    "cleared": "Đã xóa tên phiên.",
+    "saveError": "Không lưu được tên phiên."
+  },
+  "preview": {
+    "title": "Xem trước yêu cầu #{{no}}",
+    "loading": "Đang tải hội thoại…",
+    "openSession": "Mở phiên",
+    "close": "Đóng"
+  },
+  "sender": {
+    "user": "Khách hàng",
+    "ai": "AI",
+    "agent": "Nhân viên",
+    "system": "Hệ thống"
+  },
+  "autoReply": {
+    "label": "AI tự động trả lời",
+    "inherit": "Mặc định của kênh ({{state}})",
+    "on": "Bật",
+    "off": "Tắt",
+    "hint": "Áp dụng cho các tin nhắn nhận từ bây giờ. Những gì đã có trong hội thoại sẽ không được trả lời lại.",
+    "aiAnswering": "AI đang trả lời",
+    "agentAnswering": "Nhân viên trả lời",
+    "agentOwnsHint": "Một nhân viên đang phụ trách hội thoại này nên AI giữ im lặng.",
+    "offShort": "AI tắt",
+    "offHint": "AI không trả lời phiên này.",
+    "savedOn": "AI sẽ trả lời phiên này kể từ tin nhắn tiếp theo.",
+    "savedOff": "AI sẽ không trả lời phiên này.",
+    "saveError": "Không thay đổi được chế độ tự động trả lời cho phiên này.",
+    "auto": "Tự động",
+    "approve": "Cần duyệt",
+    "awaitingApproval": "Đang chờ bản nháp"
+  },
+  "kbProposeKnowledge": "Đề xuất thành tri thức",
+  "draft": {
+    "title": "Gợi ý của AI",
+    "confidence": "độ tin cậy {{value}}",
+    "approve": "Duyệt & gửi",
+    "sending": "Đang gửi…",
+    "discard": "Bỏ",
+    "hint": "Hãy chỉnh sửa trước khi gửi — nội dung này sẽ đi ra dưới tên bạn.",
+    "sent": "Đã gửi cho khách hàng.",
+    "sendError": "Không gửi được bản nháp.",
+    "discarded": "Đã bỏ bản nháp.",
+    "discardError": "Không bỏ được bản nháp."
+  },
+  "attachment": {
+    "open": "Mở {{name}}",
+    "close": "Đóng",
+    "previous": "Ảnh trước",
+    "next": "Ảnh sau",
+    "openOriginal": "Mở ảnh gốc",
+    "download": "Tải xuống",
+    "unavailable": "Không xem được ảnh",
+    "attach": "Đính kèm tệp",
+    "uploading": "Đang tải lên…",
+    "uploadFailed": "Không tải lên được {{name}}",
+    "processing": "Đang xử lý…",
+    "convertFailed": "Không xử lý được {{name}} — không đọc được ảnh",
+    "tooManyPixels": "{{name}} có độ phân giải quá cao để xử lý",
+    "inboundUndecodable": "Không mở được một ảnh do khách hàng gửi (định dạng không hỗ trợ).",
+    "uploaded": "Đã đính kèm {{count}} tệp",
+    "uploaded_other": "Đã đính kèm {{count}} tệp",
+    "remove": "Xóa {{name}}",
+    "tooLarge": "{{name}} vượt quá giới hạn {{limit}} MB",
+    "typeNotAllowed": "{{name}} không thuộc loại tệp được phép",
+    "tooMany": "Bạn có thể đính kèm tối đa {{max}} tệp mỗi tin nhắn",
+    "imageLabel": "Ảnh"
+  }
 }

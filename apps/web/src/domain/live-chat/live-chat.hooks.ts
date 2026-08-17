@@ -1,8 +1,89 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { liveChatService } from './live-chat.service';
 import type { CustomerLead } from './live-chat.service';
 import { useTenantKey } from '@/lib/use-tenant-key';
 import { toast } from '@/store/toast-store';
+
+/**
+ * Set or clear the operator's name for a session (PLN-260812).
+ *
+ * Keyed by conversation because that is what a queue row holds; the server
+ * resolves the session. The row, the open conversation and the issue board all
+ * re-read after, so the new name appears everywhere it is shown.
+ */
+export function useSetSessionAlias() {
+  const { t } = useTranslation('livechat');
+  const qc = useQueryClient();
+  const tenantKey = useTenantKey();
+  return useMutation({
+    mutationFn: ({ id, alias }: { id: string; alias: string | null }) =>
+      liveChatService.setAlias(id, alias),
+    onSuccess: (_data, variables) => {
+      qc.invalidateQueries({ queryKey: ['agent', tenantKey, 'sessions'] });
+      qc.invalidateQueries({ queryKey: ['agent', tenantKey, 'conversation', variables.id] });
+      // The board prints the alias on its cards too.
+      qc.invalidateQueries({ queryKey: ['issue-board', tenantKey] });
+      toast.success(variables.alias ? t('alias.saved') : t('alias.cleared'));
+    },
+    onError: (e: Error) => toast.error(e.message || t('alias.saveError'), { sticky: true }),
+  });
+}
+
+/**
+ * Turn the AI on or off for one session (PLN-260812).
+ *
+ * Only applies to messages received from here on — nothing already in the
+ * thread is answered retroactively, and the control says so.
+ */
+export function useSetSessionAutoReply() {
+  const { t } = useTranslation('livechat');
+  const qc = useQueryClient();
+  const tenantKey = useTenantKey();
+  return useMutation({
+    mutationFn: ({ id, mode }: { id: string; mode: string }) =>
+      liveChatService.setAutoReply(id, mode),
+    onSuccess: (data, variables) => {
+      qc.invalidateQueries({ queryKey: ['agent', tenantKey, 'sessions'] });
+      qc.invalidateQueries({ queryKey: ['agent', tenantKey, 'conversation', variables.id] });
+      toast.success(
+        data.autoReplyEffective ? t('autoReply.savedOn') : t('autoReply.savedOff'),
+      );
+    },
+    onError: (e: Error) => toast.error(e.message || t('autoReply.saveError'), { sticky: true }),
+  });
+}
+
+/** Approve or drop the AI draft waiting on this conversation (PLN-260812). */
+export function useDraftActions(id: string | null) {
+  const { t } = useTranslation('livechat');
+  const qc = useQueryClient();
+  const tenantKey = useTenantKey();
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ['agent', tenantKey, 'conversation', id] });
+    qc.invalidateQueries({ queryKey: ['agent', tenantKey, 'sessions'] });
+  };
+
+  const approve = useMutation({
+    mutationFn: (body?: string) => liveChatService.approveDraft(id as string, body),
+    onSuccess: () => {
+      invalidate();
+      toast.success(t('draft.sent'));
+    },
+    onError: (e: Error) => toast.error(e.message || t('draft.sendError'), { sticky: true }),
+  });
+
+  const discard = useMutation({
+    mutationFn: () => liveChatService.discardDraft(id as string),
+    onSuccess: () => {
+      invalidate();
+      toast.success(t('draft.discarded'));
+    },
+    onError: (e: Error) => toast.error(e.message || t('draft.discardError'), { sticky: true }),
+  });
+
+  return { approve, discard };
+}
 
 export const useSessions = (q = '', status = 'all', channel = 'all') => {
   const tenantKey = useTenantKey();
@@ -75,6 +156,20 @@ export function useAskKnowledge() {
   });
 }
 
+/** Send an answer to the knowledge owners for review (PLN-260810 S4). */
+export function useProposeAnswer() {
+  return useMutation({
+    mutationFn: (v: { conversationId?: number; question: string; answer: string }) =>
+      liveChatService.proposeAnswer({
+        conversation_id: v.conversationId,
+        question: v.question,
+        answer: v.answer,
+      }),
+    onSuccess: () => toast.success('Sent for review'),
+    onError: (err: Error) => toast.error(err.message),
+  });
+}
+
 export function useConversationActions(id: string | null) {
   const qc = useQueryClient();
   const tenantKey = useTenantKey();
@@ -94,7 +189,11 @@ export function useConversationActions(id: string | null) {
   });
 
   const send = useMutation({
-    mutationFn: (body: string) => liveChatService.sendMessage(id as string, body),
+    // A reply may carry files, text, or both (PLN-260814 S4).
+    mutationFn: (input: string | { body: string; attachmentIds?: string[] }) =>
+      typeof input === 'string'
+        ? liveChatService.sendMessage(id as string, input)
+        : liveChatService.sendMessage(id as string, input.body, input.attachmentIds),
     onSuccess: invalidate,
   });
 

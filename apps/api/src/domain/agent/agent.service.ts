@@ -34,9 +34,21 @@ import { SessionService, sessionCacheKey } from '../session/session.service';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
 import { UpsertProfileRequest } from './dto/request/agent.request';
+import { ChannelThread } from '../messenger/entity/channel-thread.entity';
+import { MessengerChannel } from '../messenger/entity/messenger-channel.entity';
+import { ReplyDraft } from '../chat/entity/reply-draft.entity';
+import { AttachmentService } from '../attachment/attachment.service';
+import { MessageAttachment } from '../attachment/entity/message-attachment.entity';
+import {
+  AUTO_REPLY_MODE,
+  isAutoReplyMode,
+  resolveAutoReply,
+} from '../messenger/auto-reply.util';
 
 /** Transcript page size for the console (PLN-260807 D2). */
 const MESSAGE_PAGE_SIZE = 30;
+/** Operator alias length — matches sessions.alias (PLN-260812). */
+export const SESSION_ALIAS_MAX = 60;
 /** Messages the briefing summarises — the tail is what an agent needs oriented. */
 const BRIEFING_WINDOW = 50;
 
@@ -82,31 +94,39 @@ const REPLY_EMAIL_COPY = {
     subject: '[IVY USA] A reply to your question',
     footer: 'You can continue the conversation any time in the chat on our store.',
     note: 'This reply was emailed to the customer.',
+    // Attachment links expire in minutes, so an email cannot carry one — it
+    // points the shopper back to the chat, where the file is waiting.
+    attachments: 'A file was attached to this reply. Open the chat on our store to view it.',
   },
   ES: {
     subject: '[IVY USA] Respuesta a tu consulta',
     footer: 'Puedes continuar la conversación cuando quieras en el chat de nuestra tienda.',
     note: 'Esta respuesta se envió por correo al cliente.',
+    attachments: 'Esta respuesta incluye un archivo adjunto. Ábrelo en el chat de nuestra tienda.',
   },
   KO: {
     subject: '[IVY USA] 문의하신 내용에 대한 답변',
     footer: '추가 문의는 스토어의 채팅에서 언제든 이어가실 수 있어요.',
     note: '이 답변은 고객 이메일로 발송되었습니다.',
+    attachments: '이 답변에는 첨부 파일이 있습니다. 스토어 채팅에서 확인해 주세요.',
   },
   VI: {
     subject: '[IVY USA] Phản hồi cho câu hỏi của bạn',
     footer: 'Bạn có thể tiếp tục cuộc trò chuyện bất cứ lúc nào qua khung chat trên cửa hàng của chúng tôi.',
     note: 'Phản hồi này đã được gửi tới email của khách hàng.',
+    attachments: 'Phản hồi này có kèm tệp đính kèm. Hãy mở khung chat trên cửa hàng của chúng tôi để xem.',
   },
   JA: {
     subject: '[IVY USA] お問い合わせへのご回答',
     footer: 'ご不明な点は、ストアのチャットからいつでも続けてご相談いただけます。',
     note: 'この返信はお客様のメール宛に送信されました。',
+    attachments: 'この返信にはファイルが添付されています。ストアのチャットからご確認ください。',
   },
   ZH: {
     subject: '[IVY USA] 您咨询问题的回复',
     footer: '如需继续咨询，您可以随时通过我们商店的在线聊天联系我们。',
     note: '此回复已通过电子邮件发送给客户。',
+    attachments: '此回复带有附件。请在我们商店的在线聊天中查看。',
   },
 } as const;
 
@@ -140,7 +160,35 @@ export class AgentService {
     private readonly issueService?: IssueService,
     @InjectRepository(TenantAiConfig)
     private readonly aiConfigRepo?: Repository<TenantAiConfig>,
+    // Entity-only reads: the console shows whether the AI is answering a
+    // channel thread, which needs the channel's default (PLN-260812 S4).
+    @InjectRepository(ChannelThread)
+    private readonly threadRepo?: Repository<ChannelThread>,
+    @InjectRepository(MessengerChannel)
+    private readonly channelRepo?: Repository<MessengerChannel>,
+    @InjectRepository(ReplyDraft)
+    private readonly draftRepo?: Repository<ReplyDraft>,
+    /** Files the agent uploaded before sending (PLN-260814 S4). */
+    private readonly attachments?: AttachmentService,
   ) {}
+
+  /**
+   * Bind the agent's pre-uploaded files to the reply. Logged and swallowed on
+   * failure: the reply is already persisted and delivered, and throwing here
+   * would tell the agent the whole message failed when only the file did.
+   */
+  private async attachUploads(
+    ids: string[] | undefined,
+    params: { tenantId: number; messageId: number; conversationId: number },
+  ): Promise<MessageAttachment[]> {
+    if (!ids?.length || !this.attachments) return [];
+    try {
+      return await this.attachments.attachToMessage(ids, params);
+    } catch (err) {
+      this.logger.warn(`attachment claim failed (message ${params.messageId}): ${String(err)}`);
+      return [];
+    }
+  }
 
   /**
    * Audit an agent opening a conversation (transcript + customer PII — PRV-H4/
@@ -238,6 +286,12 @@ export class AgentService {
       conversation: Conversation;
       lastMessage: Message | null;
       contact: { name: string | null; email: string | null };
+      /** Operator-set session name (PLN-260812); null when unset. */
+      alias: string | null;
+      /** Session auto-reply choice: inherit | on | off. */
+      autoReplyMode: string;
+      /** That choice resolved against the channel default. */
+      autoReplyEffective: boolean;
     }>;
     total: number;
   }> {
@@ -298,12 +352,220 @@ export class AgentService {
     const contactByConv = await this.contactsByConversation(conversations);
     // Batched last-message lookup (PERF-7) — one query instead of one per row.
     const lastByConv = await this.lastMessagesByConversation(conversations.map((c) => c.id));
-    const items = conversations.map((conversation) => ({
-      conversation,
-      lastMessage: lastByConv.get(String(conversation.id)) ?? null,
-      contact: contactByConv.get(String(conversation.id)) ?? { name: null, email: null },
-    }));
+    // One query for the whole page, same reason (PLN-260812).
+    const stateBySession = await this.sessionStates(conversations.map((c) => c.sessionId));
+    const channelDefaults = await this.channelDefaults(conversations.map((c) => c.id));
+    const items = conversations.map((conversation) => {
+      const state = stateBySession.get(String(conversation.sessionId));
+      return {
+        conversation,
+        lastMessage: lastByConv.get(String(conversation.id)) ?? null,
+        contact: contactByConv.get(String(conversation.id)) ?? { name: null, email: null },
+        alias: state?.alias ?? null,
+        autoReplyMode: state?.autoReplyMode ?? AUTO_REPLY_MODE.INHERIT,
+        autoReplyEffective: resolveAutoReply(
+          channelDefaults.get(String(conversation.id)) ?? null,
+          state?.autoReplyMode,
+        ),
+      };
+    });
     return { items, total };
+  }
+
+  /**
+   * Set this session's auto-reply choice (PLN-260812 FR-2).
+   *
+   * Only affects messages received from now on — answering a question the
+   * shopper asked half an hour ago is worse than not answering it, so nothing
+   * is replayed. The console says as much next to the control.
+   */
+  async setSessionAutoReply(
+    conversationId: number,
+    tenantId: number,
+    actorUserId: number,
+    mode: string,
+  ): Promise<{ sessionId: string; autoReplyMode: string; autoReplyEffective: boolean }> {
+    if (!isAutoReplyMode(mode)) {
+      throw new BusinessException(ERROR_CODE.VALIDATION_FAILED, HttpStatus.BAD_REQUEST);
+    }
+    const conversation = await this.requireConversation(conversationId, tenantId);
+    await this.sessionRepo.update({ id: conversation.sessionId }, { autoReplyMode: mode });
+
+    const session = await this.sessionRepo.findOne({
+      where: { id: conversation.sessionId },
+      select: { id: true, sessionToken: true },
+    });
+    if (session?.sessionToken) await this.redis.del(sessionCacheKey(session.sessionToken));
+
+    await this.auditAgentAction(
+      actorUserId,
+      tenantId,
+      'agent.session.auto_reply',
+      `session:${conversation.sessionId}`,
+      { conversationId: String(conversationId), mode },
+    );
+
+    const defaults = await this.channelDefaults([conversationId]);
+    return {
+      sessionId: String(conversation.sessionId),
+      autoReplyMode: mode,
+      autoReplyEffective: resolveAutoReply(defaults.get(String(conversationId)) ?? null, mode),
+    };
+  }
+
+  /** The AI answer waiting for approval on this conversation, if any. */
+  async pendingDraft(conversationId: number, tenantId: number): Promise<ReplyDraft | null> {
+    if (!this.draftRepo) return null;
+    return this.draftRepo.findOne({
+      where: { conversationId, tenantId, status: 'pending' },
+      order: { id: 'DESC' },
+    });
+  }
+
+  /**
+   * Send the pending draft (optionally edited) as the agent's own reply.
+   *
+   * Deliberately routed through `sendMessage`: moderation, duplicate
+   * suppression and the channel outbox already live there, and a second
+   * delivery path would be a second set of those rules to keep in step.
+   */
+  async approveDraft(
+    conversationId: number,
+    tenantId: number,
+    agentId: number,
+    body?: string,
+  ): Promise<{ approved: boolean }> {
+    const draft = await this.pendingDraft(conversationId, tenantId);
+    if (!draft) throw new BusinessException(ERROR_CODE.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND);
+
+    const text = (body ?? draft.body).trim();
+    if (!text) throw new BusinessException(ERROR_CODE.VALIDATION_FAILED, HttpStatus.BAD_REQUEST);
+
+    await this.sendMessage(conversationId, agentId, tenantId, text);
+    await this.draftRepo!.update(
+      { id: draft.id },
+      { status: 'sent', resolvedBy: agentId, resolvedAt: new Date() },
+    );
+    await this.auditAgentAction(agentId, tenantId, 'agent.draft.approve', `conversation:${conversationId}`, {
+      edited: body != null && body.trim() !== draft.body,
+    });
+    return { approved: true };
+  }
+
+  /** Drop the pending draft without sending anything. */
+  async discardDraft(
+    conversationId: number,
+    tenantId: number,
+    agentId: number,
+  ): Promise<{ discarded: boolean }> {
+    const draft = await this.pendingDraft(conversationId, tenantId);
+    if (!draft) throw new BusinessException(ERROR_CODE.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND);
+    await this.draftRepo!.update(
+      { id: draft.id },
+      { status: 'discarded', resolvedBy: agentId, resolvedAt: new Date() },
+    );
+    await this.auditAgentAction(agentId, tenantId, 'agent.draft.discard', `conversation:${conversationId}`);
+    return { discarded: true };
+  }
+
+  /**
+   * Alias + auto-reply state for one conversation (console header).
+   *
+   * The header showed neither before: an alias set from the queue row did not
+   * appear above the transcript, and nothing said whether the AI was answering.
+   */
+  async sessionStateFor(
+    conversationId: number,
+    sessionId: number,
+  ): Promise<{ alias: string | null; autoReplyMode: string; autoReplyEffective: boolean }> {
+    const state = (await this.sessionStates([sessionId])).get(String(sessionId));
+    const mode = state?.autoReplyMode ?? AUTO_REPLY_MODE.INHERIT;
+    const defaults = await this.channelDefaults([conversationId]);
+    return {
+      alias: state?.alias ?? null,
+      autoReplyMode: mode,
+      autoReplyEffective: resolveAutoReply(defaults.get(String(conversationId)) ?? null, mode),
+    };
+  }
+
+  /** session id → alias + auto-reply mode, for a whole page in one query. */
+  private async sessionStates(
+    sessionIds: number[],
+  ): Promise<Map<string, { alias: string | null; autoReplyMode: string }>> {
+    if (sessionIds.length === 0) return new Map();
+    const rows = await this.sessionRepo.find({
+      where: { id: In(sessionIds) },
+      select: { id: true, alias: true, autoReplyMode: true },
+    });
+    return new Map(
+      rows.map((s) => [
+        String(s.id),
+        { alias: s.alias ?? null, autoReplyMode: s.autoReplyMode || AUTO_REPLY_MODE.INHERIT },
+      ]),
+    );
+  }
+
+  /**
+   * conversation id → its channel's auto-reply default, for the whole page.
+   *
+   * Only messenger-backed conversations have one; a widget thread answers by
+   * default, which `resolveAutoReply` expresses as a null default.
+   */
+  private async channelDefaults(conversationIds: number[]): Promise<Map<string, boolean>> {
+    const defaults = new Map<string, boolean>();
+    if (conversationIds.length === 0 || !this.threadRepo || !this.channelRepo) return defaults;
+
+    const threads = await this.threadRepo.find({
+      where: { conversationId: In(conversationIds) },
+      select: { conversationId: true, channelId: true },
+    });
+    if (threads.length === 0) return defaults;
+
+    const channels = await this.channelRepo.find({
+      where: { id: In([...new Set(threads.map((t) => Number(t.channelId)))]) },
+      select: { id: true, autoReply: true },
+    });
+    const byChannel = new Map(channels.map((c) => [String(c.id), c.autoReply === 1]));
+    for (const thread of threads) {
+      const value = byChannel.get(String(thread.channelId));
+      if (value !== undefined) defaults.set(String(thread.conversationId), value);
+    }
+    return defaults;
+  }
+
+  /**
+   * Set (or clear) the operator's name for the session behind a conversation.
+   *
+   * Keyed by conversation because that is all the console holds — its "session"
+   * rows are conversation ids. Blank clears, restoring the derived name.
+   */
+  async setSessionAlias(
+    conversationId: number,
+    tenantId: number,
+    actorUserId: number,
+    alias: string | null,
+  ): Promise<{ sessionId: string; alias: string | null }> {
+    const conversation = await this.requireConversation(conversationId, tenantId);
+    const clean = (alias ?? '').trim().slice(0, SESSION_ALIAS_MAX);
+    const value = clean.length > 0 ? clean : null;
+
+    await this.sessionRepo.update({ id: conversation.sessionId }, { alias: value });
+    // The token→session cache would otherwise serve the old alias for 30s.
+    const session = await this.sessionRepo.findOne({
+      where: { id: conversation.sessionId },
+      select: { id: true, sessionToken: true },
+    });
+    if (session?.sessionToken) await this.redis.del(sessionCacheKey(session.sessionToken));
+
+    // An alias can be a real person's name — record THAT it changed, never what to.
+    await this.auditAgentAction(
+      actorUserId,
+      tenantId,
+      'agent.session.alias',
+      `session:${conversation.sessionId}`,
+      { conversationId: String(conversationId), set: value != null },
+    );
+    return { sessionId: String(conversation.sessionId), alias: value };
   }
 
   /** conversation id → its newest message, in a single grouped query (PERF-7). */
@@ -449,6 +711,7 @@ export class AgentService {
     agentId: number,
     tenantId: number,
     body: string,
+    attachmentIds?: string[],
   ): Promise<Message> {
     const conversation = await this.requireConversation(conversationId, tenantId);
     // Consent gate (PLN-Privacy-Control-Gap D-1, fail-closed): an agent reply is
@@ -470,10 +733,16 @@ export class AgentService {
     // off-hours thread it mails the customer the same answer twice. Re-sending
     // the identical text within a few seconds returns the message already
     // stored instead of creating a second one.
-    const recent = await this.msgRepo.findOne({
-      where: { conversationId, senderType: SENDER_TYPE.AGENT, senderId: agentId, body },
-      order: { id: 'DESC' },
-    });
+    //
+    // A reply that carries files is exempt: two sends of the same caption with
+    // different photos are two different replies, and suppressing the second
+    // would drop a file the agent watched upload (PLN-260814 S4).
+    const recent = attachmentIds?.length
+      ? null
+      : await this.msgRepo.findOne({
+          where: { conversationId, senderType: SENDER_TYPE.AGENT, senderId: agentId, body },
+          order: { id: 'DESC' },
+        });
     if (recent && Date.now() - new Date(recent.createdAt).getTime() < DUPLICATE_REPLY_WINDOW_MS) {
       this.logger.warn(
         `duplicate agent reply suppressed: conversation=${conversationId} agent=${agentId}`,
@@ -481,14 +750,19 @@ export class AgentService {
       return recent;
     }
 
-    const moderated = await this.moderation.moderate({
-      tenantId,
-      scope: 'agent',
-      authorType: 'agent',
-      authorId: agentId,
-      conversationId,
-      text: body,
-    });
+    // Moderation reads text. A files-only reply has none, so there is nothing
+    // to send it — the file itself is not moderated, which REQ §5 states
+    // outright rather than implying safety we do not provide.
+    const moderated = body.trim()
+      ? await this.moderation.moderate({
+          tenantId,
+          scope: 'agent',
+          authorType: 'agent',
+          authorId: agentId,
+          conversationId,
+          text: body,
+        })
+      : { decision: MODERATION_DECISION.DELIVERED, text: body };
     if (moderated.decision === MODERATION_DECISION.BLOCKED) {
       throw new BusinessException(ERROR_CODE.MODERATION_BLOCKED, HttpStatus.UNPROCESSABLE_ENTITY);
     }
@@ -504,12 +778,18 @@ export class AgentService {
         retrievalTrace: null,
       }),
     );
+    const attached = await this.attachUploads(attachmentIds, {
+      tenantId,
+      messageId: Number(saved.id),
+      conversationId,
+    });
     await this.notifyCustomerOfReply(conversation.sessionId, tenantId);
-    await this.mailReplyIfOffHoursThread(conversation, tenantId, moderated.text);
+    await this.mailReplyIfOffHoursThread(conversation, tenantId, moderated.text, attached.length);
     // Answer reuse ingest (PLN-260808 Track C, D-C1): a human's moderated reply
     // paired with the question it answered is the highest-trust reuse source.
     // Fire-and-forget — a reuse hiccup must never fail the reply.
-    void this.ingestReplyForReuse(conversationId, tenantId, saved);
+    // A files-only reply has no answer text to reuse (PLN-260814 SI-4).
+    if (moderated.text.trim()) void this.ingestReplyForReuse(conversationId, tenantId, saved);
     return saved;
   }
 
@@ -549,6 +829,7 @@ export class AgentService {
     conversation: Conversation,
     tenantId: number,
     body: string,
+    attachmentCount = 0,
   ): Promise<void> {
     if (conversation.replyChannel !== 'email') return;
     try {
@@ -558,10 +839,13 @@ export class AgentService {
       if (!to) return;
       const copy =
         REPLY_EMAIL_COPY[session.language as keyof typeof REPLY_EMAIL_COPY] ?? REPLY_EMAIL_COPY.EN;
+      // The signed link would be dead long before the shopper reads the mail,
+      // so the email says a file is waiting and where (PLN-260814 S4).
+      const attachmentNote = attachmentCount > 0 ? `\n\n${copy.attachments}` : '';
       const sent = await this.mailer.send({
         to,
         subject: copy.subject,
-        text: `${body}\n\n---\n${copy.footer}`,
+        text: `${body}${attachmentNote}\n\n---\n${copy.footer}`,
       });
       if (!sent) return;
       await this.msgRepo.save(

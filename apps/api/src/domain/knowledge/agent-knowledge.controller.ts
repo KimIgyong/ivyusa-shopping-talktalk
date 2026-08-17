@@ -7,7 +7,8 @@ import { CurrentUser } from '../../global/decorator/current-user.decorator';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
 import { KnowledgeService } from './knowledge.service';
-import { AskKnowledgeRequest } from './dto/request/knowledge.request';
+import { AskKnowledgeRequest, ProposeAnswerRequest } from './dto/request/knowledge.request';
+import { AnswerProposalService } from './answer-proposal.service';
 
 /**
  * Read-only knowledge lookup for the people handling chats (PLN-260810 S2).
@@ -22,13 +23,19 @@ import { AskKnowledgeRequest } from './dto/request/knowledge.request';
  * Nothing is recorded against the conversation. An agent checking what the
  * knowledge base says is not a customer turn, and letting it into the message
  * history, the statistics or the CJM would corrupt all three.
+ *
+ * Proposing is on this surface too, and it still writes no knowledge: a
+ * proposal is inert until an owner approves it (PLN-260810 D3).
  */
 @ApiTags('Knowledge')
 @Controller('agent/knowledge')
 export class AgentKnowledgeController {
   private readonly logger = new Logger(AgentKnowledgeController.name);
 
-  constructor(private readonly knowledgeService: KnowledgeService) {}
+  constructor(
+    private readonly knowledgeService: KnowledgeService,
+    private readonly proposals: AnswerProposalService,
+  ) {}
 
   @Post('ask')
   @RequireCapability(CAPABILITY.CONVERSATION_HANDLE)
@@ -46,5 +53,23 @@ export class AgentKnowledgeController {
     }
     this.logger.log(`agent knowledge lookup by user ${user.userId}`);
     return this.knowledgeService.ask(user.tenantId, question, body.language ?? 'EN', body.group);
+  }
+
+  @Post('proposals')
+  @RequireCapability(CAPABILITY.CONVERSATION_HANDLE)
+  @ApiOperation({ summary: 'Propose an answer for the knowledge base (awaits approval)' })
+  async propose(@CurrentUser() user: Principal, @Body() body: ProposeAnswerRequest) {
+    if (user.actorType !== 'user') {
+      throw new BusinessException(ERROR_CODE.FORBIDDEN, HttpStatus.FORBIDDEN);
+    }
+    return this.proposals.propose(
+      user.tenantId,
+      {
+        conversationId: body.conversation_id ?? null,
+        question: body.question,
+        answer: body.answer,
+      },
+      user.userId,
+    );
   }
 }

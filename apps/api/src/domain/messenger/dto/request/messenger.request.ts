@@ -9,6 +9,7 @@ import {
   MaxLength,
 } from 'class-validator';
 import { MESSENGER_CONSENT_MODE, MESSENGER_PROVIDER } from '@ivy/types';
+import { REPLY_MODES } from '../../auto-reply.util';
 
 const PROVIDERS = Object.values(MESSENGER_PROVIDER);
 const CONSENT_MODES = Object.values(MESSENGER_CONSENT_MODE);
@@ -43,6 +44,12 @@ export class UpsertMessengerChannelRequest {
   @IsBoolean()
   auto_reply?: boolean;
 
+  /** off | approve | auto — supersedes auto_reply (PLN-260812). */
+  @ApiPropertyOptional({ enum: REPLY_MODES })
+  @IsOptional()
+  @IsIn(REPLY_MODES)
+  reply_mode?: string;
+
   @ApiPropertyOptional({ enum: CONSENT_MODES })
   @IsOptional()
   @IsIn(CONSENT_MODES)
@@ -75,6 +82,11 @@ export class UpdateMessengerChannelRequest {
   @IsOptional()
   @IsBoolean()
   auto_reply?: boolean;
+
+  @ApiPropertyOptional({ enum: REPLY_MODES })
+  @IsOptional()
+  @IsIn(REPLY_MODES)
+  reply_mode?: string;
 
   @ApiPropertyOptional({ enum: CONSENT_MODES })
   @IsOptional()

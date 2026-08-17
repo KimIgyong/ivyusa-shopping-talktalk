@@ -220,5 +220,23 @@
     "accepted": "已创建文档并建立索引。",
     "dismissed": "已忽略该建议。",
     "actionError": "处理该建议失败。"
-  }
+  },
+  "proposals": "答案建议",
+  "proposalQuestion": "问题",
+  "proposalAnswer": "答案",
+  "proposalApprove": "批准",
+  "proposalReject": "驳回",
+  "proposalRejectReason": "原因（会展示给提出建议的人）",
+  "proposalFromConversation": "打开会话 #{{id}}",
+  "proposalNoConversation": "没有关联的会话",
+  "folderId": "文件夹 ID",
+  "folderIdHint": "Drive 文件夹网址的最后一段，而不是整个链接。",
+  "shareFolderWith": "请把该文件夹以查看者身份共享给此地址：",
+  "registerKeyFirst": "添加 Drive 来源前，请先在下方注册 Google 服务账号密钥。",
+  "testConnection": "测试连接",
+  "gdriveCredential": "Google Drive 服务账号",
+  "gdriveConnected": "已连接",
+  "gdriveNotConnected": "未连接",
+  "gdriveKeyHint": "请粘贴服务账号 JSON。系统仅保存登录所需字段，且密钥不会再次显示。",
+  "gdriveRemoveConfirm": "要删除服务账号密钥吗？Drive 来源将停止同步。"
 }

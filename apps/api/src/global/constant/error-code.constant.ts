@@ -43,6 +43,13 @@ export const ERROR_CODE = {
   // The config moved between proposing and applying, so the stored diff no
   // longer describes the change it claimed to make.
   COACH_PROPOSAL_STALE: { code: 'E4015', message: 'Target changed since this proposal was made' },
+  // Knowledge documents roll back through their own revision history instead.
+  COACH_REVERT_UNSUPPORTED: {
+    code: 'E4016',
+    message: 'Undo this from the knowledge document revision history',
+  },
+  // Nothing to re-ask, so a before/after comparison would be empty.
+  GOLDEN_SET_EMPTY: { code: 'E4017', message: 'Add a regression question first' },
 
   // E5xxx — domain
   ORDER_NOT_FOUND: { code: 'E5001', message: 'Order not found' },
@@ -86,6 +93,38 @@ export const ERROR_CODE = {
     code: 'E5028',
     message: 'Only a conversation an agent is handling can be handed back',
   },
+  // E5029-E5031 — menu provisioning & access (PLN-260812).
+  /** The tenant's plan/provisioning does not include this menu at all. */
+  MENU_NOT_PROVIDED: { code: 'E5029', message: 'This menu is not provided for this tenant' },
+  /** Provided to the tenant, but this member is not allowed to reach it. */
+  MENU_ACCESS_DENIED: { code: 'E5030', message: 'You do not have access to this menu' },
+  MENU_CODE_UNKNOWN: { code: 'E5031', message: 'Unknown menu code' },
+
+  // E5032-E5034 — AMA SSO (PLN-260813-AMA-Iframe-SSO S2).
+  AMA_SSO_DISABLED: { code: 'E5032', message: 'AMA SSO is not configured' },
+  AMA_TOKEN_INVALID: { code: 'E5033', message: 'AMA token exchange failed' },
+  AMA_SSO_USER_NOT_MAPPED: {
+    code: 'E5034',
+    message: 'No active console account matches the AMA identity for this tenant',
+  },
+  // E5035-E5041 — chat attachments (PLN-260814).
+  ATTACHMENT_NOT_FOUND: { code: 'E5035', message: 'Attachment not found' },
+  ATTACHMENT_TYPE_NOT_ALLOWED: { code: 'E5036', message: 'File type is not allowed' },
+  ATTACHMENT_TOO_LARGE: { code: 'E5037', message: 'File exceeds the size limit' },
+  ATTACHMENT_LIMIT_EXCEEDED: { code: 'E5038', message: 'Too many attachments' },
+  /** Signature mismatch or expired link — the download route's only 401. */
+  ATTACHMENT_URL_INVALID: { code: 'E5039', message: 'Attachment link is invalid or expired' },
+  ATTACHMENT_STORAGE_FAILED: { code: 'E5040', message: 'Attachment storage failed' },
+  ATTACHMENT_CHANNEL_UNSUPPORTED: {
+    code: 'E5041',
+    message: 'This channel cannot deliver attachments',
+  },
+  // E5042-E5044 — HEIC/HEIF conversion (PLN-260817).
+  ATTACHMENT_DECODE_FAILED: { code: 'E5042', message: 'Image could not be processed' },
+  ATTACHMENT_PIXELS_EXCEEDED: { code: 'E5043', message: 'Image resolution exceeds the limit' },
+  /** Decode pool saturated — a retry is the right answer, so it is not a 4xx. */
+  ATTACHMENT_BUSY: { code: 'E5044', message: 'Image processing is busy, please retry' },
+
   // E9xxx — system
   INTERNAL_ERROR: { code: 'E9001', message: 'Internal server error' },
   EXTERNAL_SERVICE_ERROR: { code: 'E9002', message: 'External service error' },

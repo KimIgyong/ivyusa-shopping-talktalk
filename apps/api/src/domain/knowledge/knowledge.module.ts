@@ -13,9 +13,15 @@ import { KbRevisionService } from './kb-revision.service';
 import { ProductImportService } from './product-import.service';
 import { CatalogSyncService } from './catalog-sync.service';
 import { CatalogSyncJobService } from './catalog-sync-job.service';
+import { AnswerProposalService } from './answer-proposal.service';
+import { KbAnswerProposal } from './entity/kb-answer-proposal.entity';
 import { UsageGuideService } from './usage-guide.service';
 import { SourceSyncService } from './source-sync.service';
 import { BoardAdapter } from './adapters/board.adapter';
+import { GdriveAdapter } from './adapters/gdrive.adapter';
+import { GdriveClient } from './gdrive.client';
+import { GdriveCredentialService } from './gdrive-credential.service';
+import { IntegrationCredential } from '../tenant/entity/integration-credential.entity';
 import { AuditModule } from '../audit/audit.module';
 import { KnowledgeGapTask } from './entity/knowledge-gap-task.entity';
 import { QuestionStatDaily } from '../analytics/entity/question-stat-daily.entity';
@@ -35,12 +41,16 @@ import { ModerationModule } from '../moderation/moderation.module';
       KbFile,
       KbConflict,
       KbDocumentRevision,
+      KbAnswerProposal,
       // Repository only — the CSV import's optional Price/Image bridge writes
       // into the display catalog (PLN-260807 F1). No ProductModule import.
       ProductCache,
       KnowledgeGapTask,
       QuestionStatDaily,
       Message,
+      // Repository only — the Drive service-account key lives with the other
+      // provider secrets; no TenantModule import.
+      IntegrationCredential,
     ]),
     // RagService answers the console's knowledge questions; Chat does not depend
     // on Knowledge, so this stays acyclic.
@@ -58,9 +68,13 @@ import { ModerationModule } from '../moderation/moderation.module';
     ProductImportService,
     CatalogSyncService,
     CatalogSyncJobService,
+    AnswerProposalService,
     UsageGuideService,
     SourceSyncService,
     BoardAdapter,
+    GdriveAdapter,
+    GdriveClient,
+    GdriveCredentialService,
   ],
   exports: [KnowledgeService, KbConflictService, KbRevisionService],
 })

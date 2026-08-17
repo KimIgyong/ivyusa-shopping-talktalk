@@ -14,6 +14,8 @@ export interface PreviewReply {
   body: string;
   citations?: PreviewCitation[];
   confidence?: number;
+  /** Persisted turn id — lets the coaching tab anchor to this exact answer. */
+  messageId?: string;
 }
 
 export interface PreviewChatTurn {

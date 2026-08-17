@@ -2,6 +2,17 @@ import { apiGet, apiGetList, apiPost, apiPostForm, apiPatch, apiPut, apiDelete }
 import type { Paginated } from '@/lib/types';
 
 /** Shapes mirror KnowledgeMapper (apps/api knowledge.mapper.ts). */
+export interface GdriveCredentialStatus {
+  connected: boolean;
+  clientEmail: string | null;
+}
+
+export interface GdriveTestResult {
+  ok: boolean;
+  message: string;
+  files?: number;
+}
+
 export interface SyncResult {
   fetched: number;
   created: number;
@@ -106,6 +117,19 @@ export interface CatalogSyncPreview {
 export interface CatalogSyncResult extends Omit<CatalogSyncPreview, 'heldSamples' | 'familySamples'> {
   embedded: number;
   embedFailed: number;
+}
+
+/** An answer a chat handler wants to become knowledge (PLN-260810 S4). */
+export interface AnswerProposal {
+  id: string;
+  conversationId: string | null;
+  question: string;
+  answer: string;
+  status: 'pending' | 'approved' | 'rejected';
+  proposedBy: string;
+  rejectReason: string | null;
+  documentId: string | null;
+  createdAt: string;
 }
 
 /** One product type's usage guide and how many products it serves (PLN-260807 P2). */
@@ -218,7 +242,13 @@ export interface DocumentListParams {
 
 export const knowledgeService = {
   sources: () => apiGet<KnowledgeSource[]>('/knowledge/sources'),
-  createSource: (body: { name: string; type: string }) =>
+  gdriveCredential: () => apiGet<GdriveCredentialStatus>('/knowledge/gdrive/credential'),
+  saveGdriveCredential: (keyJson: string) =>
+    apiPut<{ clientEmail: string }>('/knowledge/gdrive/credential', { key_json: keyJson }),
+  deleteGdriveCredential: () => apiDelete<{ removed: boolean }>('/knowledge/gdrive/credential'),
+  testGdrive: (folderId?: string) =>
+    apiPost<GdriveTestResult>('/knowledge/gdrive/test', { folder_id: folderId }),
+  createSource: (body: { name: string; type: string; config_json?: Record<string, unknown> }) =>
     apiPost<KnowledgeSource>('/knowledge/sources', body),
   setSourceStatus: (id: string, status: 'active' | 'inactive') =>
     apiPatch<KnowledgeSource>(`/knowledge/sources/${id}`, { status }),
@@ -270,6 +300,12 @@ export const knowledgeService = {
   syncCatalog: () => apiPost<CatalogSyncJob>('/knowledge/documents/import/catalog', {}),
   catalogSyncStatus: () =>
     apiGet<CatalogSyncJob | null>('/knowledge/documents/import/catalog/status'),
+  proposals: (status = 'pending') =>
+    apiGet<AnswerProposal[]>('/knowledge/proposals', { status }),
+  approveProposal: (id: string, body: { title?: string; category?: string; answer?: string }) =>
+    apiPost<AnswerProposal>(`/knowledge/proposals/${id}/approve`, body),
+  rejectProposal: (id: string, reason: string) =>
+    apiPost<AnswerProposal>(`/knowledge/proposals/${id}/reject`, { reason }),
   usageGuides: () => apiGet<UsageGuide[]>('/knowledge/usage-guides'),
   saveUsageGuide: (key: string, body: { title: string; content: string }) =>
     apiPut<{ id: string; embedded: number; embedFailed: number }>(

@@ -14,6 +14,7 @@ import { Tenant } from '../tenant/entity/tenant.entity';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
 import { RedisService } from '../../infrastructure/cache/redis.service';
+import { AiConfigRevisionService, RecordRevisionMeta } from './ai-config-revision.service';
 
 /** TTL for the per-tenant persona/rules cache (PERF-11) — read on every RAG turn. */
 const PERSONA_CACHE_TTL_SEC = 60;
@@ -48,6 +49,10 @@ export const DEFAULT_PERSONA =
  */
 export const DEFAULT_RULES: string[] = [
   "Answer only from the provided knowledge and the customer's own order data. If the answer isn't there, say you're not sure and offer to connect a human agent.",
+  // The system decides handoffs, not the model. It used to say "I'll connect
+  // you — please hold" on turns where nothing was queued, and the shopper
+  // waited for someone who was never coming (REQ-260813).
+  "Never promise a handoff. Do not say you are connecting the customer, and never ask them to wait for an agent — offer instead: 'I can connect you with an agent if you'd like.' The system performs the transfer and tells them when it happens.",
   'Never invent order details, prices, stock, shipping dates, or policies that are not in the provided context.',
   "Reply in the customer's language, concisely and politely.",
   'For payment, refund, cancellation, or personal-data-change requests outside the stated policy, hand off to a human instead of deciding on your own.',
@@ -78,6 +83,7 @@ export class AiConfigService {
     @InjectRepository(Session) private readonly sessionRepo: Repository<Session>,
     @InjectRepository(Tenant) private readonly tenantRepo: Repository<Tenant>,
     private readonly redis: RedisService,
+    private readonly revisions: AiConfigRevisionService,
   ) {}
 
   /** Admin read — returns stored config or defaults. */
@@ -113,8 +119,20 @@ export class AiConfigService {
     return row?.scenarioOverrides?.[action] ?? null;
   }
 
-  /** Admin write — upsert persona / rules / scenario buttons. */
-  async upsertConfig(tenantId: number, input: AiConfigInput): Promise<AiConfigResponse> {
+  /**
+   * Admin write — upsert persona / rules / scenario buttons.
+   *
+   * Every write path lands here (the settings form, an approved coaching
+   * proposal, a revert), which is why history is recorded here rather than at
+   * each caller: a path added later gets versioning for free instead of
+   * silently skipping it.
+   */
+  async upsertConfig(
+    tenantId: number,
+    input: AiConfigInput,
+    meta?: RecordRevisionMeta,
+  ): Promise<AiConfigResponse> {
+    const before = await this.getConfig(tenantId);
     const row =
       (await this.configRepo.findOne({ where: { tenantId } })) ??
       this.configRepo.create({ tenantId });
@@ -127,7 +145,19 @@ export class AiConfigService {
     if (input.handoffConfig !== undefined) row.handoffConfig = input.handoffConfig;
     await this.configRepo.save(row);
     await this.redis.del(personaCacheKey(tenantId));
-    return this.getConfig(tenantId);
+    const after = await this.getConfig(tenantId);
+
+    // History is best-effort by design: the service swallows its own failures
+    // so a bad revision write can never fail the save it is describing.
+    if (meta) {
+      await this.revisions.record(
+        tenantId,
+        { persona: after.persona, rules: after.rules, scenarioOverrides: after.scenarioOverrides },
+        { persona: before.persona, rules: before.rules, scenarioOverrides: before.scenarioOverrides },
+        meta,
+      );
+    }
+    return after;
   }
 
   /** RAG (FN-016/017) — persona + rules to inject into the system prompt. */

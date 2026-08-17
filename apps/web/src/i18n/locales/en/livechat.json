@@ -163,5 +163,79 @@
   "kbStale": "review overdue",
   "kbConflicted": "conflict",
   "kbSendToCustomer": "Send to customer",
-  "kbEditThenSend": "Edit then send"
+  "kbEditThenSend": "Edit then send",
+  "alias": {
+    "add": "Add a name",
+    "edit": "Edit name",
+    "placeholder": "e.g. Gangnam store owner",
+    "saved": "Session name saved.",
+    "cleared": "Session name cleared.",
+    "saveError": "Could not save the session name."
+  },
+  "preview": {
+    "title": "Issue #{{no}} preview",
+    "loading": "Loading conversation…",
+    "openSession": "Open the session",
+    "close": "Close"
+  },
+  "sender": {
+    "user": "Customer",
+    "ai": "AI",
+    "agent": "Agent",
+    "system": "System"
+  },
+  "autoReply": {
+    "label": "AI auto-reply",
+    "inherit": "Channel default ({{state}})",
+    "on": "On",
+    "off": "Off",
+    "hint": "Applies to messages received from now on. Nothing already in the thread is answered retroactively.",
+    "aiAnswering": "AI answering",
+    "agentAnswering": "Agent answers",
+    "agentOwnsHint": "An agent is handling this thread, so the AI stays quiet.",
+    "offShort": "AI off",
+    "offHint": "The AI is not answering this session.",
+    "savedOn": "The AI will answer this session from the next message.",
+    "savedOff": "The AI will not answer this session.",
+    "saveError": "Could not change auto-reply for this session.",
+    "auto": "Auto",
+    "approve": "Needs approval",
+    "awaitingApproval": "Draft waiting"
+  },
+  "kbProposeKnowledge": "Propose as knowledge",
+  "draft": {
+    "title": "AI suggestion",
+    "confidence": "confidence {{value}}",
+    "approve": "Approve & send",
+    "sending": "Sending…",
+    "discard": "Discard",
+    "hint": "Edit before sending — it goes out as your reply.",
+    "sent": "Sent to the customer.",
+    "sendError": "Could not send the draft.",
+    "discarded": "Draft discarded.",
+    "discardError": "Could not discard the draft."
+  },
+  "attachment": {
+    "open": "Open {{name}}",
+    "close": "Close",
+    "previous": "Previous image",
+    "next": "Next image",
+    "openOriginal": "Open original",
+    "download": "Download",
+    "unavailable": "Image unavailable",
+    "attach": "Attach a file",
+    "uploading": "Uploading…",
+    "uploadFailed": "Could not upload {{name}}",
+    "processing": "Processing…",
+    "convertFailed": "Could not process {{name}} — the image could not be read",
+    "tooManyPixels": "{{name}} is too high-resolution to process",
+    "inboundUndecodable": "A photo from the customer could not be opened (unsupported format).",
+    "uploaded": "{{count}} file attached",
+    "uploaded_other": "{{count}} files attached",
+    "remove": "Remove {{name}}",
+    "tooLarge": "{{name}} is larger than the {{limit}} MB limit",
+    "typeNotAllowed": "{{name}} is not an allowed file type",
+    "tooMany": "You can attach up to {{max}} files per message",
+    "imageLabel": "Image"
+  }
 }

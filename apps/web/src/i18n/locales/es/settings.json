@@ -253,6 +253,10 @@
     "testing": "Probando…",
     "testOk": "Conectado — {{detail}}",
     "testFailed": "Falló la conexión — {{detail}}",
+    "testRejected": "Cuenta rechazada: el servidor respondió, pero el correo o la contraseña no coinciden. Usa la cuenta de operador de ese servicio, no tu acceso a ShopTalk. ({{detail}})",
+    "testNotFound": "La URL del servidor parece incorrecta: la dirección respondió, pero no con la API de este servicio. ({{detail}})",
+    "testUnreachable": "No se pudo alcanzar el servidor: no hubo respuesta. Revisa la dirección y si el servicio está activo. ({{detail}})",
+    "testProviderError": "El proveedor devolvió un error: no hay nada que corregir de este lado; inténtalo más tarde. ({{detail}})",
     "registerWebhook": "Registrar URL de recepción",
     "webhookRegistered": "URL de recepción registrada en el proveedor.",
     "webhookRegisterError": "No se pudo registrar la URL de recepción.",
@@ -289,11 +293,15 @@
       "smtp_host": "Servidor SMTP",
       "app_password": "Contraseña de aplicación",
       "social_types": "Canales de entrada",
-      "sender_name": "Nombre del remitente"
+      "sender_name": "Nombre del remitente",
+      "key_id": "ID de clave API del proveedor",
+      "api_secret": "Secreto API del proveedor",
+      "expected_customer": "Ref. de cliente esperado"
     },
     "ph": {
       "social_types": "zalo, line, whatsapp",
-      "sender_name": "Soporte"
+      "sender_name": "Soporte",
+      "expected_customer": "p. ej. CUST-… (de la consola del relay; rechaza un servidor mal apuntado)"
     },
     "provider": {
       "telegram": {
@@ -333,6 +341,59 @@
         "title": "WhatsApp",
         "subtitle": "A través del hub AmoebaTalk"
       }
+    },
+    "syncNow": "Recibir ahora",
+    "syncOk": "Se recibieron {{count}} mensaje(s) nuevo(s).",
+    "syncFailed": "Fallo al recibir — {{detail}}",
+    "syncInactive": "Se recibieron {{count}} mensaje(s), pero el canal está deshabilitado: no llegará nada por sí solo hasta que lo habilites.",
+    "inactiveWarning": "Deshabilitado: no recibe. Abre Configurar y habilita el canal.",
+    "autoReplyScope": "Se aplica a los mensajes que lleguen a partir de ahora. Cada conversación puede anularlo en Chat en vivo.",
+    "mode": {
+      "auto": "Automática — la IA responde sola",
+      "approve": "Requiere aprobación — la IA redacta, un agente envía",
+      "off": "Desactivada"
+    }
+  },
+  "menuAccess": {
+    "title": "Acceso a los menús",
+    "subtitle": "Define a qué pantallas de la consola llega tu equipo. Los menús en gris no están incluidos en tu plan.",
+    "tabRoles": "Valores por rol",
+    "tabUsers": "Excepciones por persona",
+    "rankColumn": "Rango",
+    "menu": "Menú",
+    "member": "Miembro",
+    "exceptions": "Excepciones",
+    "edit": "Editar",
+    "editFor": "Excepciones — {{who}} ({{rank}})",
+    "rankDefault": "Según el rango",
+    "thisUser": "Este miembro",
+    "result": "Resultado",
+    "allowed": "Permitido",
+    "blocked": "Bloqueado",
+    "notProvided": "Fuera del plan",
+    "canAccess": "Con acceso",
+    "cannotAccess": "Sin acceso",
+    "readOnly": "solo lectura",
+    "masterExempt": "no admite excepciones",
+    "save": "Guardar valores por rol",
+    "saved": "Acceso a los menús guardado",
+    "saveError": "No se pudo guardar el acceso a los menús",
+    "loading": "Cargando…",
+    "needsLabel": "(requiere {{label}})",
+    "masterNote": "El máster siempre llega a todos los menús que provee el plan, así que no puede quedar bloqueado.",
+    "labelNote": "Los menús con etiqueta de función siguen ocultos para quien no la tenga. Para abrirlo a una sola persona, usa una excepción.",
+    "notProvidedNote": "Los menús tachados no los provee tu plan; contacta al administrador de la plataforma para añadirlos.",
+    "allowWaivesLabel": "«Permitir» también exime del requisito de etiqueta para este miembro. Las acciones dentro de la pantalla siguen su rango y etiquetas.",
+    "mode": {
+      "default": "Según el rango",
+      "allow": "Permitir",
+      "deny": "Bloquear"
+    },
+    "rank": {
+      "master": "Máster",
+      "director": "Director",
+      "manager": "Gerente",
+      "staff": "Personal"
     }
   }
 }

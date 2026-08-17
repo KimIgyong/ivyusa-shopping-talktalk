@@ -27,5 +27,10 @@
   "products": "Sản phẩm",
   "allMenus": "Tất cả menu",
   "issueBoard": "Bảng yêu cầu",
-  "languageBetaHint": "β dịch máy, chờ rà soát"
+  "languageBetaHint": "β dịch máy, chờ rà soát",
+  "blocked": {
+    "title": "Bạn không thể mở menu này",
+    "description": "Màn hình này không khả dụng với tài khoản của bạn. Nếu cần, hãy đề nghị master của không gian làm việc.",
+    "goHome": "Về trang tổng quan"
+  }
 }

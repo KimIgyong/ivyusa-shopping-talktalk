@@ -23,6 +23,17 @@ export interface SourceAdapter {
   readonly type: string;
 
   /**
+   * Whether an empty listing proves the source is empty.
+   *
+   * True for a source we query directly (an empty board really has no posts).
+   * False for anything behind someone else's API, where "no items" is also what
+   * revoked access looks like — treating that as authoritative would hide every
+   * document from the source the first time a permission lapses. Defaults to
+   * true so an internal adapter need not think about it.
+   */
+  readonly trustEmptyListing?: boolean;
+
+  /**
    * Check a source's configuration before it is saved. Returns a human-readable
    * reason when invalid, or null when it is usable.
    *

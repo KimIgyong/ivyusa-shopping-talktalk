@@ -27,6 +27,10 @@ import {
   useCreateSource,
   useSetSourceStatus,
   useSyncSource,
+  useGdriveCredential,
+  useSaveGdriveCredential,
+  useDeleteGdriveCredential,
+  useTestGdrive,
   useDocuments,
   useDocument,
   useCreateDocument,
@@ -36,6 +40,8 @@ import {
   useCatalogSyncStatus,
   useCatalogSyncCompletion,
   useUsageGuides,
+  useProposals,
+  useProposalDecision,
   useSaveUsageGuide,
   useUpdateDocument,
   useDeleteDocument,
@@ -73,6 +79,11 @@ export function KnowledgePage() {
   const createSource = useCreateSource();
   const setSourceStatus = useSetSourceStatus();
   const syncSource = useSyncSource();
+  const gdriveCred = useGdriveCredential();
+  const saveGdriveCred = useSaveGdriveCredential();
+  const deleteGdriveCred = useDeleteGdriveCredential();
+  const testGdrive = useTestGdrive();
+  const [keyJson, setKeyJson] = useState('');
 
   const [page, setPage] = useState(1);
   const [category, setCategory] = useState('');
@@ -198,6 +209,7 @@ export function KnowledgePage() {
   const [sourceOpen, setSourceOpen] = useState(false);
   const [sourceName, setSourceName] = useState('');
   const [sourceType, setSourceType] = useState(SOURCE_TYPES[0]);
+  const [folderId, setFolderId] = useState('');
 
   const [importOpen, setImportOpen] = useState(false);
   const [importFile, setImportFile] = useState<File | null>(null);
@@ -213,6 +225,10 @@ export function KnowledgePage() {
   const jobRunning = job?.status === 'running';
   useCatalogSyncCompletion(job);
 
+  const proposals = useProposals();
+  const proposalDecision = useProposalDecision();
+  const [rejecting, setRejecting] = useState<string | null>(null);
+  const [rejectReason, setRejectReason] = useState('');
   const usageGuides = useUsageGuides();
   const saveUsageGuide = useSaveUsageGuide();
   const [guideKey, setGuideKey] = useState<string | null>(null);
@@ -249,10 +265,18 @@ export function KnowledgePage() {
     setSourceOpen(false);
     setSourceName('');
     setSourceType(SOURCE_TYPES[0]);
+    setFolderId('');
   };
 
   const saveSource = () => {
-    createSource.mutate({ name: sourceName, type: sourceType }, { onSuccess: closeSource });
+    createSource.mutate(
+      {
+        name: sourceName,
+        type: sourceType,
+        ...(sourceType === 'gdrive' ? { config_json: { folderId: folderId.trim() } } : {}),
+      },
+      { onSuccess: closeSource },
+    );
   };
 
   const closeDoc = () => {
@@ -466,7 +490,155 @@ export function KnowledgePage() {
             emptyMessage={t('noSources')}
             rowKey={(r) => r.id}
           />
+
+          {/* The Drive key is what makes a gdrive source possible at all, so it
+              belongs beside the source list rather than in a separate screen. */}
+          <div className="mt-4 rounded-md border border-gray-200 p-3">
+            <div className="flex items-center justify-between">
+              <h4 className="text-sm font-medium">{t('gdriveCredential')}</h4>
+              {gdriveCred.data?.connected ? (
+                <Badge tone="success">{t('gdriveConnected')}</Badge>
+              ) : (
+                <Badge tone="gray">{t('gdriveNotConnected')}</Badge>
+              )}
+            </div>
+
+            {gdriveCred.data?.connected ? (
+              <div className="mt-2 space-y-2">
+                <p className="text-xs text-gray-500">{t('shareFolderWith')}</p>
+                <code className="block break-all font-mono text-xs">{gdriveCred.data.clientEmail}</code>
+                <div className="flex gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={testGdrive.isPending}
+                    onClick={() => testGdrive.mutate(undefined)}
+                  >
+                    {t('testConnection')}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={deleteGdriveCred.isPending}
+                    onClick={() => {
+                      if (window.confirm(t('gdriveRemoveConfirm'))) deleteGdriveCred.mutate();
+                    }}
+                  >
+                    {tc('delete')}
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="mt-2 space-y-2">
+                <textarea
+                  className="h-28 w-full rounded-md border border-gray-300 p-2 font-mono text-xs"
+                  placeholder='{ "type": "service_account", ... }'
+                  value={keyJson}
+                  onChange={(e) => setKeyJson(e.target.value)}
+                />
+                {/* Says plainly that the paste is one-way: the key is never
+                    shown again, only the address it belongs to. */}
+                <p className="text-xs text-gray-500">{t('gdriveKeyHint')}</p>
+                <Button
+                  size="sm"
+                  disabled={saveGdriveCred.isPending || !keyJson.trim()}
+                  onClick={() =>
+                    saveGdriveCred.mutate(keyJson.trim(), { onSuccess: () => setKeyJson('') })
+                  }
+                >
+                  {tc('save')}
+                </Button>
+              </div>
+            )}
+          </div>
         </Card>
+
+        {/* Answer proposals (PLN-260810 S4). Rendered only when something is
+            waiting: an empty review queue should not take up the screen, but a
+            full one must be impossible to miss. */}
+        {(proposals.data?.length ?? 0) > 0 && (
+          <Card title={`${t('proposals')} ${proposals.data!.length}`}>
+            <ul className="space-y-3">
+              {proposals.data!.map((p) => (
+                <li key={p.id} className="rounded-lg border border-gray-200 p-3">
+                  <dl className="space-y-1 text-sm">
+                    <div className="flex gap-2">
+                      <dt className="w-16 shrink-0 text-gray-500">{t('proposalQuestion')}</dt>
+                      <dd className="font-medium text-gray-800">{p.question}</dd>
+                    </div>
+                    <div className="flex gap-2">
+                      <dt className="w-16 shrink-0 text-gray-500">{t('proposalAnswer')}</dt>
+                      <dd className="whitespace-pre-wrap text-gray-700">{p.answer}</dd>
+                    </div>
+                  </dl>
+                  <div className="mt-2 flex items-center justify-between gap-2">
+                    <span className="text-xs text-gray-500">
+                      {p.conversationId ? (
+                        <a
+                          className="underline-offset-2 hover:underline"
+                          href={`/live-chat?c=${p.conversationId}`}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          {t('proposalFromConversation', { id: p.conversationId })}
+                        </a>
+                      ) : (
+                        t('proposalNoConversation')
+                      )}
+                    </span>
+                    <span className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          setRejecting(p.id);
+                          setRejectReason('');
+                        }}
+                      >
+                        {t('proposalReject')}
+                      </Button>
+                      <Button
+                        size="sm"
+                        disabled={proposalDecision.approve.isPending}
+                        onClick={() => proposalDecision.approve.mutate({ id: p.id })}
+                      >
+                        {t('proposalApprove')}
+                      </Button>
+                    </span>
+                  </div>
+
+                  {rejecting === p.id && (
+                    <div className="mt-2 border-t border-gray-100 pt-2">
+                      <Input
+                        value={rejectReason}
+                        placeholder={t('proposalRejectReason')}
+                        onChange={(e) => setRejectReason(e.target.value)}
+                      />
+                      <div className="mt-2 flex justify-end gap-2">
+                        <Button size="sm" variant="ghost" onClick={() => setRejecting(null)}>
+                          {tc('close')}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="danger"
+                          disabled={rejectReason.trim().length < 2}
+                          onClick={() =>
+                            proposalDecision.reject.mutate(
+                              { id: p.id, reason: rejectReason.trim() },
+                              { onSuccess: () => setRejecting(null) },
+                            )
+                          }
+                        >
+                          {t('proposalReject')}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </Card>
+        )}
 
         {/* Usage guides (PLN-260807 P2). The storefront publishes no usage text
             at all — 31 of 2,275 products carry any — so these ten guides are
@@ -901,6 +1073,39 @@ export function KnowledgePage() {
             ))}
           </Select>
         </FormRow>
+        {sourceType === 'gdrive' && (
+          <>
+            <FormRow label={t('folderId')}>
+              <Input
+                value={folderId}
+                placeholder="1a2B3c4D5e6F7g8H9i_JkLmNoPq"
+                onChange={(e) => setFolderId(e.target.value)}
+              />
+              <p className="mt-1 text-xs text-gray-500">{t('folderIdHint')}</p>
+            </FormRow>
+            {/* The folder must be shared with the service account, and nothing
+                else on screen says which address to share it with. */}
+            <div className="rounded-md bg-warning/10 p-3 text-xs text-gray-700">
+              {gdriveCred.data?.connected ? (
+                <>
+                  <p>{t('shareFolderWith')}</p>
+                  <code className="mt-1 block break-all font-mono">{gdriveCred.data.clientEmail}</code>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="mt-1"
+                    disabled={testGdrive.isPending || !folderId.trim()}
+                    onClick={() => testGdrive.mutate(folderId.trim())}
+                  >
+                    {t('testConnection')}
+                  </Button>
+                </>
+              ) : (
+                <p>{t('registerKeyFirst')}</p>
+              )}
+            </div>
+          </>
+        )}
       </Modal>
 
       <Modal

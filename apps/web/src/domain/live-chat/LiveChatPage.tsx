@@ -13,12 +13,17 @@ import {
   BookPlus,
   BookOpen,
   Bot,
+  Paperclip,
+  X,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { PageHeader } from '@/components/PageHeader';
 import { Button } from '@/components/Button';
 import { StatusBadge } from '@/components/StatusBadge';
 import { ChannelBadge, CHANNEL_FILTERS, RECEIVE_ONLY_CHANNELS } from './ChannelBadge';
+import { SessionAlias } from './SessionAlias';
+import { AutoReplyControl } from './AutoReplyControl';
+import { DraftPanel } from './DraftPanel';
 import { Badge } from '@/components/Badge';
 import { Modal } from '@/components/Modal';
 import { Input, FormRow } from '@/components/Field';
@@ -29,9 +34,12 @@ import {
   useConversation,
   useConversationActions,
   useAskKnowledge,
+  useProposeAnswer,
   useCustomerActions,
 } from './live-chat.hooks';
 import { KnowledgeCaptureModal } from './KnowledgeCaptureModal';
+import { MessageAttachments } from './MessageAttachments';
+import { useAgentUpload } from './useAgentUpload';
 import { IssuePanel } from './IssuePanel';
 import { useAuthStore } from '@/store/auth-store';
 import { liveChatService } from './live-chat.service';
@@ -85,6 +93,16 @@ export function LiveChatPage() {
   const [draft, setDraft] = useState('');
   /** In-flight latch for the reply send — see onSend. */
   const sendingRef = useRef(false);
+  // Files the agent picked for this reply (PLN-260814 S4).
+  const uploads = useAgentUpload(selected);
+  const [uploadNotice, setUploadNotice] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  async function pickFiles(files: FileList | null) {
+    if (!files?.length) return;
+    const problem = await uploads.add(Array.from(files));
+    if (problem) setUploadNotice(problem);
+  }
 
   // 'all' by default: the queue-only view is what hid the conversation a shopper
   // was having right now with the bot (PLN-260807 D1).
@@ -163,6 +181,7 @@ export function LiveChatPage() {
   // in the conversation: it is the agent checking, not a customer turn.
   const { i18n } = useTranslation();
   const askKnowledge = useAskKnowledge();
+  const proposeAnswer = useProposeAnswer();
   const [kbQuestion, setKbQuestion] = useState('');
   const lastCustomerMessage = [...(convo?.messages ?? [])]
     .reverse()
@@ -229,15 +248,21 @@ export function LiveChatPage() {
 
   const onSend = async () => {
     const body = draft.trim();
+    const attachmentIds = uploads.ready.map((a) => a.id);
     // Ref, not `send.isPending`: two handler calls in the same tick both read the
     // render's stale value and both get through. This flips synchronously.
-    if (!body || !selected || sendingRef.current) return;
+    // Files alone make a valid reply; an upload still running does not.
+    if ((!body && !attachmentIds.length) || !selected || sendingRef.current || uploads.busy) return;
     sendingRef.current = true;
     // Clear before awaiting: a reply takes seconds (moderation + mail), and the
     // text sitting in the box was half of how it got sent twice.
     setDraft('');
     try {
-      await send.mutateAsync(body);
+      await send.mutateAsync({ body, attachmentIds });
+      // Cleared only once the send succeeded: on failure the files are still
+      // uploaded and still attachable, so the agent retries instead of
+      // hunting for them again.
+      uploads.clear();
     } catch (e) {
       setDraft(body);
       const err = e as Error & { status?: number };
@@ -313,31 +338,55 @@ export function LiveChatPage() {
           <ul className="divide-y divide-gray-100">
             {sessions?.map((s) => (
               <li key={s.id}>
-                <button
+                {/* A div, not a button: the row now contains its own controls
+                    (alias edit + input) and a button may not nest interactive
+                    elements. Keyboard access is kept explicitly. */}
+                <div
+                  role="button"
+                  tabIndex={0}
                   onClick={() => setSelected(s.id)}
+                  onKeyDown={(e) => {
+                    if (e.target !== e.currentTarget) return; // let the alias input type
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      setSelected(s.id);
+                    }
+                  }}
                   className={cn(
-                    'w-full px-4 py-3 text-left hover:bg-gray-50',
+                    'w-full cursor-pointer px-4 py-3 text-left hover:bg-gray-50',
                     selected === s.id && 'bg-primary-500/5',
                   )}
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="truncate text-sm font-medium text-gray-800">
-                      {s.customerName ||
+                    {/* Alias first, session label kept behind it — an agent
+                        needs to know who this is, and still refers to the
+                        thread by its label (PLN-260812). */}
+                    <SessionAlias
+                      conversationId={s.id}
+                      alias={s.alias}
+                      fallback={
+                        s.customerName ||
                         s.customerEmail ||
-                        t('sessionLabel', { id: s.id.slice(0, 6) })}
-                    </span>
+                        t('sessionLabel', { id: s.id.slice(0, 6) })
+                      }
+                      sessionLabel={t('sessionLabel', { id: s.id.slice(0, 6) })}
+                      compact
+                    />
                     <div className="flex shrink-0 items-center gap-1">
+                      {/* Silent thread, at a glance: the AI is not answering
+                          this one and no agent has taken it either. */}
+                      {s.autoReplyEffective === false && s.status !== 'agent' && (
+                        <span
+                          className="rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-500"
+                          title={t('autoReply.offHint')}
+                        >
+                          {t('autoReply.offShort')}
+                        </span>
+                      )}
                       <ChannelBadge channel={s.channel} />
                       <StatusBadge status={s.status} />
                     </div>
                   </div>
-                  {/* Keep the session label visible even when we can name the
-                      shopper — agents refer to threads by it. */}
-                  {(s.customerName || s.customerEmail) && (
-                    <p className="text-[11px] text-gray-400">
-                      {t('sessionLabel', { id: s.id.slice(0, 6) })}
-                    </p>
-                  )}
                   <p className="mt-1 truncate text-xs text-gray-500">
                     {s.lastMessagePreview ?? '—'}
                   </p>
@@ -350,7 +399,7 @@ export function LiveChatPage() {
                     {t('createdShort')} {timeAgo(s.createdAt)} · {t('lastReplyShort')}{' '}
                     {timeAgo(s.lastMessageAt)}
                   </p>
-                </button>
+                </div>
               </li>
             ))}
           </ul>
@@ -366,11 +415,23 @@ export function LiveChatPage() {
           {selected && (
             <>
               <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-gray-800">
-                    {convo?.customer?.name ?? t('conversation')}
-                  </span>
+                <div className="flex min-w-0 items-center gap-2">
+                  {/* Same editor as the list row, so the name can be set from
+                      wherever the agent happens to be (PLN-260812 D-2). */}
+                  <SessionAlias
+                    conversationId={selected}
+                    alias={convo?.alias}
+                    fallback={convo?.customer?.name ?? t('conversation')}
+                    sessionLabel={t('sessionLabel', { id: selected.slice(0, 6) })}
+                  />
                   <StatusBadge status={convo?.status} />
+                  <AutoReplyControl
+                    conversationId={selected}
+                    mode={convo?.autoReplyMode}
+                    effective={convo?.autoReplyEffective}
+                    agentOwns={convo?.status === 'agent'}
+                    awaitingApproval={!!convo?.pendingDraft}
+                  />
                 </div>
                 <div className="flex gap-2">
                   <Button
@@ -488,6 +549,9 @@ export function LiveChatPage() {
                           </span>
                         )}
                         {m.body}
+                        {m.attachments && m.attachments.length > 0 && (
+                          <MessageAttachments attachments={m.attachments} outbound={outbound} />
+                        )}
                         {m.senderType === 'ai' && canManageKnowledge && (
                           <button
                             type="button"
@@ -522,7 +586,93 @@ export function LiveChatPage() {
                 )}
               </div>
 
+              {convo?.pendingDraft && (
+                <DraftPanel conversationId={selected} draft={convo.pendingDraft} />
+              )}
+
+              {/* Attachment tray: uploading, failed, and ready-to-send files */}
+              {(uploads.pending.length > 0 || uploadNotice) && (
+                <div className="space-y-1 border-t border-gray-100 px-3 pt-2">
+                  {uploadNotice && (
+                    <div className="flex items-start gap-2 rounded bg-amber-50 px-2 py-1.5 text-xs text-amber-800">
+                      <span className="min-w-0 flex-1">{uploadNotice}</span>
+                      <button
+                        type="button"
+                        onClick={() => setUploadNotice(null)}
+                        aria-label={t('attachment.close')}
+                        className="opacity-70 hover:opacity-100"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  )}
+                  {uploads.pending.map((p) => (
+                    <div
+                      key={p.key}
+                      className={cn(
+                        'flex items-center gap-2 rounded border px-2 py-1 text-xs',
+                        p.error ? 'border-red-300 bg-red-50 text-red-700' : 'border-gray-200 bg-gray-50',
+                      )}
+                    >
+                      {p.previewUrl ? (
+                        <img src={p.previewUrl} alt="" className="h-8 w-8 shrink-0 rounded object-cover" />
+                      ) : (
+                        <Paperclip className="h-4 w-4 shrink-0 text-gray-400" />
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate">{p.error ?? p.name}</div>
+                        {!p.attachment && !p.error && (
+                          <>
+                            <div className="mt-0.5 h-1 w-full overflow-hidden rounded bg-gray-200">
+                              <div
+                                className="h-full bg-primary-500 transition-all"
+                                style={{ width: `${p.progress}%` }}
+                              />
+                            </div>
+                            {/* Bytes delivered, server still converting (HEIC ≈ 1s). */}
+                            {p.progress >= 99 && (
+                              <div className="mt-0.5 text-[10px] text-gray-500">
+                                {t('attachment.processing')}
+                              </div>
+                            )}
+                          </>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => uploads.remove(p.key)}
+                        aria-label={t('attachment.remove', { name: p.name })}
+                        className="shrink-0 text-gray-400 hover:text-gray-600"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               <div className="flex items-center gap-2 border-t border-gray-100 p-3">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  accept=".jpg,.jpeg,.png,.gif,.webp,.heic,.heif,.avif,.pdf,.txt,.csv,.docx,.xlsx"
+                  className="hidden"
+                  onChange={(e) => {
+                    void pickFiles(e.target.files);
+                    e.target.value = '';
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={receiveOnly}
+                  aria-label={t('attachment.attach')}
+                  title={t('attachment.attach')}
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <Paperclip className="h-4 w-4" />
+                </button>
                 <input
                   value={draft}
                   onChange={(e) => setDraft(e.target.value)}
@@ -541,7 +691,12 @@ export function LiveChatPage() {
                   onClick={onSend}
                   // The platform rejects a reply on these threads (SMS relay),
                   // so the composer says so instead of failing after the send.
-                  disabled={receiveOnly || send.isPending || !draft.trim()}
+                  disabled={
+                    receiveOnly ||
+                    send.isPending ||
+                    uploads.busy ||
+                    (!draft.trim() && !uploads.ready.length)
+                  }
                   aria-label={t('send')}
                 >
                   <Send className="h-4 w-4" />
@@ -652,6 +807,22 @@ export function LiveChatPage() {
                       onClick={() => setDraft(askKnowledge.data!.answer)}
                     >
                       {t('kbEditThenSend')}
+                    </Button>
+                    {/* Anyone handling a chat may propose; only a knowledge
+                        owner can approve it (PLN-260810 D3). */}
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      disabled={proposeAnswer.isPending || !kbQuestion.trim()}
+                      onClick={() =>
+                        proposeAnswer.mutate({
+                          conversationId: selected ? Number(selected) : undefined,
+                          question: kbQuestion.trim(),
+                          answer: askKnowledge.data!.answer,
+                        })
+                      }
+                    >
+                      {t('kbProposeKnowledge')}
                     </Button>
                   </div>
                 )}

@@ -8,7 +8,10 @@ import { ChannelThread } from './entity/channel-thread.entity';
 import { ChannelMessageMap } from './entity/channel-message-map.entity';
 import { ChannelOutbox } from './entity/channel-outbox.entity';
 import { AdapterRegistry } from './adapter/adapter.registry';
+import { OutboundAttachment } from './adapter/messenger-adapter';
 import { decryptChannelSecret } from './messenger-secret.util';
+import { AttachmentService } from '../attachment/attachment.service';
+import { AttachmentMapper } from '../attachment/attachment.mapper';
 
 /** Backoff ladder; the last entry repeats until MAX_ATTEMPTS is spent. */
 const BACKOFF_MS = [60_000, 5 * 60_000, 30 * 60_000, 2 * 3_600_000, 6 * 3_600_000];
@@ -17,6 +20,13 @@ const MAX_ATTEMPTS = 5;
 const BATCH = 25;
 /** Messages scanned per thread flush. */
 const SCAN_LIMIT = 20;
+/**
+ * Attachment links sent to an external platform live far longer than the
+ * console's 15 minutes: a customer opens a KakaoTalk message hours later, and a
+ * dead link would read as a broken reply. Still bounded — the file does not
+ * become permanently public.
+ */
+const MESSENGER_LINK_TTL_SEC = 7 * 24 * 3600;
 
 /**
  * Outbound relay (PLN-260810 §4.1). Chat and agent code stay untouched: the
@@ -35,7 +45,45 @@ export class MessengerOutboxService {
     @InjectRepository(MessengerChannel) private readonly channelRepo: Repository<MessengerChannel>,
     @InjectRepository(Message) private readonly msgRepo: Repository<Message>,
     private readonly registry: AdapterRegistry,
+    /** Files on an outbound turn (PLN-260814 S5); optional for older test doubles. */
+    private readonly attachments?: AttachmentService,
   ) {}
+
+  /** Does this message carry files? Decides whether an empty body is sendable. */
+  private async hasAttachments(messageId: number): Promise<boolean> {
+    if (!this.attachments) return false;
+    const map = await this.attachments.findByMessageIds([messageId]);
+    return (map.get(String(messageId))?.length ?? 0) > 0;
+  }
+
+  /**
+   * Files for one outbound message as absolute, signed links. The platform (or
+   * the customer) fetches them from us, so the URL has to name a public host —
+   * without one configured, there is nothing deliverable to point at.
+   */
+  private async outboundAttachments(messageId: number): Promise<OutboundAttachment[]> {
+    if (!this.attachments) return [];
+    const base = (
+      process.env.MESSENGER_WEBHOOK_BASE_URL ??
+      process.env.PUBLIC_BASE_URL ??
+      process.env.SHOPIFY_APP_URL ??
+      ''
+    ).replace(/\/+$/, '');
+    const rows = (await this.attachments.findByMessageIds([messageId])).get(String(messageId)) ?? [];
+    if (!rows.length) return [];
+    if (!base) {
+      this.logger.warn(
+        `attachment link skipped for message ${messageId}: no public base URL configured`,
+      );
+      return [];
+    }
+    return rows.map((a) => ({
+      url: AttachmentMapper.url(a.uuid, 'full', Date.now(), base, MESSENGER_LINK_TTL_SEC),
+      filename: a.filename,
+      mime: a.mime,
+      kind: a.kind === 'image' ? ('image' as const) : ('file' as const),
+    }));
+  }
 
   /**
    * Queue everything new on a thread, then try to deliver it. Advancing the
@@ -66,7 +114,10 @@ export class MessengerOutboxService {
         where: { messageId: id, direction: CHANNEL_DIRECTION.INBOUND },
       });
       if (inboundOrigin) continue;
-      if (!message.body?.trim()) continue;
+      // Empty body USED to mean "nothing to send". Since PLN-260814 a reply can
+      // be a file with no words, and skipping it here is how an agent's photo
+      // would vanish between the console and the customer's phone (SI-1).
+      if (!message.body?.trim() && !(await this.hasAttachments(id))) continue;
 
       await this.outboxRepo
         .save(
@@ -197,14 +248,29 @@ export class MessengerOutboxService {
     }
 
     const message = await this.msgRepo.findOne({ where: { id: row.messageId } });
-    if (!message?.body) return void (await this.fail(row, 'message missing', true));
+    if (!message) return void (await this.fail(row, 'message missing', true));
 
     const adapter = this.registry.find(channel.provider);
     if (!adapter) return void (await this.fail(row, `no adapter for ${channel.provider}`, true));
 
+    const files = await this.outboundAttachments(Number(message.id));
+    if (!message.body?.trim() && !files.length) {
+      return void (await this.fail(row, 'message missing', true));
+    }
+
     try {
       const secret = decryptChannelSecret(channel);
-      const result = await adapter.send({ channel, secret }, thread, message.body);
+      // Platforms that carry files get them; the rest get the links appended to
+      // the text, which is a delivery the customer can act on rather than a
+      // failure they never hear about (PLN-260814 FR-7).
+      const native = adapter.supportsAttachments === true;
+      const text = native ? message.body : appendLinks(message.body, files);
+      const result = await adapter.send(
+        { channel, secret },
+        thread,
+        text,
+        native ? files : undefined,
+      );
       await this.mapRepo
         .save(
           this.mapRepo.create({
@@ -253,4 +319,16 @@ export class MessengerOutboxService {
       },
     );
   }
+}
+
+/**
+ * Link fallback for a platform that cannot carry files (PLN-260814 FR-7).
+ * The customer gets something they can open; the alternative — treating it as
+ * an undeliverable message — loses the file with nobody told.
+ */
+export function appendLinks(body: string | null | undefined, files: OutboundAttachment[]): string {
+  if (!files.length) return body ?? '';
+  const lines = files.map((f) => `${f.filename}: ${f.url}`);
+  const text = (body ?? '').trim();
+  return text ? `${text}\n\n${lines.join('\n')}` : lines.join('\n');
 }

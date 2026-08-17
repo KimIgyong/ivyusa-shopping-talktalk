@@ -29,4 +29,10 @@ export class ApplyProposalRequest {
 
   /** Admin's edited rule text, when accepting a rule proposal with changes. */
   @IsOptional() @IsString() @MaxLength(500) rule?: string;
+
+  /** Admin's edited knowledge-document body. */
+  @IsOptional() @IsString() @MaxLength(20000) doc_content?: string;
+
+  /** Admin's edited scenario reply. Replaces the text for every language the proposal carried. */
+  @IsOptional() @IsString() @MaxLength(2000) scenario_reply?: string;
 }

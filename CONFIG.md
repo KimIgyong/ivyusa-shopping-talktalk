@@ -120,6 +120,11 @@ Copy the `.example` to the real filename on the server and fill in secrets — t
 | `IDLE_STALE_AFTER_DAYS` | 7 | 7 | 7 | 이보다 오래된 방치는 질문 없이 종료 |
 | `CONVERSATION_LOG_RETENTION_DAYS` | 365 | 90 | 365 | POL-003 retention purge |
 | `KB_STORAGE_DIR` | ./storage/kb | — | — | local KB uploads (dev) |
+| `UPLOAD_DIR` | ./.uploads | /data/uploads | /data/uploads | 대화 첨부 저장 경로 — **컨테이너에선 반드시 마운트된 볼륨** (PLN-260814) |
+| `FILE_URL_SECRET` | — (CRED_ENC_KEY 파생) | **secret** | **secret** | 첨부 다운로드 서명 키; 교체하면 기존 링크 무효 |
+| `ATTACHMENT_MAX_IMAGE_MB` | 10 | 10 | 10 | 이미지 상한 (nginx `client_max_body_size 25m` 아래) |
+| `ATTACHMENT_MAX_FILE_MB` | 20 | 20 | 20 | 일반 파일 상한 |
+| `ATTACHMENT_MAX_PER_MESSAGE` | 5 | 5 | 5 | 메시지당 첨부 개수 |
 | `SEED_ON_BOOT` | — | true→false after 1st boot | true→false after 1st boot | idempotent bootstrap seed at startup |
 | `SEED_DEMO_DATA` | — | true | **false** | demo orders/customers |
 | `SEED_PASSWORD` | — | override recommended | **strong required** | bootstrap account password |
@@ -219,7 +224,7 @@ Docker templates exist (`docker/production/`: Dockerfiles api/web, compose, ngin
    strong `DB_*`, `RABBITMQ_*`, `JWT_*`, `CRED_ENC_KEY`, real `ANTHROPIC_API_KEY`,
    strong `SEED_PASSWORD` (with `SEED_DEMO_DATA=false`), `SHOPIFY_WEBHOOK_SECRET`,
    and `VITE_API_BASE_URL` = the production API URL.
-3. Apply schema via `sql/01-schema.sql` / init-sql (production keeps `DB_SYNCHRONIZE=false`).
+3. Apply schema via `docker/init-sql/01-schema.sql` (production keeps `DB_SYNCHRONIZE=false`).
 4. `bash docker/production/deploy-production.sh`, then turn `SEED_ON_BOOT` off after the first successful boot.
 
 Production hardening (vs staging): `restart: always`; DB/redis/rabbitmq have **no** host

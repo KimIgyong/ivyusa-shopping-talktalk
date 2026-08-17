@@ -18,12 +18,14 @@ import { HttpCode, HttpStatus } from '@nestjs/common';
 import { CAPABILITY, Principal } from '@ivy/types';
 import { Paginated } from '../../global/interceptor/transform.interceptor';
 import { buildPagination, normalizePage } from '@ivy/common';
-import { RequireCapability } from '../../global/decorator/auth.decorator';
+import { RequireCapability, RequireMenu } from '../../global/decorator/auth.decorator';
 import { CatalogSyncJobService } from './catalog-sync-job.service';
+import { AnswerProposalService } from './answer-proposal.service';
 import { CurrentUser } from '../../global/decorator/current-user.decorator';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
 import { KnowledgeService } from './knowledge.service';
+import { GdriveCredentialService } from './gdrive-credential.service';
 import { KnowledgeMapper } from './knowledge.mapper';
 import {
   AskKnowledgeRequest,
@@ -36,6 +38,10 @@ import {
   UpdateDocumentRequest,
   UpdateSourceRequest,
   SaveUsageGuideRequest,
+  ApproveProposalRequest,
+  RejectProposalRequest,
+  SaveGdriveCredentialRequest,
+  TestGdriveRequest,
 } from './dto/request/knowledge.request';
 import { KbConflictService } from './kb-conflict.service';
 import { KbRevisionService } from './kb-revision.service';
@@ -45,13 +51,17 @@ import { AcceptGapTaskRequest } from './dto/request/knowledge.request';
 /** Knowledge source & RAG corpus management (FR-064, FR-065). Tenant-scoped. */
 @ApiTags('Knowledge')
 @Controller('knowledge')
+// Screen gate (PLN-260812 S4): The agent-side /agent/knowledge/ask lives in its own controller and stays open to live chat.
+@RequireMenu('knowledge')
 export class KnowledgeController {
   constructor(
     private readonly knowledgeService: KnowledgeService,
     private readonly conflictService: KbConflictService,
     private readonly revisionService: KbRevisionService,
     private readonly jobService: CatalogSyncJobService,
+    private readonly answerProposals: AnswerProposalService,
     private readonly gapService: KnowledgeGapService,
+    private readonly gdriveCredentials: GdriveCredentialService,
   ) {}
 
   // ---- Knowledge-gap proposals (P5, 결정 9: human approval only) ----
@@ -166,6 +176,43 @@ export class KnowledgeController {
       body,
     );
     return KnowledgeMapper.toPost(post);
+  }
+
+  // ---- Google Drive credential (PLN-260815 G1) ----
+
+  @Get('gdrive/credential')
+  @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
+  @ApiOperation({ summary: 'Whether a Drive service account is registered' })
+  async gdriveCredentialStatus(@CurrentUser() user: Principal) {
+    return this.gdriveCredentials.status(this.tenantUser(user).tenantId);
+  }
+
+  @Put('gdrive/credential')
+  @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
+  @ApiOperation({ summary: 'Register a Drive service account key' })
+  async saveGdriveCredential(
+    @CurrentUser() user: Principal,
+    @Body() body: SaveGdriveCredentialRequest,
+  ) {
+    // Only the address comes back — the key itself is never echoed, so a
+    // console that leaks its own screenshot does not leak the secret.
+    return this.gdriveCredentials.save(this.tenantUser(user).tenantId, body.key_json);
+  }
+
+  @Delete('gdrive/credential')
+  @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
+  @ApiOperation({ summary: 'Remove the Drive service account key' })
+  async deleteGdriveCredential(@CurrentUser() user: Principal) {
+    await this.gdriveCredentials.remove(this.tenantUser(user).tenantId);
+    return { removed: true };
+  }
+
+  @Post('gdrive/test')
+  @HttpCode(HttpStatus.OK)
+  @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
+  @ApiOperation({ summary: 'Check the key, and a folder when given' })
+  async testGdrive(@CurrentUser() user: Principal, @Body() body: TestGdriveRequest) {
+    return this.gdriveCredentials.test(this.tenantUser(user).tenantId, body.folder_id);
   }
 
   @Post('sources/:id/sync')
@@ -315,6 +362,37 @@ export class KnowledgeController {
   @ApiOperation({ summary: 'Progress of the running (or most recent) catalogue conversion' })
   async catalogSyncStatus(@CurrentUser() user: Principal) {
     return this.jobService.get(this.tenantUser(user).tenantId);
+  }
+
+  @Get('proposals')
+  @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
+  @ApiOperation({ summary: 'Answer proposals awaiting review (PLN-260810 S4)' })
+  async proposals(@CurrentUser() user: Principal, @Query('status') status?: string) {
+    return this.answerProposals.list(this.tenantUser(user).tenantId, status || 'pending');
+  }
+
+  @Post('proposals/:id/approve')
+  @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
+  @ApiOperation({ summary: 'Approve a proposal — creates and indexes the document' })
+  async approveProposal(
+    @CurrentUser() user: Principal,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: ApproveProposalRequest,
+  ) {
+    const actor = this.tenantUser(user);
+    return this.answerProposals.approve(actor.tenantId, id, body, actor.userId);
+  }
+
+  @Post('proposals/:id/reject')
+  @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
+  @ApiOperation({ summary: 'Reject a proposal with a reason the proposer can read' })
+  async rejectProposal(
+    @CurrentUser() user: Principal,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: RejectProposalRequest,
+  ) {
+    const actor = this.tenantUser(user);
+    return this.answerProposals.reject(actor.tenantId, id, body.reason, actor.userId);
   }
 
   @Get('usage-guides')

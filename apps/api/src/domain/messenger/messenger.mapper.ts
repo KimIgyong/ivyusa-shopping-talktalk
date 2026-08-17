@@ -13,6 +13,8 @@ export class MessengerMapper {
       credentialSet: !!channel.secretEnc && channel.secretEnc.length > 0,
       config: channel.config ?? {},
       autoReply: channel.autoReply === 1,
+      /** off | approve | auto — what the channel actually does now. */
+      replyMode: channel.replyMode || (channel.autoReply === 1 ? 'auto' : 'off'),
       consentMode: channel.consentMode,
       active: channel.active === 1,
       status: channel.status,

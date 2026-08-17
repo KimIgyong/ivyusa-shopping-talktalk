@@ -15,13 +15,15 @@ import { CustomerService } from './customer.service';
 import { CustomerMapper } from './customer.mapper';
 import { ListCustomersQuery, UpdateCustomerRequest } from './dto/request/customer.request';
 import { Paginated } from '../../global/interceptor/transform.interceptor';
-import { RequireCapability } from '../../global/decorator/auth.decorator';
+import { RequireCapability, RequireMenu } from '../../global/decorator/auth.decorator';
 import { CurrentUser } from '../../global/decorator/current-user.decorator';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
 
 @ApiTags('Customer')
 @Controller('customers')
+// Screen gate (PLN-260812 S4): Live chat looks customers up through /agent/customers/search, not this controller.
+@RequireMenu('customers')
 export class CustomerController {
   constructor(private readonly customerService: CustomerService) {}
 

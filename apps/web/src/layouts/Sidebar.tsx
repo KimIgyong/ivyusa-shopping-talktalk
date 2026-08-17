@@ -5,7 +5,7 @@ import { useAuthStore } from '@/store/auth-store';
 import { useUiStore } from '@/store/ui-store';
 import { authService } from '@/domain/auth/auth.service';
 import { Badge } from '@/components/Badge';
-import { makeCan } from '@/lib/rbac';
+import { useMenuAccess } from '@/lib/use-menu-access';
 import { TENANT_NAV, ADMIN_NAV, type NavItem } from './nav-config';
 import { cn } from '@/lib/cn';
 
@@ -19,13 +19,10 @@ export function Sidebar() {
   const navigate = useNavigate();
   const isAdmin = principal?.actorType === 'admin';
 
-  let items: NavItem[];
-  if (isAdmin) {
-    items = ADMIN_NAV;
-  } else {
-    const can = makeCan(principal);
-    items = TENANT_NAV.filter((i) => !i.capability || can(i.capability));
-  }
+  const { canSeeMenu } = useMenuAccess();
+  const items: NavItem[] = isAdmin
+    ? ADMIN_NAV
+    : TENANT_NAV.filter((i) => canSeeMenu(i.code, i.capability));
 
   const logout = () => {
     // Best-effort server-side revocation of the (in-memory) refresh token;

@@ -78,7 +78,7 @@ ivy-talktalk/
 │   └── common/    # @ivy/common — rank×label permission matrix, token/pagination utils
 ├── docker/        # docker-compose {dev,staging,production} + Dockerfiles + nginx + deploy-*.sh
 ├── env/           # {backend,frontend}/.env.development (committed dev placeholders)
-├── sql/           # 01-schema.sql (staging/prod migration reference)
+├── sql/           # migration_*.sql (feature migrations; DDL lives in docker/init-sql/01-schema.sql)
 ├── docs/          # analysis · plan · implementation · test · report · guide · design · log
 ├── reference/  standards/   # Amoeba company standards (knowledge)
 ├── secrets/       # gitignored — staging server & SSH keys (never committed)

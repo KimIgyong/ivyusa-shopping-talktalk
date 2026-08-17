@@ -6,7 +6,13 @@ import { apiDelete, apiGet, apiGetList, apiPost } from '@/lib/api-client';
  * behavior and approve the config changes it proposes.
  */
 
-export type ProposalType = 'persona_patch' | 'rule_add' | 'rule_edit' | 'rule_remove';
+export type ProposalType =
+  | 'persona_patch'
+  | 'rule_add'
+  | 'rule_edit'
+  | 'rule_remove'
+  | 'kb_upsert'
+  | 'scenario_override';
 export type ProposalStatus = 'pending' | 'applied' | 'rejected' | 'superseded' | 'reverted';
 
 export interface CoachCitation {
@@ -46,6 +52,14 @@ export interface CoachProposal {
   rationale: string | null;
   conflictsWith: string[];
   appliedAt: string | null;
+  /** kb_upsert — docId null means the proposal creates a new document. */
+  docId: number | null;
+  docTitle: string | null;
+  docCategory: string | null;
+  docContent: string | null;
+  /** scenario_override */
+  scenarioAction: string | null;
+  scenarioReply: Record<string, string> | null;
 }
 
 export interface CoachThread {
@@ -79,8 +93,10 @@ export const coachService = {
       message,
       ref_message_id: refMessageId,
     }),
-  apply: (id: number, override?: { persona?: string; rule?: string }) =>
-    apiPost<CoachProposal>(`/ai-coach/proposals/${id}/apply`, override ?? {}),
+  apply: (
+    id: number,
+    override?: { persona?: string; rule?: string; doc_content?: string; scenario_reply?: string },
+  ) => apiPost<CoachProposal>(`/ai-coach/proposals/${id}/apply`, override ?? {}),
   reject: (id: number) => apiPost<CoachProposal>(`/ai-coach/proposals/${id}/reject`, {}),
   revert: (id: number) => apiPost<CoachProposal>(`/ai-coach/proposals/${id}/revert`, {}),
 };

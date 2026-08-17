@@ -6,11 +6,15 @@ import { ERROR_CODE } from '../../../global/constant/error-code.constant';
 import { ChannelThread } from '../entity/channel-thread.entity';
 import {
   AdapterContext,
+  InboundAttachmentRef,
   MessengerAdapter,
   NormalizedInbound,
+  OutboundAttachment,
   SendResult,
+  TEST_FAILURE_REASON,
   TestResult,
 } from './messenger-adapter';
+import { failedTest } from './adapter-failure.util';
 
 const API_BASE = 'https://api.telegram.org';
 /** Telegram truncates beyond this; split rather than lose the tail. */
@@ -25,6 +29,13 @@ interface TelegramUser {
   language_code?: string;
 }
 
+interface TelegramFile {
+  file_id?: string;
+  file_name?: string;
+  mime_type?: string;
+  file_size?: number;
+}
+
 interface TelegramMessage {
   message_id?: number;
   date?: number;
@@ -32,6 +43,9 @@ interface TelegramMessage {
   caption?: string;
   chat?: { id?: number; title?: string; type?: string };
   from?: TelegramUser;
+  /** Ascending sizes of the same picture — the last entry is the original. */
+  photo?: TelegramFile[];
+  document?: TelegramFile;
 }
 
 /**
@@ -62,13 +76,15 @@ export class TelegramAdapter implements MessengerAdapter {
   }
 
   async test(ctx: AdapterContext): Promise<TestResult> {
-    if (!ctx.secret) return { ok: false, detail: 'bot token not set' };
+    if (!ctx.secret) {
+      return { ok: false, detail: 'bot token not set', reason: TEST_FAILURE_REASON.CREDENTIALS };
+    }
     try {
       const me = await this.call<{ username?: string; first_name?: string }>(ctx.secret, 'getMe');
       const handle = me.username ? `@${me.username}` : (me.first_name ?? 'bot');
       return { ok: true, detail: `connected as ${handle}`, accountId: handle };
     } catch (e) {
-      return { ok: false, detail: (e as Error).message.slice(0, 200) };
+      return failedTest(e);
     }
   }
 
@@ -100,7 +116,10 @@ export class TelegramAdapter implements MessengerAdapter {
     const msg = update.message;
     const text = (msg?.text ?? msg?.caption ?? '').trim();
     const chatId = msg?.chat?.id;
-    if (!msg?.message_id || chatId == null || !text) return [];
+    // Files are a message too (PLN-260814 S5). A photo with no caption used to
+    // be dropped here: the customer saw it sent, the agent never saw it arrive.
+    const attachments = attachmentsOf(msg);
+    if (!msg?.message_id || chatId == null || (!text && !attachments.length)) return [];
     // Loop prevention #1 — never ingest another bot's (or our own) traffic.
     if (msg.from?.is_bot) return [];
 
@@ -117,22 +136,68 @@ export class TelegramAdapter implements MessengerAdapter {
         subChannel: null,
         replyEnabled: true,
         occurredAt: msg.date ? new Date(msg.date * 1000) : null,
+        attachments: attachments.length ? attachments : undefined,
       },
     ];
   }
 
-  async send(ctx: AdapterContext, thread: ChannelThread, text: string): Promise<SendResult> {
-    const chunks = splitText(text, MAX_TEXT);
+  async send(
+    ctx: AdapterContext,
+    thread: ChannelThread,
+    text: string,
+    attachments?: OutboundAttachment[],
+  ): Promise<SendResult> {
     let last = '';
-    for (const chunk of chunks) {
-      const sent = await this.call<{ message_id?: number }>(ctx.secret, 'sendMessage', {
-        chat_id: thread.externalThreadId,
-        text: chunk,
-        disable_web_page_preview: true,
-      });
+    // Text first so the caption-less files arrive under it in reading order.
+    if (text.trim()) {
+      for (const chunk of splitText(text, MAX_TEXT)) {
+        const sent = await this.call<{ message_id?: number }>(ctx.secret, 'sendMessage', {
+          chat_id: thread.externalThreadId,
+          text: chunk,
+          disable_web_page_preview: true,
+        });
+        last = String(sent.message_id ?? '');
+      }
+    }
+    for (const file of attachments ?? []) {
+      // Telegram fetches the URL itself, which is why the link must be
+      // absolute and still valid when their servers pull it.
+      const isImage = file.kind === 'image';
+      const sent = await this.call<{ message_id?: number }>(
+        ctx.secret,
+        isImage ? 'sendPhoto' : 'sendDocument',
+        isImage
+          ? { chat_id: thread.externalThreadId, photo: file.url }
+          : { chat_id: thread.externalThreadId, document: file.url },
+      );
       last = String(sent.message_id ?? '');
     }
     return { externalMessageId: last };
+  }
+
+  readonly supportsAttachments = true;
+
+  /**
+   * Telegram hands out a file id, not a URL: getFile resolves it to a path that
+   * is then fetched from the bot-scoped file host. The token appears in that
+   * URL, so it is never logged.
+   */
+  async downloadAttachment(
+    ctx: AdapterContext,
+    ref: InboundAttachmentRef,
+  ): Promise<{ buffer: Buffer; filename: string; mime?: string | null } | null> {
+    if (!ref.fileId) return null;
+    const info = await this.call<{ file_path?: string }>(ctx.secret, 'getFile', {
+      file_id: ref.fileId,
+    });
+    if (!info.file_path) return null;
+    const res = await fetch(`${API_BASE}/file/bot${ctx.secret}/${info.file_path}`);
+    if (!res.ok) throw new Error(`telegram file download failed: ${res.status}`);
+    const buffer = Buffer.from(await res.arrayBuffer());
+    // Photos arrive without a name; the path's extension is what makes the
+    // stored file recognisable as an image.
+    const fallback = info.file_path.split('/').pop() || 'file';
+    return { buffer, filename: ref.filename || fallback, mime: ref.mime ?? null };
   }
 
   /**
@@ -148,6 +213,27 @@ export class TelegramAdapter implements MessengerAdapter {
       throw new BusinessException(ERROR_CODE.FORBIDDEN, HttpStatus.UNAUTHORIZED);
     }
   }
+}
+
+/**
+ * Photos and documents on one update. Telegram sends a photo as an array of
+ * rescaled copies — the last is the original, and the only one worth keeping.
+ */
+function attachmentsOf(msg: TelegramMessage | undefined): InboundAttachmentRef[] {
+  const refs: InboundAttachmentRef[] = [];
+  const photo = msg?.photo?.length ? msg.photo[msg.photo.length - 1] : null;
+  if (photo?.file_id) {
+    refs.push({ fileId: photo.file_id, filename: null, mime: 'image/jpeg', size: photo.file_size ?? null });
+  }
+  if (msg?.document?.file_id) {
+    refs.push({
+      fileId: msg.document.file_id,
+      filename: msg.document.file_name ?? null,
+      mime: msg.document.mime_type ?? null,
+      size: msg.document.file_size ?? null,
+    });
+  }
+  return refs;
 }
 
 /** Split on the last newline/space before the limit so words survive. */

@@ -17,5 +17,27 @@
   "usersOf": "Người dùng — {{name}}",
   "usersOfSubtitle": "Mời nhân viên, cấp mật khẩu tạm thời và quản lý quyền truy cập cho gian hàng này.",
   "usersEmpty": "Gian hàng này chưa có người dùng nào.",
-  "loginUrl": "Trang đăng nhập"
+  "loginUrl": "Trang đăng nhập",
+  "manageMenus": "Menu",
+  "menus": {
+    "title": "Menu được cung cấp — {{name}}",
+    "menu": "Menu",
+    "planDefault": "Mặc định theo gói",
+    "thisTenant": "Gian hàng này",
+    "result": "Kết quả",
+    "provided": "Được cung cấp",
+    "notProvided": "Không cung cấp",
+    "noPlan": "không có gói",
+    "planCount": "Gói cung cấp {{count}} trên {{total}}",
+    "planHint": "Các dòng để ở “Theo gói” sẽ thay đổi cùng gói dịch vụ. Các dòng khác được giữ cố định.",
+    "exceptions": "{{count}} ngoại lệ khác với gói (*)",
+    "issuesNote": "Bảng yêu cầu còn cần chế độ quy trình của gian hàng; chỉ cung cấp menu thôi sẽ hiện thông báo thay vì bảng.",
+    "mode": {
+      "plan": "Theo gói",
+      "on": "Buộc cung cấp",
+      "off": "Không cung cấp"
+    },
+    "saved": "Đã lưu menu được cung cấp",
+    "saveError": "Không lưu được menu được cung cấp"
+  }
 }

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { AlertTriangle, Check, Pencil, Undo2, X } from 'lucide-react';
+import { AlertTriangle, Check, Pencil, PlayCircle, Undo2, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/Button';
 import { Badge } from '@/components/Badge';
@@ -10,13 +10,15 @@ import { useApplyProposal, useRejectProposal, useRevertProposal } from './coach.
 
 interface ProposalCardProps {
   proposal: CoachProposal;
+  /** Re-ask the originating question in the preview tab. Hidden when unavailable. */
+  onVerifyInPreview?: () => void;
 }
 
 /**
  * One reviewable config change (FR-072). Nothing here writes on render — a
  * proposal only reaches the tenant config when a human presses Apply.
  */
-export function ProposalCard({ proposal }: ProposalCardProps) {
+export function ProposalCard({ proposal, onVerifyInPreview }: ProposalCardProps) {
   const { t } = useTranslation('aiSetting');
   const { t: tc } = useTranslation('common');
   const apply = useApplyProposal();
@@ -26,19 +28,37 @@ export function ProposalCard({ proposal }: ProposalCardProps) {
   const [draft, setDraft] = useState('');
 
   const isPersona = proposal.type === 'persona_patch';
-  const proposedText = isPersona ? (proposal.persona ?? '') : (proposal.rule ?? '');
+  const isKb = proposal.type === 'kb_upsert';
+  const isScenario = proposal.type === 'scenario_override';
+  // Scenario replies are per language; the single-field editor edits them as one
+  // text, and applying replaces every language the proposal carried.
+  const scenarioText = Object.values(proposal.scenarioReply ?? {})[0] ?? '';
+  const proposedText = isPersona
+    ? (proposal.persona ?? '')
+    : isKb
+      ? (proposal.docContent ?? '')
+      : isScenario
+        ? scenarioText
+        : (proposal.rule ?? '');
   const busy = apply.isPending || reject.isPending || revert.isPending;
+  // Knowledge documents roll back through their own revision history (E4016),
+  // so offering Undo here would only ever produce an error.
+  const canRevert = !isKb;
 
   function openEditor() {
     setDraft(proposedText);
     setEditing(true);
   }
 
+  function overrideFor(text: string) {
+    if (isPersona) return { persona: text };
+    if (isKb) return { doc_content: text };
+    if (isScenario) return { scenario_reply: text };
+    return { rule: text };
+  }
+
   function submitEdited() {
-    apply.mutate({
-      id: proposal.id,
-      override: isPersona ? { persona: draft } : { rule: draft },
-    });
+    apply.mutate({ id: proposal.id, override: overrideFor(draft) });
     setEditing(false);
   }
 
@@ -62,6 +82,24 @@ export function ProposalCard({ proposal }: ProposalCardProps) {
         )}
       </div>
 
+      {/* A knowledge proposal is about a document, so name it first — whether
+          this creates one or rewrites an existing one is the main decision. */}
+      {isKb && (
+        <p className="mb-1 text-[11px] text-gray-500">
+          {proposal.docId ? t('coach.kbRevise', { id: proposal.docId }) : t('coach.kbNew')}
+          {proposal.docTitle ? ` · ${proposal.docTitle}` : ''}
+          {proposal.docCategory ? ` · ${proposal.docCategory}` : ''}
+        </p>
+      )}
+      {isScenario && proposal.scenarioAction && (
+        <p className="mb-1 text-[11px] text-gray-500">
+          {t('coach.scenarioTarget', { action: proposal.scenarioAction })}
+          {Object.keys(proposal.scenarioReply ?? {}).length
+            ? ` · ${Object.keys(proposal.scenarioReply!).join(', ')}`
+            : ''}
+        </p>
+      )}
+
       {/* The change itself: removed line then added line, so the admin reads a
           diff rather than having to compare against the settings form. */}
       {proposal.targetRule && (
@@ -70,7 +108,14 @@ export function ProposalCard({ proposal }: ProposalCardProps) {
         </p>
       )}
       {proposedText && (
-        <p className="whitespace-pre-wrap break-words text-xs text-gray-800">
+        <p
+          className={cn(
+            'whitespace-pre-wrap break-words text-xs text-gray-800',
+            // Document bodies are long; keep the card readable and let the
+            // editor be where the full text is inspected.
+            isKb && 'max-h-40 overflow-y-auto rounded bg-white/60 p-1.5',
+          )}
+        >
           {proposal.targetRule || proposal.type === 'rule_add' ? '＋ ' : ''}
           {proposedText}
         </p>
@@ -114,15 +159,23 @@ export function ProposalCard({ proposal }: ProposalCardProps) {
       )}
 
       {proposal.status === 'applied' && (
-        <div className="mt-2">
-          <Button
-            size="sm"
-            variant="secondary"
-            disabled={busy}
-            onClick={() => revert.mutate({ id: proposal.id })}
-          >
-            <Undo2 className="h-3.5 w-3.5" /> {t('coach.revert')}
-          </Button>
+        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+          {canRevert && (
+            <Button
+              size="sm"
+              variant="secondary"
+              disabled={busy}
+              onClick={() => revert.mutate({ id: proposal.id })}
+            >
+              <Undo2 className="h-3.5 w-3.5" /> {t('coach.revert')}
+            </Button>
+          )}
+          {onVerifyInPreview && (
+            <Button size="sm" variant="secondary" disabled={busy} onClick={onVerifyInPreview}>
+              <PlayCircle className="h-3.5 w-3.5" /> {t('coach.verifyInPreview')}
+            </Button>
+          )}
+          {isKb && <span className="text-[11px] text-gray-400">{t('coach.kbRevertHint')}</span>}
         </div>
       )}
 
@@ -146,7 +199,7 @@ export function ProposalCard({ proposal }: ProposalCardProps) {
           <textarea
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
-            rows={isPersona ? 10 : 4}
+            rows={isPersona || isKb ? 12 : 4}
             className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-800 outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
           />
           <p className="text-xs text-gray-400">{t('coach.editHint')}</p>

@@ -13,6 +13,12 @@ export interface IssueCard {
   assigneeLabel: string | null;
   reopenCount: number;
   slaState: 'ok' | 'warning' | 'overdue' | null;
+  /** Session behind the issue — printed on the card so it is identifiable. */
+  sessionId: string;
+  /** Operator-set session name, when one exists (PLN-260812). */
+  sessionAlias: string | null;
+  /** The shopper's own last line — what the card is about. */
+  preview: string | null;
   createdAt: string;
   updatedAt: string;
 }

@@ -219,6 +219,33 @@ export class AuthService {
   }
 
   /**
+   * Token issue for an SSO-authenticated tenant user (PLN-260813-AMA-Iframe-SSO
+   * S2, decision D4): the external IdP already authenticated the person, so no
+   * password and no MFA step-up/enrollment enforcement — but the
+   * must-change-password lockout still applies. Caller (AmaSsoService) is
+   * responsible for mapping, status checks, rate limiting, and audit.
+   */
+  async issueForSso(user: User): Promise<AuthTokensResponse> {
+    const labels = await this.loadLabels(user.id);
+    const principal: Principal = {
+      actorType: 'user',
+      userId: user.id,
+      tenantId: user.tenantId,
+      email: user.email,
+      rank: user.rank as UserRank,
+      labels,
+    };
+    return this.issue(principal, user.mustChangePassword === 1, {
+      actorType: 'user',
+      id: user.id,
+      email: user.email,
+      tenantId: user.tenantId,
+      rank: user.rank as UserRank,
+      labels,
+    });
+  }
+
+  /**
    * Step-up verification (POST /auth/mfa/verify — @Public; the mfa_token IS the
    * credential). Accepts a 6-digit TOTP or a recovery code, then issues EXACTLY
    * the same response as the corresponding successful login. Rate limited by

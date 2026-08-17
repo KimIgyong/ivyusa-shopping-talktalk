@@ -1,6 +1,8 @@
 import { CoachingThread } from './entity/coaching-thread.entity';
 import { CoachingMessage } from './entity/coaching-message.entity';
 import { CoachingProposal } from './entity/coaching-proposal.entity';
+import { GoldenQuestion } from './entity/golden-question.entity';
+import { GoldenRun } from './entity/golden-run.entity';
 
 /** Response shaping — camelCase (code convention §2). Static mapper, no DI. */
 export class AiCoachMapper {
@@ -40,11 +42,43 @@ export class AiCoachMapper {
       persona: p.payload?.persona ?? null,
       rule: p.payload?.rule ?? null,
       targetRule: p.payload?.targetRule ?? null,
+      docId: p.payload?.docId ?? null,
+      docTitle: p.payload?.docTitle ?? null,
+      docCategory: p.payload?.docCategory ?? null,
+      docContent: p.payload?.docContent ?? null,
+      scenarioAction: p.payload?.scenarioAction ?? null,
+      scenarioReply: p.payload?.scenarioReply ?? null,
       rationale: p.payload?.rationale ?? null,
       conflictsWith: p.payload?.conflictsWith ?? [],
       appliedAt: p.appliedAt,
       // payload.previous is intentionally omitted: it is rollback state, not
       // something the console renders, and it can hold a full persona.
+    };
+  }
+
+  static toGoldenQuestion(q: GoldenQuestion) {
+    return {
+      id: Number(q.id),
+      question: q.question,
+      language: q.language,
+      note: q.note,
+      active: q.active === 1,
+      createdAt: q.createdAt,
+    };
+  }
+
+  static toGoldenRun(r: GoldenRun) {
+    return {
+      id: Number(r.id),
+      kind: r.kind,
+      label: r.label,
+      proposalId: r.proposalId ? Number(r.proposalId) : null,
+      configHash: r.configHash,
+      questionCount: r.questionCount,
+      truncated: r.truncated === 1,
+      status: r.status,
+      createdAt: r.createdAt,
+      completedAt: r.completedAt,
     };
   }
 

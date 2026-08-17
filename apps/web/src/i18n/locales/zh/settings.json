@@ -289,11 +289,15 @@
       "smtp_host": "SMTP 主机",
       "app_password": "应用专用密码",
       "social_types": "接收渠道",
-      "sender_name": "发件人名称"
+      "sender_name": "发件人名称",
+      "key_id": "服务商 API 密钥 ID",
+      "api_secret": "服务商 API secret",
+      "expected_customer": "预期客户标识"
     },
     "ph": {
       "social_types": "zalo, line, whatsapp",
-      "sender_name": "客服"
+      "sender_name": "客服",
+      "expected_customer": "例如 CUST-…（在中继控制台查看；可拒绝指向错误的服务器）"
     },
     "provider": {
       "telegram": {
@@ -333,6 +337,63 @@
         "title": "WhatsApp",
         "subtitle": "通过 AmoebaTalk 中枢"
       }
+    },
+    "testRejected": "账户被拒绝——服务器有响应，但邮箱/密码不匹配。请使用该服务商自己的运营账户，而不是您的 ShopTalk 登录账号。（{{detail}}）",
+    "testNotFound": "服务器 URL 可能有误——该地址有响应，但不是此服务商的 API。（{{detail}}）",
+    "testUnreachable": "无法连接服务器——完全没有响应。请检查地址以及服务是否在运行。（{{detail}}）",
+    "testProviderError": "服务商返回了错误——您这边无需处理，请稍后重试。（{{detail}}）",
+    "syncNow": "立即获取",
+    "syncOk": "已获取 {{count}} 条新消息。",
+    "syncFailed": "获取失败——{{detail}}",
+    "syncInactive": "已获取 {{count}} 条消息，但此渠道处于停用状态——在您启用之前不会自动收到消息。",
+    "inactiveWarning": "已停用——未在接收。请打开「配置」并将渠道设为启用。",
+    "autoReplyScope": "对此后收到的消息生效。每个会话都可以在在线聊天中单独覆盖。",
+    "mode": {
+      "auto": "自动——AI 自行回复",
+      "approve": "需要审核——AI 起草，客服发送",
+      "off": "关闭"
+    }
+  },
+  "menuAccess": {
+    "title": "菜单权限",
+    "subtitle": "决定您的团队可以进入哪些控制台页面。灰显的菜单不包含在您的套餐中。",
+    "tabRoles": "角色默认",
+    "tabUsers": "成员例外",
+    "rankColumn": "职级",
+    "menu": "菜单",
+    "member": "成员",
+    "exceptions": "例外",
+    "edit": "编辑",
+    "editFor": "例外 — {{who}}（{{rank}}）",
+    "rankDefault": "职级默认",
+    "thisUser": "该成员",
+    "result": "结果",
+    "allowed": "允许",
+    "blocked": "禁止",
+    "notProvided": "不在套餐内",
+    "canAccess": "可访问",
+    "cannotAccess": "无权访问",
+    "readOnly": "只读",
+    "masterExempt": "不受例外限制",
+    "save": "保存角色默认",
+    "saved": "已保存菜单权限",
+    "saveError": "无法保存菜单权限",
+    "loading": "加载中…",
+    "needsLabel": "（需要 {{label}}）",
+    "masterNote": "Master 始终可以访问套餐提供的所有菜单，因此无法被锁定在外。",
+    "labelNote": "带工作标签的菜单对没有该标签的成员保持隐藏。若要不论标签为某一个人开放，请使用成员例外。",
+    "notProvidedNote": "带删除线的菜单不在您的套餐提供范围内；如需添加请联系平台管理员。",
+    "allowWaivesLabel": "「允许」同时会为该成员免除工作标签要求。页面内的具体操作仍受其职级和标签约束。",
+    "mode": {
+      "default": "职级默认",
+      "allow": "允许",
+      "deny": "禁止"
+    },
+    "rank": {
+      "master": "Master",
+      "director": "总监",
+      "manager": "经理",
+      "staff": "员工"
     }
   }
 }

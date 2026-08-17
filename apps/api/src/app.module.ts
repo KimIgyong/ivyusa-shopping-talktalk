@@ -17,9 +17,11 @@ import { AuthModule } from './domain/auth/auth.module';
 import { SessionModule } from './domain/session/session.module';
 import { ChatModule } from './domain/chat/chat.module';
 import { AnswerReuseModule } from './domain/answer-reuse/answer-reuse.module';
+import { AttachmentModule } from './domain/attachment/attachment.module';
 import { IssueModule } from './domain/issue/issue.module';
 import { ModerationModule } from './domain/moderation/moderation.module';
 import { TenantModule } from './domain/tenant/tenant.module';
+import { MenuAccessModule } from './domain/menu-access/menu-access.module';
 import { UserModule } from './domain/user/user.module';
 import { OrderModule } from './domain/order/order.module';
 import { ProductModule } from './domain/product/product.module';
@@ -72,9 +74,11 @@ import { ShopifyProxyModule } from './domain/shopify-proxy/shopify-proxy.module'
     SessionModule,
     ChatModule,
     AnswerReuseModule,
+    AttachmentModule,
     IssueModule,
     ModerationModule,
     TenantModule,
+    MenuAccessModule,
     UserModule,
     CustomerModule,
     OrderModule,

@@ -289,11 +289,15 @@
       "smtp_host": "SMTPホスト",
       "app_password": "アプリパスワード",
       "social_types": "受信チャネル",
-      "sender_name": "送信者名"
+      "sender_name": "送信者名",
+      "key_id": "プロバイダーAPIキーID",
+      "api_secret": "プロバイダーAPIシークレット",
+      "expected_customer": "想定カスタマー参照"
     },
     "ph": {
       "social_types": "zalo, line, whatsapp",
-      "sender_name": "サポート"
+      "sender_name": "サポート",
+      "expected_customer": "例：CUST-…（リレーコンソールで確認。誤ったサーバーを指した場合に拒否します）"
     },
     "provider": {
       "telegram": {
@@ -333,6 +337,63 @@
         "title": "WhatsApp",
         "subtitle": "AmoebaTalkハブ経由"
       }
+    },
+    "testRejected": "アカウントが拒否されました。サーバーは応答しましたが、メールアドレスとパスワードが一致しません。ShopTalkのログインではなく、プロバイダー側の運用アカウントをご利用ください。（{{detail}}）",
+    "testNotFound": "サーバーURLが誤っている可能性があります。応答はありましたが、このプロバイダーのAPIではありません。（{{detail}}）",
+    "testUnreachable": "サーバーに到達できませんでした。応答が一切ありません。アドレスとサービスの稼働状況をご確認ください。（{{detail}}）",
+    "testProviderError": "プロバイダーがエラーを返しました。こちら側で対応することはありません。しばらくしてからお試しください。（{{detail}}）",
+    "syncNow": "今すぐ取得",
+    "syncOk": "新着メッセージを{{count}}件取得しました。",
+    "syncFailed": "取得に失敗しました — {{detail}}",
+    "syncInactive": "{{count}}件取得しましたが、このチャネルは無効です。有効にするまで自動では届きません。",
+    "inactiveWarning": "無効 — 受信していません。「設定」を開いてチャネルを有効にしてください。",
+    "autoReplyScope": "これ以降に受信したメッセージに適用されます。会話ごとにライブチャットで上書きできます。",
+    "mode": {
+      "auto": "自動 — AIが自分で回答",
+      "approve": "承認が必要 — AIが下書きし、担当者が送信",
+      "off": "オフ"
+    }
+  },
+  "menuAccess": {
+    "title": "メニューのアクセス権",
+    "subtitle": "チームがどのコンソール画面に入れるかを決めます。灰色のメニューはご契約プランに含まれていません。",
+    "tabRoles": "権限ごとの既定",
+    "tabUsers": "メンバー個別の例外",
+    "rankColumn": "権限",
+    "menu": "メニュー",
+    "member": "メンバー",
+    "exceptions": "例外",
+    "edit": "編集",
+    "editFor": "例外 — {{who}}（{{rank}}）",
+    "rankDefault": "権限の既定",
+    "thisUser": "このメンバー",
+    "result": "結果",
+    "allowed": "許可",
+    "blocked": "ブロック",
+    "notProvided": "プラン対象外",
+    "canAccess": "アクセス可",
+    "cannotAccess": "アクセス不可",
+    "readOnly": "閲覧のみ",
+    "masterExempt": "例外の対象外",
+    "save": "権限ごとの既定を保存",
+    "saved": "メニューのアクセス権を保存しました",
+    "saveError": "メニューのアクセス権を保存できませんでした",
+    "loading": "読み込み中…",
+    "needsLabel": "（{{label}} が必要）",
+    "masterNote": "マスターはプランが提供するすべてのメニューに常にアクセスできるため、締め出すことはできません。",
+    "labelNote": "業務ラベル付きのメニューは、そのラベルを持たないメンバーには表示されません。ラベルに関係なく特定の人だけに開く場合は、メンバー個別の例外をご利用ください。",
+    "notProvidedNote": "取り消し線のメニューはご契約プランに含まれていません。追加はプラットフォーム管理者にご連絡ください。",
+    "allowWaivesLabel": "「許可」は、このメンバーについて業務ラベルの要件も免除します。画面内の操作は引き続き権限とラベルに従います。",
+    "mode": {
+      "default": "権限の既定",
+      "allow": "許可",
+      "deny": "ブロック"
+    },
+    "rank": {
+      "master": "マスター",
+      "director": "ディレクター",
+      "manager": "マネージャー",
+      "staff": "スタッフ"
     }
   }
 }

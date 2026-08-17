@@ -1,4 +1,13 @@
-import { IsEmail, IsInt, IsOptional, IsString, Min, MinLength } from 'class-validator';
+import {
+  IsArray,
+  IsEmail,
+  IsInt,
+  IsOptional,
+  IsString,
+  MaxLength,
+  Min,
+  MinLength,
+} from 'class-validator';
 
 export class ListSessionsQuery {
   @IsOptional() @IsString() page?: string;
@@ -27,8 +36,27 @@ export class ListAlertsQuery {
   @IsOptional() @IsString() status?: string;
 }
 
+/** Operator display name for a session; blank/omitted clears it (PLN-260812). */
+export class SetSessionAliasRequest {
+  @IsOptional() @IsString() @MaxLength(60) alias?: string | null;
+}
+
+/** Per-session auto-reply choice: inherit | on | off (PLN-260812). */
+export class SetAutoReplyRequest {
+  @IsString() mode: string;
+}
+
+/** Approve the pending draft; `body` replaces it when the agent edited it. */
+export class ApproveDraftRequest {
+  @IsOptional() @IsString() body?: string;
+}
+
 export class AgentMessageRequest {
-  @IsString() @MinLength(1) body: string;
+  /** May be empty when files carry the reply (PLN-260814); the controller
+   * refuses a reply that has neither text nor attachments. */
+  @IsString() body: string;
+  /** Attachment uuids from the console upload endpoint, in display order. */
+  @IsOptional() @IsArray() @IsString({ each: true }) attachment_ids?: string[];
 }
 
 export class LinkCustomerRequest {

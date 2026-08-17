@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, HttpStatus, Post, Query } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { SkipThrottle } from '@nestjs/throttler';
 import { ChatService } from './chat.service';
@@ -13,6 +13,9 @@ import {
   RateChatRequest,
 } from './dto/request/chat.request';
 import { SessionService } from '../session/session.service';
+import { AttachmentService } from '../attachment/attachment.service';
+import { BusinessException } from '../../global/exception/business.exception';
+import { ERROR_CODE } from '../../global/constant/error-code.constant';
 import { Public } from '../../global/decorator/public.decorator';
 import { SessionToken } from '../../global/decorator/session-token.decorator';
 
@@ -24,6 +27,7 @@ export class ChatController {
     private readonly chatService: ChatService,
     private readonly scenarioService: ScenarioService,
     private readonly sessionService: SessionService,
+    private readonly attachmentService: AttachmentService,
   ) {}
 
   @Post('scenario')
@@ -38,8 +42,14 @@ export class ChatController {
   @Public()
   @ApiOperation({ summary: 'Send a message; returns AI reply (S5, SEQ-03)' })
   async message(@Body() body: SendMessageRequest) {
+    // Either-or: text, files, or both — but not an empty turn (PLN-260814).
+    if (!body.message?.trim() && !body.attachment_ids?.length) {
+      throw new BusinessException(ERROR_CODE.VALIDATION_FAILED, HttpStatus.BAD_REQUEST);
+    }
     const session = await this.sessionService.findByToken(body.session_token);
-    return this.chatService.handleUserMessage(session, body.message);
+    return this.chatService.handleUserMessage(session, body.message, {
+      attachmentIds: body.attachment_ids,
+    });
   }
 
   @Post('contact-email')
@@ -85,7 +95,12 @@ export class ChatController {
       afterId: Number.isFinite(after) ? after : undefined,
     });
     const senderNames = await this.chatService.resolveSenderNames(messages);
-    return ChatMapper.toConversationResponse(conversation, messages, senderNames);
+    // One query for the whole page — the poll runs every few seconds, so a
+    // per-message lookup here would be the widget's most expensive habit.
+    const attachments = await this.attachmentService.findByMessageIds(
+      messages.map((m) => Number(m.id)),
+    );
+    return ChatMapper.toConversationResponse(conversation, messages, senderNames, attachments);
   }
 
   @Post('escalate')

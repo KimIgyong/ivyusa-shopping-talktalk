@@ -8,9 +8,12 @@ import {
   AdapterContext,
   MessengerAdapter,
   NormalizedInbound,
+  OutboundAttachment,
   SendResult,
+  TEST_FAILURE_REASON,
   TestResult,
 } from './messenger-adapter';
+import { failedTest } from './adapter-failure.util';
 import { splitText } from './telegram.adapter';
 
 const API_BASE = 'https://chatapi.viber.com/pa';
@@ -23,7 +26,14 @@ interface ViberEvent {
   message_token?: number | string;
   timestamp?: number;
   sender?: { id?: string; name?: string; language?: string };
-  message?: { type?: string; text?: string };
+  message?: {
+    type?: string;
+    text?: string;
+    /** Picture/file/video payloads carry a fetchable media URL. */
+    media?: string;
+    file_name?: string;
+    size?: number;
+  };
 }
 
 /**
@@ -57,13 +67,15 @@ export class ViberAdapter implements MessengerAdapter {
   }
 
   async test(ctx: AdapterContext): Promise<TestResult> {
-    if (!ctx.secret) return { ok: false, detail: 'auth token not set' };
+    if (!ctx.secret) {
+      return { ok: false, detail: 'auth token not set', reason: TEST_FAILURE_REASON.CREDENTIALS };
+    }
     try {
       const info = await this.call<{ uri?: string; name?: string }>(ctx.secret, 'get_account_info', {});
       const account = info.uri ? `@${info.uri}` : (info.name ?? 'account');
       return { ok: true, detail: `connected as ${account}`, accountId: account };
     } catch (e) {
-      return { ok: false, detail: (e as Error).message.slice(0, 200) };
+      return failedTest(e);
     }
   }
 
@@ -91,7 +103,19 @@ export class ViberAdapter implements MessengerAdapter {
     if (evt.event !== 'message') return [];
     const text = (evt.message?.text ?? '').trim();
     const senderId = evt.sender?.id;
-    if (!text || !senderId || evt.message_token == null) return [];
+    // A picture or file with no caption is still a message the agent must see
+    // (PLN-260814 S5) — Viber hands us a fetchable media URL for both.
+    const media = evt.message?.media
+      ? [
+          {
+            url: evt.message.media,
+            filename: evt.message.file_name ?? null,
+            mime: evt.message.type === 'picture' ? 'image/jpeg' : null,
+            size: evt.message.size ?? null,
+          },
+        ]
+      : [];
+    if ((!text && !media.length) || !senderId || evt.message_token == null) return [];
 
     return [
       {
@@ -105,20 +129,42 @@ export class ViberAdapter implements MessengerAdapter {
         subChannel: null,
         replyEnabled: true,
         occurredAt: evt.timestamp ? new Date(evt.timestamp) : null,
+        attachments: media.length ? media : undefined,
       },
     ];
   }
 
-  async send(ctx: AdapterContext, thread: ChannelThread, text: string): Promise<SendResult> {
-    const chunks = splitText(text, MAX_TEXT);
+  readonly supportsAttachments = true;
+
+  async send(
+    ctx: AdapterContext,
+    thread: ChannelThread,
+    text: string,
+    attachments?: OutboundAttachment[],
+  ): Promise<SendResult> {
     let last = '';
-    for (const chunk of chunks) {
+    if (text.trim()) {
+      for (const chunk of splitText(text, MAX_TEXT)) {
+        const sent = await this.call<{ message_token?: number | string }>(ctx.secret, 'send_message', {
+          receiver: thread.externalThreadId,
+          min_api_version: 1,
+          sender: { name: senderName(ctx) },
+          type: 'text',
+          text: chunk,
+        });
+        last = String(sent.message_token ?? '');
+      }
+    }
+    for (const file of attachments ?? []) {
+      // Viber pulls the media itself, so the link must be absolute and live.
+      const isImage = file.kind === 'image';
       const sent = await this.call<{ message_token?: number | string }>(ctx.secret, 'send_message', {
         receiver: thread.externalThreadId,
         min_api_version: 1,
         sender: { name: senderName(ctx) },
-        type: 'text',
-        text: chunk,
+        ...(isImage
+          ? { type: 'picture', text: file.filename, media: file.url }
+          : { type: 'file', media: file.url, file_name: file.filename, size: 0 }),
       });
       last = String(sent.message_token ?? '');
     }

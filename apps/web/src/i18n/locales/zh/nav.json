@@ -27,5 +27,10 @@
   "products": "商品",
   "allMenus": "全部菜单",
   "issueBoard": "问题看板",
-  "languageBetaHint": "β 机器翻译，待审校"
+  "languageBetaHint": "β 机器翻译，待审校",
+  "blocked": {
+    "title": "您无法打开此菜单",
+    "description": "此页面对您的账户不可用。如有需要，请联系您的工作区管理员（master）。",
+    "goHome": "前往仪表盘"
+  }
 }

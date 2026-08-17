@@ -64,6 +64,8 @@ export interface MessengerChannel {
   credentialSet: boolean;
   config: Record<string, unknown>;
   autoReply: boolean;
+  /** off | approve | auto — the channel default for new messages. */
+  replyMode?: string;
   consentMode: 'notice' | 'auto' | string;
   active: boolean;
   status: 'connected' | 'error' | 'unknown' | string;
@@ -86,16 +88,40 @@ export interface UpsertChannelBody {
   secret?: Record<string, string>;
   config?: Record<string, unknown>;
   auto_reply?: boolean;
+  reply_mode?: string;
   consent_mode?: string;
   active?: boolean;
 }
 
 export type UpdateChannelBody = Omit<UpsertChannelBody, 'provider' | 'label'> & { label?: string };
 
+export interface ChannelSyncResult {
+  fetched: number;
+  error?: string;
+  /** True when the channel is disabled: this fetch worked, but nothing recurs. */
+  inactive?: boolean;
+}
+
+/**
+ * Failure class from the API's TestResult — KEEP IN SYNC with
+ * apps/api/src/domain/messenger/adapter/messenger-adapter.ts. The console
+ * localizes it: "connection failed" for a rejected password sent an operator
+ * after the network for two days (FIX-260813).
+ */
+export const TEST_FAILURE_REASONS = [
+  'credentials',
+  'not_found',
+  'unreachable',
+  'provider_error',
+] as const;
+export type TestFailureReason = (typeof TEST_FAILURE_REASONS)[number];
+
 export interface ChannelTestResult {
   ok: boolean;
   detail: string;
   accountId?: string | null;
+  /** Unset when the adapter could not tell the cases apart. */
+  reason?: TestFailureReason;
 }
 
 export const messengerService = {
@@ -105,6 +131,7 @@ export const messengerService = {
     apiPatch<MessengerChannel>(`/messenger/channels/${id}`, body),
   remove: (id: string) => apiDelete<{ deleted: boolean }>(`/messenger/channels/${id}`),
   test: (id: string) => apiPost<ChannelTestResult>(`/messenger/channels/${id}/test`),
+  sync: (id: string) => apiPost<ChannelSyncResult>(`/messenger/channels/${id}/sync`),
   registerWebhook: (id: string) =>
     apiPost<{ webhookUrl: string }>(`/messenger/channels/${id}/register-webhook`),
 };

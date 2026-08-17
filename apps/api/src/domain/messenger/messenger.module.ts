@@ -7,6 +7,7 @@ import { ChannelOutbox } from './entity/channel-outbox.entity';
 import { Session } from '../session/entity/session.entity';
 import { Conversation } from '../chat/entity/conversation.entity';
 import { Message } from '../chat/entity/message.entity';
+import { ReplyDraft } from '../chat/entity/reply-draft.entity';
 import { MessengerService } from './messenger.service';
 import { MessengerIngestService } from './messenger-ingest.service';
 import { MessengerOutboxService } from './messenger-outbox.service';
@@ -23,6 +24,7 @@ import { MessengerSyncService } from './messenger-sync.service';
 import { ChatModule } from '../chat/chat.module';
 import { SessionModule } from '../session/session.module';
 import { AuditModule } from '../audit/audit.module';
+import { AttachmentModule } from '../attachment/attachment.module';
 
 /**
  * External messenger channels (PLN-260810). Telegram and Viber speak to
@@ -42,10 +44,14 @@ import { AuditModule } from '../audit/audit.module';
       Session,
       Conversation,
       Message,
+      ReplyDraft,
     ]),
     ChatModule,
     SessionModule,
     AuditModule,
+    // Files delivered with an inbound message, and files sent back out
+    // (PLN-260814 S5).
+    AttachmentModule,
   ],
   controllers: [MessengerController, MessengerWebhookController],
   providers: [

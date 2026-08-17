@@ -3,7 +3,7 @@ import { Bot, MessageSquare } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/Card';
 import { cn } from '@/lib/cn';
-import { PreviewPanel } from './PreviewPanel';
+import { PreviewPanel, type CoachTarget } from './PreviewPanel';
 import { CoachPanel } from './CoachPanel';
 
 type StudioTab = 'preview' | 'coach';
@@ -14,11 +14,15 @@ type StudioTab = 'preview' | 'coach';
  * get; in Coach the admin talks to the agent about its own behavior. The tabs
  * exist to keep those roles from blurring.
  *
- * PreviewPanel is rendered untouched — this is a shell around it, not a rewrite.
+ * The shell owns what passes between them (W3): an answer handed over for
+ * coaching, and a question sent back to be re-asked after a change was applied.
+ * Both panels stay mounted so a running preview session survives tab switches.
  */
 export function AiStudioPanel() {
   const { t } = useTranslation('aiSetting');
   const [tab, setTab] = useState<StudioTab>('preview');
+  const [coachTarget, setCoachTarget] = useState<CoachTarget | null>(null);
+  const [replayQuestion, setReplayQuestion] = useState<string | null>(null);
 
   const tabs: { key: StudioTab; label: string; icon: typeof Bot }[] = [
     { key: 'preview', label: t('preview.title'), icon: MessageSquare },
@@ -50,13 +54,31 @@ export function AiStudioPanel() {
         ))}
       </div>
 
-      {tab === 'preview' ? (
-        <PreviewPanel />
-      ) : (
+      {/* Hidden rather than unmounted: unmounting Preview would drop the sandbox
+          session, so every trip to the coaching tab would restart the chat. */}
+      <div className={cn(tab === 'preview' ? 'block' : 'hidden')}>
+        <PreviewPanel
+          onCoach={(target) => {
+            setCoachTarget(target);
+            setTab('coach');
+          }}
+          replayQuestion={replayQuestion}
+          onReplayed={() => setReplayQuestion(null)}
+        />
+      </div>
+
+      <div className={cn(tab === 'coach' ? 'block' : 'hidden')}>
         <Card title={t('coach.title')}>
-          <CoachPanel />
+          <CoachPanel
+            target={coachTarget}
+            onClearTarget={() => setCoachTarget(null)}
+            onVerifyInPreview={(question) => {
+              setReplayQuestion(question);
+              setTab('preview');
+            }}
+          />
         </Card>
-      )}
+      </div>
     </div>
   );
 }

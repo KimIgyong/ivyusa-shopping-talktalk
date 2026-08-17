@@ -91,4 +91,41 @@ export const apiClient = {
   put<T>(url: string, body?: unknown): Promise<T> {
     return unwrap<T>(raw.put(url, body));
   },
+  /**
+   * Multipart upload with progress (PLN-260814). Content-Type is deleted, not
+   * set: the browser has to add the multipart boundary itself, and the client
+   * default would overwrite it.
+   */
+  upload<T>(
+    url: string,
+    file: File,
+    sessionToken: string,
+    onProgress?: (percent: number) => void,
+  ): Promise<T> {
+    const form = new FormData();
+    form.append('file', file);
+    return unwrap<T>(
+      raw.post(url, form, {
+        headers: { 'Content-Type': undefined, 'X-Session-Token': sessionToken },
+        onUploadProgress: (e) => {
+          if (!onProgress || !e.total) return;
+          onProgress(Math.min(99, Math.round((e.loaded / e.total) * 100)));
+        },
+      }),
+    );
+  },
 };
+
+/**
+ * Absolute URL for an attachment link. The API returns a path because the
+ * widget runs on the merchant's storefront origin — resolving it here against
+ * the API's ORIGIN (not its base path) is what stops `/api/v1` doubling up.
+ */
+export function resolveFileUrl(path: string): string {
+  if (/^https?:\/\//i.test(path)) return path;
+  try {
+    return new URL(path, new URL(BASE_URL, window.location.href).origin).href;
+  } catch {
+    return path;
+  }
+}

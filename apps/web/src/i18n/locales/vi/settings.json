@@ -289,11 +289,15 @@
       "smtp_host": "Máy chủ SMTP",
       "app_password": "Mật khẩu ứng dụng",
       "social_types": "Kênh nhận tin",
-      "sender_name": "Tên người gửi"
+      "sender_name": "Tên người gửi",
+      "key_id": "ID khóa API của nhà cung cấp",
+      "api_secret": "API secret của nhà cung cấp",
+      "expected_customer": "Mã khách hàng mong đợi"
     },
     "ph": {
       "social_types": "zalo, line, whatsapp",
-      "sender_name": "Hỗ trợ"
+      "sender_name": "Hỗ trợ",
+      "expected_customer": "ví dụ: CUST-… (lấy từ bảng điều khiển relay; từ chối máy chủ trỏ sai)"
     },
     "provider": {
       "telegram": {
@@ -333,6 +337,63 @@
         "title": "WhatsApp",
         "subtitle": "Thông qua hub AmoebaTalk"
       }
+    },
+    "testRejected": "Tài khoản bị từ chối — máy chủ có phản hồi nhưng email/mật khẩu không khớp. Hãy dùng tài khoản vận hành của chính nhà cung cấp, không phải tài khoản ShopTalk của bạn. ({{detail}})",
+    "testNotFound": "URL máy chủ có vẻ sai — địa chỉ có phản hồi nhưng không phải API của nhà cung cấp này. ({{detail}})",
+    "testUnreachable": "Không kết nối được tới máy chủ — hoàn toàn không có phản hồi. Hãy kiểm tra địa chỉ và xem dịch vụ có đang chạy không. ({{detail}})",
+    "testProviderError": "Nhà cung cấp trả về lỗi — phía bạn không có gì cần sửa; hãy thử lại sau. ({{detail}})",
+    "syncNow": "Lấy ngay",
+    "syncOk": "Đã lấy {{count}} tin nhắn mới.",
+    "syncFailed": "Lấy tin thất bại — {{detail}}",
+    "syncInactive": "Đã lấy {{count}} tin nhắn, nhưng kênh này đang tắt — sẽ không có tin nào tự động về cho tới khi bạn bật.",
+    "inactiveWarning": "Đã tắt — không nhận tin. Hãy mở Cấu hình và bật kênh.",
+    "autoReplyScope": "Áp dụng cho tin nhắn nhận từ bây giờ. Mỗi cuộc hội thoại có thể ghi đè trong Trò chuyện trực tiếp.",
+    "mode": {
+      "auto": "Tự động — AI tự trả lời",
+      "approve": "Cần duyệt — AI soạn, nhân viên gửi",
+      "off": "Tắt"
+    }
+  },
+  "menuAccess": {
+    "title": "Quyền truy cập menu",
+    "subtitle": "Quyết định nhóm của bạn vào được những màn hình nào. Menu bị làm mờ không nằm trong gói dịch vụ của bạn.",
+    "tabRoles": "Mặc định theo vai trò",
+    "tabUsers": "Ngoại lệ theo thành viên",
+    "rankColumn": "Cấp bậc",
+    "menu": "Menu",
+    "member": "Thành viên",
+    "exceptions": "Ngoại lệ",
+    "edit": "Sửa",
+    "editFor": "Ngoại lệ — {{who}} ({{rank}})",
+    "rankDefault": "Mặc định theo cấp bậc",
+    "thisUser": "Thành viên này",
+    "result": "Kết quả",
+    "allowed": "Được phép",
+    "blocked": "Bị chặn",
+    "notProvided": "Không có trong gói",
+    "canAccess": "Có quyền truy cập",
+    "cannotAccess": "Không có quyền",
+    "readOnly": "chỉ đọc",
+    "masterExempt": "không chịu ràng buộc bởi ngoại lệ",
+    "save": "Lưu mặc định theo vai trò",
+    "saved": "Đã lưu quyền truy cập menu",
+    "saveError": "Không lưu được quyền truy cập menu",
+    "loading": "Đang tải…",
+    "needsLabel": "(cần {{label}})",
+    "masterNote": "Master luôn vào được mọi menu mà gói của bạn cung cấp, nên không thể bị khóa.",
+    "labelNote": "Menu gắn nhãn công việc vẫn ẩn với thành viên không có nhãn đó. Muốn mở cho riêng một người bất kể nhãn, hãy dùng ngoại lệ theo thành viên.",
+    "notProvidedNote": "Các menu bị gạch ngang không được gói của bạn cung cấp; hãy liên hệ quản trị viên nền tảng để bổ sung.",
+    "allowWaivesLabel": "“Cho phép” cũng bỏ qua yêu cầu nhãn công việc với thành viên này. Các thao tác bên trong màn hình vẫn theo cấp bậc và nhãn của họ.",
+    "mode": {
+      "default": "Mặc định theo cấp bậc",
+      "allow": "Cho phép",
+      "deny": "Chặn"
+    },
+    "rank": {
+      "master": "Master",
+      "director": "Giám đốc",
+      "manager": "Quản lý",
+      "staff": "Nhân viên"
     }
   }
 }

@@ -220,5 +220,23 @@
     "accepted": "Đã tạo và lập chỉ mục tài liệu.",
     "dismissed": "Đã bỏ qua đề xuất.",
     "actionError": "Xử lý đề xuất thất bại."
-  }
+  },
+  "proposals": "Đề xuất câu trả lời",
+  "proposalQuestion": "Câu hỏi",
+  "proposalAnswer": "Câu trả lời",
+  "proposalApprove": "Duyệt",
+  "proposalReject": "Từ chối",
+  "proposalRejectReason": "Lý do (hiển thị cho người đề xuất)",
+  "proposalFromConversation": "Mở hội thoại #{{id}}",
+  "proposalNoConversation": "Không có hội thoại liên kết",
+  "folderId": "ID thư mục",
+  "folderIdHint": "Phần cuối của URL thư mục Drive, không phải toàn bộ liên kết.",
+  "shareFolderWith": "Hãy chia sẻ thư mục cho địa chỉ này với quyền xem:",
+  "registerKeyFirst": "Hãy đăng ký khóa tài khoản dịch vụ Google bên dưới trước khi thêm nguồn Drive.",
+  "testConnection": "Kiểm tra kết nối",
+  "gdriveCredential": "Tài khoản dịch vụ Google Drive",
+  "gdriveConnected": "Đã kết nối",
+  "gdriveNotConnected": "Chưa kết nối",
+  "gdriveKeyHint": "Dán JSON của tài khoản dịch vụ. Chỉ các trường cần để đăng nhập được lưu, và khóa sẽ không hiển thị lại.",
+  "gdriveRemoveConfirm": "Xóa khóa tài khoản dịch vụ? Các nguồn Drive sẽ ngừng đồng bộ."
 }

@@ -376,9 +376,27 @@ export class SessionService {
   async setLanguage(token: string, language: string): Promise<Session> {
     const session = await this.loadByToken(token);
     session.language = this.resolveLanguage(language);
+    // An explicit choice outranks detection from here on (PLN-260813 D3).
+    session.languageLocked = 1;
     const saved = await this.sessionRepo.save(session);
     await this.redis.del(sessionCacheKey(token));
     return saved;
+  }
+
+  /**
+   * Move a session to the language the shopper is actually writing in
+   * (PLN-260813 P2). Unlike `setLanguage` this does NOT lock: it is an
+   * inference, and a later explicit pick must still win.
+   *
+   * The caller holds the `Session` object the rest of the turn reads from, so
+   * it is mutated here too — otherwise the system message of the very turn that
+   * triggered the switch would still go out in the old language.
+   */
+  async applyDetectedLanguage(session: Session, language: string): Promise<void> {
+    session.language = language;
+    await this.sessionRepo.update({ id: session.id }, { language });
+    await this.redis.del(sessionCacheKey(session.sessionToken));
+    this.logger.log(`session language detected: session=${session.id} → ${language}`);
   }
 
   async bindCustomer(sessionId: number, customerId: number): Promise<void> {
@@ -394,6 +412,18 @@ export class SessionService {
    * Both mappings come from the @ivy/types registry, so a newly registered
    * language is understood here without touching this file (REQ-260817 G6).
    */
+  /**
+   * Language for a session opened from an external messenger (PLN-260812 S3).
+   *
+   * Platform hint first, then the tenant's own default. Relay channels send no
+   * locale at all, and defaulting straight to English put English privacy and
+   * handoff notices into Korean KakaoTalk rooms.
+   */
+  async languageForChannel(tenantId: number | null, localeHint?: string | null): Promise<string> {
+    const tenant = tenantId != null ? await this.tenantRepo.findOne({ where: { id: tenantId } }) : null;
+    return this.resolveLanguage(localeHint ?? undefined, tenant?.timezone);
+  }
+
   private resolveLanguage(locale?: string, timezone?: string | null): string {
     const explicit = sessionLanguageForLocale(locale);
     // English is treated as "no preference expressed": an en-US browser in a

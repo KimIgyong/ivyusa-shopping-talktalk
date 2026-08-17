@@ -43,8 +43,13 @@ describe('IdleConversationService.sweep', () => {
     const saved: any[] = [];
     const updates: any[] = [];
     const audits: string[] = [];
+    // `where` is now an array of alternatives (channel IS NULL OR 'widget'),
+    // which TypeORM reads as OR — the fake has to do the same or the new
+    // exclusion would look like it filtered everything out.
+    const matchesAny = (row: any, where: any): boolean =>
+      Array.isArray(where) ? where.some((w) => matches(row, w)) : matches(row, where);
     const convRepo = {
-      find: jest.fn(async ({ where }: any) => conversations.filter((c) => matches(c, where))),
+      find: jest.fn(async ({ where }: any) => conversations.filter((c) => matchesAny(c, where))),
       update: jest.fn(async (where: any, patch: any) => void updates.push({ where, patch })),
     };
     const msgRepo = {
@@ -66,6 +71,26 @@ describe('IdleConversationService.sweep', () => {
     );
     return { svc, saved, updates, audits, assignmentRepo };
   }
+
+  describe('channel exclusion (PLN-260812)', () => {
+    it('leaves a messenger thread alone — "idle" is a widget idea', async () => {
+      const h = build([conv({ channel: 'kakao' })], new Date(Date.now() - DAY));
+      const result = await h.svc.sweep();
+
+      // Closing a KakaoTalk room sent "Rate this chat" into a personal chat.
+      expect(result.prompted).toBe(0);
+      expect(result.closed).toBe(0);
+      expect(h.saved).toHaveLength(0);
+    });
+
+    it('still sweeps widget threads, including legacy rows with no channel', async () => {
+      const widget = build([conv({ channel: 'widget' })], new Date(Date.now() - DAY));
+      expect((await widget.svc.sweep()).prompted).toBe(1);
+
+      const legacy = build([conv()], new Date(Date.now() - DAY));
+      expect((await legacy.svc.sweep()).prompted).toBe(1);
+    });
+  });
 
   describe('asking', () => {
     it('asks a thread that has been quiet past the threshold', async () => {

@@ -17,7 +17,8 @@ export function useCreateSource() {
   const qc = useQueryClient();
   const tenantKey = useTenantKey();
   return useMutation({
-    mutationFn: (body: { name: string; type: string }) => knowledgeService.createSource(body),
+    mutationFn: (body: { name: string; type: string; config_json?: Record<string, unknown> }) =>
+      knowledgeService.createSource(body),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'sources'] });
       toast.success('Source added');
@@ -36,6 +37,54 @@ export function useSetSourceStatus() {
       qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'sources'] });
       toast.success('Source updated');
     },
+    onError: (err: Error) => toast.error(err.message),
+  });
+}
+
+/** Drive service-account key: status, registration, removal, connection test. */
+export function useGdriveCredential() {
+  const tenantKey = useTenantKey();
+  return useQuery({
+    queryKey: ['knowledge', tenantKey, 'gdrive-credential'],
+    queryFn: () => knowledgeService.gdriveCredential(),
+  });
+}
+
+export function useSaveGdriveCredential() {
+  const qc = useQueryClient();
+  const tenantKey = useTenantKey();
+  return useMutation({
+    mutationFn: (keyJson: string) => knowledgeService.saveGdriveCredential(keyJson),
+    onSuccess: (r) => {
+      qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'gdrive-credential'] });
+      qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'sources'] });
+      // Echo the address, because sharing the folder with it is the next step
+      // and nothing else on screen says what it is.
+      toast.success(`Connected as ${r.clientEmail}`);
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+}
+
+export function useDeleteGdriveCredential() {
+  const qc = useQueryClient();
+  const tenantKey = useTenantKey();
+  return useMutation({
+    mutationFn: () => knowledgeService.deleteGdriveCredential(),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'gdrive-credential'] });
+      toast.success('Service account removed');
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+}
+
+export function useTestGdrive() {
+  return useMutation({
+    mutationFn: (folderId?: string) => knowledgeService.testGdrive(folderId),
+    // A failed check is a result, not a request error: the message explains
+    // which half is wrong (key or folder sharing).
+    onSuccess: (r) => (r.ok ? toast.success(r.message) : toast.error(r.message)),
     onError: (err: Error) => toast.error(err.message),
   });
 }
@@ -363,6 +412,44 @@ export function useCatalogSyncCompletion(job: CatalogSyncJob | null | undefined)
     if (r.embedFailed) parts.push(`${r.embedFailed} not indexed`);
     toast[r.embedFailed ? 'error' : 'success'](`Catalog sync: ${parts.join(', ')}`);
   }, [job, qc, tenantKey]);
+}
+
+/** Answer proposals awaiting a knowledge owner's decision (PLN-260810 S4). */
+export function useProposals(status = 'pending') {
+  const tenantKey = useTenantKey();
+  return useQuery({
+    queryKey: ['knowledge', tenantKey, 'proposals', status],
+    queryFn: () => knowledgeService.proposals(status),
+  });
+}
+
+/** Approve or reject a proposal. Approval creates and indexes the document. */
+export function useProposalDecision() {
+  const qc = useQueryClient();
+  const tenantKey = useTenantKey();
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'proposals'] });
+    qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'documents'] });
+  };
+  const approve = useMutation({
+    mutationFn: (v: { id: string; title?: string; category?: string; answer?: string }) =>
+      knowledgeService.approveProposal(v.id, { title: v.title, category: v.category, answer: v.answer }),
+    onSuccess: () => {
+      invalidate();
+      toast.success('Approved — the answer is now searchable');
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+  const reject = useMutation({
+    mutationFn: (v: { id: string; reason: string }) =>
+      knowledgeService.rejectProposal(v.id, v.reason),
+    onSuccess: () => {
+      invalidate();
+      toast.success('Rejected — the reason is shown to whoever proposed it');
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+  return { approve, reject };
 }
 
 /** Usage guides per product type, written or not (PLN-260807 P2). */

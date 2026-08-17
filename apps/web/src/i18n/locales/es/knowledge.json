@@ -220,5 +220,23 @@
     "accepted": "Documento creado e indexado.",
     "dismissed": "Propuesta descartada.",
     "actionError": "No se pudo procesar la propuesta."
-  }
+  },
+  "proposals": "Propuestas de respuesta",
+  "proposalQuestion": "Pregunta",
+  "proposalAnswer": "Respuesta",
+  "proposalApprove": "Aprobar",
+  "proposalReject": "Rechazar",
+  "proposalRejectReason": "Motivo (visible para quien la propuso)",
+  "proposalFromConversation": "Abrir conversación #{{id}}",
+  "proposalNoConversation": "Sin conversación vinculada",
+  "folderId": "ID de carpeta",
+  "folderIdHint": "La última parte de la URL de la carpeta, no el enlace completo.",
+  "shareFolderWith": "Comparte la carpeta con esta dirección como lector:",
+  "registerKeyFirst": "Registra abajo una clave de cuenta de servicio antes de añadir una fuente de Drive.",
+  "testConnection": "Probar conexión",
+  "gdriveCredential": "Cuenta de servicio de Google Drive",
+  "gdriveConnected": "Conectada",
+  "gdriveNotConnected": "Sin conectar",
+  "gdriveKeyHint": "Pega el JSON de la cuenta de servicio. Solo se guardan los campos necesarios y la clave no se vuelve a mostrar.",
+  "gdriveRemoveConfirm": "¿Eliminar la clave? Las fuentes de Drive dejarán de sincronizarse."
 }

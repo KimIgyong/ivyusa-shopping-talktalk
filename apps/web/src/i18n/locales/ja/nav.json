@@ -27,5 +27,10 @@
   "products": "商品",
   "allMenus": "すべてのメニュー",
   "issueBoard": "問い合わせボード",
-  "languageBetaHint": "β 機械翻訳・レビュー待ち"
+  "languageBetaHint": "β 機械翻訳・レビュー待ち",
+  "blocked": {
+    "title": "このメニューは開けません",
+    "description": "この画面はお客様のアカウントではご利用いただけません。必要な場合はワークスペースのマスターにご依頼ください。",
+    "goHome": "ダッシュボードへ"
+  }
 }
