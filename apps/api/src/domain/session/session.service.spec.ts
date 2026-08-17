@@ -1,5 +1,5 @@
 import { Repository } from 'typeorm';
-import { CONSENT_STATE } from '@ivy/types';
+import { CONSENT_STATE, WIDGET_TABS_DEFAULT } from '@ivy/types';
 import { CONSENT_NOTICE_VERSION, SessionService, sessionCacheKey } from './session.service';
 import { Session } from './entity/session.entity';
 import { Tenant } from '../tenant/entity/tenant.entity';
@@ -130,7 +130,7 @@ describe('SessionService consent (PLN-Privacy-Control-Gap Stage 1-2)', () => {
         privacyPolicyUrl: 'https://shop.example/privacy',
         consentNoticeVersion: 'v9',
         widgetLoginMode: 'redirect',
-        widgetTabs: ['notifications', 'chat'],
+        widgetTabs: [...WIDGET_TABS_DEFAULT],
         widgetTabPosition: 'top',
         widgetCopy: expect.objectContaining({ firstVisit: {}, loginGreeting: {} }),
       });
@@ -144,8 +144,11 @@ describe('SessionService consent (PLN-Privacy-Control-Gap Stage 1-2)', () => {
     it('serves the built-in tab default to a tenant that never configured one', async () => {
       tenant!.widgetTabs = null;
       tenant!.widgetTabPosition = 'top';
+      // Asserted against the constant, not a copy of today's value: this test
+      // is about "unconfigured follows the default", which stays true when the
+      // default changes. A literal here would just be a snapshot to re-edit.
       await expect(svc.privacyNotice(1)).resolves.toMatchObject({
-        widgetTabs: ['notifications', 'chat'],
+        widgetTabs: [...WIDGET_TABS_DEFAULT],
         widgetTabPosition: 'top',
       });
     });
@@ -164,7 +167,7 @@ describe('SessionService consent (PLN-Privacy-Control-Gap Stage 1-2)', () => {
       // otherwise normalize to an empty array — a widget with no way to navigate.
       tenant!.widgetTabs = ['ghost-tab'];
       await expect(svc.privacyNotice(1)).resolves.toMatchObject({
-        widgetTabs: ['notifications', 'chat'],
+        widgetTabs: [...WIDGET_TABS_DEFAULT],
       });
     });
 

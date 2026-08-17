@@ -56,7 +56,13 @@ describe('normalizeWidgetTabs', () => {
 
   it('the built-in default is itself valid and unchanged by normalization', () => {
     expect(normalizeWidgetTabs([...WIDGET_TABS_DEFAULT])).toEqual([...WIDGET_TABS_DEFAULT]);
-    expect(WIDGET_TABS_DEFAULT).toEqual([WIDGET_TAB.NOTIFICATIONS, WIDGET_TAB.CHAT]);
+    // Pinned deliberately: this array is what every unconfigured tenant renders,
+    // so a change here is a change to live widgets and should be a visible diff.
+    expect(WIDGET_TABS_DEFAULT).toEqual([
+      WIDGET_TAB.NOTIFICATIONS,
+      WIDGET_TAB.ORDERS,
+      WIDGET_TAB.CHAT,
+    ]);
   });
 });
 
