@@ -17,11 +17,11 @@ function safeHttpUrl(url: string): string | null {
 }
 
 export function MessageBubble({ message }: { message: ChatMessage }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const mine = message.senderType === 'user';
   return (
-    <div className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
-      <div className="max-w-[80%]">
+    <div className={`group flex ${mine ? 'justify-end' : 'justify-start'}`}>
+      <div className="max-w-[85%]">
         {message.senderType === 'agent' && message.senderName && (
           <div className="mb-0.5 text-[11px] font-medium text-gray-500">{message.senderName}</div>
         )}
@@ -30,10 +30,10 @@ export function MessageBubble({ message }: { message: ChatMessage }) {
         {message.body?.trim() && (
           <div
             className={[
-              'whitespace-pre-wrap break-words rounded-lg px-3 py-2 text-sm',
-              mine
-                ? 'rounded-br-none bg-primary-500 text-white'
-                : 'rounded-bl-none bg-gray-100 text-gray-800',
+              // Evenly rounded on all four corners: the Master Shots drop the
+              // speech-bubble tail entirely (frames 53/57/61).
+              'whitespace-pre-wrap break-words rounded-xl px-3.5 py-2.5 text-sm',
+              mine ? 'bg-primary-500 text-white' : 'bg-gray-100 text-gray-800',
             ].join(' ')}
           >
             {message.body}
@@ -71,12 +71,18 @@ export function MessageBubble({ message }: { message: ChatMessage }) {
             </ul>
           </div>
         )}
+        {/* The design shows no timestamps (PLN §7 D-1). Removing them outright
+            would cost the shopper any sense of when something was said, so they
+            are kept but held back until the bubble is hovered.
+            On a touch screen there is no hover and a text-only bubble has no
+            focusable child, so hiding them there would hide them for good —
+            pointer-coarse devices always show them. */}
         <div
-          className={`mt-0.5 text-[10px] text-gray-400 ${
+          className={`mt-0.5 text-[10px] text-gray-400 opacity-0 transition-opacity group-hover:opacity-100 [@media(hover:none)]:opacity-100 ${
             mine ? 'text-right' : 'text-left'
           }`}
         >
-          {formatTime(message.createdAt)}
+          {formatTime(message.createdAt, i18n.language)}
         </div>
       </div>
     </div>

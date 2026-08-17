@@ -1,49 +1,36 @@
 import { useState } from 'react';
-import {
-  Truck,
-  RotateCcw,
-  HelpCircle,
-  Phone,
-  Users,
-  Package,
-  ArrowLeft,
-  Sparkles,
-  Leaf,
-  Bell,
-  MessageSquare,
-} from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { ScenarioButton } from '../../lib/types';
 
 /** Product Help submenu actions (client-only, not server-driven). */
 export type SubAction = 'usage' | 'ingredients' | 'exchange' | 'restock';
 
-/** Icon per server action key, with a sensible fallback for custom buttons. */
-const ACTION_ICONS: Record<string, React.ReactNode> = {
-  delivery_status: <Truck className="h-4 w-4" />,
-  cancel_refund: <RotateCcw className="h-4 w-4" />,
-  product_help: <Sparkles className="h-4 w-4" />,
-  contact_support: <Phone className="h-4 w-4" />,
-  affiliate: <Users className="h-4 w-4" />,
-  my_orders: <Package className="h-4 w-4" />,
-  message: <MessageSquare className="h-4 w-4" />,
-};
-
-function MenuButton({
-  icon,
+/**
+ * The opening menu and the Product Help submenu (PLN-260817 W-5, frames 54/60).
+ *
+ * These were bordered cards with a lucide icon each. The Master Shots use plain
+ * chips — no icons — and split them by role: the opening menu is filled blue
+ * (it is the primary thing to do on an empty thread), while submenu options are
+ * quiet white pills that wrap.
+ */
+function MenuChip({
   label,
   onClick,
+  variant,
 }: {
-  icon: React.ReactNode;
   label: string;
   onClick: () => void;
+  variant: 'primary' | 'quiet';
 }) {
   return (
     <button
       onClick={onClick}
-      className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-left text-sm text-gray-800 transition-colors hover:border-primary-400 hover:bg-primary-500/5"
+      className={
+        variant === 'primary'
+          ? 'rounded-full bg-primary-100 px-4 py-2.5 text-center text-sm font-medium text-primary-700 transition-colors hover:bg-primary-200'
+          : 'rounded-full border border-gray-200 bg-white px-3.5 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:border-gray-300 hover:bg-gray-50'
+      }
     >
-      <span className="text-primary-500">{icon}</span>
       {label}
     </button>
   );
@@ -65,12 +52,14 @@ export function ScenarioMenu({
 
   if (sub) {
     return (
-      <div className="grid grid-cols-2 gap-2">
-        <MenuButton icon={<HelpCircle className="h-4 w-4" />} label={t('chat.productHelp.usage')} onClick={() => onSubAction('usage')} />
-        <MenuButton icon={<Leaf className="h-4 w-4" />} label={t('chat.productHelp.ingredients')} onClick={() => onSubAction('ingredients')} />
-        <MenuButton icon={<RotateCcw className="h-4 w-4" />} label={t('chat.productHelp.exchange')} onClick={() => onSubAction('exchange')} />
-        <MenuButton icon={<Bell className="h-4 w-4" />} label={t('chat.productHelp.restock')} onClick={() => onSubAction('restock')} />
-        <MenuButton icon={<ArrowLeft className="h-4 w-4" />} label={t('chat.productHelp.back')} onClick={() => setSub(false)} />
+      // Wraps rather than a fixed 2-column grid: these labels are translated into
+      // six languages and "Exchange / Return" is far wider in some of them.
+      <div className="flex flex-wrap gap-2">
+        <MenuChip variant="quiet" label={t('chat.productHelp.usage')} onClick={() => onSubAction('usage')} />
+        <MenuChip variant="quiet" label={t('chat.productHelp.ingredients')} onClick={() => onSubAction('ingredients')} />
+        <MenuChip variant="quiet" label={t('chat.productHelp.exchange')} onClick={() => onSubAction('exchange')} />
+        <MenuChip variant="quiet" label={t('chat.productHelp.restock')} onClick={() => onSubAction('restock')} />
+        <MenuChip variant="quiet" label={t('chat.productHelp.back')} onClick={() => setSub(false)} />
       </div>
     );
   }
@@ -78,9 +67,9 @@ export function ScenarioMenu({
   return (
     <div className="grid grid-cols-2 gap-2">
       {buttons.map((b) => (
-        <MenuButton
+        <MenuChip
           key={b.id}
-          icon={ACTION_ICONS[b.action] ?? ACTION_ICONS.message}
+          variant="primary"
           label={b.label}
           onClick={() => (b.action === 'product_help' ? setSub(true) : onScenario(b))}
         />

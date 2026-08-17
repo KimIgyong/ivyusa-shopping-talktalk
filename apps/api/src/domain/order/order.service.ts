@@ -116,23 +116,52 @@ export class OrderService {
       .take(s)
       .getManyAndCount();
 
-    const countByOrder = await this.itemCounts(orders.map((o) => o.id));
-    const items = orders.map((o) => OrderMapper.toListItem(o, countByOrder.get(String(o.id)) ?? 0));
+    const summaryByOrder = await this.itemSummaries(orders.map((o) => o.id));
+    const items = orders.map((o) =>
+      OrderMapper.toListItem(o, summaryByOrder.get(String(o.id)) ?? OrderService.EMPTY_ITEM_SUMMARY),
+    );
     return new Paginated(items, buildPagination(p, s, total));
   }
 
-  /** order id → item count in one GROUP BY query (PERF-7, was one COUNT per row). */
-  private async itemCounts(orderIds: number[]): Promise<Map<string, number>> {
+  /**
+   * order id → item count + first line-item title (PERF-7: the count replaced
+   * one COUNT per row; the title keeps that property).
+   *
+   * The widget's shipment list renders "<first item> + N more" per order. Getting
+   * that string from order *detail* would be one extra request per row, so it is
+   * aggregated here instead: two fixed queries regardless of how many orders the
+   * page holds. GROUP_CONCAT is deliberately avoided — its SEPARATOR must be a
+   * string literal, so a title containing the separator would corrupt the split.
+   */
+  private async itemSummaries(
+    orderIds: number[],
+  ): Promise<Map<string, { count: number; firstTitle: string | null }>> {
     if (orderIds.length === 0) return new Map();
-    const rows = await this.itemRepo
+    const counts = await this.itemRepo
       .createQueryBuilder('i')
       .select('i.order_id', 'oid')
       .addSelect('COUNT(*)', 'cnt')
+      .addSelect('MIN(i.id)', 'first_id')
       .where('i.order_id IN (:...ids)', { ids: orderIds })
       .groupBy('i.order_id')
-      .getRawMany<{ oid: string; cnt: string }>();
-    return new Map(rows.map((r) => [String(r.oid), Number(r.cnt)]));
+      .getRawMany<{ oid: string; cnt: string; first_id: string }>();
+
+    const firstIds = counts.map((r) => Number(r.first_id)).filter((n) => Number.isFinite(n));
+    const firstItems = firstIds.length
+      ? await this.itemRepo.find({ where: { id: In(firstIds) } })
+      : [];
+    const titleById = new Map(firstItems.map((i) => [String(i.id), i.title]));
+
+    return new Map(
+      counts.map((r) => [
+        String(r.oid),
+        { count: Number(r.cnt), firstTitle: titleById.get(String(r.first_id)) ?? null },
+      ]),
+    );
   }
+
+  /** Orders with no cached items still need a summary object, not a null hole. */
+  private static readonly EMPTY_ITEM_SUMMARY = { count: 0, firstTitle: null };
 
   /** Order detail (items + totals), scoped to the bound customer. */
   async detailForSession(sessionToken: string, orderId: number) {
@@ -208,8 +237,10 @@ export class OrderService {
       skip: (p - 1) * s,
       take: s,
     });
-    const countByOrder = await this.itemCounts(orders.map((o) => o.id));
-    const items = orders.map((o) => OrderMapper.toListItem(o, countByOrder.get(String(o.id)) ?? 0));
+    const summaryByOrder = await this.itemSummaries(orders.map((o) => o.id));
+    const items = orders.map((o) =>
+      OrderMapper.toListItem(o, summaryByOrder.get(String(o.id)) ?? OrderService.EMPTY_ITEM_SUMMARY),
+    );
     return new Paginated(items, buildPagination(p, s, total));
   }
 

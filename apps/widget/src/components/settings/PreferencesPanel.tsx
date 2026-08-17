@@ -71,7 +71,7 @@ function Toggle({
  * server acknowledged them (fail-closed, same as the chat banner).
  */
 function ConsentSection() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const sessionToken = useWidgetStore((s) => s.sessionToken);
   const consent = useWidgetStore((s) => s.consent);
   const updateConsentState = useWidgetStore((s) => s.updateConsentState);
@@ -126,7 +126,7 @@ function ConsentSection() {
           </p>
           <p className="mt-0.5 text-[11px] text-gray-400">
             {consent.consentAt &&
-              t('privacy.consent.grantedAt', { date: formatDate(consent.consentAt) })}
+              t('privacy.consent.grantedAt', { date: formatDate(consent.consentAt, i18n.language) })}
             {consent.consentAt && consent.noticeVersion && ' · '}
             {consent.noticeVersion &&
               t('privacy.consent.version', { version: consent.noticeVersion })}

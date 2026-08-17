@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { FileText, Paperclip, Send, Sparkles, Headphones, X } from 'lucide-react';
+import { Check, FileText, Paperclip, Send, Sparkles, Headphones, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useWidgetStore } from '../../store/widgetStore';
 import { useChat } from '../../hooks/useChat';
@@ -24,8 +24,9 @@ import { ScenarioMenu, type SubAction } from './ScenarioMenu';
 import { AuthGate } from './AuthGate';
 import { ContactCard } from './ContactCard';
 import { AffiliateCard } from './AffiliateCard';
+import { InlineOrdersAnswer } from './InlineOrderCard';
 
-type Inline = 'auth' | 'contact' | 'affiliate' | 'contactEmail' | null;
+type Inline = 'auth' | 'contact' | 'affiliate' | 'contactEmail' | 'orders' | null;
 
 /** Pick the tenant-configured copy for the active language, if any. */
 function pickCopy(bag: WidgetCopyText | undefined, language: string): string | null {
@@ -44,7 +45,6 @@ export function ChatTab() {
   const authenticated = useWidgetStore((s) => s.authenticated);
   const customerName = useWidgetStore((s) => s.customerName);
   const setAuthenticated = useWidgetStore((s) => s.setAuthenticated);
-  const setActiveTab = useWidgetStore((s) => s.setActiveTab);
   const setSessionToken = useWidgetStore((s) => s.setSessionToken);
   const setSettingsOpen = useWidgetStore((s) => s.setSettingsOpen);
   const consent = useWidgetStore((s) => s.consent);
@@ -71,6 +71,10 @@ export function ChatTab() {
         ? 'queued'
         : null;
   const scenarioButtons = useScenario(sessionToken);
+  // Recent orders for the in-thread "My orders" answer. Only fetched once the
+  // shopper actually asks — `enabled` follows the inline card being shown.
+  const activeTab = useWidgetStore((s) => s.activeTab);
+  const bumpChatUnread = useWidgetStore((s) => s.bumpChatUnread);
 
   // CCPA notice choice — local cache only used until session/ensure reports the
   // server-side state (the server is the source of truth; see showConsentBanner).
@@ -79,6 +83,10 @@ export function ChatTab() {
   );
   const [input, setInput] = useState('');
   const [inline, setInline] = useState<Inline>(null);
+  // Where the shopper was headed when the sign-in card interrupted them. Without
+  // it, AuthGate's success handler just cleared `inline` and they landed back on
+  // the menu having to pick "My orders" a second time.
+  const [afterAuth, setAfterAuth] = useState<Inline>(null);
   // Attachments the shopper picked but has not sent yet (PLN-260814 S3).
   const uploads = useAttachmentUpload(sessionToken);
   const [uploadNotice, setUploadNotice] = useState<string | null>(null);
@@ -124,6 +132,21 @@ export function ChatTab() {
       behavior: 'smooth',
     });
   }, [messages, inline, showEscalate, waitMode, endConfirm, status]);
+
+  /**
+   * Chat tab badge (PLN-260817 W-1). The thread keeps polling while the shopper
+   * is on the notification tab, so an agent reply that lands there would
+   * otherwise be invisible until they wandered back. Counts inbound messages
+   * only; `setActiveTab('chat')` clears the tally.
+   */
+  const seenCount = useRef(messages.length);
+  useEffect(() => {
+    const added = messages.slice(seenCount.current);
+    seenCount.current = messages.length;
+    if (activeTab === 'chat') return;
+    const inbound = added.filter((m) => m.senderType !== 'user').length;
+    if (inbound > 0) bumpChatUnread(inbound);
+  }, [messages, activeTab, bumpChatUnread]);
 
   /**
    * Fail-closed consent recording (ConsentBanner awaits this): the banner only
@@ -186,11 +209,9 @@ export function ChatTab() {
         void scenario('shipping_policy', button.label).then(runPostAction);
         return;
       case 'my_orders':
-        if (!authenticated) {
-          setInline('auth');
-        } else {
-          setActiveTab('orders');
-        }
+        // Answer in the thread (frame 57) rather than throwing the shopper into
+        // another tab — which no longer exists anyway (PLN-260817 S3).
+        openOrAuth('orders');
         return;
       case 'contact_support':
         setInline('contact');
@@ -218,8 +239,7 @@ export function ChatTab() {
     if (!post || post.type === 'none') return;
     switch (post.type) {
       case 'open_orders':
-        if (!authenticated) setInline('auth');
-        else setActiveTab('orders');
+        openOrAuth('orders');
         return;
       case 'open_contact':
         setInline('contact');
@@ -235,6 +255,16 @@ export function ChatTab() {
         if (post.url) window.open(post.url, '_blank', 'noopener,noreferrer');
         return;
     }
+  }
+
+  /** Show `target`, or the sign-in card first and `target` once that succeeds. */
+  function openOrAuth(target: Inline) {
+    if (authenticated) {
+      setInline(target);
+      return;
+    }
+    setAfterAuth(target);
+    setInline('auth');
   }
 
   function handleSubAction(a: SubAction) {
@@ -259,8 +289,7 @@ export function ChatTab() {
         void escalate();
         return;
       case 'my_orders':
-        if (!authenticated) setInline('auth');
-        else setActiveTab('orders');
+        openOrAuth('orders');
         return;
       default:
         void scenario(id, label).then(runPostAction);
@@ -372,7 +401,13 @@ export function ChatTab() {
                     key={q.id}
                     onClick={() => handleQuickReply(q.id, q.label)}
                     disabled={sending}
-                    className="rounded-full border border-primary-300 bg-white px-3 py-1 text-xs font-medium text-primary-600 transition-colors hover:bg-primary-500/10 disabled:opacity-40"
+                    className={`rounded-full border bg-white px-3.5 py-1.5 text-xs font-medium transition-colors disabled:opacity-40 ${
+                      /* The design outlines only the conversation-ending chip in
+                         blue (frame 65) — everything else is a quiet gray pill. */
+                      q.id === 'end_chat'
+                        ? 'border-primary-400 text-primary-600 hover:bg-primary-50'
+                        : 'border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50'
+                    }`}
                   >
                     {q.label}
                   </button>
@@ -418,12 +453,16 @@ export function ChatTab() {
           </div>
         )}
 
-        {/* Ended divider — set by our end button OR an agent ending the thread. */}
+        {/* Ended — set by our end button OR an agent ending the thread. The
+            design closes the conversation with a mark rather than a hairline
+            divider (frame 69), which reads as a finished errand. */}
         {status === 'ended' && (
-          <div className="flex items-center gap-2 py-1 text-[11px] text-gray-400">
-            <span className="h-px flex-1 bg-gray-200" />
-            <span className="whitespace-nowrap">{t('chat.endedNotice')}</span>
-            <span className="h-px flex-1 bg-gray-200" />
+          <div className="flex flex-col items-center gap-2 py-4">
+            <span className="flex h-12 w-12 items-center justify-center rounded-full bg-success/15">
+              <Check className="h-6 w-6 text-success" />
+            </span>
+            <span className="text-sm font-bold text-gray-900">{t('chat.endedTitle')}</span>
+            <span className="text-xs text-gray-400">{t('chat.endedThanks')}</span>
           </div>
         )}
 
@@ -441,7 +480,7 @@ export function ChatTab() {
               <button
                 key={a.id}
                 onClick={() => handleQuickReply(a.id, a.label)}
-                className="rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-medium text-gray-600 transition-colors hover:border-primary-300 hover:text-primary-600"
+                className="rounded-full border border-gray-200 bg-white px-3.5 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:border-gray-300 hover:bg-gray-50"
               >
                 {a.label}
               </button>
@@ -454,9 +493,13 @@ export function ChatTab() {
             sessionToken={sessionToken}
             onSuccess={() => {
               setAuthenticated(true);
-              setInline(null);
+              setInline(afterAuth);
+              setAfterAuth(null);
             }}
-            onCancel={() => setInline(null)}
+            onCancel={() => {
+              setInline(null);
+              setAfterAuth(null);
+            }}
           />
         )}
         {inline === 'contactEmail' && (
@@ -474,6 +517,7 @@ export function ChatTab() {
         {inline === 'affiliate' && (
           <AffiliateCard sessionToken={sessionToken} />
         )}
+        {inline === 'orders' && <InlineOrdersAnswer sessionToken={sessionToken} />}
 
         {showEscalate && (
           <button
@@ -554,7 +598,7 @@ export function ChatTab() {
       {/* Input */}
       <form
         onSubmit={submitInput}
-        className="flex items-center gap-2 border-t border-gray-100 p-2"
+        className="flex items-center gap-2 border-t border-gray-100 px-3 py-3"
       >
         <input
           ref={fileInputRef}
@@ -581,15 +625,15 @@ export function ChatTab() {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder={t('chat.inputPlaceholder')}
-          className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:bg-gray-50"
+          className="flex-1 rounded-full border border-gray-200 px-4 py-2.5 text-sm focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:bg-gray-50"
         />
         <button
           type="submit"
           disabled={sending || uploads.busy || (!input.trim() && !uploads.ready.length)}
           aria-label={t('chat.send')}
-          className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-primary-500 text-white hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-40"
+          className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-primary-500 text-white hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-40"
         >
-          <Send className="h-4 w-4" />
+          <Send className="h-[18px] w-[18px]" />
         </button>
       </form>
     </div>

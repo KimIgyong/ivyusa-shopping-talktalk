@@ -19,7 +19,16 @@ export const vi: Translation = {
       shipping: 'Vận chuyển',
       event: 'Sự kiện',
       review: 'Đánh giá',
+      inquiries: 'Yêu cầu',
     },
+    groups: {
+      today: 'Thông báo hôm nay',
+      yesterday: 'Hôm qua',
+    },
+    unread: 'Chưa đọc',
+    markRead: 'Đánh dấu đã đọc',
+    unreadCount_one: '{{count}} chưa đọc',
+    unreadCount_other: '{{count}} chưa đọc',
   },
 
   chat: {
@@ -115,6 +124,16 @@ export const vi: Translation = {
       exchange: 'Tôi muốn đổi hoặc trả lại một sản phẩm.',
       restock: 'Hãy báo cho tôi khi sản phẩm này có hàng trở lại.',
     },
+    endedTitle: 'Cuộc trò chuyện đã kết thúc',
+    endedThanks: 'Cảm ơn bạn đã liên hệ!',
+    csatLevel: {
+      1: 'Rất không hài lòng',
+      2: 'Không hài lòng',
+      3: 'Bình thường',
+      4: 'Hài lòng',
+      5: 'Rất hài lòng',
+    },
+    csatFailed: 'Không lưu được đánh giá của bạn. Vui lòng thử lại.',
   },
 
   auth: {
@@ -139,6 +158,12 @@ export const vi: Translation = {
     hours: 'Thứ Hai–Thứ Sáu 10:00–18:00',
     email: 'help@ivy.com',
     chatAgent: 'Trò chuyện với nhân viên',
+    methods: {
+      phone: 'Gọi điện',
+      email: 'Email',
+      chat: 'Chat trực tuyến',
+    },
+    emailHours: 'Tiếp nhận 24/7 · phản hồi trong 1 ngày làm việc',
   },
 
   affiliate: {
@@ -197,6 +222,15 @@ export const vi: Translation = {
     total: 'Tổng cộng',
     writeReview: 'Viết đánh giá',
     back: 'Quay lại',
+    itemCount_one: '{{count}} sản phẩm',
+    itemCount_other: '{{count}} sản phẩm',
+    itemsMore: '{{title}} + {{count}} sản phẩm khác',
+    trackingCta: 'Theo dõi đơn hàng',
+    shipmentDelivered: 'Đơn hàng đã được giao.',
+    shipmentInTransit: 'Đơn hàng đang trên đường đến bạn!',
+    noShipments: 'Hiện không có đơn nào đang giao.',
+    noInquiries: 'Chưa có yêu cầu nào.',
+    inlineLead: 'Đây là các đơn hàng gần đây của bạn 👇',
   },
 
   review: {

@@ -36,3 +36,33 @@ describe('OrderMapper.toDetail (widget contract)', () => {
     expect(detail.items[0]).toMatchObject({ id: '11', title: 'Ampoule', qty: 2 });
   });
 });
+
+/**
+ * The widget's shipment cards read "<first item> + N more" (PLN-260817 W-2).
+ * Before this, the list payload carried only `itemCount`, so the widget had to
+ * choose between a detail fetch per row or showing no product name at all.
+ */
+describe('OrderMapper.toListItem (item summary)', () => {
+  const order = () =>
+    Object.assign(new OrderCache(), {
+      id: 9,
+      orderNumber: 'IVY-39891',
+      statusInternal: 'paid',
+      statusUi: null,
+      total: 55,
+      currency: 'USD',
+      createdAt: new Date('2026-08-17T00:00:00Z'),
+      orderedAt: null,
+    });
+
+  it('carries the first line item title alongside the count', () => {
+    const row = OrderMapper.toListItem(order(), { count: 3, firstTitle: 'Vitamin C Serum Set' });
+    expect(row).toMatchObject({ itemCount: 3, firstItemTitle: 'Vitamin C Serum Set' });
+  });
+
+  it('an order with no cached items yields a null title, not a crash', () => {
+    const row = OrderMapper.toListItem(order(), { count: 0, firstTitle: null });
+    expect(row.itemCount).toBe(0);
+    expect(row.firstItemTitle).toBeNull();
+  });
+});

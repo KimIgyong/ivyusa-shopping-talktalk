@@ -168,4 +168,26 @@ describe('ReviewService', () => {
       expect(list.map((r) => r.status)).toEqual(['hidden', 'submitted']);
     });
   });
+
+  describe('requestReview — names the item it is about (PLN-260817 S5)', () => {
+    it('emits refType/refId so the widget can open the form for that item', async () => {
+      await svc.requestReview(4242, 42, 7);
+      expect(publish).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          category: 'review',
+          refType: 'order_item',
+          refId: 4242,
+        }),
+      );
+    });
+
+    it('does not smuggle the id under a field NotifyInput ignores', async () => {
+      // The original bug: `orderItemId` was published, NotifyInput had no such
+      // field, and the id vanished between the emitter and the row.
+      await svc.requestReview(4242, 42, 7);
+      const payload = publish.mock.calls.at(-1)?.[1] as Record<string, unknown>;
+      expect(payload).not.toHaveProperty('orderItemId');
+    });
+  });
 });

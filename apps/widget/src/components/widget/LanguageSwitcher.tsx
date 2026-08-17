@@ -66,7 +66,10 @@ export function LanguageSwitcher() {
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-label={t('a11y.language')}
-        className="flex items-center gap-1 rounded-lg bg-white/10 px-1.5 py-1 text-[11px] font-medium text-white hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/70"
+        // White-on-translucent until PLN-260817 turned the header white, at which
+        // point this button vanished into it. Now a neutral control like the gear
+        // and close buttons beside it.
+        className="flex items-center gap-1 rounded-lg px-1.5 py-1.5 text-[11px] font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-500"
       >
         <Globe className="h-3.5 w-3.5" aria-hidden="true" />
         {active.shortLabel}

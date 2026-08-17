@@ -14,6 +14,8 @@ export function toNotificationResponse(n: Notification): NotificationResponse {
     body: n.body,
     statusBadge: n.statusBadge,
     linkUrl: n.linkUrl,
+    refType: n.refType,
+    refId: n.refId != null ? String(n.refId) : null,
     channel: n.channel,
     read: n.readAt != null,
     readAt: n.readAt ? n.readAt.toISOString() : null,

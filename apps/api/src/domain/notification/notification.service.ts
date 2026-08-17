@@ -120,6 +120,8 @@ export class NotificationService implements OnModuleInit {
         body: input.body ?? null,
         statusBadge: input.statusBadge ?? null,
         linkUrl: input.linkUrl ?? null,
+        refType: input.refType ?? null,
+        refId: input.refId ?? null,
         channel,
         readAt: null,
       }),

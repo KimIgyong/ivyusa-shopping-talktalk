@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Users, CheckCircle2 } from 'lucide-react';
+import { CheckCircle2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import {
   affiliateApply,
@@ -51,17 +51,19 @@ export function AffiliateCard({
   }
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-3">
-      <div className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-gray-800">
-        <Users className="h-4 w-4 text-primary-500" />
+    <div className="space-y-2">
+      {/* Lead-in reads as the bot speaking, matching frame 65 — the programme
+          used to be introduced by a bordered card header instead. */}
+      <div className="max-w-[85%] rounded-xl bg-gray-100 px-3.5 py-2.5 text-sm text-gray-800">
         {t('affiliate.title')}
       </div>
-      <ol className="mb-3 space-y-1.5">
+      {/* Steps are the tenant's own copy (`affiliate.steps`), rendered as the
+          design's tinted cards. Deliberately title-only: the design's per-step
+          descriptions quote IVY's own terms ("10% back"), which must not be
+          baked into a multi-tenant widget. */}
+      <ol className="space-y-2 pl-3">
         {steps.map((step, i) => (
-          <li key={i} className="flex items-start gap-2 text-xs text-gray-600">
-            <span className="flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full bg-primary-500/10 text-[10px] font-semibold text-primary-600">
-              {i + 1}
-            </span>
+          <li key={i} className="rounded-xl bg-primary-50 px-3.5 py-3 text-sm font-medium text-gray-800">
             {step}
           </li>
         ))}
@@ -86,7 +88,7 @@ export function AffiliateCard({
         <button
           disabled={applying}
           onClick={apply}
-          className="w-full rounded-lg bg-primary-500 px-3 py-2 text-sm font-medium text-white hover:bg-primary-600 disabled:opacity-50"
+          className="rounded-full border border-primary-400 bg-white px-4 py-1.5 text-sm font-medium text-primary-600 transition-colors hover:bg-primary-50 disabled:opacity-50"
         >
           {applying ? t('common.loading') : t('affiliate.apply')}
         </button>
