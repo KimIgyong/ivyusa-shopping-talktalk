@@ -255,6 +255,7 @@ export const en = {
     messageThread: 'Message thread',
     verifyIdentity: 'Verify your identity',
     privacyNotice: 'Privacy notice',
+    language: 'Language',
   },
 };
 

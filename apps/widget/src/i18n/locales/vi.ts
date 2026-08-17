@@ -1,0 +1,270 @@
+import type { Translation } from './en';
+
+export const vi: Translation = {
+  appName: 'IVY USA',
+  notificationCenter: 'Trung tâm thông báo',
+  settings: 'Cài đặt',
+
+  tab: {
+    notifications: 'Thông báo',
+    chat: 'Trò chuyện',
+    orders: 'Đơn hàng',
+  },
+
+  notifications: {
+    empty: 'Chưa có thông báo nào.',
+    filters: {
+      all: 'Tất cả',
+      payment: 'Thanh toán',
+      shipping: 'Vận chuyển',
+      event: 'Sự kiện',
+      review: 'Đánh giá',
+    },
+  },
+
+  chat: {
+    welcome:
+      'Xin chào! Chào mừng bạn đến với {{shop}}. Chúng tôi có thể giúp gì cho bạn? Hãy chọn một chủ đề bên dưới hoặc nhập câu hỏi của bạn.',
+    welcomeNamed:
+      'Xin chào {{name}}! Rất vui được gặp lại bạn tại {{shop}}. Chúng tôi có thể giúp gì cho bạn? Hãy chọn một chủ đề bên dưới hoặc nhập câu hỏi của bạn.',
+    aiDisclosure:
+      'Cuộc trò chuyện này có sử dụng AI. Tin nhắn bạn gửi được xử lý bởi nhà cung cấp dịch vụ AI bên thứ ba tại Hoa Kỳ để tạo câu trả lời.',
+    citations: 'Nguồn tham khảo',
+    inputPlaceholder: 'Nhập tin nhắn…',
+    send: 'Gửi',
+    sendFailed: 'Rất tiếc, tin nhắn chưa gửi được. Vui lòng thử lại.',
+    endChat: 'Kết thúc',
+    endConfirm: 'Kết thúc cuộc trò chuyện này?',
+    endCancel: 'Hủy',
+    endedNotice: 'Cuộc trò chuyện đã kết thúc. Gửi tin nhắn để bắt đầu cuộc trò chuyện mới.',
+    csatQuestion: 'Bạn hài lòng với cuộc trò chuyện này ở mức nào?',
+    csatThanks: 'Cảm ơn phản hồi của bạn 🙏',
+    csatDismiss: 'Đóng',
+    csatStar: '{{count}} sao',
+    connectingAgent: 'Đang kết nối bạn với nhân viên hỗ trợ. Vui lòng chờ trong giây lát…',
+    contactEmail: {
+      title: 'Chúng tôi nên gửi câu trả lời tới đâu?',
+      body: 'Hiện đang ngoài giờ hỗ trợ, nên đội ngũ của chúng tôi sẽ trả lời qua email.',
+      placeholder: 'ban@example.com',
+      submit: 'Lưu',
+      failed: 'Không lưu được địa chỉ đó. Vui lòng kiểm tra lại và thử lần nữa.',
+      privacy: 'Chỉ dùng để trả lời câu hỏi này.',
+    },
+    typingAi: 'Đang soạn câu trả lời…',
+    typingAgent: 'Nhân viên hỗ trợ đang soạn câu trả lời…',
+    waitingForAgent: 'Đang chờ nhân viên hỗ trợ — câu trả lời sẽ hiển thị tại đây.',
+    /** Fallback follow-ups so a reply never leaves the shopper at a dead end. */
+    nextActions: {
+      myOrders: 'Đơn hàng của tôi',
+      shipping: 'Vận chuyển & giao hàng',
+      returns: 'Trả hoặc đổi hàng',
+      agent: 'Gặp nhân viên hỗ trợ',
+    },
+    connectAgent: 'Kết nối nhân viên hỗ trợ',
+    consent: {
+      title: 'Thông báo về quyền riêng tư',
+      body: 'Theo CCPA, chúng tôi xử lý tin nhắn của bạn để cung cấp hỗ trợ và sử dụng công cụ phân tích (Google Analytics) để hiểu lưu lượng truy cập và cải thiện dịch vụ. Bạn có đồng ý để tiếp tục không?',
+      accept: 'Đồng ý',
+      decline: 'Từ chối',
+      versionLabel: 'Phiên bản thông báo {{version}}',
+      updated:
+        'Thông báo về quyền riêng tư của chúng tôi đã thay đổi — vui lòng xem lại và xác nhận lựa chọn của bạn.',
+      items:
+        'Chúng tôi thu thập: tin nhắn trò chuyện, các lượt tra cứu đơn hàng bạn yêu cầu và thông tin thiết bị cơ bản.',
+      purpose: 'Mục đích: để trả lời câu hỏi và hỗ trợ khách hàng.',
+      retention: 'Lưu trữ: dữ liệu trò chuyện được giữ tối đa 365 ngày, sau đó sẽ bị xóa.',
+      aiProcessor: 'AI: tin nhắn được xử lý bởi nhà cung cấp AI bên thứ ba tại Hoa Kỳ.',
+      policyLink: 'Chính sách quyền riêng tư',
+      privacyChoices: 'Lựa chọn quyền riêng tư & dữ liệu của tôi',
+      saveError: 'Chúng tôi không lưu được lựa chọn của bạn. Vui lòng thử lại.',
+      retry: 'Thử lại',
+    },
+    scenarios: {
+      delivery: 'Tình trạng giao hàng',
+      cancelRefund: 'Hủy / Hoàn tiền',
+      productHelp: 'Hỗ trợ sản phẩm',
+      contact: 'Liên hệ hỗ trợ',
+      affiliate: 'Cộng tác viên',
+      myOrders: 'Đơn hàng của tôi',
+    },
+    productHelp: {
+      usage: 'Cách dùng',
+      ingredients: 'Thành phần',
+      exchange: 'Đổi · Trả hàng',
+      restock: 'Báo khi có hàng',
+      back: 'Quay lại',
+    },
+    templates: {
+      cancelRefund: 'Tôi muốn hủy đơn hoặc yêu cầu hoàn tiền cho đơn hàng của mình.',
+      usage: 'Sản phẩm này dùng như thế nào?',
+      ingredients: 'Sản phẩm này có những thành phần gì?',
+      exchange: 'Tôi muốn đổi hoặc trả lại một sản phẩm.',
+      restock: 'Hãy báo cho tôi khi sản phẩm này có hàng trở lại.',
+    },
+  },
+
+  auth: {
+    title: 'Xác minh danh tính',
+    body: 'Để xem thông tin này, vui lòng đăng nhập hoặc tra cứu đơn hàng dành cho khách.',
+    signIn: 'Đăng nhập',
+    guestLookup: 'Tra cứu đơn hàng cho khách',
+    orderNumber: 'Mã đơn hàng',
+    email: 'Email',
+    submit: 'Tra cứu đơn hàng',
+    cancel: 'Hủy',
+    waiting: 'Đang chờ bạn đăng nhập…',
+    lookupFailed:
+      'Chúng tôi không tìm thấy đơn hàng khớp với mã và email đó. Vui lòng kiểm tra lại cả hai và thử lần nữa.',
+    lookupThrottled: 'Bạn đã thử quá nhiều lần. Vui lòng đợi vài phút rồi thử lại.',
+    useGuestInstead: 'Tra cứu bằng mã đơn hàng',
+  },
+
+  contact: {
+    title: 'Liên hệ hỗ trợ',
+    phone: '1588-0000',
+    hours: 'Thứ Hai–Thứ Sáu 10:00–18:00',
+    email: 'help@ivy.com',
+    chatAgent: 'Trò chuyện với nhân viên',
+  },
+
+  affiliate: {
+    title: 'Chương trình cộng tác viên',
+    steps: [
+      'Đăng ký tham gia chương trình',
+      'Xét duyệt trong 1–3 ngày làm việc',
+      'Nhận hoa hồng 10% cho mỗi lượt giới thiệu',
+    ],
+    apply: 'Đăng ký ngay',
+    pending: 'Đơn đăng ký của bạn đang được xét duyệt.',
+    approved: 'Bạn đã được duyệt làm cộng tác viên!',
+  },
+
+  orders: {
+    issues: {
+      status: {
+        received: 'Đã tiếp nhận',
+        in_progress: 'Đang xử lý',
+        resolved: 'Đã giải quyết',
+        rejected: 'Bị từ chối',
+        closed: 'Hoàn tất',
+      },
+      type: {
+        order_status: 'Trạng thái đơn hàng',
+        delivery: 'Giao hàng',
+        cancel: 'Hủy đơn',
+        refund: 'Hoàn tiền',
+        partnership: 'Hợp tác',
+        other: 'Yêu cầu khác',
+      },
+      line: {
+        received: 'Chúng tôi đã nhận được yêu cầu của bạn và đang xem xét.',
+        in_progress: 'Một nhân viên đã được phân công và đang xử lý.',
+        resolved: 'Yêu cầu này đã được giải quyết.',
+        rejected: 'Yêu cầu này chưa thể xử lý. Xem thông báo để biết chi tiết.',
+        closed: 'Yêu cầu này đã hoàn tất. Cảm ơn bạn.',
+      },
+    },
+    subtabs: {
+      payments: 'Thanh toán',
+      shipping: 'Vận chuyển',
+      inquiries: 'Yêu cầu hỗ trợ',
+    },
+    empty: 'Không tìm thấy đơn hàng nào.',
+    emptyRecent: 'Không có đơn hàng nào trong 30 ngày qua.',
+    more: 'Xem thêm',
+    moreInMyPage: 'Để xem toàn bộ lịch sử đơn hàng, vui lòng vào Trang của tôi trên cửa hàng.',
+    viewAllOnMall: 'Xem tất cả đơn hàng của tôi',
+    ask: 'Hỏi về đơn hàng này',
+    askMessage: 'Tôi có câu hỏi về đơn hàng #{{orderNumber}}.',
+    trackingSteps: ['Đang chuẩn bị', 'Đã gửi hàng', 'Đang vận chuyển', 'Đã giao'],
+    track: 'Theo dõi',
+    detail: 'Chi tiết đơn hàng',
+    items: 'Sản phẩm',
+    total: 'Tổng cộng',
+    writeReview: 'Viết đánh giá',
+    back: 'Quay lại',
+  },
+
+  review: {
+    title: 'Viết đánh giá',
+    rating: 'Đánh giá của bạn',
+    placeholder: 'Chia sẻ trải nghiệm của bạn…',
+    submit: 'Gửi đánh giá',
+    thanks: 'Cảm ơn bạn đã đánh giá!',
+    stars_one: '{{count}} sao',
+    stars_other: '{{count}} sao',
+  },
+
+  prefs: {
+    title: 'Tùy chọn thông báo',
+    channels: {
+      in_app: 'Trong ứng dụng',
+      email: 'Email',
+      sms: 'SMS',
+      web_push: 'Thông báo đẩy trên web',
+    },
+    categories: {
+      payment: 'Thanh toán',
+      shipping: 'Vận chuyển',
+      event: 'Sự kiện',
+      review: 'Đánh giá',
+    },
+    alwaysOn: 'Luôn bật',
+    ccpa: 'CCPA: Không bán hoặc chia sẻ thông tin cá nhân của tôi',
+  },
+
+  privacy: {
+    title: 'Quyền riêng tư & dữ liệu của bạn',
+    consent: {
+      title: 'Đồng ý về trò chuyện & AI',
+      state: {
+        granted: 'Đã đồng ý',
+        declined: 'Đã rút lại đồng ý',
+        pending: 'Chưa ghi nhận lựa chọn nào',
+      },
+      grantedAt: 'Vào ngày {{date}}',
+      version: 'Phiên bản thông báo {{version}}',
+      pendingHint:
+        'Mở tab trò chuyện để xem thông báo về quyền riêng tư và đưa ra lựa chọn của bạn.',
+      withdraw: 'Rút lại đồng ý',
+      withdrawConfirm: 'Nhấn lần nữa để xác nhận rút lại',
+      withdrawHint:
+        'Nếu bạn rút lại, việc trò chuyện và xử lý bằng AI sẽ dừng cho tới khi bạn đồng ý lại.',
+      reconsent: 'Đồng ý lại',
+      saved: 'Lựa chọn của bạn đã được lưu.',
+      error: 'Chúng tôi không lưu được lựa chọn của bạn. Vui lòng thử lại.',
+      unavailable:
+        'Hiện chưa xem được trạng thái đồng ý. Vui lòng kiểm tra kết nối và mở lại khung trò chuyện.',
+    },
+    optOutHint:
+      'Tắt tin nhắn qua email, SMS và thông báo đẩy trên web cho tài khoản của bạn. Thông báo trong ứng dụng vẫn bật.',
+    export: 'Tải dữ liệu của tôi (JSON)',
+    exporting: 'Đang chuẩn bị bản xuất dữ liệu…',
+    delete: 'Xóa dữ liệu của tôi',
+    deleteConfirm: 'Nhấn lần nữa để xác nhận — thao tác này không thể hoàn tác',
+    deleteDone: 'Dữ liệu cá nhân của bạn đã được ẩn danh.',
+    needVerified:
+      'Vui lòng đăng nhập vào tài khoản cửa hàng trước — thao tác này cần danh tính đã xác minh.',
+  },
+
+  common: {
+    loading: 'Đang tải…',
+    error: 'Đã xảy ra lỗi.',
+    crashTitle: 'Có lỗi xảy ra ở phía chúng tôi.',
+    crashBody:
+      'Các phần còn lại của khung hỗ trợ vẫn hoạt động. Hãy thử lại, hoặc chuyển tab rồi quay lại.',
+    retry: 'Thử lại',
+    close: 'Đóng',
+  },
+
+  a11y: {
+    supportWidget: 'Khung hỗ trợ',
+    openSupport: 'Mở hỗ trợ',
+    closeSupport: 'Đóng hỗ trợ',
+    close: 'Đóng',
+    messageThread: 'Chuỗi tin nhắn',
+    verifyIdentity: 'Xác minh danh tính',
+    privacyNotice: 'Thông báo về quyền riêng tư',
+    language: 'Ngôn ngữ',
+  },
+};

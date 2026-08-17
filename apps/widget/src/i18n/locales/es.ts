@@ -256,5 +256,6 @@ export const es: Translation = {
     messageThread: 'Hilo de mensajes',
     verifyIdentity: 'Verifica tu identidad',
     privacyNotice: 'Aviso de privacidad',
+    language: 'Idioma',
   },
 };
