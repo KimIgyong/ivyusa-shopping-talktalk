@@ -1,7 +1,12 @@
 import { Tenant } from './entity/tenant.entity';
 import { IntegrationCredential } from './entity/integration-credential.entity';
 import { IntegrationStatusEntity } from '../integration/entity/integration-status.entity';
-import { WIDGET_LOGIN_MODE } from '@ivy/types';
+import {
+  WIDGET_LOGIN_MODE,
+  WIDGET_TAB_POSITION,
+  WIDGET_TABS_DEFAULT,
+  normalizeWidgetTabs,
+} from '@ivy/types';
 import {
   CredentialResponse,
   PrivacyNoticeResponse,
@@ -57,6 +62,12 @@ export class TenantMapper {
         t.widgetLoginMode === WIDGET_LOGIN_MODE.POPUP
           ? WIDGET_LOGIN_MODE.POPUP
           : WIDGET_LOGIN_MODE.REDIRECT,
+      // Resolve the default here so the console never has to know what it is.
+      tabs: normalizeWidgetTabs(t.widgetTabs) ?? [...WIDGET_TABS_DEFAULT],
+      tabPosition:
+        t.widgetTabPosition === WIDGET_TAB_POSITION.BOTTOM
+          ? WIDGET_TAB_POSITION.BOTTOM
+          : WIDGET_TAB_POSITION.TOP,
       timezone: t.timezone ?? null,
       displayName: t.widgetCopy?.displayName ?? null,
       firstVisit: t.widgetCopy?.firstVisit ?? {},

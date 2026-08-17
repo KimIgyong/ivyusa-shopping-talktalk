@@ -10,8 +10,13 @@ import {
   sessionLanguageForLocale,
   sessionLanguageForTimezone,
   WIDGET_LOGIN_MODE,
+  WIDGET_TAB_POSITION,
+  WIDGET_TABS_DEFAULT,
   WidgetCopy,
   WidgetLoginMode,
+  WidgetTab,
+  WidgetTabPosition,
+  normalizeWidgetTabs,
 } from '@ivy/types';
 import { generateToken } from '@ivy/common';
 import { Session } from './entity/session.entity';
@@ -37,6 +42,10 @@ export interface PrivacyNoticeInfo {
   consentNoticeVersion: string;
   /** How the widget's "Sign in" opens the storefront login. */
   widgetLoginMode: WidgetLoginMode;
+  /** Tabs this tenant shows, already normalized and never empty. */
+  widgetTabs: WidgetTab[];
+  /** Where the tab bar sits. */
+  widgetTabPosition: WidgetTabPosition;
   /** Tenant widget copy; displayName already resolved (config ?? tenant name). */
   widgetCopy: WidgetCopy;
 }
@@ -353,6 +362,14 @@ export class SessionService {
         tenant?.widgetLoginMode === WIDGET_LOGIN_MODE.POPUP
           ? WIDGET_LOGIN_MODE.POPUP
           : WIDGET_LOGIN_MODE.REDIRECT,
+      // The stored value if it still normalizes to something renderable,
+      // otherwise the built-in default. A tenant row holding a tab key we no
+      // longer ship must not produce an empty bar the shopper cannot navigate.
+      widgetTabs: normalizeWidgetTabs(tenant?.widgetTabs) ?? [...WIDGET_TABS_DEFAULT],
+      widgetTabPosition:
+        tenant?.widgetTabPosition === WIDGET_TAB_POSITION.BOTTOM
+          ? WIDGET_TAB_POSITION.BOTTOM
+          : WIDGET_TAB_POSITION.TOP,
       widgetCopy: {
         // Resolved here so the widget never needs the tenant entity: configured
         // name ?? tenant name (kills the hardcoded-brand greeting for tenant 2).

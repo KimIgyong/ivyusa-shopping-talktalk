@@ -1,4 +1,4 @@
-import { WidgetLoginMode } from '@ivy/types';
+import { WidgetLoginMode, WidgetTab, WidgetTabPosition } from '@ivy/types';
 
 /** Response DTOs — camelCase. `uuid` is the external tenant identifier. */
 export interface TenantResponse {
@@ -68,6 +68,13 @@ export interface StorefrontResponse {
 
 export interface WidgetSettingsResponse {
   loginMode: WidgetLoginMode;
+  /**
+   * Effective tab set — the stored value, or the built-in default when the
+   * tenant never configured one. Resolved server-side so the console renders
+   * checkboxes from one source of truth instead of re-deriving the default.
+   */
+  tabs: WidgetTab[];
+  tabPosition: WidgetTabPosition;
   timezone: string | null;
   /** Stored (raw) widget copy — null/missing = widget default; console shows the tenant name as placeholder. */
   displayName: string | null;

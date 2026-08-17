@@ -16,7 +16,7 @@
  * Nullability below is what the entities actually allow, not what is convenient.
  */
 
-import type { WidgetLoginMode } from '../common/enum.types';
+import type { WidgetLoginMode, WidgetTab, WidgetTabPosition } from '../common/enum.types';
 
 // ---- session -------------------------------------------------------------
 /** Per-language customer-facing copy; keys are uppercase language codes. */
@@ -56,6 +56,14 @@ export interface SessionResponse {
   consentAt: string | null;
   /** How the widget's "Sign in" opens the storefront login (tenant console setting). */
   widgetLoginMode: WidgetLoginMode;
+  /**
+   * Tabs this tenant shows, in display order (PLN-260817-Widget-Tab-Config).
+   * Always non-empty and already normalized — the widget renders it as given
+   * rather than re-deciding what a valid bar looks like.
+   */
+  widgetTabs: WidgetTab[];
+  /** Where the tab bar sits: 'top' (default) or 'bottom'. */
+  widgetTabPosition: WidgetTabPosition;
   /** Tenant widget copy (display name + greetings); displayName pre-falls back to the tenant name. */
   widgetCopy: WidgetCopy;
 }

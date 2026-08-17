@@ -52,7 +52,19 @@
     "firstVisit": "첫 방문 안내 문구",
     "firstVisitHint": "고객이 채팅을 열 때 표시됩니다. {shop}은 표시 이름으로 치환됩니다. 비우면 기본 문구를 사용합니다.",
     "loginGreeting": "로그인 인사말",
-    "loginGreetingHint": "로그인 고객을 인식하면 표시됩니다. {name}은 고객 이름으로 치환됩니다. 비우면 기본 문구를 사용합니다."
+    "loginGreetingHint": "로그인 고객을 인식하면 표시됩니다. {name}은 고객 이름으로 치환됩니다. 비우면 기본 문구를 사용합니다.",
+    "tabsTitle": "탭",
+    "tabs": "노출할 탭",
+    "tabsHint": "최소 한 개는 켜야 합니다. 주문 탭을 끄면 주문 관련 필터(결제·배송·리뷰·문의)는 알림 탭에 남습니다.",
+    "tabPosition": "탭 위치",
+    "tabPositionTop": "상단 (텍스트)",
+    "tabPositionBottom": "하단 (아이콘)",
+    "tabPositionHint": "상단은 제목 아래 텍스트 세그먼트로, 하단은 위젯 맨 아래 아이콘+라벨 바로 표시됩니다.",
+    "tab": {
+      "notifications": "알림",
+      "orders": "주문",
+      "chat": "채팅"
+    }
   },
   "shopify": {
     "title": "Shopify 연동",

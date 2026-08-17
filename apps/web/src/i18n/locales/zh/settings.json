@@ -52,7 +52,19 @@
     "firstVisit": "首次访问欢迎语",
     "firstVisitHint": "顾客打开聊天时显示。{shop} 会替换为显示名称。留空则使用默认文案。",
     "loginGreeting": "已登录顾客的问候语",
-    "loginGreetingHint": "识别出已登录顾客时显示。{name} 会替换为客户姓名。留空则使用默认文案。"
+    "loginGreetingHint": "识别出已登录顾客时显示。{name} 会替换为客户姓名。留空则使用默认文案。",
+    "tabsTitle": "标签页",
+    "tabs": "显示这些标签页",
+    "tabsHint": "至少需保留一个标签页。关闭订单标签页后，订单相关筛选（支付、配送、评价、咨询）仍保留在通知标签页中。",
+    "tabPosition": "标签栏位置",
+    "tabPositionTop": "顶部（文字）",
+    "tabPositionBottom": "底部（图标）",
+    "tabPositionHint": "顶部在标题下方显示文字分段栏；底部在挂件底部显示图标加标签栏。",
+    "tab": {
+      "notifications": "通知",
+      "orders": "订单",
+      "chat": "聊天"
+    }
   },
   "shopify": {
     "title": "Shopify 连接",

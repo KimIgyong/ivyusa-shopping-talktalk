@@ -52,7 +52,19 @@
     "firstVisit": "Mensaje de bienvenida (primera visita)",
     "firstVisitHint": "Se muestra al abrir el chat. {shop} inserta el nombre para mostrar. Vacío = mensaje por defecto.",
     "loginGreeting": "Saludo para clientes identificados",
-    "loginGreetingHint": "Se muestra al reconocer a un cliente con sesión iniciada. {name} inserta su nombre. Vacío = mensaje por defecto."
+    "loginGreetingHint": "Se muestra al reconocer a un cliente con sesión iniciada. {name} inserta su nombre. Vacío = mensaje por defecto.",
+    "tabsTitle": "Pestañas",
+    "tabs": "Mostrar estas pestañas",
+    "tabsHint": "Debe quedar al menos una pestaña activa. Con Pedidos desactivada, los filtros de pedidos (pago, envío, reseñas, consultas) permanecen en Notificaciones.",
+    "tabPosition": "Posición de la barra de pestañas",
+    "tabPositionTop": "Arriba (texto)",
+    "tabPositionBottom": "Abajo (iconos)",
+    "tabPositionHint": "Arriba muestra una barra de texto bajo el título; abajo muestra una barra con icono y etiqueta fijada al pie del widget.",
+    "tab": {
+      "notifications": "Notificaciones",
+      "orders": "Pedidos",
+      "chat": "Chat"
+    }
   },
   "shopify": {
     "title": "Conexión de Shopify",

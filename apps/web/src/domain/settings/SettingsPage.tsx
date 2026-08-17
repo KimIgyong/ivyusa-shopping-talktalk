@@ -9,10 +9,16 @@ import type { Column } from '@/components/Table';
 import { Modal } from '@/components/Modal';
 import { FormRow, Input, Select } from '@/components/Field';
 // Type-only: @ivy/types ships CJS whose runtime exports Rollup cannot see.
-import type { WidgetLoginMode } from '@ivy/types';
+import type { WidgetLoginMode, WidgetTab, WidgetTabPosition } from '@ivy/types';
 import { LanguageTabs } from '../ai-settings/LanguageTabs';
 // Runtime table from the registry source (see apps/web/src/i18n/i18n.ts for why).
 import { LANGUAGE_TIMEZONES } from '../../../../../packages/types/src/common/language';
+// Same source-path import as the language registry above: a value import of the
+// package entry point breaks the browser build (CJS `export *`).
+import {
+  WIDGET_TABS_DEFAULT,
+  WIDGET_TAB_ORDER,
+} from '../../../../../packages/types/src/common/enum.types';
 import type { ScenarioLang } from '../ai-settings/ai-settings.service';
 // Live-support routing lives here now (PLN-260806 D1); the editor itself stays
 // in the ai-settings domain because it saves through the same AI-config API.
@@ -521,6 +527,25 @@ function WidgetBehaviorCard() {
   const value: WidgetLoginMode = picked ?? data?.loginMode ?? 'redirect';
   const tz = tzPicked ?? data?.timezone ?? '';
 
+  // Tab configuration (PLN-260817-Widget-Tab-Config). The server resolves the
+  // built-in default before it gets here, so `data.tabs` is always a real set
+  // and this never has to know what the default is.
+  const [tabsPicked, setTabsPicked] = useState<WidgetTab[] | null>(null);
+  const [positionPicked, setPositionPicked] = useState<WidgetTabPosition | null>(null);
+  const tabs = tabsPicked ?? data?.tabs ?? [...WIDGET_TABS_DEFAULT];
+  const tabPosition: WidgetTabPosition = positionPicked ?? data?.tabPosition ?? 'top';
+
+  /**
+   * Toggle a tab, refusing to remove the last one. A widget with no tabs cannot
+   * be navigated at all, so the control is disabled rather than letting the save
+   * fail server-side with a validation error the admin has to decode.
+   */
+  const toggleTab = (key: WidgetTab) => {
+    const next = tabs.includes(key) ? tabs.filter((k) => k !== key) : [...tabs, key];
+    if (next.length === 0) return;
+    setTabsPicked(WIDGET_TAB_ORDER.filter((k) => next.includes(k)));
+  };
+
   // Widget copy draft (PLN-260808-Widget-Greetings) — lazily seeded from the
   // stored values; one language tab shared by both message editors.
   const [copyLang, setCopyLang] = useState<CopyLang>('EN');
@@ -535,8 +560,14 @@ function WidgetBehaviorCard() {
     setCopyDraft({ ...copy, [field]: { ...copy[field], [copyLang]: text } });
 
   const copyDirty = copyDraft != null && JSON.stringify(copyDraft) !== JSON.stringify(storedCopy);
+  const tabsDirty = data != null && JSON.stringify(tabs) !== JSON.stringify(data.tabs);
   const dirty =
-    data != null && (value !== data.loginMode || tz !== (data.timezone ?? '') || copyDirty);
+    data != null &&
+    (value !== data.loginMode ||
+      tz !== (data.timezone ?? '') ||
+      tabsDirty ||
+      tabPosition !== data.tabPosition ||
+      copyDirty);
 
   return (
     <Card title={t('widgetBehavior.title')}>
@@ -566,6 +597,49 @@ function WidgetBehaviorCard() {
           </Select>
         </FormRow>
         <p className="mb-4 text-xs text-gray-400">{t('widgetBehavior.timezoneHint')}</p>
+
+        {/* Tab configuration — PLN-260817-Widget-Tab-Config */}
+        <div className="mb-2 border-t border-gray-100 pt-4 text-sm font-medium text-gray-700">
+          {t('widgetBehavior.tabsTitle')}
+        </div>
+        <FormRow label={t('widgetBehavior.tabs')}>
+          <div className="flex flex-wrap gap-3">
+            {WIDGET_TAB_ORDER.map((key) => {
+              const checked = tabs.includes(key);
+              // Disabling the last checked box is the guard: an empty tab bar is
+              // refused by the API too, but the admin should never get that far.
+              const isLast = checked && tabs.length === 1;
+              return (
+                <label
+                  key={key}
+                  className={`flex items-center gap-1.5 text-sm ${
+                    isLast ? 'text-gray-400' : 'text-gray-700'
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    disabled={isLoading || isLast}
+                    onChange={() => toggleTab(key)}
+                  />
+                  {t(`widgetBehavior.tab.${key}`)}
+                </label>
+              );
+            })}
+          </div>
+        </FormRow>
+        <p className="mb-4 text-xs text-gray-400">{t('widgetBehavior.tabsHint')}</p>
+        <FormRow label={t('widgetBehavior.tabPosition')}>
+          <Select
+            value={tabPosition}
+            disabled={isLoading}
+            onChange={(e) => setPositionPicked(e.target.value as WidgetTabPosition)}
+          >
+            <option value="top">{t('widgetBehavior.tabPositionTop')}</option>
+            <option value="bottom">{t('widgetBehavior.tabPositionBottom')}</option>
+          </Select>
+        </FormRow>
+        <p className="mb-4 text-xs text-gray-400">{t('widgetBehavior.tabPositionHint')}</p>
 
         {/* Widget copy (display name + greetings) — PLN-260808-Widget-Greetings */}
         <div className="mb-2 border-t border-gray-100 pt-4 text-sm font-medium text-gray-700">
@@ -611,7 +685,13 @@ function WidgetBehaviorCard() {
         <Button
           onClick={() =>
             save.mutate(
-              { loginMode: value, timezone: tz, ...(copyDirty ? { copy } : {}) },
+              {
+                loginMode: value,
+                timezone: tz,
+                tabs,
+                tabPosition,
+                ...(copyDirty ? { copy } : {}),
+              },
               { onSuccess: () => setCopyDraft(null) },
             )
           }

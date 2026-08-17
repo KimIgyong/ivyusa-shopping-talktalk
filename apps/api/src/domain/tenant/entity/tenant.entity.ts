@@ -78,6 +78,21 @@ export class Tenant {
   widgetCopy: TenantWidgetCopy | null;
 
   /**
+   * Tabs the widget shows, in display order (PLN-260817-Widget-Tab-Config).
+   *
+   * NULL means "never configured" and resolves to WIDGET_TABS_DEFAULT at read
+   * time — it is NOT the same as an empty array, which is refused on write. Kept
+   * nullable so a later change to the default reaches every tenant who never
+   * chose otherwise, with no backfill.
+   */
+  @Column({ name: 'widget_tabs', type: 'json', nullable: true })
+  widgetTabs: string[] | null;
+
+  /** Where the widget's tab bar sits: 'top' (default) or 'bottom'. */
+  @Column({ name: 'widget_tab_position', type: 'varchar', length: 8, default: 'top' })
+  widgetTabPosition: string;
+
+  /**
    * Issue-workflow entitlement (REQ-260807 §11.1, server-judged):
    * 'native' (paid add-on: kanban/state machine) | 'bridge' (external helpdesk
    * hand-off) | 'base' (chat list only, default — behavior unchanged).

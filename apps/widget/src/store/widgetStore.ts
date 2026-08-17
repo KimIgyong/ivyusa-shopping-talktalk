@@ -1,14 +1,20 @@
 import { create } from 'zustand';
 import { setStoredSessionToken } from '../lib/api-client';
 import { initialLanguage } from '../i18n/i18n';
-import type { ConsentState, WidgetCopy, WidgetLoginMode } from '../lib/types';
+import { WIDGET_TABS_DEFAULT } from '../lib/widget-tabs';
+import type {
+  ConsentState,
+  WidgetCopy,
+  WidgetLoginMode,
+  WidgetTab,
+  WidgetTabPosition,
+} from '../lib/types';
 
 /**
- * The widget has two tabs (PLN-260817 S3). 'orders' was a third until the Master
- * Shots moved to a two-tab segmented header; its content now lives under the
- * notification tab's Shipping/Payment filters and as inline cards in chat.
+ * Which tabs exist at all. Which of them a given tenant SHOWS is a setting
+ * (`visibleTabs`), not a constant — see PLN-260817-Widget-Tab-Config.
  */
-export type TabKey = 'notifications' | 'chat';
+export type TabKey = WidgetTab;
 
 /** Server-confirmed consent snapshot (from session/ensure — source of truth). */
 export interface ConsentInfo {
@@ -52,9 +58,24 @@ interface WidgetState {
   /**
    * Selected notification filter chip. Store-held rather than tab-local so other
    * surfaces can deep-link into one — a redirect sign-in returning with
-   * `?reopen=orders` lands on Shipping, which is where orders now live.
+   * `?reopen=orders` lands on Shipping, which is where orders live when the
+   * orders tab is switched off.
    */
   notificationFilter: string;
+  /**
+   * Tabs this tenant shows, in display order (session/ensure). Seeded with the
+   * built-in default so the first paint — before ensure resolves — is the same
+   * bar the majority of tenants will keep, not an empty flash.
+   */
+  visibleTabs: TabKey[];
+  /** Where the tab bar sits (session/ensure). */
+  tabPosition: WidgetTabPosition;
+  /**
+   * True once session/ensure has actually delivered a layout. Before that
+   * `visibleTabs` is only the seeded default, which is not the same thing —
+   * anything that must not act on a guess (deep links) waits for this.
+   */
+  tabsResolved: boolean;
   /**
    * Inbound chat messages that arrived while the Chat tab was not the active one
    * — the count on the Chat tab's badge (PLN-260817 W-1). Cleared the moment the
@@ -81,6 +102,7 @@ interface WidgetState {
     noticeVersion?: string,
   ) => void;
   setNotificationFilter: (f: string) => void;
+  setTabLayout: (tabs: TabKey[], position: WidgetTabPosition) => void;
   bumpChatUnread: (n: number) => void;
   queueChatMessage: (m: string) => void;
   consumeChatMessage: () => string | null;
@@ -109,6 +131,9 @@ export const useWidgetStore = create<WidgetState>()((set, get) => ({
   consent: null,
   pendingChatMessage: null,
   notificationFilter: 'all',
+  visibleTabs: [...WIDGET_TABS_DEFAULT],
+  tabPosition: 'top',
+  tabsResolved: false,
   chatUnread: 0,
   setSessionToken: (t) => {
     setStoredSessionToken(t);
@@ -127,6 +152,19 @@ export const useWidgetStore = create<WidgetState>()((set, get) => ({
   setLanguage: (l) => set({ language: l }),
   setConsentInfo: (c) => set({ consent: c }),
   setNotificationFilter: (f) => set({ notificationFilter: f }),
+  /**
+   * Apply the tenant's tab layout. If the tab the shopper is currently on is not
+   * in the new set — a setting changed under them, or the default no longer
+   * includes it — fall back to the first visible tab rather than rendering a
+   * panel with no tab selected.
+   */
+  setTabLayout: (tabs, position) =>
+    set((s) => ({
+      visibleTabs: tabs,
+      tabPosition: position,
+      tabsResolved: true,
+      activeTab: tabs.includes(s.activeTab) ? s.activeTab : tabs[0],
+    })),
   bumpChatUnread: (n) => set((s) => ({ chatUnread: s.chatUnread + n })),
   updateConsentState: (state, consentAt, noticeVersion) =>
     set((s) => ({

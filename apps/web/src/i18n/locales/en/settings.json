@@ -52,7 +52,19 @@
     "firstVisit": "First-visit welcome message",
     "firstVisitHint": "Shown when a shopper opens the chat. {shop} inserts the display name. Empty = default message.",
     "loginGreeting": "Signed-in greeting",
-    "loginGreetingHint": "Shown when a signed-in shopper is recognized. {name} inserts the customer's name. Empty = default message."
+    "loginGreetingHint": "Shown when a signed-in shopper is recognized. {name} inserts the customer's name. Empty = default message.",
+    "tabsTitle": "Tabs",
+    "tabs": "Show these tabs",
+    "tabsHint": "At least one tab must stay on. With Orders off, order filters (payment, shipping, reviews, inquiries) stay in the Notifications tab.",
+    "tabPosition": "Tab bar position",
+    "tabPositionTop": "Top (text)",
+    "tabPositionBottom": "Bottom (icons)",
+    "tabPositionHint": "Top shows a text segmented bar under the title; bottom shows an icon-and-label bar pinned to the bottom of the widget.",
+    "tab": {
+      "notifications": "Notifications",
+      "orders": "Orders",
+      "chat": "Chat"
+    }
   },
   "shopify": {
     "title": "Shopify connection",
