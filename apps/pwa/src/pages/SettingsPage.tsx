@@ -6,10 +6,9 @@ import { useSession } from '../store/session-context';
 import { useToast } from '../components/Toast';
 import { PushGate } from '../components/PushGate';
 import { ApiError } from '../lib/api-client';
-import { SUPPORTED_LANGUAGES, type AppLanguage } from '../lib/config';
+import { LANGUAGE_OPTIONS } from '../lib/config';
 import type { NotifPref } from '../lib/types';
 
-const LANGUAGE_LABELS: Record<AppLanguage, string> = { en: 'English', es: 'Español', ko: '한국어' };
 
 /** UI toggle -> underlying (push channel) categories it controls (RN parity). */
 const TOGGLE_GROUPS = [
@@ -89,14 +88,14 @@ export default function SettingsPage() {
       <h2 className="section-heading">{t('settings.language')}</h2>
       <div className="card">
         <div className="lang-row">
-          {SUPPORTED_LANGUAGES.map((lang) => (
+          {LANGUAGE_OPTIONS.map((option) => (
             <button
-              key={lang}
+              key={option.code}
               type="button"
-              className={`chip lang-chip ${language === lang ? 'lang-chip-active' : ''}`}
-              onClick={() => void changeLanguage(lang)}
+              className={`chip lang-chip ${language === option.code ? 'lang-chip-active' : ''}`}
+              onClick={() => void changeLanguage(option.code)}
             >
-              {LANGUAGE_LABELS[lang]}
+              {option.nativeLabel}
             </button>
           ))}
         </div>

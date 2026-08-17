@@ -4,6 +4,9 @@ import { getLocales } from 'expo-localization';
 import en from './locales/en';
 import es from './locales/es';
 import ko from './locales/ko';
+import vi from './locales/vi';
+import ja from './locales/ja';
+import zh from './locales/zh';
 import { SUPPORTED_LANGUAGES, type AppLanguage } from '../lib/config';
 
 export function deviceLanguage(): AppLanguage {
@@ -12,7 +15,14 @@ export function deviceLanguage(): AppLanguage {
 }
 
 void i18n.use(initReactI18next).init({
-  resources: { en: { translation: en }, es: { translation: es }, ko: { translation: ko } },
+  resources: {
+    en: { translation: en },
+    es: { translation: es },
+    ko: { translation: ko },
+    vi: { translation: vi },
+    ja: { translation: ja },
+    zh: { translation: zh },
+  },
   lng: deviceLanguage(),
   fallbackLng: 'en',
   interpolation: { escapeValue: false },

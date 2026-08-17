@@ -20,6 +20,7 @@ import {
   setSessionToken,
 } from '../lib/storage';
 import type { SessionResponse } from '../lib/types';
+import { SUPPORTED_LANGUAGES } from '../lib/config';
 import type { AppLanguage } from '../lib/config';
 
 interface SessionContextValue {
@@ -70,7 +71,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       // (parity with widget useSession precedence).
       if (!langOverride && s.language) {
         const serverLang = s.language.toLowerCase() as AppLanguage;
-        if (serverLang !== lang && ['en', 'es', 'ko'].includes(serverLang)) {
+        if (serverLang !== lang && SUPPORTED_LANGUAGES.includes(serverLang)) {
           setLanguage(serverLang);
           await i18n.changeLanguage(serverLang);
         }

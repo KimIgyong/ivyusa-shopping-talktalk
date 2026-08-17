@@ -14,10 +14,9 @@ import {
 import { useSession } from '../src/store/session-context';
 import { useToast } from '../src/components/Toast';
 import { ApiError } from '../src/lib/api-client';
-import { SUPPORTED_LANGUAGES, type AppLanguage } from '../src/lib/config';
+import { LANGUAGE_OPTIONS, type AppLanguage } from '../src/lib/config';
 import type { NotifPref } from '../src/lib/types';
 
-const LANGUAGE_LABELS: Record<AppLanguage, string> = { en: 'English', es: 'Español', ko: '한국어' };
 
 /** UI toggle -> underlying (push channel) categories it controls. */
 const TOGGLE_GROUPS = [
@@ -125,14 +124,14 @@ export default function SettingsScreen() {
       <Text style={styles.section}>{t('settings.language')}</Text>
       <View style={styles.card}>
         <View style={styles.langRow}>
-          {SUPPORTED_LANGUAGES.map((lang) => (
+          {LANGUAGE_OPTIONS.map(({ code: lang, nativeLabel }) => (
             <Pressable
               key={lang}
               style={[styles.langChip, language === lang && styles.langChipActive]}
               onPress={() => void changeLanguage(lang)}
             >
               <Text style={[styles.langText, language === lang && styles.langTextActive]}>
-                {LANGUAGE_LABELS[lang]}
+                {nativeLabel}
               </Text>
             </Pressable>
           ))}
