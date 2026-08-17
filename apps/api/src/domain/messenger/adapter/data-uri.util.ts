@@ -25,6 +25,16 @@ const EXT_BY_MIME: Record<string, string> = {
 /** `data:<mime>[;charset=…][;base64],<payload>` — the only form the relay sends. */
 const DATA_URI = /^data:([^;,]+)((?:;[^;,]+)*),(.*)$/s;
 
+/**
+ * Filename extension for a mime type. Shared with the backfill so a photo
+ * converted after the fact is named exactly like one ingested live.
+ */
+export function extensionForMime(mime: string): string {
+  return (
+    EXT_BY_MIME[mime] ?? mime.split('/')[1]?.replace(/[^a-z0-9]/gi, '').toLowerCase() ?? 'bin'
+  );
+}
+
 export interface ParsedDataUri {
   mime: string;
   data: Buffer;
@@ -89,7 +99,7 @@ export function splitRelayBody(
     return { text: raw, attachments: [] };
   }
 
-  const ext = EXT_BY_MIME[parsed.mime] ?? parsed.mime.split('/')[1]?.replace(/[^a-z0-9]/gi, '') ?? 'bin';
+  const ext = extensionForMime(parsed.mime);
   const label = parsed.mime.startsWith('image/') ? 'photo' : 'file';
   return {
     text: '',
