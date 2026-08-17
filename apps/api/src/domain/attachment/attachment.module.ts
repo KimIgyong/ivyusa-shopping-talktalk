@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { MessageAttachment } from './entity/message-attachment.entity';
 import { Conversation } from '../chat/entity/conversation.entity';
 import { AttachmentService } from './attachment.service';
+import { ImageDecodeService } from './image-decode.service';
 import { AttachmentController } from './attachment.controller';
 import { SessionModule } from '../session/session.module';
 import { AuditModule } from '../audit/audit.module';
@@ -19,7 +20,7 @@ import { AuditModule } from '../audit/audit.module';
     AuditModule,
   ],
   controllers: [AttachmentController],
-  providers: [AttachmentService],
+  providers: [AttachmentService, ImageDecodeService],
   exports: [AttachmentService, TypeOrmModule],
 })
 export class AttachmentModule {}

@@ -44,6 +44,25 @@ const CONSENT_NOTICE = {
 } as const;
 
 /**
+ * Shown in the conversation when an inbound file could not be stored — and sent
+ * on to the customer, since they are the only one who can send it again.
+ */
+const ATTACHMENT_DROPPED_NOTICE = {
+  EN: (n: number) =>
+    n > 1
+      ? `We could not open ${n} of the files you sent. Could you send them again as JPEG or PDF?`
+      : 'We could not open the file you sent. Could you send it again as a JPEG or PDF?',
+  ES: (n: number) =>
+    n > 1
+      ? `No pudimos abrir ${n} de los archivos que enviaste. ¿Puedes enviarlos de nuevo en JPEG o PDF?`
+      : 'No pudimos abrir el archivo que enviaste. ¿Puedes enviarlo de nuevo en JPEG o PDF?',
+  KO: (n: number) =>
+    n > 1
+      ? `보내주신 파일 중 ${n}개를 열지 못했습니다. JPEG나 PDF로 다시 보내주시겠어요?`
+      : '보내주신 파일을 열지 못했습니다. JPEG나 PDF로 다시 보내주시겠어요?',
+} as const;
+
+/**
  * Channel-agnostic inbound pipeline (PLN-260810 §3 PR-M1).
  *
  * Every adapter — webhook or polling, direct or hub — funnels through here, so
@@ -117,7 +136,12 @@ export class MessengerIngestService {
     // pipeline sees them exactly as it sees a widget upload: ids to claim. That
     // is also what makes a caption-less photo skip the AI instead of asking it
     // to answer an empty string (PLN-260814 SI-2).
-    const attachmentIds = await this.storeInboundAttachments(channel, inbound, conversation.id);
+    const attachmentIds = await this.storeInboundAttachments(
+      channel,
+      inbound,
+      conversation.id,
+      session.language,
+    );
 
     if (mode === REPLY_MODE.AUTO) {
       // Full pipeline: consent gate, intent, deny-list, RAG, moderation, handoff.
@@ -224,12 +248,14 @@ export class MessengerIngestService {
     channel: MessengerChannel,
     inbound: NormalizedInbound,
     conversationId: number,
+    language: string,
   ): Promise<string[]> {
     const refs = inbound.attachments ?? [];
     if (!refs.length || !this.attachments) return [];
 
     const adapter = this.registry?.find(channel.provider);
     const ids: string[] = [];
+    let dropped = 0;
     for (const ref of refs.slice(0, this.attachments.maxPerMessage())) {
       try {
         const fetched = await this.fetchInbound(channel, adapter, ref);
@@ -252,12 +278,49 @@ export class MessengerIngestService {
         );
         ids.push(saved.uuid);
       } catch (e) {
+        dropped++;
         this.logger.warn(
           `inbound attachment dropped (channel ${channel.id}, thread ${inbound.externalThreadId}): ${(e as Error).message}`,
         );
       }
     }
+
+    if (dropped) await this.noteDroppedAttachments(channel, conversationId, dropped, language);
     return ids;
+  }
+
+  /**
+   * A file we could not store leaves a visible trace in the conversation
+   * (PLN-260817 §2.2).
+   *
+   * Before this, the customer's photo vanished between their phone and the
+   * console: they believed it had arrived, the agent saw a message about a
+   * photo that was not there, and the only record was a log line nobody reads.
+   * The note is written as a `system` message, which the outbox also delivers
+   * to the customer's own channel — so the wording asks for the picture again
+   * rather than talking about the customer in the third person.
+   */
+  private async noteDroppedAttachments(
+    channel: MessengerChannel,
+    conversationId: number,
+    count: number,
+    language: string,
+  ): Promise<void> {
+    const lang = (language || 'EN').toUpperCase() as keyof typeof ATTACHMENT_DROPPED_NOTICE;
+    const body = (ATTACHMENT_DROPPED_NOTICE[lang] ?? ATTACHMENT_DROPPED_NOTICE.EN)(count);
+    try {
+      await this.msgRepo.save(
+        this.msgRepo.create({
+          tenantId: channel.tenantId,
+          conversationId,
+          senderType: SENDER_TYPE.SYSTEM,
+          body,
+          lang: language,
+        }),
+      );
+    } catch (e) {
+      this.logger.warn(`could not record dropped-attachment notice: ${(e as Error).message}`);
+    }
   }
 
   /** Bytes for one reference: adapter resolve → inline data → plain fetch. */

@@ -520,12 +520,22 @@ export function ChatTab() {
               <div className="min-w-0 flex-1">
                 <div className="truncate">{p.error ?? p.name}</div>
                 {!p.attachment && !p.error && (
-                  <div className="mt-0.5 h-1 w-full overflow-hidden rounded bg-gray-200">
-                    <div
-                      className="h-full bg-primary-500 transition-all"
-                      style={{ width: `${p.progress}%` }}
-                    />
-                  </div>
+                  <>
+                    <div className="mt-0.5 h-1 w-full overflow-hidden rounded bg-gray-200">
+                      <div
+                        className="h-full bg-primary-500 transition-all"
+                        style={{ width: `${p.progress}%` }}
+                      />
+                    </div>
+                    {/* The bytes are up but the server is still converting (a HEIC
+                        takes about a second). Without this the bar sits at the end
+                        and looks stuck. */}
+                    {p.progress >= 99 && (
+                      <div className="mt-0.5 text-[10px] text-gray-500">
+                        {t('chat.attachment.processing')}
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
               <button
@@ -550,7 +560,7 @@ export function ChatTab() {
           ref={fileInputRef}
           type="file"
           multiple
-          accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.txt,.csv,.docx,.xlsx"
+          accept=".jpg,.jpeg,.png,.gif,.webp,.heic,.heif,.avif,.pdf,.txt,.csv,.docx,.xlsx"
           className="hidden"
           onChange={(e) => {
             void pickFiles(e.target.files);

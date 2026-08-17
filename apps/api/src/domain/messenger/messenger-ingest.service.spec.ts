@@ -35,6 +35,8 @@ describe('MessengerIngestService', () => {
     thread?: Partial<ChannelThread> | null;
     duplicate?: boolean;
     openConversation?: Partial<Conversation> | null;
+    /** Stubbed AttachmentService.store — present only for the attachment cases. */
+    attachmentStore?: jest.Mock;
   }) {
     const channel = {
       id: 10,
@@ -139,6 +141,15 @@ describe('MessengerIngestService', () => {
 
     const outbox = { flushThread: jest.fn(async () => undefined) } as unknown as MessengerOutboxService;
 
+    const attachments = opts.attachmentStore
+      ? ({
+          maxPerMessage: () => 5,
+          store: opts.attachmentStore,
+          attachToMessage: jest.fn(async () => []),
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any)
+      : undefined;
+
     const service = new MessengerIngestService(
       threadRepo,
       mapRepo,
@@ -149,6 +160,7 @@ describe('MessengerIngestService', () => {
       chatService,
       sessionService,
       outbox,
+      attachments,
     );
     return {
       service,
@@ -300,5 +312,63 @@ describe('MessengerIngestService', () => {
     const h = build({});
     await h.service.ingestOne(h.channel, inbound);
     expect(h.threadUpdates.some((p) => p.inboundCursor === 'ext-100')).toBe(true);
+  });
+
+  /**
+   * PLN-260817 §2.2 — a file we cannot store used to disappear between the
+   * customer's phone and the console, leaving only a log line.
+   */
+  describe('a file that cannot be stored', () => {
+    const withPhoto: NormalizedInbound = {
+      ...inbound,
+      // Inline bytes so the fetch path stays out of the test — what is under
+      // test is what happens after the file is in hand.
+      attachments: [
+        {
+          data: Buffer.from('not-really-a-photo'),
+          filename: 'IMG_0001.HEIC',
+          mime: 'image/heic',
+        },
+      ],
+    };
+
+    it('leaves a note in the conversation, in the session language', async () => {
+      const h = build({
+        // consent_mode=auto so the only system message in play is ours.
+        channel: { consentMode: 'auto' },
+        attachmentStore: jest.fn(async () => {
+          throw new Error('E5042');
+        }),
+      });
+      await h.service.ingestOne(h.channel, withPhoto);
+
+      const note = h.savedMessages.find((m) => m.senderType === 'system');
+      expect(note).toBeDefined();
+      // languageHint 'ko' resolves to KO, so the customer reads it in Korean.
+      expect(note?.body).toContain('열지 못했습니다');
+      expect(note?.lang).toBe('KO');
+      // The text still went through the normal pipeline — one bad file must not
+      // cost us the message it arrived with.
+      expect(h.chatService.handleUserMessage).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 90 }),
+        withPhoto.text,
+        { attachmentIds: [] },
+      );
+    });
+
+    it('says nothing when every file stored cleanly', async () => {
+      const h = build({
+        channel: { consentMode: 'auto' },
+        attachmentStore: jest.fn(async () => ({ uuid: 'uuid-1' })),
+      });
+      await h.service.ingestOne(h.channel, withPhoto);
+
+      expect(h.savedMessages.some((m) => m.senderType === 'system')).toBe(false);
+      expect(h.chatService.handleUserMessage).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 90 }),
+        withPhoto.text,
+        { attachmentIds: ['uuid-1'] },
+      );
+    });
   });
 });

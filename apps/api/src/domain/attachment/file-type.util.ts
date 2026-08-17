@@ -6,6 +6,9 @@
  *
  * `svg` is deliberately absent: it is a script-execution vector served from our
  * own origin. Archives are out of scope for the first stage.
+ *
+ * A spec may also declare a `decoder`, meaning the format is accepted at the
+ * door but never stored as-is — see PLN-260817 for HEIC.
  */
 
 export const ATTACHMENT_KIND = {
@@ -20,6 +23,22 @@ interface TypeSpec {
   kind: AttachmentKind;
   /** Byte signature test against the head of the file. */
   sniff: (b: Buffer) => boolean;
+  /**
+   * Content-Types a browser may legitimately declare for this extension besides
+   * `mime`. iOS reports HEIC as either image/heic or image/heif depending on the
+   * upload path, and an exact-match veto would reject the honest ones.
+   */
+  altMime?: string[];
+  /**
+   * Container our image pipeline cannot read on its own. The stored file is the
+   * conversion output, never these bytes (PLN-260817 §2.1).
+   */
+  decoder?: 'heif';
+  /**
+   * Store as this format instead of re-encoding to the uploaded one. Set where
+   * keeping the input format would be slow or unreadable downstream.
+   */
+  storeAs?: 'jpg';
 }
 
 const startsWith = (b: Buffer, bytes: number[], offset = 0): boolean =>
@@ -33,6 +52,19 @@ const isZipContainer = (b: Buffer): boolean =>
   startsWith(b, [0x50, 0x4b, 0x03, 0x04]) ||
   startsWith(b, [0x50, 0x4b, 0x05, 0x06]) ||
   startsWith(b, [0x50, 0x4b, 0x07, 0x08]);
+
+/**
+ * ISO base media container (HEIC/HEIF/AVIF): a `ftyp` box at offset 4 followed
+ * by the major brand. Testing the brand — not just `ftyp` — is what keeps an
+ * MP4 renamed to .heic out of the decoder, since both share this header.
+ */
+const isIsoBmffBrand = (b: Buffer, brands: string[]): boolean =>
+  ascii(b, 'ftyp', 4) && brands.some((brand) => ascii(b, brand, 8));
+
+/** Apple's HEIC brands plus the generic HEIF ones iOS also emits. */
+const HEIF_BRANDS = ['heic', 'heix', 'hevc', 'hevx', 'heim', 'heis', 'mif1', 'msf1'];
+/** AVIF is a HEIF sibling; sharp reads it natively, so it needs no decoder. */
+const AVIF_BRANDS = ['avif', 'avis'];
 
 const SPECS: TypeSpec[] = [
   {
@@ -58,6 +90,27 @@ const SPECS: TypeSpec[] = [
     mime: 'image/webp',
     kind: ATTACHMENT_KIND.IMAGE,
     sniff: (b) => ascii(b, 'RIFF') && ascii(b, 'WEBP', 8),
+  },
+  {
+    // What an iPhone actually produces. The bytes are HEVC-coded and neither
+    // sharp's prebuilt libvips nor a non-Safari browser can read them, so these
+    // are decoded and re-encoded to JPEG before storage (PLN-260817).
+    ext: ['heic', 'heif'],
+    mime: 'image/heic',
+    altMime: ['image/heif', 'image/heic-sequence', 'image/heif-sequence'],
+    kind: ATTACHMENT_KIND.IMAGE,
+    sniff: (b) => isIsoBmffBrand(b, HEIF_BRANDS),
+    decoder: 'heif',
+  },
+  {
+    // sharp reads AVIF, so no decoder is needed — but re-encoding one costs AV1
+    // encoding: 3.8s for a 12MP photo on the request thread, measured, versus
+    // 1.0s to JPEG. A public upload endpoint cannot afford the difference.
+    ext: ['avif'],
+    mime: 'image/avif',
+    kind: ATTACHMENT_KIND.IMAGE,
+    sniff: (b) => isIsoBmffBrand(b, AVIF_BRANDS),
+    storeAs: 'jpg',
   },
   {
     ext: ['pdf'],
@@ -89,6 +142,10 @@ export interface ResolvedType {
   ext: string;
   mime: string;
   kind: AttachmentKind;
+  /** Set when the bytes need an explicit decode before anything can read them. */
+  decoder?: 'heif';
+  /** Set when the stored file must be a different format than the upload. */
+  storeAs?: 'jpg';
 }
 
 /** Lowercased extension without the dot; empty string when the name has none. */
@@ -120,10 +177,22 @@ export function resolveType(filename: string, declaredMime: string, head: Buffer
   if (declared && declared !== 'application/octet-stream') {
     const declaredIsImage = declared.startsWith('image/');
     if (declaredIsImage !== (spec.kind === ATTACHMENT_KIND.IMAGE)) return null;
-    if (declaredIsImage && declared !== spec.mime) return null;
+    if (declaredIsImage && declared !== spec.mime && !spec.altMime?.includes(declared)) return null;
   }
 
-  return { ext, mime: spec.mime, kind: spec.kind };
+  return { ext, mime: spec.mime, kind: spec.kind, decoder: spec.decoder, storeAs: spec.storeAs };
+}
+
+/**
+ * Re-point a filename at the extension the file was actually stored as. Used
+ * when a conversion changed the format (HEIC → JPEG): keeping `.HEIC` on a JPEG
+ * would hand the shopper a download their own machine refuses to open.
+ */
+export function withExtension(filename: string, ext: string): string {
+  const current = extensionOf(filename);
+  if (current === ext) return filename;
+  const base = current ? filename.slice(0, filename.length - current.length - 1) : filename;
+  return `${base || 'file'}.${ext}`;
 }
 
 /**

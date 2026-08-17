@@ -6,7 +6,9 @@ import { liveChatService, type ChatAttachment } from './live-chat.service';
 export const MAX_IMAGE_MB = 10;
 export const MAX_FILE_MB = 20;
 export const MAX_PER_MESSAGE = 5;
-const IMAGE_EXT = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+// heic/heif accepted and converted server-side (PLN-260817) — an agent
+// forwarding a photo a customer emailed them should not have to convert it.
+const IMAGE_EXT = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'heif', 'avif'];
 const FILE_EXT = ['pdf', 'txt', 'csv', 'docx', 'xlsx'];
 
 export interface PendingUpload {
@@ -99,12 +101,17 @@ export function useAgentUpload(conversationId: string | null) {
               prev.map((p) => (p.key === key ? { ...p, progress: 100, attachment } : p)),
             );
           } catch (e) {
+            // Conversion failures are localized from the code; the backend's own
+            // message stays as the fallback for everything else.
+            const code = (e as { code?: string }).code;
+            const message =
+              code === 'E5042'
+                ? t('attachment.convertFailed', { name: file.name })
+                : code === 'E5043'
+                  ? t('attachment.tooManyPixels', { name: file.name })
+                  : (e as Error).message || t('attachment.uploadFailed', { name: file.name });
             setPending((prev) =>
-              prev.map((p) =>
-                p.key === key
-                  ? { ...p, error: (e as Error).message || t('attachment.uploadFailed', { name: p.name }) }
-                  : p,
-              ),
+              prev.map((p) => (p.key === key ? { ...p, error: message } : p)),
             );
           }
         }),
