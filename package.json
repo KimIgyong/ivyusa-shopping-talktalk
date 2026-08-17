@@ -18,7 +18,8 @@
     "db:down": "docker compose -f docker/docker-compose.dev.yml down",
     "db:seed": "npm run seed --workspace=@ivy/api",
     "kb:reindex": "npm run kb:reindex --workspace=@ivy/api",
-    "kb:import": "npm run kb:import --workspace=@ivy/api"
+    "kb:import": "npm run kb:import --workspace=@ivy/api",
+    "i18n:check": "node scripts/i18n-check.mjs"
   },
   "devDependencies": {
     "turbo": "^2.0.0",
