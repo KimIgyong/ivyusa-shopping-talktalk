@@ -9,6 +9,7 @@ import {
   SENDER_TYPE,
   SESSION_IDENTITY,
   SESSION_LANGUAGE,
+  sessionLanguageForLocale,
 } from '@ivy/types';
 import { generateToken } from '@ivy/common';
 import { Session } from '../session/entity/session.entity';
@@ -32,6 +33,9 @@ const CONSENT_NOTICE = {
   EN: 'Hi! Before we start: messages in this chat are processed by our support system (including AI) to answer you, and stored as customer-service records. Continuing the conversation means you accept this.',
   ES: 'Hola. Antes de empezar: los mensajes de este chat son procesados por nuestro sistema de soporte (incluida la IA) para responderte y se guardan como registros de atención al cliente. Continuar la conversación implica que lo aceptas.',
   KO: '안녕하세요. 시작 전에 안내드립니다 — 이 대화의 메시지는 답변을 위해 상담 시스템(AI 포함)에서 처리되며 상담 기록으로 저장됩니다. 대화를 계속하시면 이에 동의하신 것으로 봅니다.',
+  VI: 'Xin chào! Trước khi bắt đầu: tin nhắn trong cuộc trò chuyện này được hệ thống hỗ trợ của chúng tôi (bao gồm AI) xử lý để trả lời bạn và được lưu làm hồ sơ chăm sóc khách hàng. Việc tiếp tục trò chuyện đồng nghĩa bạn chấp nhận điều này.',
+  JA: 'こんにちは。始める前にご案内します — このチャットのメッセージは、ご回答のために当社のサポートシステム（AIを含む）で処理され、応対記録として保存されます。会話を続けられた場合、これに同意いただいたものとみなします。',
+  ZH: '您好！开始之前请注意：本次对话中的消息将由我们的客服系统（包括 AI）处理以便回复您，并作为客服记录保存。继续对话即表示您接受这一点。',
 } as const;
 
 /**
@@ -284,10 +288,11 @@ export class MessengerIngestService {
   }
 }
 
-/** Platform locale hint → session language. Unknown hints fall back to English. */
+/**
+ * Platform locale hint → session language. Unknown hints fall back to English.
+ * The registry does the prefix matching, so a new language is understood here
+ * the moment it is registered (REQ-260817 G6).
+ */
 export function resolveLanguage(hint: string | null): string {
-  const l = (hint ?? '').toLowerCase();
-  if (l.startsWith('ko')) return SESSION_LANGUAGE.KO;
-  if (l.startsWith('es')) return SESSION_LANGUAGE.ES;
-  return SESSION_LANGUAGE.EN;
+  return sessionLanguageForLocale(hint) ?? SESSION_LANGUAGE.EN;
 }

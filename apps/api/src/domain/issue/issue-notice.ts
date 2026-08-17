@@ -4,12 +4,17 @@
  * code (결정 3). `#N` = tenant-local issue number.
  */
 
-export type NoticeLang = 'EN' | 'ES' | 'KO';
+import type { SessionLanguage } from '@ivy/types';
+
+export type NoticeLang = SessionLanguage;
 
 const TITLES: Record<NoticeLang, string> = {
   EN: 'Inquiry #{n}',
   ES: 'Consulta #{n}',
   KO: '문의 #{n}',
+  VI: 'Yêu cầu #{n}',
+  JA: 'お問い合わせ #{n}',
+  ZH: '咨询 #{n}',
 };
 
 const BODIES: Record<NoticeLang, Record<string, string>> = {
@@ -52,33 +57,80 @@ const BODIES: Record<NoticeLang, Record<string, string>> = {
     reopened: '문의(#{n})를 다시 확인하고 있습니다.',
     external_closed: '문의 티켓이 처리 완료되었습니다. 기다려 주셔서 감사합니다.',
   },
+  VI: {
+    received: 'Chúng tôi đã nhận được yêu cầu của bạn (#{n}) và đang xem xét.',
+    in_progress: 'Một nhân viên đã được phân công và đang xử lý yêu cầu của bạn (#{n}).',
+    resolved: 'Yêu cầu của bạn đã được giải quyết (#{n}).',
+    rejected_policy_impossible:
+      'Rất tiếc — yêu cầu này không thể thực hiện theo chính sách của chúng tôi (#{n}). Bạn hãy trả lời trong khung chat nếu muốn trao đổi phương án khác.',
+    rejected_misrouted:
+      'Yêu cầu của bạn (#{n}) đã được chuyển sai bộ phận. Vui lòng bắt đầu cuộc trò chuyện mới để chúng tôi chuyển tới đúng nhóm phụ trách.',
+    rejected_spam: 'Yêu cầu của bạn (#{n}) đã được đóng.',
+    closed: 'Yêu cầu của bạn đã hoàn tất (#{n}). Cảm ơn bạn.',
+    reopened: 'Chúng tôi đang xem xét lại yêu cầu của bạn (#{n}).',
+    external_closed: 'Phiếu hỗ trợ của bạn đã được xử lý xong. Cảm ơn bạn đã kiên nhẫn chờ đợi.',
+  },
+  JA: {
+    received: 'お問い合わせを受け付けました（#{n}）。ただいま確認しております。',
+    in_progress: '担当者を割り当て、お問い合わせ（#{n}）を対応中です。',
+    resolved: 'お問い合わせ（#{n}）が解決しました。',
+    rejected_policy_impossible:
+      '申し訳ございません。こちらのご要望は当社の規定上お受けできません（#{n}）。代替案をご希望の場合は、チャットにてお知らせください。',
+    rejected_misrouted:
+      'お問い合わせ（#{n}）の振り分けが正しくありませんでした。適切な担当チームにおつなぎしますので、新しいチャットを開始してください。',
+    rejected_spam: 'お問い合わせ（#{n}）は終了いたしました。',
+    closed: 'お問い合わせ（#{n}）の対応が完了しました。ありがとうございました。',
+    reopened: 'お問い合わせ（#{n}）を再度確認しております。',
+    external_closed: 'サポートチケットの対応が完了しました。お待ちいただきありがとうございました。',
+  },
+  ZH: {
+    received: '我们已收到您的咨询（#{n}），正在处理中。',
+    in_progress: '已为您的咨询（#{n}）分配客服人员，正在处理。',
+    resolved: '您的咨询（#{n}）已解决。',
+    rejected_policy_impossible:
+      '很抱歉，根据我们的政策，此请求无法办理（#{n}）。如需了解其他方案，请在聊天中回复我们。',
+    rejected_misrouted:
+      '您的咨询（#{n}）分类有误。请重新发起对话，以便我们转交给正确的团队。',
+    rejected_spam: '您的咨询（#{n}）已关闭。',
+    closed: '您的咨询（#{n}）已处理完成，谢谢。',
+    reopened: '我们正在重新查看您的咨询（#{n}）。',
+    external_closed: '您的支持工单已处理完成。感谢您的耐心等待。',
+  },
 };
 
 const EXTERNAL_TITLES: Record<NoticeLang, string> = {
   EN: 'Support update',
   ES: 'Actualización de soporte',
   KO: '문의 처리 안내',
+  VI: 'Cập nhật hỗ trợ',
+  JA: 'サポートからのお知らせ',
+  ZH: '客服进度通知',
 };
 
 const EXTERNAL_REPLY_BODIES: Record<NoticeLang, string> = {
   EN: 'A support agent has replied — open the chat to read it.',
   ES: 'Un agente de soporte ha respondido — abre el chat para leerlo.',
   KO: '상담원 답변이 도착했습니다. 채팅에서 확인해 주세요.',
+  VI: 'Nhân viên hỗ trợ đã trả lời — hãy mở khung chat để xem.',
+  JA: 'サポート担当者から返信がありました。チャットを開いてご確認ください。',
+  ZH: '客服人员已回复，请打开聊天查看。',
 };
+
+/** Session language → notice language, defaulting to English for anything else. */
+function noticeLang(language: string | null | undefined): NoticeLang {
+  const key = String(language ?? '').toUpperCase() as NoticeLang;
+  return key in BODIES ? key : 'EN';
+}
 
 /** L3 relay notice (백로그 B1): an external agent reply landed in the widget thread. */
 export function externalReplyNotice(language: string | null | undefined): { title: string; body: string } {
-  const lang = ((language ?? 'EN').toUpperCase() as NoticeLang) in BODIES
-    ? ((language ?? 'EN').toUpperCase() as NoticeLang)
-    : 'EN';
+  const lang = noticeLang(language);
   return { title: EXTERNAL_TITLES[lang], body: EXTERNAL_REPLY_BODIES[lang] };
 }
 
 /** Bridge-mode notice (no local issue number — the ticket lives in Gorgias). */
 export function externalNotice(language: string | null | undefined): { title: string; body: string } {
-  const lang = ((language ?? 'EN').toUpperCase() as NoticeLang) in BODIES
-    ? ((language ?? 'EN').toUpperCase() as NoticeLang)
-    : 'EN';
+  const lang = noticeLang(language);
   return { title: EXTERNAL_TITLES[lang], body: BODIES[lang].external_closed };
 }
 
@@ -87,9 +139,7 @@ export function issueNotice(
   key: string,
   issueNo: number,
 ): { title: string; body: string } | null {
-  const lang = ((language ?? 'EN').toUpperCase() as NoticeLang) in BODIES
-    ? ((language ?? 'EN').toUpperCase() as NoticeLang)
-    : 'EN';
+  const lang = noticeLang(language);
   const body = BODIES[lang][key];
   if (!body) return null;
   const n = String(issueNo);

@@ -606,12 +606,22 @@ function mergeWidgetCopy(
     if (trimmed) bag[lang] = trimmed;
     else delete bag[lang];
   };
+  // Listed field by field rather than looped over the language registry: a
+  // dynamic `dto['first_visit_' + code]` lookup would compile even when the DTO
+  // field for a newly registered language is missing, and the tenant's copy for
+  // that language would silently never save.
   setLang(copy.firstVisit!, 'EN', dto.first_visit_en);
   setLang(copy.firstVisit!, 'ES', dto.first_visit_es);
   setLang(copy.firstVisit!, 'KO', dto.first_visit_ko);
+  setLang(copy.firstVisit!, 'VI', dto.first_visit_vi);
+  setLang(copy.firstVisit!, 'JA', dto.first_visit_ja);
+  setLang(copy.firstVisit!, 'ZH', dto.first_visit_zh);
   setLang(copy.loginGreeting!, 'EN', dto.login_greeting_en);
   setLang(copy.loginGreeting!, 'ES', dto.login_greeting_es);
   setLang(copy.loginGreeting!, 'KO', dto.login_greeting_ko);
+  setLang(copy.loginGreeting!, 'VI', dto.login_greeting_vi);
+  setLang(copy.loginGreeting!, 'JA', dto.login_greeting_ja);
+  setLang(copy.loginGreeting!, 'ZH', dto.login_greeting_zh);
   const empty =
     !copy.displayName &&
     Object.keys(copy.firstVisit!).length === 0 &&

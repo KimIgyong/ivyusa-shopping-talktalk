@@ -30,6 +30,9 @@ export const DELIVERY_STEPS_BY_LANG = {
   EN: ['Preparing', 'Shipped', 'In transit', 'Delivered'],
   ES: ['En preparación', 'Enviado', 'En tránsito', 'Entregado'],
   KO: ['발송준비', '배송시작', '배송중', '배송완료'],
+  VI: ['Đang chuẩn bị', 'Đã gửi hàng', 'Đang vận chuyển', 'Đã giao'],
+  JA: ['準備中', '発送済み', '配送中', '配達完了'],
+  ZH: ['备货中', '已发货', '运输中', '已送达'],
 } as const;
 
 export type DeliveryStepLang = keyof typeof DELIVERY_STEPS_BY_LANG;

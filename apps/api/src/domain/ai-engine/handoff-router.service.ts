@@ -1,4 +1,6 @@
 import { Injectable } from '@nestjs/common';
+import { localized } from '@ivy/types';
+import type { LocalizedText } from '@ivy/types';
 import { AiConfigService } from './ai-config.service';
 import type { HandoffConfig } from './entity/tenant-ai-config.entity';
 
@@ -15,10 +17,13 @@ export interface HandoffRoute {
 }
 
 /** Built-in off-hours wording (used when the tenant left the notice blank). */
-const DEFAULT_OFF_HOURS_NOTICE: Record<string, string> = {
+const DEFAULT_OFF_HOURS_NOTICE: LocalizedText = {
   EN: "We're outside our support hours right now. I've passed your message to our team — they'll reply by email as soon as they're back.",
   ES: 'Ahora mismo estamos fuera del horario de atención. He enviado tu mensaje al equipo y te responderán por correo en cuanto vuelvan.',
   KO: '지금은 상담 가능 시간이 아니에요. 남겨주신 내용은 담당자에게 전달했고, 업무 시간에 이메일로 회신드릴게요.',
+  VI: 'Hiện tại đang ngoài giờ hỗ trợ. Tôi đã chuyển tin nhắn của bạn cho đội ngũ của chúng tôi — họ sẽ trả lời qua email ngay khi làm việc trở lại.',
+  JA: 'ただいまサポート時間外です。いただいたメッセージは担当チームに引き継ぎました。営業時間になり次第、メールでご返信いたします。',
+  ZH: '现在是客服工作时间之外。我已将您的留言转交给我们的团队，他们上班后会尽快通过电子邮件回复您。',
 };
 
 /**
@@ -75,13 +80,9 @@ export class HandoffRouterService {
   }
 
   private notice(config: HandoffConfig, language: string): string {
-    const lang = (language || 'EN').toUpperCase();
-    const custom = config.offHours?.notice as Record<string, string> | undefined;
     return (
-      custom?.[lang]?.trim() ||
-      custom?.EN?.trim() ||
-      DEFAULT_OFF_HOURS_NOTICE[lang] ||
-      DEFAULT_OFF_HOURS_NOTICE.EN
+      localized(config.offHours?.notice, language).trim() ||
+      localized(DEFAULT_OFF_HOURS_NOTICE, language)
     );
   }
 

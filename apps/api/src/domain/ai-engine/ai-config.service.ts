@@ -1,7 +1,8 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import type { ScenarioConfigResponse } from '@ivy/types';
+import type { LocalizedText, ScenarioConfigResponse } from '@ivy/types';
+import { SESSION_LANGUAGE_CODES } from '@ivy/types';
 import {
   HandoffConfig,
   ScenarioButton,
@@ -191,12 +192,10 @@ export class AiConfigService {
     return Object.keys(out).length > 0 ? out : null;
   }
 
-  private trimLangMap(
-    map: Partial<Record<'EN' | 'ES' | 'KO', string>> | undefined,
-  ): Record<string, string> | undefined {
+  private trimLangMap(map: LocalizedText | undefined): LocalizedText | undefined {
     if (!map) return undefined;
-    const out: Record<string, string> = {};
-    for (const lang of ['EN', 'ES', 'KO'] as const) {
+    const out: LocalizedText = {};
+    for (const lang of SESSION_LANGUAGE_CODES) {
       const v = map[lang]?.trim();
       if (v) out[lang] = v;
     }

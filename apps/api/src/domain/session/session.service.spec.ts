@@ -250,6 +250,19 @@ describe('SessionService.findOrCreateForCustomer', () => {
     });
     expect(s.sessionToken).toBeTruthy();
   });
+
+  // The three languages added in REQ-260817 must survive the same path Korean
+  // takes; a locale the registry does not know still lands on English.
+  it.each([
+    ['vi-VN', 'VI'],
+    ['ja', 'JA'],
+    ['zh-CN', 'ZH'],
+    ['th-TH', 'EN'],
+  ])('creates a %s session with language %s', async (locale, expected) => {
+    const { svc } = build(null);
+    const s = await svc.findOrCreateForCustomer(2, 4, locale);
+    expect(s).toMatchObject({ language: expected });
+  });
 });
 
 /**

@@ -9,7 +9,9 @@ import {
   CONVERSATION_STATUS,
   MODERATION_DECISION,
   SENDER_TYPE,
+  localized,
 } from '@ivy/types';
+import type { LocalizedText } from '@ivy/types';
 import { Conversation } from './entity/conversation.entity';
 import { CSAT_WINDOW_MS } from './chat.mapper';
 import { Message } from './entity/message.entity';
@@ -40,52 +42,73 @@ const RETRIEVAL_CONTEXT_TURNS = 2;
 const RETRIEVAL_CONTEXT_CHARS = 200;
 
 /**
- * Localized backend-generated conversational strings (en/es/ko) keyed by
- * session.language. Backend ERROR messages stay English (localized by code on
- * the client); these are user-facing chat turns, so they honor the UI language.
+ * Localized backend-generated conversational strings keyed by session.language
+ * (the six registered in @ivy/types). Backend ERROR messages stay English
+ * (localized by code on the client); these are user-facing chat turns, so they
+ * honor the UI language.
  */
 const SYSTEM_MESSAGES = {
   authRequired: {
     EN: 'To look up your order I need to verify your identity. Please sign in or use guest order lookup.',
     ES: 'Para consultar tu pedido necesito verificar tu identidad. Inicia sesión o usa la búsqueda de pedido como invitado.',
     KO: '주문을 조회하려면 본인 확인이 필요합니다. 로그인하거나 비회원 주문 조회를 이용해 주세요.',
+    VI: 'Để tra cứu đơn hàng, tôi cần xác minh danh tính của bạn. Vui lòng đăng nhập hoặc dùng tra cứu đơn hàng dành cho khách.',
+    JA: 'ご注文を確認するには本人確認が必要です。ログインするか、ゲスト注文照会をご利用ください。',
+    ZH: '查询订单需要先验证您的身份。请登录或使用访客订单查询。',
   },
   connectingAgent: {
     EN: "I'm connecting you with a support agent who can help with this.",
     ES: 'Te estoy conectando con un agente de soporte que puede ayudarte con esto.',
     KO: '이 문제를 도와드릴 상담원에게 연결해 드리겠습니다.',
+    VI: 'Tôi đang kết nối bạn với nhân viên hỗ trợ có thể giúp việc này.',
+    JA: 'この件をお手伝いできるサポート担当者におつなぎします。',
+    ZH: '正在为您转接可以处理此问题的客服人员。',
   },
   offerAgent: {
     EN: 'Would you like me to connect you with a support agent?',
     ES: '¿Quieres que te conecte con un agente de soporte?',
     KO: '상담원에게 연결해 드릴까요?',
+    VI: 'Bạn có muốn tôi kết nối với nhân viên hỗ trợ không?',
+    JA: 'サポート担当者におつなぎしましょうか。',
+    ZH: '需要为您转接客服人员吗？',
   },
   handoff: {
     EN: "I couldn't find a confident answer in our help content, so I'm forwarding this to our support team to continue the conversation. An agent will reply here shortly.",
     ES: 'No encontré una respuesta segura en nuestro contenido de ayuda, así que lo estoy remitiendo a nuestro equipo de soporte para continuar la conversación. Un agente responderá aquí en breve.',
     KO: '관리자에게 전달하여 상담을 이어가겠습니다. 잠시만 기다려 주시면 상담사가 이 대화창에서 답변드릴게요.',
+    VI: 'Tôi chưa tìm được câu trả lời chắc chắn trong tài liệu hỗ trợ, nên tôi sẽ chuyển cuộc trò chuyện này cho đội hỗ trợ. Nhân viên sẽ trả lời ngay tại đây trong giây lát.',
+    JA: 'ヘルプ情報の中に確かな回答が見つからなかったため、この会話をサポートチームに引き継ぎます。担当者がまもなくこちらで返信いたします。',
+    ZH: '我在帮助内容中没有找到确定的答案，因此将这次对话转交给客服团队。客服人员稍后会在这里回复您。',
   },
   offHoursNeedEmail: {
     EN: "We're outside our support hours right now. Leave the email address you'd like the answer sent to and our team will reply there as soon as they're back.",
     ES: 'Ahora mismo estamos fuera del horario de atención. Déjanos el correo al que quieres recibir la respuesta y nuestro equipo te escribirá en cuanto vuelva.',
     KO: '지금은 상담 가능 시간이 아니에요. 회신받으실 이메일을 남겨주시면 업무 시간에 담당자가 이메일로 답변드릴게요.',
+    VI: 'Hiện tại đang ngoài giờ hỗ trợ. Bạn hãy để lại địa chỉ email muốn nhận câu trả lời, đội ngũ của chúng tôi sẽ phản hồi ngay khi làm việc trở lại.',
+    JA: 'ただいまサポート時間外です。回答をお送りするメールアドレスをご記入いただければ、営業時間になり次第担当者からご連絡いたします。',
+    ZH: '现在是客服工作时间之外。请留下您希望接收回复的邮箱地址，我们的团队上班后会尽快回复您。',
   },
   contactEmailSaved: {
     EN: "Thanks — we'll send the answer to that address.",
     ES: 'Gracias, enviaremos la respuesta a esa dirección.',
     KO: '감사합니다. 해당 주소로 답변을 보내드릴게요.',
+    VI: 'Cảm ơn bạn — chúng tôi sẽ gửi câu trả lời tới địa chỉ đó.',
+    JA: 'ありがとうございます。そちらのアドレスに回答をお送りします。',
+    ZH: '谢谢，我们会将回复发送到该邮箱。',
   },
   consentRequired: {
     EN: 'We cannot process chat messages until you accept the privacy notice. To use chat, please accept the privacy notice in the consent banner.',
     ES: 'No podemos procesar mensajes de chat hasta que aceptes el aviso de privacidad. Para usar el chat, acepta el aviso de privacidad en el banner de consentimiento.',
     KO: '개인정보 처리 안내에 동의하시기 전에는 채팅 메시지를 처리할 수 없습니다. 채팅을 이용하려면 동의 배너에서 개인정보 처리 안내에 동의해 주세요.',
+    VI: 'Chúng tôi không thể xử lý tin nhắn trò chuyện cho đến khi bạn chấp nhận thông báo về quyền riêng tư. Để sử dụng trò chuyện, vui lòng chấp nhận thông báo quyền riêng tư trên biểu ngữ đồng ý.',
+    JA: 'プライバシーに関するお知らせに同意いただくまで、チャットメッセージを処理できません。チャットをご利用になるには、同意バナーでプライバシーに関するお知らせに同意してください。',
+    ZH: '在您接受隐私声明之前，我们无法处理聊天消息。如需使用聊天，请在同意横幅中接受隐私声明。',
   },
-} as const;
+} satisfies Record<string, LocalizedText>;
 
 /** Localized system-turn copy — shared with ScenarioService's consent gate. */
 export function sysMsg(key: keyof typeof SYSTEM_MESSAGES, lang: string): string {
-  const set = SYSTEM_MESSAGES[key];
-  return (set as Record<string, string>)[lang] ?? set.EN;
+  return localized(SYSTEM_MESSAGES[key], lang);
 }
 
 /** Response shape lives in `@ivy/types` — the widget imports the same contract. */

@@ -35,6 +35,45 @@ describe('keyword extraction (question statistics, A3)', () => {
     expect(kw).toContain('ab1234');
   });
 
+  // Japanese and Chinese put no spaces between words. Splitting on whitespace
+  // would make each question exactly one enormous "keyword" — no error, just
+  // useless statistics — so they take the same 2-gram path as Korean.
+  it('uses character 2-grams for Japanese across kana and kanji', () => {
+    const kw = extractKeywords('注文した商品はいつ届きますか。', 'ja');
+    expect(kw).toContain('注文');
+    expect(kw).toContain('商品');
+    expect(kw.every((k) => k.length === 2)).toBe(true);
+    expect(kw).not.toContain('ます');
+  });
+
+  it('uses character 2-grams for Chinese', () => {
+    const kw = extractKeywords('我的订单什么时候发货？', 'zh');
+    expect(kw).toContain('订单');
+    expect(kw.every((k) => k.length === 2)).toBe(true);
+    expect(kw).not.toContain('什么');
+  });
+
+  it('keeps latin order numbers inside a Japanese question', () => {
+    expect(extractKeywords('注文番号 AB1234 を確認してください', 'ja')).toContain('ab1234');
+  });
+
+  it('never emits a whole sentence as one term for a space-less language', () => {
+    for (const [text, lang] of [
+      ['配送状況を教えてください', 'ja'],
+      ['请帮我查一下订单状态', 'zh'],
+    ] as const) {
+      expect(extractKeywords(text, lang).every((k) => k.length === 2)).toBe(true);
+    }
+  });
+
+  it('tokenises Vietnamese on whitespace and drops its stopwords', () => {
+    const kw = extractKeywords('Tôi muốn đổi sản phẩm bị lỗi', 'vi');
+    expect(kw).toContain('đổi');
+    expect(kw).toContain('phẩm');
+    expect(kw).not.toContain('tôi');
+    expect(kw).not.toContain('muốn');
+  });
+
   it('counts a repeated word once so a rambling question cannot outweigh a concise one', () => {
     const kw = extractKeywords('refund refund refund please', 'en');
     expect(kw.filter((k) => k === 'refund')).toHaveLength(1);

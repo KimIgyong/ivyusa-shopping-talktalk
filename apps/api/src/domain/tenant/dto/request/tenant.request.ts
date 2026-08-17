@@ -142,7 +142,13 @@ export class UpdateWidgetSettingsRequest {
   @IsOptional() @IsString() @MaxLength(500) first_visit_en?: string | null;
   @IsOptional() @IsString() @MaxLength(500) first_visit_es?: string | null;
   @IsOptional() @IsString() @MaxLength(500) first_visit_ko?: string | null;
+  @IsOptional() @IsString() @MaxLength(500) first_visit_vi?: string | null;
+  @IsOptional() @IsString() @MaxLength(500) first_visit_ja?: string | null;
+  @IsOptional() @IsString() @MaxLength(500) first_visit_zh?: string | null;
   @IsOptional() @IsString() @MaxLength(500) login_greeting_en?: string | null;
   @IsOptional() @IsString() @MaxLength(500) login_greeting_es?: string | null;
   @IsOptional() @IsString() @MaxLength(500) login_greeting_ko?: string | null;
+  @IsOptional() @IsString() @MaxLength(500) login_greeting_vi?: string | null;
+  @IsOptional() @IsString() @MaxLength(500) login_greeting_ja?: string | null;
+  @IsOptional() @IsString() @MaxLength(500) login_greeting_zh?: string | null;
 }

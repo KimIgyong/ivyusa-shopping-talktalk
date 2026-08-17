@@ -17,7 +17,7 @@ export interface LanguageDef {
   /** i18next language code, and what the browser/localStorage carries. */
   code: string;
   /** What `session.language` stores (varchar(8)) and the backend copy maps key on. */
-  session: string;
+  session: SessionLanguage;
   /** Endonym for language pickers — a reader who needs this language can read it. */
   nativeLabel: string;
   /** Two/three-char form for width-constrained spots (the widget header). */
@@ -117,7 +117,7 @@ export function languageByCode(code: string | null | undefined): LanguageDef | u
 }
 
 export function languageBySession(session: string | null | undefined): LanguageDef | undefined {
-  return BY_SESSION.get(String(session ?? '').toUpperCase());
+  return BY_SESSION.get(String(session ?? '').toUpperCase() as SessionLanguage);
 }
 
 export function isSupportedLanguage(code: string | null | undefined): boolean {
@@ -136,7 +136,7 @@ export function sessionLanguageForLocale(locale: string | null | undefined): Ses
     .toLowerCase();
   if (!l) return null;
   const exact = BY_CODE.get(l.split('-')[0]);
-  return exact ? (exact.session as SessionLanguage) : null;
+  return exact ? exact.session : null;
 }
 
 /**
@@ -153,7 +153,7 @@ export function sessionLanguageForTimezone(
   if (!tz) return null;
   for (const lang of LANGUAGES) {
     for (const prefix of lang.timezones ?? []) {
-      if (tz === prefix || tz.startsWith(prefix)) return lang.session as SessionLanguage;
+      if (tz === prefix || tz.startsWith(prefix)) return lang.session;
     }
   }
   return null;

@@ -199,7 +199,14 @@ describe('resolveLanguage', () => {
     ['es-ES', 'ES'],
     ['en-US', 'EN'],
     [null, 'EN'],
-    ['vi', 'EN'],
+    ['vi', 'VI'],
+    ['vi-VN', 'VI'],
+    ['ja-JP', 'JA'],
+    ['zh-CN', 'ZH'],
+    // Traditional resolves to Simplified while `zh` is the only Chinese row.
+    ['zh-TW', 'ZH'],
+    // Still unregistered — the fallback path stays exercised.
+    ['th-TH', 'EN'],
   ])('maps %s → %s', (hint, expected) => {
     expect(resolveLanguage(hint as string | null)).toBe(expected);
   });

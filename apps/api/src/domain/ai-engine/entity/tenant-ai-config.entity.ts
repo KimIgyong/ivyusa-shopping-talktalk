@@ -1,4 +1,5 @@
 import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, Unique, UpdateDateColumn } from 'typeorm';
+import type { LocalizedText } from '@ivy/types';
 import { bigintTransformer } from '../../../global/util/transformers';
 
 /** Scenario button shown in the widget menu (FR-003 / FN-009). */
@@ -19,7 +20,7 @@ export interface ScenarioPostAction {
 /**
  * Per-tenant edits to a built-in scenario script, keyed by action. Any field
  * may be omitted — the built-in script supplies the rest (see ScenarioService).
- * Text is per language (EN/ES/KO); a missing language falls back to EN.
+ * Text is per language (the registry's six); a missing language falls back to EN.
  */
 /**
  * Handoff routing (PLN-AiSetting W3). All fields optional — an empty config
@@ -46,12 +47,12 @@ export interface HandoffConfig {
    * Blank falls back to the built-in text. The customer should learn that the
    * person stepped out — a silent switch back reads as the agent ignoring them.
    */
-  handbackNotice?: Partial<Record<'EN' | 'ES' | 'KO', string>>;
+  handbackNotice?: LocalizedText;
   /** Where to send the conversation outside business hours. */
   offHours?: {
     email?: string;
     /** Customer-facing notice; blank falls back to the built-in wording. */
-    notice?: Partial<Record<'EN' | 'ES' | 'KO', string>>;
+    notice?: LocalizedText;
   };
   /**
    * Policy deny-list (PLN-260808-Issue-Workflow-P2, REQ §5.3): a customer
@@ -71,8 +72,8 @@ export interface HandoffConfig {
 }
 
 export interface ScenarioOverride {
-  reply?: Partial<Record<'EN' | 'ES' | 'KO', string>>;
-  followUps?: Array<{ id: string; label: Partial<Record<'EN' | 'ES' | 'KO', string>> }>;
+  reply?: LocalizedText;
+  followUps?: Array<{ id: string; label: LocalizedText }>;
   postAction?: ScenarioPostAction;
 }
 

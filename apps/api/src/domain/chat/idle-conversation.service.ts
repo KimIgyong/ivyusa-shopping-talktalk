@@ -1,7 +1,8 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, IsNull, LessThan, MoreThan, Repository } from 'typeorm';
-import { CONVERSATION_STATUS, SENDER_TYPE } from '@ivy/types';
+import { CONVERSATION_STATUS, SENDER_TYPE, localized } from '@ivy/types';
+import type { LocalizedText } from '@ivy/types';
 import { Conversation } from './entity/conversation.entity';
 import { Message } from './entity/message.entity';
 import { Session } from '../session/entity/session.entity';
@@ -24,16 +25,22 @@ const STALE_AFTER_DAYS = Number(process.env.IDLE_STALE_AFTER_DAYS ?? '7');
 /** Rows handled per sweep, so a backlog cannot stall the tick. */
 const BATCH = 50;
 
-const PROMPT_COPY: Record<string, string> = {
+const PROMPT_COPY: LocalizedText = {
   EN: 'Is there anything else I can help you with? If not, I’ll close this chat shortly.',
   ES: '¿Hay algo más en lo que pueda ayudarte? Si no, cerraré este chat en breve.',
   KO: '혹시 더 도와드릴 일이 있으실까요? 없으시면 잠시 후 상담을 마칠게요.',
+  VI: 'Bạn còn cần tôi hỗ trợ gì nữa không? Nếu không, tôi sẽ kết thúc cuộc trò chuyện này sau ít phút.',
+  JA: 'ほかにお手伝いできることはございますか。ないようでしたら、まもなくこのチャットを終了いたします。',
+  ZH: '还有什么可以帮您的吗？如果没有，我稍后会结束这次对话。',
 };
 
-const CLOSING_COPY: Record<string, string> = {
+const CLOSING_COPY: LocalizedText = {
   EN: 'Thanks for chatting with us. How satisfied were you with this conversation?',
   ES: 'Gracias por escribirnos. ¿Qué tan satisfecho quedaste con esta conversación?',
   KO: '이용해 주셔서 감사합니다. 상담에 만족하셨나요?',
+  VI: 'Cảm ơn bạn đã trò chuyện với chúng tôi. Bạn hài lòng với cuộc trò chuyện này ở mức nào?',
+  JA: 'ご利用いただきありがとうございました。今回のご対応にどの程度ご満足いただけましたか。',
+  ZH: '感谢您与我们联系。您对本次对话的满意度如何？',
 };
 
 /**
@@ -212,7 +219,7 @@ export class IdleConversationService implements OnModuleInit, OnModuleDestroy {
 
   private async say(
     conversation: Conversation,
-    copy: Record<string, string>,
+    copy: LocalizedText,
     language: string,
   ): Promise<void> {
     await this.msgRepo.save(
@@ -220,7 +227,7 @@ export class IdleConversationService implements OnModuleInit, OnModuleDestroy {
         tenantId: conversation.tenantId,
         conversationId: conversation.id,
         senderType: SENDER_TYPE.SYSTEM,
-        body: copy[language.toUpperCase()] ?? copy.EN,
+        body: localized(copy, language),
         lang: language,
         retrievalTrace: null,
       }),
