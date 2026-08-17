@@ -4,7 +4,8 @@
 
 - 작성일: 2026-08-17
 - 문서 체인: `REQ-260817-Widget-Header-Prefs-Cleanup` → `PLN-…` → 구현 → `TCR-…` → 본 문서
-- PR: _(작성 시점 미생성)_ · 배포: **미배포**
+- PR: **#306** (squash) · main 커밋 **`d7334f3`**
+- 배포: **스테이징 LIVE 2026-08-17 15:45 UTC** · 프로덕션 미배포
 
 ## 1. 요구별 결과
 
@@ -64,7 +65,7 @@ ALTER TABLE `tenants` ADD COLUMN `notification_channels` json NULL AFTER `widget
 - **백필 없음** — NULL = 상한 없음 = 현행 발송 동작 그대로.
 - 롤백: 컬럼 DROP. 순서: 대상 DB 선적용 → 코드 배포.
 - 멱등 실측: 재실행 `exit=0`.
-- 적용: local ✅ · staging ⬜ · production ⬜
+- 적용: local ✅ · **staging ✅ (2026-08-17, 코드 배포 전 선적용)** · production ⬜
 
 ## 6. 테스트 결과
 
@@ -93,3 +94,37 @@ ALTER TABLE `tenants` ADD COLUMN `notification_channels` json NULL AFTER `widget
 | N-4 | 6개 언어 육안 렌더 | ko만 확인 |
 | N-5 | 스테이징 배포 + 회귀 | 마이그레이션 선적용 필수 |
 | N-6 | ⚠️ 거래성 이메일/SMS의 고객 개별 해제 수단 없음 | 승인된 방향(테넌트가 결정). 문의 발생 시 재검토 지점 |
+| N-7 | **자동 코드리뷰 미실행** | GitHub 장애로 CodeRabbit이 2회 모두 실패(§9.2). 장애 복구 후 사후 리뷰 권장 |
+
+## 9. 스테이징 배포 기록 (2026-08-17)
+
+| 단계 | 내용 | 결과 |
+|---|---|---|
+| 1 | `tenants` 스키마 스냅샷 | ✅ `backup-pre-notifchannels-20260818-002713.sql` |
+| 2 | 마이그레이션 선적용 (`docker cp` + 파일 실행) | ✅ exit 0 |
+| 3 | 적용 검증 | ✅ 컬럼 생성, **테넌트 4곳 전부 NULL**, 기존 `notification_prefs` 20건 보존 |
+| 4 | `deploy-staging.sh` (#306, `d7334f3`) | ✅ |
+| 5 | 부팅 / 컨테이너 나이 / 스키마 에러 / health | ✅ `successfully started`, 30초, 0건, ok |
+| 6 | 위젯 자산 교체 | ✅ `index-Dm3SoG4W.js` → `index-BbjoHNFO.js` (CSS도 교체) |
+| 7 | 위젯 번들 문구 | ✅ `마케팅 메시지 수신 거부` · `marketing-opt-out` 포함 |
+| 8 | 콘솔 자산 | ✅ `index-BtDwU-Vd.js`에 `알림 채널` · `notifChannels`(6회) |
+| 9 | 신규 API | ✅ `GET /tenants/notification-channels` → 401(배포됨) |
+| 10 | 라이브 스모크 | ✅ 미로그인 헤더 = 테넌트명, 설정 패널에 **매트릭스 없음**, 콘솔 에러 0 |
+
+### 9.1 판독 주의 2건 (검증 과정에서 정정)
+- `GET /notifications/marketing-opt-out` → **404**. 런북상 "미배포" 신호지만, 본문이
+  `E3001 Session not found`였고 **존재하지 않는 경로는 `E5002 Cannot GET`** 을 반환한다.
+  기존 `unread-count`도 같은 조건에서 동일한 404/E3001 → **배포 정상.**
+  상태 코드만 보고 판단했으면 오진했을 지점이다.
+- 콘솔 청크에서 신규 문구가 0건으로 나왔으나, 이는 **구버전 청크 이름**을 조회한 탓이었다.
+  현행 `index-BtDwU-Vd.js`에서 정상 확인.
+
+### 9.2 리뷰가 실행되지 못한 채 머지됨 — 기록
+CodeRabbit이 이 PR을 **두 번 다 리뷰하지 못했다**(“couldn't post its review summary /
+couldn't update its existing comment” — GitHub GraphQL 503). 재요청(`@coderabbitai review`)도
+같은 장애로 실패했다. REST·git은 정상이었고 CI(`typecheck·test·build`)는 success,
+`mergeable_state=clean`이었으므로 진행했다.
+
+이는 PR #303 때와 성격이 다르다 — 그때는 **리뷰가 진행 중인데 기다리지 않아서** 회귀를
+내보냈고, 이번엔 **장애로 리뷰 자체가 불가능한 상태**였다. 다만 결과적으로 이 변경은
+자동 리뷰를 거치지 않았으므로, 후속 리뷰 대상으로 남겨둔다(N-7).
