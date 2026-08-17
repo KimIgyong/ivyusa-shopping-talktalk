@@ -11,7 +11,7 @@ HEIC/HEIF 첨부 수용 테스트 케이스. 근거: `PLN-260817-HEIC-Attachment
 
 ## 1. 단위 테스트 (자동, 실행 완료)
 
-`apps/api/src/domain/attachment/heic-conversion.spec.ts` — 12건
+`apps/api/src/domain/attachment/heic-conversion.spec.ts` — 15건
 
 | ID | 케이스 | 검증 내용 | 결과 |
 |---|---|---|---|
@@ -27,7 +27,10 @@ HEIC/HEIF 첨부 수용 테스트 케이스. 근거: `PLN-260817-HEIC-Attachment
 | U-10 | 디코더 미주입 | 서비스에 디코더가 없으면 → **E5042**(폴백 저장 없음) | ✅ |
 | U-11 | 킬 스위치 | `ATTACHMENT_ALLOW_HEIC=false` → E5036 | ✅ |
 | U-12 | AVIF 정책 | AVIF 업로드가 **JPEG로** 저장(AV1 재인코딩 회피) | ✅ |
-| U-13 | 동시 디코드 | 3건 동시 업로드가 워커 풀(2)을 통과, 파일 3개 생성 | ✅ |
+| U-13 | 동시 디코드 · **풀 상한 실증** | 4건 동시 업로드가 전부 저장되면서 **워커 수 ≤ 2** — 파일 개수만으로는 무제한 풀과 구분되지 않으므로 워커 수를 직접 관측 | ✅ |
+| U-16 | AVIF compatible brand | major `mif1` + compatible `avif` 수용, MP4(`isom`+`iso2`/`mp41`)는 거절 | ✅ |
+| U-17 | **큐 포화 거절** | 워커 1·큐 1에서 3건 동시 → 초과분 **E5044**(무한 대기 대신 즉시 거절) | ✅ |
+| U-18 | **알파 평탄화** | 투명 AVIF → 흰색으로 저장(평탄화 없으면 검정 RGB(1,2,0)) | ✅ |
 
 `apps/api/src/domain/messenger/messenger-ingest.service.spec.ts` — 신규 2건
 
@@ -70,7 +73,7 @@ HEIC/HEIF 첨부 수용 테스트 케이스. 근거: `PLN-260817-HEIC-Attachment
 | S-5 | 손상 HEIC 업로드 | 위젯에 "JPEG로 다시 보내주세요" 오류, 저장 안 됨 |
 | S-6 | 50MP 초과 이미지 | E5043 거절 |
 | S-7 | 킬 스위치 | `ATTACHMENT_ALLOW_HEIC=false` + 재기동 → `.heic` 거절 |
-| S-8 | 재배포 후 잔존 | 변환 저장분이 볼륨에 유지(S-10 재확인) |
+| S-8 | 재배포 후 잔존 | 변환 저장분이 볼륨에 유지 — TCR-260814 **S-10**(볼륨 지속성)과 같은 검증을 HEIC 변환본으로 재수행 |
 | S-9 | 인바운드 실패 자리표시 | Gmail로 미지원 첨부 → 대화에 안내 + 고객 채널 발신 |
 | S-10 | **실기기 iOS** | 사진앱/파일앱/Chrome iOS/인앱 브라우저 경로별 업로드 성공 — REQ T-1 매트릭스 겸함 |
 

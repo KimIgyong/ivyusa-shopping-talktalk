@@ -48,6 +48,8 @@ const MAX_PENDING_PER_OWNER = 20;
 const THUMB_EDGE = 320;
 /** Conversion target for HEIC: readable everywhere, and re-usable after download. */
 const HEIF_JPEG_QUALITY = 82;
+/** What transparency becomes once the alpha channel is gone. */
+const JPEG_MATTE = '#ffffff';
 
 type SharpFactory = typeof import('sharp');
 
@@ -405,6 +407,10 @@ export class AttachmentService {
       const image = await sharp(raw.data, {
         raw: { width: raw.width, height: raw.height, channels: 4 },
       })
+        // JPEG has no alpha. Without this, a transparent pixel encodes as black
+        // (measured: RGBA(255,0,0,0) → RGB(1,2,0)) — a screenshot saved as HEIC
+        // would come out with black patches instead of white.
+        .flatten({ background: JPEG_MATTE })
         .jpeg({ quality: HEIF_JPEG_QUALITY })
         .toBuffer();
 
@@ -471,7 +477,10 @@ export class AttachmentService {
       // `storeAs` forces the output format; without it the re-encode keeps the
       // input's, which for AVIF means paying for AV1 encoding (see the spec).
       const image = pipeline
-        ? await (type.storeAs === 'jpg' ? pipeline.jpeg({ quality: HEIF_JPEG_QUALITY }) : pipeline).toBuffer()
+        ? await (type.storeAs === 'jpg'
+            ? pipeline.flatten({ background: JPEG_MATTE }).jpeg({ quality: HEIF_JPEG_QUALITY })
+            : pipeline
+          ).toBuffer()
         : null;
 
       const thumb = await sharp(buffer)

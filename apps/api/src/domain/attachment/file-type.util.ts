@@ -54,12 +54,27 @@ const isZipContainer = (b: Buffer): boolean =>
   startsWith(b, [0x50, 0x4b, 0x07, 0x08]);
 
 /**
- * ISO base media container (HEIC/HEIF/AVIF): a `ftyp` box at offset 4 followed
- * by the major brand. Testing the brand — not just `ftyp` — is what keeps an
- * MP4 renamed to .heic out of the decoder, since both share this header.
+ * ISO base media container (HEIC/HEIF/AVIF): a `ftyp` box at offset 4, the major
+ * brand at offset 8, then a list of compatible brands. Testing the brands — not
+ * just `ftyp` — is what keeps an MP4 renamed to .heic out of the decoder, since
+ * both share this header.
+ *
+ * The compatible list matters: an encoder may write `mif1` as the major brand
+ * and declare `avif` only as compatible, and judging by the major brand alone
+ * would turn that file away.
  */
-const isIsoBmffBrand = (b: Buffer, brands: string[]): boolean =>
-  ascii(b, 'ftyp', 4) && brands.some((brand) => ascii(b, brand, 8));
+const isIsoBmffBrand = (b: Buffer, brands: string[]): boolean => {
+  if (!ascii(b, 'ftyp', 4)) return false;
+  // Box length is big-endian at offset 0; brands are 4 bytes each from offset 8
+  // (major), then 12 (minor version), then the compatible list from 16.
+  const declared = b.length >= 4 ? b.readUInt32BE(0) : 0;
+  const end = Math.min(b.length, declared > 8 ? declared : b.length);
+  if (brands.some((brand) => ascii(b, brand, 8))) return true;
+  for (let at = 16; at + 4 <= end; at += 4) {
+    if (brands.some((brand) => ascii(b, brand, at))) return true;
+  }
+  return false;
+};
 
 /** Apple's HEIC brands plus the generic HEIF ones iOS also emits. */
 const HEIF_BRANDS = ['heic', 'heix', 'hevc', 'hevx', 'heim', 'heis', 'mif1', 'msf1'];

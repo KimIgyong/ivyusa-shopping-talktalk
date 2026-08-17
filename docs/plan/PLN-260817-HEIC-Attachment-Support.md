@@ -105,6 +105,7 @@ store(file)                      [attachment.service.ts]
 |---|---|---|
 | `E5042` | `ATTACHMENT_DECODE_FAILED` | 이미지 디코드/변환 실패 (손상·미지원 코덱·타임아웃) |
 | `E5043` | `ATTACHMENT_PIXELS_EXCEEDED` | 픽셀 수 상한(50MP) 초과 |
+| `E5044` | `ATTACHMENT_BUSY` | 디코드 큐 포화(503) — 구현 중 추가. 큐에 상한이 없으면 대기 job이 업로드 버퍼(장당 최대 10MB)를 붙든 채 요청이 수십 초 매달린다 |
 
 (E5035~E5041이 첨부 블록으로 이미 할당돼 있어 그 뒤를 잇는다 — dev-kit §2.4 순차 할당.)
 

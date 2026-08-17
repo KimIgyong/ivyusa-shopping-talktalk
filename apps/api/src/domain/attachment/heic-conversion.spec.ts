@@ -70,12 +70,26 @@ describe('HEIC attachments — type policy', () => {
   });
 
   it('rejects an MP4 renamed to .heic — same ftyp header, different brand', () => {
+    // isom major + the usual MP4 compatible list; none of it is HEIF.
     const mp4 = Buffer.concat([
-      Buffer.from([0, 0, 0, 0x18]),
+      Buffer.from([0, 0, 0, 0x1c]),
       Buffer.from('ftypisom', 'latin1'),
-      Buffer.alloc(20),
+      Buffer.from([0, 0, 2, 0]),
+      Buffer.from('isomiso2mp41', 'latin1'),
     ]);
     expect(resolveType('clip.heic', '', mp4)).toBeNull();
+    expect(resolveType('clip.avif', '', mp4)).toBeNull();
+  });
+
+  it('accepts an AVIF that declares its brand only as compatible', () => {
+    // Some encoders write mif1 as the major brand and avif further down the list.
+    const avif = Buffer.concat([
+      Buffer.from([0, 0, 0, 0x1c]),
+      Buffer.from('ftypmif1', 'latin1'),
+      Buffer.from([0, 0, 0, 0]),
+      Buffer.from('mif1avifmiaf', 'latin1'),
+    ]);
+    expect(resolveType('pic.avif', 'image/avif', avif)).toMatchObject({ ext: 'avif', storeAs: 'jpg' });
   });
 
   it('keeps the display name consistent with the stored bytes', () => {
@@ -128,19 +142,68 @@ describe('HEIC attachments — conversion', () => {
   }, 30_000);
 
   it('rejects an image over the pixel cap without writing anything', async () => {
-    const { service } = serviceWith(
-      // 0.1MP cap — the 640x480 fixture is 0.3MP.
+    // 0.1MP cap — the 640x480 fixture is 0.3MP.
+    const capped = new ImageDecodeService({
+      get: (k: string, d: unknown) => (k === 'ATTACHMENT_MAX_MEGAPIXELS' ? 0.1 : d),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      new ImageDecodeService({
-        get: (k: string, d: unknown) => (k === 'ATTACHMENT_MAX_MEGAPIXELS' ? 0.1 : d),
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } as any),
-      dir,
+    } as any);
+    try {
+      const { service, saved } = serviceWith(capped, dir);
+      await expect(service.store(await upload(), OWNER)).rejects.toMatchObject({
+        errorCode: ERROR_CODE.ATTACHMENT_PIXELS_EXCEEDED.code,
+      });
+      expect(saved).toHaveLength(0);
+    } finally {
+      // This pool is separate from the shared one; leaving it running would
+      // hold worker threads open past the test.
+      await capped.onModuleDestroy();
+    }
+  }, 30_000);
+
+  it('rejects rather than queueing without limit when the pool is saturated', async () => {
+    const tiny = new ImageDecodeService({
+      get: (k: string, d: unknown) =>
+        k === 'HEIC_MAX_QUEUE' ? 1 : k === 'HEIC_WORKERS' ? 1 : d,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any);
+    try {
+      const { service } = serviceWith(tiny, dir);
+      const results = await Promise.allSettled([
+        service.store(await upload('q1.heic'), OWNER),
+        service.store(await upload('q2.heic'), OWNER),
+        service.store(await upload('q3.heic'), OWNER),
+      ]);
+      const busy = results.filter(
+        (r) => r.status === 'rejected' && r.reason?.errorCode === ERROR_CODE.ATTACHMENT_BUSY.code,
+      );
+      // One runs, one waits, the rest are turned away instead of piling up.
+      expect(busy.length).toBeGreaterThan(0);
+    } finally {
+      await tiny.onModuleDestroy();
+    }
+  }, 30_000);
+
+  it('flattens transparency instead of turning it black', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const sharp = require('sharp');
+    const transparent = await sharp({
+      create: { width: 32, height: 32, channels: 4, background: { r: 255, g: 0, b: 0, alpha: 0 } },
+    })
+      .avif({ quality: 40 })
+      .toBuffer();
+
+    const { service } = serviceWith(decoder, dir);
+    const row = await service.store(
+      { originalname: 'clear.avif', mimetype: 'image/avif', size: transparent.length, buffer: transparent },
+      OWNER,
     );
 
-    await expect(service.store(await upload(), OWNER)).rejects.toMatchObject({
-      errorCode: ERROR_CODE.ATTACHMENT_PIXELS_EXCEEDED.code,
-    });
+    const bytes = await fs.readFile(join(dir, row.storagePath));
+    const { data } = await sharp(bytes).raw().toBuffer({ resolveWithObject: true });
+    // White, not the near-black a bare .jpeg() would have produced.
+    expect(data[0]).toBeGreaterThan(200);
+    expect(data[1]).toBeGreaterThan(200);
+    expect(data[2]).toBeGreaterThan(200);
   }, 30_000);
 
   it('refuses a corrupt HEIC rather than storing the original bytes', async () => {
@@ -202,16 +265,28 @@ describe('HEIC attachments — conversion', () => {
     expect(bytes.subarray(0, 3)).toEqual(Buffer.from([0xff, 0xd8, 0xff]));
   }, 30_000);
 
-  it('runs concurrent decodes through the bounded pool', async () => {
-    const { service } = serviceWith(decoder, dir);
-    const rows = await Promise.all([
-      service.store(await upload('a.heic'), OWNER),
-      service.store(await upload('b.heic'), OWNER),
-      service.store(await upload('c.heic'), OWNER),
-    ]);
-    expect(rows.map((r) => r.filename)).toEqual(['a.jpg', 'b.jpg', 'c.jpg']);
-    for (const row of rows) {
-      await expect(fs.stat(join(dir, row.storagePath))).resolves.toBeDefined();
+  it('runs concurrent decodes through a pool that stays bounded', async () => {
+    const pooled = new ImageDecodeService({
+      get: (k: string, d: unknown) => (k === 'HEIC_WORKERS' ? 2 : d),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any);
+    try {
+      const { service } = serviceWith(pooled, dir);
+      const rows = await Promise.all([
+        service.store(await upload('a.heic'), OWNER),
+        service.store(await upload('b.heic'), OWNER),
+        service.store(await upload('c.heic'), OWNER),
+        service.store(await upload('d.heic'), OWNER),
+      ]);
+      expect(rows.map((r) => r.filename)).toEqual(['a.jpg', 'b.jpg', 'c.jpg', 'd.jpg']);
+      for (const row of rows) {
+        await expect(fs.stat(join(dir, row.storagePath))).resolves.toBeDefined();
+      }
+      // Four uploads, never more than two workers — the point of the pool. Four
+      // files landing proves nothing about that on its own.
+      expect(pooled.workerCount).toBeLessThanOrEqual(2);
+    } finally {
+      await pooled.onModuleDestroy();
     }
   }, 60_000);
 });

@@ -42,6 +42,8 @@ type HeifImage = {
   get_width(): number;
   get_height(): number;
   display(target: { data: Uint8ClampedArray; width: number; height: number }, cb: (out: unknown) => void): void;
+  /** Releases the image inside the WASM heap; the JS GC cannot do it for us. */
+  free(): void;
 };
 
 let decoderFactory: any;
@@ -71,28 +73,41 @@ export async function decodeHeif(
   const images: HeifImage[] = decoder.decode(bytes);
   if (!images?.length) throw new Error('no image in HEIF container');
 
-  const image = images[0];
-  const width = image.get_width();
-  const height = image.get_height();
-  if (!width || !height) throw new Error('HEIF image has no dimensions');
+  try {
+    const image = images[0];
+    const width = image.get_width();
+    const height = image.get_height();
+    if (!width || !height) throw new Error('HEIF image has no dimensions');
 
-  // Checked before allocating: the RGBA buffer is 4 bytes per pixel, so a 36MP
-  // photo would claim ~144MB here (PLN §1 measured 771MB RSS for one).
-  if (width * height > maxPixels) {
-    const err = new Error(`image is ${width}x${height}, over the pixel limit`);
-    (err as Error & { reason?: string }).reason = 'pixels';
-    throw err;
-  }
+    // Checked before allocating: the RGBA buffer is 4 bytes per pixel, so a 36MP
+    // photo would claim ~144MB here (PLN §1 measured 771MB RSS for one).
+    if (width * height > maxPixels) {
+      const err = new Error(`image is ${width}x${height}, over the pixel limit`);
+      (err as Error & { reason?: string }).reason = 'pixels';
+      throw err;
+    }
 
-  const data = new Uint8ClampedArray(width * height * 4);
-  await new Promise<void>((resolve, reject) => {
-    image.display({ data, width, height }, (out) => {
-      if (out) resolve();
-      else reject(new Error('HEIF decode produced no pixels'));
+    const data = new Uint8ClampedArray(width * height * 4);
+    await new Promise<void>((resolve, reject) => {
+      image.display({ data, width, height }, (out) => {
+        if (out) resolve();
+        else reject(new Error('HEIF decode produced no pixels'));
+      });
     });
-  });
 
-  return { width, height, data: Buffer.from(data.buffer) };
+    return { width, height, data: Buffer.from(data.buffer) };
+  } finally {
+    // Emscripten memory is not garbage-collected. Measured RSS over 20 decodes
+    // was the same either way (the heap plateaus), but freeing lets a later,
+    // larger image reuse this allocation instead of growing the heap.
+    for (const image of images) {
+      try {
+        image.free?.();
+      } catch {
+        /* a decoder that never allocated has nothing to release */
+      }
+    }
+  }
 }
 
 if (parentPort) {
