@@ -20,6 +20,7 @@ import {
   loginFailure,
   unreachableFailure,
 } from './adapter-failure.util';
+import { splitRelayBody } from './data-uri.util';
 
 const DEFAULT_BASE_URL = 'https://messenger.amoeba.site';
 /** How the relay is named to operators — and what its account is called. */
@@ -242,8 +243,9 @@ export class BtbzRelayAdapter implements MessengerAdapter {
         // Loop prevention #1 — our own relayed replies come back as outbound.
         if ((msg.direction ?? '').toLowerCase() !== 'inbound') continue;
         if (Number.isFinite(since) && Number(msg.id) <= since) continue;
-        const text = (msg.body ?? '').trim();
-        if (!text) continue;
+        // A photo arrives as a data: URI in `body` (FIX-260817), not as a link.
+        const { text, attachments } = splitRelayBody(msg.body, Number(msg.id));
+        if (!text && !attachments.length) continue;
 
         out.push({
           externalThreadId: threadId,
@@ -259,6 +261,7 @@ export class BtbzRelayAdapter implements MessengerAdapter {
           // thread is marked here and the outbox never attempts a send.
           replyEnabled: truthy(conv.reply_enabled),
           occurredAt: parseDate(msg.occurred_at),
+          attachments: attachments.length ? attachments : undefined,
         });
       }
 
@@ -310,8 +313,8 @@ export class BtbzRelayAdapter implements MessengerAdapter {
               `channel ${ctx.channel.id} points at the wrong instance; pull aborted`,
           );
         }
-        const text = (msg.body ?? '').trim();
-        if (!text) continue;
+        const { text, attachments } = splitRelayBody(msg.body, Number(msg.messageId));
+        if (!text && !attachments.length) continue;
 
         let conv = convCache.get(msg.conversationId);
         if (conv === undefined) {
@@ -330,6 +333,7 @@ export class BtbzRelayAdapter implements MessengerAdapter {
           subChannel: subChannelFromOrigin(msg.origin ?? conv?.origin),
           replyEnabled: conv?.replyEnabled ?? true,
           occurredAt: parseDate(msg.occurredAt),
+          attachments: attachments.length ? attachments : undefined,
         });
       }
 
