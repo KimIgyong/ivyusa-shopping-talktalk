@@ -32,6 +32,19 @@ describe('parseDataUri', () => {
     expect(parseDataUri('data:image/jpeg;base64')).toBeNull(); // no comma
     expect(parseDataUri('data:image/jpeg;base64,')).toBeNull(); // empty payload
   });
+
+  it('refuses base64 that node would silently salvage', () => {
+    // Buffer.from ignores stray characters and short payloads, turning a
+    // corrupted body into a few bytes that pretend to be a file.
+    expect(parseDataUri('data:image/jpeg;base64,AAAA$')).toBeNull();
+    expect(parseDataUri('data:image/jpeg;base64,AAA')).toBeNull(); // not a multiple of 4
+    expect(parseDataUri('data:image/jpeg;base64,//9j/4AA=')).toBeNull(); // 9 chars
+  });
+
+  it('accepts base64 wrapped across lines', () => {
+    const wrapped = `data:image/jpeg;base64,${JPEG_BYTES.toString('base64').replace(/(.{4})/, '$1\n')}`;
+    expect(parseDataUri(wrapped)?.data).toEqual(JPEG_BYTES);
+  });
 });
 
 describe('splitRelayBody', () => {

@@ -24,12 +24,13 @@
   "source_type": "kakao_pc",
   "origin": "kakao_android_notification",
   "direction": "inbound",
-  "sender_name": "김익용",
+  "sender_name": "김**",
   "body": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHY…  [69,451 chars]",
   "body_type": "photo",
   "occurred_at": "2026-07-23T15:40:12.791Z"
 }
 ```
+> 발신자명은 실제 고객 정보라 마스킹했다(CLAUDE.md §2 PII).
 
 42개 대화 전수 집계: **`body_type` = `text` 3,355건 / `photo` 494건**, photo는 **전부**
 `data:image/jpeg;base64,…`. 텍스트로 위장된 data URI는 0건.

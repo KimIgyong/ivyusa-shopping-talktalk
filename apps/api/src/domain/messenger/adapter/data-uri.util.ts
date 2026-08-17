@@ -43,6 +43,7 @@ export function parseDataUri(raw: string): ParsedDataUri | null {
   const [, mime, params, payload] = match;
   const isBase64 = /;base64/i.test(params ?? '');
   try {
+    if (isBase64 && !isWellFormedBase64(payload)) return null;
     const data = isBase64
       ? Buffer.from(payload, 'base64')
       : Buffer.from(decodeURIComponent(payload), 'utf8');
@@ -51,6 +52,19 @@ export function parseDataUri(raw: string): ParsedDataUri | null {
   } catch {
     return null;
   }
+}
+
+/**
+ * `Buffer.from(s, 'base64')` silently drops characters it does not recognise,
+ * so `AAAA$` decodes to three bytes instead of failing. A truncated or
+ * corrupted payload would then be stored as a "file" nobody can open, which is
+ * worse than treating the turn as text — so the payload is checked first.
+ */
+function isWellFormedBase64(payload: string): boolean {
+  // Line breaks are legal inside a base64 body; nothing else is.
+  const compact = payload.replace(/\s+/g, '');
+  if (!compact.length || compact.length % 4 !== 0) return false;
+  return /^[A-Za-z0-9+/]+={0,2}$/.test(compact);
 }
 
 /**

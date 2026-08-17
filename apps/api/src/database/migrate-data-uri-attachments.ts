@@ -36,7 +36,13 @@ interface Stats {
 async function main(): Promise<void> {
   const dryRun = process.argv.includes('--dry-run');
   const limitArg = process.argv.find((a) => a.startsWith('--limit='));
-  const limit = limitArg ? Number(limitArg.split('=')[1]) : Infinity;
+  const rawLimit = limitArg?.slice('--limit='.length);
+  // `--limit=abc` would be NaN, every comparison against it false, and the
+  // operator who asked for a careful ten rows would get the whole table.
+  if (rawLimit !== undefined && !/^[1-9]\d*$/.test(rawLimit)) {
+    throw new Error(`--limit must be a positive integer, got '${rawLimit}'`);
+  }
+  const limit = rawLimit === undefined ? Infinity : Number(rawLimit);
 
   const app = await NestFactory.createApplicationContext(AppModule, {
     logger: ['error', 'warn', 'log'],
@@ -68,6 +74,17 @@ async function main(): Promise<void> {
 
         const parsed = parseDataUri((row.body ?? '').trim());
         if (!parsed) {
+          stats.skipped++;
+          continue;
+        }
+
+        // A previous run may have stored the file and then failed before the
+        // body was cleared. Converting again would leave the message with two
+        // copies of the same photo, so finish that run instead of repeating it.
+        const already = await attachments.findByMessageIds([Number(row.id)]);
+        if (already.get(String(row.id))?.length) {
+          if (!dryRun) await messageRepo.update({ id: Number(row.id) }, { body: '' });
+          console.log(`message ${row.id}: already had an attachment — body cleared only`);
           stats.skipped++;
           continue;
         }
@@ -109,11 +126,17 @@ async function main(): Promise<void> {
               source: 'btbz_relay',
             },
           );
-          await attachments.attachToMessage([saved.uuid], {
+          const claimed = await attachments.attachToMessage([saved.uuid], {
             tenantId: Number(conversation.tenantId),
             messageId: Number(row.id),
             conversationId: Number(row.conversationId),
           });
+          if (!claimed.length) {
+            // The file is stored but bound to nothing. Remove it now rather than
+            // leaving bytes on disk that no message will ever point at.
+            await attachments.deleteByIds([Number(saved.id)]);
+            throw new Error('attachment could not be bound to the message');
+          }
           // The bytes now live on disk; leaving the base64 in the body would
           // keep shipping it to the console on every conversation open.
           stats.bytesFreed += (row.body ?? '').length;
