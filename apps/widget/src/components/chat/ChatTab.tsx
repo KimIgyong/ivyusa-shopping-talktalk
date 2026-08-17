@@ -83,6 +83,10 @@ export function ChatTab() {
   );
   const [input, setInput] = useState('');
   const [inline, setInline] = useState<Inline>(null);
+  // Where the shopper was headed when the sign-in card interrupted them. Without
+  // it, AuthGate's success handler just cleared `inline` and they landed back on
+  // the menu having to pick "My orders" a second time.
+  const [afterAuth, setAfterAuth] = useState<Inline>(null);
   // Attachments the shopper picked but has not sent yet (PLN-260814 S3).
   const uploads = useAttachmentUpload(sessionToken);
   const [uploadNotice, setUploadNotice] = useState<string | null>(null);
@@ -207,7 +211,7 @@ export function ChatTab() {
       case 'my_orders':
         // Answer in the thread (frame 57) rather than throwing the shopper into
         // another tab — which no longer exists anyway (PLN-260817 S3).
-        setInline(authenticated ? 'orders' : 'auth');
+        openOrAuth('orders');
         return;
       case 'contact_support':
         setInline('contact');
@@ -235,7 +239,7 @@ export function ChatTab() {
     if (!post || post.type === 'none') return;
     switch (post.type) {
       case 'open_orders':
-        setInline(authenticated ? 'orders' : 'auth');
+        openOrAuth('orders');
         return;
       case 'open_contact':
         setInline('contact');
@@ -251,6 +255,16 @@ export function ChatTab() {
         if (post.url) window.open(post.url, '_blank', 'noopener,noreferrer');
         return;
     }
+  }
+
+  /** Show `target`, or the sign-in card first and `target` once that succeeds. */
+  function openOrAuth(target: Inline) {
+    if (authenticated) {
+      setInline(target);
+      return;
+    }
+    setAfterAuth(target);
+    setInline('auth');
   }
 
   function handleSubAction(a: SubAction) {
@@ -275,7 +289,7 @@ export function ChatTab() {
         void escalate();
         return;
       case 'my_orders':
-        setInline(authenticated ? 'orders' : 'auth');
+        openOrAuth('orders');
         return;
       default:
         void scenario(id, label).then(runPostAction);
@@ -479,9 +493,13 @@ export function ChatTab() {
             sessionToken={sessionToken}
             onSuccess={() => {
               setAuthenticated(true);
-              setInline(null);
+              setInline(afterAuth);
+              setAfterAuth(null);
             }}
-            onCancel={() => setInline(null)}
+            onCancel={() => {
+              setInline(null);
+              setAfterAuth(null);
+            }}
           />
         )}
         {inline === 'contactEmail' && (

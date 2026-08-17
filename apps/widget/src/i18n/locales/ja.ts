@@ -26,6 +26,9 @@ export const ja: Translation = {
       yesterday: '昨日のお知らせ',
     },
     unread: '未読',
+    markRead: '既読にする',
+    unreadCount_one: '未読{{count}}件',
+    unreadCount_other: '未読{{count}}件',
   },
 
   chat: {
@@ -130,6 +133,7 @@ export const ja: Translation = {
       4: '満足',
       5: 'とても満足',
     },
+    csatFailed: '評価を保存できませんでした。もう一度お試しください。',
   },
 
   auth: {

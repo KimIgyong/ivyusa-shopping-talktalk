@@ -26,6 +26,9 @@ export const es: Translation = {
       yesterday: 'Ayer',
     },
     unread: 'Sin leer',
+    markRead: 'Marcar como leído',
+    unreadCount_one: '{{count}} sin leer',
+    unreadCount_other: '{{count}} sin leer',
   },
 
   chat: {
@@ -127,6 +130,7 @@ export const es: Translation = {
       4: 'Satisfecho',
       5: 'Muy satisfecho',
     },
+    csatFailed: 'No pudimos guardar tu valoración. Inténtalo de nuevo.',
   },
 
   auth: {

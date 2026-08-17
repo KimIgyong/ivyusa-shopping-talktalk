@@ -26,6 +26,9 @@ export const vi: Translation = {
       yesterday: 'Hôm qua',
     },
     unread: 'Chưa đọc',
+    markRead: 'Đánh dấu đã đọc',
+    unreadCount_one: '{{count}} chưa đọc',
+    unreadCount_other: '{{count}} chưa đọc',
   },
 
   chat: {
@@ -130,6 +133,7 @@ export const vi: Translation = {
       4: 'Hài lòng',
       5: 'Rất hài lòng',
     },
+    csatFailed: 'Không lưu được đánh giá của bạn. Vui lòng thử lại.',
   },
 
   auth: {

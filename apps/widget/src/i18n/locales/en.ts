@@ -24,6 +24,9 @@ export const en = {
       yesterday: 'Yesterday',
     },
     unread: 'Unread',
+    markRead: 'Mark as read',
+    unreadCount_one: '{{count}} unread',
+    unreadCount_other: '{{count}} unread',
   },
 
   chat: {
@@ -126,6 +129,7 @@ export const en = {
       4: 'Happy',
       5: 'Very happy',
     },
+    csatFailed: 'We couldn\'t save your rating. Please try again.',
   },
 
   auth: {

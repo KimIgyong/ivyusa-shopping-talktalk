@@ -26,6 +26,9 @@ export const ko: Translation = {
       yesterday: '어제 알림',
     },
     unread: '읽지 않음',
+    markRead: '읽음으로 표시',
+    unreadCount_one: '읽지 않음 {{count}}건',
+    unreadCount_other: '읽지 않음 {{count}}건',
   },
 
   chat: {
@@ -127,6 +130,7 @@ export const ko: Translation = {
       4: '만족',
       5: '매우 만족',
     },
+    csatFailed: '평가를 저장하지 못했습니다. 다시 시도해 주세요.',
   },
 
   auth: {

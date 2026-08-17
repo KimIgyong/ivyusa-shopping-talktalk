@@ -36,6 +36,7 @@ export function CsatCard({
   });
   const [submitted, setSubmitted] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState(false);
 
   if (dismissed) return null;
 
@@ -51,9 +52,14 @@ export function CsatCard({
   const submit = async (rating: number) => {
     if (busy || submitted != null) return;
     setBusy(true);
+    setFailed(false);
     try {
       await onRate(rating);
       setSubmitted(rating);
+    } catch {
+      // Silent failure is banned (dev-kit §4.3): without this the face simply
+      // stayed unselected and the shopper had no idea the rating never landed.
+      setFailed(true);
     } finally {
       setBusy(false);
     }
@@ -93,6 +99,9 @@ export function CsatCard({
           );
         })}
       </div>
+      {failed && (
+        <p className="mt-2 text-xs text-error">{t('chat.csatFailed')}</p>
+      )}
       {submitted == null && (
         <button
           type="button"

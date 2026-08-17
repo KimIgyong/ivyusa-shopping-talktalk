@@ -43,6 +43,8 @@ export function TopTabs({ chatUnread = 0 }: { chatUnread?: number }) {
             key={tab.key}
             role="tab"
             aria-selected={active}
+            aria-controls={`ivy-tabpanel-${tab.key}`}
+            id={`ivy-tab-${tab.key}`}
             onClick={() => selectTab(tab.key)}
             className={`relative flex flex-1 items-center justify-center gap-1.5 py-3.5 text-sm transition-colors ${
               active ? 'font-bold text-gray-900' : 'font-medium text-gray-500 hover:text-gray-700'
@@ -50,7 +52,11 @@ export function TopTabs({ chatUnread = 0 }: { chatUnread?: number }) {
           >
             {t(tab.labelKey)}
             {count > 0 && (
-              <span className="flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-error px-1 text-[10px] font-bold text-white">
+              <span
+                className="flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-error px-1 text-[10px] font-bold text-white"
+                // A bare "4" beside a tab name says nothing on its own.
+                aria-label={t('notifications.unreadCount', { count })}
+              >
                 {count > 99 ? '99+' : count}
               </span>
             )}

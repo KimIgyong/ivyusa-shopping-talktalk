@@ -92,7 +92,12 @@ export function WidgetPanel() {
       <div className="min-h-0 flex-1">
         <div className={showSettings ? 'hidden' : 'h-full'}>
           {visited.includes('chat') && (
-            <div className={activeTab === 'chat' ? 'h-full' : 'hidden'}>
+            <div
+              role="tabpanel"
+              id="ivy-tabpanel-chat"
+              aria-labelledby="ivy-tab-chat"
+              className={activeTab === 'chat' ? 'h-full' : 'hidden'}
+            >
               {/* One boundary per tab: a crash here must not cost the shopper
                   the other tabs, and re-entering the tab retries it. */}
               <ErrorBoundary label="chat" resetKey={activeTab}>
@@ -101,7 +106,12 @@ export function WidgetPanel() {
             </div>
           )}
           {visited.includes('notifications') && (
-            <div className={activeTab === 'notifications' ? 'h-full' : 'hidden'}>
+            <div
+              role="tabpanel"
+              id="ivy-tabpanel-notifications"
+              aria-labelledby="ivy-tab-notifications"
+              className={activeTab === 'notifications' ? 'h-full' : 'hidden'}
+            >
               <ErrorBoundary label="notifications" resetKey={activeTab}>
                 <NotificationsTab />
               </ErrorBoundary>

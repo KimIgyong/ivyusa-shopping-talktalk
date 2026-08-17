@@ -73,9 +73,12 @@ export function MessageBubble({ message }: { message: ChatMessage }) {
         )}
         {/* The design shows no timestamps (PLN §7 D-1). Removing them outright
             would cost the shopper any sense of when something was said, so they
-            are kept but held back until the bubble is hovered or focused. */}
+            are kept but held back until the bubble is hovered.
+            On a touch screen there is no hover and a text-only bubble has no
+            focusable child, so hiding them there would hide them for good —
+            pointer-coarse devices always show them. */}
         <div
-          className={`mt-0.5 text-[10px] text-gray-400 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100 ${
+          className={`mt-0.5 text-[10px] text-gray-400 opacity-0 transition-opacity group-hover:opacity-100 [@media(hover:none)]:opacity-100 ${
             mine ? 'text-right' : 'text-left'
           }`}
         >

@@ -26,6 +26,9 @@ export const zh: Translation = {
       yesterday: '昨日通知',
     },
     unread: '未读',
+    markRead: '标记为已读',
+    unreadCount_one: '{{count}} 条未读',
+    unreadCount_other: '{{count}} 条未读',
   },
 
   chat: {
@@ -128,6 +131,7 @@ export const zh: Translation = {
       4: '满意',
       5: '非常满意',
     },
+    csatFailed: '评价保存失败，请重试。',
   },
 
   auth: {

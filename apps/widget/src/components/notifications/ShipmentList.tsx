@@ -1,6 +1,7 @@
 import { useQueries } from '@tanstack/react-query';
 import { PackageSearch } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { getTracking } from '../../services/orderService';
 import { useOrders } from '../../hooks/useOrders';
 import { Badge, toneForStatus } from '../ui/Badge';
@@ -15,6 +16,18 @@ import type { OrderSummary, Tracking } from '../../lib/types';
  * rest stay reachable through "see all orders".
  */
 const TRACKED_MAX = 5;
+
+/**
+ * `orders.trackingSteps` is the one translation key that is an ARRAY, and
+ * `returnObjects` hands back whatever the bundle holds. A locale that lost the
+ * key, or defined it as a string, would make this a non-array — and the `.map`
+ * downstream would throw, replacing the whole Shipping filter with an error
+ * boundary. Validate rather than cast.
+ */
+function trackingStepLabels(t: TFunction): string[] {
+  const raw = t('orders.trackingSteps', { returnObjects: true });
+  return Array.isArray(raw) ? raw.filter((s): s is string => typeof s === 'string') : [];
+}
 
 /** Orders worth showing under "Shipping" — anything that has left, or is leaving. */
 function isShipmentish(o: OrderSummary): boolean {
@@ -33,7 +46,7 @@ function ShipmentCard({
   onOpen: () => void;
 }) {
   const { t } = useTranslation();
-  const fallbackSteps = t('orders.trackingSteps', { returnObjects: true }) as string[];
+  const fallbackSteps = trackingStepLabels(t);
   const steps = tracking?.steps?.length ? tracking.steps : fallbackSteps;
   const delivered = !!tracking && tracking.stepIndex >= steps.length - 1;
 

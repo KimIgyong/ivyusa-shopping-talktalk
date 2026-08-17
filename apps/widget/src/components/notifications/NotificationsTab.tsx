@@ -58,42 +58,38 @@ function Row({
       }`}
     >
       <NotificationIcon category={n.category} hasLink={!!n.linkUrl} highlighted={highlighted} />
-      <button
-        onClick={() => unread && onRead(n.id)}
-        className="min-w-0 flex-1 text-left"
-      >
-        <div className="flex items-center gap-2">
-          {n.title && (
-            <span className="truncate text-sm font-bold text-gray-900">{n.title}</span>
-          )}
-          {n.statusBadge && (
-            <Badge tone={toneForStatus(n.statusBadge)}>{n.statusBadge}</Badge>
-          )}
-        </div>
-        {n.body && <p className="mt-0.5 text-sm text-gray-800">{n.body}</p>}
+      {/* The mark-as-read target and the review action are SIBLINGS, never
+          nested. A button inside a button is invalid HTML: browsers recover
+          from it inconsistently and the inner control's keyboard behaviour
+          stops being dependable. */}
+      <div className="min-w-0 flex-1">
+        <button
+          onClick={() => unread && onRead(n.id)}
+          className="w-full text-left"
+          aria-label={unread ? t('notifications.markRead') : undefined}
+        >
+          <span className="flex items-center gap-2">
+            {n.title && (
+              <span className="truncate text-sm font-bold text-gray-900">{n.title}</span>
+            )}
+            {n.statusBadge && (
+              <Badge tone={toneForStatus(n.statusBadge)}>{n.statusBadge}</Badge>
+            )}
+          </span>
+          {n.body && <span className="mt-0.5 block text-sm text-gray-800">{n.body}</span>}
+        </button>
         {reviewable && (
-          <span
-            role="button"
-            tabIndex={0}
-            onClick={(e) => {
-              e.stopPropagation();
-              onReview(n.refId!);
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                e.stopPropagation();
-                onReview(n.refId!);
-              }
-            }}
+          <button
+            type="button"
+            onClick={() => onReview(n.refId!)}
             className="mt-1 inline-flex items-center gap-1 text-sm font-medium text-primary-600 hover:underline"
           >
             <Star className="h-3.5 w-3.5 fill-warning text-warning" />
             {t('orders.writeReview')}
-          </span>
+          </button>
         )}
         <p className="mt-1 text-xs text-gray-400">{relativeTime(n.createdAt, i18n.language)}</p>
-      </button>
+      </div>
       {unread && (
         <span className="mt-1.5 flex-shrink-0" aria-label={t('notifications.unread')}>
           <span className="block h-2 w-2 rounded-full bg-error" />
@@ -103,8 +99,23 @@ function Row({
   );
 }
 
-function IssueFeed({ issues }: { issues: IssueFeedItem[] }) {
+function IssueFeed({
+  issues,
+  isLoading,
+  isError,
+}: {
+  issues: IssueFeedItem[];
+  isLoading: boolean;
+  isError: boolean;
+}) {
   const { t, i18n } = useTranslation();
+  // "No inquiries" while the request is still in flight (or failed) tells the
+  // shopper they have none — the same misreading the notification list was
+  // fixed for. Say loading, or say error; never invent an empty result.
+  if (isLoading) return <Spinner label={t('common.loading')} />;
+  if (isError) {
+    return <p className="py-8 text-center text-sm text-gray-400">{t('common.error')}</p>;
+  }
   if (issues.length === 0) {
     return (
       <div className="flex flex-col items-center gap-2 py-12 text-gray-400">
@@ -160,7 +171,11 @@ export function NotificationsTab() {
   );
   const markRead = useMarkRead(sessionToken);
 
-  const { data: issueFeed } = useQuery({
+  const {
+    data: issueFeed,
+    isLoading: issuesLoading,
+    isError: issuesError,
+  } = useQuery({
     queryKey: ['issues', sessionToken],
     queryFn: () => listIssues(sessionToken!),
     enabled: !!sessionToken && authenticated && isInquiries,
@@ -244,7 +259,11 @@ export function NotificationsTab() {
         {isShipping ? (
           <ShipmentList sessionToken={sessionToken} onOpenOrder={setOpenOrder} />
         ) : isInquiries ? (
-          <IssueFeed issues={issueFeed ?? []} />
+          <IssueFeed
+            issues={issueFeed ?? []}
+            isLoading={issuesLoading}
+            isError={issuesError}
+          />
         ) : (
           <>
             {isLoading && <Spinner label={t('common.loading')} />}
