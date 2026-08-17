@@ -407,5 +407,27 @@
       "manager": "Gerente",
       "staff": "Personal"
     }
+  },
+  "notifChannels": {
+    "title": "Canales de notificación",
+    "desc": "Qué notificaciones puede enviar esta tienda y por qué vía. Los clientes aún pueden rechazar el marketing dentro de lo que permitas aquí.",
+    "category": "Categoría",
+    "inApp": "En la app",
+    "always": "Siempre activo",
+    "hint": "«En la app» es el buzón del widget y está siempre activo.",
+    "unsetHint": "Si no tocas una fila, nada cambia: se mantiene el comportamiento actual.",
+    "saved": "Canales guardados.",
+    "saveError": "No se pudieron guardar los canales.",
+    "channel": {
+      "email": "Correo",
+      "sms": "SMS",
+      "web_push": "Push web",
+      "push": "Push de app"
+    },
+    "category.payment": "Pago",
+    "category.shipping": "Envío",
+    "category.event": "Promociones",
+    "category.review": "Solicitudes de reseña",
+    "category.chat": "Respuestas del agente"
   }
 }

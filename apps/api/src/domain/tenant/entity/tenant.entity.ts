@@ -93,6 +93,17 @@ export class Tenant {
   widgetTabPosition: string;
 
   /**
+   * Which external channels this shop may use per notification category —
+   * a CEILING on delivery, not a replacement for the customer's own preference
+   * (PLN-260817-Widget-Header-Prefs-Cleanup §2.2).
+   *
+   * NULL means "not configured" and imposes no ceiling at all, so a tenant that
+   * never opens the setting sends exactly what it sent before it existed.
+   */
+  @Column({ name: 'notification_channels', type: 'json', nullable: true })
+  notificationChannels: Record<string, string[]> | null;
+
+  /**
    * Issue-workflow entitlement (REQ-260807 §11.1, server-judged):
    * 'native' (paid add-on: kanban/state machine) | 'bridge' (external helpdesk
    * hand-off) | 'base' (chat list only, default — behavior unchanged).

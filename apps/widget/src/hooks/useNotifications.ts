@@ -4,9 +4,11 @@ import {
   useQueryClient,
 } from '@tanstack/react-query';
 import {
+  getMarketingOptOut,
   getPrefs,
   listNotifications,
   markRead,
+  setMarketingOptOut,
   setPref,
   unreadCount,
 } from '../services/notificationService';
@@ -75,6 +77,25 @@ export function useSetPref(sessionToken: string | null) {
     }) => setPref(sessionToken!, p.channel, p.category, p.enabled),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['prefs'] });
+    },
+  });
+}
+
+/** Marketing refusal state for the widget's single remaining channel control. */
+export function useMarketingOptOut(sessionToken: string | null, authenticated: boolean) {
+  return useQuery({
+    queryKey: ['marketing-opt-out', sessionToken],
+    queryFn: () => getMarketingOptOut(sessionToken!),
+    enabled: !!sessionToken && authenticated,
+  });
+}
+
+export function useSetMarketingOptOut(sessionToken: string | null) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (optOut: boolean) => setMarketingOptOut(sessionToken!, optOut),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['marketing-opt-out'] });
     },
   });
 }

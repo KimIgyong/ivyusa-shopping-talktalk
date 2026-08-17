@@ -4,13 +4,22 @@ import { In, IsNull, Not, Repository } from 'typeorm';
 import { Notification } from './entity/notification.entity';
 import { NotificationPref } from './entity/notification-pref.entity';
 import { Session } from '../session/entity/session.entity';
+import { Tenant } from '../tenant/entity/tenant.entity';
 import { SessionService } from '../session/session.service';
 import { NotifyInput } from './dto/response/notification.response';
 import {
+  EXTERNAL_CHANNELS,
+  NOTIFICATION_CATEGORY,
   NOTIFICATION_SCOPE,
   ORDER_NOTIFICATION_CATEGORIES,
+  TRANSACTIONAL_CATEGORIES,
+  channelAllowedByTenant,
+  isMarketingCategory,
   type NotificationScope,
 } from '@ivy/types';
+
+/** Every real category (excludes the 'all' sentinel, which is a query filter). */
+const NOTIFICATION_CATEGORY_LIST = Object.values(NOTIFICATION_CATEGORY).filter((c) => c !== 'all');
 import { EventBusService, EVENTS } from '../../infrastructure/infrastructure.module';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
@@ -63,15 +72,11 @@ function scopedWhere(
   return where;
 }
 
-const EXTERNAL_CHANNELS = ['email', 'sms', 'web_push', 'push'] as const;
-
-/**
- * Transactional categories may default-allow on external channels when the
- * customer has no explicit pref row; everything else (marketing: event/review)
- * is default-DENY per approved decision D-4 (Stage 6). 'chat' (agent replies
- * to the mobile app) is a service notification — transactional.
- */
-const TRANSACTIONAL_CATEGORIES = ['payment', 'shipping', 'chat'] as const;
+// Both lists moved to @ivy/types so the widget's marketing opt-out covers
+// exactly the categories the server treats as marketing — a second copy here
+// would drift the first time a category is added, and the failure mode is
+// silent delivery to someone who opted out
+// (PLN-260817-Widget-Header-Prefs-Cleanup §6.1).
 
 /**
  * Customer/session notifications (FR-030/031). Always creates an in-app
@@ -86,6 +91,7 @@ export class NotificationService implements OnModuleInit {
     @InjectRepository(Notification) private readonly notifRepo: Repository<Notification>,
     @InjectRepository(NotificationPref) private readonly prefRepo: Repository<NotificationPref>,
     @InjectRepository(Session) private readonly sessionRepo: Repository<Session>,
+    @InjectRepository(Tenant) private readonly tenantRepo: Repository<Tenant>,
     private readonly sessionService: SessionService,
     private readonly bus: EventBusService,
     private readonly redis: RedisService,
@@ -119,7 +125,12 @@ export class NotificationService implements OnModuleInit {
         : [...EXTERNAL_CHANNELS];
 
     for (const channel of externalTargets) {
-      const suppressed = await this.isSuppressed(customerId, channel, input.category);
+      const suppressed = await this.isSuppressed(
+        customerId,
+        channel,
+        input.category,
+        input.tenantId ?? null,
+      );
       if (suppressed) continue; // reason already logged by isSuppressed
       const row = await this.createRow(input, channel, customerId, sessionId);
       created.push(row);
@@ -188,9 +199,27 @@ export class NotificationService implements OnModuleInit {
    *   (event/review) default-DENY.
    * in_app is not routed through here — it is always-on by design.
    */
-  async isSuppressed(customerId: number | null, channel: string, category: string): Promise<boolean> {
+  /**
+   * Two layers, in this order: what the SHOP permits, then what the CUSTOMER
+   * chose (PLN-260817-Widget-Header-Prefs-Cleanup §2.2).
+   *
+   * The tenant policy is a ceiling — a shop that turns SMS off must not send
+   * SMS however a customer's stored preference reads. Below that ceiling the
+   * customer's own row still decides, which is what keeps the mobile/PWA push
+   * toggles working after the widget stopped offering the full matrix.
+   */
+  async isSuppressed(
+    customerId: number | null,
+    channel: string,
+    category: string,
+    tenantId?: number | null,
+  ): Promise<boolean> {
     if (customerId == null) {
       this.logger.debug(`suppress ${channel}/${category}: no identified recipient (fail-closed)`);
+      return true;
+    }
+    if (tenantId != null && !(await this.tenantAllows(tenantId, category, channel))) {
+      this.logger.debug(`suppress ${channel}/${category}: tenant ${tenantId} policy disallows`);
       return true;
     }
     const pref = await this.prefRepo.findOne({ where: { customerId, channel, category } });
@@ -208,6 +237,70 @@ export class NotificationService implements OnModuleInit {
       );
     }
     return !transactional;
+  }
+
+  /**
+   * The tenant's delivery policy. Unconfigured (`NULL`) means "no ceiling",
+   * which is exactly how the system behaved before this setting existed — so
+   * every tenant that never touches it keeps sending precisely what it sent.
+   */
+  private async tenantAllows(tenantId: number, category: string, channel: string): Promise<boolean> {
+    const tenant = await this.tenantRepo.findOne({ where: { id: tenantId } });
+    return channelAllowedByTenant(tenant?.notificationChannels ?? null, category, channel);
+  }
+
+  /**
+   * Is this customer refusing marketing on external channels?
+   *
+   * True when NO marketing category/channel pair is explicitly enabled — which
+   * is also the state of a customer who has never touched anything, because
+   * marketing is default-deny. Showing that as "opted out" is the honest
+   * reading: the alternative would display a toggle as ON while nothing was
+   * actually being sent.
+   */
+  async marketingOptOut(token: string): Promise<boolean> {
+    const customerId = await this.requireCustomerId(token);
+    const rows = await this.prefRepo.find({ where: { customerId } });
+    return !rows.some(
+      (r) => isMarketingCategory(r.category) && EXTERNAL_CHANNELS.includes(r.channel) && r.enabled === 1,
+    );
+  }
+
+  /**
+   * Set that refusal in one call.
+   *
+   * The widget used to write this as a grid of individual toggles; expressing
+   * "no marketing" as eight separate writes let a partial failure leave a
+   * shopper half-opted-out with no way to tell. One request, one meaning.
+   */
+  async setMarketingOptOut(token: string, optOut: boolean): Promise<boolean> {
+    const customerId = await this.requireCustomerId(token);
+    const categories = NOTIFICATION_CATEGORY_LIST.filter(isMarketingCategory);
+    for (const category of categories) {
+      for (const channel of EXTERNAL_CHANNELS) {
+        await this.upsertPrefRow(customerId, channel, category, optOut ? 0 : 1);
+      }
+    }
+    this.logger.debug(
+      `customer ${customerId} marketing opt-${optOut ? 'out' : 'in'} across ${categories.length} categories`,
+    );
+    return optOut;
+  }
+
+  /** Insert-or-update one preference row (channel × category). */
+  private async upsertPrefRow(
+    customerId: number,
+    channel: string,
+    category: string,
+    enabled: 0 | 1,
+  ): Promise<void> {
+    const existing = await this.prefRepo.findOne({ where: { customerId, channel, category } });
+    if (existing) {
+      existing.enabled = enabled;
+      await this.prefRepo.save(existing);
+      return;
+    }
+    await this.prefRepo.save(this.prefRepo.create({ customerId, channel, category, enabled }));
   }
 
   /** Widget-session authorization — single implementation in SessionService. */

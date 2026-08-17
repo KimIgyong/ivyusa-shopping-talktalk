@@ -3,6 +3,7 @@ import { NotificationService } from './notification.service';
 import { Notification } from './entity/notification.entity';
 import { NotificationPref } from './entity/notification-pref.entity';
 import { Session } from '../session/entity/session.entity';
+import { Tenant } from '../tenant/entity/tenant.entity';
 import { EventBusService } from '../../infrastructure/infrastructure.module';
 import { RedisService } from '../../infrastructure/cache/redis.service';
 import { ORDER_NOTIFICATION_CATEGORIES } from '@ivy/types';
@@ -47,7 +48,17 @@ describe('NotificationService.isSuppressed / notify (Stage 6 — D-4 fail-closed
       requireCustomerId: jest.fn(),
       requireCustomer: jest.fn(),
     } as never;
-    svc = new NotificationService(notifRepo, prefRepo, sessionRepo, sessionService, bus, redis);
+    svc = new NotificationService(
+      notifRepo,
+      prefRepo,
+      sessionRepo,
+      // Tenant repo: no row, i.e. no delivery ceiling — the pre-policy behaviour
+      // these suppression cases were written against.
+      { findOne: jest.fn(async () => null) } as unknown as Repository<Tenant>,
+      sessionService,
+      bus,
+      redis,
+    );
   });
 
   const channelsOf = (rows: Notification[]) => rows.map((r) => r.channel).sort();
@@ -192,6 +203,7 @@ describe('NotificationService.notify — record reference (PLN-260817 S5)', () =
       notifRepo,
       prefRepo,
       {} as unknown as Repository<Session>,
+      { findOne: jest.fn(async () => null) } as unknown as Repository<Tenant>,
       sessionService,
       bus,
       redis,
@@ -260,6 +272,7 @@ describe('NotificationService scoping — order vs notice half', () => {
       notifRepo,
       {} as unknown as Repository<NotificationPref>,
       {} as unknown as Repository<Session>,
+      { findOne: jest.fn(async () => null) } as unknown as Repository<Tenant>,
       sessionService,
       { subscribe: jest.fn(), publish: jest.fn() } as unknown as EventBusService,
       redis,
@@ -324,5 +337,123 @@ describe('NotificationService scoping — order vs notice half', () => {
   it('unreadCount without a scope counts everything', async () => {
     await svc.unreadCount('tok');
     expect(countWhere!.category).toBeUndefined();
+  });
+});
+
+/**
+ * Tenant delivery ceiling + the widget's single marketing opt-out
+ * (PLN-260817-Widget-Header-Prefs-Cleanup).
+ */
+describe('NotificationService — tenant ceiling and marketing opt-out', () => {
+  let svc: NotificationService;
+  let prefRows: Map<string, number>;
+  let saved: Array<{ channel: string; category: string; enabled: number }>;
+  let policy: Record<string, string[]> | null;
+
+  const key = (ch: string, cat: string) => `${ch}:${cat}`;
+
+  beforeEach(() => {
+    prefRows = new Map();
+    saved = [];
+    policy = null;
+    const notifRepo = {
+      create: jest.fn((e: Partial<Notification>) => e as Notification),
+      save: jest.fn(async (e: Notification) => e),
+    } as unknown as Repository<Notification>;
+    const prefRepo = {
+      findOne: jest.fn(async ({ where }: { where: { channel: string; category: string } }) => {
+        const enabled = prefRows.get(key(where.channel, where.category));
+        return enabled === undefined ? null : ({ ...where, enabled } as NotificationPref);
+      }),
+      find: jest.fn(async () =>
+        [...prefRows.entries()].map(([k, enabled]) => {
+          const [channel, category] = k.split(':');
+          return { channel, category, enabled } as NotificationPref;
+        }),
+      ),
+      create: jest.fn((e: Partial<NotificationPref>) => e as NotificationPref),
+      save: jest.fn(async (e: NotificationPref) => {
+        saved.push({ channel: e.channel, category: e.category, enabled: e.enabled });
+        prefRows.set(key(e.channel, e.category), e.enabled);
+        return e;
+      }),
+    } as unknown as Repository<NotificationPref>;
+    const tenantRepo = {
+      findOne: jest.fn(async () => ({ notificationChannels: policy }) as unknown as Tenant),
+    } as unknown as Repository<Tenant>;
+    const sessionService = {
+      requireCustomerId: jest.fn(async () => 42),
+      requireCustomer: jest.fn(),
+    } as never;
+    const redis = {
+      del: jest.fn(),
+      get: jest.fn(async () => null),
+      set: jest.fn(),
+      available: () => false,
+    } as unknown as RedisService;
+    svc = new NotificationService(
+      notifRepo,
+      prefRepo,
+      {} as unknown as Repository<Session>,
+      tenantRepo,
+      sessionService,
+      { subscribe: jest.fn(), publish: jest.fn() } as unknown as EventBusService,
+      redis,
+    );
+  });
+
+  it('an unconfigured tenant imposes no ceiling — delivery is unchanged', async () => {
+    // The property the whole design rests on: adding this column must not alter
+    // what any existing shop sends.
+    policy = null;
+    prefRows.set(key('email', 'shipping'), 1);
+    await expect(svc.isSuppressed(42, 'email', 'shipping', 7)).resolves.toBe(false);
+  });
+
+  it('the shop policy overrides an enabled customer preference', async () => {
+    policy = { shipping: ['email'] };
+    prefRows.set(key('sms', 'shipping'), 1); // customer says yes
+    await expect(svc.isSuppressed(42, 'sms', 'shipping', 7)).resolves.toBe(true);
+  });
+
+  it('within what the shop permits, the customer still decides', async () => {
+    // This is why the mobile app's push toggle keeps working.
+    policy = { shipping: ['email', 'push'] };
+    prefRows.set(key('push', 'shipping'), 0);
+    await expect(svc.isSuppressed(42, 'push', 'shipping', 7)).resolves.toBe(true);
+    prefRows.set(key('push', 'shipping'), 1);
+    await expect(svc.isSuppressed(42, 'push', 'shipping', 7)).resolves.toBe(false);
+  });
+
+  it('reads as opted out when the customer has no preference rows at all', async () => {
+    // Marketing is already default-deny, so anything else would show a toggle
+    // as "on" while nothing is actually sent.
+    await expect(svc.marketingOptOut('tok')).resolves.toBe(true);
+  });
+
+  it('opting in writes every marketing category × external channel', async () => {
+    await svc.setMarketingOptOut('tok', false);
+    const cats = new Set(saved.map((r) => r.category));
+    expect(cats.has('event')).toBe(true);
+    expect(cats.has('review')).toBe(true);
+    // Transactional categories are not marketing and must not be touched here.
+    expect(cats.has('payment')).toBe(false);
+    expect(cats.has('shipping')).toBe(false);
+    expect(saved.every((r) => r.enabled === 1)).toBe(true);
+    await expect(svc.marketingOptOut('tok')).resolves.toBe(false);
+  });
+
+  it('opting back out disables them again', async () => {
+    await svc.setMarketingOptOut('tok', false);
+    saved = [];
+    await svc.setMarketingOptOut('tok', true);
+    expect(saved.length).toBeGreaterThan(0);
+    expect(saved.every((r) => r.enabled === 0)).toBe(true);
+    await expect(svc.marketingOptOut('tok')).resolves.toBe(true);
+  });
+
+  it('a transactional preference does not make the shopper look opted in', async () => {
+    prefRows.set(key('email', 'shipping'), 1);
+    await expect(svc.marketingOptOut('tok')).resolves.toBe(true);
   });
 });

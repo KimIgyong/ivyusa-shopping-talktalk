@@ -239,6 +239,10 @@ export const es: Translation = {
     stars_other: '{{count}} estrellas',
   },
 
+  header: {
+    greeting: 'Hola, {{name}}',
+  },
+
   prefs: {
     title: 'Preferencias de notificación',
     channels: {
@@ -255,6 +259,11 @@ export const es: Translation = {
     },
     alwaysOn: 'Siempre activo',
     ccpa: 'CCPA: No vender ni compartir mi información personal',
+    marketingTitle: 'Mensajes de marketing',
+    marketingOptOut: 'No quiero recibir mensajes de marketing',
+    marketingHint: 'Los avisos de pedido y envío se envían igualmente — esto cubre promociones, cupones y solicitudes de reseña.',
+    marketingSaved: 'Preferencia guardada.',
+    marketingFailed: 'No se pudo guardar. Inténtalo de nuevo.',
   },
 
   privacy: {

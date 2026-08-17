@@ -109,3 +109,13 @@ export interface IntegrationTestResponse {
   ok: boolean;
   detail: string;
 }
+
+/** Tenant delivery policy for the console's Notification channels card. */
+export interface NotificationChannelsResponse {
+  /** Effective policy; `{}` when the tenant never configured one. */
+  channels: Record<string, string[]>;
+  /** Categories the console renders rows for. */
+  categories: string[];
+  /** External channels it renders columns for (in-app is always on). */
+  channelKeys: string[];
+}

@@ -407,5 +407,27 @@
       "manager": "经理",
       "staff": "员工"
     }
+  },
+  "notifChannels": {
+    "title": "通知渠道",
+    "desc": "设置本店可以发送哪些通知以及通过哪些渠道。在您允许的范围内，客户仍可拒收营销消息。",
+    "category": "类别",
+    "inApp": "应用内",
+    "always": "始终开启",
+    "hint": "应用内为挂件的通知列表，始终开启。",
+    "unsetHint": "未改动的行将保持当前行为不变。",
+    "saved": "已保存通知渠道。",
+    "saveError": "保存通知渠道失败。",
+    "channel": {
+      "email": "邮件",
+      "sms": "短信",
+      "web_push": "网页推送",
+      "push": "应用推送"
+    },
+    "category.payment": "支付",
+    "category.shipping": "配送",
+    "category.event": "促销",
+    "category.review": "评价邀请",
+    "category.chat": "客服回复"
   }
 }

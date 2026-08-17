@@ -407,5 +407,27 @@
       "manager": "Quản lý",
       "staff": "Nhân viên"
     }
+  },
+  "notifChannels": {
+    "title": "Kênh thông báo",
+    "desc": "Cửa hàng này được gửi thông báo nào và qua kênh nào. Khách vẫn có thể từ chối tin tiếp thị trong phạm vi bạn cho phép.",
+    "category": "Danh mục",
+    "inApp": "Trong ứng dụng",
+    "always": "Luôn bật",
+    "hint": "Trong ứng dụng là hộp thông báo của widget và luôn bật.",
+    "unsetHint": "Hàng không chỉnh sẽ giữ nguyên hành vi hiện tại.",
+    "saved": "Đã lưu kênh thông báo.",
+    "saveError": "Không lưu được kênh thông báo.",
+    "channel": {
+      "email": "Email",
+      "sms": "SMS",
+      "web_push": "Web push",
+      "push": "Push ứng dụng"
+    },
+    "category.payment": "Thanh toán",
+    "category.shipping": "Vận chuyển",
+    "category.event": "Khuyến mãi",
+    "category.review": "Yêu cầu đánh giá",
+    "category.chat": "Phản hồi của nhân viên"
   }
 }

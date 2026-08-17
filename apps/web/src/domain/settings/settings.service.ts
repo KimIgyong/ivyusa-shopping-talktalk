@@ -88,10 +88,20 @@ export interface WidgetCopyDraft {
   loginGreeting: Record<string, string>;
 }
 
+/** Tenant delivery policy — a ceiling on what the shop sends, per category. */
+export interface NotificationChannels {
+  channels: Record<string, string[]>;
+  categories: string[];
+  channelKeys: string[];
+}
+
 export const settingsService = {
   credentials: () => apiGet<CredentialStatus[]>('/tenants/me/credentials'),
   widgetSettings: () => apiGet<WidgetSettings>('/tenants/widget-settings'),
   storefront: () => apiGet<Storefront>('/tenants/storefront'),
+  notificationChannels: () => apiGet<NotificationChannels>('/tenants/notification-channels'),
+  saveNotificationChannels: (channels: Record<string, string[]>) =>
+    apiPatch<NotificationChannels>('/tenants/notification-channels', { channels }),
   updateStorefront: (storefrontUrl: string) =>
     apiPatch<Storefront>('/tenants/storefront', { storefront_url: storefrontUrl }),
   saveWidgetSettings: (

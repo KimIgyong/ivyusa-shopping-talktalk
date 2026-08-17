@@ -196,3 +196,29 @@ export function useUpdateStorefront() {
     onError: (err: Error) => toast.error(err.message),
   });
 }
+
+export function useNotificationChannels() {
+  const tenantKey = useTenantKey();
+  return useQuery({
+    queryKey: ['notification-channels', tenantKey],
+    queryFn: settingsService.notificationChannels,
+  });
+}
+
+export function useSaveNotificationChannels() {
+  const { t } = useTranslation('settings');
+  const qc = useQueryClient();
+  const tenantKey = useTenantKey();
+  return useMutation({
+    mutationFn: (channels: Record<string, string[]>) =>
+      settingsService.saveNotificationChannels(channels),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['notification-channels', tenantKey] });
+      // Success auto-closes; errors stay until dismissed (dev-kit §4.3).
+      toast.success(t('notifChannels.saved'));
+    },
+    onError: (e: Error) => {
+      toast.error(e.message || t('notifChannels.saveError'), { sticky: true });
+    },
+  });
+}

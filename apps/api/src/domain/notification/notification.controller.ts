@@ -4,7 +4,11 @@ import { SkipThrottle } from '@nestjs/throttler';
 import { buildPagination, normalizePage } from '@ivy/common';
 import { NOTIFICATION_SCOPE, type NotificationScope } from '@ivy/types';
 import { NotificationService } from './notification.service';
-import { ReadNotificationRequest, UpdatePrefRequest } from './dto/request/notification.request';
+import {
+  ReadNotificationRequest,
+  SetMarketingOptOutRequest,
+  UpdatePrefRequest,
+} from './dto/request/notification.request';
 import { toNotificationResponse, toPrefResponse } from './notification.mapper';
 import { Public } from '../../global/decorator/public.decorator';
 import { Paginated } from '../../global/interceptor/transform.interceptor';
@@ -60,6 +64,27 @@ export class NotificationController {
   async unreadCount(@SessionToken() token: string, @Query('scope') scope?: string) {
     const count = await this.notificationService.unreadCount(token, parseScope(scope));
     return { count };
+  }
+
+  /**
+   * Marketing opt-out — the single control the widget still offers after the
+   * category × channel matrix moved to the console
+   * (PLN-260817-Widget-Header-Prefs-Cleanup §6.1).
+   */
+  @Get('marketing-opt-out')
+  @Public()
+  @ApiOperation({ summary: 'Is this customer refusing marketing messages?' })
+  async marketingOptOut(@SessionToken() token: string) {
+    return { optOut: await this.notificationService.marketingOptOut(token) };
+  }
+
+  @Put('marketing-opt-out')
+  @Public()
+  @ApiOperation({ summary: 'Set the marketing refusal for every marketing category at once' })
+  async setMarketingOptOut(@Body() body: SetMarketingOptOutRequest) {
+    return {
+      optOut: await this.notificationService.setMarketingOptOut(body.session_token, body.opt_out),
+    };
   }
 
   @Get('prefs')

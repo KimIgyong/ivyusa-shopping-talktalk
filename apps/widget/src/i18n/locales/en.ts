@@ -238,6 +238,10 @@ export const en = {
     stars_other: '{{count}} stars',
   },
 
+  header: {
+    greeting: 'Hi, {{name}}',
+  },
+
   prefs: {
     title: 'Notification preferences',
     channels: {
@@ -254,6 +258,11 @@ export const en = {
     },
     alwaysOn: 'Always on',
     ccpa: 'CCPA: Do not sell or share my personal information',
+    marketingTitle: 'Marketing messages',
+    marketingOptOut: 'Do not send me marketing messages',
+    marketingHint: 'Order and delivery updates are sent regardless — this covers promotions, coupons and review requests.',
+    marketingSaved: 'Preference saved.',
+    marketingFailed: 'Couldn\'t save that. Please try again.',
   },
 
   privacy: {

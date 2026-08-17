@@ -407,5 +407,27 @@
       "manager": "マネージャー",
       "staff": "スタッフ"
     }
+  },
+  "notifChannels": {
+    "title": "通知チャネル",
+    "desc": "この店舗がどの通知をどの経路で送るかを設定します。許可した範囲内で、お客様はマーケティング配信を拒否できます。",
+    "category": "カテゴリ",
+    "inApp": "アプリ内",
+    "always": "常時オン",
+    "hint": "アプリ内はウィジェットのお知らせ一覧で、常時オンです。",
+    "unsetHint": "変更しない行は現在の動作がそのまま維持されます。",
+    "saved": "通知チャネルを保存しました。",
+    "saveError": "通知チャネルを保存できませんでした。",
+    "channel": {
+      "email": "メール",
+      "sms": "SMS",
+      "web_push": "ウェブプッシュ",
+      "push": "アプリプッシュ"
+    },
+    "category.payment": "決済",
+    "category.shipping": "配送",
+    "category.event": "プロモーション",
+    "category.review": "レビュー依頼",
+    "category.chat": "担当者の返信"
   }
 }

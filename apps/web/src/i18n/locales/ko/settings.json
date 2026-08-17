@@ -407,5 +407,27 @@
       "manager": "매니저",
       "staff": "스태프"
     }
+  },
+  "notifChannels": {
+    "title": "알림 채널",
+    "desc": "이 상점이 어떤 알림을 어떤 경로로 보낼지 정합니다. 고객은 허용된 범위 안에서 마케팅 수신을 거부할 수 있습니다.",
+    "category": "카테고리",
+    "inApp": "인앱",
+    "always": "항상 켜짐",
+    "hint": "인앱은 위젯 알림함이며 항상 켜져 있습니다.",
+    "unsetHint": "건드리지 않은 행은 현재 동작이 그대로 유지됩니다.",
+    "saved": "알림 채널을 저장했습니다.",
+    "saveError": "알림 채널을 저장하지 못했습니다.",
+    "channel": {
+      "email": "이메일",
+      "sms": "SMS",
+      "web_push": "웹푸시",
+      "push": "앱푸시"
+    },
+    "category.payment": "결제",
+    "category.shipping": "배송",
+    "category.event": "프로모션",
+    "category.review": "리뷰 요청",
+    "category.chat": "상담 답변"
   }
 }

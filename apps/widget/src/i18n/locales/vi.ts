@@ -243,6 +243,10 @@ export const vi: Translation = {
     stars_other: '{{count}} sao',
   },
 
+  header: {
+    greeting: 'Chào {{name}}',
+  },
+
   prefs: {
     title: 'Tùy chọn thông báo',
     channels: {
@@ -259,6 +263,11 @@ export const vi: Translation = {
     },
     alwaysOn: 'Luôn bật',
     ccpa: 'CCPA: Không bán hoặc chia sẻ thông tin cá nhân của tôi',
+    marketingTitle: 'Tin tiếp thị',
+    marketingOptOut: 'Không gửi tin tiếp thị cho tôi',
+    marketingHint: 'Thông báo đơn hàng và giao hàng vẫn được gửi — mục này áp dụng cho khuyến mãi, mã giảm giá và yêu cầu đánh giá.',
+    marketingSaved: 'Đã lưu tùy chọn.',
+    marketingFailed: 'Không lưu được. Vui lòng thử lại.',
   },
 
   privacy: {

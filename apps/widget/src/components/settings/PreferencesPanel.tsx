@@ -14,7 +14,11 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useWidgetStore } from '../../store/widgetStore';
-import { usePrefs, useSetPref } from '../../hooks/useNotifications';
+import {
+  useMarketingOptOut,
+  usePrefs,
+  useSetMarketingOptOut,
+} from '../../hooks/useNotifications';
 import { useOptOutStatus, useSetOptOut } from '../../hooks/usePrivacy';
 import { deleteMyData, exportMyData } from '../../services/privacyService';
 import { AuthGate } from '../chat/AuthGate';
@@ -22,20 +26,7 @@ import { isAuthError } from '../../lib/errors';
 import { setConsent } from '../../services/sessionService';
 import { setStoredConsent } from '../../lib/consent';
 import { formatDate } from '../../lib/format';
-import { Spinner } from '../ui/Spinner';
-import type {
-  NotifChannel,
-  NotificationCategory,
-  NotifPref,
-} from '../../lib/types';
 
-const CHANNELS: NotifChannel[] = ['in_app', 'email', 'sms', 'web_push'];
-const CATEGORIES: NotificationCategory[] = [
-  'payment',
-  'shipping',
-  'event',
-  'review',
-];
 
 function Toggle({
   on,
@@ -201,10 +192,15 @@ export function PreferencesPanel({ onBack }: { onBack: () => void }) {
   const setCustomerName = useWidgetStore((s) => s.setCustomerName);
   const queryClient = useQueryClient();
   const authenticated = useWidgetStore((s) => s.authenticated);
-  const { data, isLoading, isError, error } = usePrefs(sessionToken);
+  // Still queried, but only for its error: a 401 here is how the panel learns
+  // the session stopped being customer-bound. The rows themselves went with the
+  // matrix (PLN-260817-Widget-Header-Prefs-Cleanup S4).
+  const { isError, error } = usePrefs(sessionToken);
+  const marketingOptOut = useMarketingOptOut(sessionToken, authenticated);
+  const setMarketing = useSetMarketingOptOut(sessionToken);
+  const [marketingNotice, setMarketingNotice] = useState<string | null>(null);
   // The server is the authority: a 401 here means the session lost its customer.
   const authLost = isError && isAuthError(error);
-  const setPref = useSetPref(sessionToken);
   const optOutStatus = useOptOutStatus(sessionToken);
   const setOptOut = useSetOptOut(sessionToken);
   const [dsarBusy, setDsarBusy] = useState<'export' | 'delete' | null>(null);
@@ -265,18 +261,6 @@ export function PreferencesPanel({ onBack }: { onBack: () => void }) {
     }
   }
 
-  function isEnabled(
-    prefs: NotifPref[] | undefined,
-    channel: NotifChannel,
-    category: NotificationCategory,
-  ): boolean {
-    if (channel === 'in_app') return true; // always on
-    const p = prefs?.find(
-      (x) => x.channel === channel && x.category === category,
-    );
-    return p?.enabled ?? false;
-  }
-
   // Below the consent block everything is customer-scoped — preferences, the CCPA
   // opt-out and the DSAR actions all 401 without a bound customer. Rendering those
   // controls anyway was worse than an error: the toggles moved, the writes were
@@ -322,61 +306,35 @@ export function PreferencesPanel({ onBack }: { onBack: () => void }) {
       {/* Consent withdrawal / re-consent — above notification prefs (5.2). */}
       <ConsentSection />
 
-      <div className="mb-3 text-sm font-semibold text-gray-900">
-        {t('prefs.title')}
+      {/* Marketing opt-out — all that remains of the category × channel matrix.
+          The rest of that grid moved to the tenant console
+          (PLN-260817-Widget-Header-Prefs-Cleanup §6.1): which channels a shop
+          uses is the shop's decision, but refusing marketing is the shopper's.
+
+          Note the default reading: with no preference rows at all, marketing is
+          already suppressed server-side, so an untouched account shows this as
+          opted OUT. Showing it as opted in would promise messages that never
+          arrive. */}
+      <div className="mb-2 text-sm font-semibold text-gray-900">{t('prefs.marketingTitle')}</div>
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-xs text-gray-600">{t('prefs.marketingOptOut')}</span>
+        <Toggle
+          on={marketingOptOut.data?.optOut ?? true}
+          disabled={marketingOptOut.isLoading || setMarketing.isPending}
+          onChange={(v) =>
+            setMarketing.mutate(v, {
+              onSuccess: () => setMarketingNotice(t('prefs.marketingSaved')),
+              // Silent failure is banned (dev-kit §4.3) — a toggle that springs
+              // back with no message reads as a UI glitch, not a failed save.
+              onError: () => setMarketingNotice(t('prefs.marketingFailed')),
+            })
+          }
+        />
       </div>
-
-      {isLoading ? (
-        <Spinner label={t('common.loading')} />
-      ) : (
-        <div className="overflow-hidden rounded-lg border border-gray-200">
-          <table className="w-full text-xs">
-            <thead>
-              <tr className="bg-gray-50 text-gray-500">
-                <th className="p-2 text-left font-medium">Category</th>
-                {CHANNELS.map((c) => (
-                  <th key={c} className="p-2 text-center font-medium">
-                    {t(`prefs.channels.${c}`)}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {CATEGORIES.map((cat) => (
-                <tr key={cat} className="border-t border-gray-100">
-                  <td className="p-2 font-medium text-gray-700">
-                    {t(`prefs.categories.${cat}`)}
-                  </td>
-                  {CHANNELS.map((ch) => {
-                    const alwaysOn = ch === 'in_app';
-                    return (
-                      <td key={ch} className="p-2 text-center">
-                        <div className="flex justify-center">
-                          <Toggle
-                            on={isEnabled(data, ch, cat)}
-                            disabled={alwaysOn}
-                            onChange={(v) =>
-                              setPref.mutate({
-                                channel: ch,
-                                category: cat,
-                                enabled: v,
-                              })
-                            }
-                          />
-                        </div>
-                      </td>
-                    );
-                  })}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+      <p className="mt-1 text-[11px] text-gray-400">{t('prefs.marketingHint')}</p>
+      {marketingNotice && (
+        <p className="mt-1 text-[11px] text-primary-600">{marketingNotice}</p>
       )}
-
-      <p className="mt-2 text-[11px] text-gray-400">
-        {t('prefs.channels.in_app')}: {t('prefs.alwaysOn')}
-      </p>
 
       {/* CCPA/CPRA + DSAR consumer rights (PRV-M3) */}
       <div className="mt-4 border-t border-gray-200 pt-3">

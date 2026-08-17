@@ -13,6 +13,7 @@ import {
   UpdatePrivacyNoticeRequest,
   UpdateShopifySettingsRequest,
   UpdateStorefrontRequest,
+  UpdateNotificationChannelsRequest,
   UpdateWidgetSettingsRequest,
   UpdateTenantStatusRequest,
   UpsertCredentialRequest,
@@ -104,6 +105,34 @@ export class TenantController {
     }
     const tenant = await this.tenantService.updateStorefront(user.tenantId, user.userId, body);
     return TenantMapper.toStorefront(tenant);
+  }
+
+  // Declared before ':uuid' so 'notification-channels' is not read as a UUID.
+  @Get('notification-channels')
+  @RequireRank(USER_RANK.MASTER, USER_RANK.DIRECTOR)
+  @ApiOperation({ summary: 'Which channels this shop may use per notification category' })
+  async getNotificationChannels(@CurrentUser() user: Principal) {
+    const tenant = await this.tenantService.findById(this.tenantId(user));
+    return TenantMapper.toNotificationChannels(tenant);
+  }
+
+  @Patch('notification-channels')
+  @RequireRank(USER_RANK.MASTER, USER_RANK.DIRECTOR)
+  @ApiOperation({ summary: 'Set the per-category channel policy (a ceiling on delivery)' })
+  async updateNotificationChannels(
+    @CurrentUser() user: Principal,
+    @Body() body: UpdateNotificationChannelsRequest,
+  ) {
+    // @RequireRank guarantees a tenant user at runtime; narrow for TS.
+    if (user.actorType !== 'user') {
+      throw new BusinessException(ERROR_CODE.FORBIDDEN, HttpStatus.FORBIDDEN);
+    }
+    const tenant = await this.tenantService.updateNotificationChannels(
+      user.tenantId,
+      user.userId,
+      body.channels,
+    );
+    return TenantMapper.toNotificationChannels(tenant);
   }
 
   @Patch('widget-settings')

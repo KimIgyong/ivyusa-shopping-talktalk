@@ -407,5 +407,27 @@
       "manager": "Manager",
       "staff": "Staff"
     }
+  },
+  "notifChannels": {
+    "title": "Notification channels",
+    "desc": "Which notifications this shop may send, and by which route. Customers can still opt out of marketing within what you allow here.",
+    "category": "Category",
+    "inApp": "In-app",
+    "always": "Always on",
+    "hint": "In-app is the widget notification feed and is always on.",
+    "unsetHint": "Leave a row untouched and nothing changes — current behaviour continues.",
+    "saved": "Notification channels saved.",
+    "saveError": "Failed to save notification channels.",
+    "channel": {
+      "email": "Email",
+      "sms": "SMS",
+      "web_push": "Web push",
+      "push": "App push"
+    },
+    "category.payment": "Payment",
+    "category.shipping": "Shipping",
+    "category.event": "Promotions",
+    "category.review": "Review requests",
+    "category.chat": "Agent replies"
   }
 }

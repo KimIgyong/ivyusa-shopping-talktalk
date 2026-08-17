@@ -2,6 +2,8 @@ import { Tenant } from './entity/tenant.entity';
 import { IntegrationCredential } from './entity/integration-credential.entity';
 import { IntegrationStatusEntity } from '../integration/entity/integration-status.entity';
 import {
+  EXTERNAL_CHANNELS,
+  NOTIFICATION_CATEGORY,
   WIDGET_LOGIN_MODE,
   WIDGET_TAB_POSITION,
   WIDGET_TABS_DEFAULT,
@@ -14,6 +16,7 @@ import {
   ShopifySettingsResponse,
   TenantResponse,
   StorefrontResponse,
+  NotificationChannelsResponse,
   WidgetSettingsResponse,
 } from './dto/response/tenant.response';
 
@@ -73,6 +76,15 @@ export class TenantMapper {
       firstVisit: t.widgetCopy?.firstVisit ?? {},
       loginGreeting: t.widgetCopy?.loginGreeting ?? {},
       displayNameFallback: t.name ?? null,
+    };
+  }
+
+  /** Delivery policy + the axes the console renders. */
+  static toNotificationChannels(t: Tenant): NotificationChannelsResponse {
+    return {
+      channels: t.notificationChannels ?? {},
+      categories: Object.values(NOTIFICATION_CATEGORY).filter((c) => c !== 'all'),
+      channelKeys: [...EXTERNAL_CHANNELS],
     };
   }
 
