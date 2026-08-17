@@ -1,12 +1,22 @@
 import type { ReactNode } from 'react';
 
+/**
+ * Status pills (PLN-260817, frames 34/49/57/64).
+ *
+ * The Master Shots use SOLID fills with white text, not the tinted /10
+ * backgrounds this component used to carry — a status is meant to be the loudest
+ * thing on the row after the order number.
+ */
 const tones: Record<string, string> = {
   default: 'bg-gray-100 text-gray-600',
-  success: 'bg-success/10 text-success',
-  warning: 'bg-warning/10 text-warning',
-  error: 'bg-error/10 text-error',
-  info: 'bg-info/10 text-info',
-  primary: 'bg-primary-500/10 text-primary-600',
+  /** Finished and no longer actionable — deliberately quiet (frame 49). */
+  neutral: 'bg-gray-500 text-white',
+  success: 'bg-success text-white',
+  warning: 'bg-warning text-white',
+  error: 'bg-error text-white',
+  info: 'bg-info text-white',
+  review: 'bg-review text-white',
+  primary: 'bg-primary-500 text-white',
 };
 
 export function Badge({
@@ -19,19 +29,28 @@ export function Badge({
   const cls = tones[tone] ?? tones.default;
   return (
     <span
-      className={`inline-flex items-center rounded-lg px-2 py-0.5 text-xs font-medium ${cls}`}
+      className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold ${cls}`}
     >
       {children}
     </span>
   );
 }
 
-/** Maps an arbitrary status string to a tone heuristically. */
+/**
+ * Maps an arbitrary status string to a tone heuristically.
+ *
+ * Order matters. "Delivered" and "Confirmed" both used to resolve to green,
+ * but the design separates them: a confirmed order is good news (green), a
+ * delivered one is done business (gray). Test the terminal states first so
+ * "delivered" cannot be captured by the success branch.
+ */
 export function toneForStatus(status?: string | null): string {
   const s = (status ?? '').toLowerCase();
-  if (/(deliver|complete|paid|approv|success|done)/.test(s)) return 'success';
-  if (/(ship|transit|process|pending|review)/.test(s)) return 'info';
   if (/(cancel|refund|fail|reject|error)/.test(s)) return 'error';
-  if (/(hold|wait|prepar)/.test(s)) return 'warning';
+  if (/(deliver|complete|closed|done)/.test(s)) return 'neutral';
+  if (/review/.test(s)) return 'review';
+  if (/(ship|transit|process)/.test(s)) return 'warning';
+  if (/(paid|approv|confirm|success)/.test(s)) return 'success';
+  if (/(hold|wait|prepar|pending)/.test(s)) return 'default';
   return 'default';
 }

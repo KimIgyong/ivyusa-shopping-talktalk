@@ -31,7 +31,18 @@ export function Widget() {
   // the shopper left off (orders) instead of making them find it again.
   useEffect(() => {
     const reopen = new URLSearchParams(window.location.search).get('reopen');
-    if (reopen === 'orders' || reopen === 'chat' || reopen === 'notifications') {
+    if (!reopen) return;
+    // `reopen=orders` is still in the wild: it is baked into return URLs that
+    // storefronts have already handed out, and the tab it named no longer
+    // exists (PLN-260817 SI-1). Land those shoppers where orders moved to —
+    // the notification tab's Shipping filter — rather than dropping the intent.
+    if (reopen === 'orders') {
+      useWidgetStore.getState().setActiveTab('notifications');
+      useWidgetStore.getState().setNotificationFilter('shipping');
+      useWidgetStore.getState().setPanelOpen(true);
+      return;
+    }
+    if (reopen === 'chat' || reopen === 'notifications') {
       useWidgetStore.getState().setActiveTab(reopen as TabKey);
       useWidgetStore.getState().setPanelOpen(true);
     }

@@ -19,7 +19,13 @@ export const es: Translation = {
       shipping: 'Envío',
       event: 'Evento',
       review: 'Reseña',
+      inquiries: 'Consultas',
     },
+    groups: {
+      today: 'Notificaciones de hoy',
+      yesterday: 'Ayer',
+    },
+    unread: 'Sin leer',
   },
 
   chat: {
@@ -112,6 +118,15 @@ export const es: Translation = {
       exchange: 'Me gustaría cambiar o devolver un artículo.',
       restock: 'Avísenme cuando este producto vuelva a estar disponible.',
     },
+    endedTitle: 'La conversación ha terminado',
+    endedThanks: '¡Gracias por escribirnos!',
+    csatLevel: {
+      1: 'Muy insatisfecho',
+      2: 'Insatisfecho',
+      3: 'Normal',
+      4: 'Satisfecho',
+      5: 'Muy satisfecho',
+    },
   },
 
   auth: {
@@ -135,6 +150,12 @@ export const es: Translation = {
     hours: 'Lun–Vie 10:00–18:00',
     email: 'help@ivy.com',
     chatAgent: 'Chatear con un agente',
+    methods: {
+      phone: 'Teléfono',
+      email: 'Correo electrónico',
+      chat: 'Chat en vivo',
+    },
+    emailHours: 'Abierto 24/7 · respuesta en 1 día hábil',
   },
 
   affiliate: {
@@ -193,6 +214,15 @@ export const es: Translation = {
     total: 'Total',
     writeReview: 'Escribir una reseña',
     back: 'Atrás',
+    itemCount_one: '{{count}} artículo',
+    itemCount_other: '{{count}} artículos',
+    itemsMore: '{{title}} + {{count}} más',
+    trackingCta: 'Seguir envío',
+    shipmentDelivered: 'Este pedido ha sido entregado.',
+    shipmentInTransit: '¡Tu pedido está en camino! Llegará pronto.',
+    noShipments: 'No hay envíos en curso.',
+    noInquiries: 'Aún no tienes consultas.',
+    inlineLead: 'Estos son tus pedidos más recientes 👇',
   },
 
   review: {

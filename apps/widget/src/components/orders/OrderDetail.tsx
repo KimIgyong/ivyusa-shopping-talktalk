@@ -30,8 +30,9 @@ export function OrderDetailView({
   const [reviewItemId, setReviewItemId] = useState<string | null>(null);
   const tracking = useTracking(showTrack ? orderId : null, sessionToken);
 
-  // Session no longer customer-bound → clear the flag; OrdersTab (our parent)
-  // then renders the sign-in prompt instead of us showing a generic error.
+  // Session no longer customer-bound → clear the flag; NotificationsTab (our
+  // parent since the Orders tab was retired) then renders the sign-in prompt
+  // instead of us showing a generic error.
   const authLost = isError && isAuthError(error);
   useEffect(() => {
     if (authLost) setAuthenticated(false);

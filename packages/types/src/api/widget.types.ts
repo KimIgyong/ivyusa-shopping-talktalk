@@ -197,6 +197,12 @@ export interface OrderListItemResponse {
   /** When the order was placed on the platform; null for rows that predate it. */
   orderedAt: string | null;
   itemCount: number;
+  /**
+   * Title of the order's first line item, so a list row can read
+   * "Vitamin C Serum Set + 2 more" without a detail fetch per order
+   * (PLN-260817 W-2). Null when the order has no items cached.
+   */
+  firstItemTitle: string | null;
 }
 
 export interface OrderItemResponse {
@@ -243,6 +249,14 @@ export interface NotificationResponse {
   statusBadge: string | null;
   /** Deep-link target (campaign product/url — A-9); client routes on tap. */
   linkUrl: string | null;
+  /**
+   * In-app record this notification is about — currently only `'order_item'`,
+   * set by review requests so the client can open the review form for the right
+   * item (PLN-260817 S5). Null on every row written before it existed.
+   */
+  refType: string | null;
+  /** Id of `refType`'s record. BIGINT, so a string on the wire. */
+  refId: string | null;
   channel: string;
   /** Derived server-side from `readAt != null`. */
   read: boolean;

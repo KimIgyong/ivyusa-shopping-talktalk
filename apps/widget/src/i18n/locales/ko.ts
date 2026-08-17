@@ -19,7 +19,13 @@ export const ko: Translation = {
       shipping: '배송',
       event: '이벤트',
       review: '리뷰',
+      inquiries: '문의',
     },
+    groups: {
+      today: '오늘 받은 알림',
+      yesterday: '어제 알림',
+    },
+    unread: '읽지 않음',
   },
 
   chat: {
@@ -112,6 +118,15 @@ export const ko: Translation = {
       exchange: '상품을 교환하거나 반품하고 싶습니다.',
       restock: '이 제품이 재입고되면 알려 주세요.',
     },
+    endedTitle: '상담이 종료되었습니다',
+    endedThanks: '이용해 주셔서 감사합니다!',
+    csatLevel: {
+      1: '매우 불만족',
+      2: '불만족',
+      3: '보통',
+      4: '만족',
+      5: '매우 만족',
+    },
   },
 
   auth: {
@@ -135,6 +150,12 @@ export const ko: Translation = {
     hours: '월–금 10:00–18:00',
     email: 'help@ivy.com',
     chatAgent: '상담원과 채팅',
+    methods: {
+      phone: '전화 상담',
+      email: '이메일 문의',
+      chat: '채팅 상담',
+    },
+    emailHours: '24시간 접수 · 1영업일 내 회신',
   },
 
   affiliate: {
@@ -193,6 +214,15 @@ export const ko: Translation = {
     total: '합계',
     writeReview: '리뷰 작성',
     back: '뒤로',
+    itemCount_one: '{{count}}개 상품',
+    itemCount_other: '{{count}}개 상품',
+    itemsMore: '{{title}} 외 {{count}}건',
+    trackingCta: '배송조회',
+    shipmentDelivered: '배송이 완료되었습니다.',
+    shipmentInTransit: '고객님께 배송중입니다! 빠르게 배송해드릴게요!',
+    noShipments: '진행 중인 배송이 없습니다.',
+    noInquiries: '접수된 문의가 없습니다.',
+    inlineLead: '주문 내역을 조회해드릴게요! 최근 주문입니다 👇',
   },
 
   review: {

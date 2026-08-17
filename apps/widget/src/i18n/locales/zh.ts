@@ -19,7 +19,13 @@ export const zh: Translation = {
       shipping: '配送',
       event: '活动',
       review: '评价',
+      inquiries: '咨询',
     },
+    groups: {
+      today: '今日通知',
+      yesterday: '昨日通知',
+    },
+    unread: '未读',
   },
 
   chat: {
@@ -113,6 +119,15 @@ export const zh: Translation = {
       exchange: '我想换货或退货。',
       restock: '这款商品到货后请通知我。',
     },
+    endedTitle: '会话已结束',
+    endedThanks: '感谢您的使用！',
+    csatLevel: {
+      1: '非常不满意',
+      2: '不满意',
+      3: '一般',
+      4: '满意',
+      5: '非常满意',
+    },
   },
 
   auth: {
@@ -136,6 +151,12 @@ export const zh: Translation = {
     hours: '周一至周五 10:00–18:00',
     email: 'help@ivy.com',
     chatAgent: '与客服聊天',
+    methods: {
+      phone: '电话咨询',
+      email: '邮件咨询',
+      chat: '在线客服',
+    },
+    emailHours: '24 小时受理 · 1 个工作日内回复',
   },
 
   affiliate: {
@@ -190,6 +211,15 @@ export const zh: Translation = {
     total: '合计',
     writeReview: '写评价',
     back: '返回',
+    itemCount_one: '{{count}} 件商品',
+    itemCount_other: '{{count}} 件商品',
+    itemsMore: '{{title}} 等 {{count}} 件',
+    trackingCta: '查询物流',
+    shipmentDelivered: '订单已送达。',
+    shipmentInTransit: '订单正在配送中，很快就会送达！',
+    noShipments: '暂无配送中的订单。',
+    noInquiries: '暂无咨询记录。',
+    inlineLead: '这是您最近的订单 👇',
   },
 
   review: {

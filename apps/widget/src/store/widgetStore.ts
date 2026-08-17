@@ -3,7 +3,12 @@ import { setStoredSessionToken } from '../lib/api-client';
 import { initialLanguage } from '../i18n/i18n';
 import type { ConsentState, WidgetCopy, WidgetLoginMode } from '../lib/types';
 
-export type TabKey = 'notifications' | 'chat' | 'orders';
+/**
+ * The widget has two tabs (PLN-260817 S3). 'orders' was a third until the Master
+ * Shots moved to a two-tab segmented header; its content now lives under the
+ * notification tab's Shipping/Payment filters and as inline cards in chat.
+ */
+export type TabKey = 'notifications' | 'chat';
 
 /** Server-confirmed consent snapshot (from session/ensure — source of truth). */
 export interface ConsentInfo {
@@ -44,6 +49,18 @@ interface WidgetState {
   consent: ConsentInfo | null;
   /** A message queued from another tab to be auto-sent when Chat opens. */
   pendingChatMessage: string | null;
+  /**
+   * Selected notification filter chip. Store-held rather than tab-local so other
+   * surfaces can deep-link into one — a redirect sign-in returning with
+   * `?reopen=orders` lands on Shipping, which is where orders now live.
+   */
+  notificationFilter: string;
+  /**
+   * Inbound chat messages that arrived while the Chat tab was not the active one
+   * — the count on the Chat tab's badge (PLN-260817 W-1). Cleared the moment the
+   * shopper opens the tab, since the messages are then on screen.
+   */
+  chatUnread: number;
   setSessionToken: (t: string | null) => void;
   setActiveTab: (t: TabKey) => void;
   setPanelOpen: (open: boolean) => void;
@@ -63,6 +80,8 @@ interface WidgetState {
     consentAt: string | null,
     noticeVersion?: string,
   ) => void;
+  setNotificationFilter: (f: string) => void;
+  bumpChatUnread: (n: number) => void;
   queueChatMessage: (m: string) => void;
   consumeChatMessage: () => string | null;
 }
@@ -89,11 +108,13 @@ export const useWidgetStore = create<WidgetState>()((set, get) => ({
   language: initialLanguage(),
   consent: null,
   pendingChatMessage: null,
+  notificationFilter: 'all',
+  chatUnread: 0,
   setSessionToken: (t) => {
     setStoredSessionToken(t);
     set({ sessionToken: t });
   },
-  setActiveTab: (t) => set({ activeTab: t }),
+  setActiveTab: (t) => set({ activeTab: t, chatUnread: t === 'chat' ? 0 : get().chatUnread }),
   setPanelOpen: (open) => set({ panelOpen: open }),
   togglePanel: () => set((s) => ({ panelOpen: !s.panelOpen })),
   setSettingsOpen: (open) => set({ settingsOpen: open }),
@@ -105,6 +126,8 @@ export const useWidgetStore = create<WidgetState>()((set, get) => ({
   setEmbedIdentity: (v) => set({ embedIdentity: v }),
   setLanguage: (l) => set({ language: l }),
   setConsentInfo: (c) => set({ consent: c }),
+  setNotificationFilter: (f) => set({ notificationFilter: f }),
+  bumpChatUnread: (n) => set((s) => ({ chatUnread: s.chatUnread + n })),
   updateConsentState: (state, consentAt, noticeVersion) =>
     set((s) => ({
       consent: {

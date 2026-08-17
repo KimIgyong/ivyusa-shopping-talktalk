@@ -155,3 +155,68 @@ describe('NotificationService.isSuppressed / notify (Stage 6 — D-4 fail-closed
     await expect(svc.isSuppressed(2, 'sms', 'review')).resolves.toBe(false);
   });
 });
+
+/**
+ * `ref_type`/`ref_id` — what a notification is ABOUT (PLN-260817 S5).
+ *
+ * ReviewService.requestReview had always published `orderItemId` on the event,
+ * but NotifyInput had no matching field, so it was dropped on the floor and the
+ * widget had no id to open the review form with. These pin the plumbing.
+ */
+describe('NotificationService.notify — record reference (PLN-260817 S5)', () => {
+  let svc: NotificationService;
+  let saved: Notification[];
+
+  beforeEach(() => {
+    saved = [];
+    const notifRepo = {
+      create: jest.fn((e: Partial<Notification>) => e as Notification),
+      save: jest.fn(async (e: Notification) => {
+        saved.push(e);
+        return e;
+      }),
+    } as unknown as Repository<Notification>;
+    const prefRepo = {
+      findOne: jest.fn(async () => null),
+    } as unknown as Repository<NotificationPref>;
+    const sessionService = { requireCustomerId: jest.fn(), requireCustomer: jest.fn() } as never;
+    const bus = { subscribe: jest.fn(), publish: jest.fn() } as unknown as EventBusService;
+    const redis = {
+      del: jest.fn(),
+      get: jest.fn(async () => null),
+      set: jest.fn(),
+      available: () => false,
+    } as unknown as RedisService;
+    svc = new NotificationService(
+      notifRepo,
+      prefRepo,
+      {} as unknown as Repository<Session>,
+      sessionService,
+      bus,
+      redis,
+    );
+  });
+
+  it('persists refType/refId on every row it writes', async () => {
+    await svc.notify({
+      customerId: 1,
+      category: 'review',
+      title: 'How was your order?',
+      refType: 'order_item',
+      refId: 4242,
+    });
+    expect(saved.length).toBeGreaterThan(0);
+    for (const row of saved) {
+      expect(row.refType).toBe('order_item');
+      expect(row.refId).toBe(4242);
+    }
+  });
+
+  it('an emitter that names no record leaves both columns null', async () => {
+    await svc.notify({ customerId: 1, category: 'payment', title: 'Paid' });
+    for (const row of saved) {
+      expect(row.refType).toBeNull();
+      expect(row.refId).toBeNull();
+    }
+  });
+});

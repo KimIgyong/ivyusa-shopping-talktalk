@@ -17,7 +17,13 @@ export const en = {
       shipping: 'Shipping',
       event: 'Event',
       review: 'Review',
+      inquiries: 'Inquiries',
     },
+    groups: {
+      today: 'Today\'s notifications',
+      yesterday: 'Yesterday',
+    },
+    unread: 'Unread',
   },
 
   chat: {
@@ -111,6 +117,15 @@ export const en = {
       exchange: 'I would like to exchange or return an item.',
       restock: 'Please notify me when this product is back in stock.',
     },
+    endedTitle: 'This conversation has ended',
+    endedThanks: 'Thanks for reaching out!',
+    csatLevel: {
+      1: 'Very unhappy',
+      2: 'Unhappy',
+      3: 'Okay',
+      4: 'Happy',
+      5: 'Very happy',
+    },
   },
 
   auth: {
@@ -134,6 +149,12 @@ export const en = {
     hours: 'Mon–Fri 10:00–18:00',
     email: 'help@ivy.com',
     chatAgent: 'Chat with an agent',
+    methods: {
+      phone: 'Phone',
+      email: 'Email',
+      chat: 'Live chat',
+    },
+    emailHours: 'Open 24/7 · reply within 1 business day',
   },
 
   affiliate: {
@@ -192,6 +213,15 @@ export const en = {
     total: 'Total',
     writeReview: 'Write a review',
     back: 'Back',
+    itemCount_one: '{{count}} item',
+    itemCount_other: '{{count}} items',
+    itemsMore: '{{title}} + {{count}} more',
+    trackingCta: 'Track shipment',
+    shipmentDelivered: 'This order has been delivered.',
+    shipmentInTransit: 'Your order is on its way — it will reach you soon!',
+    noShipments: 'Nothing is shipping right now.',
+    noInquiries: 'No inquiries yet.',
+    inlineLead: 'Here are your most recent orders 👇',
   },
 
   review: {

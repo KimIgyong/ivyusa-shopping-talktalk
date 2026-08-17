@@ -32,7 +32,10 @@ export class OrderMapper {
     };
   }
 
-  static toListItem(order: OrderCache, itemCount: number): OrderListItem {
+  static toListItem(
+    order: OrderCache,
+    summary: { count: number; firstTitle: string | null },
+  ): OrderListItem {
     return {
       id: String(order.id),
       orderNumber: order.orderNumber,
@@ -42,7 +45,8 @@ export class OrderMapper {
       currency: order.currency,
       createdAt: order.createdAt.toISOString(),
       orderedAt: order.orderedAt ? order.orderedAt.toISOString() : null,
-      itemCount,
+      itemCount: summary.count,
+      firstItemTitle: summary.firstTitle,
     };
   }
 

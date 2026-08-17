@@ -136,7 +136,10 @@
   var loginFinish = null; // resolver for the in-flight login, if any
 
   var CLOSED = { w: '96px', h: '96px' };
-  var OPEN = { w: 'min(420px, 100vw)', h: 'min(680px, 100vh)' };
+  // Must clear the panel's own width plus the gap it holds from the frame edge:
+  // the panel is 404px at `right: 20px`, so anything under 424px clips it.
+  // (PLN-260817 SI-6 — it was 420px against a 380px panel, with 20px to spare.)
+  var OPEN = { w: 'min(444px, 100vw)', h: 'min(680px, 100vh)' };
 
   // One-shot reopen flag: set when redirect-mode sign-in navigates the tab away,
   // consumed on the return visit so the widget reopens where the shopper left

@@ -14,6 +14,13 @@ export interface NotifyInput {
   /** Deep-link target persisted on the row (campaign product/url — A-9). */
   linkUrl?: string | null;
   /**
+   * In-app reference this notification is about, e.g. `'order_item'` + the item
+   * id for a review request (PLN-260817 S5). Emitters that omit it get NULLs and
+   * the client simply renders no action.
+   */
+  refType?: string | null;
+  refId?: number | null;
+  /**
    * Catalog handle for client-side product routing. NOT persisted — pass-through
    * onto the PUSH_DISPATCH payload only (the app prefers /products/:handle).
    */

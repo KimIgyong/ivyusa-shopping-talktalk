@@ -19,7 +19,13 @@ export const ja: Translation = {
       shipping: '配送',
       event: 'イベント',
       review: 'レビュー',
+      inquiries: 'お問い合わせ',
     },
+    groups: {
+      today: '今日のお知らせ',
+      yesterday: '昨日のお知らせ',
+    },
+    unread: '未読',
   },
 
   chat: {
@@ -115,6 +121,15 @@ export const ja: Translation = {
       exchange: '商品を交換または返品したいです。',
       restock: 'この商品が再入荷したら知らせてください。',
     },
+    endedTitle: 'チャットが終了しました',
+    endedThanks: 'ご利用ありがとうございました！',
+    csatLevel: {
+      1: 'とても不満',
+      2: '不満',
+      3: 'ふつう',
+      4: '満足',
+      5: 'とても満足',
+    },
   },
 
   auth: {
@@ -139,6 +154,12 @@ export const ja: Translation = {
     hours: '月–金 10:00–18:00',
     email: 'help@ivy.com',
     chatAgent: '担当者とチャット',
+    methods: {
+      phone: '電話相談',
+      email: 'メールでのお問い合わせ',
+      chat: 'チャット相談',
+    },
+    emailHours: '24時間受付 · 1営業日以内に返信',
   },
 
   affiliate: {
@@ -197,6 +218,15 @@ export const ja: Translation = {
     total: '合計',
     writeReview: 'レビューを書く',
     back: '戻る',
+    itemCount_one: '{{count}}点',
+    itemCount_other: '{{count}}点',
+    itemsMore: '{{title}} 他{{count}}点',
+    trackingCta: '配送状況を確認',
+    shipmentDelivered: '配送が完了しました。',
+    shipmentInTransit: 'ただいま配送中です。まもなくお届けします！',
+    noShipments: '配送中のご注文はありません。',
+    noInquiries: 'お問い合わせはまだありません。',
+    inlineLead: '最近のご注文はこちらです 👇',
   },
 
   review: {

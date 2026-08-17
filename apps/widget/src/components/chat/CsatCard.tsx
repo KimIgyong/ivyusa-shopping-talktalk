@@ -2,12 +2,21 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 /**
- * Satisfaction prompt shown once a conversation ends (PLN-260810 P3).
+ * Satisfaction prompt shown once a conversation ends (PLN-260810 P3), restyled
+ * to the Master Shots' emoji card (PLN-260817 W-6, frame 67).
  *
- * Dismissal is a first-class outcome, not a failure: `[close]` removes the card
+ * The design shows FOUR faces; this keeps FIVE (PLN §7 D-7). The rating is
+ * persisted on a 1–5 scale and `csat_avg` is already being recorded against it,
+ * so dropping to four would either leave a hole in the scale or silently change
+ * what every historical average means. The emoji treatment is the part that was
+ * asked for; the scale behind it is data.
+ *
+ * Dismissal is a first-class outcome, not a failure: skipping removes the card
  * and remembers that decision per conversation, so a shopper who does not want
  * to rate is not asked again every time they reopen the widget.
  */
+const FACES = ['😞', '😕', '😐', '😊', '😍'];
+
 export function CsatCard({
   conversationId,
   onRate,
@@ -26,7 +35,6 @@ export function CsatCard({
     }
   });
   const [submitted, setSubmitted] = useState<number | null>(null);
-  const [hovered, setHovered] = useState(0);
   const [busy, setBusy] = useState(false);
 
   if (dismissed) return null;
@@ -51,11 +59,9 @@ export function CsatCard({
     }
   };
 
-  const filled = submitted ?? hovered;
-
   return (
-    <div className="rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-center shadow-sm">
-      <p className="mb-1.5 text-[13px] text-gray-700">
+    <div className="rounded-xl border-2 border-primary-300 bg-white px-3 py-4 text-center">
+      <p className="mb-3 text-sm text-gray-700">
         {submitted != null ? t('chat.csatThanks') : t('chat.csatQuestion')}
       </p>
       <div
@@ -63,30 +69,35 @@ export function CsatCard({
         role="radiogroup"
         aria-label={t('chat.csatQuestion')}
       >
-        {[1, 2, 3, 4, 5].map((star) => (
-          <button
-            key={star}
-            type="button"
-            role="radio"
-            aria-checked={submitted === star}
-            aria-label={t('chat.csatStar', { count: star })}
-            disabled={busy || submitted != null}
-            onMouseEnter={() => submitted == null && setHovered(star)}
-            onMouseLeave={() => setHovered(0)}
-            onClick={() => void submit(star)}
-            className={`text-2xl leading-none transition-colors ${
-              star <= filled ? 'text-amber-400' : 'text-gray-300'
-            } ${submitted == null ? 'hover:text-amber-400' : 'cursor-default'}`}
-          >
-            {star <= filled ? '★' : '☆'}
-          </button>
-        ))}
+        {FACES.map((face, i) => {
+          const rating = i + 1;
+          const chosen = submitted === rating;
+          return (
+            <button
+              key={rating}
+              type="button"
+              role="radio"
+              aria-checked={chosen}
+              aria-label={t(`chat.csatLevel.${rating}`)}
+              disabled={busy || submitted != null}
+              onClick={() => void submit(rating)}
+              className={`flex flex-1 flex-col items-center gap-1 rounded-lg px-1 py-1.5 transition-all ${
+                submitted == null ? 'hover:bg-gray-50' : 'cursor-default'
+              } ${submitted != null && !chosen ? 'opacity-30' : ''}`}
+            >
+              <span className="text-3xl leading-none">{face}</span>
+              <span className="break-keep text-[10px] leading-tight text-gray-500">
+                {t(`chat.csatLevel.${rating}`)}
+              </span>
+            </button>
+          );
+        })}
       </div>
       {submitted == null && (
         <button
           type="button"
           onClick={dismiss}
-          className="mt-1 text-[11px] text-gray-400 underline-offset-2 hover:underline"
+          className="mt-3 text-xs text-gray-400 underline-offset-2 hover:underline"
         >
           {t('chat.csatDismiss')}
         </button>

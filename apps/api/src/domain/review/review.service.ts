@@ -107,7 +107,8 @@ export class ReviewService {
     await this.bus.publish(EVENTS.NOTIFICATION, {
       tenantId: tenantId ?? null,
       customerId,
-      orderItemId,
+      refType: 'order_item',
+      refId: orderItemId,
       category: 'review',
       title: 'How was your order?',
       statusBadge: 'Review',
