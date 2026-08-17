@@ -9,10 +9,14 @@ import type {
 export function listNotifications(
   sessionToken: string,
   category?: NotificationCategory,
+  scope?: string,
 ): Promise<NotificationItem[]> {
   return apiClient.get<NotificationItem[]>('/notifications', {
     session_token: sessionToken,
     category: category && category !== 'all' ? category : undefined,
+    // Decides what "all" covers when the widget shows two list tabs, so the
+    // same order notification never appears under both.
+    scope,
   });
 }
 
@@ -25,9 +29,10 @@ export function markRead(
   });
 }
 
-export function unreadCount(sessionToken: string): Promise<{ count: number }> {
+export function unreadCount(sessionToken: string, scope?: string): Promise<{ count: number }> {
   return apiClient.get<{ count: number }>('/notifications/unread-count', {
     session_token: sessionToken,
+    scope,
   });
 }
 

@@ -1,5 +1,5 @@
 import { apiGet, apiPatch, apiPost, apiPut } from '@/lib/api-client';
-import type { WidgetLoginMode } from '@ivy/types';
+import type { WidgetLoginMode, WidgetTab, WidgetTabPosition } from '@ivy/types';
 
 export interface CredentialStatus {
   provider: string;
@@ -71,6 +71,9 @@ export interface Storefront {
 
 export interface WidgetSettings {
   loginMode: WidgetLoginMode;
+  /** Effective tab set — already resolved to the built-in default when unset. */
+  tabs: WidgetTab[];
+  tabPosition: WidgetTabPosition;
   timezone: string | null;
   displayName: string | null;
   firstVisit: Record<string, string>;
@@ -95,9 +98,13 @@ export const settingsService = {
     loginMode: WidgetLoginMode,
     timezone?: string | null,
     copy?: WidgetCopyDraft,
+    tabs?: WidgetTab[],
+    tabPosition?: WidgetTabPosition,
   ) =>
     apiPatch<WidgetSettings>('/tenants/widget-settings', {
       login_mode: loginMode,
+      ...(tabs !== undefined ? { tabs } : {}),
+      ...(tabPosition !== undefined ? { tab_position: tabPosition } : {}),
       ...(timezone !== undefined ? { timezone } : {}),
       ...(copy
         ? {

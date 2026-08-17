@@ -1,4 +1,6 @@
 import {
+  ArrayNotEmpty,
+  IsArray,
   IsIn,
   IsObject,
   IsOptional,
@@ -8,8 +10,16 @@ import {
   Matches,
   MaxLength,
   MinLength,
+  ValidateIf,
 } from 'class-validator';
-import { WIDGET_LOGIN_MODE, WidgetLoginMode } from '@ivy/types';
+import {
+  WIDGET_LOGIN_MODE,
+  WIDGET_TAB,
+  WIDGET_TAB_POSITION,
+  WidgetLoginMode,
+  WidgetTab,
+  WidgetTabPosition,
+} from '@ivy/types';
 import { TENANT_SLUG_PATTERN } from '../../../../global/constant/reserved-slug.constant';
 
 /** Request DTOs — snake_case (amoeba_code_convention). */
@@ -127,6 +137,23 @@ export class UpdateStorefrontRequest {
 export class UpdateWidgetSettingsRequest {
   @IsIn(Object.values(WIDGET_LOGIN_MODE))
   login_mode: WidgetLoginMode;
+
+  // Which tabs the widget shows (PLN-260817-Widget-Tab-Config). Optional so a
+  // copy-only or login-mode-only save leaves the tab configuration alone; the
+  // service normalizes order/duplicates and rejects a set that renders no tabs.
+  // `ValidateIf(value !== undefined)` rather than `IsOptional()`: IsOptional
+  // skips validation for null as well as undefined, so an explicit `null` would
+  // sail past IsIn and reach a NOT NULL column as a 500. Omitted still means
+  // "leave it alone"; null is simply not a value these accept.
+  @ValidateIf((_o, value) => value !== undefined)
+  @IsArray()
+  @ArrayNotEmpty()
+  @IsIn(Object.values(WIDGET_TAB), { each: true })
+  tabs?: WidgetTab[];
+
+  @ValidateIf((_o, value) => value !== undefined)
+  @IsIn(Object.values(WIDGET_TAB_POSITION))
+  tab_position?: WidgetTabPosition;
 
   // IANA timezone (e.g. 'Asia/Seoul'); drives the default widget language. Empty
   // string / null clears it. Optional so a login-mode-only update leaves it intact.

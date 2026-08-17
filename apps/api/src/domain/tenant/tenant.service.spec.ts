@@ -116,4 +116,55 @@ describe('TenantService.updatePrivacyNotice', () => {
       expect(cleared.widgetCopy).toBeNull();
     });
   });
+
+  /**
+   * Tab configuration (PLN-260817-Widget-Tab-Config). The column is JSON with
+   * nothing but this method between a console request and what the widget
+   * renders, so normalization and the empty-set refusal are pinned here.
+   */
+  describe('updateWidgetSettings tab configuration', () => {
+    it('stores tabs in canonical order regardless of how they were ticked', async () => {
+      const saved = await svc.updateWidgetSettings(1, 7, {
+        login_mode: 'redirect',
+        tabs: ['chat', 'orders', 'notifications'],
+      });
+      expect(saved.widgetTabs).toEqual(['notifications', 'orders', 'chat']);
+    });
+
+    it('refuses a tab set that renders nothing', async () => {
+      // An empty bar leaves the shopper on a panel they cannot navigate away
+      // from, so this is a 400 rather than a save that "works".
+      await expect(
+        svc.updateWidgetSettings(1, 7, { login_mode: 'redirect', tabs: [] }),
+      ).rejects.toThrow();
+      await expect(
+        svc.updateWidgetSettings(1, 7, {
+          login_mode: 'redirect',
+          tabs: ['ghost'] as never,
+        }),
+      ).rejects.toThrow();
+    });
+
+    it('leaves the stored configuration alone when the request omits it', async () => {
+      tenant.widgetTabs = ['notifications', 'orders'];
+      tenant.widgetTabPosition = 'bottom';
+      const saved = await svc.updateWidgetSettings(1, 7, { login_mode: 'popup' });
+      expect(saved.widgetTabs).toEqual(['notifications', 'orders']);
+      expect(saved.widgetTabPosition).toBe('bottom');
+    });
+
+    it('records the resulting layout in the audit trail', async () => {
+      await svc.updateWidgetSettings(1, 7, {
+        login_mode: 'redirect',
+        tabs: ['notifications', 'chat'],
+        tab_position: 'bottom',
+      });
+      expect(auditWrite).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'tenant.widget_settings_updated',
+          target: expect.stringContaining('tabs:notifications+chat@bottom'),
+        }),
+      );
+    });
+  });
 });

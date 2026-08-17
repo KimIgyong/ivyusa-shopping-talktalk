@@ -1,9 +1,10 @@
 import { randomUUID } from 'crypto';
-import { HttpStatus, Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { FindOptionsWhere, Repository } from 'typeorm';
 import { Tenant, TenantWidgetCopy } from './entity/tenant.entity';
 import { normalizeStorefrontUrl } from '../../global/util/storefront-url.util';
+import { WIDGET_TABS_DEFAULT, normalizeWidgetTabs } from '@ivy/types';
 import { IntegrationCredential } from './entity/integration-credential.entity';
 import { User } from '../user/entity/user.entity';
 import { JobLabel } from '../user/entity/job-label.entity';
@@ -44,6 +45,10 @@ const SHOPIFY_API_VERSION = '2026-01';
  */
 @Injectable()
 export class TenantService {
+  // 4xx are not server-logged by default, so a rejected save would otherwise
+  // leave no trace at all — "no error in the logs" must not read as "it saved".
+  private readonly logger = new Logger(TenantService.name);
+
   constructor(
     @InjectRepository(Tenant) private readonly tenantRepo: Repository<Tenant>,
     @InjectRepository(IntegrationCredential)
@@ -277,6 +282,18 @@ export class TenantService {
   ): Promise<Tenant> {
     const tenant = await this.findById(tenantId);
     tenant.widgetLoginMode = dto.login_mode;
+    if (dto.tabs !== undefined) {
+      // Normalize rather than trust: the array arrives in whatever order the
+      // console's checkboxes were ticked, and a tab bar with nothing in it
+      // cannot be navigated at all — so an empty result is a 400, never a save.
+      const tabs = normalizeWidgetTabs(dto.tabs);
+      if (!tabs) {
+        this.logger.warn(`widget tab update rejected: no valid tabs (tenant ${tenantId})`);
+        throw new BusinessException(ERROR_CODE.VALIDATION_FAILED, HttpStatus.BAD_REQUEST);
+      }
+      tenant.widgetTabs = tabs;
+    }
+    if (dto.tab_position !== undefined) tenant.widgetTabPosition = dto.tab_position;
     if (dto.timezone !== undefined) tenant.timezone = dto.timezone?.trim() || null;
     tenant.widgetCopy = mergeWidgetCopy(tenant.widgetCopy, dto);
     const saved = await this.tenantRepo.save(tenant);
@@ -285,7 +302,13 @@ export class TenantService {
       actorType: 'user',
       actorId,
       action: 'tenant.widget_settings_updated',
-      target: `${saved.widgetLoginMode}${saved.timezone ? ` · ${saved.timezone}` : ''}`,
+      target: [
+        saved.widgetLoginMode,
+        `tabs:${(saved.widgetTabs ?? WIDGET_TABS_DEFAULT).join('+')}@${saved.widgetTabPosition}`,
+        saved.timezone,
+      ]
+        .filter(Boolean)
+        .join(' · '),
     });
     return saved;
   }

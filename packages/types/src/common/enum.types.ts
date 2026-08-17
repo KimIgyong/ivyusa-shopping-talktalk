@@ -37,6 +37,80 @@ export type ConsentState = (typeof CONSENT_STATE)[keyof typeof CONSENT_STATE];
 export const WIDGET_LOGIN_MODE = { REDIRECT: 'redirect', POPUP: 'popup' } as const;
 export type WidgetLoginMode = (typeof WIDGET_LOGIN_MODE)[keyof typeof WIDGET_LOGIN_MODE];
 
+// Which tabs the widget shows, and where the tab bar sits — both tenant console
+// settings (PLN-260817-Widget-Tab-Config). Declared here so the API, console and
+// widget cannot drift on the spelling of a tab key.
+export const WIDGET_TAB = {
+  NOTIFICATIONS: 'notifications',
+  ORDERS: 'orders',
+  CHAT: 'chat',
+} as const;
+export type WidgetTab = (typeof WIDGET_TAB)[keyof typeof WIDGET_TAB];
+
+/**
+ * Display order of the tab bar. Tenants choose WHICH tabs appear, not the order
+ * they appear in — so normalization sorts by this rather than trusting the order
+ * a request happened to arrive in.
+ */
+export const WIDGET_TAB_ORDER: readonly WidgetTab[] = [
+  WIDGET_TAB.NOTIFICATIONS,
+  WIDGET_TAB.ORDERS,
+  WIDGET_TAB.CHAT,
+] as const;
+
+/**
+ * What a tenant gets before they configure anything — and therefore what every
+ * tenant that predates this setting keeps. Changing this line changes the widget
+ * for every unconfigured tenant, which is exactly why the column stores NULL for
+ * "unconfigured" rather than a copy of this array.
+ */
+export const WIDGET_TABS_DEFAULT: readonly WidgetTab[] = [
+  WIDGET_TAB.NOTIFICATIONS,
+  WIDGET_TAB.CHAT,
+] as const;
+
+/**
+ * Notification categories that belong to the ORDERS side of the widget.
+ *
+ * Shared because two places must agree exactly: the API, which filters and
+ * counts by it, and the widget, which decides which tab renders which chips.
+ * A category listed here shows under Orders when that tab is on, and falls back
+ * to Notifications when it is off — it is never shown in both at once.
+ * `inquiries` is deliberately absent: that chip reads the issue feed, not the
+ * notification table.
+ */
+export const ORDER_NOTIFICATION_CATEGORIES: readonly string[] = [
+  'payment',
+  'shipping',
+  'review',
+] as const;
+
+/**
+ * Which half of the notification feed a request wants. Absent = the whole feed,
+ * which is what a tenant with only one list tab should get.
+ */
+export const NOTIFICATION_SCOPE = { ORDER: 'order', NOTICE: 'notice' } as const;
+export type NotificationScope = (typeof NOTIFICATION_SCOPE)[keyof typeof NOTIFICATION_SCOPE];
+
+export const WIDGET_TAB_POSITION = { TOP: 'top', BOTTOM: 'bottom' } as const;
+export type WidgetTabPosition = (typeof WIDGET_TAB_POSITION)[keyof typeof WIDGET_TAB_POSITION];
+
+/**
+ * Clean an arbitrary tab list into something renderable: known keys only, no
+ * duplicates, canonical order. Returns null when nothing survives — the caller
+ * decides whether that is a 400 (a tenant saving an empty bar) or a fallback to
+ * the default (a stored value that predates a renamed tab key).
+ *
+ * A widget with no tabs cannot be navigated at all, so "empty" is never a valid
+ * end state; it is only ever an input to reject or replace.
+ */
+export function normalizeWidgetTabs(input: unknown): WidgetTab[] | null {
+  if (!Array.isArray(input)) return null;
+  const wanted = new Set(input.filter((v): v is string => typeof v === 'string'));
+  const tabs = WIDGET_TAB_ORDER.filter((t) => wanted.has(t));
+  return tabs.length > 0 ? [...tabs] : null;
+}
+
 // Session identity assurance. VERIFIED is minted only via the Shopify App Proxy
 // (Shopify-signed customer identity); GUEST covers order-number+email lookup.
 export const SESSION_IDENTITY = { GUEST: 'guest', VERIFIED: 'verified' } as const;

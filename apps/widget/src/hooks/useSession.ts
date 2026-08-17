@@ -117,6 +117,7 @@ export function useEnsureSession() {
   const setCustomerName = useWidgetStore((s) => s.setCustomerName);
   const setLanguage = useWidgetStore((s) => s.setLanguage);
   const setLoginMode = useWidgetStore((s) => s.setLoginMode);
+  const setTabLayout = useWidgetStore((s) => s.setTabLayout);
   const setWidgetCopy = useWidgetStore((s) => s.setWidgetCopy);
 
   useEffect(() => {
@@ -174,6 +175,12 @@ export function useEnsureSession() {
         // Tenant widget config is safe to adopt regardless of which session wins
         // below (it keys off the shop, not the session).
         if (res.widgetLoginMode) setLoginMode(res.widgetLoginMode);
+        // Tab layout is tenant configuration (PLN-260817-Widget-Tab-Config).
+        // Guarded: a server that predates the setting sends neither field, and
+        // the store's seeded default is the right answer in that case.
+        if (res.widgetTabs?.length) {
+          setTabLayout(res.widgetTabs, res.widgetTabPosition ?? 'top');
+        }
         if (res.widgetCopy) setWidgetCopy(res.widgetCopy);
         // The app-proxy handshake (useEmbedIdentity) may have adopted a
         // customer-bound token while this anonymous ensure was in flight. Don't

@@ -1,13 +1,26 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactElement } from 'react';
 import { Settings, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useWidgetStore, type TabKey } from '../../store/widgetStore';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { TopTabs } from './TopTabs';
+import { BottomTabs } from './BottomTabs';
 import { ChatTab } from '../chat/ChatTab';
 import { NotificationsTab } from '../notifications/NotificationsTab';
+import { OrdersTab } from '../orders/OrdersTab';
 import { PreferencesPanel } from '../settings/PreferencesPanel';
 import { ErrorBoundary } from '../ui/ErrorBoundary';
+
+/**
+ * What each tab key renders. `visibleTabs` comes from the server, so a key this
+ * build does not know about is reachable — it must draw nothing rather than
+ * calling `undefined`.
+ */
+const PANELS: Partial<Record<TabKey, () => ReactElement>> = {
+  notifications: () => <NotificationsTab />,
+  orders: () => <OrdersTab />,
+  chat: () => <ChatTab />,
+};
 
 export function WidgetPanel() {
   const { t } = useTranslation();
@@ -18,7 +31,8 @@ export function WidgetPanel() {
   const showSettings = useWidgetStore((s) => s.settingsOpen);
   const setShowSettings = useWidgetStore((s) => s.setSettingsOpen);
   const displayName = useWidgetStore((s) => s.widgetCopy?.displayName);
-  const chatUnread = useWidgetStore((s) => s.chatUnread);
+  const visibleTabs = useWidgetStore((s) => s.visibleTabs);
+  const tabPosition = useWidgetStore((s) => s.tabPosition);
   const panelRef = useRef<HTMLDivElement>(null);
 
   // Tabs the shopper has opened at least once — mounted from then on.
@@ -36,6 +50,10 @@ export function WidgetPanel() {
     panelRef.current?.focus();
     return () => document.removeEventListener('keydown', onKeyDown);
   }, [setPanelOpen]);
+
+  // Mounted = visited AND still configured on. Dropping a tab the tenant
+  // switched off matters beyond tidiness: a hidden panel keeps polling.
+  const mounted = visibleTabs.filter((key) => visited.includes(key));
 
   return (
     <div
@@ -81,42 +99,31 @@ export function WidgetPanel() {
         </div>
       </header>
 
-      {/* Tabs sit directly under the title now (they used to be a bottom bar). */}
-      {!showSettings && <TopTabs chatUnread={chatUnread} />}
+      {/* Tab bar position is a tenant setting (PLN-260817-Widget-Tab-Config). */}
+      {!showSettings && tabPosition === 'top' && <TopTabs />}
 
       {/* Body — visited tabs stay mounted and are hidden, never unmounted.
           ChatTab holds the thread (and its follow-up chips, escalation prompt and
-          inline cards) in component state, so swapping to Orders used to destroy
-          it: coming back showed an empty conversation with nothing to act on.
+          inline cards) in component state, so swapping tabs used to destroy it:
+          coming back showed an empty conversation with nothing to act on.
           Mounting lazily keeps the cost of an unvisited tab at zero. */}
       <div className="min-h-0 flex-1">
         <div className={showSettings ? 'hidden' : 'h-full'}>
-          {visited.includes('chat') && (
+          {mounted.map((key) => (
             <div
+              key={key}
               role="tabpanel"
-              id="ivy-tabpanel-chat"
-              aria-labelledby="ivy-tab-chat"
-              className={activeTab === 'chat' ? 'h-full' : 'hidden'}
+              id={`ivy-tabpanel-${key}`}
+              aria-labelledby={`ivy-tab-${key}`}
+              className={activeTab === key ? 'h-full' : 'hidden'}
             >
               {/* One boundary per tab: a crash here must not cost the shopper
                   the other tabs, and re-entering the tab retries it. */}
-              <ErrorBoundary label="chat" resetKey={activeTab}>
-                <ChatTab />
+              <ErrorBoundary label={key} resetKey={activeTab}>
+                {PANELS[key]?.()}
               </ErrorBoundary>
             </div>
-          )}
-          {visited.includes('notifications') && (
-            <div
-              role="tabpanel"
-              id="ivy-tabpanel-notifications"
-              aria-labelledby="ivy-tab-notifications"
-              className={activeTab === 'notifications' ? 'h-full' : 'hidden'}
-            >
-              <ErrorBoundary label="notifications" resetKey={activeTab}>
-                <NotificationsTab />
-              </ErrorBoundary>
-            </div>
-          )}
+          ))}
         </div>
         {showSettings && (
           <ErrorBoundary label="settings">
@@ -125,6 +132,7 @@ export function WidgetPanel() {
         )}
       </div>
 
+      {!showSettings && tabPosition === 'bottom' && <BottomTabs />}
     </div>
   );
 }

@@ -52,7 +52,19 @@
     "firstVisit": "Lời chào lần đầu truy cập",
     "firstVisitHint": "Hiển thị khi khách mở khung trò chuyện. {shop} sẽ được thay bằng tên hiển thị. Để trống = dùng nội dung mặc định.",
     "loginGreeting": "Lời chào khi đã đăng nhập",
-    "loginGreetingHint": "Hiển thị khi nhận ra khách đã đăng nhập. {name} sẽ được thay bằng tên khách hàng. Để trống = dùng nội dung mặc định."
+    "loginGreetingHint": "Hiển thị khi nhận ra khách đã đăng nhập. {name} sẽ được thay bằng tên khách hàng. Để trống = dùng nội dung mặc định.",
+    "tabsTitle": "Tab",
+    "tabs": "Hiển thị các tab này",
+    "tabsHint": "Phải bật ít nhất một tab. Khi tắt tab Đơn hàng, các bộ lọc đơn hàng (thanh toán, vận chuyển, đánh giá, yêu cầu) vẫn nằm trong tab Thông báo.",
+    "tabPosition": "Vị trí thanh tab",
+    "tabPositionTop": "Trên (chữ)",
+    "tabPositionBottom": "Dưới (biểu tượng)",
+    "tabPositionHint": "Trên hiển thị thanh chữ ngay dưới tiêu đề; dưới hiển thị thanh biểu tượng kèm nhãn ở đáy widget.",
+    "tab": {
+      "notifications": "Thông báo",
+      "orders": "Đơn hàng",
+      "chat": "Trò chuyện"
+    }
   },
   "shopify": {
     "title": "Kết nối Shopify",

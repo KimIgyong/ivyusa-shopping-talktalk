@@ -23,9 +23,12 @@ export class NotificationController {
     @Query('category') category?: string,
     @Query('page') page?: string,
     @Query('size') size?: string,
+    // 'order' | 'notice' — which half of the feed "all" means for this caller.
+    // Absent = the whole feed (a tenant showing only one list tab).
+    @Query('scope') scope?: string,
   ) {
     const { page: p, size: s } = normalizePage(page, size);
-    const [items, total] = await this.notificationService.list(token, category, p, s);
+    const [items, total] = await this.notificationService.list(token, category, p, s, scope);
     return new Paginated(items.map(toNotificationResponse), buildPagination(p, s, total));
   }
 
@@ -33,8 +36,8 @@ export class NotificationController {
   @Public()
   @SkipThrottle() // widget polls this on an interval — exclude from the flood limit
   @ApiOperation({ summary: 'Unread notification count' })
-  async unreadCount(@SessionToken() token: string) {
-    const count = await this.notificationService.unreadCount(token);
+  async unreadCount(@SessionToken() token: string, @Query('scope') scope?: string) {
+    const count = await this.notificationService.unreadCount(token, scope);
     return { count };
   }
 

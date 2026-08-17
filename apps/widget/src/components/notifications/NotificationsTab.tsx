@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { BellOff, ExternalLink, Lock, Star } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { useWidgetStore } from '../../store/widgetStore';
+import { useWidgetStore, type TabKey } from '../../store/widgetStore';
 import { AuthGate } from '../chat/AuthGate';
 import { isAuthError } from '../../lib/errors';
 import { useMarkRead, useNotifications } from '../../hooks/useNotifications';
@@ -15,23 +15,10 @@ import { NotificationIcon } from './NotificationIcon';
 import { ShipmentList } from './ShipmentList';
 import { OrderDetailView } from '../orders/OrderDetail';
 import { ReviewForm } from '../orders/ReviewForm';
+import { chipBelongsTo, chipsFor, defaultChip } from './tab-chips';
+import { NOTIFICATION_SCOPE } from '../../lib/widget-tabs';
 import type { NotificationItem } from '../../lib/types';
 
-/**
- * Filter chips (PLN-260817 W-1).
- *
- * The design shows five. `inquiries` is a sixth, added as an approved deviation
- * (PLN §7 D-3): the two-tab IA retires the Orders tab, and this is the only
- * surface the shipped issue feed (`listIssues`, PLN-260810 P3) can live on.
- */
-const FILTERS: { key: string; labelKey: string }[] = [
-  { key: 'all', labelKey: 'notifications.filters.all' },
-  { key: 'payment', labelKey: 'notifications.filters.payment' },
-  { key: 'shipping', labelKey: 'notifications.filters.shipping' },
-  { key: 'event', labelKey: 'notifications.filters.event' },
-  { key: 'review', labelKey: 'notifications.filters.review' },
-  { key: 'inquiries', labelKey: 'notifications.filters.inquiries' },
-];
 
 function Row({
   n,
@@ -148,14 +135,31 @@ function IssueFeed({
   );
 }
 
-export function NotificationsTab() {
+/**
+ * The list-shaped tab. Rendered twice under some configurations — once as
+ * "Notifications" and once as "Orders" — with the same rows and sub-views, only
+ * a different set of chips (PLN-260817-Widget-Tab-Config W-5). Keeping it one
+ * component is the point: a fix to a shipment card is a fix in both places.
+ */
+export function NotificationsTab({ tab = 'notifications' }: { tab?: TabKey } = {}) {
   const { t, i18n } = useTranslation();
   const sessionToken = useWidgetStore((s) => s.sessionToken);
   const authenticated = useWidgetStore((s) => s.authenticated);
   const setAuthenticated = useWidgetStore((s) => s.setAuthenticated);
   const queueChatMessage = useWidgetStore((s) => s.queueChatMessage);
-  const notifFilter = useWidgetStore((s) => s.notificationFilter);
-  const setNotifFilter = useWidgetStore((s) => s.setNotificationFilter);
+  const visibleTabs = useWidgetStore((s) => s.visibleTabs);
+  const storedFilter = useWidgetStore((s) => s.notificationFilter);
+  const setStoredFilter = useWidgetStore((s) => s.setNotificationFilter);
+
+  const chips = chipsFor(tab, visibleTabs);
+  // The store holds ONE selected chip so a deep link (`?reopen=orders`) can aim
+  // at it. When two list tabs exist that chip belongs to only one of them, so
+  // the other falls back to its own first chip instead of rendering a filter it
+  // does not offer.
+  const notifFilter = chipBelongsTo(storedFilter, tab, visibleTabs)
+    ? storedFilter
+    : defaultChip(tab, visibleTabs);
+  const setNotifFilter = setStoredFilter;
 
   // Sub-views pushed over the list. Both used to be reachable only through the
   // Orders tab, which the two-tab IA removed (PLN-260817 S3).
@@ -165,9 +169,20 @@ export function NotificationsTab() {
 
   const isShipping = notifFilter === 'shipping';
   const isInquiries = notifFilter === 'inquiries';
+  // What "all" covers. With both list tabs on, each shows only its own half —
+  // otherwise Notifications' "All" would repeat every order row the Orders tab
+  // is already showing and the chip split would buy nothing.
+  const bothListTabs =
+    visibleTabs.includes('notifications') && visibleTabs.includes('orders');
+  const scope = !bothListTabs
+    ? undefined
+    : tab === 'orders'
+      ? NOTIFICATION_SCOPE.ORDER
+      : NOTIFICATION_SCOPE.NOTICE;
   const { data, isLoading, isError, error } = useNotifications(
     sessionToken,
     isShipping || isInquiries ? 'all' : notifFilter,
+    scope,
   );
   const markRead = useMarkRead(sessionToken);
 
@@ -240,7 +255,7 @@ export function NotificationsTab() {
     <div className="flex h-full flex-col">
       {/* Filter chips */}
       <div className="scroll-thin flex gap-2 overflow-x-auto border-b border-gray-100 px-4 py-3">
-        {FILTERS.map((f) => (
+        {chips.map((f) => (
           <button
             key={f.key}
             onClick={() => setNotifFilter(f.key)}

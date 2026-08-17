@@ -1,11 +1,12 @@
 import { HttpStatus, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { IsNull, Repository } from 'typeorm';
+import { In, IsNull, Not, Repository } from 'typeorm';
 import { Notification } from './entity/notification.entity';
 import { NotificationPref } from './entity/notification-pref.entity';
 import { Session } from '../session/entity/session.entity';
 import { SessionService } from '../session/session.service';
 import { NotifyInput } from './dto/response/notification.response';
+import { NOTIFICATION_SCOPE, ORDER_NOTIFICATION_CATEGORIES } from '@ivy/types';
 import { EventBusService, EVENTS } from '../../infrastructure/infrastructure.module';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
@@ -14,8 +15,48 @@ import { RedisService } from '../../infrastructure/cache/redis.service';
 /** TTL for the unread-badge count cache (PERF-11) — widget polls it every 30s. */
 const UNREAD_CACHE_TTL_SEC = 20;
 
-function unreadCacheKey(customerId: number): string {
-  return `notif:unread:${customerId}`;
+/** Per-scope, because the widget may show two badges that must not share a cache. */
+function unreadCacheKey(customerId: number, scope?: string): string {
+  return scope ? `notif:unread:${customerId}:${scope}` : `notif:unread:${customerId}`;
+}
+
+/**
+ * Every cache key a customer's unread count can live under. Invalidation must
+ * clear all of them: dropping only the unscoped key would leave a per-tab badge
+ * showing a count the shopper has already read away.
+ */
+function unreadCacheKeys(customerId: number): string[] {
+  return [
+    unreadCacheKey(customerId),
+    unreadCacheKey(customerId, NOTIFICATION_SCOPE.ORDER),
+    unreadCacheKey(customerId, NOTIFICATION_SCOPE.NOTICE),
+  ];
+}
+
+/**
+ * Build the WHERE for a feed request, honouring the order/notice split.
+ *
+ * An explicit `category` always wins — a chip asks for exactly one thing. The
+ * scope only decides what "all" means, which is the whole point: with both list
+ * tabs on, Notifications' "All" must NOT include the order rows the Orders tab
+ * is already showing, or the chip split buys nothing.
+ */
+function scopedWhere(
+  customerId: number,
+  category: string | undefined,
+  scope: string | undefined,
+): Record<string, unknown> {
+  const where: Record<string, unknown> = { customerId };
+  if (category && category !== 'all') {
+    where.category = category;
+    return where;
+  }
+  if (scope === NOTIFICATION_SCOPE.ORDER) {
+    where.category = In([...ORDER_NOTIFICATION_CATEGORIES]);
+  } else if (scope === NOTIFICATION_SCOPE.NOTICE) {
+    where.category = Not(In([...ORDER_NOTIFICATION_CATEGORIES]));
+  }
+  return where;
 }
 
 const EXTERNAL_CHANNELS = ['email', 'sms', 'web_push', 'push'] as const;
@@ -107,7 +148,9 @@ export class NotificationService implements OnModuleInit {
     customerId: number | null,
     sessionId: number | null,
   ): Promise<Notification> {
-    if (customerId != null) await this.redis.del(unreadCacheKey(customerId));
+    if (customerId != null) {
+      await Promise.all(unreadCacheKeys(customerId).map((k) => this.redis.del(k)));
+    }
     return this.notifRepo.save(
       this.notifRepo.create({
         // Explicit tenantId: this insert runs detached from the request (bus
@@ -169,12 +212,11 @@ export class NotificationService implements OnModuleInit {
     category: string | undefined,
     page: number,
     size: number,
+    scope?: string,
   ): Promise<[Notification[], number]> {
     const customerId = await this.requireCustomerId(token);
-    const where: Record<string, unknown> = { customerId };
-    if (category && category !== 'all') where.category = category;
     return this.notifRepo.findAndCount({
-      where,
+      where: scopedWhere(customerId, category, scope),
       order: { id: 'DESC' },
       skip: (page - 1) * size,
       take: size,
@@ -190,20 +232,30 @@ export class NotificationService implements OnModuleInit {
     if (notif.readAt == null) {
       notif.readAt = new Date();
       const saved = await this.notifRepo.save(notif);
-      await this.redis.del(unreadCacheKey(customerId));
+      await Promise.all(unreadCacheKeys(customerId).map((k) => this.redis.del(k)));
       return saved;
     }
     return notif;
   }
 
-  async unreadCount(token: string): Promise<number> {
+  /**
+   * Unread count, optionally for one half of the feed.
+   *
+   * The widget can show two list tabs whose badges must add up to the whole and
+   * never double-count, so the split is computed here rather than by tallying a
+   * page of rows on the client — a page is capped at `size`, which would make
+   * both badges wrong the moment a shopper has more unread than fits on one.
+   */
+  async unreadCount(token: string, scope?: string): Promise<number> {
     const customerId = await this.requireCustomerId(token);
-    const key = unreadCacheKey(customerId);
+    const key = unreadCacheKey(customerId, scope);
     if (this.redis.available()) {
       const hit = await this.redis.get(key);
       if (hit != null) return Number(hit);
     }
-    const count = await this.notifRepo.count({ where: { customerId, readAt: IsNull() } });
+    const count = await this.notifRepo.count({
+      where: { ...scopedWhere(customerId, 'all', scope), readAt: IsNull() },
+    });
     await this.redis.set(key, String(count), UNREAD_CACHE_TTL_SEC);
     return count;
   }

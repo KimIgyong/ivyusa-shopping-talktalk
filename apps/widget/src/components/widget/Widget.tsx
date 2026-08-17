@@ -28,25 +28,60 @@ export function Widget() {
 
   // Returning from a redirect-mode sign-in: the loader consumed its one-shot
   // flag and passed ?reopen=<tab>, so bring the widget straight back up where
-  // the shopper left off (orders) instead of making them find it again.
+  // the shopper left off instead of making them find it again.
+  //
+  // Which tab that is depends on the tenant's configuration, and the
+  // configuration arrives from session/ensure AFTER first paint. Reading it on
+  // mount resolved `?reopen=orders` against the seeded default — which has no
+  // orders tab — so the shopper landed on Notifications even at tenants that
+  // show one. The intent is captured once and resolved when the layout lands.
+  const visibleTabs = useWidgetStore((s) => s.visibleTabs);
+  const tabsResolved = useWidgetStore((s) => s.tabsResolved);
+  const reopenIntent = useRef<string | null>(
+    new URLSearchParams(window.location.search).get('reopen'),
+  );
+  // Once the shopper closes the panel, a late-arriving layout must not haul it
+  // back open — the effect below re-runs on every layout change until spent.
+  const dismissed = useRef(false);
   useEffect(() => {
-    const reopen = new URLSearchParams(window.location.search).get('reopen');
-    if (!reopen) return;
-    // `reopen=orders` is still in the wild: it is baked into return URLs that
-    // storefronts have already handed out, and the tab it named no longer
-    // exists (PLN-260817 SI-1). Land those shoppers where orders moved to —
-    // the notification tab's Shipping filter — rather than dropping the intent.
-    if (reopen === 'orders') {
-      useWidgetStore.getState().setActiveTab('notifications');
-      useWidgetStore.getState().setNotificationFilter('shipping');
-      useWidgetStore.getState().setPanelOpen(true);
-      return;
+    if (!panelOpen && reopenIntent.current) dismissed.current = true;
+  }, [panelOpen]);
+
+  useEffect(() => {
+    const reopen = reopenIntent.current;
+    if (!reopen || dismissed.current) return;
+    const store = useWidgetStore.getState();
+
+    // `reopen=orders` is baked into return URLs storefronts already handed out.
+    // Every branch checks visibility first: selecting a tab this tenant hides
+    // leaves the panel opening onto nothing, and `setTabLayout`'s own fallback
+    // has already run by this point so nothing would correct it.
+    const target: TabKey | null =
+      reopen === 'orders'
+        ? visibleTabs.includes('orders')
+          ? 'orders'
+          : visibleTabs.includes('notifications')
+            ? 'notifications'
+            : null
+        : reopen === 'chat' || reopen === 'notifications'
+          ? visibleTabs.includes(reopen as TabKey)
+            ? (reopen as TabKey)
+            : null
+          : null;
+    if (target) {
+      store.setActiveTab(target);
+      // Orders live under Shipping when there is no orders tab to land on.
+      if (reopen === 'orders') store.setNotificationFilter('shipping');
+    } else if (reopen !== 'orders' && reopen !== 'chat' && reopen !== 'notifications') {
+      return; // not a tab we know — leave the widget alone entirely
     }
-    if (reopen === 'chat' || reopen === 'notifications') {
-      useWidgetStore.getState().setActiveTab(reopen as TabKey);
-      useWidgetStore.getState().setPanelOpen(true);
-    }
-  }, []);
+    store.setPanelOpen(true);
+    // Only now is the intent spent. Consuming it on the first pass would freeze
+    // the guess made against the seeded default: `?reopen=orders` would land on
+    // Notifications and never be corrected when the tenant's real layout — which
+    // does have an orders tab — arrived a moment later.
+    if (tabsResolved) reopenIntent.current = null;
+  }, [visibleTabs, tabsResolved, panelOpen]);
 
   // When embedded in a storefront iframe, tell the embed.js loader to grow/shrink
   // the frame as the panel opens/closes. targetOrigin '*' is safe here — the payload

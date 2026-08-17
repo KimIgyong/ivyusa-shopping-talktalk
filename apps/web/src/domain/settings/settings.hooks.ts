@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import type { WidgetLoginMode } from '@ivy/types';
+import type { WidgetLoginMode, WidgetTab, WidgetTabPosition } from '@ivy/types';
 import { settingsService } from './settings.service';
 import type { SaveShopifyBody, UpdateCredentialBody, WidgetCopyDraft } from './settings.service';
 import { toast } from '@/store/toast-store';
@@ -23,7 +23,10 @@ export function useSaveWidgetSettings() {
       loginMode: WidgetLoginMode;
       timezone?: string | null;
       copy?: WidgetCopyDraft;
-    }) => settingsService.saveWidgetSettings(v.loginMode, v.timezone, v.copy),
+      tabs?: WidgetTab[];
+      tabPosition?: WidgetTabPosition;
+    }) =>
+      settingsService.saveWidgetSettings(v.loginMode, v.timezone, v.copy, v.tabs, v.tabPosition),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['widget-settings', tenantKey] });
       // Success auto-closes; errors stay until dismissed (dev-kit §4.3).

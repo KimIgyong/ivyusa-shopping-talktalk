@@ -130,8 +130,47 @@ describe('SessionService consent (PLN-Privacy-Control-Gap Stage 1-2)', () => {
         privacyPolicyUrl: 'https://shop.example/privacy',
         consentNoticeVersion: 'v9',
         widgetLoginMode: 'redirect',
+        widgetTabs: ['notifications', 'chat'],
+        widgetTabPosition: 'top',
         widgetCopy: expect.objectContaining({ firstVisit: {}, loginGreeting: {} }),
       });
+    });
+
+    /**
+     * Tab layout (PLN-260817-Widget-Tab-Config). The widget renders whatever
+     * arrives here without re-validating it, so this is where "always renderable"
+     * has to hold.
+     */
+    it('serves the built-in tab default to a tenant that never configured one', async () => {
+      tenant!.widgetTabs = null;
+      tenant!.widgetTabPosition = 'top';
+      await expect(svc.privacyNotice(1)).resolves.toMatchObject({
+        widgetTabs: ['notifications', 'chat'],
+        widgetTabPosition: 'top',
+      });
+    });
+
+    it('serves the configured tabs, in canonical order, at the configured position', async () => {
+      tenant!.widgetTabs = ['chat', 'orders'];
+      tenant!.widgetTabPosition = 'bottom';
+      await expect(svc.privacyNotice(1)).resolves.toMatchObject({
+        widgetTabs: ['orders', 'chat'],
+        widgetTabPosition: 'bottom',
+      });
+    });
+
+    it('falls back to the default rather than serving an unrenderable tab bar', async () => {
+      // A stored key we no longer ship (renamed tab, hand-edited row) would
+      // otherwise normalize to an empty array — a widget with no way to navigate.
+      tenant!.widgetTabs = ['ghost-tab'];
+      await expect(svc.privacyNotice(1)).resolves.toMatchObject({
+        widgetTabs: ['notifications', 'chat'],
+      });
+    });
+
+    it('an unknown stored position reads as top, not as itself', async () => {
+      tenant!.widgetTabPosition = 'sideways';
+      await expect(svc.privacyNotice(1)).resolves.toMatchObject({ widgetTabPosition: 'top' });
     });
 
     it('resolves widgetCopy.displayName: configured name wins, else the tenant name', async () => {
