@@ -32,7 +32,7 @@
 ### 2.3 칩은 사라지지 않고 흡수된다
 세 탭을 각각 끌 수 있으므로 "칩이 갈 곳이 없어지는" 조합이 생긴다. 규칙은 한 줄이다 —
 **살아 있는 목록형 탭이 하나뿐이면 그 탭이 상대의 칩까지 가져간다.** 그래서 주문 탭을 꺼도
-배송 조회 기능이 조용히 사라지지 않는다(`tabChips.ts`).
+배송 조회 기능이 조용히 사라지지 않는다(`tab-chips.ts`).
 
 ## 3. 변경 파일
 
@@ -42,10 +42,10 @@
 | `sql/migration_widget_tab_config.sql` | 컬럼 2개(객체별 멱등 가드) |
 | `packages/types/src/common/widget-tabs.spec.ts` | 정규화 계약 8케이스 |
 | `apps/widget/src/lib/widget-tabs.ts` | 소스 딥임포트(브라우저 번들은 `@ivy/types` 값 임포트 불가) |
-| `apps/widget/src/components/widget/tabDefs.ts` | 탭 라벨·아이콘 단일 정의 |
+| `apps/widget/src/components/widget/tab-defs.ts` | 탭 라벨·아이콘 단일 정의 |
 | `apps/widget/src/components/widget/useTabBar.ts` | 두 탭바가 공유하는 상태·배지 규칙 |
 | `apps/widget/src/components/widget/BottomTabs.tsx` | 하단 아이콘+라벨 탭바 |
-| `apps/widget/src/components/notifications/tabChips.ts` | 칩 흡수 규칙 |
+| `apps/widget/src/components/notifications/tab-chips.ts` | 칩 흡수 규칙 |
 | `apps/widget/src/components/orders/OrdersTab.tsx` | 주문 탭(12줄) |
 
 ### 수정
@@ -76,7 +76,7 @@ ALTER TABLE `tenants`
 | 신규 단위 테스트 | **22건** (U-1~U-16 + 스코프 6건) |
 | 전체 스위트 | **1,293 + 101 통과 / 실패 0** |
 | typecheck / build | ✅ 9/9 |
-| `npm run i18n:check` | ✅ 5개 언어 complete |
+| `npm run i18n:check` | ✅ es·ko·vi·ja·zh complete (en은 비교 기준이라 대상에서 제외) |
 | API 실부팅 | ✅ |
 | 로컬 통합 | S-1~S-10 통과 (TCR §3) |
 

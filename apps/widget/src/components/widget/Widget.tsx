@@ -42,9 +42,15 @@ export function Widget() {
   );
   // Once the shopper closes the panel, a late-arriving layout must not haul it
   // back open — the effect below re-runs on every layout change until spent.
+  //
+  // This must key off an actual open→closed TRANSITION. Testing `!panelOpen`
+  // alone marked the widget dismissed on mount, because a widget starts closed
+  // — which killed `?reopen=` entirely, the very flow it was meant to protect.
   const dismissed = useRef(false);
+  const wasOpen = useRef(panelOpen);
   useEffect(() => {
-    if (!panelOpen && reopenIntent.current) dismissed.current = true;
+    if (wasOpen.current && !panelOpen && reopenIntent.current) dismissed.current = true;
+    wasOpen.current = panelOpen;
   }, [panelOpen]);
 
   useEffect(() => {

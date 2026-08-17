@@ -2,12 +2,27 @@ import { Body, Controller, Get, Param, ParseIntPipe, Post, Put, Query } from '@n
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { SkipThrottle } from '@nestjs/throttler';
 import { buildPagination, normalizePage } from '@ivy/common';
+import { NOTIFICATION_SCOPE, type NotificationScope } from '@ivy/types';
 import { NotificationService } from './notification.service';
 import { ReadNotificationRequest, UpdatePrefRequest } from './dto/request/notification.request';
 import { toNotificationResponse, toPrefResponse } from './notification.mapper';
 import { Public } from '../../global/decorator/public.decorator';
 import { Paginated } from '../../global/interceptor/transform.interceptor';
 import { SessionToken } from '../../global/decorator/session-token.decorator';
+
+/**
+ * Only a known scope reaches the service — and therefore the Redis key it is
+ * interpolated into. Anything else is treated as absent (the whole feed).
+ *
+ * Without this, `unread-count` — which is `@SkipThrottle()` because the widget
+ * polls it — would mint a new cache entry per distinct junk string a caller
+ * sent, letting an authenticated shopper inflate the cache at will.
+ */
+function parseScope(scope?: string): NotificationScope | undefined {
+  return (Object.values(NOTIFICATION_SCOPE) as string[]).includes(scope ?? '')
+    ? (scope as NotificationScope)
+    : undefined;
+}
 
 /** Widget-facing notification endpoints (public; session-token identified). */
 @ApiTags('Notification')
@@ -28,7 +43,13 @@ export class NotificationController {
     @Query('scope') scope?: string,
   ) {
     const { page: p, size: s } = normalizePage(page, size);
-    const [items, total] = await this.notificationService.list(token, category, p, s, scope);
+    const [items, total] = await this.notificationService.list(
+      token,
+      category,
+      p,
+      s,
+      parseScope(scope),
+    );
     return new Paginated(items.map(toNotificationResponse), buildPagination(p, s, total));
   }
 
@@ -37,7 +58,7 @@ export class NotificationController {
   @SkipThrottle() // widget polls this on an interval — exclude from the flood limit
   @ApiOperation({ summary: 'Unread notification count' })
   async unreadCount(@SessionToken() token: string, @Query('scope') scope?: string) {
-    const count = await this.notificationService.unreadCount(token, scope);
+    const count = await this.notificationService.unreadCount(token, parseScope(scope));
     return { count };
   }
 

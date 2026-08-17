@@ -5,6 +5,7 @@ import { NotificationPref } from './entity/notification-pref.entity';
 import { Session } from '../session/entity/session.entity';
 import { EventBusService } from '../../infrastructure/infrastructure.module';
 import { RedisService } from '../../infrastructure/cache/redis.service';
+import { ORDER_NOTIFICATION_CATEGORIES } from '@ivy/types';
 
 const EXTERNAL = ['email', 'sms', 'web_push', 'push'];
 const CATEGORIES = ['payment', 'shipping', 'event', 'review', 'chat'];
@@ -265,17 +266,39 @@ describe('NotificationService scoping — order vs notice half', () => {
     );
   });
 
-  it('scope=order narrows "all" to the order categories', async () => {
+  /**
+   * Assert the OPERATOR, not just that some filter exists: `In` and `Not(In)`
+   * over the same list are each other's opposite, so a test that only checks
+   * "category is set" passes just as happily with the two swapped — which would
+   * put order rows in the notice tab and vice versa.
+   */
+  const operatorOf = (where: Record<string, unknown> | undefined) =>
+    where?.category as unknown as { type?: string; value?: unknown; child?: { type?: string; value?: unknown } };
+
+  it('scope=order narrows "all" to exactly the order categories', async () => {
     await svc.list('tok', 'all', 1, 20, 'order');
     expect(lastWhere).toMatchObject({ customerId: 42 });
-    expect(lastWhere!.category).toBeDefined();
+    const op = operatorOf(lastWhere);
+    expect(op.type).toBe('in');
+    expect(op.value).toEqual([...ORDER_NOTIFICATION_CATEGORIES]);
   });
 
   it('scope=notice EXCLUDES the order categories rather than listing the rest', async () => {
     // Written as an exclusion on purpose: a category added later (a new campaign
     // type, say) must land in the notice half without touching this code.
     await svc.list('tok', 'all', 1, 20, 'notice');
-    expect(JSON.stringify(lastWhere)).toContain('payment');
+    const op = operatorOf(lastWhere);
+    // TypeORM nests the negated operator under `child`, not `value`.
+    expect(op.type).toBe('not');
+    expect(op.child?.type).toBe('in');
+    expect(op.child?.value).toEqual([...ORDER_NOTIFICATION_CATEGORIES]);
+  });
+
+  it('the two halves are exact complements — no row belongs to both or neither', async () => {
+    await svc.list('tok', 'all', 1, 20, 'order');
+    const orderOp = operatorOf(lastWhere);
+    await svc.list('tok', 'all', 1, 20, 'notice');
+    expect(operatorOf(lastWhere).child?.value).toEqual(orderOp.value);
   });
 
   it('no scope means the whole feed — the single-list-tab configuration', async () => {
@@ -292,7 +315,9 @@ describe('NotificationService scoping — order vs notice half', () => {
   it('unreadCount applies the same scope, so two badges cannot double-count', async () => {
     await svc.unreadCount('tok', 'order');
     expect(countWhere).toMatchObject({ customerId: 42 });
-    expect(countWhere!.category).toBeDefined();
+    const op = countWhere!.category as unknown as { type?: string; value?: unknown };
+    expect(op.type).toBe('in');
+    expect(op.value).toEqual([...ORDER_NOTIFICATION_CATEGORIES]);
     expect(countWhere!.readAt).toBeDefined();
   });
 

@@ -6,7 +6,11 @@ import { NotificationPref } from './entity/notification-pref.entity';
 import { Session } from '../session/entity/session.entity';
 import { SessionService } from '../session/session.service';
 import { NotifyInput } from './dto/response/notification.response';
-import { NOTIFICATION_SCOPE, ORDER_NOTIFICATION_CATEGORIES } from '@ivy/types';
+import {
+  NOTIFICATION_SCOPE,
+  ORDER_NOTIFICATION_CATEGORIES,
+  type NotificationScope,
+} from '@ivy/types';
 import { EventBusService, EVENTS } from '../../infrastructure/infrastructure.module';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
@@ -16,7 +20,7 @@ import { RedisService } from '../../infrastructure/cache/redis.service';
 const UNREAD_CACHE_TTL_SEC = 20;
 
 /** Per-scope, because the widget may show two badges that must not share a cache. */
-function unreadCacheKey(customerId: number, scope?: string): string {
+function unreadCacheKey(customerId: number, scope?: NotificationScope): string {
   return scope ? `notif:unread:${customerId}:${scope}` : `notif:unread:${customerId}`;
 }
 
@@ -44,7 +48,7 @@ function unreadCacheKeys(customerId: number): string[] {
 function scopedWhere(
   customerId: number,
   category: string | undefined,
-  scope: string | undefined,
+  scope: NotificationScope | undefined,
 ): Record<string, unknown> {
   const where: Record<string, unknown> = { customerId };
   if (category && category !== 'all') {
@@ -148,10 +152,7 @@ export class NotificationService implements OnModuleInit {
     customerId: number | null,
     sessionId: number | null,
   ): Promise<Notification> {
-    if (customerId != null) {
-      await Promise.all(unreadCacheKeys(customerId).map((k) => this.redis.del(k)));
-    }
-    return this.notifRepo.save(
+    const row = await this.notifRepo.save(
       this.notifRepo.create({
         // Explicit tenantId: this insert runs detached from the request (bus
         // handler), so the ALS TenantSubscriber cannot stamp it.
@@ -169,6 +170,13 @@ export class NotificationService implements OnModuleInit {
         readAt: null,
       }),
     );
+    // Invalidate AFTER the row exists. Clearing first left a window where an
+    // unreadCount() in flight could re-cache a total that excluded this row and
+    // then hold it for the whole TTL — the badge would sit one behind.
+    if (customerId != null) {
+      await Promise.all(unreadCacheKeys(customerId).map((k) => this.redis.del(k)));
+    }
+    return row;
   }
 
   /**
@@ -212,7 +220,7 @@ export class NotificationService implements OnModuleInit {
     category: string | undefined,
     page: number,
     size: number,
-    scope?: string,
+    scope?: NotificationScope,
   ): Promise<[Notification[], number]> {
     const customerId = await this.requireCustomerId(token);
     return this.notifRepo.findAndCount({
@@ -246,7 +254,7 @@ export class NotificationService implements OnModuleInit {
    * page of rows on the client — a page is capped at `size`, which would make
    * both badges wrong the moment a shopper has more unread than fits on one.
    */
-  async unreadCount(token: string, scope?: string): Promise<number> {
+  async unreadCount(token: string, scope?: NotificationScope): Promise<number> {
     const customerId = await this.requireCustomerId(token);
     const key = unreadCacheKey(customerId, scope);
     if (this.redis.available()) {
