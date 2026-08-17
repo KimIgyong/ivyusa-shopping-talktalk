@@ -8,12 +8,28 @@
 
 | 항목 | 값 |
 |---|---|
-| 브랜치 | `feature/i18n-6-languages` (워크트리 `~/orca/worktrees/ivyusa-talktalk/i18n-6lang`) |
-| 커밋 | `94814e0`(W0) · `d7e8fce`(W1) · `8a357fc`(W2) · `a030b9e`(W3) · `6d85f73`(W4) + W5 |
-| 규모 | 141 files, +7,862 / −446 |
-| PR | **미생성** — 사용자 확인 대기 |
-| 스테이징 | **미배포** |
-| 마이그레이션 | **없음** (언어 컬럼이 전부 VARCHAR — REQ §1d). PR 본문 `## Migration` 섹션 불요 |
+| 브랜치 | `feature/i18n-6-languages` → squash merge |
+| 커밋 | `94814e0`(W0) · `d7e8fce`(W1) · `8a357fc`(W2) · `a030b9e`(W3) · `6d85f73`(W4) · `137bb76`(W5) · `f32b6e3`(main 병합) |
+| PR | **#299 머지 완료** — main `10e12b6` |
+| 스테이징 | **배포·검증 완료 2026-08-17 10:49 UTC** (컨테이너 5종 재생성, API `Nest application successfully started`) |
+| 마이그레이션 | **없음** (언어 컬럼이 전부 VARCHAR — REQ §1d). 적용할 SQL 자체가 없음 |
+| CI | typecheck · test · build **pass** (1m25s) |
+
+## 1-1. main 병합 (`f32b6e3`) — 브랜치 개설 중 60여 커밋 유입
+
+로컬 `main`이 뒤처진 상태에서 브랜치를 떠, PR 시점에 충돌 8건이 발생했다.
+그 사이 main에는 첨부파일·Drive 지식소스·메뉴 권한·코칭 이력·AMA SSO가 들어와 있었다.
+
+- 충돌 해소: `index.ts`/`nav.json`×3(양쪽 가산) · `chat.service.ts`(main의
+  `attachmentReceived` 유지 + 3언어 추가) · `messenger-ingest.ts`(main이 로케일 해석을
+  `SessionService.languageForChannel`로 이관 → 이 브랜치의 `resolveLanguage` 삭제,
+  커버리지는 `language.spec.ts`·`session.service.spec.ts`가 승계) ·
+  `PreviewPanel.tsx`(main의 `CoachTarget` 유지, 하드코딩 `LANGS`는 제거 유지).
+- ⚠️ **`i18n:check`가 병합 직후 언어당 226키 누락을 검출** — main이 브랜치 개설 이후 추가한
+  신규 문구(메뉴 권한·라이브챗 초안/첨부·코칭 회귀/이력·Drive·AMA SSO·메뉴 차단 안내)가
+  vi/ja/zh에 없었다. 226×3 전량 번역해 반영. 체커가 없었다면 **조용한 영어 폴백 상태로
+  머지**됐을 항목들이며, 이 브랜치가 없애려던 실패 양상 그 자체다.
+- main이 EN/ES/KO만으로 추가한 문구 2종(첨부 실패 안내, 상담원 회신메일 첨부 안내)도 6언어화.
 
 ## 2. 무엇을 바꿨나
 
@@ -73,6 +89,31 @@
 | API 부팅 | `Nest application successfully started` (엔티티 변경 후 실기동 확인) |
 | 회귀 | 기존 en/es/ko 문구·동작 무변화. 사전 테스트 1건만 전제가 바뀌어 갱신(`vi→EN` 기대 → `vi→VI`, 폴백 검증은 `th-TH`로 이전) |
 
+### 3-1. 병합 후 최종 검증 (배포 직전)
+| 검사 | 결과 |
+|---|---|
+| `npm test` | **1,366개 통과** (api 1,273 · common 60 · types 33) |
+| `npm run i18n:check` | 5개 언어 전부 complete |
+| `npm run typecheck` / 빌드 | 9/9, 위젯·콘솔·PWA 빌드 성공 |
+| GitHub Actions | typecheck · test · build **pass** |
+
+### 3-2. 스테이징 실환경 스모크 (2026-08-17, 배포 직후)
+| # | 확인 | 결과 |
+|---|---|---|
+| D-1 | 컨테이너 재생성 | api(healthy)·web·widget·pwa·nginx 전부 Up |
+| D-2 | API 부팅 로그 | `Nest application successfully started` |
+| D-3 | `/api/v1/health` | 200 `{"status":"ok"}` |
+| D-4 | `/` · `/widget/` · `/app/` | 200 / 200 / 200 |
+| D-5 | 콘솔 번들에 신규 로케일 포함 | `Tiếng Việt`·`日本語`·`简体中文`·`配送状況`·`工作日志` 검출 |
+| D-6 | 위젯 번들에 신규 로케일 포함 | `换货 · 退货`·`再入荷通知`·`Báo khi có hàng` 검출 |
+| D-7 | **로케일→세션 언어 (실 API)** | vi-VN→VI · ja-JP→JA · zh-CN→ZH · **zh-TW→ZH** · **th-TH→EN** · ko-KR→KO · es-ES→ES |
+| D-8 | 일본어 시나리오 턴 | 「キャンセル・返金・返品についてお手伝いできます…」 + 칩 4종 일본어 |
+| D-9 | 베트남어 시나리오 턴(반품/교환) | 베트남어 스크립트 + 칩 3종 |
+| D-10 | 중국어 시나리오 턴(배송) | 중국어 스크립트 + 칩 2종 |
+
+TCR §3의 나머지 수동 항목(S-2 위젯 드롭다운 실화면, S-7~S-13 콘솔 UI, S-14 키워드 통계)은
+브라우저에서 사람이 볼 항목이라 미실행.
+
 ## 4. 설계 판단 3가지 (기록)
 
 1. **`@ivy/types` 값 import 불가** — 패키지가 CJS로 배포되어 Rollup이 `export *` 체인을 따라
@@ -91,8 +132,8 @@
 | # | 항목 | 비고 |
 |---|---|---|
 | R-1 | **번역 원어민 검수** — 특히 환불/반품·개인정보 동의·근무시간외 문구(TCR §4 P0) | 완료 시 레지스트리 `reviewed:true` |
-| R-2 | PR 생성 → 스테이징 배포 → TCR §3 수동 스모크 S-1~S-15 | 마이그레이션 없음 |
+| R-2 | TCR §3 잔여 수동 스모크(S-2, S-7~S-14) — 브라우저 실화면 확인 | 배포는 완료 |
 | R-3 | 질문 통계 일·중 키워드 실트래픽 확인(S-14) | 배포 후 24h 집계 필요 |
 | R-4 | 백로그: 위젯 문구 DTO 중첩화(언어당 2필드 증식 구조) | PLN §3 W1 명시 |
 | R-5 | 백로그: 콘솔 언어별 번들 청크 분리(현재 6언어 eager) | PLN §4 |
-| R-6 | 별건: `scripts/session-worktree.sh`(PR #264)가 현재 main에 없음 | 이번 작업 범위 밖, 사용자 확인 필요 |
+| R-6 | ~~`scripts/session-worktree.sh` 유실 의심~~ → **오판**. 뒤처진 로컬 main 기준이었고 `origin/main`에는 PR #264가 정상 존재 | 조치 불요 |
