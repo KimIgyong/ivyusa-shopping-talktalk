@@ -119,6 +119,11 @@ export const ERROR_CODE = {
     code: 'E5041',
     message: 'This channel cannot deliver attachments',
   },
+  // E5042-E5044 — HEIC/HEIF conversion (PLN-260817).
+  ATTACHMENT_DECODE_FAILED: { code: 'E5042', message: 'Image could not be processed' },
+  ATTACHMENT_PIXELS_EXCEEDED: { code: 'E5043', message: 'Image resolution exceeds the limit' },
+  /** Decode pool saturated — a retry is the right answer, so it is not a 4xx. */
+  ATTACHMENT_BUSY: { code: 'E5044', message: 'Image processing is busy, please retry' },
 
   // E9xxx — system
   INTERNAL_ERROR: { code: 'E9001', message: 'Internal server error' },

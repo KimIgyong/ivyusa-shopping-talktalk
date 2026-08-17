@@ -7,7 +7,9 @@ import type { ChatAttachment } from '../lib/types';
 export const MAX_IMAGE_MB = 10;
 export const MAX_FILE_MB = 20;
 export const MAX_PER_MESSAGE = 5;
-const IMAGE_EXT = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+// heic/heif are what an iPhone actually produces; the server converts them to
+// JPEG on the way in (PLN-260817), so nothing here has to decode anything.
+const IMAGE_EXT = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'heif', 'avif'];
 const FILE_EXT = ['pdf', 'txt', 'csv', 'docx', 'xlsx'];
 
 export interface PendingUpload {
@@ -24,6 +26,22 @@ export interface PendingUpload {
 function extensionOf(name: string): string {
   const dot = name.lastIndexOf('.');
   return dot > 0 ? name.slice(dot + 1).toLowerCase() : '';
+}
+
+/**
+ * "Upload failed" is the wrong thing to say when the bytes arrived and the
+ * server could not read the photo — the shopper would retry the same file
+ * forever. E5042/E5043 tell them what to do instead (PLN-260817 §4.2).
+ */
+function uploadErrorMessage(
+  err: unknown,
+  name: string,
+  t: (key: string, opts?: Record<string, unknown>) => string,
+): string {
+  const code = (err as { code?: string } | null)?.code;
+  if (code === 'E5042') return t('chat.attachment.convertFailed', { name });
+  if (code === 'E5043') return t('chat.attachment.tooManyPixels', { name });
+  return t('chat.attachment.uploadFailed', { name });
 }
 
 /**
@@ -98,16 +116,13 @@ export function useAttachmentUpload(sessionToken: string | null) {
             setPending((prev) =>
               prev.map((p) => (p.key === key ? { ...p, progress: 100, attachment } : p)),
             );
-          } catch {
+          } catch (err) {
             // Keep the row with an error rather than dropping it: the shopper
             // picked this file on purpose and deserves a retry, not a silent
             // disappearance (dev-kit §4.3).
+            const message = uploadErrorMessage(err, file.name, t);
             setPending((prev) =>
-              prev.map((p) =>
-                p.key === key
-                  ? { ...p, error: t('chat.attachment.uploadFailed', { name: p.name }) }
-                  : p,
-              ),
+              prev.map((p) => (p.key === key ? { ...p, error: message } : p)),
             );
           }
         }),

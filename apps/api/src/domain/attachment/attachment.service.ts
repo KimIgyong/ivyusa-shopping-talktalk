@@ -10,9 +10,13 @@ import { MessageAttachment } from './entity/message-attachment.entity';
 import {
   ATTACHMENT_KIND,
   AttachmentKind,
+  ResolvedType,
+  extensionOf,
   resolveType,
   sanitizeFilename,
+  withExtension,
 } from './file-type.util';
+import { ImageDecodeService } from './image-decode.service';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
 
@@ -42,8 +46,25 @@ const UNATTACHED_TTL_MS = 24 * 60 * 60 * 1000;
 /** Cap on pending (unsent) uploads per session — a public endpoint needs a ceiling. */
 const MAX_PENDING_PER_OWNER = 20;
 const THUMB_EDGE = 320;
+/** Conversion target for HEIC: readable everywhere, and re-usable after download. */
+const HEIF_JPEG_QUALITY = 82;
+/** What transparency becomes once the alpha channel is gone. */
+const JPEG_MATTE = '#ffffff';
 
 type SharpFactory = typeof import('sharp');
+
+/**
+ * Result of the image stage. `ext`/`mime` are set only when the conversion
+ * changed the format, in which case they — not the upload — describe the file.
+ */
+interface ProcessedImage {
+  image: Buffer | null;
+  thumb: Buffer | null;
+  width: number | null;
+  height: number | null;
+  ext?: string;
+  mime?: string;
+}
 
 /**
  * Attachment storage (PLN-260814 S1). Files live on a mounted volume, not in the
@@ -60,6 +81,8 @@ export class AttachmentService {
     @InjectRepository(MessageAttachment)
     private readonly attachmentRepo: Repository<MessageAttachment>,
     private readonly config: ConfigService,
+    /** Optional so existing unit tests can construct the service with two args. */
+    private readonly decoder?: ImageDecodeService,
   ) {}
 
   // ---- configuration ------------------------------------------------------
@@ -85,6 +108,11 @@ export class AttachmentService {
     return this.numberSetting('ATTACHMENT_MAX_PER_MESSAGE', DEFAULT_MAX_PER_MESSAGE);
   }
 
+  /** HEIC acceptance, on by default; `false` restores the pre-PLN-260817 policy. */
+  private heicEnabled(): boolean {
+    return String(this.config.get('ATTACHMENT_ALLOW_HEIC', 'true')).toLowerCase() !== 'false';
+  }
+
   // ---- upload -------------------------------------------------------------
 
   /**
@@ -96,6 +124,13 @@ export class AttachmentService {
     const head = file.buffer.subarray(0, 64);
     const type = resolveType(file.originalname, file.mimetype, head);
     if (!type) {
+      this.logger.warn(`attachment rejected (type): ${extensionOf(file.originalname) || 'none'}`);
+      throw new BusinessException(ERROR_CODE.ATTACHMENT_TYPE_NOT_ALLOWED, HttpStatus.BAD_REQUEST);
+    }
+    // Kill switch for the HEIC path (PLN-260817 §7): flipping this to false
+    // returns the policy to what it was before, without a code rollback.
+    if (type.decoder === 'heif' && !this.heicEnabled()) {
+      this.logger.warn('attachment rejected (heic disabled by configuration)');
       throw new BusinessException(ERROR_CODE.ATTACHMENT_TYPE_NOT_ALLOWED, HttpStatus.BAD_REQUEST);
     }
     if (file.buffer.length > this.maxBytes(type.kind)) {
@@ -105,18 +140,23 @@ export class AttachmentService {
 
     const uuid = randomUUID();
     const month = new Date().toISOString().slice(0, 7).replace('-', ''); // YYYYMM
-    const relative = join(String(owner.tenantId), month, `${uuid}.${type.ext}`);
 
     let bytes = file.buffer;
     let width: number | null = null;
     let height: number | null = null;
     let thumbRelative: string | null = null;
+    // What actually lands on disk. A HEIC is stored as the JPEG it was converted
+    // into, so path, mime and display name follow the output — not the upload.
+    let storedExt = type.ext;
+    let storedMime = type.mime;
 
     if (type.kind === ATTACHMENT_KIND.IMAGE) {
-      const processed = await this.processImage(file.buffer, type.ext);
+      const processed = await this.processImage(file.buffer, type);
       // Re-encoding is what strips EXIF (GPS, device, timestamps), so the stored
-      // "original" is the re-encoded copy — see PLN §7 SI-10.
+      // "original" is the re-encoded copy — see PLN-260814 §7 SI-10.
       if (processed.image) bytes = processed.image;
+      if (processed.ext) storedExt = processed.ext;
+      if (processed.mime) storedMime = processed.mime;
       width = processed.width;
       height = processed.height;
       if (processed.thumb) {
@@ -125,6 +165,7 @@ export class AttachmentService {
       }
     }
 
+    const relative = join(String(owner.tenantId), month, `${uuid}.${storedExt}`);
     await this.writeFile(relative, bytes);
 
     try {
@@ -138,8 +179,11 @@ export class AttachmentService {
           uploaderType: owner.uploaderType,
           uploaderId: owner.uploaderId ?? null,
           kind: type.kind,
-          filename: sanitizeFilename(file.originalname),
-          mime: type.mime,
+          // The name follows the bytes: a file offered as IMG_0001.HEIC that is
+          // stored as JPEG is shown and downloaded as IMG_0001.jpg, so the
+          // extension never contradicts what the browser receives (Q-2).
+          filename: withExtension(sanitizeFilename(file.originalname), storedExt),
+          mime: storedMime,
           size: bytes.length,
           width,
           height,
@@ -337,6 +381,65 @@ export class AttachmentService {
   // ---- image processing ---------------------------------------------------
 
   /**
+   * HEIC/HEIF → JPEG (PLN-260817 §2.1).
+   *
+   * Unlike every other image path this one is **fail-closed**: if the decode or
+   * the re-encode fails there is no "store it as uploaded" fallback. Storing the
+   * original would leave bytes no console browser can render *and* — because
+   * EXIF is stripped by the act of re-encoding, not by a separate scrubber —
+   * would keep the shopper's GPS coordinates in the file we serve back.
+   */
+  private async processHeif(buffer: Buffer): Promise<ProcessedImage> {
+    const sharp = this.sharp();
+    if (!sharp || !this.decoder) {
+      this.logger.warn('heic upload rejected — image pipeline unavailable');
+      throw new BusinessException(ERROR_CODE.ATTACHMENT_DECODE_FAILED, HttpStatus.BAD_REQUEST);
+    }
+
+    const startedAt = Date.now();
+    // Throws E5042/E5043 on its own; those are the messages the shopper sees.
+    const raw = await this.decoder.decodeHeif(buffer);
+    const decodedAt = Date.now();
+
+    try {
+      // No `.rotate()` here: raw pixels carry no EXIF to read, and libheif has
+      // already applied the container's own rotation/mirror properties.
+      const image = await sharp(raw.data, {
+        raw: { width: raw.width, height: raw.height, channels: 4 },
+      })
+        // JPEG has no alpha. Without this, a transparent pixel encodes as black
+        // (measured: RGBA(255,0,0,0) → RGB(1,2,0)) — a screenshot saved as HEIC
+        // would come out with black patches instead of white.
+        .flatten({ background: JPEG_MATTE })
+        .jpeg({ quality: HEIF_JPEG_QUALITY })
+        .toBuffer();
+
+      const thumb = await sharp(image)
+        .resize(THUMB_EDGE, THUMB_EDGE, { fit: 'inside', withoutEnlargement: true })
+        .webp({ quality: 78 })
+        .toBuffer();
+
+      this.logger.log(
+        `attachment.convert heic→jpeg ${raw.width}x${raw.height} ` +
+          `decode=${decodedAt - startedAt}ms encode=${Date.now() - decodedAt}ms ` +
+          `in=${buffer.length}B out=${image.length}B`,
+      );
+
+      return {
+        image,
+        thumb,
+        width: raw.width,
+        height: raw.height,
+        ext: 'jpg',
+        mime: 'image/jpeg',
+      };
+    } catch (err) {
+      this.logger.warn(`heic re-encode failed: ${String(err)}`);
+      throw new BusinessException(ERROR_CODE.ATTACHMENT_DECODE_FAILED, HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  /**
    * sharp is loaded lazily and optionally: if the native binary is missing in
    * this image, attachments still work — images are stored as uploaded and the
    * console falls back to the original for the thumbnail (PLN §11 risk).
@@ -353,10 +456,10 @@ export class AttachmentService {
     return this.sharpModule;
   }
 
-  private async processImage(
-    buffer: Buffer,
-    ext: string,
-  ): Promise<{ image: Buffer | null; thumb: Buffer | null; width: number | null; height: number | null }> {
+  private async processImage(buffer: Buffer, type: ResolvedType): Promise<ProcessedImage> {
+    if (type.decoder === 'heif') return this.processHeif(buffer);
+
+    const ext = type.ext;
     const sharp = this.sharp();
     if (!sharp) return { image: null, thumb: null, width: null, height: null };
 
@@ -368,11 +471,17 @@ export class AttachmentService {
       // Animated GIFs would be flattened to their first frame by a re-encode, so
       // they are stored untouched; the thumbnail still comes from frame one.
       const animated = ext === 'gif';
-      const image = animated
+      const pipeline = animated
         ? null
-        : await sharp(buffer)
-            .rotate() // bake in EXIF orientation before the metadata is dropped
-            .toBuffer();
+        : sharp(buffer).rotate(); // bake in EXIF orientation before the metadata is dropped
+      // `storeAs` forces the output format; without it the re-encode keeps the
+      // input's, which for AVIF means paying for AV1 encoding (see the spec).
+      const image = pipeline
+        ? await (type.storeAs === 'jpg'
+            ? pipeline.flatten({ background: JPEG_MATTE }).jpeg({ quality: HEIF_JPEG_QUALITY })
+            : pipeline
+          ).toBuffer()
+        : null;
 
       const thumb = await sharp(buffer)
         .rotate()
@@ -380,7 +489,9 @@ export class AttachmentService {
         .webp({ quality: 78 })
         .toBuffer();
 
-      return { image, thumb, width, height };
+      return image && type.storeAs === 'jpg'
+        ? { image, thumb, width, height, ext: 'jpg', mime: 'image/jpeg' }
+        : { image, thumb, width, height };
     } catch (err) {
       // A file that sniffed as an image but cannot be decoded: keep the bytes,
       // skip the thumbnail. Rejecting here would break legitimate odd encoders.
