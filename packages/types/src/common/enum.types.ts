@@ -69,6 +69,29 @@ export const WIDGET_TABS_DEFAULT: readonly WidgetTab[] = [
   WIDGET_TAB.CHAT,
 ] as const;
 
+/**
+ * Notification categories that belong to the ORDERS side of the widget.
+ *
+ * Shared because two places must agree exactly: the API, which filters and
+ * counts by it, and the widget, which decides which tab renders which chips.
+ * A category listed here shows under Orders when that tab is on, and falls back
+ * to Notifications when it is off — it is never shown in both at once.
+ * `inquiries` is deliberately absent: that chip reads the issue feed, not the
+ * notification table.
+ */
+export const ORDER_NOTIFICATION_CATEGORIES: readonly string[] = [
+  'payment',
+  'shipping',
+  'review',
+] as const;
+
+/**
+ * Which half of the notification feed a request wants. Absent = the whole feed,
+ * which is what a tenant with only one list tab should get.
+ */
+export const NOTIFICATION_SCOPE = { ORDER: 'order', NOTICE: 'notice' } as const;
+export type NotificationScope = (typeof NOTIFICATION_SCOPE)[keyof typeof NOTIFICATION_SCOPE];
+
 export const WIDGET_TAB_POSITION = { TOP: 'top', BOTTOM: 'bottom' } as const;
 export type WidgetTabPosition = (typeof WIDGET_TAB_POSITION)[keyof typeof WIDGET_TAB_POSITION];
 

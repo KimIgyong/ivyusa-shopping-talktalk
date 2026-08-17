@@ -18,10 +18,11 @@ import type {
 export function useNotifications(
   sessionToken: string | null,
   category: NotificationCategory,
+  scope?: string,
 ) {
   return useQuery({
-    queryKey: ['notifications', sessionToken, category],
-    queryFn: () => listNotifications(sessionToken!, category),
+    queryKey: ['notifications', sessionToken, category, scope ?? null],
+    queryFn: () => listNotifications(sessionToken!, category, scope),
     enabled: !!sessionToken,
   });
 }
@@ -32,10 +33,14 @@ export function useNotifications(
  * (FIX-Widget-UnreadCount-Anon401-20260803). The query auto-enables the moment the
  * app-proxy handshake or AuthGate binds a customer and sets `authenticated`.
  */
-export function useUnreadCount(sessionToken: string | null, authenticated: boolean) {
+export function useUnreadCount(
+  sessionToken: string | null,
+  authenticated: boolean,
+  scope?: string,
+) {
   return useQuery({
-    queryKey: ['unread-count', sessionToken],
-    queryFn: () => unreadCount(sessionToken!),
+    queryKey: ['unread-count', sessionToken, scope ?? null],
+    queryFn: () => unreadCount(sessionToken!, scope),
     enabled: !!sessionToken && authenticated,
     refetchInterval: 30_000,
   });

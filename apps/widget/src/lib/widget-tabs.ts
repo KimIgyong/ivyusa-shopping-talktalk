@@ -5,6 +5,7 @@
 // only these runtime values take the source path, which keeps the tab contract
 // genuinely shared with the API rather than copied.
 export {
+  NOTIFICATION_SCOPE,
   WIDGET_TAB,
   WIDGET_TABS_DEFAULT,
   WIDGET_TAB_ORDER,

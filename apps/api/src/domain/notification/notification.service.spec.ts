@@ -220,3 +220,84 @@ describe('NotificationService.notify — record reference (PLN-260817 S5)', () =
     }
   });
 });
+
+/**
+ * Feed scoping (PLN-260817-Widget-Tab-Config). When a tenant shows both list
+ * tabs, each must own half the feed — otherwise Notifications' "All" repeats
+ * every order row the Orders tab already shows and splitting the chips buys
+ * nothing.
+ */
+describe('NotificationService scoping — order vs notice half', () => {
+  let svc: NotificationService;
+  let lastWhere: Record<string, unknown> | undefined;
+  let countWhere: Record<string, unknown> | undefined;
+
+  beforeEach(() => {
+    lastWhere = undefined;
+    countWhere = undefined;
+    const notifRepo = {
+      findAndCount: jest.fn(async ({ where }: { where: Record<string, unknown> }) => {
+        lastWhere = where;
+        return [[], 0] as [Notification[], number];
+      }),
+      count: jest.fn(async ({ where }: { where: Record<string, unknown> }) => {
+        countWhere = where;
+        return 7;
+      }),
+    } as unknown as Repository<Notification>;
+    const sessionService = {
+      requireCustomerId: jest.fn(async () => 42),
+      requireCustomer: jest.fn(),
+    } as never;
+    const redis = {
+      del: jest.fn(),
+      get: jest.fn(async () => null),
+      set: jest.fn(),
+      available: () => false,
+    } as unknown as RedisService;
+    svc = new NotificationService(
+      notifRepo,
+      {} as unknown as Repository<NotificationPref>,
+      {} as unknown as Repository<Session>,
+      sessionService,
+      { subscribe: jest.fn(), publish: jest.fn() } as unknown as EventBusService,
+      redis,
+    );
+  });
+
+  it('scope=order narrows "all" to the order categories', async () => {
+    await svc.list('tok', 'all', 1, 20, 'order');
+    expect(lastWhere).toMatchObject({ customerId: 42 });
+    expect(lastWhere!.category).toBeDefined();
+  });
+
+  it('scope=notice EXCLUDES the order categories rather than listing the rest', async () => {
+    // Written as an exclusion on purpose: a category added later (a new campaign
+    // type, say) must land in the notice half without touching this code.
+    await svc.list('tok', 'all', 1, 20, 'notice');
+    expect(JSON.stringify(lastWhere)).toContain('payment');
+  });
+
+  it('no scope means the whole feed — the single-list-tab configuration', async () => {
+    await svc.list('tok', 'all', 1, 20);
+    expect(lastWhere).toEqual({ customerId: 42 });
+  });
+
+  it('an explicit chip wins over the scope', async () => {
+    // A chip asks for exactly one category; the scope only decides what "all" means.
+    await svc.list('tok', 'event', 1, 20, 'order');
+    expect(lastWhere).toEqual({ customerId: 42, category: 'event' });
+  });
+
+  it('unreadCount applies the same scope, so two badges cannot double-count', async () => {
+    await svc.unreadCount('tok', 'order');
+    expect(countWhere).toMatchObject({ customerId: 42 });
+    expect(countWhere!.category).toBeDefined();
+    expect(countWhere!.readAt).toBeDefined();
+  });
+
+  it('unreadCount without a scope counts everything', async () => {
+    await svc.unreadCount('tok');
+    expect(countWhere!.category).toBeUndefined();
+  });
+});

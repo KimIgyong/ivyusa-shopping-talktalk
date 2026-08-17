@@ -10,7 +10,7 @@ import { useTabBar } from './useTabBar';
  */
 export function TopTabs() {
   const { t } = useTranslation();
-  const { defs, activeTab, select, countFor, label } = useTabBar();
+  const { defs, activeTab, select, countFor, label, onKeyDown } = useTabBar();
 
   // One tab is not a choice. Rendering a full-width "tab" the shopper can only
   // ever be on adds a row of chrome that says nothing; the panel title already
@@ -19,18 +19,22 @@ export function TopTabs() {
 
   return (
     <nav role="tablist" className="flex border-b border-gray-100 bg-white">
-      {defs.map((def) => {
+      {defs.map((def, i) => {
         const active = activeTab === def.key;
         const count = countFor(def.key);
         return (
           <button
             key={def.key}
+            type="button"
             role="tab"
             aria-selected={active}
             aria-controls={`ivy-tabpanel-${def.key}`}
             id={`ivy-tab-${def.key}`}
+            // Roving tabindex: Tab reaches the strip once, arrows move inside it.
+            tabIndex={active ? 0 : -1}
+            onKeyDown={(e) => onKeyDown(e, i)}
             onClick={() => select(def.key)}
-            className={`relative flex flex-1 items-center justify-center gap-1.5 px-1 py-3.5 text-sm transition-colors ${
+            className={`relative flex flex-1 items-center justify-center gap-1.5 px-1 py-3.5 text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500 ${
               active ? 'font-bold text-gray-900' : 'font-medium text-gray-500 hover:text-gray-700'
             }`}
           >

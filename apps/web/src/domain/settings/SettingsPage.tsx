@@ -561,12 +561,13 @@ function WidgetBehaviorCard() {
 
   const copyDirty = copyDraft != null && JSON.stringify(copyDraft) !== JSON.stringify(storedCopy);
   const tabsDirty = data != null && JSON.stringify(tabs) !== JSON.stringify(data.tabs);
+  const positionDirty = data != null && tabPosition !== data.tabPosition;
   const dirty =
     data != null &&
     (value !== data.loginMode ||
       tz !== (data.timezone ?? '') ||
       tabsDirty ||
-      tabPosition !== data.tabPosition ||
+      positionDirty ||
       copyDirty);
 
   return (
@@ -688,8 +689,13 @@ function WidgetBehaviorCard() {
               {
                 loginMode: value,
                 timezone: tz,
-                tabs,
-                tabPosition,
+                // Send tab settings ONLY when they changed. Sending them on every
+                // save would turn `widget_tabs = NULL` ("never configured") into
+                // an explicit copy of today's default the first time an admin
+                // touched anything else on this card — and that NULL is what lets
+                // a future change to the default reach tenants who never chose.
+                ...(tabsDirty ? { tabs } : {}),
+                ...(positionDirty ? { tabPosition } : {}),
                 ...(copyDirty ? { copy } : {}),
               },
               { onSuccess: () => setCopyDraft(null) },

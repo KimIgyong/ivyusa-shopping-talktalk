@@ -15,7 +15,8 @@ import { NotificationIcon } from './NotificationIcon';
 import { ShipmentList } from './ShipmentList';
 import { OrderDetailView } from '../orders/OrderDetail';
 import { ReviewForm } from '../orders/ReviewForm';
-import { chipBelongsTo, chipsFor, defaultChip } from './tabChips';
+import { chipBelongsTo, chipsFor, defaultChip } from './tab-chips';
+import { NOTIFICATION_SCOPE } from '../../lib/widget-tabs';
 import type { NotificationItem } from '../../lib/types';
 
 
@@ -168,9 +169,20 @@ export function NotificationsTab({ tab = 'notifications' }: { tab?: TabKey } = {
 
   const isShipping = notifFilter === 'shipping';
   const isInquiries = notifFilter === 'inquiries';
+  // What "all" covers. With both list tabs on, each shows only its own half —
+  // otherwise Notifications' "All" would repeat every order row the Orders tab
+  // is already showing and the chip split would buy nothing.
+  const bothListTabs =
+    visibleTabs.includes('notifications') && visibleTabs.includes('orders');
+  const scope = !bothListTabs
+    ? undefined
+    : tab === 'orders'
+      ? NOTIFICATION_SCOPE.ORDER
+      : NOTIFICATION_SCOPE.NOTICE;
   const { data, isLoading, isError, error } = useNotifications(
     sessionToken,
     isShipping || isInquiries ? 'all' : notifFilter,
+    scope,
   );
   const markRead = useMarkRead(sessionToken);
 

@@ -10,6 +10,7 @@ import {
   Matches,
   MaxLength,
   MinLength,
+  ValidateIf,
 } from 'class-validator';
 import {
   WIDGET_LOGIN_MODE,
@@ -140,13 +141,17 @@ export class UpdateWidgetSettingsRequest {
   // Which tabs the widget shows (PLN-260817-Widget-Tab-Config). Optional so a
   // copy-only or login-mode-only save leaves the tab configuration alone; the
   // service normalizes order/duplicates and rejects a set that renders no tabs.
-  @IsOptional()
+  // `ValidateIf(value !== undefined)` rather than `IsOptional()`: IsOptional
+  // skips validation for null as well as undefined, so an explicit `null` would
+  // sail past IsIn and reach a NOT NULL column as a 500. Omitted still means
+  // "leave it alone"; null is simply not a value these accept.
+  @ValidateIf((_o, value) => value !== undefined)
   @IsArray()
   @ArrayNotEmpty()
   @IsIn(Object.values(WIDGET_TAB), { each: true })
   tabs?: WidgetTab[];
 
-  @IsOptional()
+  @ValidateIf((_o, value) => value !== undefined)
   @IsIn(Object.values(WIDGET_TAB_POSITION))
   tab_position?: WidgetTabPosition;
 

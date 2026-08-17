@@ -11,8 +11,12 @@ import { OrdersTab } from '../orders/OrdersTab';
 import { PreferencesPanel } from '../settings/PreferencesPanel';
 import { ErrorBoundary } from '../ui/ErrorBoundary';
 
-/** What each tab key renders. Keyed so an unknown key simply draws nothing. */
-const PANELS: Record<TabKey, () => ReactElement> = {
+/**
+ * What each tab key renders. `visibleTabs` comes from the server, so a key this
+ * build does not know about is reachable — it must draw nothing rather than
+ * calling `undefined`.
+ */
+const PANELS: Partial<Record<TabKey, () => ReactElement>> = {
   notifications: () => <NotificationsTab />,
   orders: () => <OrdersTab />,
   chat: () => <ChatTab />,
@@ -116,7 +120,7 @@ export function WidgetPanel() {
               {/* One boundary per tab: a crash here must not cost the shopper
                   the other tabs, and re-entering the tab retries it. */}
               <ErrorBoundary label={key} resetKey={activeTab}>
-                {PANELS[key]()}
+                {PANELS[key]?.()}
               </ErrorBoundary>
             </div>
           ))}
