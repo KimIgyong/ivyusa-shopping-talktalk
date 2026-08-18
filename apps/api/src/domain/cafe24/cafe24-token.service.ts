@@ -63,11 +63,25 @@ export class Cafe24TokenService {
    */
   async findTenantIdByMallId(mallId: string): Promise<number | null> {
     const creds = await this.credRepo.find({ where: { provider: CAFE24 } });
+    const owners: number[] = [];
     for (const c of creds) {
       if (!c.secretEnc) continue;
       const parsed = this.parseCredential(decryptSecret(c.secretEnc));
-      if (parsed?.mallId === mallId) return c.tenantId;
+      if (parsed?.mallId === mallId) owners.push(c.tenantId);
     }
+    if (owners.length === 1) return owners[0];
+    if (owners.length > 1) {
+      // Two tenants holding the same mall used to resolve to whichever row the
+      // scan reached first — an arbitrary answer that would sign a shopper into
+      // the wrong tenant's session. Refuse and say so; sign-in failing loudly
+      // beats it succeeding as the wrong merchant (REQ-260819).
+      this.logger.error(
+        `Cafe24 mall "${mallId}" is claimed by ${owners.length} tenants (${owners.join(', ')}) — ` +
+          'refusing to guess. Disconnect the mall from all but its real owner.',
+      );
+      return null;
+    }
+    this.logger.warn(`Cafe24 mall "${mallId}" is not connected to any tenant`);
     return null;
   }
 

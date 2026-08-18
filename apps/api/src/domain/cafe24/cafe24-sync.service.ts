@@ -5,6 +5,8 @@ import { INTEGRATION_PROVIDER, internalToUiStatus } from '@ivy/types';
 import { OrderCache } from '../order/entity/order-cache.entity';
 import { OrderItem } from '../order/entity/order-item.entity';
 import { CustomerService } from '../customer/customer.service';
+import { TenantService } from '../tenant/tenant.service';
+import { expectedMallIdForTenant } from './cafe24-mall';
 import { Cafe24TokenService } from './cafe24-token.service';
 import { Cafe24AdminClient, Cafe24Order, Cafe24OrderItem } from './cafe24-admin.client';
 
@@ -36,12 +38,29 @@ export class Cafe24SyncService {
     private readonly tokenService: Cafe24TokenService,
     private readonly client: Cafe24AdminClient,
     private readonly customerService: CustomerService,
+    private readonly tenantService: TenantService,
   ) {}
 
   async syncOrders(tenantId: number, lookbackDays = DEFAULT_LOOKBACK_DAYS): Promise<Cafe24SyncResult> {
     const conn = await this.tokenService.getConnection(tenantId);
     if (!conn) {
       return { ok: false, synced: 0, detail: 'Cafe24 store is not connected — reconnect the mall' };
+    }
+
+    // Refuse to pull a mall that is not this tenant's own. amoebaorder held a
+    // credential for the `annehearts` mall, and this loop happily cached 65 of
+    // another merchant's orders under it — 17 of them already bound to
+    // amoebaorder customers (REQ-260819). The check only fires when the tenant
+    // has a verifiable *.cafe24.com storefront that DISAGREES; a custom domain
+    // yields null and syncs as before.
+    const tenant = await this.tenantService.findById(tenantId);
+    const expected = expectedMallIdForTenant(tenant);
+    if (expected && expected !== conn.mallId) {
+      const detail =
+        `refusing to sync: tenant runs on ${expected}.cafe24.com but the stored ` +
+        `credential is for "${conn.mallId}" — reconnect this store to its own mall`;
+      this.logger.error(`Cafe24 sync tenant ${tenantId}: ${detail}`);
+      return { ok: false, synced: 0, detail };
     }
     const end = new Date();
     const start = new Date(end.getTime() - lookbackDays * 24 * 60 * 60_000);

@@ -125,6 +125,18 @@ export const ERROR_CODE = {
   /** Decode pool saturated — a retry is the right answer, so it is not a 4xx. */
   ATTACHMENT_BUSY: { code: 'E5044', message: 'Image processing is busy, please retry' },
 
+  // E5045-E5046 — Cafe24 mall/tenant binding guards (REQ-260819).
+  /** The mall being connected is not the one this tenant's storefront runs on. */
+  CAFE24_MALL_TENANT_MISMATCH: {
+    code: 'E5045',
+    message: 'Cafe24 mall does not match this store domain',
+  },
+  /** Another tenant already owns this mall — two owners make lookups ambiguous. */
+  CAFE24_MALL_ALREADY_CONNECTED: {
+    code: 'E5046',
+    message: 'This Cafe24 mall is already connected to another store',
+  },
+
   // E9xxx — system
   INTERNAL_ERROR: { code: 'E9001', message: 'Internal server error' },
   EXTERNAL_SERVICE_ERROR: { code: 'E9002', message: 'External service error' },

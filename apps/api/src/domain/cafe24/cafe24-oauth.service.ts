@@ -7,10 +7,10 @@ import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
 import { Cafe24TokenService, Cafe24Credential } from './cafe24-token.service';
 import { cafe24ApiHost, cafe24AuthHost } from './cafe24-admin.client';
+import { MALL_ID_RE, expectedMallIdForTenant } from './cafe24-mall';
 
 const CAFE24 = INTEGRATION_PROVIDER.CAFE24;
 const STATE_TTL_SEC = 600;
-const MALL_ID_RE = /^[A-Za-z0-9][A-Za-z0-9_-]{1,59}$/;
 
 interface OAuthState {
   tenantId: number;
@@ -31,6 +31,7 @@ export class Cafe24OAuthService {
   constructor(
     private readonly redis: RedisService,
     private readonly tenantService: TenantService,
+    private readonly tokenService: Cafe24TokenService,
   ) {}
 
   private redirectUri(): string {
@@ -62,9 +63,37 @@ export class Cafe24OAuthService {
   /** Build the authorize URL + persist the state (called by the authed console). */
   async createInstall(tenantId: number, mallId: string): Promise<{ authorizeUrl: string }> {
     Cafe24TokenService.appConfig(); // throws E5010 if the app isn't configured
-    const mall = mallId.trim().replace(/\.cafe24(api)?\.com.*$/i, '');
+    const mall = mallId.trim().replace(/\.cafe24(api)?\.com.*$/i, '').toLowerCase();
     if (!MALL_ID_RE.test(mall)) {
       throw new BusinessException(ERROR_CODE.VALIDATION_FAILED, HttpStatus.BAD_REQUEST);
+    }
+
+    // Guard 1 — the mall must be the one this tenant's storefront runs on.
+    // Without this the console took the operator's word for it, and amoebaorder
+    // was connected to the `annehearts` mall: sign-in broke outright, and order
+    // sync quietly filled amoebaorder's cache with another merchant's orders
+    // (REQ-260819).
+    const tenant = await this.tenantService.findById(tenantId);
+    const expected = expectedMallIdForTenant(tenant);
+    if (expected && expected !== mall) {
+      this.logger.warn(
+        `Cafe24 install refused: tenant ${tenantId} runs on ${expected}.cafe24.com but asked to connect "${mall}"`,
+      );
+      throw new BusinessException(ERROR_CODE.CAFE24_MALL_TENANT_MISMATCH, HttpStatus.BAD_REQUEST);
+    }
+    if (!expected) {
+      // Custom domain: unverifiable, so it proceeds — but it is on the record.
+      this.logger.warn(
+        `Cafe24 install for tenant ${tenantId} connects "${mall}" with no verifiable cafe24.com storefront`,
+      );
+    }
+
+    // Guard 2 — one mall, one tenant. Two owners make the public sign-in lookup
+    // ambiguous, and it now refuses rather than picking one.
+    const owner = await this.tokenService.findTenantIdByMallId(mall);
+    if (owner != null && owner !== tenantId) {
+      this.logger.warn(`Cafe24 install refused: mall "${mall}" already belongs to tenant ${owner}`);
+      throw new BusinessException(ERROR_CODE.CAFE24_MALL_ALREADY_CONNECTED, HttpStatus.CONFLICT);
     }
     const state = randomBytes(16).toString('hex');
     await this.redis.set(
