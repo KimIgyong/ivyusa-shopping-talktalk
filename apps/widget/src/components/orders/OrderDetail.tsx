@@ -9,6 +9,7 @@ import { Badge, toneForStatus } from '../ui/Badge';
 import { Spinner } from '../ui/Spinner';
 import { formatMoney } from '../../lib/format';
 import { TrackingStepper } from './TrackingStepper';
+import { isDelivered as isOrderDeliveredStatus, statusLabel } from './order-status';
 import { ReviewForm } from './ReviewForm';
 
 export function OrderDetailView({
@@ -51,7 +52,9 @@ export function OrderDetailView({
   // — there is no nested `order` object (FIX-Widget-OrderDetail-Shape-20260803).
   const order = data;
   const items = data.items ?? [];
-  const delivered = /deliver|complete/i.test(order.statusUi ?? '');
+  // Was a substring test on the platform's wording, which reads "delivery
+  // failed" as delivered. Shared allowlist now, same as the list.
+  const delivered = isOrderDeliveredStatus(order);
 
   return (
     <div className="scroll-thin h-full overflow-y-auto p-3">
@@ -68,7 +71,11 @@ export function OrderDetailView({
           <span className="text-sm font-semibold text-gray-900">
             #{order.orderNumber}
           </span>
-          <Badge tone={toneForStatus(order.statusUi)}>{order.statusUi}</Badge>
+          {/* Translated, like the list row. Showing "Confirmed" here while the
+              row that led here said 결제완료 makes one order look like two. */}
+          <Badge tone={toneForStatus(order.statusInternal ?? order.statusUi)}>
+            {statusLabel(t, order)}
+          </Badge>
         </div>
         <div className="mt-2 flex items-center justify-between text-sm">
           <span className="text-gray-500">{t('orders.total')}</span>

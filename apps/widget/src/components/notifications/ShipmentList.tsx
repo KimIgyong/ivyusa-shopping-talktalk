@@ -7,6 +7,7 @@ import { useOrders } from '../../hooks/useOrders';
 import { Badge, toneForStatus } from '../ui/Badge';
 import { Spinner } from '../ui/Spinner';
 import { TrackingStepperH } from '../orders/TrackingStepperH';
+import { isShipmentish, statusLabel } from '../orders/order-status';
 import type { OrderSummary, Tracking } from '../../lib/types';
 
 /**
@@ -27,11 +28,6 @@ const TRACKED_MAX = 5;
 function trackingStepLabels(t: TFunction): string[] {
   const raw = t('orders.trackingSteps', { returnObjects: true });
   return Array.isArray(raw) ? raw.filter((s): s is string => typeof s === 'string') : [];
-}
-
-/** Orders worth showing under "Shipping" — anything that has left, or is leaving. */
-function isShipmentish(o: OrderSummary): boolean {
-  return /ship|transit|deliver|fulfil/i.test(o.statusUi ?? o.statusInternal ?? '');
 }
 
 function ShipmentCard({
@@ -60,7 +56,11 @@ function ShipmentCard({
     <div className="border-b border-gray-100 px-4 py-4">
       <div className="flex items-start justify-between gap-2">
         <span className="text-base font-bold text-gray-900">{order.orderNumber}</span>
-        {order.statusUi && <Badge tone={toneForStatus(order.statusUi)}>{order.statusUi}</Badge>}
+        {statusLabel(t, order) && (
+          <Badge tone={toneForStatus(order.statusInternal ?? order.statusUi)}>
+            {statusLabel(t, order)}
+          </Badge>
+        )}
       </div>
       <p className="mt-1 text-sm text-gray-700">{summary}</p>
 
