@@ -72,7 +72,7 @@ ALTER TABLE `tenants` ADD COLUMN `widget_theme` json NULL AFTER `notification_ch
 | 항목 | 결과 |
 |---|---|
 | 신규 단위 테스트 | **20건** |
-| 전체 스위트 | **1,303 + 126 통과 / 실패 0** |
+| 전체 스위트 | **1,303 + 126 통과 / 실패 0** (리뷰 반영 후 1,430 — §8) |
 | typecheck / build | ✅ 13/13 |
 | i18n | ✅ |
 | 로컬 통합 | S-1~S-6 통과 (TCR §3) |
@@ -90,6 +90,7 @@ ALTER TABLE `tenants` ADD COLUMN `widget_theme` json NULL AFTER `notification_ch
 | N-3 | ~~중간 명도 브랜드 3~4.5 대비~~ | **해소** — §8 R-2에서 4.5:1로 상향 |
 | N-4 | 6개 언어 육안 | ko만 확인 |
 | N-5 | 스테이징 배포 + 회귀 | 마이그레이션 선적용 필수 |
+| N-6 | 콘솔 토스트 `e.message` 우선 패턴 | §8 R-9b. settings 훅 전역 일괄 정리 대상 |
 
 ## 8. 코드리뷰(CodeRabbit, PR #308) 반영
 
@@ -106,6 +107,10 @@ ALTER TABLE `tenants` ADD COLUMN `widget_theme` json NULL AFTER `notification_ch
 | R-7 | 신규 컨트롤 접근성 이름 없음 | 유효 | 탭 위치·헤더 `Select`, 브랜드 입력 2개(서로 구분되는 이름)에 `aria-label` |
 | R-8 | 미리보기 `Confirmed` 하드코딩 | 유효 | `widgetTheme.previewStatus` 키 6개 언어 추가 |
 | R-9 | PR 본문 `## Migration` 누락 | ✗ 오탐 | PR 본문에 이미 존재 |
+| R-9b | 콘솔 토스트가 `e.message` 우선이라 서버 영문 문구가 그대로 노출 | 유효·**보류** | 이 파일 4개 훅이 모두 같은 패턴이고 리포지토리 전반 관례라, 한 훅만 고치면 같은 화면 안에서 동작이 갈린다. 별건으로 일괄 정리 — N-6 |
 | R-10 | 문서 4건(테스트 수 18→20, i18n 기준선, PLN 램프/기본탭 서술) | 유효 | 반영 |
 
-게이트 재실행: typecheck ✅ · build ✅ · test **1,370건 전부 통과**(types 67 + api 1,303) · i18n ✅
+게이트 재실행: typecheck ✅ · build ✅ · i18n ✅ ·
+test **1,430건 전부 통과** — api 1,303 + common 60 + types 67.
+(§1의 "1,303 + 126"은 리뷰 반영 전 수치. types가 66→67로 늘어 127이 되었고,
+합계를 워크스페이스별로 풀어 적는다.)
