@@ -6,6 +6,7 @@ import { Tenant, TenantWidgetCopy } from './entity/tenant.entity';
 import { normalizeStorefrontUrl } from '../../global/util/storefront-url.util';
 import {
   EXTERNAL_CHANNELS,
+  normalizeWidgetTheme,
   NOTIFICATION_CATEGORY,
   WIDGET_TABS_DEFAULT,
   normalizeWidgetTabs,
@@ -40,6 +41,7 @@ import {
   UpdatePrivacyNoticeRequest,
   UpdateStorefrontRequest,
   UpdateWidgetSettingsRequest,
+  UpdateWidgetThemeRequest,
   UpdateShopifySettingsRequest,
 } from './dto/request/tenant.request';
 import { AuditService } from '../audit/audit.service';
@@ -355,6 +357,34 @@ export class TenantService {
       target: Object.entries(clean)
         .map(([cat, list]) => `${cat}:${list.join('+') || 'none'}`)
         .join(' · '),
+    });
+    return saved;
+  }
+
+  /**
+   * Set the widget brand theme. Stores the brand colour only — the ramp and the
+   * readable foregrounds are derived on read, so the stored value cannot drift
+   * out of step with what shoppers actually see.
+   */
+  async updateWidgetTheme(
+    tenantId: number,
+    actorId: number,
+    dto: UpdateWidgetThemeRequest,
+  ): Promise<Tenant> {
+    const tenant = await this.findById(tenantId);
+    const theme = normalizeWidgetTheme({ brand: dto.brand, headerStyle: dto.header_style });
+    if (!theme) {
+      this.logger.warn(`widget theme rejected: unusable brand colour (tenant ${tenantId})`);
+      throw new BusinessException(ERROR_CODE.VALIDATION_FAILED, HttpStatus.BAD_REQUEST);
+    }
+    tenant.widgetTheme = theme;
+    const saved = await this.tenantRepo.save(tenant);
+    await this.audit.write({
+      tenantId,
+      actorType: 'user',
+      actorId,
+      action: 'tenant.widget_theme_updated',
+      target: `${theme.brand} · header:${theme.headerStyle}`,
     });
     return saved;
   }

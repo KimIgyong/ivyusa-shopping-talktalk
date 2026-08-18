@@ -429,5 +429,27 @@
     "category.event": "Promociones",
     "category.review": "Solicitudes de reseña",
     "category.chat": "Respuestas del agente"
+  },
+  "widgetTabs": {
+    "title": "Pestañas del widget",
+    "desc": "Qué pestañas muestra el widget y dónde va la barra."
+  },
+  "widgetTheme": {
+    "title": "Tema del widget",
+    "desc": "Aplica el color de tu marca al widget de chat.",
+    "brand": "Color de marca",
+    "brandHint": "Basta un color: los tonos claros y oscuros se generan a partir de él.",
+    "header": "Encabezado",
+    "headerWhite": "Blanco (predeterminado)",
+    "headerBrand": "Color de marca",
+    "autoContrast": "El color del texto se elige automáticamente para que siga siendo legible.",
+    "statusFixed": "Los colores de estado (Confirmado, En tránsito…) no cambian: tienen significado.",
+    "statusFixedShort": "los colores de estado no cambian",
+    "preview": "Vista previa",
+    "previewTitle": "Notificaciones",
+    "previewBubble": "¡Hola! ¿En qué te ayudamos?",
+    "previewUser": "Mis pedidos",
+    "saved": "Tema guardado.",
+    "saveError": "No se pudo guardar el tema."
   }
 }

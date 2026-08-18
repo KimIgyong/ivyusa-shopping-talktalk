@@ -27,6 +27,7 @@ export class SessionMapper {
       widgetLoginMode: notice.widgetLoginMode,
       widgetTabs: notice.widgetTabs,
       widgetTabPosition: notice.widgetTabPosition,
+      widgetTheme: notice.widgetTheme,
       widgetCopy: notice.widgetCopy,
     };
   }

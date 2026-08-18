@@ -429,5 +429,27 @@
     "category.event": "Khuyến mãi",
     "category.review": "Yêu cầu đánh giá",
     "category.chat": "Phản hồi của nhân viên"
+  },
+  "widgetTabs": {
+    "title": "Tab của widget",
+    "desc": "Widget hiển thị những tab nào và thanh tab nằm ở đâu."
+  },
+  "widgetTheme": {
+    "title": "Giao diện widget",
+    "desc": "Áp dụng màu thương hiệu cho widget trò chuyện.",
+    "brand": "Màu thương hiệu",
+    "brandHint": "Chỉ cần một màu — các sắc độ sáng tối được tạo tự động.",
+    "header": "Tiêu đề",
+    "headerWhite": "Trắng (mặc định)",
+    "headerBrand": "Màu thương hiệu",
+    "autoContrast": "Màu chữ được chọn tự động để luôn dễ đọc.",
+    "statusFixed": "Màu trạng thái (Đã xác nhận, Đang giao…) không đổi vì chúng mang ý nghĩa.",
+    "statusFixedShort": "màu trạng thái giữ nguyên",
+    "preview": "Xem trước",
+    "previewTitle": "Thông báo",
+    "previewBubble": "Xin chào! Chúng tôi giúp gì được ạ?",
+    "previewUser": "Đơn hàng của tôi",
+    "saved": "Đã lưu giao diện.",
+    "saveError": "Không lưu được giao diện."
   }
 }

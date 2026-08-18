@@ -429,5 +429,27 @@
     "category.event": "プロモーション",
     "category.review": "レビュー依頼",
     "category.chat": "担当者の返信"
+  },
+  "widgetTabs": {
+    "title": "ウィジェットのタブ",
+    "desc": "ウィジェットに表示するタブと、タブバーの位置を設定します。"
+  },
+  "widgetTheme": {
+    "title": "ウィジェットのテーマ",
+    "desc": "チャットウィジェットにブランドカラーを適用します。",
+    "brand": "ブランドカラー",
+    "brandHint": "色は1つで十分です。明暗の段階は自動生成されます。",
+    "header": "ヘッダー",
+    "headerWhite": "白（既定）",
+    "headerBrand": "ブランドカラー",
+    "autoContrast": "文字色は読みやすさを保つよう自動で決まります。",
+    "statusFixed": "ステータス色（確定・配送中など）は意味を持つため変更されません。",
+    "statusFixedShort": "ステータス色は固定",
+    "preview": "プレビュー",
+    "previewTitle": "お知らせ",
+    "previewBubble": "こんにちは！ご用件をどうぞ。",
+    "previewUser": "注文照会",
+    "saved": "テーマを保存しました。",
+    "saveError": "テーマを保存できませんでした。"
   }
 }

@@ -104,6 +104,16 @@ export class Tenant {
   notificationChannels: Record<string, string[]> | null;
 
   /**
+   * Widget brand theme (PLN-260818): one colour plus a header choice. The ramp
+   * and every foreground colour are DERIVED from it, so this column never holds
+   * a palette someone could get internally inconsistent.
+   *
+   * NULL = never themed = the built-in palette, with no backfill.
+   */
+  @Column({ name: 'widget_theme', type: 'json', nullable: true })
+  widgetTheme: { brand: string; headerStyle: string } | null;
+
+  /**
    * Issue-workflow entitlement (REQ-260807 §11.1, server-judged):
    * 'native' (paid add-on: kanban/state machine) | 'bridge' (external helpdesk
    * hand-off) | 'base' (chat list only, default — behavior unchanged).

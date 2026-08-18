@@ -75,13 +75,13 @@ export function WidgetPanel() {
           fixed brand string. The language switcher and close button are absent
           from the design but kept deliberately (PLN §7 D-2): without the X, a
           shopper on a touch device has no way to dismiss the panel but Esc. */}
-      <header className="flex items-center justify-between px-4 pb-2 pt-4">
+      <header className="flex items-center justify-between bg-header-bg px-4 pb-2 pt-4">
         {/* Greet the shopper by name once they are known (frame 34, "Hi, Lisa");
             before that the tenant's own name identifies whose widget this is
             (frames 48/49). The two design variants are the two sign-in states,
             not a contradiction. `truncate` keeps a long name from pushing the
             three controls on the right off the header. */}
-        <span className="truncate text-xl font-bold text-gray-900">
+        <span className="truncate text-xl font-bold text-header-fg">
           {customerName
             ? t('header.greeting', { name: customerName })
             : displayName || t('notificationCenter')}
@@ -91,8 +91,8 @@ export function WidgetPanel() {
           <button
             onClick={() => setShowSettings(!showSettings)}
             aria-label={t('settings')}
-            className={`rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-500 ${
-              showSettings ? 'bg-gray-100 text-gray-700' : ''
+            className={`rounded-lg p-1.5 text-header-fg/60 hover:bg-header-fg/10 hover:text-header-fg focus:outline-none focus:ring-2 focus:ring-primary-500 ${
+              showSettings ? 'bg-header-fg/10 text-header-fg' : ''
             }`}
           >
             <Settings className="h-5 w-5" />
@@ -100,7 +100,7 @@ export function WidgetPanel() {
           <button
             onClick={() => setPanelOpen(false)}
             aria-label={t('a11y.close')}
-            className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-500"
+            className="rounded-lg p-1.5 text-header-fg/60 hover:bg-header-fg/10 hover:text-header-fg focus:outline-none focus:ring-2 focus:ring-primary-500"
           >
             <X className="h-5 w-5" />
           </button>

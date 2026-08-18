@@ -23,3 +23,35 @@ body {
   background: #E5E7EB;
   border-radius: 9999px;
 }
+
+/*
+ * Theme defaults (PLN-260818-Widget-Theme-And-Tab-Guide).
+ *
+ * These are the exact values that used to be literals in tailwind.config.js, so
+ * a tenant with no theme configured renders precisely what it rendered before
+ * this indirection existed. A configured tenant overrides them at runtime by
+ * setting the same properties on :root — see lib/theme.ts.
+ *
+ * Channel triplets, not hex: Tailwind substitutes them into
+ * `rgb(var(--x) / <alpha-value>)`, which is what keeps `bg-primary-500/10`
+ * working.
+ */
+:root {
+  --ivy-primary-50: 239 243 255;
+  --ivy-primary-100: 219 234 254;
+  --ivy-primary-200: 190 219 255;
+  --ivy-primary-300: 142 197 255;
+  --ivy-primary-400: 81 162 255;
+  --ivy-primary-500: 43 127 255;
+  --ivy-primary-600: 21 93 252;
+  --ivy-primary-700: 20 71 230;
+  --ivy-primary-800: 25 60 184;
+  --ivy-primary-900: 28 57 142;
+
+  /* White on the design's blue; recomputed whenever the brand colour changes. */
+  --ivy-on-primary: 255 255 255;
+
+  /* The Master Shots header: white ground, near-black title. */
+  --ivy-header-bg: 255 255 255;
+  --ivy-header-fg: 17 24 39;
+}

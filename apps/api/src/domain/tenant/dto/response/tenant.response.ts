@@ -1,4 +1,4 @@
-import { WidgetLoginMode, WidgetTab, WidgetTabPosition } from '@ivy/types';
+import { WidgetLoginMode, WidgetTab, WidgetTabPosition, WidgetTheme } from '@ivy/types';
 
 /** Response DTOs — camelCase. `uuid` is the external tenant identifier. */
 export interface TenantResponse {
@@ -118,4 +118,11 @@ export interface NotificationChannelsResponse {
   categories: string[];
   /** External channels it renders columns for (in-app is always on). */
   channelKeys: string[];
+}
+
+/** Widget theme for the console card. `theme` is null when never configured. */
+export interface WidgetThemeResponse {
+  theme: WidgetTheme | null;
+  /** The palette shown when nothing is configured, so the console can preview it. */
+  defaultBrand: string;
 }

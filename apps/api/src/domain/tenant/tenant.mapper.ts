@@ -3,6 +3,7 @@ import { IntegrationCredential } from './entity/integration-credential.entity';
 import { IntegrationStatusEntity } from '../integration/entity/integration-status.entity';
 import {
   EXTERNAL_CHANNELS,
+  normalizeWidgetTheme,
   NOTIFICATION_CATEGORY,
   WIDGET_LOGIN_MODE,
   WIDGET_TAB_POSITION,
@@ -17,10 +18,14 @@ import {
   TenantResponse,
   StorefrontResponse,
   NotificationChannelsResponse,
+  WidgetThemeResponse,
   WidgetSettingsResponse,
 } from './dto/response/tenant.response';
 
 /** Entity -> response mapping. Keeps secrets out of API payloads. */
+/** The built-in brand colour — what an unthemed widget renders (index.css). */
+const DEFAULT_BRAND = '#2B7FFF';
+
 export class TenantMapper {
   static toTenant(t: Tenant, userCount?: number): TenantResponse {
     return {
@@ -85,6 +90,13 @@ export class TenantMapper {
       channels: t.notificationChannels ?? {},
       categories: Object.values(NOTIFICATION_CATEGORY).filter((c) => c !== 'all'),
       channelKeys: [...EXTERNAL_CHANNELS],
+    };
+  }
+
+  static toWidgetTheme(t: Tenant): WidgetThemeResponse {
+    return {
+      theme: normalizeWidgetTheme(t.widgetTheme),
+      defaultBrand: DEFAULT_BRAND,
     };
   }
 

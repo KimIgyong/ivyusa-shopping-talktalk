@@ -17,6 +17,7 @@
  */
 
 import type { WidgetLoginMode, WidgetTab, WidgetTabPosition } from '../common/enum.types';
+import type { WidgetTheme } from '../common/widget-theme';
 
 // ---- session -------------------------------------------------------------
 /** Per-language customer-facing copy; keys are uppercase language codes. */
@@ -64,6 +65,12 @@ export interface SessionResponse {
   widgetTabs: WidgetTab[];
   /** Where the tab bar sits: 'top' (default) or 'bottom'. */
   widgetTabPosition: WidgetTabPosition;
+  /**
+   * Brand theme, or null when unthemed. Null is meaningful: the widget's own
+   * stylesheet carries the built-in palette, so an unthemed tenant needs no
+   * variables written at all (PLN-260818 §2.4).
+   */
+  widgetTheme: WidgetTheme | null;
   /** Tenant widget copy (display name + greetings); displayName pre-falls back to the tenant name. */
   widgetCopy: WidgetCopy;
 }

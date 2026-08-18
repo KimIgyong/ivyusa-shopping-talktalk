@@ -188,3 +188,18 @@ export class UpdateNotificationChannelsRequest {
   @IsObject()
   channels: Record<string, string[]>;
 }
+
+/**
+ * Widget theme (PLN-260818). One colour; the ramp and foregrounds are computed
+ * server-side, so there is nothing here for a caller to get inconsistent.
+ */
+export class UpdateWidgetThemeRequest {
+  // Hex only. Anything else is refused rather than normalized into a surprise.
+  @IsString()
+  @Matches(/^#?([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/)
+  brand: string;
+
+  @IsOptional()
+  @IsIn(['white', 'brand'])
+  header_style?: 'white' | 'brand';
+}

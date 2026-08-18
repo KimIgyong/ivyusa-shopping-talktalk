@@ -429,5 +429,27 @@
     "category.event": "促销",
     "category.review": "评价邀请",
     "category.chat": "客服回复"
+  },
+  "widgetTabs": {
+    "title": "挂件标签页",
+    "desc": "设置聊天挂件显示哪些标签页，以及标签栏的位置。"
+  },
+  "widgetTheme": {
+    "title": "挂件主题",
+    "desc": "为聊天挂件应用品牌色。",
+    "brand": "品牌色",
+    "brandHint": "只需一个颜色，深浅色阶会自动生成。",
+    "header": "页眉",
+    "headerWhite": "白色（默认）",
+    "headerBrand": "品牌色",
+    "autoContrast": "文字颜色会自动选择，以保证可读性。",
+    "statusFixed": "状态颜色（已确认、配送中等）具有含义，不会改变。",
+    "statusFixedShort": "状态色保持不变",
+    "preview": "预览",
+    "previewTitle": "通知",
+    "previewBubble": "您好！有什么可以帮您？",
+    "previewUser": "我的订单",
+    "saved": "已保存挂件主题。",
+    "saveError": "保存挂件主题失败。"
   }
 }

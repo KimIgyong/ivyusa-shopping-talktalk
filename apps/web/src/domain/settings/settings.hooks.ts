@@ -222,3 +222,28 @@ export function useSaveNotificationChannels() {
     },
   });
 }
+
+export function useWidgetTheme() {
+  const tenantKey = useTenantKey();
+  return useQuery({
+    queryKey: ['widget-theme', tenantKey],
+    queryFn: settingsService.widgetTheme,
+  });
+}
+
+export function useSaveWidgetTheme() {
+  const { t } = useTranslation('settings');
+  const qc = useQueryClient();
+  const tenantKey = useTenantKey();
+  return useMutation({
+    mutationFn: (v: { brand: string; headerStyle: 'white' | 'brand' }) =>
+      settingsService.saveWidgetTheme(v.brand, v.headerStyle),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['widget-theme', tenantKey] });
+      toast.success(t('widgetTheme.saved'));
+    },
+    onError: (e: Error) => {
+      toast.error(e.message || t('widgetTheme.saveError'), { sticky: true });
+    },
+  });
+}

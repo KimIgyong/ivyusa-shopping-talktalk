@@ -132,6 +132,9 @@ describe('SessionService consent (PLN-Privacy-Control-Gap Stage 1-2)', () => {
         widgetLoginMode: 'redirect',
         widgetTabs: [...WIDGET_TABS_DEFAULT],
         widgetTabPosition: 'top',
+        // Null, not absent: an unthemed tenant needs no variables written, and
+        // the widget's own stylesheet already holds the built-in palette.
+        widgetTheme: null,
         widgetCopy: expect.objectContaining({ firstVisit: {}, loginGreeting: {} }),
       });
     });
@@ -169,6 +172,18 @@ describe('SessionService consent (PLN-Privacy-Control-Gap Stage 1-2)', () => {
       await expect(svc.privacyNotice(1)).resolves.toMatchObject({
         widgetTabs: [...WIDGET_TABS_DEFAULT],
       });
+    });
+
+    it('serves a stored theme, normalized', async () => {
+      tenant!.widgetTheme = { brand: '#e11d6b', headerStyle: 'brand' };
+      await expect(svc.privacyNotice(1)).resolves.toMatchObject({
+        widgetTheme: { brand: '#E11D6B', headerStyle: 'brand' },
+      });
+    });
+
+    it('an unusable stored theme degrades to unthemed rather than breaking the widget', async () => {
+      tenant!.widgetTheme = { brand: 'not-a-colour', headerStyle: 'brand' };
+      await expect(svc.privacyNotice(1)).resolves.toMatchObject({ widgetTheme: null });
     });
 
     it('an unknown stored position reads as top, not as itself', async () => {

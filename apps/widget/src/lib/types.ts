@@ -39,6 +39,7 @@ export type {
   WidgetLoginMode,
   WidgetTab,
   WidgetTabPosition,
+  WidgetTheme,
 } from '@ivy/types';
 
 /** Narrowed for the UI's sender switch; the wire type is a plain string. */

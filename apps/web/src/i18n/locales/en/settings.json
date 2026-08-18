@@ -429,5 +429,27 @@
     "category.event": "Promotions",
     "category.review": "Review requests",
     "category.chat": "Agent replies"
+  },
+  "widgetTabs": {
+    "title": "Widget tabs",
+    "desc": "Which tabs the chat widget shows, and where the tab bar sits."
+  },
+  "widgetTheme": {
+    "title": "Widget theme",
+    "desc": "Apply your brand colour to the chat widget.",
+    "brand": "Brand colour",
+    "brandHint": "One colour is enough — the lighter and darker shades are generated from it.",
+    "header": "Header",
+    "headerWhite": "White (default)",
+    "headerBrand": "Brand colour",
+    "autoContrast": "Text colour is chosen automatically so labels stay readable.",
+    "statusFixed": "Status colours (Confirmed, In Transit and so on) do not change — they carry meaning.",
+    "statusFixedShort": "status colours stay fixed",
+    "preview": "Preview",
+    "previewTitle": "Notifications",
+    "previewBubble": "Hi! How can we help?",
+    "previewUser": "My Orders",
+    "saved": "Widget theme saved.",
+    "saveError": "Failed to save the widget theme."
   }
 }

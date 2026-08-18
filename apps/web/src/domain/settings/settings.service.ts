@@ -95,11 +95,23 @@ export interface NotificationChannels {
   channelKeys: string[];
 }
 
+/** Widget brand theme. One colour; the ramp is derived, never stored. */
+export interface WidgetThemeSettings {
+  theme: { brand: string; headerStyle: 'white' | 'brand' } | null;
+  defaultBrand: string;
+}
+
 export const settingsService = {
   credentials: () => apiGet<CredentialStatus[]>('/tenants/me/credentials'),
   widgetSettings: () => apiGet<WidgetSettings>('/tenants/widget-settings'),
   storefront: () => apiGet<Storefront>('/tenants/storefront'),
   notificationChannels: () => apiGet<NotificationChannels>('/tenants/notification-channels'),
+  widgetTheme: () => apiGet<WidgetThemeSettings>('/tenants/widget-theme'),
+  saveWidgetTheme: (brand: string, headerStyle: 'white' | 'brand') =>
+    apiPatch<WidgetThemeSettings>('/tenants/widget-theme', {
+      brand,
+      header_style: headerStyle,
+    }),
   saveNotificationChannels: (channels: Record<string, string[]>) =>
     apiPatch<NotificationChannels>('/tenants/notification-channels', { channels }),
   updateStorefront: (storefrontUrl: string) =>

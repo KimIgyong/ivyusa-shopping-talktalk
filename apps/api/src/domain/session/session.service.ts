@@ -16,7 +16,9 @@ import {
   WidgetLoginMode,
   WidgetTab,
   WidgetTabPosition,
+  WidgetTheme,
   normalizeWidgetTabs,
+  normalizeWidgetTheme,
 } from '@ivy/types';
 import { generateToken } from '@ivy/common';
 import { Session } from './entity/session.entity';
@@ -46,6 +48,8 @@ export interface PrivacyNoticeInfo {
   widgetTabs: WidgetTab[];
   /** Where the tab bar sits. */
   widgetTabPosition: WidgetTabPosition;
+  /** Brand theme, or null when this tenant never configured one. */
+  widgetTheme: WidgetTheme | null;
   /** Tenant widget copy; displayName already resolved (config ?? tenant name). */
   widgetCopy: WidgetCopy;
 }
@@ -370,6 +374,9 @@ export class SessionService {
         tenant?.widgetTabPosition === WIDGET_TAB_POSITION.BOTTOM
           ? WIDGET_TAB_POSITION.BOTTOM
           : WIDGET_TAB_POSITION.TOP,
+      // Null passes through as null: the widget's CSS already holds the built-in
+      // palette, so "no theme" needs no payload and paints no variables.
+      widgetTheme: normalizeWidgetTheme(tenant?.widgetTheme),
       widgetCopy: {
         // Resolved here so the widget never needs the tenant entity: configured
         // name ?? tenant name (kills the hardcoded-brand greeting for tenant 2).
