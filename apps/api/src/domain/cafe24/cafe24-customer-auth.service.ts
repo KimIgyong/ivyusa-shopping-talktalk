@@ -8,10 +8,10 @@ import { ERROR_CODE } from '../../global/constant/error-code.constant';
 import { Cafe24TokenService } from './cafe24-token.service';
 import { cafe24AuthHost } from './cafe24-admin.client';
 import { Cafe24SyncService } from './cafe24-sync.service';
+import { mallIdFromHost } from './cafe24-mall';
 
 const STATE_TTL_SEC = 600;
 const TICKET_TTL_SEC = 60;
-const MALL_ID_RE = /^[A-Za-z0-9][A-Za-z0-9_-]{1,59}$/;
 
 interface CustomerAuthState {
   tenantId: number;
@@ -103,14 +103,6 @@ export class Cafe24CustomerAuthService {
     return process.env.CAFE24_CUSTOMER_SCOPES ?? 'mall.read_customer_identifier';
   }
 
-  /** Normalize a storefront host to a Cafe24 mall id, or null if it isn't one. */
-  private mallIdFromHost(host: string): string | null {
-    const h = host.trim().toLowerCase();
-    const m = /^([a-z0-9][a-z0-9_-]{1,59})\.cafe24\.com$/.exec(h);
-    const mall = m ? m[1] : h.replace(/\.cafe24(api)?\.com.*$/i, '');
-    return MALL_ID_RE.test(mall) ? mall : null;
-  }
-
   /**
    * Only ever redirect the browser back to the mall's own storefront — never an
    * attacker-supplied origin. Accepts the mall's primary Cafe24 domain; anything
@@ -130,7 +122,7 @@ export class Cafe24CustomerAuthService {
   /** Build the customer authorize URL for a storefront host. Called @Public. */
   async start(host: string, returnUrl: string, popup = false): Promise<string> {
     Cafe24TokenService.appConfig(); // E5010 if the app isn't configured
-    const mallId = this.mallIdFromHost(host);
+    const mallId = mallIdFromHost(host);
     if (!mallId) {
       throw new BusinessException(ERROR_CODE.VALIDATION_FAILED, HttpStatus.BAD_REQUEST);
     }

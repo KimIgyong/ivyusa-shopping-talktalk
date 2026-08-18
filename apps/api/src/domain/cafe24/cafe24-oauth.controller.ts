@@ -1,4 +1,4 @@
-import { Controller, Get, Query, Res } from '@nestjs/common';
+import { Controller, Get, Logger, Query, Res } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
 import { Public } from '../../global/decorator/public.decorator';
@@ -7,6 +7,7 @@ import {
   Cafe24CustomerAuthService,
   cafe24TicketDelivery,
 } from './cafe24-customer-auth.service';
+import { logSafe } from './cafe24-mall';
 
 /**
  * Cafe24 OAuth callback (path B). Public — Cafe24 redirects the browser here with
@@ -20,6 +21,8 @@ import {
 @ApiTags('Auth')
 @Controller('auth/cafe24')
 export class Cafe24OAuthController {
+  private readonly logger = new Logger(Cafe24OAuthController.name);
+
   constructor(
     private readonly oauthService: Cafe24OAuthService,
     private readonly customerAuthService: Cafe24CustomerAuthService,
@@ -34,7 +37,12 @@ export class Cafe24OAuthController {
     if (await this.customerAuthService.isCustomerAuthState(query.state ?? '')) {
       try {
         cafe24TicketDelivery.deliver(res, await this.customerAuthService.handleCallback(query));
-      } catch {
+      } catch (e) {
+        // A 200 bounce-back is indistinguishable from success in the access log
+        // unless the reason is written down (REQ-260819).
+        // Same sanitizer as the other callback — the reason is attacker-shaped
+        // input until proven otherwise.
+        this.logger.warn(`Cafe24 member sign-in callback failed: ${logSafe(e)}`);
         res.status(200).type('html').send(cafe24TicketDelivery.bounceBack());
       }
       return;

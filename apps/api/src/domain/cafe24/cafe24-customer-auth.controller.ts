@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Query, Res } from '@nestjs/common';
+import { Body, Controller, Get, Logger, Post, Query, Res } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
 import { Public } from '../../global/decorator/public.decorator';
@@ -6,6 +6,7 @@ import {
   Cafe24CustomerAuthService,
   cafe24TicketDelivery,
 } from './cafe24-customer-auth.service';
+import { logSafe, mallIdFromHost } from './cafe24-mall';
 
 /**
  * Cafe24 storefront member sign-in (PLN-260808 P-A2). All @Public — the storefront
@@ -18,7 +19,24 @@ import {
 @ApiTags('cafe24-customer-auth')
 @Controller('public/cafe24/customer-auth')
 export class Cafe24CustomerAuthController {
+  private readonly logger = new Logger(Cafe24CustomerAuthController.name);
+
   constructor(private readonly service: Cafe24CustomerAuthService) {}
+
+  /**
+   * Why these catches log at all: a successful `start` is a 302 and a failed one
+   * is a 200 bounce-back, so the access log reads the failure as success. Three
+   * real sign-in attempts sat in the staging log as `-> 200` while nothing
+   * worked, and finding out why meant decrypting a stored credential
+   * (REQ-260819). The shopper still just bounces back — the operator gets a line.
+   */
+  private warn(where: string, e: unknown): void {
+    // Everything here came from outside: `shop` is a public query parameter and
+    // the message belongs to whatever threw. A CR/LF in either would let the
+    // caller forge log lines, and an unbounded message could carry more than we
+    // meant to write down. Sanitize both.
+    this.logger.warn(`Cafe24 customer-auth ${where} failed: ${logSafe(e)}`);
+  }
 
   @Get('start')
   @Public()
@@ -32,7 +50,11 @@ export class Cafe24CustomerAuthController {
     try {
       const authorizeUrl = await this.service.start(shop ?? '', returnUrl ?? '', mode === 'popup');
       res.redirect(authorizeUrl);
-    } catch {
+    } catch (e) {
+      // The PARSED mall id, not the raw parameter — it has passed a strict
+      // pattern, so it cannot be the thing that forges a line.
+      const mall = mallIdFromHost(shop ?? '');
+      this.warn(`start (mall=${mall ?? 'unparseable'})`, e);
       res.status(200).type('html').send(cafe24TicketDelivery.bounceBack());
     }
   }
@@ -44,7 +66,8 @@ export class Cafe24CustomerAuthController {
     try {
       const out = await this.service.handleCallback(query);
       cafe24TicketDelivery.deliver(res, out);
-    } catch {
+    } catch (e) {
+      this.warn('callback', e);
       res.status(200).type('html').send(cafe24TicketDelivery.bounceBack());
     }
   }

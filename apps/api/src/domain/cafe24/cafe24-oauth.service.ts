@@ -7,10 +7,10 @@ import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
 import { Cafe24TokenService, Cafe24Credential } from './cafe24-token.service';
 import { cafe24ApiHost, cafe24AuthHost } from './cafe24-admin.client';
+import { logSafe, mallIdFromHost, tenantMall } from './cafe24-mall';
 
 const CAFE24 = INTEGRATION_PROVIDER.CAFE24;
 const STATE_TTL_SEC = 600;
-const MALL_ID_RE = /^[A-Za-z0-9][A-Za-z0-9_-]{1,59}$/;
 
 interface OAuthState {
   tenantId: number;
@@ -31,6 +31,7 @@ export class Cafe24OAuthService {
   constructor(
     private readonly redis: RedisService,
     private readonly tenantService: TenantService,
+    private readonly tokenService: Cafe24TokenService,
   ) {}
 
   private redirectUri(): string {
@@ -62,9 +63,53 @@ export class Cafe24OAuthService {
   /** Build the authorize URL + persist the state (called by the authed console). */
   async createInstall(tenantId: number, mallId: string): Promise<{ authorizeUrl: string }> {
     Cafe24TokenService.appConfig(); // throws E5010 if the app isn't configured
-    const mall = mallId.trim().replace(/\.cafe24(api)?\.com.*$/i, '');
-    if (!MALL_ID_RE.test(mall)) {
+    // Same normalization the public sign-in path uses, so
+    // `https://mall.cafe24.com/path` is accepted here too — the local version
+    // left "https://mall" behind and rejected a form the other entry point took.
+    const mall = mallIdFromHost(mallId);
+    if (!mall) {
       throw new BusinessException(ERROR_CODE.VALIDATION_FAILED, HttpStatus.BAD_REQUEST);
+    }
+
+    // Guard 1 — the mall must be the one this tenant's storefront runs on.
+    // Without this the console took the operator's word for it, and amoebaorder
+    // was connected to the `annehearts` mall: sign-in broke outright, and order
+    // sync quietly filled amoebaorder's cache with another merchant's orders
+    // (REQ-260819).
+    const tenant = await this.tenantService.findById(tenantId);
+    const own = tenantMall(tenant);
+    if (own.kind === 'ambiguous') {
+      // shop_domain and storefront_url name DIFFERENT malls, so neither is
+      // evidence. Taking the first would hand out a "verified" answer built on
+      // a tenant record that is itself wrong.
+      this.logger.warn(
+        `Cafe24 install refused: tenant ${tenantId} names two malls (${own.mallIds.join(', ')}) — fix the store domain first`,
+      );
+      throw new BusinessException(ERROR_CODE.CAFE24_MALL_TENANT_MISMATCH, HttpStatus.BAD_REQUEST);
+    }
+    if (own.kind === 'known' && own.mallId !== mall) {
+      this.logger.warn(
+        `Cafe24 install refused: tenant ${tenantId} runs on ${own.mallId}.cafe24.com but asked to connect "${logSafe(mall, 60)}"`,
+      );
+      throw new BusinessException(ERROR_CODE.CAFE24_MALL_TENANT_MISMATCH, HttpStatus.BAD_REQUEST);
+    }
+    if (own.kind === 'unknown') {
+      // Custom domain: unverifiable, so it proceeds — but it is on the record.
+      this.logger.warn(
+        `Cafe24 install for tenant ${tenantId} connects "${logSafe(mall, 60)}" with no verifiable cafe24.com storefront`,
+      );
+    }
+
+    // Guard 2 — one mall, one tenant. `findTenantIdByMallId` answers null both
+    // for "nobody owns it" and "several do", so asking it here would read an
+    // already double-claimed mall as free and let a third tenant join.
+    const owners = await this.tokenService.findMallOwners(mall);
+    const others = owners.filter((t) => t !== tenantId);
+    if (others.length > 0) {
+      this.logger.warn(
+        `Cafe24 install refused: mall "${logSafe(mall, 60)}" already belongs to tenant(s) ${others.join(', ')}`,
+      );
+      throw new BusinessException(ERROR_CODE.CAFE24_MALL_ALREADY_CONNECTED, HttpStatus.CONFLICT);
     }
     const state = randomBytes(16).toString('hex');
     await this.redis.set(
@@ -109,6 +154,20 @@ export class Cafe24OAuthService {
     }
     await this.redis.del(`cafe24:oauth:${state}`);
     const parsed = JSON.parse(raw) as OAuthState;
+
+    // Re-check ownership here, not only at install start. Two tenants can pass
+    // the start-time check concurrently — neither owns the mall yet — and both
+    // would then store a credential for it. This closes most of that window;
+    // the airtight version needs a persistent unique constraint on the mall id,
+    // which today lives inside the encrypted blob (see FIX-260819 §7).
+    const owners = await this.tokenService.findMallOwners(parsed.mallId);
+    if (owners.some((t) => t !== parsed.tenantId)) {
+      this.logger.warn(
+        `Cafe24 install callback refused: mall "${logSafe(parsed.mallId, 60)}" was claimed by ` +
+          `tenant(s) ${owners.filter((t) => t !== parsed.tenantId).join(', ')} while this install was in flight`,
+      );
+      throw new BusinessException(ERROR_CODE.CAFE24_MALL_ALREADY_CONNECTED, HttpStatus.CONFLICT);
+    }
 
     const grant = await this.exchangeCode(parsed.mallId, code);
     const credential: Cafe24Credential = {
