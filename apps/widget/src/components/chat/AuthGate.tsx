@@ -102,7 +102,7 @@ export function AuthGate({
           {canLogin && (
             <button
               onClick={login}
-              className="flex items-center justify-center gap-2 rounded-lg bg-primary-500 px-3 py-2 text-sm font-medium text-white hover:bg-primary-600"
+              className="flex items-center justify-center gap-2 rounded-lg bg-primary-500 px-3 py-2 text-sm font-medium text-on-primary hover:bg-primary-600"
             >
               <LogIn className="h-4 w-4" />
               {t('auth.signIn')}
@@ -141,7 +141,7 @@ export function AuthGate({
           <button
             disabled={loading || !orderNumber || !email}
             onClick={submit}
-            className="rounded-lg bg-primary-500 px-3 py-2 text-sm font-medium text-white hover:bg-primary-600 disabled:opacity-50"
+            className="rounded-lg bg-primary-500 px-3 py-2 text-sm font-medium text-on-primary hover:bg-primary-600 disabled:opacity-50"
           >
             {loading ? t('common.loading') : t('auth.submit')}
           </button>

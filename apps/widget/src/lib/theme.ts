@@ -31,6 +31,7 @@ const THEMED_PROPERTIES = [
   '--ivy-on-primary',
   '--ivy-header-bg',
   '--ivy-header-fg',
+  '--ivy-header-dim',
 ];
 
 /**

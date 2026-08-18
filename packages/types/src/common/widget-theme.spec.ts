@@ -31,33 +31,35 @@ describe('parseHex', () => {
 
 describe('readableForeground', () => {
   it('puts white on dark brands and ink on light ones', () => {
-    expect(readableForeground([43, 127, 255])).toEqual([255, 255, 255]); // design blue
+    expect(readableForeground([28, 63, 138])).toEqual([255, 255, 255]); // deep navy
     expect(readableForeground([255, 212, 0])).toEqual([17, 24, 39]); // bright yellow
+    expect(readableForeground([43, 127, 255])).toEqual([17, 24, 39]); // design blue: white is 3.8:1
     expect(readableForeground([0, 0, 0])).toEqual([255, 255, 255]);
     expect(readableForeground([255, 255, 255])).toEqual([17, 24, 39]);
+    // The mid-tone band where neither white nor ink reaches 4.5 falls to black.
+    expect(readableForeground([128, 128, 128])).toEqual([0, 0, 0]);
   });
 
   it('never lets a brand colour produce an illegible label', () => {
-    // Swept across the hue circle at several lightnesses. The bar is 3:1 (WCAG
-    // AA for UI components), not 4.5:1 — see MIN_ON_PRIMARY_CONTRAST: the
-    // shipped design puts white on a 3.8:1 blue, and holding this test to 4.5
-    // would mean flipping that design rather than protecting shoppers from
-    // unreadable ones.
+    // Swept across the hue circle at several lightnesses. The bar is 4.5:1 —
+    // WCAG AA for TEXT, which is what sits on these fills (send button, message
+    // bubble, order actions), not the 3:1 for UI components.
     for (let h = 0; h < 360; h += 15) {
       for (const l of [20, 40, 60, 80, 95]) {
         const ramp = buildThemeRamp(hslHex(h, 70, l))!;
         const brand = ramp[500].split(' ').map(Number) as [number, number, number];
-        expect(contrastRatio(brand, readableForeground(brand))).toBeGreaterThanOrEqual(3);
+        expect(contrastRatio(brand, readableForeground(brand))).toBeGreaterThanOrEqual(4.5);
       }
     }
   });
 
-  it('keeps white on the design blue rather than flipping to the higher contrast', () => {
-    // Ink beats white here (4.7 vs 3.8). Picking the winner would silently
-    // redesign every unthemed widget, so white wins while it clears the bar.
+  it('takes ink on the design blue, where white is only 3.8:1', () => {
+    // The unthemed widget is unaffected — it never calls this function, its
+    // white comes from index.css — but a tenant who THEMES with this same blue
+    // gets ink, because 3.8:1 is not AA for text.
     const blue: [number, number, number] = [43, 127, 255];
-    expect(contrastRatio(blue, [17, 24, 39])).toBeGreaterThan(contrastRatio(blue, [255, 255, 255]));
-    expect(readableForeground(blue)).toEqual([255, 255, 255]);
+    expect(contrastRatio(blue, [255, 255, 255])).toBeLessThan(4.5);
+    expect(readableForeground(blue)).toEqual([17, 24, 39]);
   });
 });
 
@@ -103,6 +105,20 @@ describe('buildThemeRamp', () => {
     expect(buildThemeRamp('#2B7FFF')![500]).toBe('43 127 255');
   });
 
+  it('stays ordered even at pure black and pure white', () => {
+    // The extremes are where a clamped curve collides with the verbatim 500:
+    // #000 used to yield a 600 brighter than 500, #FFF a 500 brighter than 400,
+    // and either way every hover in the widget inverted.
+    for (const brand of ['#000000', '#FFFFFF']) {
+      const ramp = buildThemeRamp(brand)!;
+      const sum = (stop: number) => ramp[stop].split(' ').reduce((a, c) => a + Number(c), 0);
+      const ordered = [...RAMP_STOPS].sort((a, b) => a - b);
+      for (let i = 1; i < ordered.length; i++) {
+        expect(sum(ordered[i])).toBeLessThanOrEqual(sum(ordered[i - 1]));
+      }
+    }
+  });
+
   it('returns null for an unusable colour rather than a broken ramp', () => {
     expect(buildThemeRamp('nope')).toBeNull();
   });
@@ -117,7 +133,9 @@ describe('buildThemeVariables', () => {
   it('sets the ramp and the computed foreground', () => {
     const vars = buildThemeVariables({ brand: '#2B7FFF', headerStyle: 'white' });
     expect(vars['--ivy-primary-500']).toBe('43 127 255');
-    expect(vars['--ivy-on-primary']).toBe('255 255 255');
+    // Ink, not white: white on this blue is 3.8:1, under AA for text. The
+    // UNTHEMED widget still ships white — it never runs this function.
+    expect(vars['--ivy-on-primary']).toBe('17 24 39');
   });
 
   it('leaves the header alone unless the tenant asked for a brand header', () => {

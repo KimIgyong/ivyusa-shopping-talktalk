@@ -1,5 +1,11 @@
 import { apiGet, apiPatch, apiPost, apiPut } from '@/lib/api-client';
-import type { WidgetLoginMode, WidgetTab, WidgetTabPosition } from '@ivy/types';
+import type {
+  WidgetHeaderStyle,
+  WidgetLoginMode,
+  WidgetTab,
+  WidgetTabPosition,
+  WidgetTheme,
+} from '@ivy/types';
 
 export interface CredentialStatus {
   provider: string;
@@ -97,7 +103,8 @@ export interface NotificationChannels {
 
 /** Widget brand theme. One colour; the ramp is derived, never stored. */
 export interface WidgetThemeSettings {
-  theme: { brand: string; headerStyle: 'white' | 'brand' } | null;
+  /** The stored theme, or null when the tenant has never set one. */
+  theme: WidgetTheme | null;
   defaultBrand: string;
 }
 
@@ -107,7 +114,7 @@ export const settingsService = {
   storefront: () => apiGet<Storefront>('/tenants/storefront'),
   notificationChannels: () => apiGet<NotificationChannels>('/tenants/notification-channels'),
   widgetTheme: () => apiGet<WidgetThemeSettings>('/tenants/widget-theme'),
-  saveWidgetTheme: (brand: string, headerStyle: 'white' | 'brand') =>
+  saveWidgetTheme: (brand: string, headerStyle: WidgetHeaderStyle) =>
     apiPatch<WidgetThemeSettings>('/tenants/widget-theme', {
       brand,
       header_style: headerStyle,

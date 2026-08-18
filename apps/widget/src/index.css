@@ -54,4 +54,5 @@ body {
   /* The Master Shots header: white ground, near-black title. */
   --ivy-header-bg: 255 255 255;
   --ivy-header-fg: 17 24 39;
+  --ivy-header-dim: 0.6;
 }

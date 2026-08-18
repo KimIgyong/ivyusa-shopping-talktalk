@@ -450,6 +450,9 @@
     "previewBubble": "こんにちは！ご用件をどうぞ。",
     "previewUser": "注文照会",
     "saved": "テーマを保存しました。",
-    "saveError": "テーマを保存できませんでした。"
+    "saveError": "テーマを保存できませんでした。",
+    "previewStatus": "確定",
+    "brandPickerA11y": "ブランドカラー選択",
+    "brandHexA11y": "ブランドカラーの HEX コード"
   }
 }

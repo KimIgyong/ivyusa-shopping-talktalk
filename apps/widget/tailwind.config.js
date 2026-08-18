@@ -32,6 +32,14 @@ export default {
         header: {
           bg: 'rgb(var(--ivy-header-bg) / <alpha-value>)',
           fg: 'rgb(var(--ivy-header-fg) / <alpha-value>)',
+          /**
+           * Idle header icons. The dim is part of the design on the WHITE
+           * header (ink at 60% is still ~11:1), but on a BRAND header the
+           * foreground is already at its contrast floor and dimming it pushes
+           * the icons under it — so the alpha is a variable the theme turns
+           * off, not a fixed /60 in the class list.
+           */
+          dim: 'rgb(var(--ivy-header-fg) / var(--ivy-header-dim))',
         },
         success: '#00C950', // "Confirmed" badge (frame 34)
         warning: '#FF6900', // "In Transit" badge + in-progress copy (frame 49)

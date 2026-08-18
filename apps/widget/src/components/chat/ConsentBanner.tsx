@@ -140,7 +140,7 @@ export function ConsentBanner({
         <button
           onClick={() => void run('accept')}
           disabled={saving !== null}
-          className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-primary-500 px-3 py-2 text-xs font-medium text-white hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-60"
+          className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-primary-500 px-3 py-2 text-xs font-medium text-on-primary hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-60"
         >
           {saving === 'accept' && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
           {t('chat.consent.accept')}

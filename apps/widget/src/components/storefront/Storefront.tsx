@@ -7,7 +7,7 @@ export function Storefront() {
       <header className="border-b border-gray-200 bg-white">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-2 text-lg font-bold text-gray-900">
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary-500 text-white">
+            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary-500 text-on-primary">
               I
             </span>
             IVY USA
@@ -36,7 +36,7 @@ export function Storefront() {
           Dermatologist-tested skincare made with simple, effective
           ingredients. Loved by thousands across the US.
         </p>
-        <button className="mt-6 rounded-lg bg-primary-500 px-6 py-3 text-sm font-semibold text-white hover:bg-primary-600">
+        <button className="mt-6 rounded-lg bg-primary-500 px-6 py-3 text-sm font-semibold text-on-primary hover:bg-primary-600">
           Shop the collection
         </button>
       </section>

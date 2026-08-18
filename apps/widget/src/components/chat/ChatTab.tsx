@@ -631,7 +631,7 @@ export function ChatTab() {
           type="submit"
           disabled={sending || uploads.busy || (!input.trim() && !uploads.ready.length)}
           aria-label={t('chat.send')}
-          className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-primary-500 text-white hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-40"
+          className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-primary-500 text-on-primary hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-40"
         >
           <Send className="h-[18px] w-[18px]" />
         </button>

@@ -147,7 +147,7 @@ function ConsentSection() {
             <button
               onClick={() => void changeConsent(true)}
               disabled={!sessionToken || busy}
-              className="mt-2 flex items-center gap-1.5 rounded-lg bg-primary-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-primary-600 disabled:opacity-50"
+              className="mt-2 flex items-center gap-1.5 rounded-lg bg-primary-500 px-3 py-1.5 text-xs font-medium text-on-primary hover:bg-primary-600 disabled:opacity-50"
             >
               {busy && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
               {t('privacy.consent.reconsent')}

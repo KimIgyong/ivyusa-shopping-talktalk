@@ -14,14 +14,15 @@
  */
 
 /** Stored shape. `null`/absent = never configured = the built-in palette. */
+export const WIDGET_HEADER_STYLE = { WHITE: 'white', BRAND: 'brand' } as const;
+export type WidgetHeaderStyle = (typeof WIDGET_HEADER_STYLE)[keyof typeof WIDGET_HEADER_STYLE];
+
 export interface WidgetTheme {
   /** Brand colour as `#RRGGBB`; occupies the 500 slot of the generated ramp. */
   brand: string;
   /** 'white' keeps the design's header; 'brand' fills it with the brand colour. */
-  headerStyle: 'white' | 'brand';
+  headerStyle: WidgetHeaderStyle;
 }
-
-export const WIDGET_HEADER_STYLE = { WHITE: 'white', BRAND: 'brand' } as const;
 
 /** Ramp stop → the palette's own lightness, in HSL percent. */
 const RAMP_LIGHTNESS: Record<number, number> = {
@@ -73,36 +74,46 @@ export function contrastRatio(
 const WHITE: [number, number, number] = [255, 255, 255];
 /** Not pure black: the design's darkest text is gray-900, and it reads softer. */
 const INK: [number, number, number] = [17, 24, 39];
+/** Last-resort foreground; see readableForeground. */
+const BLACK: [number, number, number] = [0, 0, 0];
 
 /**
  * Minimum contrast white must reach before we keep it on a filled control.
  *
- * 3:1 is WCAG AA for user-interface components, not the 4.5:1 for body text —
- * and that is a deliberate, documented compromise. The shipped design puts white
- * on #2B7FFF, which is 3.8:1; a 4.5:1 rule would flip the default widget's
- * button text to dark and change a design that was signed off. So the rule is
- * "keep white unless it becomes genuinely illegible", which is what stops a
- * yellow brand from shipping invisible labels.
+ * 4.5:1 — WCAG AA for body text, not the 3:1 for user-interface components.
+ * What sits on these fills is text: send buttons, message bubbles, order
+ * actions. An earlier revision used 3:1 to avoid disturbing the signed-off
+ * design, whose white on #2B7FFF is only 3.8:1 — but that reasoning does not
+ * survive contact with how this is wired. An UNTHEMED widget never calls this
+ * function at all: its foreground is the literal white in index.css. So the
+ * threshold cannot touch the approved design, and there is nothing left to
+ * trade legibility against.
  *
- * Consequence worth naming: a mid-tone brand can land between 3 and 4.5, same
- * family as the badge-contrast item already open as PLN-260817 D-10.
+ * The visible consequence is narrow and worth naming: a tenant who themes with
+ * the default blue gets ink where an unthemed shop gets white. The console
+ * preview runs this same function, so what the admin approves is what ships.
  */
-const MIN_ON_PRIMARY_CONTRAST = 3;
+const MIN_ON_PRIMARY_CONTRAST = 4.5;
 
 /**
  * Text colour for a filled background.
  *
- * White by default — that is what the design uses — falling back to ink only
- * when white drops under the threshold. Not "whichever contrasts more": ink
- * actually beats white on the design's own blue, so that rule would quietly
- * redesign every unthemed widget.
- *
- * This is why a tenant cannot choose it: on `#FFD400` the answer is ink, and any
- * UI that let someone keep white there would ship an unreadable button.
+ * White while it clears AA for text, ink otherwise. This is why a tenant cannot
+ * choose it: on `#FFD400` white is 1.43:1, and any UI that let someone keep it
+ * there would ship a button with no visible label.
  */
 export function readableForeground(bg: [number, number, number]): [number, number, number] {
-  if (contrastRatio(bg, WHITE) >= MIN_ON_PRIMARY_CONTRAST) return WHITE;
-  return contrastRatio(bg, INK) >= contrastRatio(bg, WHITE) ? INK : WHITE;
+  // Preference order, not "highest contrast wins": white reads as the brand's
+  // own, ink is the soft dark the rest of the widget uses, and BLACK is the
+  // last resort. The third candidate is not decoration — around 18% relative
+  // luminance both white and #111827 stall near 4.47:1, so a two-candidate
+  // rule cannot honour 4.5 there. Pure black bottoms out at 4.58:1 for every
+  // possible background, which is what makes the guarantee hold.
+  for (const fg of [WHITE, INK, BLACK]) {
+    if (contrastRatio(bg, fg) >= MIN_ON_PRIMARY_CONTRAST) return fg;
+  }
+  /* istanbul ignore next -- unreachable: BLACK clears 4.5 against any colour. */
+  return BLACK;
 }
 
 function rgbToHsl([r, g, b]: [number, number, number]): [number, number, number] {
@@ -170,7 +181,11 @@ export function buildThemeRamp(brandHex: string): Record<number, string> | null 
       ramp[stop] = toChannels(rgb);
       continue;
     }
-    const target = Math.min(98, Math.max(2, RAMP_LIGHTNESS[stop] + shift));
+    // Clamp to the full 0..100 range, not an inset one. Insetting collides with
+    // the verbatim 500: #000000 pinned the other stops at 2% and produced a 600
+    // BRIGHTER than 500, and #FFFFFF did the mirror image at 400 — in both cases
+    // every hover in the widget inverted.
+    const target = Math.min(100, Math.max(0, RAMP_LIGHTNESS[stop] + shift));
     ramp[stop] = toChannels(hslToRgb(h, s, target));
   }
   return ramp;
@@ -187,6 +202,10 @@ export function buildThemeVariables(theme: WidgetTheme | null | undefined): Reco
   if (theme?.headerStyle === WIDGET_HEADER_STYLE.BRAND) {
     vars['--ivy-header-bg'] = toChannels(rgb);
     vars['--ivy-header-fg'] = toChannels(readableForeground(rgb));
+    // The white header can afford to dim its idle icons (ink at 60% is still
+    // ~11:1); a brand header cannot — its foreground already sits at the
+    // contrast floor, so dimming would push the icons under it.
+    vars['--ivy-header-dim'] = '1';
   }
   return vars;
 }

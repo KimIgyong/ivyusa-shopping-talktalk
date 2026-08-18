@@ -16,7 +16,7 @@ const tones: Record<string, string> = {
   error: 'bg-error text-white',
   info: 'bg-info text-white',
   review: 'bg-review text-white',
-  primary: 'bg-primary-500 text-white',
+  primary: 'bg-primary-500 text-on-primary',
 };
 
 export function Badge({

@@ -9,7 +9,12 @@ import type { Column } from '@/components/Table';
 import { Modal } from '@/components/Modal';
 import { FormRow, Input, Select } from '@/components/Field';
 // Type-only: @ivy/types ships CJS whose runtime exports Rollup cannot see.
-import type { WidgetLoginMode, WidgetTab, WidgetTabPosition } from '@ivy/types';
+import type {
+  WidgetHeaderStyle,
+  WidgetLoginMode,
+  WidgetTab,
+  WidgetTabPosition,
+} from '@ivy/types';
 import { LanguageTabs } from '../ai-settings/LanguageTabs';
 // Runtime table from the registry source (see apps/web/src/i18n/i18n.ts for why).
 import { LANGUAGE_TIMEZONES } from '../../../../../packages/types/src/common/language';
@@ -770,9 +775,14 @@ function WidgetTabsCard() {
     setTabsPicked(WIDGET_TAB_ORDER.filter((k) => next.includes(k)));
   };
 
-  const dirty =
-    data != null &&
-    (JSON.stringify(tabs) !== JSON.stringify(data.tabs) || tabPosition !== data.tabPosition);
+  // Send ONLY the field the admin actually changed. `data.tabs` is the RESOLVED
+  // list — an unconfigured tenant reads back the default — so posting it while
+  // saving a position change would freeze today's default into the row as an
+  // explicit choice, and a later change to the default would skip this tenant.
+  // NULL means unconfigured, and it has to survive a save of its neighbour.
+  const tabsChanged = tabsPicked != null && JSON.stringify(tabsPicked) !== JSON.stringify(data?.tabs);
+  const positionChanged = positionPicked != null && positionPicked !== data?.tabPosition;
+  const dirty = data != null && (tabsChanged || positionChanged);
 
   return (
     <Card title={t('widgetTabs.title')}>
@@ -809,8 +819,11 @@ function WidgetTabsCard() {
           </div>
         </FormRow>
         <p className="mb-4 text-xs text-gray-400">{t('widgetBehavior.tabsHint')}</p>
+        {/* FormRow renders the label as a SIBLING, so each control carries its
+            own accessible name rather than relying on wrapping. */}
         <FormRow label={t('widgetBehavior.tabPosition')}>
           <Select
+            aria-label={t('widgetBehavior.tabPosition')}
             value={tabPosition}
             disabled={isLoading}
             onChange={(e) => setPositionPicked(e.target.value as WidgetTabPosition)}
@@ -825,8 +838,8 @@ function WidgetTabsCard() {
           onClick={() =>
             save.mutate({
               loginMode: data?.loginMode ?? 'redirect',
-              tabs,
-              tabPosition,
+              ...(tabsChanged ? { tabs } : {}),
+              ...(positionChanged ? { tabPosition } : {}),
             })
           }
           disabled={!dirty || save.isPending}
@@ -852,7 +865,7 @@ function WidgetThemeCard() {
   const save = useSaveWidgetTheme();
 
   const [brandPicked, setBrandPicked] = useState<string | null>(null);
-  const [headerPicked, setHeaderPicked] = useState<'white' | 'brand' | null>(null);
+  const [headerPicked, setHeaderPicked] = useState<WidgetHeaderStyle | null>(null);
   const storedBrand = data?.theme?.brand ?? data?.defaultBrand ?? '#2B7FFF';
   const storedHeader = data?.theme?.headerStyle ?? 'white';
   const brand = brandPicked ?? storedBrand;
@@ -873,8 +886,11 @@ function WidgetThemeCard() {
         <div className="max-w-md flex-1">
           <FormRow label={t('widgetTheme.brand')}>
             <div className="flex items-center gap-2">
+              {/* Two inputs edit ONE value, so they need names that tell them
+                  apart — "brand colour" twice is no better than unlabelled. */}
               <input
                 type="color"
+                aria-label={t('widgetTheme.brandPickerA11y')}
                 value={brand}
                 disabled={isLoading}
                 onChange={(e) => setBrandPicked(e.target.value.toUpperCase())}
@@ -882,6 +898,7 @@ function WidgetThemeCard() {
               />
               <input
                 type="text"
+                aria-label={t('widgetTheme.brandHexA11y')}
                 value={brand}
                 disabled={isLoading}
                 onChange={(e) => setBrandPicked(e.target.value.toUpperCase())}
@@ -893,9 +910,10 @@ function WidgetThemeCard() {
 
           <FormRow label={t('widgetTheme.header')}>
             <Select
+              aria-label={t('widgetTheme.header')}
               value={headerStyle}
               disabled={isLoading}
-              onChange={(e) => setHeaderPicked(e.target.value as 'white' | 'brand')}
+              onChange={(e) => setHeaderPicked(e.target.value as WidgetHeaderStyle)}
             >
               <option value="white">{t('widgetTheme.headerWhite')}</option>
               <option value="brand">{t('widgetTheme.headerBrand')}</option>
@@ -940,7 +958,7 @@ function WidgetThemeCard() {
               </div>
               <div className="flex items-center gap-1.5 pt-1">
                 <span className="rounded-md bg-success px-2 py-0.5 text-[10px] font-semibold text-white">
-                  Confirmed
+                  {t('widgetTheme.previewStatus')}
                 </span>
                 <span className="text-[10px] text-gray-400">{t('widgetTheme.statusFixedShort')}</span>
               </div>

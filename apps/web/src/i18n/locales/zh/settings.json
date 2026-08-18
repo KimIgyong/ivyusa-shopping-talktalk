@@ -450,6 +450,9 @@
     "previewBubble": "您好！有什么可以帮您？",
     "previewUser": "我的订单",
     "saved": "已保存挂件主题。",
-    "saveError": "保存挂件主题失败。"
+    "saveError": "保存挂件主题失败。",
+    "previewStatus": "已确认",
+    "brandPickerA11y": "品牌色选择器",
+    "brandHexA11y": "品牌色 HEX 代码"
   }
 }

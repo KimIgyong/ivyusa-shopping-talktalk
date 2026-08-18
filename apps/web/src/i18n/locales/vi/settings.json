@@ -450,6 +450,9 @@
     "previewBubble": "Xin chào! Chúng tôi giúp gì được ạ?",
     "previewUser": "Đơn hàng của tôi",
     "saved": "Đã lưu giao diện.",
-    "saveError": "Không lưu được giao diện."
+    "saveError": "Không lưu được giao diện.",
+    "previewStatus": "Đã xác nhận",
+    "brandPickerA11y": "Bộ chọn màu thương hiệu",
+    "brandHexA11y": "Mã hex màu thương hiệu"
   }
 }

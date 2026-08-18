@@ -1,6 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import type { WidgetLoginMode, WidgetTab, WidgetTabPosition } from '@ivy/types';
+import type {
+  WidgetHeaderStyle,
+  WidgetLoginMode,
+  WidgetTab,
+  WidgetTabPosition,
+} from '@ivy/types';
 import { settingsService } from './settings.service';
 import type { SaveShopifyBody, UpdateCredentialBody, WidgetCopyDraft } from './settings.service';
 import { toast } from '@/store/toast-store';
@@ -236,7 +241,7 @@ export function useSaveWidgetTheme() {
   const qc = useQueryClient();
   const tenantKey = useTenantKey();
   return useMutation({
-    mutationFn: (v: { brand: string; headerStyle: 'white' | 'brand' }) =>
+    mutationFn: (v: { brand: string; headerStyle: WidgetHeaderStyle }) =>
       settingsService.saveWidgetTheme(v.brand, v.headerStyle),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['widget-theme', tenantKey] });

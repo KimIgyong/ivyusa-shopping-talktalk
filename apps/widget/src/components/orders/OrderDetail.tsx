@@ -147,7 +147,7 @@ export function OrderDetailView({
         </button>
         <button
           onClick={() => onAsk(order.orderNumber)}
-          className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-primary-500 px-3 py-2 text-sm font-medium text-white hover:bg-primary-600"
+          className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-primary-500 px-3 py-2 text-sm font-medium text-on-primary hover:bg-primary-600"
         >
           <MessageSquare className="h-4 w-4" />
           {t('orders.ask')}

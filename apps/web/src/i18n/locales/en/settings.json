@@ -450,6 +450,9 @@
     "previewBubble": "Hi! How can we help?",
     "previewUser": "My Orders",
     "saved": "Widget theme saved.",
-    "saveError": "Failed to save the widget theme."
+    "saveError": "Failed to save the widget theme.",
+    "previewStatus": "Confirmed",
+    "brandPickerA11y": "Brand color picker",
+    "brandHexA11y": "Brand color hex code"
   }
 }

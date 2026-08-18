@@ -450,6 +450,9 @@
     "previewBubble": "¡Hola! ¿En qué te ayudamos?",
     "previewUser": "Mis pedidos",
     "saved": "Tema guardado.",
-    "saveError": "No se pudo guardar el tema."
+    "saveError": "No se pudo guardar el tema.",
+    "previewStatus": "Confirmado",
+    "brandPickerA11y": "Selector de color de marca",
+    "brandHexA11y": "Código hex del color de marca"
   }
 }
