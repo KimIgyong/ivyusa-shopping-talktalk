@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useWidgetStore, type ConsentInfo } from '../store/widgetStore';
 import { ensureSession, setConsent } from '../services/sessionService';
 import { getStoredSessionToken } from '../lib/api-client';
+import { applyTheme, cacheTheme } from '../lib/theme';
 import { clearStoredConsent, getStoredConsentRecord, setStoredConsent } from '../lib/consent';
 import type { SessionResponse } from '../lib/types';
 import i18n, {
@@ -181,6 +182,10 @@ export function useEnsureSession() {
         if (res.widgetTabs?.length) {
           setTabLayout(res.widgetTabs, res.widgetTabPosition ?? 'top');
         }
+        // Brand theme (PLN-260818). Applied even when null — that clears any
+        // cached theme from a tenant that has since turned theming off.
+        applyTheme(res.widgetTheme ?? null);
+        cacheTheme(getShopDomain(), res.widgetTheme ?? null);
         if (res.widgetCopy) setWidgetCopy(res.widgetCopy);
         // The app-proxy handshake (useEmbedIdentity) may have adopted a
         // customer-bound token while this anonymous ensure was in flight. Don't

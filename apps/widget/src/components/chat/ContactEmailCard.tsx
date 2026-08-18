@@ -58,7 +58,7 @@ export function ContactEmailCard({
         <button
           onClick={submit}
           disabled={!valid || saving}
-          className="shrink-0 rounded-lg bg-primary-500 px-3 py-2 text-sm font-medium text-white hover:bg-primary-600 disabled:opacity-50"
+          className="shrink-0 rounded-lg bg-primary-500 px-3 py-2 text-sm font-medium text-on-primary hover:bg-primary-600 disabled:opacity-50"
         >
           {saving ? t('common.loading') : t('chat.contactEmail.submit')}
         </button>

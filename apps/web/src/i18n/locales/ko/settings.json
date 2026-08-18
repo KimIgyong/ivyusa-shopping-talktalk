@@ -429,5 +429,30 @@
     "category.event": "프로모션",
     "category.review": "리뷰 요청",
     "category.chat": "상담 답변"
+  },
+  "widgetTabs": {
+    "title": "위젯 탭 구성",
+    "desc": "채팅 위젯에 어떤 탭을 노출할지, 탭바를 어디에 둘지 정합니다."
+  },
+  "widgetTheme": {
+    "title": "위젯 테마",
+    "desc": "채팅 위젯에 상점 브랜드 색을 적용합니다.",
+    "brand": "브랜드 색",
+    "brandHint": "색 하나만 정하면 밝고 어두운 단계는 자동으로 생성됩니다.",
+    "header": "헤더",
+    "headerWhite": "흰색 (기본)",
+    "headerBrand": "브랜드 색",
+    "autoContrast": "글자색은 읽기 쉽도록 자동으로 정해집니다.",
+    "statusFixed": "상태 색상(확정·배송중 등)은 의미를 지니므로 바뀌지 않습니다.",
+    "statusFixedShort": "상태 색상은 고정",
+    "preview": "미리보기",
+    "previewTitle": "알림센터",
+    "previewBubble": "안녕하세요! 무엇을 도와드릴까요?",
+    "previewUser": "주문 조회",
+    "saved": "위젯 테마를 저장했습니다.",
+    "saveError": "위젯 테마를 저장하지 못했습니다.",
+    "previewStatus": "주문 확인",
+    "brandPickerA11y": "브랜드 색상 선택기",
+    "brandHexA11y": "브랜드 색상 HEX 코드"
   }
 }

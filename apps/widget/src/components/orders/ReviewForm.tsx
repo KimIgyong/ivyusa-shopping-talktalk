@@ -87,7 +87,7 @@ export function ReviewForm({
         <button
           disabled={rating === 0 || loading}
           onClick={submit}
-          className="flex-1 rounded-lg bg-primary-500 px-3 py-2 text-sm font-medium text-white hover:bg-primary-600 disabled:opacity-50"
+          className="flex-1 rounded-lg bg-primary-500 px-3 py-2 text-sm font-medium text-on-primary hover:bg-primary-600 disabled:opacity-50"
         >
           {loading ? t('common.loading') : t('review.submit')}
         </button>

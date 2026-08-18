@@ -9,7 +9,12 @@ import type { Column } from '@/components/Table';
 import { Modal } from '@/components/Modal';
 import { FormRow, Input, Select } from '@/components/Field';
 // Type-only: @ivy/types ships CJS whose runtime exports Rollup cannot see.
-import type { WidgetLoginMode, WidgetTab, WidgetTabPosition } from '@ivy/types';
+import type {
+  WidgetHeaderStyle,
+  WidgetLoginMode,
+  WidgetTab,
+  WidgetTabPosition,
+} from '@ivy/types';
 import { LanguageTabs } from '../ai-settings/LanguageTabs';
 // Runtime table from the registry source (see apps/web/src/i18n/i18n.ts for why).
 import { LANGUAGE_TIMEZONES } from '../../../../../packages/types/src/common/language';
@@ -19,6 +24,7 @@ import {
   WIDGET_TABS_DEFAULT,
   WIDGET_TAB_ORDER,
 } from '../../../../../packages/types/src/common/enum.types';
+import { buildThemeVariables } from '../../../../../packages/types/src/common/widget-theme';
 import type { ScenarioLang } from '../ai-settings/ai-settings.service';
 // Live-support routing lives here now (PLN-260806 D1); the editor itself stays
 // in the ai-settings domain because it saves through the same AI-config API.
@@ -28,6 +34,8 @@ import {
   useIntegration,
   useNotificationChannels,
   useSaveNotificationChannels,
+  useSaveWidgetTheme,
+  useWidgetTheme,
   useSaveWidgetSettings,
   useSaveShopify,
   useShopifySettings,
@@ -529,25 +537,6 @@ function WidgetBehaviorCard() {
   const value: WidgetLoginMode = picked ?? data?.loginMode ?? 'redirect';
   const tz = tzPicked ?? data?.timezone ?? '';
 
-  // Tab configuration (PLN-260817-Widget-Tab-Config). The server resolves the
-  // built-in default before it gets here, so `data.tabs` is always a real set
-  // and this never has to know what the default is.
-  const [tabsPicked, setTabsPicked] = useState<WidgetTab[] | null>(null);
-  const [positionPicked, setPositionPicked] = useState<WidgetTabPosition | null>(null);
-  const tabs = tabsPicked ?? data?.tabs ?? [...WIDGET_TABS_DEFAULT];
-  const tabPosition: WidgetTabPosition = positionPicked ?? data?.tabPosition ?? 'top';
-
-  /**
-   * Toggle a tab, refusing to remove the last one. A widget with no tabs cannot
-   * be navigated at all, so the control is disabled rather than letting the save
-   * fail server-side with a validation error the admin has to decode.
-   */
-  const toggleTab = (key: WidgetTab) => {
-    const next = tabs.includes(key) ? tabs.filter((k) => k !== key) : [...tabs, key];
-    if (next.length === 0) return;
-    setTabsPicked(WIDGET_TAB_ORDER.filter((k) => next.includes(k)));
-  };
-
   // Widget copy draft (PLN-260808-Widget-Greetings) — lazily seeded from the
   // stored values; one language tab shared by both message editors.
   const [copyLang, setCopyLang] = useState<CopyLang>('EN');
@@ -562,14 +551,11 @@ function WidgetBehaviorCard() {
     setCopyDraft({ ...copy, [field]: { ...copy[field], [copyLang]: text } });
 
   const copyDirty = copyDraft != null && JSON.stringify(copyDraft) !== JSON.stringify(storedCopy);
-  const tabsDirty = data != null && JSON.stringify(tabs) !== JSON.stringify(data.tabs);
-  const positionDirty = data != null && tabPosition !== data.tabPosition;
+
   const dirty =
     data != null &&
     (value !== data.loginMode ||
       tz !== (data.timezone ?? '') ||
-      tabsDirty ||
-      positionDirty ||
       copyDirty);
 
   return (
@@ -600,49 +586,6 @@ function WidgetBehaviorCard() {
           </Select>
         </FormRow>
         <p className="mb-4 text-xs text-gray-400">{t('widgetBehavior.timezoneHint')}</p>
-
-        {/* Tab configuration — PLN-260817-Widget-Tab-Config */}
-        <div className="mb-2 border-t border-gray-100 pt-4 text-sm font-medium text-gray-700">
-          {t('widgetBehavior.tabsTitle')}
-        </div>
-        <FormRow label={t('widgetBehavior.tabs')}>
-          <div className="flex flex-wrap gap-3">
-            {WIDGET_TAB_ORDER.map((key) => {
-              const checked = tabs.includes(key);
-              // Disabling the last checked box is the guard: an empty tab bar is
-              // refused by the API too, but the admin should never get that far.
-              const isLast = checked && tabs.length === 1;
-              return (
-                <label
-                  key={key}
-                  className={`flex items-center gap-1.5 text-sm ${
-                    isLast ? 'text-gray-400' : 'text-gray-700'
-                  }`}
-                >
-                  <input
-                    type="checkbox"
-                    checked={checked}
-                    disabled={isLoading || isLast}
-                    onChange={() => toggleTab(key)}
-                  />
-                  {t(`widgetBehavior.tab.${key}`)}
-                </label>
-              );
-            })}
-          </div>
-        </FormRow>
-        <p className="mb-4 text-xs text-gray-400">{t('widgetBehavior.tabsHint')}</p>
-        <FormRow label={t('widgetBehavior.tabPosition')}>
-          <Select
-            value={tabPosition}
-            disabled={isLoading}
-            onChange={(e) => setPositionPicked(e.target.value as WidgetTabPosition)}
-          >
-            <option value="top">{t('widgetBehavior.tabPositionTop')}</option>
-            <option value="bottom">{t('widgetBehavior.tabPositionBottom')}</option>
-          </Select>
-        </FormRow>
-        <p className="mb-4 text-xs text-gray-400">{t('widgetBehavior.tabPositionHint')}</p>
 
         {/* Widget copy (display name + greetings) — PLN-260808-Widget-Greetings */}
         <div className="mb-2 border-t border-gray-100 pt-4 text-sm font-medium text-gray-700">
@@ -691,13 +634,10 @@ function WidgetBehaviorCard() {
               {
                 loginMode: value,
                 timezone: tz,
-                // Send tab settings ONLY when they changed. Sending them on every
-                // save would turn `widget_tabs = NULL` ("never configured") into
-                // an explicit copy of today's default the first time an admin
-                // touched anything else on this card — and that NULL is what lets
-                // a future change to the default reach tenants who never chose.
-                ...(tabsDirty ? { tabs } : {}),
-                ...(positionDirty ? { tabPosition } : {}),
+                // Tabs are NOT sent from this card any more — they have their own
+                // (PLN-260818). Omitting them keeps `widget_tabs = NULL` meaning
+                // "never configured", which is what lets a future change to the
+                // built-in default reach tenants who never chose.
                 ...(copyDirty ? { copy } : {}),
               },
               { onSuccess: () => setCopyDraft(null) },
@@ -803,6 +743,233 @@ function NotificationChannelsCard() {
   );
 }
 
+
+/**
+ * Widget tabs — its own card since 2026-08-18 (PLN-260818, requirement 2).
+ *
+ * These two settings used to live in the middle of "Widget behaviour", between
+ * the timezone and the greeting copy. Nobody looking for tab settings opens a
+ * card called Widget behaviour, and twice in a row the question came back as
+ * "where is it?". Discoverability was the actual defect, so the fix is a card
+ * with the word Tabs on it, not another paragraph of documentation.
+ */
+function WidgetTabsCard() {
+  const { t } = useTranslation('settings');
+  const { t: tc } = useTranslation('common');
+  const { data, isLoading } = useWidgetSettings();
+  const save = useSaveWidgetSettings();
+
+  const [tabsPicked, setTabsPicked] = useState<WidgetTab[] | null>(null);
+  const [positionPicked, setPositionPicked] = useState<WidgetTabPosition | null>(null);
+  const tabs = tabsPicked ?? data?.tabs ?? [...WIDGET_TABS_DEFAULT];
+  const tabPosition: WidgetTabPosition = positionPicked ?? data?.tabPosition ?? 'top';
+
+  /**
+   * Toggle a tab, refusing to remove the last one. A widget with no tabs cannot
+   * be navigated at all, so the control is disabled rather than letting the save
+   * fail server-side with a validation error the admin has to decode.
+   */
+  const toggleTab = (key: WidgetTab) => {
+    const next = tabs.includes(key) ? tabs.filter((k) => k !== key) : [...tabs, key];
+    if (next.length === 0) return;
+    setTabsPicked(WIDGET_TAB_ORDER.filter((k) => next.includes(k)));
+  };
+
+  // Send ONLY the field the admin actually changed. `data.tabs` is the RESOLVED
+  // list — an unconfigured tenant reads back the default — so posting it while
+  // saving a position change would freeze today's default into the row as an
+  // explicit choice, and a later change to the default would skip this tenant.
+  // NULL means unconfigured, and it has to survive a save of its neighbour.
+  const tabsChanged = tabsPicked != null && JSON.stringify(tabsPicked) !== JSON.stringify(data?.tabs);
+  const positionChanged = positionPicked != null && positionPicked !== data?.tabPosition;
+  const dirty = data != null && (tabsChanged || positionChanged);
+
+  return (
+    <Card title={t('widgetTabs.title')}>
+      <p className="mb-4 text-sm text-gray-500">{t('widgetTabs.desc')}</p>
+      <div className="max-w-md">
+        {/* Tab configuration — PLN-260817-Widget-Tab-Config */}
+        <div className="mb-2 border-t border-gray-100 pt-4 text-sm font-medium text-gray-700">
+          {t('widgetBehavior.tabsTitle')}
+        </div>
+        <FormRow label={t('widgetBehavior.tabs')}>
+          <div className="flex flex-wrap gap-3">
+            {WIDGET_TAB_ORDER.map((key) => {
+              const checked = tabs.includes(key);
+              // Disabling the last checked box is the guard: an empty tab bar is
+              // refused by the API too, but the admin should never get that far.
+              const isLast = checked && tabs.length === 1;
+              return (
+                <label
+                  key={key}
+                  className={`flex items-center gap-1.5 text-sm ${
+                    isLast ? 'text-gray-400' : 'text-gray-700'
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    disabled={isLoading || isLast}
+                    onChange={() => toggleTab(key)}
+                  />
+                  {t(`widgetBehavior.tab.${key}`)}
+                </label>
+              );
+            })}
+          </div>
+        </FormRow>
+        <p className="mb-4 text-xs text-gray-400">{t('widgetBehavior.tabsHint')}</p>
+        {/* FormRow renders the label as a SIBLING, so each control carries its
+            own accessible name rather than relying on wrapping. */}
+        <FormRow label={t('widgetBehavior.tabPosition')}>
+          <Select
+            aria-label={t('widgetBehavior.tabPosition')}
+            value={tabPosition}
+            disabled={isLoading}
+            onChange={(e) => setPositionPicked(e.target.value as WidgetTabPosition)}
+          >
+            <option value="top">{t('widgetBehavior.tabPositionTop')}</option>
+            <option value="bottom">{t('widgetBehavior.tabPositionBottom')}</option>
+          </Select>
+        </FormRow>
+        <p className="mb-4 text-xs text-gray-400">{t('widgetBehavior.tabPositionHint')}</p>
+
+        <Button
+          onClick={() =>
+            save.mutate({
+              loginMode: data?.loginMode ?? 'redirect',
+              ...(tabsChanged ? { tabs } : {}),
+              ...(positionChanged ? { tabPosition } : {}),
+            })
+          }
+          disabled={!dirty || save.isPending}
+        >
+          {save.isPending ? tc('saving') : tc('save')}
+        </Button>
+      </div>
+    </Card>
+  );
+}
+
+/**
+ * Widget brand theme (PLN-260818). One colour in, whole palette out.
+ *
+ * There is no text-colour control on purpose: the readable foreground is
+ * computed from the brand colour, because a UI that lets someone keep white on
+ * yellow eventually ships a button nobody can read.
+ */
+function WidgetThemeCard() {
+  const { t } = useTranslation('settings');
+  const { t: tc } = useTranslation('common');
+  const { data, isLoading } = useWidgetTheme();
+  const save = useSaveWidgetTheme();
+
+  const [brandPicked, setBrandPicked] = useState<string | null>(null);
+  const [headerPicked, setHeaderPicked] = useState<WidgetHeaderStyle | null>(null);
+  const storedBrand = data?.theme?.brand ?? data?.defaultBrand ?? '#2B7FFF';
+  const storedHeader = data?.theme?.headerStyle ?? 'white';
+  const brand = brandPicked ?? storedBrand;
+  const headerStyle = headerPicked ?? storedHeader;
+  const dirty = data != null && (brand !== storedBrand || headerStyle !== storedHeader);
+
+  // Same computation the widget runs, so this preview cannot promise a colour
+  // the widget would not paint.
+  const vars = buildThemeVariables({ brand, headerStyle });
+  const onPrimary = vars['--ivy-on-primary'] ?? '255 255 255';
+  const headerBg = vars['--ivy-header-bg'];
+  const headerFg = vars['--ivy-header-fg'] ?? '17 24 39';
+
+  return (
+    <Card title={t('widgetTheme.title')}>
+      <p className="mb-4 text-sm text-gray-500">{t('widgetTheme.desc')}</p>
+      <div className="flex flex-wrap gap-8">
+        <div className="max-w-md flex-1">
+          <FormRow label={t('widgetTheme.brand')}>
+            <div className="flex items-center gap-2">
+              {/* Two inputs edit ONE value, so they need names that tell them
+                  apart — "brand colour" twice is no better than unlabelled. */}
+              <input
+                type="color"
+                aria-label={t('widgetTheme.brandPickerA11y')}
+                value={brand}
+                disabled={isLoading}
+                onChange={(e) => setBrandPicked(e.target.value.toUpperCase())}
+                className="h-9 w-12 cursor-pointer rounded border border-gray-200"
+              />
+              <input
+                type="text"
+                aria-label={t('widgetTheme.brandHexA11y')}
+                value={brand}
+                disabled={isLoading}
+                onChange={(e) => setBrandPicked(e.target.value.toUpperCase())}
+                className="w-32 rounded-lg border border-gray-200 px-2 py-1.5 text-sm"
+              />
+            </div>
+          </FormRow>
+          <p className="mb-4 text-xs text-gray-400">{t('widgetTheme.brandHint')}</p>
+
+          <FormRow label={t('widgetTheme.header')}>
+            <Select
+              aria-label={t('widgetTheme.header')}
+              value={headerStyle}
+              disabled={isLoading}
+              onChange={(e) => setHeaderPicked(e.target.value as WidgetHeaderStyle)}
+            >
+              <option value="white">{t('widgetTheme.headerWhite')}</option>
+              <option value="brand">{t('widgetTheme.headerBrand')}</option>
+            </Select>
+          </FormRow>
+          <p className="mb-4 text-xs text-gray-400">{t('widgetTheme.autoContrast')}</p>
+          <p className="mb-4 text-xs text-gray-400">{t('widgetTheme.statusFixed')}</p>
+
+          <Button
+            onClick={() => save.mutate({ brand, headerStyle }, { onSuccess: () => { setBrandPicked(null); setHeaderPicked(null); } })}
+            disabled={!dirty || save.isPending}
+          >
+            {save.isPending ? tc('saving') : tc('save')}
+          </Button>
+        </div>
+
+        {/* Live preview */}
+        <div className="w-[260px]">
+          <div className="mb-2 text-xs font-medium text-gray-500">{t('widgetTheme.preview')}</div>
+          <div className="overflow-hidden rounded-xl border border-gray-200 shadow-sm">
+            <div
+              className="flex items-center justify-between px-3 py-2.5 text-sm font-bold"
+              style={{
+                backgroundColor: headerBg ? `rgb(${headerBg})` : '#FFFFFF',
+                color: `rgb(${headerFg})`,
+              }}
+            >
+              <span>{t('widgetTheme.previewTitle')}</span>
+              <span className="opacity-60">⚙ ✕</span>
+            </div>
+            <div className="space-y-2 bg-white px-3 py-3">
+              <div className="w-4/5 rounded-xl bg-gray-100 px-3 py-2 text-xs text-gray-800">
+                {t('widgetTheme.previewBubble')}
+              </div>
+              <div className="flex justify-end">
+                <span
+                  className="rounded-xl px-3 py-2 text-xs font-medium"
+                  style={{ backgroundColor: brand, color: `rgb(${onPrimary})` }}
+                >
+                  {t('widgetTheme.previewUser')}
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5 pt-1">
+                <span className="rounded-md bg-success px-2 py-0.5 text-[10px] font-semibold text-white">
+                  {t('widgetTheme.previewStatus')}
+                </span>
+                <span className="text-[10px] text-gray-400">{t('widgetTheme.statusFixedShort')}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
 export function SettingsPage() {
   const { t } = useTranslation('settings');
   const { t: tc } = useTranslation('common');
@@ -897,6 +1064,10 @@ export function SettingsPage() {
       <InstallGuideCard />
 
       <WidgetBehaviorCard />
+
+      <WidgetTabsCard />
+
+      <WidgetThemeCard />
 
       <NotificationChannelsCard />
 

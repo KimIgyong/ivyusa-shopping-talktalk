@@ -1,6 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import type { WidgetLoginMode, WidgetTab, WidgetTabPosition } from '@ivy/types';
+import type {
+  WidgetHeaderStyle,
+  WidgetLoginMode,
+  WidgetTab,
+  WidgetTabPosition,
+} from '@ivy/types';
 import { settingsService } from './settings.service';
 import type { SaveShopifyBody, UpdateCredentialBody, WidgetCopyDraft } from './settings.service';
 import { toast } from '@/store/toast-store';
@@ -219,6 +224,31 @@ export function useSaveNotificationChannels() {
     },
     onError: (e: Error) => {
       toast.error(e.message || t('notifChannels.saveError'), { sticky: true });
+    },
+  });
+}
+
+export function useWidgetTheme() {
+  const tenantKey = useTenantKey();
+  return useQuery({
+    queryKey: ['widget-theme', tenantKey],
+    queryFn: settingsService.widgetTheme,
+  });
+}
+
+export function useSaveWidgetTheme() {
+  const { t } = useTranslation('settings');
+  const qc = useQueryClient();
+  const tenantKey = useTenantKey();
+  return useMutation({
+    mutationFn: (v: { brand: string; headerStyle: WidgetHeaderStyle }) =>
+      settingsService.saveWidgetTheme(v.brand, v.headerStyle),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['widget-theme', tenantKey] });
+      toast.success(t('widgetTheme.saved'));
+    },
+    onError: (e: Error) => {
+      toast.error(e.message || t('widgetTheme.saveError'), { sticky: true });
     },
   });
 }

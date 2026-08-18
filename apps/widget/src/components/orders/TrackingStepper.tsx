@@ -31,7 +31,7 @@ export function TrackingStepper({ tracking }: { tracking: Tracking }) {
             <li key={i} className="mb-4 ml-4 last:mb-0">
               <span
                 className={`absolute -left-[9px] flex h-4 w-4 items-center justify-center rounded-full ${
-                  done ? 'bg-primary-500 text-white' : 'bg-gray-200 text-gray-400'
+                  done ? 'bg-primary-500 text-on-primary' : 'bg-gray-200 text-gray-400'
                 }`}
               >
                 {done && <Check className="h-2.5 w-2.5" />}

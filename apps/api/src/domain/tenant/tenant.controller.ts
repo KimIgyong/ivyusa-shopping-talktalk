@@ -14,6 +14,7 @@ import {
   UpdateShopifySettingsRequest,
   UpdateStorefrontRequest,
   UpdateNotificationChannelsRequest,
+  UpdateWidgetThemeRequest,
   UpdateWidgetSettingsRequest,
   UpdateTenantStatusRequest,
   UpsertCredentialRequest,
@@ -133,6 +134,30 @@ export class TenantController {
       body.channels,
     );
     return TenantMapper.toNotificationChannels(tenant);
+  }
+
+  // Declared before ':uuid' so 'widget-theme' is not read as a UUID.
+  @Get('widget-theme')
+  @RequireRank(USER_RANK.MASTER, USER_RANK.DIRECTOR)
+  @ApiOperation({ summary: "This tenant's widget brand theme" })
+  async getWidgetTheme(@CurrentUser() user: Principal) {
+    const tenant = await this.tenantService.findById(this.tenantId(user));
+    return TenantMapper.toWidgetTheme(tenant);
+  }
+
+  @Patch('widget-theme')
+  @RequireRank(USER_RANK.MASTER, USER_RANK.DIRECTOR)
+  @ApiOperation({ summary: 'Set the widget brand colour (ramp + foregrounds are derived)' })
+  async updateWidgetTheme(
+    @CurrentUser() user: Principal,
+    @Body() body: UpdateWidgetThemeRequest,
+  ) {
+    // @RequireRank guarantees a tenant user at runtime; narrow for TS.
+    if (user.actorType !== 'user') {
+      throw new BusinessException(ERROR_CODE.FORBIDDEN, HttpStatus.FORBIDDEN);
+    }
+    const tenant = await this.tenantService.updateWidgetTheme(user.tenantId, user.userId, body);
+    return TenantMapper.toWidgetTheme(tenant);
   }
 
   @Patch('widget-settings')

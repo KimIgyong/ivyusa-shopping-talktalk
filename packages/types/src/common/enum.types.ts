@@ -63,9 +63,14 @@ export const WIDGET_TAB_ORDER: readonly WidgetTab[] = [
  * tenant that predates this setting keeps. Changing this line changes the widget
  * for every unconfigured tenant, which is exactly why the column stores NULL for
  * "unconfigured" rather than a copy of this array.
+ *
+ * All three since 2026-08-18. That NULL design is what makes this a one-line
+ * change instead of a backfill: no tenant row records the old default, so every
+ * shop that never chose picks up the new one on its next session.
  */
 export const WIDGET_TABS_DEFAULT: readonly WidgetTab[] = [
   WIDGET_TAB.NOTIFICATIONS,
+  WIDGET_TAB.ORDERS,
   WIDGET_TAB.CHAT,
 ] as const;
 

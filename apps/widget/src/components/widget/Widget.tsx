@@ -122,7 +122,7 @@ export function Widget() {
           onClick={togglePanel}
           aria-label={t('a11y.openSupport')}
           aria-expanded={false}
-          className="fixed bottom-5 right-5 z-10 flex h-14 w-14 items-center justify-center rounded-full bg-primary-500 text-white shadow-lg transition-transform hover:scale-105 hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 active:scale-95"
+          className="fixed bottom-5 right-5 z-10 flex h-14 w-14 items-center justify-center rounded-full bg-primary-500 text-on-primary shadow-lg transition-transform hover:scale-105 hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 active:scale-95"
         >
           <MessageCircle className="h-6 w-6" />
           {unread > 0 && (

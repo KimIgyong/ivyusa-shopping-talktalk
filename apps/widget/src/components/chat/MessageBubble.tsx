@@ -33,7 +33,7 @@ export function MessageBubble({ message }: { message: ChatMessage }) {
               // Evenly rounded on all four corners: the Master Shots drop the
               // speech-bubble tail entirely (frames 53/57/61).
               'whitespace-pre-wrap break-words rounded-xl px-3.5 py-2.5 text-sm',
-              mine ? 'bg-primary-500 text-white' : 'bg-gray-100 text-gray-800',
+              mine ? 'bg-primary-500 text-on-primary' : 'bg-gray-100 text-gray-800',
             ].join(' ')}
           >
             {message.body}
