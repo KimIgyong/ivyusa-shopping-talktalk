@@ -6,7 +6,7 @@ import { OrderCache } from '../order/entity/order-cache.entity';
 import { OrderItem } from '../order/entity/order-item.entity';
 import { CustomerService } from '../customer/customer.service';
 import { TenantService } from '../tenant/tenant.service';
-import { expectedMallIdForTenant } from './cafe24-mall';
+import { tenantMall } from './cafe24-mall';
 import { Cafe24TokenService } from './cafe24-token.service';
 import { Cafe24AdminClient, Cafe24Order, Cafe24OrderItem } from './cafe24-admin.client';
 
@@ -54,10 +54,17 @@ export class Cafe24SyncService {
     // has a verifiable *.cafe24.com storefront that DISAGREES; a custom domain
     // yields null and syncs as before.
     const tenant = await this.tenantService.findById(tenantId);
-    const expected = expectedMallIdForTenant(tenant);
-    if (expected && expected !== conn.mallId) {
+    const own = tenantMall(tenant);
+    if (own.kind === 'ambiguous') {
       const detail =
-        `refusing to sync: tenant runs on ${expected}.cafe24.com but the stored ` +
+        `refusing to sync: this store names two malls (${own.mallIds.join(', ')}), ` +
+        'so neither can verify the stored credential — fix the store domain first';
+      this.logger.error(`Cafe24 sync tenant ${tenantId}: ${detail}`);
+      return { ok: false, synced: 0, detail };
+    }
+    if (own.kind === 'known' && own.mallId !== conn.mallId) {
+      const detail =
+        `refusing to sync: tenant runs on ${own.mallId}.cafe24.com but the stored ` +
         `credential is for "${conn.mallId}" — reconnect this store to its own mall`;
       this.logger.error(`Cafe24 sync tenant ${tenantId}: ${detail}`);
       return { ok: false, synced: 0, detail };

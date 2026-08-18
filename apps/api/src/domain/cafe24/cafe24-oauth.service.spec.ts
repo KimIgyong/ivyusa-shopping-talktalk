@@ -7,7 +7,7 @@ describe('Cafe24OAuthService.handleCallback', () => {
   function build() {
     const redis = { get: jest.fn().mockResolvedValue(null), set: jest.fn(), del: jest.fn() };
     const tenantService = { upsertCredential: jest.fn() };
-    const tokenService = { findTenantIdByMallId: jest.fn().mockResolvedValue(null) };
+    const tokenService = { findMallOwners: jest.fn().mockResolvedValue([]) };
     const svc = new Cafe24OAuthService(redis as never, tenantService as never, tokenService as never);
     const warn = jest.spyOn(svc['logger'], 'warn').mockImplementation(() => undefined);
     return { svc, redis, warn };
@@ -77,7 +77,7 @@ describe('Cafe24OAuthService.createInstall guards', () => {
       findById: jest.fn().mockResolvedValue(opts.tenant),
     };
     const tokenService = {
-      findTenantIdByMallId: jest.fn().mockResolvedValue(opts.mallOwner ?? null),
+      findMallOwners: jest.fn().mockResolvedValue(opts.mallOwner == null ? [] : [opts.mallOwner]),
     };
     const svc = new Cafe24OAuthService(redis as never, tenantService as never, tokenService as never);
     const warn = jest.spyOn(svc['logger'], 'warn').mockImplementation(() => undefined);
@@ -98,7 +98,14 @@ describe('Cafe24OAuthService.createInstall guards', () => {
   });
 
   it('accepts the tenant own mall, in any host form', async () => {
-    for (const mall of ['amoebaorder', 'amoebaorder.cafe24.com', 'AmoebaOrder']) {
+    // Includes the full-URL form: the local normalizer left "https://amoebaorder"
+    // behind and rejected it, while the public sign-in path accepted it.
+    for (const mall of [
+      'amoebaorder',
+      'amoebaorder.cafe24.com',
+      'AmoebaOrder',
+      'https://amoebaorder.cafe24.com/member/login.html',
+    ]) {
       const { svc } = build({ tenant: { shopDomain: 'amoebaorder.cafe24.com' } });
       await expect(svc.createInstall(3, mall)).resolves.toMatchObject({
         authorizeUrl: expect.stringContaining('amoebaorder'),
@@ -130,5 +137,28 @@ describe('Cafe24OAuthService.createInstall guards', () => {
   it('lets a tenant reconnect the mall it already owns', async () => {
     const { svc } = build({ tenant: { shopDomain: 'annehearts.cafe24.com' }, mallOwner: 2 });
     await expect(svc.createInstall(2, 'annehearts')).resolves.toBeDefined();
+  });
+
+  it('refuses when the tenant record itself names two different malls', () => {
+    // shop_domain and storefront_url disagreeing means neither is evidence.
+    // Taking the first would issue a "verified" answer off a broken record.
+    const { svc } = build({
+      tenant: { shopDomain: 'amoebaorder.cafe24.com', storefrontUrl: 'https://annehearts.cafe24.com' },
+    });
+    return expect(svc.createInstall(3, 'amoebaorder')).rejects.toMatchObject({
+      errorCode: ERROR_CODE.CAFE24_MALL_TENANT_MISMATCH.code,
+    });
+  });
+
+  it('refuses a mall that is double-claimed already', async () => {
+    // `findTenantIdByMallId` answers null for BOTH "unowned" and "ambiguous",
+    // so asking it here read a double-claimed mall as free — the first version
+    // of this guard would have let a third tenant join.
+    const { svc } = build({ tenant: { shopDomain: 'annehearts.cafe24.com' } });
+    (svc['tokenService'] as unknown as { findMallOwners: jest.Mock }).findMallOwners.mockResolvedValue([2, 3]);
+
+    await expect(svc.createInstall(4, 'annehearts')).rejects.toMatchObject({
+      errorCode: ERROR_CODE.CAFE24_MALL_ALREADY_CONNECTED.code,
+    });
   });
 });

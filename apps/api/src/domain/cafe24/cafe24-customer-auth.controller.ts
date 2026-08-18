@@ -6,6 +6,7 @@ import {
   Cafe24CustomerAuthService,
   cafe24TicketDelivery,
 } from './cafe24-customer-auth.service';
+import { logSafe, mallIdFromHost } from './cafe24-mall';
 
 /**
  * Cafe24 storefront member sign-in (PLN-260808 P-A2). All @Public — the storefront
@@ -30,8 +31,11 @@ export class Cafe24CustomerAuthController {
    * (REQ-260819). The shopper still just bounces back — the operator gets a line.
    */
   private warn(where: string, e: unknown): void {
-    const reason = e instanceof Error ? e.message : String(e);
-    this.logger.warn(`Cafe24 customer-auth ${where} failed: ${reason}`);
+    // Everything here came from outside: `shop` is a public query parameter and
+    // the message belongs to whatever threw. A CR/LF in either would let the
+    // caller forge log lines, and an unbounded message could carry more than we
+    // meant to write down. Sanitize both.
+    this.logger.warn(`Cafe24 customer-auth ${where} failed: ${logSafe(e)}`);
   }
 
   @Get('start')
@@ -47,7 +51,10 @@ export class Cafe24CustomerAuthController {
       const authorizeUrl = await this.service.start(shop ?? '', returnUrl ?? '', mode === 'popup');
       res.redirect(authorizeUrl);
     } catch (e) {
-      this.warn(`start (shop="${shop ?? ''}")`, e);
+      // The PARSED mall id, not the raw parameter — it has passed a strict
+      // pattern, so it cannot be the thing that forges a line.
+      const mall = mallIdFromHost(shop ?? '');
+      this.warn(`start (mall=${mall ?? 'unparseable'})`, e);
       res.status(200).type('html').send(cafe24TicketDelivery.bounceBack());
     }
   }

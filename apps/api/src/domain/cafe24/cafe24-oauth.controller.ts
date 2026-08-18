@@ -7,6 +7,7 @@ import {
   Cafe24CustomerAuthService,
   cafe24TicketDelivery,
 } from './cafe24-customer-auth.service';
+import { logSafe } from './cafe24-mall';
 
 /**
  * Cafe24 OAuth callback (path B). Public — Cafe24 redirects the browser here with
@@ -39,9 +40,9 @@ export class Cafe24OAuthController {
       } catch (e) {
         // A 200 bounce-back is indistinguishable from success in the access log
         // unless the reason is written down (REQ-260819).
-        this.logger.warn(
-          `Cafe24 member sign-in callback failed: ${e instanceof Error ? e.message : String(e)}`,
-        );
+        // Same sanitizer as the other callback — the reason is attacker-shaped
+        // input until proven otherwise.
+        this.logger.warn(`Cafe24 member sign-in callback failed: ${logSafe(e)}`);
         res.status(200).type('html').send(cafe24TicketDelivery.bounceBack());
       }
       return;

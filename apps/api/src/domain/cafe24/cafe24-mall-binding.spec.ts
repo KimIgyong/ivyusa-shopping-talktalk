@@ -1,6 +1,6 @@
 import { Cafe24TokenService } from './cafe24-token.service';
 import { Cafe24SyncService } from './cafe24-sync.service';
-import { expectedMallIdForTenant, mallIdFromHost } from './cafe24-mall';
+import { logSafe, mallIdFromHost, tenantMall } from './cafe24-mall';
 import { encryptSecret } from '../../global/util/crypto.util';
 
 /**
@@ -19,19 +19,39 @@ describe('cafe24-mall helpers', () => {
     expect(mallIdFromHost('amoebaorder')).toBe('amoebaorder');
   });
 
-  it('does not invent a mall id for a custom domain', () => {
-    // It must be null, not a guess: null means "cannot verify" and callers let
-    // the install through with a warning, while a wrong guess would refuse it.
-    expect(expectedMallIdForTenant({ shopDomain: 'shop.example.com' })).toBeNull();
-    expect(expectedMallIdForTenant({ shopDomain: null, storefrontUrl: null })).toBeNull();
+  it('reports a custom domain as unknown, never as a guess', () => {
+    // `unknown` means "cannot verify" and callers let the install through with a
+    // warning; a guess would refuse a legitimate one.
+    expect(tenantMall({ shopDomain: 'shop.example.com' })).toEqual({ kind: 'unknown' });
+    expect(tenantMall({ shopDomain: null, storefrontUrl: null })).toEqual({ kind: 'unknown' });
   });
 
-  it('prefers whichever tenant field is a cafe24 host', () => {
+  it('takes whichever tenant field is a cafe24 host', () => {
     expect(
-      expectedMallIdForTenant({ shopDomain: 'shop.example.com', storefrontUrl: 'https://annehearts.cafe24.com/' }),
-    ).toBe('annehearts');
+      tenantMall({ shopDomain: 'shop.example.com', storefrontUrl: 'https://annehearts.cafe24.com/' }),
+    ).toEqual({ kind: 'known', mallId: 'annehearts' });
     // Tenant 2's stored domain carries protocol and a trailing slash — real data.
-    expect(expectedMallIdForTenant({ shopDomain: 'https://annehearts.cafe24.com/' })).toBe('annehearts');
+    expect(tenantMall({ shopDomain: 'https://annehearts.cafe24.com/' })).toEqual({
+      kind: 'known',
+      mallId: 'annehearts',
+    });
+    // Same mall written two ways is not a disagreement.
+    expect(
+      tenantMall({ shopDomain: 'annehearts.cafe24.com', storefrontUrl: 'https://annehearts.cafe24.com/' }),
+    ).toEqual({ kind: 'known', mallId: 'annehearts' });
+  });
+
+  it('reports two different malls as ambiguous rather than picking the first', () => {
+    expect(
+      tenantMall({ shopDomain: 'amoebaorder.cafe24.com', storefrontUrl: 'https://annehearts.cafe24.com' }),
+    ).toEqual({ kind: 'ambiguous', mallIds: ['amoebaorder', 'annehearts'] });
+  });
+
+  it('strips anything that could forge a log line', () => {
+    // `shop` and thrown messages both reach the log from outside.
+    expect(logSafe('mall\r\nWARN  [Fake] injected')).toBe('mall WARN  [Fake] injected');
+    expect(logSafe(new Error('boom\nsecond line'))).toBe('boom second line');
+    expect(logSafe('x'.repeat(300))).toHaveLength(201); // 200 + ellipsis
   });
 });
 

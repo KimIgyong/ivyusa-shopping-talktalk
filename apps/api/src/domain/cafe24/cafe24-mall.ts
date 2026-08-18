@@ -36,21 +36,43 @@ export function mallIdFromHost(host: string): string | null {
 }
 
 /**
- * The mall a tenant's own storefront implies, or null when it cannot be known.
+ * What a tenant's own storefront says about which mall it is.
  *
- * Only `*.cafe24.com` is conclusive. A mall served from a custom domain gives us
- * nothing to compare against, and callers treat that as "cannot verify" rather
- * than "mismatch" — refusing a legitimate custom-domain install to catch a typo
- * is the wrong trade.
+ * Three outcomes, deliberately distinct — collapsing them is how this whole
+ * incident stayed invisible:
+ *  - `known`     one Cafe24 host, so a comparison is meaningful
+ *  - `unknown`   custom domain: nothing to read, callers proceed with a warning
+ *  - `ambiguous` the two fields name DIFFERENT malls, so the tenant record
+ *                itself is wrong and neither value can be trusted as "verified"
  */
-export function expectedMallIdForTenant(tenant: {
+export type TenantMall =
+  | { kind: 'known'; mallId: string }
+  | { kind: 'unknown' }
+  | { kind: 'ambiguous'; mallIds: string[] };
+
+export function tenantMall(tenant: {
   shopDomain?: string | null;
   storefrontUrl?: string | null;
-}): string | null {
+}): TenantMall {
+  const found: string[] = [];
   for (const raw of [tenant.shopDomain, tenant.storefrontUrl]) {
     if (!raw) continue;
     const m = CAFE24_HOST_RE.exec(hostOf(raw));
-    if (m) return m[1];
+    if (m && !found.includes(m[1])) found.push(m[1]);
   }
-  return null;
+  if (found.length === 0) return { kind: 'unknown' };
+  if (found.length === 1) return { kind: 'known', mallId: found[0] };
+  return { kind: 'ambiguous', mallIds: found };
+}
+
+/**
+ * Strip anything that could forge a log line, and bound the length.
+ *
+ * Both the storefront `shop` parameter and thrown error messages reach the log
+ * from outside, and a CR/LF in either lets a caller write their own log entries.
+ */
+export function logSafe(value: unknown, max = 200): string {
+  const text = value instanceof Error ? value.message : String(value ?? '');
+  const flat = text.replace(/[\r\n\t]+/g, ' ').replace(/[\x00-\x1f\x7f]/g, '');
+  return flat.length > max ? `${flat.slice(0, max)}…` : flat;
 }

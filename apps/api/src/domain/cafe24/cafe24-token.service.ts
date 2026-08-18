@@ -7,6 +7,7 @@ import { encryptSecret, decryptSecret } from '../../global/util/crypto.util';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
 import { cafe24ApiHost } from './cafe24-admin.client';
+import { logSafe } from './cafe24-mall';
 
 const CAFE24 = INTEGRATION_PROVIDER.CAFE24;
 const ACCESS_TTL_MARGIN_MS = 60_000;
@@ -62,13 +63,7 @@ export class Cafe24TokenService {
    * rows (few per deployment); returns null when no tenant owns the mall.
    */
   async findTenantIdByMallId(mallId: string): Promise<number | null> {
-    const creds = await this.credRepo.find({ where: { provider: CAFE24 } });
-    const owners: number[] = [];
-    for (const c of creds) {
-      if (!c.secretEnc) continue;
-      const parsed = this.parseCredential(decryptSecret(c.secretEnc));
-      if (parsed?.mallId === mallId) owners.push(c.tenantId);
-    }
+    const owners = await this.findMallOwners(mallId);
     if (owners.length === 1) return owners[0];
     if (owners.length > 1) {
       // Two tenants holding the same mall used to resolve to whichever row the
@@ -76,13 +71,35 @@ export class Cafe24TokenService {
       // the wrong tenant's session. Refuse and say so; sign-in failing loudly
       // beats it succeeding as the wrong merchant (REQ-260819).
       this.logger.error(
-        `Cafe24 mall "${mallId}" is claimed by ${owners.length} tenants (${owners.join(', ')}) — ` +
-          'refusing to guess. Disconnect the mall from all but its real owner.',
+        `Cafe24 mall "${logSafe(mallId, 60)}" is claimed by ${owners.length} tenants ` +
+          `(${owners.join(', ')}) — refusing to guess. Disconnect all but its real owner.`,
       );
       return null;
     }
-    this.logger.warn(`Cafe24 mall "${mallId}" is not connected to any tenant`);
+    this.logger.warn(`Cafe24 mall "${logSafe(mallId, 60)}" is not connected to any tenant`);
     return null;
+  }
+
+  /**
+   * Every tenant that currently claims `mallId`.
+   *
+   * Callers that must tell "nobody owns it" from "several do" need this rather
+   * than `findTenantIdByMallId`, which answers null to both — a distinction the
+   * install guard got wrong on its first pass: a mall already double-claimed
+   * read as free, so a third tenant could have connected it too.
+   *
+   * mall_id lives inside the AES-encrypted credential, so this scans+decrypts
+   * the Cafe24 rows (a handful per deployment).
+   */
+  async findMallOwners(mallId: string): Promise<number[]> {
+    const creds = await this.credRepo.find({ where: { provider: CAFE24 } });
+    const owners: number[] = [];
+    for (const c of creds) {
+      if (!c.secretEnc) continue;
+      const parsed = this.parseCredential(decryptSecret(c.secretEnc));
+      if (parsed?.mallId === mallId && !owners.includes(c.tenantId)) owners.push(c.tenantId);
+    }
+    return owners;
   }
 
   /** Resolve mall + a valid access token for a tenant, or null if not connected. */
