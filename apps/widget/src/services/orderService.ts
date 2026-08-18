@@ -23,11 +23,23 @@ export function guestLookup(
 export const INLINE_ORDER_LIMIT = 10;
 export const INLINE_ORDER_DAYS = 30;
 
-export function listOrders(sessionToken: string): Promise<OrderSummary[]> {
+/**
+ * The Orders TAB reads wider than the chat card: the card is interrupting a
+ * conversation and 10/30 keeps it short, while the tab is the screen the shopper
+ * opened on purpose (PLN-260818-Widget-Orders-Tab Q2). 90 is also the API's
+ * `DAYS_WINDOW_MAX` — asking for more is a 400, not a longer list.
+ */
+export const TAB_ORDER_LIMIT = 20;
+export const TAB_ORDER_DAYS = 90;
+
+export function listOrders(
+  sessionToken: string,
+  opts: { size?: number; days?: number } = {},
+): Promise<OrderSummary[]> {
   return apiClient.get<OrderSummary[]>('/orders', {
     session_token: sessionToken,
-    size: String(INLINE_ORDER_LIMIT),
-    days: String(INLINE_ORDER_DAYS),
+    size: String(opts.size ?? INLINE_ORDER_LIMIT),
+    days: String(opts.days ?? INLINE_ORDER_DAYS),
   });
 }
 

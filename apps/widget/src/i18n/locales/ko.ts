@@ -14,6 +14,7 @@ export const ko: Translation = {
   notifications: {
     empty: '아직 알림이 없습니다.',
     filters: {
+      orders: '주문내역',
       all: '전체',
       payment: '결제',
       shipping: '배송',
@@ -177,6 +178,7 @@ export const ko: Translation = {
   orders: {
     issues: {
       status: {
+      pendingPayment: '입금대기',
         received: '접수',
         in_progress: '진행중',
         resolved: '해결',
@@ -205,7 +207,17 @@ export const ko: Translation = {
       inquiries: '문의',
     },
     empty: '주문 내역이 없습니다.',
-    emptyRecent: '최근 30일 내 주문이 없습니다.',
+    emptyRecent: '최근 {{days}}일 내 주문이 없습니다.',
+    /** Order status, keyed off status_internal — see order-status.ts. */
+    status: {
+      paid: '결제완료',
+      preparing: '상품준비중',
+      shipping: '배송중',
+      delivered: '배송완료',
+      cancelRequested: '취소요청',
+      cancelled: '취소',
+      refunded: '환불',
+    },
     more: '더보기',
     moreInMyPage: '전체 주문 내역은 쇼핑몰 마이페이지에서 확인해 주세요.',
     viewAllOnMall: '마이페이지 바로가기',

@@ -5,10 +5,19 @@ import {
   listOrders,
 } from '../services/orderService';
 
-export function useOrders(sessionToken: string | null, enabled = true) {
+/**
+ * `opts` is part of the query key on purpose: the chat card asks for 10/30 and
+ * the Orders tab for 20/90, and one cache entry serving both would let whichever
+ * mounted first decide what the other sees.
+ */
+export function useOrders(
+  sessionToken: string | null,
+  enabled = true,
+  opts: { size?: number; days?: number } = {},
+) {
   return useQuery({
-    queryKey: ['orders', sessionToken],
-    queryFn: () => listOrders(sessionToken!),
+    queryKey: ['orders', sessionToken, opts.size ?? null, opts.days ?? null],
+    queryFn: () => listOrders(sessionToken!, opts),
     enabled: !!sessionToken && enabled,
   });
 }

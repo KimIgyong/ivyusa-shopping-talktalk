@@ -17,9 +17,16 @@ const NOTICE_CHIPS: ChipDef[] = [
 /**
  * Chips about a shopper's orders. `inquiries` is a sixth chip the design does
  * not show (PLN-260817 §7 D-3) — it is the only home the shipped issue feed has.
+ *
+ * `orders` leads, and it is the order LIST rather than a notification filter.
+ * It replaced a `payment` chip that read the notification feed: the Orders tab
+ * opened on it, and across the whole staging database not one `payment`
+ * notification had ever been written, so the tab named for orders opened empty
+ * for every shopper (REQ-260818-Widget-Orders-Tab C-1). Payment notices still
+ * reach the Notifications tab's `all`, so nothing was taken away.
  */
 const ORDER_CHIPS: ChipDef[] = [
-  { key: 'payment', labelKey: 'notifications.filters.payment' },
+  { key: 'orders', labelKey: 'notifications.filters.orders' },
   { key: 'shipping', labelKey: 'notifications.filters.shipping' },
   { key: 'review', labelKey: 'notifications.filters.review' },
   { key: 'inquiries', labelKey: 'notifications.filters.inquiries' },

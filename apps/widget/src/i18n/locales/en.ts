@@ -12,6 +12,7 @@ export const en = {
   notifications: {
     empty: 'No notifications yet.',
     filters: {
+      orders: 'Orders',
       all: 'All',
       payment: 'Payment',
       shipping: 'Shipping',
@@ -176,6 +177,7 @@ export const en = {
   orders: {
     issues: {
       status: {
+      pendingPayment: 'Payment pending',
         received: 'Received',
         in_progress: 'In progress',
         resolved: 'Resolved',
@@ -204,7 +206,17 @@ export const en = {
       inquiries: 'Inquiries',
     },
     empty: 'No orders found.',
-    emptyRecent: 'No orders in the last 30 days.',
+    emptyRecent: 'No orders in the last {{days}} days.',
+    /** Order status, keyed off status_internal — see order-status.ts. */
+    status: {
+      paid: 'Paid',
+      preparing: 'Preparing',
+      shipping: 'In transit',
+      delivered: 'Delivered',
+      cancelRequested: 'Cancellation requested',
+      cancelled: 'Cancelled',
+      refunded: 'Refunded',
+    },
     more: 'View more',
     moreInMyPage: 'For your full order history, please check My Page on the store.',
     viewAllOnMall: 'View all my orders',

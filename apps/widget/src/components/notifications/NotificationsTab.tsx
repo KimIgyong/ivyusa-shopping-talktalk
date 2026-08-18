@@ -13,6 +13,7 @@ import { Spinner } from '../ui/Spinner';
 import { formatDate, groupByDate, relativeTime } from '../../lib/format';
 import { NotificationIcon } from './NotificationIcon';
 import { ShipmentList } from './ShipmentList';
+import { OrderList } from '../orders/OrderList';
 import { OrderDetailView } from '../orders/OrderDetail';
 import { ReviewForm } from '../orders/ReviewForm';
 import { chipBelongsTo, chipsFor, defaultChip } from './tab-chips';
@@ -169,6 +170,8 @@ export function NotificationsTab({ tab = 'notifications' }: { tab?: TabKey } = {
 
   const isShipping = notifFilter === 'shipping';
   const isInquiries = notifFilter === 'inquiries';
+  // The order LIST, not a notification category — see tab-chips ORDER_CHIPS.
+  const isOrderList = notifFilter === 'orders';
   // What "all" covers. With both list tabs on, each shows only its own half —
   // otherwise Notifications' "All" would repeat every order row the Orders tab
   // is already showing and the chip split would buy nothing.
@@ -181,7 +184,7 @@ export function NotificationsTab({ tab = 'notifications' }: { tab?: TabKey } = {
       : NOTIFICATION_SCOPE.NOTICE;
   const { data, isLoading, isError, error } = useNotifications(
     sessionToken,
-    isShipping || isInquiries ? 'all' : notifFilter,
+    isShipping || isInquiries || isOrderList ? 'all' : notifFilter,
     scope,
   );
   const markRead = useMarkRead(sessionToken);
@@ -271,7 +274,9 @@ export function NotificationsTab({ tab = 'notifications' }: { tab?: TabKey } = {
       </div>
 
       <div className="scroll-thin flex-1 overflow-y-auto">
-        {isShipping ? (
+        {isOrderList ? (
+          <OrderList sessionToken={sessionToken} onOpenOrder={setOpenOrder} />
+        ) : isShipping ? (
           <ShipmentList sessionToken={sessionToken} onOpenOrder={setOpenOrder} />
         ) : isInquiries ? (
           <IssueFeed
@@ -312,8 +317,12 @@ export function NotificationsTab({ tab = 'notifications' }: { tab?: TabKey } = {
       </div>
 
       {/* The widget shows a bounded recent window inline (10 orders / 30 days);
-          the full, canonical history lives on the storefront's own my-page. */}
-      <div className="border-t border-gray-100">
+          the full, canonical history lives on the storefront's own my-page.
+          The order LIST is excluded: it carries its own my-page link, shown only
+          once its window is actually full, and two links to the same place —
+          one of them promising "more" to someone already seeing everything —
+          is worse than either alone. */}
+      <div className={`border-t border-gray-100 ${isOrderList ? 'hidden' : ''}`}>
         {!moreOpen ? (
           <button
             onClick={() => setMoreOpen(true)}
