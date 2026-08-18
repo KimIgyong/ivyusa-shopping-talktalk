@@ -1,5 +1,6 @@
 import type { TFunction } from 'i18next';
 import {
+  isOrderDelivered,
   isOrderInTransit,
   orderStatusLabel,
 } from '../../../../../packages/types/src/common/order-status';
@@ -20,3 +21,8 @@ export function statusLabel(t: TFunction, order: StatusFields): string | null {
 }
 
 export const isInTransit = (order: StatusFields): boolean => isOrderInTransit(order);
+export const isDelivered = (order: StatusFields): boolean => isOrderDelivered(order);
+
+/** Shown under the Shipping chip: on its way, or already there. */
+export const isShipmentish = (order: StatusFields): boolean =>
+  isOrderInTransit(order) || isOrderDelivered(order);

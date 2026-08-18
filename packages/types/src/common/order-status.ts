@@ -37,6 +37,9 @@ const STATUS_KEYS: Record<string, string> = {
 /** The only statuses that mean "moving". An allowlist, for the reason below. */
 const IN_TRANSIT_KEYS = new Set(['shipping']);
 
+/** …and the ones that mean it already arrived. */
+const DELIVERED_KEYS = new Set(['delivered']);
+
 /**
  * Platform wording that means in transit, used ONLY when we have no internal
  * status. Anchored, never a substring search.
@@ -95,4 +98,24 @@ export function isOrderInTransit(order: {
     return key ? IN_TRANSIT_KEYS.has(key) : false;
   }
   return IN_TRANSIT_UI.test((order.statusUi ?? '').trim());
+}
+
+/** Anchored platform wording for "arrived", used only without an internal status. */
+const DELIVERED_UI = /^(delivered|complete[d]?)$/i;
+
+/**
+ * Whether the order has arrived. Same allowlist discipline as
+ * `isOrderInTransit`, and for the same reason: `/deliver|complete/` as a
+ * substring would read "delivery failed" or "incomplete" as success.
+ */
+export function isOrderDelivered(order: {
+  statusInternal?: string | null;
+  statusUi?: string | null;
+}): boolean {
+  const internal = (order.statusInternal ?? '').toLowerCase().trim();
+  if (internal) {
+    const key = STATUS_KEYS[internal];
+    return key ? DELIVERED_KEYS.has(key) : false;
+  }
+  return DELIVERED_UI.test((order.statusUi ?? '').trim());
 }

@@ -1,4 +1,9 @@
-import { isOrderInTransit, orderStatusKey, orderStatusLabel } from './order-status';
+import {
+  isOrderDelivered,
+  isOrderInTransit,
+  orderStatusKey,
+  orderStatusLabel,
+} from './order-status';
 
 /** Stands in for i18next: returns the key so assertions read as intent. */
 const t = (key: string) => `t:${key}`;
@@ -95,5 +100,25 @@ describe('isOrderInTransit', () => {
 
   it('does not assume an unmapped internal status is moving', () => {
     expect(isOrderInTransit({ statusInternal: 'awaiting_customs', statusUi: null })).toBe(false);
+  });
+});
+
+describe('isOrderDelivered', () => {
+  it('is true only once the order actually arrived', () => {
+    expect(isOrderDelivered({ statusInternal: 'delivered', statusUi: 'Delivered' })).toBe(true);
+    expect(isOrderDelivered({ statusInternal: 'shipping', statusUi: 'In Transit' })).toBe(false);
+    expect(isOrderDelivered({ statusInternal: 'paid', statusUi: 'Confirmed' })).toBe(false);
+  });
+
+  it('does not read a failure as a success', () => {
+    // `/deliver|complete/` as a substring said yes to both of these, and the
+    // order-detail screen used it to print "this order has been delivered".
+    expect(isOrderDelivered({ statusInternal: null, statusUi: 'Delivery failed' })).toBe(false);
+    expect(isOrderDelivered({ statusInternal: null, statusUi: 'Incomplete' })).toBe(false);
+  });
+
+  it('falls back to platform wording only without an internal status', () => {
+    expect(isOrderDelivered({ statusInternal: null, statusUi: 'Delivered' })).toBe(true);
+    expect(isOrderDelivered({ statusInternal: 'preparing', statusUi: 'Delivered' })).toBe(false);
   });
 });
