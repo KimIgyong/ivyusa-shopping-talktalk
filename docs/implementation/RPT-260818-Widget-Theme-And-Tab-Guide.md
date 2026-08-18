@@ -5,7 +5,7 @@
 - 작성일: 2026-08-18
 - 문서 체인: `REQ-260818-…` → `PLN-260818-…` → 구현 → `TCR-260818-…` → 본 문서
 - PR: **#308** (`feature/widget-theme-and-tabs`) · 마이그레이션: `sql/migration_widget_theme.sql`
-- 배포: local ✅ / staging ⏳ / production ❌ (§8 리뷰 반영 후 진행)
+- 배포: local ✅ / **staging ✅ 2026-08-18** (merge `90d3a8f`) / production ❌
 
 ## 1. 요구별 결과
 
@@ -114,3 +114,20 @@ ALTER TABLE `tenants` ADD COLUMN `widget_theme` json NULL AFTER `notification_ch
 test **1,430건 전부 통과** — api 1,303 + common 60 + types 67.
 (§1의 "1,303 + 126"은 리뷰 반영 전 수치. types가 66→67로 늘어 127이 되었고,
 합계를 워크스페이스별로 풀어 적는다.)
+
+## 9. 스테이징 배포 결과 (2026-08-18)
+
+머지 `90d3a8f` · 마이그레이션 → 코드 순서 준수.
+
+| 단계 | 결과 |
+|---|---|
+| 스키마 백업 | `/root/backup-pre-widgettheme-20260818-124836.sql` (3,232B, CREATE TABLE 1건) — ⚠️ 앞 라운드에 받았다고 기록한 백업은 **서버에 실재하지 않았다**. `ssh + docker exec` 리다이렉트가 조용히 빈손으로 끝나는 함정(kit B-4). 이후로는 파일 크기까지 확인한다 |
+| SQL 선적용 | `widget_theme json NULL` 생성 확인, 재실행 exit 0(멱등), 백필 0건 |
+| 배포 | 컨테이너 8종 재생성, `Nest application successfully started`, api healthy |
+| 신규 라우트 | `/tenants/widget-theme` **401**(= 배포됨) · `/health` 200 |
+| 스키마 에러 | `Unknown column`/`QueryFailedError` **0건** (배포 후 6분) |
+| **3탭 전환** | `session/ensure` 실측 — tenant 1·3 모두 `['notifications','orders','chat']`, position `top`. 미설정 4개 테넌트 전부 2탭 → 3탭 |
+| 번들 | `.text-on-primary{color:rgb(var(--ivy-on-primary)/…)}` · `.text-header-dim{…var(--ivy-header-dim)}` 배포된 CSS에서 확인 |
+| 테마 왕복 | tenant 1에 `#FFD400`/brand 주입 → API가 그대로 반환 → 계산값 `on-primary = 17 24 39`(잉크), `header-dim = 1`, `600(230 191 0) < 500(255 212 0)`. **검증 후 NULL 복원 완료** |
+
+R-1(전경색 미적용)·R-3(헤더 감광)·R-4(램프 역전) 수정이 스테이징 실측으로 확인됐다.
