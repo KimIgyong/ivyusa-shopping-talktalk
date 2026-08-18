@@ -14,6 +14,7 @@ export const ja: Translation = {
   notifications: {
     empty: 'お知らせはまだありません。',
     filters: {
+      orders: '注文履歴',
       all: 'すべて',
       payment: 'お支払い',
       shipping: '配送',
@@ -209,7 +210,16 @@ export const ja: Translation = {
       inquiries: 'お問い合わせ',
     },
     empty: 'ご注文が見つかりません。',
-    emptyRecent: '過去30日間のご注文はありません。',
+    emptyRecent: '過去{{days}}日間のご注文はありません。',
+    /** Order status, keyed off status_internal — see order-status.ts. */
+    status: {
+      paid: '決済完了',
+      preparing: '商品準備中',
+      shipping: '配送中',
+      delivered: '配達完了',
+      cancelled: 'キャンセル',
+      refunded: '返金',
+    },
     more: 'もっと見る',
     moreInMyPage: 'すべての注文履歴は、ストアのマイページからご確認ください。',
     viewAllOnMall: '注文履歴をすべて見る',

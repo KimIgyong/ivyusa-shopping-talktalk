@@ -14,6 +14,7 @@ export const zh: Translation = {
   notifications: {
     empty: '暂无通知。',
     filters: {
+      orders: '订单记录',
       all: '全部',
       payment: '支付',
       shipping: '配送',
@@ -202,7 +203,16 @@ export const zh: Translation = {
       inquiries: '咨询',
     },
     empty: '未找到订单。',
-    emptyRecent: '最近 30 天内没有订单。',
+    emptyRecent: '最近 {{days}} 天内没有订单。',
+    /** Order status, keyed off status_internal — see order-status.ts. */
+    status: {
+      paid: '已付款',
+      preparing: '备货中',
+      shipping: '配送中',
+      delivered: '已送达',
+      cancelled: '已取消',
+      refunded: '已退款',
+    },
     more: '查看更多',
     moreInMyPage: '如需查看完整订单记录，请前往商店的「我的页面」。',
     viewAllOnMall: '查看我的全部订单',

@@ -14,6 +14,7 @@ export const es: Translation = {
   notifications: {
     empty: 'Aún no hay notificaciones.',
     filters: {
+      orders: 'Pedidos',
       all: 'Todas',
       payment: 'Pago',
       shipping: 'Envío',
@@ -205,7 +206,16 @@ export const es: Translation = {
       inquiries: 'Consultas',
     },
     empty: 'No se encontraron pedidos.',
-    emptyRecent: 'No hay pedidos en los últimos 30 días.',
+    emptyRecent: 'No hay pedidos en los últimos {{days}} días.',
+    /** Order status, keyed off status_internal — see order-status.ts. */
+    status: {
+      paid: 'Pagado',
+      preparing: 'En preparación',
+      shipping: 'En tránsito',
+      delivered: 'Entregado',
+      cancelled: 'Cancelado',
+      refunded: 'Reembolsado',
+    },
     more: 'Ver más',
     moreInMyPage: 'Para ver tu historial completo de pedidos, visita Mi Página en la tienda.',
     viewAllOnMall: 'Ver todos mis pedidos',

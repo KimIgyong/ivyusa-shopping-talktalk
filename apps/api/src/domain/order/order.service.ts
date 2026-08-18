@@ -98,13 +98,21 @@ export class OrderService {
    * to the top as "new".
    */
   async listForSession(sessionToken: string, page?: string, size?: string, days?: string) {
-    const customerId = await this.requireCustomerId(sessionToken);
+    const session = await this.sessionService.requireCustomer(sessionToken);
+    const customerId = session.customerId as number;
     const { page: p, size: s } = normalizePage(page, size);
     const windowDays = parseDaysWindow(days);
 
     const qb = this.orderRepo
       .createQueryBuilder('o')
       .where('o.customer_id = :customerId', { customerId });
+    // A customer already belongs to exactly one tenant, so this changes no
+    // result today. It is here because "tenant-scoped queries filter by
+    // tenant_id" (CLAUDE.md §2) is the rule that keeps that assumption from
+    // being the only thing standing between a shopper and someone else's orders.
+    if (session.tenantId != null) {
+      qb.andWhere('o.tenant_id = :tenantId', { tenantId: session.tenantId });
+    }
     if (windowDays != null) {
       qb.andWhere('COALESCE(o.ordered_at, o.created_at) >= DATE_SUB(NOW(), INTERVAL :d DAY)', {
         d: windowDays,

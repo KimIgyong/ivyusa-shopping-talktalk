@@ -14,6 +14,7 @@ export const vi: Translation = {
   notifications: {
     empty: 'Chưa có thông báo nào.',
     filters: {
+      orders: 'Đơn hàng',
       all: 'Tất cả',
       payment: 'Thanh toán',
       shipping: 'Vận chuyển',
@@ -209,7 +210,16 @@ export const vi: Translation = {
       inquiries: 'Yêu cầu hỗ trợ',
     },
     empty: 'Không tìm thấy đơn hàng nào.',
-    emptyRecent: 'Không có đơn hàng nào trong 30 ngày qua.',
+    emptyRecent: 'Không có đơn hàng nào trong {{days}} ngày qua.',
+    /** Order status, keyed off status_internal — see order-status.ts. */
+    status: {
+      paid: 'Đã thanh toán',
+      preparing: 'Đang chuẩn bị',
+      shipping: 'Đang giao',
+      delivered: 'Đã giao',
+      cancelled: 'Đã hủy',
+      refunded: 'Đã hoàn tiền',
+    },
     more: 'Xem thêm',
     moreInMyPage: 'Để xem toàn bộ lịch sử đơn hàng, vui lòng vào Trang của tôi trên cửa hàng.',
     viewAllOnMall: 'Xem tất cả đơn hàng của tôi',
