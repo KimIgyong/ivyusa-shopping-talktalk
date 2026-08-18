@@ -30,7 +30,7 @@ tenant 3 `amoebaorder`의 Cafe24 자격증명에 저장된 몰이 `annehearts`�
 ### G-2. 한 몰은 한 테넌트 (`createInstall`)
 이미 다른 테넌트가 연결한 몰이면 **거부**(E5046). 같은 테넌트의 재연결은 허용.
 
-### G-3. 모호한 조회는 거절 (`findTenantIdByMallId`)
+### G-3. 모호한 조회는 거절 (`findTenantIdByMallId` / `findMallOwners`)
 같은 몰을 두 테넌트가 들고 있으면 예전에는 **스캔 순서상 첫 행**을 반환했다. 즉 annehearts
 쇼핑객이 tenant 2가 아니라 tenant 3 세션에 묶일 수 있었다. 이제 모호하면 `null` + `error`
 로그. **로그인이 시끄럽게 실패하는 편이 엉뚱한 상점으로 성공하는 것보다 낫다.**
@@ -58,7 +58,7 @@ tenant 3 `amoebaorder`의 Cafe24 자격증명에 저장된 몰이 `annehearts`�
 | `E5045` `CAFE24_MALL_TENANT_MISMATCH` | 연결하려는 몰이 이 상점의 도메인과 다름 |
 | `E5046` `CAFE24_MALL_ALREADY_CONNECTED` | 다른 상점이 이미 연결한 몰 |
 
-## 4. 테스트 (신규 14건)
+## 4. 테스트 (신규 18건 — §6 반영분 포함)
 
 `cafe24-oauth.service.spec.ts` +5 · `cafe24-mall-binding.spec.ts` +9
 
@@ -72,7 +72,7 @@ tenant 3 `amoebaorder`의 Cafe24 자격증명에 저장된 몰이 `annehearts`�
 | 몰 불일치 시 `pullOrders` **미호출** | 오염이 시작조차 안 된다 |
 | 일치·커스텀 도메인은 정상 동기화 | 회귀 없음 |
 
-전체: typecheck ✅ · build ✅ · **1,467건 통과**(api 1,323 + common 60 + types 84)
+전체: typecheck ✅ · build ✅ · **1,471건 통과**(api 1,327 + common 60 + types 84)
 
 ## 5. 예방 패턴
 
