@@ -78,7 +78,7 @@ function OrderRow({
 
       {/* Progress belongs on the rows that are actually moving. Putting it on
           every row would make "delivered" and "in transit" look alike. */}
-      {tracking && isInTransit(order) && (
+      {tracking && (
         <div className="mt-3 w-full">
           <TrackingStepperH tracking={tracking} labels={trackingStepLabels(t)} />
         </div>
@@ -109,14 +109,21 @@ export function OrderList({
   });
   const orders = data ?? [];
 
+  // Filter FIRST, then bound. Bounding the raw list and filtering afterwards
+  // spends the budget on rows that were never going to draw a bar, so a sixth
+  // order that is genuinely moving would silently lose its progress.
+  const tracked = orders.filter(isInTransit).slice(0, TRACKED_MAX);
   const trackingQueries = useQueries({
-    queries: orders.slice(0, TRACKED_MAX).map((o) => ({
+    queries: tracked.map((o) => ({
       queryKey: ['tracking', o.id, sessionToken],
       queryFn: () => getTracking(o.id, sessionToken!),
-      enabled: !!sessionToken && isInTransit(o),
       staleTime: 60_000,
     })),
   });
+  // Index-into-`orders` no longer lines up with the query array — match by id.
+  const trackingById = new Map(
+    tracked.map((o, i) => [o.id, trackingQueries[i]?.data as Tracking | undefined]),
+  );
 
   const myPageUrl = myPageOrdersUrl();
 
@@ -144,11 +151,11 @@ export function OrderList({
 
   return (
     <div>
-      {orders.map((order, i) => (
+      {orders.map((order) => (
         <OrderRow
           key={order.id}
           order={order}
-          tracking={trackingQueries[i]?.data}
+          tracking={trackingById.get(order.id)}
           onOpen={() => onOpenOrder(order.id)}
         />
       ))}

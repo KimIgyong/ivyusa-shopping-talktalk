@@ -177,6 +177,7 @@ export const en = {
   orders: {
     issues: {
       status: {
+      pendingPayment: 'Payment pending',
         received: 'Received',
         in_progress: 'In progress',
         resolved: 'Resolved',
@@ -212,6 +213,7 @@ export const en = {
       preparing: 'Preparing',
       shipping: 'In transit',
       delivered: 'Delivered',
+      cancelRequested: 'Cancellation requested',
       cancelled: 'Cancelled',
       refunded: 'Refunded',
     },

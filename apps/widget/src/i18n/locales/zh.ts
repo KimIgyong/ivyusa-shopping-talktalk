@@ -175,6 +175,7 @@ export const zh: Translation = {
   orders: {
     issues: {
       status: {
+      pendingPayment: '待付款',
         received: '已受理',
         in_progress: '处理中',
         resolved: '已解决',
@@ -210,6 +211,7 @@ export const zh: Translation = {
       preparing: '备货中',
       shipping: '配送中',
       delivered: '已送达',
+      cancelRequested: '已申请取消',
       cancelled: '已取消',
       refunded: '已退款',
     },

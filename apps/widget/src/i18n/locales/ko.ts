@@ -178,6 +178,7 @@ export const ko: Translation = {
   orders: {
     issues: {
       status: {
+      pendingPayment: '입금대기',
         received: '접수',
         in_progress: '진행중',
         resolved: '해결',
@@ -213,6 +214,7 @@ export const ko: Translation = {
       preparing: '상품준비중',
       shipping: '배송중',
       delivered: '배송완료',
+      cancelRequested: '취소요청',
       cancelled: '취소',
       refunded: '환불',
     },

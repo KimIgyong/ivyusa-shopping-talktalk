@@ -317,8 +317,12 @@ export function NotificationsTab({ tab = 'notifications' }: { tab?: TabKey } = {
       </div>
 
       {/* The widget shows a bounded recent window inline (10 orders / 30 days);
-          the full, canonical history lives on the storefront's own my-page. */}
-      <div className="border-t border-gray-100">
+          the full, canonical history lives on the storefront's own my-page.
+          The order LIST is excluded: it carries its own my-page link, shown only
+          once its window is actually full, and two links to the same place —
+          one of them promising "more" to someone already seeing everything —
+          is worse than either alone. */}
+      <div className={`border-t border-gray-100 ${isOrderList ? 'hidden' : ''}`}>
         {!moreOpen ? (
           <button
             onClick={() => setMoreOpen(true)}

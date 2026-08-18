@@ -9,6 +9,9 @@ describe('orderStatusKey', () => {
     expect(orderStatusKey('shipping')).toBe('shipping');
     expect(orderStatusKey('delivered')).toBe('delivered');
     expect(orderStatusKey('refunded')).toBe('refunded');
+    // Both of these exist in staging data and had no label before.
+    expect(orderStatusKey('pending_payment')).toBe('pendingPayment');
+    expect(orderStatusKey('cancel_requested')).toBe('cancelRequested');
   });
 
   it('folds the synonyms platforms actually send', () => {
@@ -49,10 +52,10 @@ describe('orderStatusLabel', () => {
 });
 
 describe('isOrderInTransit', () => {
-  it('is true for orders that are moving, on either field', () => {
+  it('is true for orders that are moving', () => {
     expect(isOrderInTransit({ statusInternal: 'shipping', statusUi: null })).toBe(true);
-    expect(isOrderInTransit({ statusInternal: null, statusUi: 'In Transit' })).toBe(true);
-    expect(isOrderInTransit({ statusInternal: 'fulfilled', statusUi: null })).toBe(true);
+    expect(isOrderInTransit({ statusInternal: 'shipped', statusUi: null })).toBe(true);
+    expect(isOrderInTransit({ statusInternal: 'in_transit', statusUi: 'In Transit' })).toBe(true);
   });
 
   it('is false for a paid order — which must still be LISTED', () => {
@@ -66,5 +69,31 @@ describe('isOrderInTransit', () => {
 
   it('is false for a cancelled order', () => {
     expect(isOrderInTransit({ statusInternal: 'cancelled', statusUi: 'Cancelled' })).toBe(false);
+  });
+
+  it('is FALSE for Shopify\'s "Unfulfilled" — the word contains "fulfil"', () => {
+    // A substring match read this as shipped, so the least-shipped orders drew a
+    // progress bar and each fired a tracking request.
+    expect(isOrderInTransit({ statusInternal: null, statusUi: 'Unfulfilled' })).toBe(false);
+    expect(isOrderInTransit({ statusInternal: 'unfulfilled', statusUi: null })).toBe(false);
+  });
+
+  it('lets the internal status win when the two fields disagree', () => {
+    // Staging really holds this pair: we say preparing, the platform says
+    // In Transit. The value WE write is the one we can reason about.
+    expect(isOrderInTransit({ statusInternal: 'preparing', statusUi: 'In Transit' })).toBe(false);
+  });
+
+  it('reads the platform wording only when no internal status exists', () => {
+    expect(isOrderInTransit({ statusInternal: null, statusUi: 'In Transit' })).toBe(true);
+    expect(isOrderInTransit({ statusInternal: '', statusUi: 'out for delivery' })).toBe(true);
+    // Whole string only — "transit" inside a longer phrase is not a match.
+    expect(isOrderInTransit({ statusInternal: null, statusUi: 'transit delay reported' })).toBe(
+      false,
+    );
+  });
+
+  it('does not assume an unmapped internal status is moving', () => {
+    expect(isOrderInTransit({ statusInternal: 'awaiting_customs', statusUi: null })).toBe(false);
   });
 });

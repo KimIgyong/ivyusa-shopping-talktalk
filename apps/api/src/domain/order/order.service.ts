@@ -103,16 +103,18 @@ export class OrderService {
     const { page: p, size: s } = normalizePage(page, size);
     const windowDays = parseDaysWindow(days);
 
+    // The tenant is ALWAYS applied. When the session predates the binding we
+    // recover it from the customer row rather than dropping the condition —
+    // a missing tenant must narrow the query, never widen it (CLAUDE.md §2).
+    const tenantId = session.tenantId ?? (await this.tenantIdOfCustomer(customerId));
+    if (tenantId == null) {
+      throw new BusinessException(ERROR_CODE.TENANT_NOT_FOUND, HttpStatus.BAD_REQUEST);
+    }
+
     const qb = this.orderRepo
       .createQueryBuilder('o')
-      .where('o.customer_id = :customerId', { customerId });
-    // A customer already belongs to exactly one tenant, so this changes no
-    // result today. It is here because "tenant-scoped queries filter by
-    // tenant_id" (CLAUDE.md §2) is the rule that keeps that assumption from
-    // being the only thing standing between a shopper and someone else's orders.
-    if (session.tenantId != null) {
-      qb.andWhere('o.tenant_id = :tenantId', { tenantId: session.tenantId });
-    }
+      .where('o.customer_id = :customerId', { customerId })
+      .andWhere('o.tenant_id = :tenantId', { tenantId });
     if (windowDays != null) {
       qb.andWhere('COALESCE(o.ordered_at, o.created_at) >= DATE_SUB(NOW(), INTERVAL :d DAY)', {
         d: windowDays,
@@ -365,6 +367,12 @@ export class OrderService {
    */
   private requireCustomerId(token: string): Promise<number> {
     return this.sessionService.requireCustomerId(token);
+  }
+
+  /** Trusted tenant for a customer — read from the DB, never from the client. */
+  private async tenantIdOfCustomer(customerId: number): Promise<number | null> {
+    const customer = await this.customerRepo.findOne({ where: { id: customerId } });
+    return customer?.tenantId ?? null;
   }
 
   private async enforceLookupLimit(email: string): Promise<void> {

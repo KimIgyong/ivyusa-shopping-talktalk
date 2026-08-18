@@ -5,7 +5,10 @@ import { OrderService } from './order.service';
  * (PLN-260818-Widget-Orders-Tab S5).
  */
 describe('OrderService.listForSession', () => {
-  function build(session: { customerId: number | null; tenantId: number | null }) {
+  function build(
+    session: { customerId: number | null; tenantId: number | null },
+    customerTenantId: number | null = 1,
+  ) {
     const wheres: Array<{ clause: string; params: unknown }> = [];
     // `id` is a STRING: TypeORM hands bigint PKs back as strings, and a numeric
     // fixture has hidden a production mismatch here before.
@@ -48,13 +51,18 @@ describe('OrderService.listForSession', () => {
       find: jest.fn().mockResolvedValue([]),
     };
     const sessionService = { requireCustomer: jest.fn().mockResolvedValue(session) };
+    const customerRepo = {
+      findOne: jest.fn().mockResolvedValue(
+        customerTenantId == null ? null : { id: session.customerId, tenantId: customerTenantId },
+      ),
+    };
 
     const svc = new OrderService(
       orderRepo as never,
       itemRepo as never,
       {} as never, // fulfillRepo
       {} as never, // sessionRepo
-      {} as never, // customerRepo
+      customerRepo as never,
       {} as never, // bus
       {} as never, // redis
       {} as never, // webhookSecretService
@@ -78,14 +86,22 @@ describe('OrderService.listForSession', () => {
     );
   });
 
-  it('still lists when the session carries no tenant, rather than returning nothing', async () => {
-    // Legacy sessions predate the tenant binding. Adding an `IS NULL` here would
-    // hide every order from them; the customer filter already scopes the read.
-    const { svc, wheres } = build({ customerId: 7, tenantId: null });
+  it('recovers the tenant from the customer when the session has none', async () => {
+    // Legacy sessions predate the tenant binding. Dropping the condition for
+    // them would let a missing tenant WIDEN the query; the customer row is a
+    // trusted source, so it narrows instead.
+    const { svc, wheres } = build({ customerId: 7, tenantId: null }, 5);
     const result = await svc.listForSession('tok');
 
-    expect(wheres.some((w) => w.clause.includes('tenant_id'))).toBe(false);
+    expect(wheres).toEqual(
+      expect.arrayContaining([{ clause: 'o.tenant_id = :tenantId', params: { tenantId: 5 } }]),
+    );
     expect(result.items).toHaveLength(2);
+  });
+
+  it('refuses rather than running an unscoped query when no tenant can be found', async () => {
+    const { svc } = build({ customerId: 7, tenantId: null }, null);
+    await expect(svc.listForSession('tok')).rejects.toThrow();
   });
 
   it('returns every status — a paid order is listed, not filtered out', async () => {

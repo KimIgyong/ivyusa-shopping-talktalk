@@ -178,6 +178,7 @@ export const es: Translation = {
   orders: {
     issues: {
       status: {
+      pendingPayment: 'Pago pendiente',
         received: 'Recibida',
         in_progress: 'En curso',
         resolved: 'Resuelta',
@@ -213,6 +214,7 @@ export const es: Translation = {
       preparing: 'En preparación',
       shipping: 'En tránsito',
       delivered: 'Entregado',
+      cancelRequested: 'Cancelación solicitada',
       cancelled: 'Cancelado',
       refunded: 'Reembolsado',
     },

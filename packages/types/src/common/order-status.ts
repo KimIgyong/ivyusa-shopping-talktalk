@@ -17,6 +17,7 @@
  * either), so translating it would be a guess that breaks per shop.
  */
 const STATUS_KEYS: Record<string, string> = {
+  pending_payment: 'pendingPayment',
   paid: 'paid',
   confirmed: 'paid',
   preparing: 'preparing',
@@ -27,10 +28,20 @@ const STATUS_KEYS: Record<string, string> = {
   in_transit: 'shipping',
   delivered: 'delivered',
   completed: 'delivered',
+  cancel_requested: 'cancelRequested',
   cancelled: 'cancelled',
   canceled: 'cancelled',
   refunded: 'refunded',
 };
+
+/** The only statuses that mean "moving". An allowlist, for the reason below. */
+const IN_TRANSIT_KEYS = new Set(['shipping']);
+
+/**
+ * Platform wording that means in transit, used ONLY when we have no internal
+ * status. Anchored, never a substring search.
+ */
+const IN_TRANSIT_UI = /^(in[\s_-]?transit|shipped|shipping|out for delivery|fulfilled)$/i;
 
 /** i18n sub-key under `orders.status`, or null when we have no name for it. */
 export function orderStatusKey(statusInternal?: string | null): string | null {
@@ -56,16 +67,32 @@ export function orderStatusLabel(
 }
 
 /**
- * Whether the order is on its way — the only rows that show tracking steps.
+ * Whether the order is on its way — the only rows that draw tracking steps.
  *
- * Reads both fields because a mall that never sets `status_internal` still
- * deserves a progress bar, and because this must NOT decide visibility: an order
- * that is not in transit still appears in the list, just without steps. That is
- * the bug this whole change exists to undo (REQ-260818-Widget-Orders-Tab C-3).
+ * An allowlist, not a substring match. `/ship|transit|fulfil/` looked equivalent
+ * and was not: it matches **`Unfulfilled`**, which is Shopify's word for an order
+ * that has NOT shipped, so the least-shipped orders would have drawn a progress
+ * bar and fired a tracking request each.
+ *
+ * `statusInternal` wins whenever we have it, because the two fields genuinely
+ * disagree in production — staging holds rows with `preparing` / "In Transit" —
+ * and the value we write is the one we can reason about. `statusUi` is consulted
+ * only when the internal status is missing, and then only as a whole string.
+ *
+ * This must NOT decide visibility: an order that is not in transit still appears
+ * in the list, just without steps. Filtering on it is the bug this change undoes
+ * (REQ-260818-Widget-Orders-Tab C-3).
  */
 export function isOrderInTransit(order: {
   statusInternal?: string | null;
   statusUi?: string | null;
 }): boolean {
-  return /ship|transit|fulfil/i.test(`${order.statusInternal ?? ''} ${order.statusUi ?? ''}`);
+  const internal = (order.statusInternal ?? '').toLowerCase().trim();
+  if (internal) {
+    const key = STATUS_KEYS[internal];
+    // An unmapped internal status is not assumed to be moving — guessing here
+    // is what put a progress bar on `Unfulfilled`.
+    return key ? IN_TRANSIT_KEYS.has(key) : false;
+  }
+  return IN_TRANSIT_UI.test((order.statusUi ?? '').trim());
 }

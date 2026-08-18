@@ -182,6 +182,7 @@ export const ja: Translation = {
   orders: {
     issues: {
       status: {
+      pendingPayment: '入金待ち',
         received: '受付済み',
         in_progress: '対応中',
         resolved: '解決済み',
@@ -217,6 +218,7 @@ export const ja: Translation = {
       preparing: '商品準備中',
       shipping: '配送中',
       delivered: '配達完了',
+      cancelRequested: 'キャンセル申請中',
       cancelled: 'キャンセル',
       refunded: '返金',
     },

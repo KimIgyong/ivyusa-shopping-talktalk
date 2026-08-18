@@ -182,6 +182,7 @@ export const vi: Translation = {
   orders: {
     issues: {
       status: {
+      pendingPayment: 'Chờ thanh toán',
         received: 'Đã tiếp nhận',
         in_progress: 'Đang xử lý',
         resolved: 'Đã giải quyết',
@@ -217,6 +218,7 @@ export const vi: Translation = {
       preparing: 'Đang chuẩn bị',
       shipping: 'Đang giao',
       delivered: 'Đã giao',
+      cancelRequested: 'Đã yêu cầu hủy',
       cancelled: 'Đã hủy',
       refunded: 'Đã hoàn tiền',
     },
