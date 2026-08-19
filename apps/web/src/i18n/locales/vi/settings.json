@@ -454,5 +454,29 @@
     "previewStatus": "Đã xác nhận",
     "brandPickerA11y": "Bộ chọn màu thương hiệu",
     "brandHexA11y": "Mã hex màu thương hiệu"
+  },
+  "embed": {
+    "title": "Nhúng & SDK",
+    "description": "Cài widget lên trang của bạn và để máy chủ của bạn cho widget biết ai đang đăng nhập.",
+    "snippet": "Mã cài đặt",
+    "copy": "Sao chép",
+    "origins": "Tên miền được phép",
+    "originsHint": "Widget chỉ tải trên các tên miền này. Để trống nếu chỉ cho phép tên miền cửa hàng của bạn.",
+    "originsEmpty": "Chưa thêm tên miền — hiện đang cho phép: {{origins}}",
+    "originsNone": "tên miền cửa hàng của bạn",
+    "add": "Thêm",
+    "remove": "Xoá {{origin}}",
+    "originsSaved": "Đã lưu tên miền được phép",
+    "originsSaveError": "Không thể lưu tên miền được phép",
+    "secret": "Liên kết đăng nhập (tuỳ chọn)",
+    "secretHint": "Máy chủ của bạn ký id người dùng bằng khoá bí mật này; widget sẽ nhận ra người dùng đó.",
+    "secretMissing": "Chưa tạo",
+    "generate": "Tạo khoá",
+    "rotate": "Tạo lại",
+    "rotateWarning": "Các chữ ký tạo bằng khoá hiện tại sẽ ngừng hoạt động ngay lập tức. Việc đăng nhập sẽ lỗi cho đến khi bạn cập nhật máy chủ, và khách sẽ hiển thị là khách vãng lai.",
+    "secretOnce": "Hãy sao chép ngay — giá trị này không hiển thị lại.",
+    "secretRotated": "Đã tạo khoá bí mật mới",
+    "secretRotateError": "Không thể tạo khoá bí mật",
+    "originPlaceholder": "https://www.example.com"
   }
 }

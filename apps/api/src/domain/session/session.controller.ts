@@ -21,7 +21,12 @@ export class SessionController {
   @SkipThrottle() // runs on every storefront page load — exclude from the flood limit
   @ApiOperation({ summary: 'Create or resume a widget session (S1)' })
   async ensure(@Body() body: EnsureSessionRequest) {
-    const s = await this.sessionService.ensure(body.session_token, body.locale, body.shop_domain);
+    const s = await this.sessionService.ensure(
+      body.session_token,
+      body.locale,
+      body.shop_domain,
+      body.parent_origin,
+    );
     const notice = await this.sessionService.privacyNotice(s.tenantId);
     return SessionMapper.toResponse(s, notice, await this.sessionService.customerDisplayName(s));
   }

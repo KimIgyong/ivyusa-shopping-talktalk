@@ -6,6 +6,7 @@ import { buildPagination, normalizePage } from '@ivy/common';
 import { TenantService } from './tenant.service';
 import { EcommerceIntegrationService } from './ecommerce-integration.service';
 import { TenantMapper } from './tenant.mapper';
+import { EmbedService } from '../embed/embed.service';
 import {
   CreateTenantRequest,
   ListTenantsQuery,
@@ -15,6 +16,7 @@ import {
   UpdateStorefrontRequest,
   UpdateNotificationChannelsRequest,
   UpdateWidgetThemeRequest,
+  UpdateEmbedOriginsRequest,
   UpdateWidgetSettingsRequest,
   UpdateTenantStatusRequest,
   UpsertCredentialRequest,
@@ -32,6 +34,7 @@ export class TenantController {
   constructor(
     private readonly tenantService: TenantService,
     private readonly ecommerceIntegrationService: EcommerceIntegrationService,
+    private readonly embedService: EmbedService,
   ) {}
 
   @Get()
@@ -158,6 +161,57 @@ export class TenantController {
     }
     const tenant = await this.tenantService.updateWidgetTheme(user.tenantId, user.userId, body);
     return TenantMapper.toWidgetTheme(tenant);
+  }
+
+  @Get('embed-settings')
+  @RequireRank(USER_RANK.MASTER, USER_RANK.DIRECTOR)
+  @ApiOperation({ summary: 'Embed allowlist + whether a signing secret exists' })
+  async getEmbedSettings(@CurrentUser() user: Principal) {
+    const tenant = await this.tenantService.findById(this.tenantId(user));
+    return TenantMapper.toEmbedSettings(tenant);
+  }
+
+  @Patch('embed-origins')
+  @RequireRank(USER_RANK.MASTER, USER_RANK.DIRECTOR)
+  @ApiOperation({ summary: 'Replace the domains allowed to embed this widget' })
+  async updateEmbedOrigins(
+    @CurrentUser() user: Principal,
+    @Body() body: UpdateEmbedOriginsRequest,
+  ) {
+    // @RequireRank guarantees a tenant user at runtime; narrow for TS.
+    if (user.actorType !== 'user') {
+      throw new BusinessException(ERROR_CODE.FORBIDDEN, HttpStatus.FORBIDDEN);
+    }
+    const tenant = await this.tenantService.updateEmbedOrigins(
+      user.tenantId,
+      user.userId,
+      body.origins,
+    );
+    return TenantMapper.toEmbedSettings(tenant);
+  }
+
+  /**
+   * Issue a new signing secret. The plaintext is in THIS response and nowhere
+   * else — it is stored encrypted and never read back out, so a console that
+   * loses it has to rotate again. Rotating invalidates every signature the
+   * customer's server is currently producing, which is why the UI confirms.
+   */
+  @Post('embed-secret/rotate')
+  @RequireRank(USER_RANK.MASTER)
+  @ApiOperation({ summary: 'Generate (or replace) the identify() signing secret' })
+  async rotateEmbedSecret(@CurrentUser() user: Principal) {
+    if (user.actorType !== 'user') {
+      throw new BusinessException(ERROR_CODE.FORBIDDEN, HttpStatus.FORBIDDEN);
+    }
+    const secret = await this.embedService.rotateSecret(user.tenantId);
+    // The secret is already rotated by this point and this response is the only
+    // place it exists in plaintext. A failing audit write must not turn that into
+    // a 500 the operator reads as "nothing happened" — they would be locked out
+    // of a secret that is already live.
+    await this.tenantService
+      .auditEmbedSecretRotated(user.tenantId, user.userId)
+      .catch(() => undefined);
+    return { secret };
   }
 
   @Patch('widget-settings')

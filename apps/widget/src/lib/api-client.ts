@@ -1,7 +1,30 @@
 import axios, { AxiosError } from 'axios';
 
-const BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1';
+/**
+ * API base, resolved at RUNTIME (PLN-260819 S3).
+ *
+ * It used to be `import.meta.env.VITE_API_BASE_URL`, which Vite inlines at build
+ * time — so every customer needed their own bundle. Now the deployment drops a
+ * `widget-config.json` next to the bundle and one build serves them all.
+ *
+ * Resolution order, most specific first:
+ *   1. `window.__SHOPTALK_CONFIG__.apiBase`  — set by the pre-boot config fetch
+ *   2. `VITE_API_BASE_URL`                   — dev convenience, still honoured
+ *   3. same origin `/api/v1`                 — what a co-deployed stack serves
+ *
+ * Deliberately NOT read from the URL: a query parameter would let any page point
+ * the widget at an API of its choosing.
+ */
+function resolveBaseUrl(): string {
+  const injected = (window as unknown as { __SHOPTALK_CONFIG__?: { apiBase?: string } })
+    .__SHOPTALK_CONFIG__?.apiBase;
+  if (injected) return injected.replace(/\/+$/, '');
+  const fromEnv = import.meta.env.VITE_API_BASE_URL;
+  if (fromEnv) return String(fromEnv).replace(/\/+$/, '');
+  return `${window.location.origin}/api/v1`;
+}
+
+const BASE_URL = resolveBaseUrl();
 
 export const SESSION_STORAGE_KEY = 'ivy_session';
 

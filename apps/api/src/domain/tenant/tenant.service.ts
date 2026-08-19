@@ -45,6 +45,7 @@ import {
   UpdateShopifySettingsRequest,
 } from './dto/request/tenant.request';
 import { AuditService } from '../audit/audit.service';
+import { parseOrigin } from '../embed/embed-origin.util';
 import { ShopifyTestResponse } from './dto/response/tenant.response';
 
 /** provider/name key used for the Shopify credential and integration status. */
@@ -366,6 +367,58 @@ export class TenantService {
    * readable foregrounds are derived on read, so the stored value cannot drift
    * out of step with what shoppers actually see.
    */
+  /**
+   * Replace the embed allowlist (PLN-260819 S1).
+   *
+   * An EMPTY list is stored as NULL, not as `[]`: "I removed my last entry" and
+   * "I never configured this" must land on the same behaviour, which is the
+   * tenant's own storefront. Storing `[]` would mean "allow nothing" and take
+   * the widget offline the moment someone tidies the list.
+   */
+  async updateEmbedOrigins(
+    tenantId: number,
+    actorId: number,
+    origins: string[],
+  ): Promise<Tenant> {
+    const cleaned: string[] = [];
+    for (const raw of origins) {
+      const parsed = parseOrigin(raw);
+      if (!parsed) {
+        this.logger.warn(`embed origin rejected: unusable value (tenant ${tenantId})`);
+        throw new BusinessException(ERROR_CODE.VALIDATION_FAILED, HttpStatus.BAD_REQUEST);
+      }
+      // Keep the operator's wildcard, but normalise scheme/host/port around it.
+      const host = raw.trim().replace(/^[a-z]+:\/\//i, '').split('/')[0].toLowerCase();
+      const value = host.startsWith('*.')
+        ? `${parsed.scheme}://${host}`
+        : `${parsed.scheme}://${parsed.host}${parsed.port ? `:${parsed.port}` : ''}`;
+      if (!cleaned.includes(value)) cleaned.push(value);
+    }
+
+    const tenant = await this.findById(tenantId);
+    tenant.embedOrigins = cleaned.length ? cleaned : null;
+    const saved = await this.tenantRepo.save(tenant);
+    await this.audit.write({
+      tenantId,
+      actorType: 'user',
+      actorId,
+      action: 'tenant.embed_origins_updated',
+      target: cleaned.length ? cleaned.join(', ') : '(default: storefront only)',
+    });
+    return saved;
+  }
+
+  /** Secret rotation is a privileged action; the value itself is never logged. */
+  async auditEmbedSecretRotated(tenantId: number, actorId: number): Promise<void> {
+    await this.audit.write({
+      tenantId,
+      actorType: 'user',
+      actorId,
+      action: 'tenant.embed_secret_rotated',
+      target: 'embed signing secret',
+    });
+  }
+
   async updateWidgetTheme(
     tenantId: number,
     actorId: number,
