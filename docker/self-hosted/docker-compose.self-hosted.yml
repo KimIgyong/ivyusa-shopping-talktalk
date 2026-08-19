@@ -1,0 +1,145 @@
+# ShopTalk — self-hosted stack (PLN-260820).
+#
+# One customer, one deployment, inside their own cloud: conversations and files
+# never leave the account that runs this file.
+#
+#   bash scripts/deploy-self-hosted.sh
+#
+# Compose project name keeps volumes apart from any other stack on the host:
+#   COMPOSE_PROJECT_NAME=shoptalk (set by the deploy script)
+#
+# TLS is NOT terminated here. Put your own load balancer / nginx / Caddy in
+# front of :8080 — a customer's cloud already has one, and certificates belong
+# where their other certificates live.
+name: shoptalk
+
+services:
+  api:
+    build:
+      context: ../..
+      dockerfile: docker/self-hosted/Dockerfile.api
+    container_name: shoptalk_api
+    restart: unless-stopped
+    env_file:
+      - ./.env.self-hosted
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      rabbitmq:
+        condition: service_started
+    expose:
+      - '3000'
+    volumes:
+      # Chat attachments and the widget logo. The image is rebuilt on every
+      # upgrade, so anything written outside this volume is gone by the next
+      # one — silently, because nothing errors when it happens.
+      - shoptalk_uploads:/data/uploads
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://localhost:3000/api/v1/health']
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+
+  web:
+    build:
+      context: ../..
+      dockerfile: docker/self-hosted/Dockerfile.web
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL}
+    container_name: shoptalk_web
+    restart: unless-stopped
+    expose:
+      - '80'
+
+  # The storefront widget. Missing from the old production stack, which is why
+  # a customer domain like talk.example.com had nothing to serve.
+  widget:
+    build:
+      context: ../..
+      dockerfile: docker/self-hosted/Dockerfile.widget
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL}
+        VITE_BASE: /widget/
+    container_name: shoptalk_widget
+    restart: unless-stopped
+    expose:
+      - '80'
+
+  mysql:
+    image: mysql:8.0
+    container_name: shoptalk_mysql
+    restart: unless-stopped
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    ports:
+      # Loopback only. Reach it through an SSH tunnel or your cloud's bastion,
+      # never over the internet.
+      - '127.0.0.1:3306:3306'
+    volumes:
+      - shoptalk_mysql_data:/var/lib/mysql
+      # Schema comes from docker/init-sql/01-schema.sql on first boot, then from
+      # sql/migration_*.sql applied MANUALLY before each upgrade (deploy
+      # standard 04 §3). DB_SYNCHRONIZE stays false.
+      - ../init-sql:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: shoptalk_redis
+    restart: unless-stopped
+    volumes:
+      - shoptalk_redis_data:/data
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: shoptalk_rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+    volumes:
+      - shoptalk_rabbitmq_data:/var/lib/rabbitmq
+
+  qdrant:
+    image: qdrant/qdrant:v1.15.1
+    container_name: shoptalk_qdrant
+    restart: unless-stopped
+    expose:
+      - '6333'
+    volumes:
+      - shoptalk_qdrant_data:/qdrant/storage
+
+  nginx:
+    image: nginx:alpine
+    container_name: shoptalk_nginx
+    restart: unless-stopped
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      # Per-deployment widget runtime config (PLN-260819 S3): one widget build
+      # serves every deployment, and this file tells it which API to call.
+      - ./widget-config.js:/usr/share/nginx/widget-config.js:ro
+    depends_on:
+      - api
+      - web
+      - widget
+    ports:
+      - '${HTTP_PORT:-8080}:80'
+
+volumes:
+  # Named after the project so `docker volume ls` says what they belong to.
+  shoptalk_uploads:
+  shoptalk_mysql_data:
+  shoptalk_redis_data:
+  shoptalk_rabbitmq_data:
+  shoptalk_qdrant_data:

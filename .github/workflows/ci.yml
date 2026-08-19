@@ -35,6 +35,17 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
+      # A variable the code reads but the self-hosted template never mentions is
+      # not a failure an operator can see: it falls back to a default and works
+      # until the default is wrong. UPLOAD_DIR is the example that costs files.
+      - name: Env template completeness
+        run: npm run env:check
+
+      # The deploy-time migration check reads sql/artefacts.tsv, so a stale
+      # manifest tells a customer a pending migration is already applied.
+      - name: Migration manifest is current
+        run: node scripts/check-migrations.mjs --check
+
       - name: Test
         run: npm test
 
