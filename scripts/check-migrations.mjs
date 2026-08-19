@@ -41,6 +41,9 @@ function normalise(sql) {
   return sql
     .replace(/\/\*[\s\S]*?\*\//g, ' ')
     .replace(/^\s*--.*$/gm, ' ')
+    // MySQL also treats `#` as a line comment; a commented-out ALTER would
+    // otherwise be recorded as an artefact the file never creates.
+    .replace(/^\s*#.*$/gm, ' ')
     .replace(/\s+/g, ' ');
 }
 

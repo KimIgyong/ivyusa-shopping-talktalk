@@ -21,6 +21,8 @@ fi
 # hand an operator a value that boots fine in dev and refuses in production.
 PLACEHOLDER='change_me|changeme|placeholder|example|dev_|_dev|secret_here|xxxx'
 
+RABBIT_PW="$(openssl rand -hex 16)"
+
 hex() { openssl rand -hex "$1"; }
 
 b64() {
@@ -52,8 +54,11 @@ FILE_URL_SECRET=$(hex 32)
 
 DB_PASSWORD=$(hex 16)
 DB_ROOT_PASSWORD=$(hex 16)
-RABBITMQ_PASSWORD=$(hex 16)
-# Remember to put the same RabbitMQ password into RABBITMQ_URL.
+RABBITMQ_PASSWORD=${RABBIT_PW}
+# Emitted with the password already in it. Printing the two separately left the
+# template's CHANGE_ME in the URL, so RabbitMQ took the new password and the API
+# kept trying the old one.
+RABBITMQ_URL=amqp://ivy:${RABBIT_PW}@rabbitmq:5672
 
 # First console login; must be changed on first sign-in.
 SEED_PASSWORD=$(hex 8)!Aa

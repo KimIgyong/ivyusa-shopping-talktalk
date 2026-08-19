@@ -24,9 +24,17 @@ CONTAINER="${MYSQL_CONTAINER:-shoptalk_mysql}"
 # makes DATABASE() return NULL, and every information_schema filter on it comes
 # back empty — a silent "nothing is applied" that looks like a broken database.
 mysql_q() {
-  docker exec "$CONTAINER" sh -lc \
-    "mysql -uroot -p\"\$MYSQL_ROOT_PASSWORD\" -N -B \"\$MYSQL_DATABASE\" -e \"$1\"" 2>/dev/null \
-    | grep -v '^mysql: \[Warning\]' || true
+  local out status
+  out="$(docker exec "$CONTAINER" sh -lc \
+    "mysql -uroot -p\"\$MYSQL_ROOT_PASSWORD\" -N -B \"\$MYSQL_DATABASE\" -e \"$1\"" 2>/dev/null)"
+  status=$?
+  # A failed query must not look like an empty schema: that reads as "nothing is
+  # applied" and would send an operator off to re-run 59 migrations.
+  if [[ $status -ne 0 ]]; then
+    echo "ERROR: schema query failed against '$CONTAINER'." >&2
+    exit 2
+  fi
+  printf '%s\n' "$out" | grep -v '^mysql: \[Warning\]' || true
 }
 
 # One snapshot of the whole schema; 59 files x N artefacts would otherwise be
