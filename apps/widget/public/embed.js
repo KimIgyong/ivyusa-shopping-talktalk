@@ -15,11 +15,17 @@
  * ends up with a customer-bound session token — no separate account system,
  * just the store's.
  *
+ * It stays off the storefront's sign-in screens entirely (see the guard below) —
+ * both because the launcher covers the form and because mounting there would
+ * spend the reopen flag the login round trip depends on.
+ *
  * Usage (Shopify theme / app-embed block):
  *   <script>window.IVY_WIDGET_CONFIG = {
  *     shop: "your-store.myshopify.com", locale: "en",
  *     widgetUrl: "https://widget.ivyusa.app",
- *     ga4Id: "G-XXXXXXXXXX" };</script>
+ *     ga4Id: "G-XXXXXXXXXX",
+ *     hideOnPaths: ["/signin"] };</script>   // optional: replace the sign-in
+ *                                            // path list ([] turns it off)
  *   <script src="https://widget.ivyusa.app/embed.js" defer></script>
  */
 (function () {
@@ -89,11 +95,72 @@
   }
 
   var cfg = window.IVY_WIDGET_CONFIG || {};
+  var pageHost = (window.location.hostname || '').toLowerCase();
+  var isCafe24Host = /(^|\.)cafe24\.com$/.test(pageHost);
+
+  // --- Sign-in screens: never mount -----------------------------------------
+  // Two reasons, and it is the second one that bites.
+  //
+  //  1. The launcher sits on top of the very form the shopper came to use.
+  //  2. This script consumes the one-shot `ivy:reopen` flag WHEREVER it runs, and
+  //     the mall's login page is the same origin — so mounting here spends the
+  //     flag on the login screen, and the shopper comes back from a SUCCESSFUL
+  //     sign-in to a closed widget. Sign-in looks broken when it is not
+  //     (REQ-260819 §2-1).
+  //
+  // A flag rather than an early return, and boot() honours it: the page keeps a
+  // complete `ShopTalk` object either way, so a storefront that drives the widget
+  // through the SDK does not hit `init is not a function` on its own login page.
+  // Nothing mounts, nothing is spent, and no guest session is opened for someone
+  // who is trying to sign in — which is what "hidden" has to mean here, since
+  // hiding a mounted widget with CSS would still burn the flag.
+  //
+  // Path prefixes, not regexes: the list is overridable per mall (`hideOnPaths`)
+  // and a typo'd regex would fail silently. They are deliberately narrow — the
+  // join TERMS step is /member/agreement, while /member/mall_agreement and
+  // /member/privacy are policy pages a shopper may well want to ask about, and
+  // /member/modify is a signed-in member editing their own profile.
+  var CAFE24_SIGN_IN = [
+    '/member/login',
+    '/member/join',
+    '/member/agreement',
+    '/member/id/',
+    '/member/passwd/',
+  ];
+  var DEFAULT_SIGN_IN = [
+    '/account/login',
+    '/account/register',
+    '/account/reset',
+    '/account/activate',
+    '/challenge',
+  ];
+  var signInPaths;
+  if (Array.isArray(cfg.hideOnPaths)) {
+    signInPaths = cfg.hideOnPaths; // per-mall override, `[]` turns this off
+  } else if (isCafe24Host || /^\/member\//.test(String(cfg.loginPath || '').toLowerCase())) {
+    // A Cafe24 mall on a custom domain has no cafe24.com host to detect, but the
+    // install snippet already names its login path — no new setting to get wrong.
+    signInPaths = CAFE24_SIGN_IN;
+  } else {
+    signInPaths = DEFAULT_SIGN_IN;
+  }
+  // Drop a leading locale segment before matching. A Shopify store with markets
+  // serves its login as /en-ca/account/login, and an anchored prefix would sail
+  // straight past it — the same silent miss this guard exists to prevent.
+  var herePath = (window.location.pathname || '').toLowerCase().replace(/^\/[a-z]{2}(-[a-z]{2})?(?=\/)/, '');
+  // Our own Cafe24 popup counts too: it runs start -> authorize, and Cafe24 sends
+  // it to the mall's OWN login page when the member is not signed in yet — a skin
+  // page, so this script runs inside a 480x720 popup. (Unlike the Shopify leg
+  // above we neither post nor close: that one IS the return leg, this one is
+  // still mid-flow, and its ticket comes from our API origin.)
+  var signInScreen = window.name === 'ivy_cafe24_auth';
+  for (var si = 0; !signInScreen && si < signInPaths.length; si++) {
+    if (herePath.indexOf(String(signInPaths[si]).toLowerCase()) === 0) signInScreen = true;
+  }
+
   // Cafe24 malls rarely set data-shop and expose no window.Shopify — but the page
   // host IS the mall host, so fall back to it there. Without `shop` the widget
   // can't render its "my page" order-history link.
-  var pageHost = (window.location.hostname || '').toLowerCase();
-  var isCafe24Host = /(^|\.)cafe24\.com$/.test(pageHost);
   var shop =
     cfg.shop || (window.Shopify && window.Shopify.shop) || (isCafe24Host ? pageHost : '');
   var base = String(cfg.widgetUrl || 'https://widget.ivyusa.app').replace(/\/+$/, '');
@@ -176,6 +243,10 @@
     }
   }
   var reopenTab = (function () {
+    // Leave it alone on a sign-in screen. The flag is one-shot and the login page
+    // is the same origin, so reading it here is what made a successful sign-in
+    // come back to a closed widget (REQ-260819 §2-1).
+    if (signInScreen) return null;
     try {
       var v = sessionStorage.getItem(REOPEN_KEY);
       if (v) sessionStorage.removeItem(REOPEN_KEY);
@@ -242,7 +313,7 @@
    * first: the legacy config-only install (bottom of this file) or ShopTalk.init().
    */
   function boot() {
-    if (booted) return;
+    if (booted || signInScreen) return;
     booted = true;
     // `base` is resolved from cfg at load; if init() changed widgetUrl, honour it.
     if (cfg.widgetUrl) {
@@ -588,7 +659,12 @@
   // Passive identity check on load: start authenticated if a customer is already
   // signed in. Any failure simply leaves the widget anonymous; never blocks render.
   // Either way we mark the question answered so the widget stops waiting.
-  if (isCafe24Host) {
+  //
+  // Skipped on a sign-in screen: there is no widget to answer, and asking would
+  // spend a one-time sign-in ticket on a page that cannot use it.
+  if (signInScreen) {
+    /* nothing to resolve — nothing mounted */
+  } else if (isCafe24Host) {
     // No app proxy on Cafe24 — identity arrives only via the customer-auth ticket on
     // the return leg. If there's no ticket, the shopper is simply anonymous.
     if (!consumeCafe24Ticket()) {
