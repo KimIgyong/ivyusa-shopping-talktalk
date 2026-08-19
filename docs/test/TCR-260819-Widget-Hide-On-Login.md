@@ -25,6 +25,8 @@
 | T-7 | 커스텀 도메인 + `loginPath:/member/login.html` | Cafe24 규칙 적용 / 힌트 없으면 기본 목록 |
 | T-8 | `hideOnPaths: []` → 안 숨김 · `['/signin']` → 목록 **교체**(추가 아님) | 탈출구 동작 |
 | T-9 | `/en-ca/account/login`·`/ko/member/login.html` | 로케일 접두사 1개는 떼고 비교 / `/collections/account/login`은 mount |
+| T-10 | 로그인 화면에서 `window.ShopTalk` | `init/open/close/on/off/logout` 전부 함수로 존재 |
+| T-11 | 로그인 화면에서 `init()` + `open()` 호출 | mount 되지 않음 (무해하게 무시) |
 
 ### 1-1. 음성 대조(negative control)
 
@@ -32,12 +34,25 @@
 테스트를 돌리면:
 
 ```
-변경 전:  pass 3 / fail 6   (T-9 추가 전 기준)
-변경 후:  pass 10 / fail 0
+main의 embed.js (가드 없음):  pass 3 / fail 9
+이 브랜치:                    pass 12 / fail 0
 ```
 
-T-2b·T-3·T-4가 변경 전에도 통과한다 — 스텁이 실제로 mount를 수행한다는 뜻이고,
-나머지 6건이 실패한다 — 가드가 실제로 판정을 바꾼다는 뜻이다.
+통과하는 3건은 전부 "mount 되어야 한다" 쪽(T-2b·T-3·T-4)이다 — 스텁이 실제로 mount를
+수행한다는 뜻이고, 나머지 9건이 실패한다 — 가드가 실제로 판정을 바꾼다는 뜻이다.
+
+## 1-2. 병행 작업과의 충돌 (CI가 잡았다)
+
+이 브랜치를 딴 뒤 다른 세션이 `embed.js`에 공개 SDK 표면을 얹었다(PR #319, +189줄).
+파일 병합은 충돌 없이 됐지만 **동작이 어긋났다.**
+
+| 어긋난 점 | 조치 |
+|---|---|
+| 새 `embed.js`는 `IVY_WIDGET_CONFIG`가 있거나 `ShopTalk.init()`을 부를 때만 mount한다. 테스트 스텁이 config 없이 로드해 "mount 되어야 한다" 케이스가 전부 실패 | 스텁 기본값을 `{}`로 — 실제 설치의 중립 상태 |
+| 내 가드가 **조기 return**이라 `window.ShopTalk`이 메서드 없는 빈 객체로 남는다. SDK로 위젯을 다루는 몰이 자기 로그인 페이지에서 `init is not a function`을 맞는다 | 조기 return → **플래그**로 변경. `boot()`·reopen 읽기·신원 부트스트랩 세 곳이 플래그를 존중한다. T-10·T-11 추가 |
+
+로컬은 초록이었고 **CI가 병합 결과를 돌려서** 잡혔다. GitHub PR CI는 브랜치가 아니라
+`브랜치 + main` 병합본을 검사한다 — 병행 세션이 있을 때 이게 마지막 안전망이다.
 
 ## 2. 회귀
 

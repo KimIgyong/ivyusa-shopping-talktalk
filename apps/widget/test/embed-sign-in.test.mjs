@@ -25,10 +25,12 @@ const SRC = readFileSync(new URL('../public/embed.js', import.meta.url), 'utf8')
 function load({
   host = 'amoebaorder.cafe24.com',
   path = '/',
-  config = null,
+  config = {},
   windowName = '',
   reopen = null,
 } = {}) {
+  // A real install always sets IVY_WIDGET_CONFIG (or calls ShopTalk.init) — the
+  // loader deliberately does nothing without one, so `{}` is the neutral case.
   const mounted = [];
   const storage = new Map();
   if (reopen) storage.set('ivy:reopen', reopen);
@@ -88,7 +90,15 @@ function load({
   vm.createContext(ctx);
   vm.runInContext(SRC, ctx, { filename: 'embed.js' });
 
-  return { mounted: mounted.length > 0, reopenLeft: storage.get('ivy:reopen') ?? null };
+  return {
+    // A getter, not a snapshot: tests that call into the SDK afterwards need to
+    // see what happened AFTER the call.
+    get mounted() {
+      return mounted.length > 0;
+    },
+    reopenLeft: storage.get('ivy:reopen') ?? null,
+    sdk: win.ShopTalk,
+  };
 }
 
 test('T-1 no widget on the Cafe24 mall login page', () => {
@@ -162,4 +172,22 @@ test('T-9 a locale-prefixed storefront still matches', () => {
   assert.equal(load({ path: '/ko/member/login.html' }).mounted, false);
   // Only ONE segment is dropped, and only a locale-shaped one.
   assert.equal(load({ host, path: '/collections/account/login' }).mounted, true);
+});
+
+test('T-10 the SDK surface still exists on a sign-in screen', () => {
+  // Hiding must not mean "the script bailed out". A storefront that drives the
+  // widget through ShopTalk.init() runs the same snippet on its login page, and
+  // an early return would leave it calling a method on {}.
+  const page = load({ path: '/member/login.html' });
+  for (const m of ['init', 'open', 'close', 'on', 'off', 'logout']) {
+    assert.equal(typeof page.sdk[m], 'function', m);
+  }
+  assert.equal(page.mounted, false);
+});
+
+test('T-11 init() and open() are inert on a sign-in screen', () => {
+  const page = load({ path: '/member/login.html' });
+  page.sdk.init({ shop: 'amoebaorder.cafe24.com' });
+  page.sdk.open();
+  assert.equal(page.mounted, false);
 });

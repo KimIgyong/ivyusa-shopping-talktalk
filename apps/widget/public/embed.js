@@ -69,17 +69,6 @@
     return;
   }
 
-  // --- Our own Cafe24 sign-in popup -----------------------------------------
-  // The popup opened below as `ivy_cafe24_auth` runs start -> authorize, and
-  // Cafe24 sends it to the mall's OWN login page whenever the member is not
-  // signed in yet — a skin page, so this script runs there too and would mount a
-  // widget inside a 480x720 popup.
-  //
-  // Unlike the Shopify leg above we do NOT post or close: that one IS the return
-  // leg, this one is still mid-flow. Its ticket arrives from the callback page on
-  // our API origin, which is a different origin and never loads this script.
-  if (window.name === 'ivy_cafe24_auth') return;
-
   if (document.getElementById('ivy-talktalk-frame')) return; // idempotent
 
   // --- Public SDK surface (PLN-260819 S3) -----------------------------------
@@ -109,7 +98,7 @@
   var pageHost = (window.location.hostname || '').toLowerCase();
   var isCafe24Host = /(^|\.)cafe24\.com$/.test(pageHost);
 
-  // --- Sign-in screens: do not mount ----------------------------------------
+  // --- Sign-in screens: never mount -----------------------------------------
   // Two reasons, and it is the second one that bites.
   //
   //  1. The launcher sits on top of the very form the shopper came to use.
@@ -119,9 +108,12 @@
   //     sign-in to a closed widget. Sign-in looks broken when it is not
   //     (REQ-260819 §2-1).
   //
-  // So this bails out here — above the flag read, above the iframe — rather than
-  // hiding a mounted widget with CSS. Nothing is created, nothing is spent, and
-  // no guest session is opened for someone who is trying to sign in.
+  // A flag rather than an early return, and boot() honours it: the page keeps a
+  // complete `ShopTalk` object either way, so a storefront that drives the widget
+  // through the SDK does not hit `init is not a function` on its own login page.
+  // Nothing mounts, nothing is spent, and no guest session is opened for someone
+  // who is trying to sign in — which is what "hidden" has to mean here, since
+  // hiding a mounted widget with CSS would still burn the flag.
   //
   // Path prefixes, not regexes: the list is overridable per mall (`hideOnPaths`)
   // and a typo'd regex would fail silently. They are deliberately narrow — the
@@ -156,8 +148,14 @@
   // serves its login as /en-ca/account/login, and an anchored prefix would sail
   // straight past it — the same silent miss this guard exists to prevent.
   var herePath = (window.location.pathname || '').toLowerCase().replace(/^\/[a-z]{2}(-[a-z]{2})?(?=\/)/, '');
-  for (var si = 0; si < signInPaths.length; si++) {
-    if (herePath.indexOf(String(signInPaths[si]).toLowerCase()) === 0) return;
+  // Our own Cafe24 popup counts too: it runs start -> authorize, and Cafe24 sends
+  // it to the mall's OWN login page when the member is not signed in yet — a skin
+  // page, so this script runs inside a 480x720 popup. (Unlike the Shopify leg
+  // above we neither post nor close: that one IS the return leg, this one is
+  // still mid-flow, and its ticket comes from our API origin.)
+  var signInScreen = window.name === 'ivy_cafe24_auth';
+  for (var si = 0; !signInScreen && si < signInPaths.length; si++) {
+    if (herePath.indexOf(String(signInPaths[si]).toLowerCase()) === 0) signInScreen = true;
   }
 
   // Cafe24 malls rarely set data-shop and expose no window.Shopify — but the page
@@ -245,6 +243,10 @@
     }
   }
   var reopenTab = (function () {
+    // Leave it alone on a sign-in screen. The flag is one-shot and the login page
+    // is the same origin, so reading it here is what made a successful sign-in
+    // come back to a closed widget (REQ-260819 §2-1).
+    if (signInScreen) return null;
     try {
       var v = sessionStorage.getItem(REOPEN_KEY);
       if (v) sessionStorage.removeItem(REOPEN_KEY);
@@ -311,7 +313,7 @@
    * first: the legacy config-only install (bottom of this file) or ShopTalk.init().
    */
   function boot() {
-    if (booted) return;
+    if (booted || signInScreen) return;
     booted = true;
     // `base` is resolved from cfg at load; if init() changed widgetUrl, honour it.
     if (cfg.widgetUrl) {
@@ -657,7 +659,12 @@
   // Passive identity check on load: start authenticated if a customer is already
   // signed in. Any failure simply leaves the widget anonymous; never blocks render.
   // Either way we mark the question answered so the widget stops waiting.
-  if (isCafe24Host) {
+  //
+  // Skipped on a sign-in screen: there is no widget to answer, and asking would
+  // spend a one-time sign-in ticket on a page that cannot use it.
+  if (signInScreen) {
+    /* nothing to resolve — nothing mounted */
+  } else if (isCafe24Host) {
     // No app proxy on Cafe24 — identity arrives only via the customer-auth ticket on
     // the return leg. If there's no ticket, the shopper is simply anonymous.
     if (!consumeCafe24Ticket()) {
