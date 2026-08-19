@@ -22,7 +22,7 @@
 `--default-character-set=utf8mb4` 지정 후 HEX 대조로 확인, 재검증 통과.
 **예방 규칙**: 스테이징 DB에 한글 데이터를 SQL로 넣을 땐 utf8mb4 명시 + `HEX()` 대조.
 
-## 3. 잔여 — 콘솔 UI 스모크 (tenant 3 계정: gray.kim@amoeba.group)
+## 3. 잔여 — 콘솔 UI 스모크 (tenant 3 master 계정으로 수행; 주소는 콘솔/DB 확인)
 현재 스테이징 이슈 보드에 카드 3장(#1 received/#2 received/#3 received)이 준비돼 있음:
 1. /issues 칸반 — #1을 진행→해결 드래그 → 위젯 알림 확인(P4 E2)
 2. 해결 후 /knowledge "지식 갭 제안"에 상담원 해결 카드 → 편집·승인 → 문서 생성(P5 E1~E2)
