@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactElement } from 'react';
 import { Settings, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useWidgetStore, type TabKey } from '../../store/widgetStore';
+import { logoUrl } from '../../lib/branding';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { TopTabs } from './TopTabs';
 import { BottomTabs } from './BottomTabs';
@@ -32,6 +33,10 @@ export function WidgetPanel() {
   const setShowSettings = useWidgetStore((s) => s.setSettingsOpen);
   const displayName = useWidgetStore((s) => s.widgetCopy?.displayName);
   const customerName = useWidgetStore((s) => s.customerName);
+  const theme = useWidgetStore((s) => s.widgetTheme);
+  // A greeting names the customer, so it wins over the brand mark: the shopper
+  // being addressed matters more than the logo at that moment.
+  const logo = theme?.logo && !customerName ? logoUrl(theme.logo) : null;
   const visibleTabs = useWidgetStore((s) => s.visibleTabs);
   const tabPosition = useWidgetStore((s) => s.tabPosition);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -81,11 +86,22 @@ export function WidgetPanel() {
             (frames 48/49). The two design variants are the two sign-in states,
             not a contradiction. `truncate` keeps a long name from pushing the
             three controls on the right off the header. */}
+        {logo ? (
+          // The name still exists for screen readers; a logo replaces the text
+          // only visually. Height-capped so a tall upload cannot push the header
+          // out of shape.
+          <img
+            src={logo}
+            alt={displayName || t('notificationCenter')}
+            className="max-h-8 max-w-[60%] object-contain"
+          />
+        ) : (
         <span className="truncate text-xl font-bold text-header-fg">
           {customerName
             ? t('header.greeting', { name: customerName })
             : displayName || t('notificationCenter')}
         </span>
+        )}
         <div className="flex flex-shrink-0 items-center gap-0.5">
           <LanguageSwitcher />
           <button

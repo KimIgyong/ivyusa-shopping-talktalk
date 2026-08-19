@@ -26,6 +26,11 @@ function resolveBaseUrl(): string {
 
 const BASE_URL = resolveBaseUrl();
 
+/** API base without a trailing slash — for URLs built outside the axios client. */
+export function apiOrigin(): string {
+  return BASE_URL;
+}
+
 export const SESSION_STORAGE_KEY = 'ivy_session';
 
 export function getStoredSessionToken(): string | null {

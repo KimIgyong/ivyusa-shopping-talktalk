@@ -17,11 +17,67 @@
 export const WIDGET_HEADER_STYLE = { WHITE: 'white', BRAND: 'brand' } as const;
 export type WidgetHeaderStyle = (typeof WIDGET_HEADER_STYLE)[keyof typeof WIDGET_HEADER_STYLE];
 
+/** Launcher geometry (PLN-260819 S4). Enumerated, never free-form. */
+export const LAUNCHER_POSITION = { RIGHT: 'right', LEFT: 'left' } as const;
+export type LauncherPosition = (typeof LAUNCHER_POSITION)[keyof typeof LAUNCHER_POSITION];
+
+export const LAUNCHER_SIZE = { SM: 'sm', MD: 'md', LG: 'lg' } as const;
+export type LauncherSize = (typeof LAUNCHER_SIZE)[keyof typeof LAUNCHER_SIZE];
+
+export const LAUNCHER_ICON = {
+  CHAT: 'chat',
+  QUESTION: 'question',
+  HEADSET: 'headset',
+  LOGO: 'logo',
+} as const;
+export type LauncherIcon = (typeof LAUNCHER_ICON)[keyof typeof LAUNCHER_ICON];
+
+/**
+ * Button edge in px, and the iframe the loader must reserve for it.
+ *
+ * The frame has to clear the button PLUS its offset from the edge, or the
+ * launcher is clipped by its own iframe — the failure that made this a shared
+ * constant instead of two numbers in two files.
+ */
+export const LAUNCHER_METRICS: Record<LauncherSize, { button: number; frame: number }> = {
+  sm: { button: 48, frame: 80 },
+  md: { button: 56, frame: 96 },
+  lg: { button: 64, frame: 112 },
+};
+
+/** The palette the widget ships with — the answer for a tenant that never themed. */
+export const DEFAULT_BRAND = '#2B7FFF';
+
+export const LAUNCHER_DEFAULTS = {
+  position: LAUNCHER_POSITION.RIGHT,
+  size: LAUNCHER_SIZE.MD,
+  icon: LAUNCHER_ICON.CHAT,
+} as const;
+
+/** Uploaded brand mark. Served publicly and cached hard, keyed by `id`. */
+export interface WidgetLogo {
+  id: string;
+  ext: string;
+  mime: string;
+  width: number;
+  height: number;
+}
+
+export interface WidgetLauncher {
+  position: LauncherPosition;
+  size: LauncherSize;
+  icon: LauncherIcon;
+}
+
 export interface WidgetTheme {
   /** Brand colour as `#RRGGBB`; occupies the 500 slot of the generated ramp. */
   brand: string;
   /** 'white' keeps the design's header; 'brand' fills it with the brand colour. */
   headerStyle: WidgetHeaderStyle;
+  /** Absent = no logo = the display name renders as text, exactly as before. */
+  logo?: WidgetLogo | null;
+  /** Absent = the built-in geometry. */
+  launcher?: WidgetLauncher | null;
 }
 
 /** Ramp stop → the palette's own lightness, in HSL percent. */
@@ -222,11 +278,63 @@ export function normalizeWidgetTheme(input: unknown): WidgetTheme | null {
   if (!rgb) return null;
   const [r, g, b] = rgb;
   const hex = `#${[r, g, b].map((v) => v.toString(16).padStart(2, '0')).join('')}`.toUpperCase();
-  return {
+  const theme: WidgetTheme = {
     brand: hex,
     headerStyle:
       raw.headerStyle === WIDGET_HEADER_STYLE.BRAND
         ? WIDGET_HEADER_STYLE.BRAND
         : WIDGET_HEADER_STYLE.WHITE,
   };
+
+  // Unlike the brand colour, a bad logo or launcher value is NOT a reason to
+  // throw the whole theme away — the colour is the part that can render an
+  // unreadable widget. These fall back to "not set" and "the built-in geometry".
+  const logo = normalizeLogo(raw.logo);
+  if (logo) theme.logo = logo;
+  const launcher = normalizeLauncher(raw.launcher);
+  if (launcher) theme.launcher = launcher;
+  return theme;
+}
+
+/** A stored logo is only usable if every field the URL and layout need is there. */
+export function normalizeLogo(input: unknown): WidgetLogo | null {
+  if (!input || typeof input !== 'object') return null;
+  const raw = input as Partial<WidgetLogo>;
+  if (typeof raw.id !== 'string' || !/^[0-9a-f-]{6,64}$/i.test(raw.id)) return null;
+  if (typeof raw.ext !== 'string' || !/^[a-z0-9]{2,5}$/i.test(raw.ext)) return null;
+  const width = Number(raw.width);
+  const height = Number(raw.height);
+  if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) return null;
+  return {
+    id: raw.id,
+    ext: raw.ext.toLowerCase(),
+    mime: typeof raw.mime === 'string' ? raw.mime : 'image/png',
+    width: Math.round(width),
+    height: Math.round(height),
+  };
+}
+
+/**
+ * Launcher geometry, or null when nothing was configured. Every field is an
+ * enum: an unknown value silently becomes the default rather than rejecting the
+ * save, because a typo in one radio should not cost the tenant their colour.
+ */
+export function normalizeLauncher(input: unknown): WidgetLauncher | null {
+  if (!input || typeof input !== 'object') return null;
+  const raw = input as Partial<WidgetLauncher>;
+  const position = Object.values(LAUNCHER_POSITION).includes(raw.position as LauncherPosition)
+    ? (raw.position as LauncherPosition)
+    : LAUNCHER_DEFAULTS.position;
+  const size = Object.values(LAUNCHER_SIZE).includes(raw.size as LauncherSize)
+    ? (raw.size as LauncherSize)
+    : LAUNCHER_DEFAULTS.size;
+  const icon = Object.values(LAUNCHER_ICON).includes(raw.icon as LauncherIcon)
+    ? (raw.icon as LauncherIcon)
+    : LAUNCHER_DEFAULTS.icon;
+  return { position, size, icon };
+}
+
+/** Geometry a reader can rely on, defaults included. */
+export function resolveLauncher(theme: WidgetTheme | null | undefined): WidgetLauncher {
+  return theme?.launcher ?? { ...LAUNCHER_DEFAULTS };
 }

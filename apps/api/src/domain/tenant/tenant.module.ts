@@ -8,7 +8,9 @@ import { JobLabel } from '../user/entity/job-label.entity';
 import { TenantService } from './tenant.service';
 import { EcommerceIntegrationService } from './ecommerce-integration.service';
 import { WebhookSecretService } from './webhook-secret.service';
+import { WidgetLogoService } from './widget-logo.service';
 import { TenantController } from './tenant.controller';
+import { WidgetBrandingController } from './widget-branding.controller';
 import { IntegrationModule } from '../integration/integration.module';
 import { AuditModule } from '../audit/audit.module';
 import { EmbedModule } from '../embed/embed.module';
@@ -21,8 +23,8 @@ import { EmbedModule } from '../embed/embed.module';
     // For the secret-rotation route; EmbedModule owns the secret's lifecycle.
     EmbedModule,
   ],
-  controllers: [TenantController],
-  providers: [TenantService, EcommerceIntegrationService, WebhookSecretService],
-  exports: [TenantService, WebhookSecretService],
+  controllers: [TenantController, WidgetBrandingController],
+  providers: [TenantService, EcommerceIntegrationService, WebhookSecretService, WidgetLogoService],
+  exports: [TenantService, WebhookSecretService, WidgetLogoService],
 })
 export class TenantModule {}

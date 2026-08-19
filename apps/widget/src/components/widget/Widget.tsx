@@ -1,16 +1,19 @@
 import { useEffect, useRef } from 'react';
-import { MessageCircle } from 'lucide-react';
+import { CircleHelp, Headset, MessageCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useWidgetStore, type TabKey } from '../../store/widgetStore';
 import { useEnsureSession } from '../../hooks/useSession';
 import { useEmbedIdentity } from '../../hooks/useEmbedIdentity';
 import { useEmbedCommands } from '../../hooks/useEmbedCommands';
+import { useLauncherReport } from '../../hooks/useLauncherReport';
 import { useSessionProfile } from '../../hooks/useSessionProfile';
 import { useUnreadCount } from '../../hooks/useNotifications';
 import { usePurchaseSignal } from '../../hooks/usePurchaseSignal';
 import { useAnalytics } from '../../lib/analytics';
 import { WidgetPanel } from './WidgetPanel';
 import { ErrorBoundary } from '../ui/ErrorBoundary';
+import { LAUNCHER_CLASSES, resolveLauncher } from '../../lib/launcher';
+import { logoUrl } from '../../lib/branding';
 
 export function Widget() {
   const { t } = useTranslation();
@@ -18,6 +21,8 @@ export function Widget() {
   useEmbedIdentity();
   // Host-application commands: ShopTalk.open()/identify()/… (PLN-260819 S3).
   useEmbedCommands();
+  // Report launcher geometry to the loader, which owns the iframe box (S4).
+  useLauncherReport();
   useSessionProfile();
   usePurchaseSignal();
   const analytics = useAnalytics();
@@ -28,6 +33,10 @@ export function Widget() {
   const { data } = useUnreadCount(sessionToken, authenticated);
   const unread = data?.count ?? 0;
   const prevOpen = useRef(panelOpen);
+  const theme = useWidgetStore((s) => s.widgetTheme);
+  const launcher = resolveLauncher(theme);
+  const sizeClasses = LAUNCHER_CLASSES[launcher.size] ?? LAUNCHER_CLASSES.md;
+  const brandMark = theme?.logo ? logoUrl(theme.logo) : null;
 
   // Returning from a redirect-mode sign-in: the loader consumed its one-shot
   // flag and passed ?reopen=<tab>, so bring the widget straight back up where
@@ -125,9 +134,21 @@ export function Widget() {
           onClick={togglePanel}
           aria-label={t('a11y.openSupport')}
           aria-expanded={false}
-          className="fixed bottom-5 right-5 z-10 flex h-14 w-14 items-center justify-center rounded-full bg-primary-500 text-on-primary shadow-lg transition-transform hover:scale-105 hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 active:scale-95"
+          className={`fixed bottom-5 z-10 flex items-center justify-center rounded-full bg-primary-500 text-on-primary shadow-lg transition-transform hover:scale-105 hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 active:scale-95 ${
+            launcher.position === 'left' ? 'left-5' : 'right-5'
+          } ${sizeClasses.button}`}
         >
-          <MessageCircle className="h-6 w-6" />
+          {launcher.icon === 'logo' && brandMark ? (
+            // Cropped to a circle: an uploaded logo is rarely square, and letting
+            // it letterbox inside the button looks like a rendering bug.
+            <img src={brandMark} alt="" className={`${sizeClasses.button} rounded-full object-cover`} />
+          ) : launcher.icon === 'question' ? (
+            <CircleHelp className={sizeClasses.icon} />
+          ) : launcher.icon === 'headset' ? (
+            <Headset className={sizeClasses.icon} />
+          ) : (
+            <MessageCircle className={sizeClasses.icon} />
+          )}
           {unread > 0 && (
             <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-error px-1 text-[10px] font-bold text-white ring-2 ring-white">
               {unread > 99 ? '99+' : unread}
