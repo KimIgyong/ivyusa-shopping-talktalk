@@ -1,6 +1,7 @@
-import { apiGet, apiPatch, apiPost, apiPut } from '@/lib/api-client';
+import { apiDelete, apiGet, apiPatch, apiPost, apiPut, apiUpload } from '@/lib/api-client';
 import type {
   WidgetHeaderStyle,
+  WidgetLauncher,
   WidgetLoginMode,
   WidgetTab,
   WidgetTabPosition,
@@ -106,6 +107,8 @@ export interface WidgetThemeSettings {
   /** The stored theme, or null when the tenant has never set one. */
   theme: WidgetTheme | null;
   defaultBrand: string;
+  /** Needed to build the public logo URL; same key the widget uses. */
+  shopDomain: string | null;
 }
 
 /** Embed allowlist + whether a signing secret exists (PLN-260819). */
@@ -128,11 +131,24 @@ export const settingsService = {
   storefront: () => apiGet<Storefront>('/tenants/storefront'),
   notificationChannels: () => apiGet<NotificationChannels>('/tenants/notification-channels'),
   widgetTheme: () => apiGet<WidgetThemeSettings>('/tenants/widget-theme'),
-  saveWidgetTheme: (brand: string, headerStyle: WidgetHeaderStyle) =>
+  saveWidgetTheme: (
+    brand: string,
+    headerStyle: WidgetHeaderStyle,
+    launcher?: WidgetLauncher,
+  ) =>
     apiPatch<WidgetThemeSettings>('/tenants/widget-theme', {
       brand,
       header_style: headerStyle,
+      ...(launcher ? { launcher } : {}),
     }),
+  // The logo has its own routes: it is a file, and folding it into the theme
+  // PATCH would make every colour change a multipart upload.
+  uploadWidgetLogo: (file: File) => {
+    const form = new FormData();
+    form.append('file', file);
+    return apiUpload<WidgetThemeSettings>('/tenants/widget-theme/logo', form);
+  },
+  deleteWidgetLogo: () => apiDelete<WidgetThemeSettings>('/tenants/widget-theme/logo'),
   saveNotificationChannels: (channels: Record<string, string[]>) =>
     apiPatch<NotificationChannels>('/tenants/notification-channels', { channels }),
   updateStorefront: (storefrontUrl: string) =>

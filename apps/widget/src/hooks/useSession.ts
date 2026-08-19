@@ -141,6 +141,7 @@ export function useEnsureSession() {
   const setLoginMode = useWidgetStore((s) => s.setLoginMode);
   const setTabLayout = useWidgetStore((s) => s.setTabLayout);
   const setWidgetCopy = useWidgetStore((s) => s.setWidgetCopy);
+  const setWidgetTheme = useWidgetStore((s) => s.setWidgetTheme);
 
   useEffect(() => {
     let cancelled = false;
@@ -206,6 +207,7 @@ export function useEnsureSession() {
         // Brand theme (PLN-260818). Applied even when null — that clears any
         // cached theme from a tenant that has since turned theming off.
         applyTheme(res.widgetTheme ?? null);
+        setWidgetTheme(res.widgetTheme ?? null);
         cacheTheme(getShopDomain(), res.widgetTheme ?? null);
         if (res.widgetCopy) setWidgetCopy(res.widgetCopy);
         // The app-proxy handshake (useEmbedIdentity) may have adopted a

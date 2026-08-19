@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import type {
   WidgetHeaderStyle,
+  WidgetLauncher,
   WidgetLoginMode,
   WidgetTab,
   WidgetTabPosition,
@@ -241,8 +242,8 @@ export function useSaveWidgetTheme() {
   const qc = useQueryClient();
   const tenantKey = useTenantKey();
   return useMutation({
-    mutationFn: (v: { brand: string; headerStyle: WidgetHeaderStyle }) =>
-      settingsService.saveWidgetTheme(v.brand, v.headerStyle),
+    mutationFn: (v: { brand: string; headerStyle: WidgetHeaderStyle; launcher?: WidgetLauncher }) =>
+      settingsService.saveWidgetTheme(v.brand, v.headerStyle, v.launcher),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['widget-theme', tenantKey] });
       toast.success(t('widgetTheme.saved'));
@@ -295,6 +296,39 @@ export function useRotateEmbedSecret() {
     },
     onError: (e: Error) => {
       toast.error(e.message || t('embed.secretRotateError'), { sticky: true });
+    },
+  });
+}
+
+/** Logo upload/removal (PLN-260819 S4). Both refresh the theme query. */
+export function useUploadWidgetLogo() {
+  const { t } = useTranslation('settings');
+  const qc = useQueryClient();
+  const tenantKey = useTenantKey();
+  return useMutation({
+    mutationFn: (file: File) => settingsService.uploadWidgetLogo(file),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['widget-theme', tenantKey] });
+      toast.success(t('widgetTheme.logoSaved'));
+    },
+    onError: (e: Error) => {
+      toast.error(e.message || t('widgetTheme.logoError'), { sticky: true });
+    },
+  });
+}
+
+export function useDeleteWidgetLogo() {
+  const { t } = useTranslation('settings');
+  const qc = useQueryClient();
+  const tenantKey = useTenantKey();
+  return useMutation({
+    mutationFn: () => settingsService.deleteWidgetLogo(),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['widget-theme', tenantKey] });
+      toast.success(t('widgetTheme.logoRemoved'));
+    },
+    onError: (e: Error) => {
+      toast.error(e.message || t('widgetTheme.logoError'), { sticky: true });
     },
   });
 }

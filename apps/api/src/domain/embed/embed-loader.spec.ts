@@ -69,6 +69,21 @@ describe('embed.js — SDK contract (PLN-260819 S3)', () => {
     expect(LOADER).not.toMatch(/api\.open = function[\s\S]{0,120}sendToWidget\(/);
   });
 
+  it('places the launcher frame from the widget’s report', () => {
+    // The button is drawn inside the iframe; the box is out here. Only one of
+    // them moving is how a launcher gets clipped by its own frame.
+    expect(LOADER).toContain("d.type === 'ivy:launcher'");
+    expect(LOADER).toContain('function applyLauncher(');
+    expect(LOADER).toContain("frame.style.left = '0'");
+  });
+
+  it('remembers the launcher side across visits', () => {
+    // Without the cache the frame is placed right, then slides left once the
+    // widget boots — visible on every page load.
+    expect(LOADER).toContain('LAUNCHER_KEY');
+    expect(LOADER).toContain('localStorage.setItem(LAUNCHER_KEY');
+  });
+
   it('never signs anything in the browser', () => {
     // A hash computed here would mean the secret is in the page — the whole
     // point of the handshake is that it is not.

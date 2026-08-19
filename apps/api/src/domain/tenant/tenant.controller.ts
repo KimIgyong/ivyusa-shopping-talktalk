@@ -1,4 +1,18 @@
-import { Body, Controller, Get, Param, Patch, Post, Put, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Logger,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Put,
+  Query,
+  UploadedFile,
+  UseInterceptors,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { HttpStatus } from '@nestjs/common';
 import { CAPABILITY, Principal, USER_RANK } from '@ivy/types';
@@ -7,6 +21,10 @@ import { TenantService } from './tenant.service';
 import { EcommerceIntegrationService } from './ecommerce-integration.service';
 import { TenantMapper } from './tenant.mapper';
 import { EmbedService } from '../embed/embed.service';
+import { LogoUpload } from './widget-logo.service';
+
+/** Multer's own ceiling; the service enforces the real 1MB policy with a reason. */
+const LOGO_MAX_BYTES = 2 * 1024 * 1024;
 import {
   CreateTenantRequest,
   ListTenantsQuery,
@@ -31,6 +49,8 @@ import { ERROR_CODE } from '../../global/constant/error-code.constant';
 @ApiTags('Tenant')
 @Controller('tenants')
 export class TenantController {
+  private readonly logger = new Logger(TenantController.name);
+
   constructor(
     private readonly tenantService: TenantService,
     private readonly ecommerceIntegrationService: EcommerceIntegrationService,
@@ -212,6 +232,35 @@ export class TenantController {
       .auditEmbedSecretRotated(user.tenantId, user.userId)
       .catch(() => undefined);
     return { secret };
+  }
+
+  @Post('widget-theme/logo')
+  @RequireRank(USER_RANK.MASTER, USER_RANK.DIRECTOR)
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: LOGO_MAX_BYTES, files: 1 } }))
+  @ApiOperation({ summary: 'Upload the widget header logo' })
+  async uploadWidgetLogo(@CurrentUser() user: Principal, @UploadedFile() file?: LogoUpload) {
+    if (user.actorType !== 'user') {
+      throw new BusinessException(ERROR_CODE.FORBIDDEN, HttpStatus.FORBIDDEN);
+    }
+    if (!file) {
+      // 4xx are not server-logged by default, so a rejected upload would leave
+      // no trace at all for whoever is asked why it "did nothing".
+      this.logger.warn(`widget logo upload rejected: no file (tenant ${user.tenantId})`);
+      throw new BusinessException(ERROR_CODE.WIDGET_LOGO_REJECTED, HttpStatus.BAD_REQUEST);
+    }
+    const tenant = await this.tenantService.setWidgetLogo(user.tenantId, user.userId, file);
+    return TenantMapper.toWidgetTheme(tenant);
+  }
+
+  @Delete('widget-theme/logo')
+  @RequireRank(USER_RANK.MASTER, USER_RANK.DIRECTOR)
+  @ApiOperation({ summary: 'Remove the widget header logo' })
+  async deleteWidgetLogo(@CurrentUser() user: Principal) {
+    if (user.actorType !== 'user') {
+      throw new BusinessException(ERROR_CODE.FORBIDDEN, HttpStatus.FORBIDDEN);
+    }
+    const tenant = await this.tenantService.clearWidgetLogo(user.tenantId, user.userId);
+    return TenantMapper.toWidgetTheme(tenant);
   }
 
   @Patch('widget-settings')

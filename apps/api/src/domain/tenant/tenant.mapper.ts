@@ -9,6 +9,7 @@ import {
   WIDGET_TAB_POSITION,
   WIDGET_TABS_DEFAULT,
   normalizeWidgetTabs,
+  DEFAULT_BRAND,
 } from '@ivy/types';
 import {
   CredentialResponse,
@@ -25,7 +26,8 @@ import { defaultOrigins } from '../embed/embed-origin.util';
 
 /** Entity -> response mapping. Keeps secrets out of API payloads. */
 /** The built-in brand colour — what an unthemed widget renders (index.css). */
-const DEFAULT_BRAND = '#2B7FFF';
+// DEFAULT_BRAND now lives with the theme contract in @ivy/types, so the console
+// preview, the API and the widget cannot disagree about the unthemed palette.
 
 export class TenantMapper {
   static toTenant(t: Tenant, userCount?: number): TenantResponse {
@@ -98,6 +100,9 @@ export class TenantMapper {
     return {
       theme: normalizeWidgetTheme(t.widgetTheme),
       defaultBrand: DEFAULT_BRAND,
+      // The console builds the public logo URL from this; it is the same key the
+      // widget sends, so both fetch the identical asset.
+      shopDomain: t.shopDomain ?? null,
     };
   }
 

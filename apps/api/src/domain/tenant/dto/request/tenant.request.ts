@@ -203,6 +203,13 @@ export class UpdateWidgetThemeRequest {
   @IsOptional()
   @IsIn(['white', 'brand'])
   header_style?: 'white' | 'brand';
+
+  /**
+   * Launcher geometry (PLN-260819 S4). Optional: a console that only sends the
+   * colour must not reset the launcher, so the service carries the stored value
+   * forward when this is absent.
+   */
+  @IsOptional() @IsObject() launcher?: { position?: string; size?: string; icon?: string };
 }
 
 /** PLN-260819 S1 — replace the embed allowlist wholesale (empty = back to default). */

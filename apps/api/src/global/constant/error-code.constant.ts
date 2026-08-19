@@ -143,6 +143,10 @@ export const ERROR_CODE = {
   /** identify() signature did not verify — the visitor stays a guest. */
   EMBED_IDENTITY_INVALID: { code: 'E5048', message: 'Identity signature is invalid' },
 
+  // E5049 — widget branding (PLN-260819 S4).
+  /** Logo upload refused: wrong format, too large, or unreadable. */
+  WIDGET_LOGO_REJECTED: { code: 'E5049', message: 'Logo could not be accepted' },
+
   // E9xxx — system
   INTERNAL_ERROR: { code: 'E9001', message: 'Internal server error' },
   EXTERNAL_SERVICE_ERROR: { code: 'E9002', message: 'External service error' },

@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import { CircleHelp, Headset, MessageCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { PageHeader } from '@/components/PageHeader';
 import { Card } from '@/components/Card';
+import { apiBaseUrl } from '@/lib/api-client';
 import { Badge } from '@/components/Badge';
 import { Button } from '@/components/Button';
 import { Table } from '@/components/Table';
@@ -11,6 +13,7 @@ import { FormRow, Input, Select } from '@/components/Field';
 // Type-only: @ivy/types ships CJS whose runtime exports Rollup cannot see.
 import type {
   WidgetHeaderStyle,
+  WidgetLauncher,
   WidgetLoginMode,
   WidgetTab,
   WidgetTabPosition,
@@ -24,7 +27,11 @@ import {
   WIDGET_TABS_DEFAULT,
   WIDGET_TAB_ORDER,
 } from '../../../../../packages/types/src/common/enum.types';
-import { buildThemeVariables } from '../../../../../packages/types/src/common/widget-theme';
+import {
+  LAUNCHER_METRICS,
+  buildThemeVariables,
+  resolveLauncher,
+} from '../../../../../packages/types/src/common/widget-theme';
 import type { ScenarioLang } from '../ai-settings/ai-settings.service';
 // Live-support routing lives here now (PLN-260806 D1); the editor itself stays
 // in the ai-settings domain because it saves through the same AI-config API.
@@ -36,6 +43,8 @@ import {
   useSaveNotificationChannels,
   useSaveWidgetTheme,
   useWidgetTheme,
+  useUploadWidgetLogo,
+  useDeleteWidgetLogo,
   useSaveWidgetSettings,
   useSaveShopify,
   useShopifySettings,
@@ -865,13 +874,41 @@ function WidgetThemeCard() {
   const { data, isLoading } = useWidgetTheme();
   const save = useSaveWidgetTheme();
 
+  const uploadLogo = useUploadWidgetLogo();
+  const deleteLogo = useDeleteWidgetLogo();
+  const fileRef = useRef<HTMLInputElement>(null);
+
   const [brandPicked, setBrandPicked] = useState<string | null>(null);
   const [headerPicked, setHeaderPicked] = useState<WidgetHeaderStyle | null>(null);
+  const [launcherPicked, setLauncherPicked] = useState<WidgetLauncher | null>(null);
   const storedBrand = data?.theme?.brand ?? data?.defaultBrand ?? '#2B7FFF';
   const storedHeader = data?.theme?.headerStyle ?? 'white';
+  const storedLauncher = resolveLauncher(data?.theme ?? null);
   const brand = brandPicked ?? storedBrand;
   const headerStyle = headerPicked ?? storedHeader;
-  const dirty = data != null && (brand !== storedBrand || headerStyle !== storedHeader);
+  const logo = data?.theme?.logo ?? null;
+  const pickedLauncher = launcherPicked ?? storedLauncher;
+  // Deleting the logo removes the "your logo" option, but the stored value can
+  // still say `logo`. Show what the widget will actually draw in that case.
+  const launcher =
+    pickedLauncher.icon === 'logo' && !logo
+      ? { ...pickedLauncher, icon: 'chat' as const }
+      : pickedLauncher;
+  // Same URL the widget uses, so the preview shows the real file rather than a
+  // local object URL that would look right even when serving is broken.
+  // Without a shop domain the URL would resolve to a 404 and show a broken
+  // image; the "no logo" state is the honest thing to render.
+  const logoSrc =
+    logo && data?.shopDomain
+      ? `${apiBaseUrl()}/public/widget/logo?shop=${encodeURIComponent(data.shopDomain)}&v=${logo.id}`
+      : null;
+  const dirty =
+    data != null &&
+    (brand !== storedBrand ||
+      headerStyle !== storedHeader ||
+      launcher.position !== storedLauncher.position ||
+      launcher.size !== storedLauncher.size ||
+      launcher.icon !== storedLauncher.icon);
 
   // Same computation the widget runs, so this preview cannot promise a colour
   // the widget would not paint.
@@ -923,8 +960,108 @@ function WidgetThemeCard() {
           <p className="mb-4 text-xs text-gray-400">{t('widgetTheme.autoContrast')}</p>
           <p className="mb-4 text-xs text-gray-400">{t('widgetTheme.statusFixed')}</p>
 
+          {/* --- logo (PLN-260819 S4 FR-T1) --- */}
+          <FormRow label={t('widgetTheme.logo')}>
+            <div className="flex items-center gap-3">
+              {logoSrc ? (
+                <img
+                  src={logoSrc}
+                  alt={t('widgetTheme.logoAlt')}
+                  className="max-h-10 max-w-[160px] rounded border border-gray-200 bg-white object-contain p-1"
+                />
+              ) : (
+                <span className="text-xs text-gray-400">{t('widgetTheme.logoNone')}</span>
+              )}
+              <input
+                ref={fileRef}
+                type="file"
+                accept=".png,.jpg,.jpeg,.webp"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) uploadLogo.mutate(file);
+                  e.target.value = '';
+                }}
+              />
+              <Button
+                variant="secondary"
+                disabled={uploadLogo.isPending}
+                onClick={() => fileRef.current?.click()}
+              >
+                {logo ? t('widgetTheme.logoChange') : t('widgetTheme.logoUpload')}
+              </Button>
+              {logo && (
+                <Button
+                  variant="secondary"
+                  disabled={deleteLogo.isPending}
+                  onClick={() => deleteLogo.mutate()}
+                >
+                  {tc('delete')}
+                </Button>
+              )}
+            </div>
+          </FormRow>
+          <p className="mb-4 text-xs text-gray-400">{t('widgetTheme.logoHint')}</p>
+
+          {/* --- launcher (FR-T2) --- */}
+          <FormRow label={t('widgetTheme.launcherPosition')}>
+            <Select
+              aria-label={t('widgetTheme.launcherPosition')}
+              value={launcher.position}
+              disabled={isLoading}
+              onChange={(e) =>
+                setLauncherPicked({ ...launcher, position: e.target.value as WidgetLauncher['position'] })
+              }
+            >
+              <option value="right">{t('widgetTheme.launcherRight')}</option>
+              <option value="left">{t('widgetTheme.launcherLeft')}</option>
+            </Select>
+          </FormRow>
+          <FormRow label={t('widgetTheme.launcherSize')}>
+            <Select
+              aria-label={t('widgetTheme.launcherSize')}
+              value={launcher.size}
+              disabled={isLoading}
+              onChange={(e) =>
+                setLauncherPicked({ ...launcher, size: e.target.value as WidgetLauncher['size'] })
+              }
+            >
+              <option value="sm">{t('widgetTheme.launcherSm')}</option>
+              <option value="md">{t('widgetTheme.launcherMd')}</option>
+              <option value="lg">{t('widgetTheme.launcherLg')}</option>
+            </Select>
+          </FormRow>
+          <FormRow label={t('widgetTheme.launcherIcon')}>
+            <Select
+              aria-label={t('widgetTheme.launcherIcon')}
+              value={launcher.icon}
+              disabled={isLoading}
+              onChange={(e) =>
+                setLauncherPicked({ ...launcher, icon: e.target.value as WidgetLauncher['icon'] })
+              }
+            >
+              <option value="chat">{t('widgetTheme.iconChat')}</option>
+              <option value="question">{t('widgetTheme.iconQuestion')}</option>
+              <option value="headset">{t('widgetTheme.iconHeadset')}</option>
+              {/* Only offered once there is a logo to show. */}
+              {logo && <option value="logo">{t('widgetTheme.iconLogo')}</option>}
+            </Select>
+          </FormRow>
+          <p className="mb-4 text-xs text-gray-400">{t('widgetTheme.launcherHint')}</p>
+
           <Button
-            onClick={() => save.mutate({ brand, headerStyle }, { onSuccess: () => { setBrandPicked(null); setHeaderPicked(null); } })}
+            onClick={() =>
+              save.mutate(
+                { brand, headerStyle, launcher },
+                {
+                  onSuccess: () => {
+                    setBrandPicked(null);
+                    setHeaderPicked(null);
+                    setLauncherPicked(null);
+                  },
+                },
+              )
+            }
             disabled={!dirty || save.isPending}
           >
             {save.isPending ? tc('saving') : tc('save')}
@@ -942,7 +1079,11 @@ function WidgetThemeCard() {
                 color: `rgb(${headerFg})`,
               }}
             >
-              <span>{t('widgetTheme.previewTitle')}</span>
+              {logoSrc ? (
+                <img src={logoSrc} alt="" className="max-h-6 max-w-[55%] object-contain" />
+              ) : (
+                <span>{t('widgetTheme.previewTitle')}</span>
+              )}
               <span className="opacity-60">⚙ ✕</span>
             </div>
             <div className="space-y-2 bg-white px-3 py-3">
@@ -964,6 +1105,33 @@ function WidgetThemeCard() {
                 <span className="text-[10px] text-gray-400">{t('widgetTheme.statusFixedShort')}</span>
               </div>
             </div>
+          </div>
+
+          {/* Launcher, on the side and at the size it will actually render.
+              Drawn here rather than in a live widget iframe on purpose: booting
+              the real widget would open a guest session on every keystroke. */}
+          <div
+            className={`mt-2 flex ${launcher.position === 'left' ? 'justify-start' : 'justify-end'}`}
+          >
+            <span
+              className="flex items-center justify-center rounded-full shadow-lg"
+              style={{
+                backgroundColor: brand,
+                color: `rgb(${onPrimary})`,
+                width: LAUNCHER_METRICS[launcher.size].button * 0.75,
+                height: LAUNCHER_METRICS[launcher.size].button * 0.75,
+              }}
+            >
+              {launcher.icon === 'logo' && logoSrc ? (
+                <img src={logoSrc} alt="" className="h-full w-full rounded-full object-cover" />
+              ) : launcher.icon === 'question' ? (
+                <CircleHelp className="h-5 w-5" />
+              ) : launcher.icon === 'headset' ? (
+                <Headset className="h-5 w-5" />
+              ) : (
+                <MessageCircle className="h-5 w-5" />
+              )}
+            </span>
           </div>
         </div>
       </div>

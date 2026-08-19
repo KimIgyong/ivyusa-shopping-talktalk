@@ -14,6 +14,9 @@ interface PaginationMeta {
 
 const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1';
 
+/** For URLs built outside axios (public asset links, e.g. the widget logo). */
+export const apiBaseUrl = (): string => baseURL.replace(/\/+$/, '');
+
 export const http = axios.create({ baseURL });
 
 /**

@@ -226,6 +226,46 @@
   var loginFinish = null; // resolver for the in-flight login, if any
 
   var CLOSED = { w: '96px', h: '96px' };
+  // Which side the closed launcher sits on, and how big its frame must be
+  // (PLN-260819 S4). The widget owns the setting and reports it; the loader owns
+  // the box. Cached on the PARENT origin so the next visit places the frame
+  // correctly on the first frame instead of sliding across after the widget
+  // boots — the same trick the widget uses for the brand colour.
+  var LAUNCHER_KEY = 'ivy:launcher:' + (shop || 'default');
+  var launcher = (function () {
+    try {
+      var raw = localStorage.getItem(LAUNCHER_KEY);
+      if (!raw) return null;
+      var parsed = JSON.parse(raw);
+      return parsed && (parsed.position === 'left' || parsed.position === 'right') ? parsed : null;
+    } catch (_) {
+      return null;
+    }
+  })();
+
+  function applyLauncher(next) {
+    if (!next) return;
+    launcher = next;
+    var px = Math.max(64, Math.min(160, Number(next.size) || 96)) + 'px';
+    CLOSED = { w: px, h: px };
+    if (next.position === 'left') {
+      frame.style.left = '0';
+      frame.style.right = 'auto';
+    } else {
+      frame.style.right = '0';
+      frame.style.left = 'auto';
+    }
+    // Only resize while closed; mid-conversation the panel owns the box.
+    if (frame.style.width !== OPEN.w) {
+      frame.style.width = CLOSED.w;
+      frame.style.height = CLOSED.h;
+    }
+    try {
+      localStorage.setItem(LAUNCHER_KEY, JSON.stringify(next));
+    } catch (_) {
+      /* not remembering only costs a reposition on the next visit */
+    }
+  }
   // Must clear the panel's own width plus the gap it holds from the frame edge:
   // the panel is 404px at `right: 20px`, so anything under 424px clips it.
   // (PLN-260817 SI-6 — it was 420px against a 380px panel, with 20px to spare.)
@@ -325,6 +365,7 @@
       }
     }
     frame.src = frameSrc();
+    if (launcher) applyLauncher(launcher);
     if (document.body) mount();
     else document.addEventListener('DOMContentLoaded', mount);
   }
@@ -608,6 +649,8 @@
     if (d.type === 'ivy:resize') {
       frame.style.width = d.open ? OPEN.w : CLOSED.w;
       frame.style.height = d.open ? OPEN.h : CLOSED.h;
+    } else if (d.type === 'ivy:launcher') {
+      applyLauncher({ position: d.position, size: d.size });
     } else if (d.type === 'ivy:ready') {
       widgetReady = true;
       maybeSendIdentity();

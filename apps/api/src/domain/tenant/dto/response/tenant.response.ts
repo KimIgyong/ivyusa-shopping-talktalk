@@ -125,4 +125,5 @@ export interface WidgetThemeResponse {
   theme: WidgetTheme | null;
   /** The palette shown when nothing is configured, so the console can preview it. */
   defaultBrand: string;
+  shopDomain: string | null;
 }

@@ -45,7 +45,9 @@ import {
   UpdateShopifySettingsRequest,
 } from './dto/request/tenant.request';
 import { AuditService } from '../audit/audit.service';
+import { LogoUpload, WidgetLogoService } from './widget-logo.service';
 import { parseOrigin } from '../embed/embed-origin.util';
+import { DEFAULT_BRAND } from '@ivy/types';
 import { ShopifyTestResponse } from './dto/response/tenant.response';
 
 /** provider/name key used for the Shopify credential and integration status. */
@@ -73,6 +75,7 @@ export class TenantService {
     private readonly jobLabelRepo: Repository<JobLabel>,
     private readonly integrationService: IntegrationService,
     private readonly audit: AuditService,
+    private readonly widgetLogo: WidgetLogoService,
   ) {}
 
   async list(
@@ -288,6 +291,56 @@ export class TenantService {
    * Update this tenant's widget behavior settings (PLN-Widget-Login-Redirect-
    * Orders). Changes how storefront sign-in opens for every shopper → audited.
    */
+  /**
+   * Store a new logo and point the theme at it (PLN-260819 S4).
+   *
+   * The previous file is removed only AFTER the row that references it is saved:
+   * a crash between the two leaves an unreferenced file (swept with the tenant),
+   * never a theme pointing at a file that is gone.
+   */
+  async setWidgetLogo(
+    tenantId: number,
+    actorId: number,
+    file: LogoUpload,
+  ): Promise<Tenant> {
+    const tenant = await this.findById(tenantId);
+    const logo = await this.widgetLogo.store(tenantId, file);
+    const previous = tenant.widgetTheme?.logo ?? null;
+
+    // A tenant may upload a logo before ever choosing a brand colour; keep the
+    // built-in palette in that case rather than refusing the upload.
+    const base = tenant.widgetTheme ?? { brand: DEFAULT_BRAND, headerStyle: 'white' };
+    tenant.widgetTheme = normalizeWidgetTheme({ ...base, logo });
+    const saved = await this.tenantRepo.save(tenant);
+    await this.widgetLogo.remove(tenantId, previous);
+    await this.audit.write({
+      tenantId,
+      actorType: 'user',
+      actorId,
+      action: 'tenant.widget_logo_updated',
+      target: `${logo.width}x${logo.height} ${logo.mime}`,
+    });
+    return saved;
+  }
+
+  /** Remove the logo; the widget header falls back to the display name. */
+  async clearWidgetLogo(tenantId: number, actorId: number): Promise<Tenant> {
+    const tenant = await this.findById(tenantId);
+    const previous = tenant.widgetTheme?.logo ?? null;
+    if (!previous) return tenant;
+    tenant.widgetTheme = normalizeWidgetTheme({ ...tenant.widgetTheme, logo: null });
+    const saved = await this.tenantRepo.save(tenant);
+    await this.widgetLogo.remove(tenantId, previous);
+    await this.audit.write({
+      tenantId,
+      actorType: 'user',
+      actorId,
+      action: 'tenant.widget_logo_removed',
+      target: previous.id,
+    });
+    return saved;
+  }
+
   async updateWidgetSettings(
     tenantId: number,
     actorId: number,
@@ -425,7 +478,20 @@ export class TenantService {
     dto: UpdateWidgetThemeRequest,
   ): Promise<Tenant> {
     const tenant = await this.findById(tenantId);
-    const theme = normalizeWidgetTheme({ brand: dto.brand, headerStyle: dto.header_style });
+    // The logo is uploaded through its own route, so this payload does not carry
+    // it. Carrying the stored value forward is what stops "change the brand
+    // colour" from silently deleting the tenant's logo — the neighbouring-field
+    // wipe this repo has been bitten by before (PLN-260818 lesson).
+    const theme = normalizeWidgetTheme({
+      brand: dto.brand,
+      // Every optional field carries the stored value forward. header_style is
+      // @IsOptional() too, so a client sending only `brand` would otherwise
+      // reset a brand-filled header to white — the same neighbouring-field wipe,
+      // one field over.
+      headerStyle: dto.header_style ?? tenant.widgetTheme?.headerStyle,
+      logo: tenant.widgetTheme?.logo ?? null,
+      launcher: dto.launcher ?? tenant.widgetTheme?.launcher ?? null,
+    });
     if (!theme) {
       this.logger.warn(`widget theme rejected: unusable brand colour (tenant ${tenantId})`);
       throw new BusinessException(ERROR_CODE.VALIDATION_FAILED, HttpStatus.BAD_REQUEST);

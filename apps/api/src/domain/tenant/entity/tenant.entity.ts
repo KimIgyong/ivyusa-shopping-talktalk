@@ -1,6 +1,7 @@
 import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, Unique, UpdateDateColumn } from 'typeorm';
 import { bigintTransformer } from '../../../global/util/transformers';
 import { decryptSecret, encryptSecret } from '../../../global/util/crypto.util';
+import type { WidgetTheme } from '@ivy/types';
 
 /**
  * The embed secret is a credential, so it never sits in the database as text.
@@ -123,7 +124,7 @@ export class Tenant {
    * NULL = never themed = the built-in palette, with no backfill.
    */
   @Column({ name: 'widget_theme', type: 'json', nullable: true })
-  widgetTheme: { brand: string; headerStyle: string } | null;
+  widgetTheme: WidgetTheme | null;
 
   /**
    * Domains allowed to embed this tenant's widget (PLN-260819 S1).

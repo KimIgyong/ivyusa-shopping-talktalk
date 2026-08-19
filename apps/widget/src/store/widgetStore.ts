@@ -5,6 +5,7 @@ import { WIDGET_TABS_DEFAULT } from '../lib/widget-tabs';
 import type {
   ConsentState,
   WidgetCopy,
+  WidgetTheme,
   WidgetLoginMode,
   WidgetTab,
   WidgetTabPosition,
@@ -92,6 +93,9 @@ interface WidgetState {
   setLoginMode: (m: WidgetLoginMode) => void;
   setWidgetCopy: (c: WidgetCopy | null) => void;
   setCustomerName: (n: string | null) => void;
+  /** Tenant theme, for the parts that are markup rather than CSS (logo, launcher). */
+  widgetTheme: WidgetTheme | null;
+  setWidgetTheme: (t: WidgetTheme | null) => void;
   setEmbedIdentity: (v: 'pending' | 'verified' | 'anonymous') => void;
   setLanguage: (l: string) => void;
   setConsentInfo: (c: ConsentInfo | null) => void;
@@ -148,6 +152,8 @@ export const useWidgetStore = create<WidgetState>()((set, get) => ({
   setLoginMode: (m) => set({ loginMode: m }),
   setWidgetCopy: (c) => set({ widgetCopy: c }),
   setCustomerName: (n) => set({ customerName: n }),
+  widgetTheme: null,
+  setWidgetTheme: (t) => set({ widgetTheme: t }),
   setEmbedIdentity: (v) => set({ embedIdentity: v }),
   setLanguage: (l) => set({ language: l }),
   setConsentInfo: (c) => set({ consent: c }),

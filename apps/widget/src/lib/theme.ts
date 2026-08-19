@@ -41,14 +41,22 @@ const THEMED_PROPERTIES = [
  * default blue and visibly repaint a moment later. Only the first-ever visit
  * sees that now.
  */
-export function applyCachedTheme(shop: string | undefined): void {
+export function applyCachedTheme(shop: string | undefined): WidgetTheme | null {
   try {
     const raw = localStorage.getItem(cacheKey(shop));
-    if (raw) applyTheme(JSON.parse(raw) as WidgetTheme);
+    if (raw) {
+      const theme = JSON.parse(raw) as WidgetTheme;
+      applyTheme(theme);
+      // Returned so the store can seed logo/launcher from the same cache — they
+      // are part of first paint too, and a launcher that jumps sides one frame
+      // after load is the same defect as a colour that repaints.
+      return theme;
+    }
   } catch {
     // Private mode, blocked storage, or a corrupt entry: the built-in palette is
     // a perfectly good fallback, so never let this break boot.
   }
+  return null;
 }
 
 /** Remember the served theme so the next visit paints it immediately. */
