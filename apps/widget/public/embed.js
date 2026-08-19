@@ -129,7 +129,10 @@
   } else {
     signInPaths = DEFAULT_SIGN_IN;
   }
-  var herePath = (window.location.pathname || '').toLowerCase();
+  // Drop a leading locale segment before matching. A Shopify store with markets
+  // serves its login as /en-ca/account/login, and an anchored prefix would sail
+  // straight past it — the same silent miss this guard exists to prevent.
+  var herePath = (window.location.pathname || '').toLowerCase().replace(/^\/[a-z]{2}(-[a-z]{2})?(?=\/)/, '');
   for (var si = 0; si < signInPaths.length; si++) {
     if (herePath.indexOf(String(signInPaths[si]).toLowerCase()) === 0) return;
   }

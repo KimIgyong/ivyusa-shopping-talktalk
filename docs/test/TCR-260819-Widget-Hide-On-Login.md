@@ -24,6 +24,7 @@
 | T-6 | Shopify `/account/login`·`/account/register`·`/challenge` | 미생성 / `/account`·상품페이지는 mount |
 | T-7 | 커스텀 도메인 + `loginPath:/member/login.html` | Cafe24 규칙 적용 / 힌트 없으면 기본 목록 |
 | T-8 | `hideOnPaths: []` → 안 숨김 · `['/signin']` → 목록 **교체**(추가 아님) | 탈출구 동작 |
+| T-9 | `/en-ca/account/login`·`/ko/member/login.html` | 로케일 접두사 1개는 떼고 비교 / `/collections/account/login`은 mount |
 
 ### 1-1. 음성 대조(negative control)
 
@@ -31,8 +32,8 @@
 테스트를 돌리면:
 
 ```
-변경 전:  pass 3 / fail 6
-변경 후:  pass 9 / fail 0
+변경 전:  pass 3 / fail 6   (T-9 추가 전 기준)
+변경 후:  pass 10 / fail 0
 ```
 
 T-2b·T-3·T-4가 변경 전에도 통과한다 — 스텁이 실제로 mount를 수행한다는 뜻이고,
@@ -85,6 +86,7 @@ T-2b·T-3·T-4가 변경 전에도 통과한다 — 스텁이 실제로 mount를
 | E-2 | `hideOnPaths`에 배열이 아닌 값 | `Array.isArray` 실패 → 기본 목록 사용 (조용한 무시 아님, 안전한 기본) |
 | E-3 | 커스텀 스킨이 로그인 경로를 바꾼 몰 | `hideOnPaths`로 대응 (§T-8) |
 | E-4 | `location.pathname` 없음 | `''`로 폴백 → 어떤 접두사에도 안 걸림 → mount (안전한 기본) |
+| E-5 | 로케일 URL (`/en-ca/account/login`) | 로케일 모양 세그먼트 **1개만** 제거 후 비교. Shopify 마켓 스토어에서 앵커 접두사가 그냥 지나치던 구멍 |
 
 ## 5. 미검증
 

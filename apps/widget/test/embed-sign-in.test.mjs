@@ -152,3 +152,14 @@ test('T-8 hideOnPaths overrides the defaults, and [] turns the behaviour off', (
   // An override replaces the defaults rather than adding to them.
   assert.equal(load({ path: '/member/login.html', config: { hideOnPaths: ['/signin'] } }).mounted, true);
 });
+
+test('T-9 a locale-prefixed storefront still matches', () => {
+  // Shopify markets serve /en-ca/account/login; Cafe24 multilingual skins do the
+  // same shape. An anchored prefix alone would let these through.
+  const host = 'ambshop-dev.myshopify.com';
+  assert.equal(load({ host, path: '/en-ca/account/login' }).mounted, false);
+  assert.equal(load({ host, path: '/ko/account/login' }).mounted, false);
+  assert.equal(load({ path: '/ko/member/login.html' }).mounted, false);
+  // Only ONE segment is dropped, and only a locale-shaped one.
+  assert.equal(load({ host, path: '/collections/account/login' }).mounted, true);
+});
