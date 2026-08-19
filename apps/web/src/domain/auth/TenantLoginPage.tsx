@@ -7,6 +7,7 @@ import { authService } from './auth.service';
 import { AuthShell } from './AuthShell';
 import { LoginForm } from './LoginForm';
 import { MfaChallengeForm } from './MfaChallengeForm';
+import { LoginTroubleHint } from './LoginTroubleHint';
 import { useAuthStore } from '@/store/auth-store';
 import { getErrorStatus } from '@/lib/api-client';
 import { toast } from '@/store/toast-store';
@@ -24,6 +25,11 @@ export function TenantLoginPage() {
 
   // Step-up token when the account has MFA enabled (null = password step).
   const [mfaToken, setMfaToken] = useState<string | null>(null);
+
+  // Failure bookkeeping for the wrong-store hint. Counted on the CLIENT and
+  // never derived from the server's reason — see LoginTroubleHint on why.
+  const [failCount, setFailCount] = useState(0);
+  const [rateLimited, setRateLimited] = useState(false);
 
   // AMA-portal SSO (PLN-260813 S3): the iframe URL carries ?ama_token=. Capture
   // it once, then scrub it from the address bar before anything else can log or
@@ -113,9 +119,23 @@ export function TenantLoginPage() {
         setMfaToken(res.mfaToken);
         return;
       }
+      setFailCount(0);
+      setRateLimited(false);
       finishLogin(res);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : t('loginFailed'));
+      const code = (err as { code?: string })?.code;
+      const locked = code === 'E1008';
+      setRateLimited(locked);
+      setFailCount((n) => n + 1);
+      // The lockout message arrives from the server in English; localize it by
+      // code like every other error, and keep the raw text only as a fallback.
+      toast.error(
+        locked
+          ? t('lockedTitle')
+          : err instanceof Error
+            ? err.message
+            : t('loginFailed'),
+      );
     }
   };
 
@@ -180,6 +200,15 @@ export function TenantLoginPage() {
             <X className="h-4 w-4" />
           </button>
         </div>
+      )}
+      {/* Two strikes is where "maybe I mistyped it" stops being the likeliest
+          explanation and "maybe this is the wrong store" starts. */}
+      {!mfaToken && (failCount >= 2 || rateLimited) && (
+        <LoginTroubleHint
+          storeName={tenant.name ?? tenant.slug}
+          slug={slug}
+          rateLimited={rateLimited}
+        />
       )}
       {mfaToken ? (
         <MfaChallengeForm
