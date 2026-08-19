@@ -11,7 +11,10 @@ import type { WidgetTheme } from './types';
 export { LAUNCHER_METRICS, resolveLauncher };
 
 /** Tailwind sizes per launcher size — the button, and the icon inside it. */
-export const LAUNCHER_CLASSES: Record<string, { button: string; icon: string }> = {
+export const LAUNCHER_CLASSES: Record<
+  keyof typeof LAUNCHER_METRICS,
+  { button: string; icon: string }
+> = {
   sm: { button: 'h-12 w-12', icon: 'h-5 w-5' },
   md: { button: 'h-14 w-14', icon: 'h-6 w-6' },
   lg: { button: 'h-16 w-16', icon: 'h-7 w-7' },

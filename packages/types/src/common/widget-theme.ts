@@ -297,6 +297,13 @@ export function normalizeWidgetTheme(input: unknown): WidgetTheme | null {
 }
 
 /** A stored logo is only usable if every field the URL and layout need is there. */
+const LOGO_MIME_BY_EXT: Record<string, string> = {
+  png: 'image/png',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  webp: 'image/webp',
+};
+
 export function normalizeLogo(input: unknown): WidgetLogo | null {
   if (!input || typeof input !== 'object') return null;
   const raw = input as Partial<WidgetLogo>;
@@ -305,10 +312,19 @@ export function normalizeLogo(input: unknown): WidgetLogo | null {
   const width = Number(raw.width);
   const height = Number(raw.height);
   if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) return null;
+  // The mime is replayed as a public Content-Type, and this function is the
+  // only place stored JSON crosses back into the app. Derive it from the
+  // extension rather than trusting the column: a stray control character would
+  // throw inside setHeader (a 500 on a public asset), and an arbitrary type
+  // would change how the browser renders the file.
+  const ext = raw.ext.toLowerCase();
+  const mime = LOGO_MIME_BY_EXT[ext];
+  if (!mime) return null;
+
   return {
     id: raw.id,
-    ext: raw.ext.toLowerCase(),
-    mime: typeof raw.mime === 'string' ? raw.mime : 'image/png',
+    ext,
+    mime,
     width: Math.round(width),
     height: Math.round(height),
   };

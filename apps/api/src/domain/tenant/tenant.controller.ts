@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Logger,
   Delete,
   Get,
   Param,
@@ -48,6 +49,8 @@ import { ERROR_CODE } from '../../global/constant/error-code.constant';
 @ApiTags('Tenant')
 @Controller('tenants')
 export class TenantController {
+  private readonly logger = new Logger(TenantController.name);
+
   constructor(
     private readonly tenantService: TenantService,
     private readonly ecommerceIntegrationService: EcommerceIntegrationService,
@@ -240,6 +243,9 @@ export class TenantController {
       throw new BusinessException(ERROR_CODE.FORBIDDEN, HttpStatus.FORBIDDEN);
     }
     if (!file) {
+      // 4xx are not server-logged by default, so a rejected upload would leave
+      // no trace at all for whoever is asked why it "did nothing".
+      this.logger.warn(`widget logo upload rejected: no file (tenant ${user.tenantId})`);
       throw new BusinessException(ERROR_CODE.WIDGET_LOGO_REJECTED, HttpStatus.BAD_REQUEST);
     }
     const tenant = await this.tenantService.setWidgetLogo(user.tenantId, user.userId, file);

@@ -126,7 +126,9 @@ export class WidgetLogoService {
     let width: number;
     let height: number;
     try {
-      const pipeline = sharp(file.buffer)
+      // A 1MB PNG can still decode to hundreds of megapixels; cap the input
+      // rather than discovering that as memory pressure.
+      const pipeline = sharp(file.buffer, { limitInputPixels: 50_000_000 })
         .rotate()
         // `inside` + withoutEnlargement: a small logo is left alone, an oversized
         // one is fitted — never stretched, never padded.
@@ -137,7 +139,7 @@ export class WidgetLogoService {
           ? pipeline.webp({ quality: 90 })
           : pipeline.jpeg({ quality: 90 })
       ).toBuffer();
-      const meta = await sharp(bytes).metadata();
+      const meta = await sharp(bytes, { limitInputPixels: 50_000_000 }).metadata();
       width = meta.width ?? 0;
       height = meta.height ?? 0;
       if (!width || !height) throw new Error('re-encoded logo has no dimensions');

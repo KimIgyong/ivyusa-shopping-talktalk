@@ -8,7 +8,7 @@
 
 ## 1. 단위 테스트 (자동, 실행 완료)
 
-### `packages/types/.../widget-theme-branding.spec.ts` — 12건
+### `packages/types/.../widget-theme-branding.spec.ts` — 13건
 
 | ID | 케이스 | 결과 |
 |---|---|---|
@@ -23,6 +23,7 @@
 | U-9 | **로고가 이상해도 테마는 살아남는다** | ✅ |
 | U-10 | **브랜드색이 이상하면 여전히 테마 전체 거부**(읽을 수 없는 위젯을 막는 유일한 축) | ✅ |
 | U-11 | 두 필드를 설정한 적 없는 테마는 출력이 종전과 동일(무회귀) | ✅ |
+| U-11b | **mime은 저장값이 아니라 확장자에서 유도**(공개 Content-Type으로 재생되므로), 허용목록 밖 확장자는 거부 | ✅ |
 
 ### `apps/api/.../widget-logo.service.spec.ts` — 7건 (실제 sharp·실제 파일)
 
@@ -52,7 +53,7 @@ typecheck 9/9 · build 6/6 · i18n 6개 언어 complete.
 |---|---|---|
 | L-1 | 부팅 — `successfully started`, 에러 0 | ✅ |
 | L-2 | `GET /public/widget/logo`(로고 없음) → 404 · `POST /tenants/widget-theme/logo`(무인증) → 401 | ✅ |
-| L-3 | 300×80 PNG 저장 → 공개 서빙 **200 · image/png · `max-age=31536000, immutable`** | ✅ |
+| L-3 | 300×80 PNG 저장 → `GET /api/v1/public/widget/logo?shop=&v=` **200 · image/png · `max-age=31536000, immutable`**(`v`가 일치할 때만; 불일치·누락은 60초) | ✅ |
 | L-4 | 존재하지 않는 shop → 404 | ✅ |
 | L-5 | `session/ensure` 응답에 `logo`·`launcher`가 실려 나감 | ✅ |
 | L-6 | **브랜드색만 저장해도 로고·런처가 보존됨**(이웃 필드 삭제 함정) | ✅ |

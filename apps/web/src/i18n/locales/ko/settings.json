@@ -474,7 +474,8 @@
     "iconQuestion": "물음표",
     "iconHeadset": "헤드셋",
     "iconLogo": "내 로고",
-    "launcherHint": "고객이 위젯을 열 때 누르는 떠 있는 버튼입니다."
+    "launcherHint": "고객이 위젯을 열 때 누르는 떠 있는 버튼입니다.",
+    "logoAlt": "현재 로고"
   },
   "embed": {
     "title": "임베드 · SDK",

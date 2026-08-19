@@ -474,7 +474,8 @@
     "iconQuestion": "Signo de interrogación",
     "iconHeadset": "Auriculares",
     "iconLogo": "Tu logotipo",
-    "launcherHint": "El botón flotante que los clientes pulsan para abrir el widget."
+    "launcherHint": "El botón flotante que los clientes pulsan para abrir el widget.",
+    "logoAlt": "Logotipo actual"
   },
   "embed": {
     "title": "Integración y SDK",

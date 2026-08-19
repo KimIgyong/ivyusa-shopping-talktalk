@@ -474,7 +474,8 @@
     "iconQuestion": "はてなマーク",
     "iconHeadset": "ヘッドセット",
     "iconLogo": "自社ロゴ",
-    "launcherHint": "お客様がウィジェットを開くときに押す、浮いているボタンです。"
+    "launcherHint": "お客様がウィジェットを開くときに押す、浮いているボタンです。",
+    "logoAlt": "現在のロゴ"
   },
   "embed": {
     "title": "埋め込み・SDK",

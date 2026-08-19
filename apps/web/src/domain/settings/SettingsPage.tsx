@@ -886,11 +886,22 @@ function WidgetThemeCard() {
   const storedLauncher = resolveLauncher(data?.theme ?? null);
   const brand = brandPicked ?? storedBrand;
   const headerStyle = headerPicked ?? storedHeader;
-  const launcher = launcherPicked ?? storedLauncher;
   const logo = data?.theme?.logo ?? null;
+  const pickedLauncher = launcherPicked ?? storedLauncher;
+  // Deleting the logo removes the "your logo" option, but the stored value can
+  // still say `logo`. Show what the widget will actually draw in that case.
+  const launcher =
+    pickedLauncher.icon === 'logo' && !logo
+      ? { ...pickedLauncher, icon: 'chat' as const }
+      : pickedLauncher;
   // Same URL the widget uses, so the preview shows the real file rather than a
   // local object URL that would look right even when serving is broken.
-  const logoSrc = logo ? `${apiBaseUrl()}/public/widget/logo?shop=${encodeURIComponent(data?.shopDomain ?? '')}&v=${logo.id}` : null;
+  // Without a shop domain the URL would resolve to a 404 and show a broken
+  // image; the "no logo" state is the honest thing to render.
+  const logoSrc =
+    logo && data?.shopDomain
+      ? `${apiBaseUrl()}/public/widget/logo?shop=${encodeURIComponent(data.shopDomain)}&v=${logo.id}`
+      : null;
   const dirty =
     data != null &&
     (brand !== storedBrand ||
@@ -955,7 +966,7 @@ function WidgetThemeCard() {
               {logoSrc ? (
                 <img
                   src={logoSrc}
-                  alt=""
+                  alt={t('widgetTheme.logoAlt')}
                   className="max-h-10 max-w-[160px] rounded border border-gray-200 bg-white object-contain p-1"
                 />
               ) : (

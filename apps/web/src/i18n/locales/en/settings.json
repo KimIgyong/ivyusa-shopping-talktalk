@@ -474,7 +474,8 @@
     "iconQuestion": "Question mark",
     "iconHeadset": "Headset",
     "iconLogo": "Your logo",
-    "launcherHint": "The floating button shoppers tap to open the widget."
+    "launcherHint": "The floating button shoppers tap to open the widget.",
+    "logoAlt": "Current logo"
   },
   "embed": {
     "title": "Embed & SDK",

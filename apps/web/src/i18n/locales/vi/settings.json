@@ -474,7 +474,8 @@
     "iconQuestion": "Dấu hỏi",
     "iconHeadset": "Tai nghe",
     "iconLogo": "Logo của bạn",
-    "launcherHint": "Nút nổi mà khách bấm để mở widget."
+    "launcherHint": "Nút nổi mà khách bấm để mở widget.",
+    "logoAlt": "Logo hiện tại"
   },
   "embed": {
     "title": "Nhúng & SDK",

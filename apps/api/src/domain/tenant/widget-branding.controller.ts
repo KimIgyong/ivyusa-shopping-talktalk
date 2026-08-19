@@ -29,8 +29,12 @@ export class WidgetBrandingController {
   @Get('logo')
   @Public()
   @SkipThrottle() // one request per storefront page load, same as the widget itself
-  @ApiOperation({ summary: "A storefront's widget logo (public, immutable cache)" })
-  async logo(@Query('shop') shop: string, @Res() res: Response): Promise<void> {
+  @ApiOperation({ summary: "A storefront's widget logo (public, cached)" })
+  async logo(
+    @Query('shop') shop: string,
+    @Query('v') version: string,
+    @Res() res: Response,
+  ): Promise<void> {
     const tenant = shop ? await this.tenantService.findByShopDomain(shop) : null;
     const logo = tenant?.widgetTheme?.logo ?? null;
     if (!tenant || !logo) {
@@ -40,7 +44,14 @@ export class WidgetBrandingController {
 
     res.setHeader('Content-Type', logo.mime);
     res.setHeader('X-Content-Type-Options', 'nosniff');
-    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    // `immutable` is only honest when the URL names the version being served. A
+    // request without `v` (or with a stale one) points at whatever is current,
+    // so caching it for a year would keep serving a replaced logo from
+    // intermediaries long after the tenant changed it.
+    res.setHeader(
+      'Cache-Control',
+      version === logo.id ? 'public, max-age=31536000, immutable' : 'public, max-age=60',
+    );
 
     const stream = this.widgetLogo.openStream(Number(tenant.id), logo);
     stream.on('error', () => {
@@ -50,6 +61,10 @@ export class WidgetBrandingController {
       if (!res.headersSent) res.status(HttpStatus.NOT_FOUND);
       res.end();
     });
+    // pipe() does not close the source when the destination goes away. On a
+    // public route every abandoned page load would leak a descriptor, and the
+    // process reaches EMFILE long before anyone notices.
+    res.on('close', () => stream.destroy());
     stream.pipe(res);
   }
 }

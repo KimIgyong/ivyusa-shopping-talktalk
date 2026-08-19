@@ -474,7 +474,8 @@
     "iconQuestion": "问号",
     "iconHeadset": "耳机",
     "iconLogo": "您的标志",
-    "launcherHint": "顾客点击以打开挂件的悬浮按钮。"
+    "launcherHint": "顾客点击以打开挂件的悬浮按钮。",
+    "logoAlt": "当前标志"
   },
   "embed": {
     "title": "嵌入与 SDK",

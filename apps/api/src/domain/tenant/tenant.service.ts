@@ -484,7 +484,11 @@ export class TenantService {
     // wipe this repo has been bitten by before (PLN-260818 lesson).
     const theme = normalizeWidgetTheme({
       brand: dto.brand,
-      headerStyle: dto.header_style,
+      // Every optional field carries the stored value forward. header_style is
+      // @IsOptional() too, so a client sending only `brand` would otherwise
+      // reset a brand-filled header to white — the same neighbouring-field wipe,
+      // one field over.
+      headerStyle: dto.header_style ?? tenant.widgetTheme?.headerStyle,
       logo: tenant.widgetTheme?.logo ?? null,
       launcher: dto.launcher ?? tenant.widgetTheme?.launcher ?? null,
     });

@@ -34,6 +34,15 @@ describe('normalizeLogo', () => {
     expect(normalizeLogo({ ...LOGO, width: 0 })).toBeNull();
     expect(normalizeLogo({ ...LOGO, height: undefined })).toBeNull();
   });
+
+  it('derives the mime from the extension instead of trusting the stored one', () => {
+    // This value is replayed as a public Content-Type. A control character
+    // would throw inside setHeader (a 500 on a public asset), and an arbitrary
+    // type would change how the browser treats the file.
+    expect(normalizeLogo({ ...LOGO, mime: 'text/html\r\nX-Evil: 1' })?.mime).toBe('image/png');
+    expect(normalizeLogo({ ...LOGO, ext: 'jpeg', mime: 'image/png' })?.mime).toBe('image/jpeg');
+    expect(normalizeLogo({ ...LOGO, ext: 'gif' })).toBeNull();
+  });
 });
 
 describe('normalizeLauncher', () => {
