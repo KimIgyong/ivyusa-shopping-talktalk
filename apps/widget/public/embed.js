@@ -65,6 +65,29 @@
 
   if (document.getElementById('ivy-talktalk-frame')) return; // idempotent
 
+  // --- Public SDK surface (PLN-260819 S3) -----------------------------------
+  // A page can either drop the script in with IVY_WIDGET_CONFIG (the install
+  // that is live on ivyusa and amoebaorder today, which must keep working
+  // untouched) or drive it explicitly with ShopTalk.init(). The difference is
+  // only WHEN boot() runs: config-first pages boot on load, init() pages boot
+  // when they say so.
+  var api = (window.ShopTalk = window.ShopTalk || {});
+  var queued = Array.isArray(api.q) ? api.q.slice() : [];
+  var listeners = {};
+  var booted = false;
+
+  function emit(name, payload) {
+    var fns = listeners[name];
+    if (!fns) return;
+    for (var i = 0; i < fns.length; i++) {
+      try {
+        fns[i](payload);
+      } catch (_) {
+        /* one bad handler must not stop the rest, or the widget itself */
+      }
+    }
+  }
+
   var cfg = window.IVY_WIDGET_CONFIG || {};
   // Cafe24 malls rarely set data-shop and expose no window.Shopify — but the page
   // host IS the mall host, so fall back to it there. Without `shop` the widget
@@ -173,15 +196,30 @@
     'sandbox',
     'allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox',
   );
-  frame.src =
-    base +
-    '/?embed=1&shop=' +
-    encodeURIComponent(shop) +
-    '&locale=' +
-    encodeURIComponent(locale) +
-    (ga4Id ? '&ga4=' + encodeURIComponent(ga4Id) : '') +
-    (reopenTab ? '&reopen=' + encodeURIComponent(reopenTab) : '') +
-    (attribution ? '&' + attribution : '');
+  /**
+   * The iframe URL is built at BOOT, not at script load: ShopTalk.init() can
+   * change `shop`, `widgetUrl` and `locale`, and a src frozen before that would
+   * send an init()-only install to the widget with no shop at all.
+   */
+  function frameSrc() {
+    // Re-read from cfg so init()'s merge is reflected.
+    var s0 = cfg.shop || shop;
+    var l0 = String(cfg.locale || locale).slice(0, 2);
+    var g0 = cfg.ga4Id && /^G-[A-Z0-9]+$/i.test(cfg.ga4Id) ? cfg.ga4Id : ga4Id;
+    return (
+      base +
+      '/?embed=1&shop=' +
+      encodeURIComponent(s0) +
+      '&locale=' +
+      encodeURIComponent(l0) +
+      (g0 ? '&ga4=' + encodeURIComponent(g0) : '') +
+      (reopenTab ? '&reopen=' + encodeURIComponent(reopenTab) : '') +
+      // The widget reports this to the API's embed allowlist. Browsers that expose
+      // ancestorOrigins prefer their own answer over this one (PLN-260819 S1).
+      '&parent=' + encodeURIComponent(window.location.origin) +
+      (attribution ? '&' + attribution : '')
+    );
+  }
 
   var s = frame.style;
   s.position = 'fixed';
@@ -198,11 +236,49 @@
   function mount() {
     document.body.appendChild(frame);
   }
-  if (document.body) mount();
-  else document.addEventListener('DOMContentLoaded', mount);
+
+  /**
+   * Put the frame on the page. Runs once, from whichever entry point comes
+   * first: the legacy config-only install (bottom of this file) or ShopTalk.init().
+   */
+  function boot() {
+    if (booted) return;
+    booted = true;
+    // `base` is resolved from cfg at load; if init() changed widgetUrl, honour it.
+    if (cfg.widgetUrl) {
+      base = String(cfg.widgetUrl).replace(/\/+$/, '');
+      try {
+        baseOrigin = new URL(base, window.location.href).origin;
+      } catch (_) {
+        baseOrigin = base;
+      }
+    }
+    frame.src = frameSrc();
+    if (document.body) mount();
+    else document.addEventListener('DOMContentLoaded', mount);
+  }
 
   function sendToWidget(msg) {
     if (frame.contentWindow) frame.contentWindow.postMessage(msg, base);
+  }
+
+  /**
+   * Commands issued before the widget is listening.
+   *
+   * `open()` right after `init()` used to be dropped: the iframe had not loaded,
+   * let alone mounted the React listener, so the postMessage went nowhere. The
+   * widget announces itself with `ivy:ready`; until then commands wait here and
+   * are replayed in order.
+   */
+  var commandQueue = [];
+  function command(msg) {
+    if (widgetReady) sendToWidget(msg);
+    else commandQueue.push(msg);
+  }
+  function flushCommands() {
+    var pending = commandQueue;
+    commandQueue = [];
+    for (var i = 0; i < pending.length; i++) sendToWidget(pending[i]);
   }
 
   // Report the proxy's answer to the widget, once both sides are ready: the proxy
@@ -464,6 +540,7 @@
     } else if (d.type === 'ivy:ready') {
       widgetReady = true;
       maybeSendIdentity();
+      flushCommands();
     } else if (d.type === 'ivy:login') {
       // Only the widget iframe may trigger sign-in. The widget forwards the
       // tenant-configured mode (console setting); anything but an explicit
@@ -525,4 +602,94 @@
       maybeSendIdentity();
     });
   }
+
+  // --- Public API (PLN-260819 S3) -------------------------------------------
+  //
+  // Everything here is a thin wrapper over the postMessage protocol the loader
+  // already speaks. The widget is the one that knows how to open a tab or call
+  // the API; these methods just say when.
+
+  /**
+   * Explicit setup for host applications. Optional: a page that only sets
+   * IVY_WIDGET_CONFIG keeps booting on load exactly as before.
+   *
+   * Recognised keys mirror IVY_WIDGET_CONFIG (shop, widgetUrl, locale, ga4Id,
+   * apiBase, loginPath …). Calling it a second time is a no-op beyond the
+   * queued-call drain, because the frame is already on the page.
+   */
+  api.init = function (options) {
+    if (options && typeof options === 'object') {
+      for (var k in options) {
+        if (Object.prototype.hasOwnProperty.call(options, k)) cfg[k] = options[k];
+      }
+    }
+    boot();
+    return api;
+  };
+
+  api.open = function (tab) {
+    boot();
+    command({ type: 'ivy:command', action: 'open', tab: tab || null });
+  };
+  api.close = function () {
+    boot();
+    command({ type: 'ivy:command', action: 'close' });
+  };
+  api.toggle = function () {
+    boot();
+    command({ type: 'ivy:command', action: 'toggle' });
+  };
+  api.setLocale = function (next) {
+    boot();
+    command({ type: 'ivy:command', action: 'locale', locale: String(next || '').slice(0, 5) });
+  };
+
+  /**
+   * Tell the widget who is signed in. `hash` is an HMAC of `userId` produced by
+   * the host's OWN server — this loader never sees the secret, and a hash built
+   * in the browser would prove nothing.
+   */
+  api.identify = function (user) {
+    boot();
+    if (!user || !user.userId || !user.hash) return;
+    command({ type: 'ivy:identify', user: user });
+  };
+
+  api.logout = function () {
+    boot();
+    command({ type: 'ivy:command', action: 'logout' });
+  };
+
+  api.on = function (event, fn) {
+    if (typeof fn !== 'function') return api;
+    (listeners[event] = listeners[event] || []).push(fn);
+    return api;
+  };
+  api.off = function (event, fn) {
+    var fns = listeners[event];
+    if (!fns) return api;
+    listeners[event] = fns.filter(function (f) {
+      return f !== fn;
+    });
+    return api;
+  };
+
+  api.version = '1';
+
+  // Calls made before this script finished loading (the snippet may push onto
+  // ShopTalk.q) are replayed in order, so a page never has to wait for us.
+  for (var qi = 0; qi < queued.length; qi++) {
+    var call = queued[qi];
+    if (call && typeof api[call[0]] === 'function') {
+      try {
+        api[call[0]].apply(api, call.slice(1));
+      } catch (_) {
+        /* a bad queued call must not stop the rest */
+      }
+    }
+  }
+
+  // Legacy install: a page that configured the widget but never calls init()
+  // still gets a widget, exactly as it did before this file grew an API.
+  if (window.IVY_WIDGET_CONFIG) boot();
 })();

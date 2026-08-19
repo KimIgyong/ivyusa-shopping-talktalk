@@ -108,8 +108,22 @@ export interface WidgetThemeSettings {
   defaultBrand: string;
 }
 
+/** Embed allowlist + whether a signing secret exists (PLN-260819). */
+export interface EmbedSettings {
+  /** What is stored; null when never configured. */
+  origins: string[] | null;
+  /** What the gate actually compares against — the storefront, when unset. */
+  effectiveOrigins: string[];
+  secretConfigured: boolean;
+  shopDomain: string | null;
+}
+
 export const settingsService = {
   credentials: () => apiGet<CredentialStatus[]>('/tenants/me/credentials'),
+  embedSettings: () => apiGet<EmbedSettings>('/tenants/embed-settings'),
+  saveEmbedOrigins: (origins: string[]) =>
+    apiPatch<EmbedSettings>('/tenants/embed-origins', { origins }),
+  rotateEmbedSecret: () => apiPost<{ secret: string }>('/tenants/embed-secret/rotate', {}),
   widgetSettings: () => apiGet<WidgetSettings>('/tenants/widget-settings'),
   storefront: () => apiGet<Storefront>('/tenants/storefront'),
   notificationChannels: () => apiGet<NotificationChannels>('/tenants/notification-channels'),

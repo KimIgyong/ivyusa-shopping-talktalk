@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useWidgetStore, type TabKey } from '../../store/widgetStore';
 import { useEnsureSession } from '../../hooks/useSession';
 import { useEmbedIdentity } from '../../hooks/useEmbedIdentity';
+import { useEmbedCommands } from '../../hooks/useEmbedCommands';
 import { useSessionProfile } from '../../hooks/useSessionProfile';
 import { useUnreadCount } from '../../hooks/useNotifications';
 import { usePurchaseSignal } from '../../hooks/usePurchaseSignal';
@@ -15,6 +16,8 @@ export function Widget() {
   const { t } = useTranslation();
   useEnsureSession();
   useEmbedIdentity();
+  // Host-application commands: ShopTalk.open()/identify()/… (PLN-260819 S3).
+  useEmbedCommands();
   useSessionProfile();
   usePurchaseSignal();
   const analytics = useAnalytics();

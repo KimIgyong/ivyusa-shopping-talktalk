@@ -1,4 +1,5 @@
 import {
+  ArrayMaxSize,
   ArrayNotEmpty,
   IsArray,
   IsIn,
@@ -202,4 +203,13 @@ export class UpdateWidgetThemeRequest {
   @IsOptional()
   @IsIn(['white', 'brand'])
   header_style?: 'white' | 'brand';
+}
+
+/** PLN-260819 S1 — replace the embed allowlist wholesale (empty = back to default). */
+export class UpdateEmbedOriginsRequest {
+  @IsArray()
+  @IsString({ each: true })
+  @MaxLength(255, { each: true })
+  @ArrayMaxSize(50)
+  origins: string[];
 }

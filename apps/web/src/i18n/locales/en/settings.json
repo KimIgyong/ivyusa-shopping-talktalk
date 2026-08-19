@@ -454,5 +454,29 @@
     "previewStatus": "Confirmed",
     "brandPickerA11y": "Brand color picker",
     "brandHexA11y": "Brand color hex code"
+  },
+  "embed": {
+    "title": "Embed & SDK",
+    "description": "Install the widget on your site, and let your own server tell it who is signed in.",
+    "snippet": "Install code",
+    "copy": "Copy",
+    "origins": "Allowed domains",
+    "originsHint": "The widget only loads on these domains. Leave empty to allow your store domain only.",
+    "originsEmpty": "No domains added — currently allowing: {{origins}}",
+    "originsNone": "your store domain",
+    "add": "Add",
+    "remove": "Remove {{origin}}",
+    "originsSaved": "Allowed domains saved",
+    "originsSaveError": "Could not save the allowed domains",
+    "secret": "Sign-in integration (optional)",
+    "secretHint": "Your server signs a user id with this secret; the widget then recognises that user.",
+    "secretMissing": "Not generated yet",
+    "generate": "Generate",
+    "rotate": "Regenerate",
+    "rotateWarning": "Signatures made with the current secret stop working immediately. Sign-in stays broken until your server is updated, and visitors show as guests.",
+    "secretOnce": "Copy it now — this value is not shown again.",
+    "secretRotated": "New secret generated",
+    "secretRotateError": "Could not generate a secret",
+    "originPlaceholder": "https://www.example.com"
   }
 }

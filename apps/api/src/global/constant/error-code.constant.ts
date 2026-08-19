@@ -137,6 +137,12 @@ export const ERROR_CODE = {
     message: 'This Cafe24 mall is already connected to another store',
   },
 
+  // E5047-E5048 — embed SDK (PLN-260819).
+  /** The page embedding the widget is not on the tenant's allowlist. */
+  EMBED_ORIGIN_NOT_ALLOWED: { code: 'E5047', message: 'This site is not allowed to embed the widget' },
+  /** identify() signature did not verify — the visitor stays a guest. */
+  EMBED_IDENTITY_INVALID: { code: 'E5048', message: 'Identity signature is invalid' },
+
   // E9xxx — system
   INTERNAL_ERROR: { code: 'E9001', message: 'Internal server error' },
   EXTERNAL_SERVICE_ERROR: { code: 'E9002', message: 'External service error' },

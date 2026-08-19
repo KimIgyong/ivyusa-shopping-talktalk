@@ -30,6 +30,27 @@ function hasManualLanguageOverride(): boolean {
  * The Shopify shop domain the embed loader passes in the iframe URL (`?shop=`).
  * Binds the session to the right tenant; absent in local/standalone dev.
  */
+/**
+ * Origin of the page hosting this widget (PLN-260819 S1).
+ *
+ * `ancestorOrigins` is the browser's own answer and cannot be spoofed by the
+ * host page; where it is missing (Firefox) the loader's reported value is used,
+ * which is only as trustworthy as the page itself — which is why the allowlist
+ * is a misconfiguration guard and not authentication.
+ */
+export function getParentOrigin(): string | undefined {
+  try {
+    const ancestors = window.location.ancestorOrigins;
+    if (ancestors?.length) return ancestors[0];
+    const reported = new URLSearchParams(window.location.search).get('parent');
+    if (reported) return reported;
+    // Not embedded at all (opened directly) — no parent to report.
+    return window.parent === window ? undefined : document.referrer || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export function getShopDomain(): string | undefined {
   try {
     return new URLSearchParams(window.location.search).get('shop') ?? undefined;
@@ -170,7 +191,7 @@ export function useEnsureSession() {
     // token the backend returns reaches the store/queries.
     const resumeToken =
       useWidgetStore.getState().sessionToken ?? (embedded ? null : getStoredSessionToken());
-    ensureSession(resumeToken, language, getShopDomain())
+    ensureSession(resumeToken, language, getShopDomain(), getParentOrigin())
       .then((res) => {
         if (cancelled) return;
         // Tenant widget config is safe to adopt regardless of which session wins

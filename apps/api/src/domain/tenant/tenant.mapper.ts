@@ -21,6 +21,7 @@ import {
   WidgetThemeResponse,
   WidgetSettingsResponse,
 } from './dto/response/tenant.response';
+import { defaultOrigins } from '../embed/embed-origin.util';
 
 /** Entity -> response mapping. Keeps secrets out of API payloads. */
 /** The built-in brand colour — what an unthemed widget renders (index.css). */
@@ -97,6 +98,26 @@ export class TenantMapper {
     return {
       theme: normalizeWidgetTheme(t.widgetTheme),
       defaultBrand: DEFAULT_BRAND,
+    };
+  }
+
+  /**
+   * Embed settings for the console (PLN-260819). `origins` is what is STORED —
+   * null when never configured — and `effectiveOrigins` is what the gate will
+   * actually compare against, so the screen can say which one is in force
+   * instead of showing an empty box that silently means "storefront only".
+   */
+  static toEmbedSettings(t: Tenant): {
+    origins: string[] | null;
+    effectiveOrigins: string[];
+    secretConfigured: boolean;
+    shopDomain: string | null;
+  } {
+    return {
+      origins: t.embedOrigins ?? null,
+      effectiveOrigins: t.embedOrigins?.length ? t.embedOrigins : defaultOrigins(t),
+      secretConfigured: !!t.embedSecret,
+      shopDomain: t.shopDomain ?? null,
     };
   }
 

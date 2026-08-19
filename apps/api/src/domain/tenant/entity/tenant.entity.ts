@@ -1,5 +1,17 @@
 import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, Unique, UpdateDateColumn } from 'typeorm';
 import { bigintTransformer } from '../../../global/util/transformers';
+import { decryptSecret, encryptSecret } from '../../../global/util/crypto.util';
+
+/**
+ * The embed secret is a credential, so it never sits in the database as text.
+ * Same AES-256-GCM helper the messenger channel credentials use; the property
+ * stays a plain string everywhere above this line.
+ */
+const secretTransformer = {
+  to: (value: string | null): Buffer | null => (value ? encryptSecret(value) : null),
+  from: (value: Buffer | null): string | null =>
+    value && value.length ? decryptSecret(value) : null,
+};
 
 /** Shape of the `widget_copy` JSON column; keyed by session language (EN/ES/KO/VI/JA/ZH). */
 export interface TenantWidgetCopy {
@@ -112,6 +124,34 @@ export class Tenant {
    */
   @Column({ name: 'widget_theme', type: 'json', nullable: true })
   widgetTheme: { brand: string; headerStyle: string } | null;
+
+  /**
+   * Domains allowed to embed this tenant's widget (PLN-260819 S1).
+   *
+   * NULL = never configured, and resolves at read time to the tenant's own
+   * storefront (`defaultOrigins`) — NOT to "everything". Kept nullable so the
+   * column ships without a backfill and without cutting off a tenant that is
+   * already embedding today.
+   *
+   * This list is a misconfiguration guard, not authentication: the origin is
+   * reported by the browser. See embed-origin.util.ts.
+   */
+  @Column({ name: 'embed_origins', type: 'json', nullable: true })
+  embedOrigins: string[] | null;
+
+  /**
+   * Shared secret the customer's own server signs user ids with (PLN-260819 S2).
+   * Encrypted at rest with the same AES-256-GCM helper as messenger channel
+   * credentials; shown in the console once at creation and never again.
+   */
+  @Column({
+    name: 'embed_secret',
+    type: 'varbinary',
+    length: 512,
+    nullable: true,
+    transformer: secretTransformer,
+  })
+  embedSecret: string | null;
 
   /**
    * Issue-workflow entitlement (REQ-260807 §11.1, server-judged):

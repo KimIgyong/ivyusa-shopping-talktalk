@@ -55,6 +55,7 @@ import { ProviderTile } from './ProviderTile';
 import { ShopifyConfigModal } from './ShopifyConfigModal';
 import { IntegrationConfigModal } from './IntegrationConfigModal';
 import { Cafe24ConnectCard } from './Cafe24ConnectCard';
+import { EmbedCard } from './EmbedCard';
 import { MenuAccessSection } from './MenuAccessSection';
 import { MessengerChannelCard } from './MessengerChannelCard';
 import { MessengerChannelModal } from './MessengerChannelModal';
@@ -1062,6 +1063,10 @@ export function SettingsPage() {
       <Cafe24ConnectCard />
 
       <InstallGuideCard />
+
+      {/* Where the widget may be embedded, and how a host proves its visitor
+          (PLN-260819). Sits next to the install guide because it is the same job. */}
+      <EmbedCard />
 
       <WidgetBehaviorCard />
 
