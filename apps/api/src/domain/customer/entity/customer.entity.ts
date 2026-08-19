@@ -35,6 +35,11 @@ const piiTransformer = {
 // Mall login id from the customer token response — the direct join key to an
 // order's member_id (PLN-260808-Cafe24-MemberId-RecentOrders).
 @Index('uq_customers_tenant_cafe24_mid', ['tenantId', 'cafe24MemberId'], { unique: true })
+// Generic signed identity (PLN-260819 S2): the id the customer's OWN system
+// uses. Same convergence rule as the platform ids above — one row per external
+// user per tenant — so a shopper who signs in through the SDK lands on the row
+// their orders are already attached to.
+@Index('uq_customers_tenant_external', ['tenantId', 'externalCustomerId'], { unique: true })
 @Entity('customers')
 export class Customer {
   @PrimaryGeneratedColumn({ type: 'bigint' })
@@ -57,6 +62,14 @@ export class Customer {
   // never client-supplied). Matches orders_cache.member_id for inline "my orders".
   @Column({ name: 'cafe24_member_id', type: 'varchar', length: 64, nullable: true })
   cafe24MemberId: string | null;
+
+  /**
+   * User id from the customer's own system, bound via the signed `identify`
+   * handshake (PLN-260819 S2). Never trusted on its own — it is written only
+   * after the HMAC over it verifies against the tenant's embed secret.
+   */
+  @Column({ name: 'external_customer_id', type: 'varchar', length: 120, nullable: true })
+  externalCustomerId: string | null;
 
   // Email is encrypted (unsearchable ciphertext), so equality lookups go through
   // the deterministic email_hash blind index instead (PRV-M6).

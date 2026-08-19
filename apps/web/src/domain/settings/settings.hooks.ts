@@ -252,3 +252,49 @@ export function useSaveWidgetTheme() {
     },
   });
 }
+
+/** Embed allowlist + signing secret (PLN-260819). */
+export function useEmbedSettings() {
+  const tenantKey = useTenantKey();
+  return useQuery({
+    queryKey: ['embed-settings', tenantKey],
+    queryFn: settingsService.embedSettings,
+  });
+}
+
+export function useSaveEmbedOrigins() {
+  const { t } = useTranslation('settings');
+  const qc = useQueryClient();
+  const tenantKey = useTenantKey();
+  return useMutation({
+    mutationFn: (origins: string[]) => settingsService.saveEmbedOrigins(origins),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['embed-settings', tenantKey] });
+      toast.success(t('embed.originsSaved'));
+    },
+    onError: (e: Error) => {
+      toast.error(e.message || t('embed.originsSaveError'), { sticky: true });
+    },
+  });
+}
+
+/**
+ * Rotating returns the plaintext ONCE. The caller shows it and forgets it; it is
+ * never cached in the query client, which would put a credential in memory for
+ * the rest of the session.
+ */
+export function useRotateEmbedSecret() {
+  const { t } = useTranslation('settings');
+  const qc = useQueryClient();
+  const tenantKey = useTenantKey();
+  return useMutation({
+    mutationFn: () => settingsService.rotateEmbedSecret(),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['embed-settings', tenantKey] });
+      toast.success(t('embed.secretRotated'));
+    },
+    onError: (e: Error) => {
+      toast.error(e.message || t('embed.secretRotateError'), { sticky: true });
+    },
+  });
+}

@@ -454,5 +454,28 @@
     "previewStatus": "Confirmado",
     "brandPickerA11y": "Selector de color de marca",
     "brandHexA11y": "Código hex del color de marca"
+  },
+  "embed": {
+    "title": "Integración y SDK",
+    "description": "Instala el widget en tu sitio y deja que tu propio servidor le diga quién ha iniciado sesión.",
+    "snippet": "Código de instalación",
+    "copy": "Copiar",
+    "origins": "Dominios permitidos",
+    "originsHint": "El widget solo se carga en estos dominios. Déjalo vacío para permitir solo el dominio de tu tienda.",
+    "originsEmpty": "Sin dominios añadidos — se permite ahora: {{origins}}",
+    "originsNone": "el dominio de tu tienda",
+    "add": "Añadir",
+    "remove": "Quitar {{origin}}",
+    "originsSaved": "Dominios permitidos guardados",
+    "originsSaveError": "No se pudieron guardar los dominios permitidos",
+    "secret": "Integración de inicio de sesión (opcional)",
+    "secretHint": "Tu servidor firma un id de usuario con este secreto; el widget reconoce a ese usuario.",
+    "secretMissing": "Aún no generado",
+    "generate": "Generar",
+    "rotate": "Regenerar",
+    "rotateWarning": "Las firmas hechas con el secreto actual dejan de funcionar de inmediato. El inicio de sesión seguirá roto hasta que actualices tu servidor y los visitantes aparecerán como invitados.",
+    "secretOnce": "Cópialo ahora: este valor no se vuelve a mostrar.",
+    "secretRotated": "Nuevo secreto generado",
+    "secretRotateError": "No se pudo generar el secreto"
   }
 }

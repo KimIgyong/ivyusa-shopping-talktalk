@@ -454,5 +454,28 @@
     "previewStatus": "確定",
     "brandPickerA11y": "ブランドカラー選択",
     "brandHexA11y": "ブランドカラーの HEX コード"
+  },
+  "embed": {
+    "title": "埋め込み・SDK",
+    "description": "サイトにウィジェットを設置し、自社サーバーからログイン中のユーザーをウィジェットに伝えます。",
+    "snippet": "設置コード",
+    "copy": "コピー",
+    "origins": "許可ドメイン",
+    "originsHint": "これらのドメインでのみウィジェットが表示されます。空欄の場合はストアのドメインのみを許可します。",
+    "originsEmpty": "ドメイン未追加 — 現在の許可: {{origins}}",
+    "originsNone": "ストアのドメイン",
+    "add": "追加",
+    "remove": "{{origin}} を削除",
+    "originsSaved": "許可ドメインを保存しました",
+    "originsSaveError": "許可ドメインを保存できませんでした",
+    "secret": "ログイン連携（任意）",
+    "secretHint": "自社サーバーがこのシークレットでユーザーIDに署名すると、ウィジェットがそのユーザーを認識します。",
+    "secretMissing": "未発行",
+    "generate": "発行",
+    "rotate": "再発行",
+    "rotateWarning": "現在のシークレットで作成した署名は直ちに無効になります。サーバー側の値を更新するまでログイン連携は切れ、訪問者はゲスト表示になります。",
+    "secretOnce": "今すぐコピーしてください — この値は二度と表示されません。",
+    "secretRotated": "新しいシークレットを発行しました",
+    "secretRotateError": "シークレットを発行できませんでした"
   }
 }

@@ -454,5 +454,28 @@
     "previewStatus": "已确认",
     "brandPickerA11y": "品牌色选择器",
     "brandHexA11y": "品牌色 HEX 代码"
+  },
+  "embed": {
+    "title": "嵌入与 SDK",
+    "description": "在您的网站安装挂件，并由您自己的服务器告诉挂件谁已登录。",
+    "snippet": "安装代码",
+    "copy": "复制",
+    "origins": "允许的域名",
+    "originsHint": "挂件仅在这些域名上加载。留空则仅允许您的店铺域名。",
+    "originsEmpty": "未添加域名 — 当前允许：{{origins}}",
+    "originsNone": "您的店铺域名",
+    "add": "添加",
+    "remove": "删除 {{origin}}",
+    "originsSaved": "已保存允许的域名",
+    "originsSaveError": "无法保存允许的域名",
+    "secret": "登录对接（可选）",
+    "secretHint": "您的服务器用该密钥对用户 ID 签名，挂件即可识别该用户。",
+    "secretMissing": "尚未生成",
+    "generate": "生成",
+    "rotate": "重新生成",
+    "rotateWarning": "用当前密钥生成的签名会立即失效。在您更新服务器之前登录对接将中断，访客会显示为游客。",
+    "secretOnce": "请立即复制 — 该值不会再次显示。",
+    "secretRotated": "已生成新密钥",
+    "secretRotateError": "无法生成密钥"
   }
 }

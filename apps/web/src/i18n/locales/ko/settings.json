@@ -454,5 +454,28 @@
     "previewStatus": "주문 확인",
     "brandPickerA11y": "브랜드 색상 선택기",
     "brandHexA11y": "브랜드 색상 HEX 코드"
+  },
+  "embed": {
+    "title": "임베드 · SDK",
+    "description": "내 사이트에 위젯을 설치하고, 자체 서버가 로그인한 사용자를 위젯에 알려줍니다.",
+    "snippet": "설치 코드",
+    "copy": "복사",
+    "origins": "허용 도메인",
+    "originsHint": "이 도메인에서만 위젯이 뜹니다. 비워두면 스토어 도메인만 허용합니다.",
+    "originsEmpty": "추가된 도메인 없음 — 현재 허용: {{origins}}",
+    "originsNone": "스토어 도메인",
+    "add": "추가",
+    "remove": "{{origin}} 삭제",
+    "originsSaved": "허용 도메인을 저장했습니다",
+    "originsSaveError": "허용 도메인을 저장하지 못했습니다",
+    "secret": "로그인 연동 (선택)",
+    "secretHint": "고객사 서버가 이 시크릿으로 사용자 ID를 서명하면, 위젯이 그 사용자를 알아봅니다.",
+    "secretMissing": "아직 발급되지 않음",
+    "generate": "발급",
+    "rotate": "재발급",
+    "rotateWarning": "기존 시크릿으로 만든 서명은 즉시 무효가 됩니다. 서버의 값을 바꾸기 전까지 로그인 연동이 끊기고 방문자는 게스트로 표시됩니다.",
+    "secretOnce": "지금 복사하세요 — 이 값은 다시 표시되지 않습니다.",
+    "secretRotated": "새 시크릿을 발급했습니다",
+    "secretRotateError": "시크릿을 발급하지 못했습니다"
   }
 }

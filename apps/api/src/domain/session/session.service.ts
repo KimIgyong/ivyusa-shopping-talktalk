@@ -27,6 +27,7 @@ import { Customer } from '../customer/entity/customer.entity';
 import { EventBusService, EVENTS } from '../../infrastructure/infrastructure.module';
 import { RedisService } from '../../infrastructure/cache/redis.service';
 import { BusinessException } from '../../global/exception/business.exception';
+import { isOriginAllowed } from '../embed/embed-origin.util';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
 
 /**
@@ -89,12 +90,18 @@ export class SessionService {
     private readonly redis: RedisService,
   ) {}
 
-  async ensure(token: string | undefined, locale: string | undefined, shopDomain?: string): Promise<Session> {
+  async ensure(
+    token: string | undefined,
+    locale: string | undefined,
+    shopDomain?: string,
+    parentOrigin?: string,
+  ): Promise<Session> {
     if (token) {
       const existing = await this.sessionRepo.findOne({ where: { sessionToken: token } });
       if (existing) return existing;
     }
     const tenant = await this.resolveTenant(shopDomain);
+    this.assertEmbedOriginAllowed(tenant, parentOrigin);
 
     const session = await this.sessionRepo.save(
       this.sessionRepo.create({
@@ -157,6 +164,37 @@ export class SessionService {
    * - `shop_domain` absent → only default when exactly one tenant exists (single
    *   store / dev). With multiple tenants we refuse to guess to avoid cross-tenant leak.
    */
+  /**
+   * Refuse a widget booted from a page the tenant never allowed (PLN-260819 S1).
+   *
+   * Two deliberate softenings, because this guard sits on the busiest public
+   * route in the product and a false positive takes a shop's widget offline:
+   *
+   *  - A request that reports NO origin passes. Older loaders (already installed
+   *    on live storefronts) do not send one, and treating silence as a violation
+   *    would break them on deploy.
+   *  - `EMBED_ORIGIN_ENFORCE` defaults to off. Until it is on, a violation is
+   *    logged and allowed — 4xx are not server-logged by default, so this line is
+   *    the only evidence we get for deciding whether enforcing is safe.
+   *
+   * It is a misconfiguration guard, not authentication: `parentOrigin` comes from
+   * the browser. Identity is proved by the signed handshake (S2).
+   */
+  private assertEmbedOriginAllowed(tenant: Tenant, parentOrigin?: string): void {
+    if (!parentOrigin) return;
+    if (isOriginAllowed(parentOrigin, tenant.embedOrigins, tenant)) return;
+
+    const enforcing =
+      String(process.env.EMBED_ORIGIN_ENFORCE ?? 'false').toLowerCase() === 'true';
+    this.logger.warn(
+      `embed origin not allowed (tenant ${tenant.id}, origin ${parentOrigin})` +
+        (enforcing ? '' : ' — observe mode, allowing'),
+    );
+    if (enforcing) {
+      throw new BusinessException(ERROR_CODE.EMBED_ORIGIN_NOT_ALLOWED, HttpStatus.FORBIDDEN);
+    }
+  }
+
   private async resolveTenant(shopDomain?: string): Promise<Tenant> {
     if (shopDomain) {
       const tenant = await this.tenantRepo.findOne({ where: { shopDomain } });

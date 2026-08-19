@@ -15,6 +15,7 @@ import { RequestContextMiddleware } from './global/middleware/request-context.mi
 // Domain modules
 import { AuthModule } from './domain/auth/auth.module';
 import { SessionModule } from './domain/session/session.module';
+import { EmbedModule } from './domain/embed/embed.module';
 import { ChatModule } from './domain/chat/chat.module';
 import { AnswerReuseModule } from './domain/answer-reuse/answer-reuse.module';
 import { AttachmentModule } from './domain/attachment/attachment.module';
@@ -72,6 +73,7 @@ import { ShopifyProxyModule } from './domain/shopify-proxy/shopify-proxy.module'
     // domains
     AuthModule,
     SessionModule,
+    EmbedModule,
     ChatModule,
     AnswerReuseModule,
     AttachmentModule,

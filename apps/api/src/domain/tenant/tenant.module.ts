@@ -11,12 +11,15 @@ import { WebhookSecretService } from './webhook-secret.service';
 import { TenantController } from './tenant.controller';
 import { IntegrationModule } from '../integration/integration.module';
 import { AuditModule } from '../audit/audit.module';
+import { EmbedModule } from '../embed/embed.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Tenant, IntegrationCredential, User, ContentFilterRule, JobLabel]),
     IntegrationModule,
     AuditModule,
+    // For the secret-rotation route; EmbedModule owns the secret's lifecycle.
+    EmbedModule,
   ],
   controllers: [TenantController],
   providers: [TenantService, EcommerceIntegrationService, WebhookSecretService],
