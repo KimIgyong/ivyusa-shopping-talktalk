@@ -30,9 +30,15 @@ export function EmbedCard() {
 
   const snippet = useMemo(() => {
     const host = typeof window !== 'undefined' ? window.location.origin : '';
+    // Config BEFORE the deferred script, through the queue: an inline
+    // `ShopTalk.init(...)` placed after a `defer` tag runs first and throws,
+    // because the loader has not been evaluated yet.
     return [
+      '<script>',
+      '  window.ShopTalk = window.ShopTalk || { q: [] };',
+      `  ShopTalk.q.push(['init', { shop: ${JSON.stringify(data?.shopDomain ?? '')} }]);`,
+      '</script>',
       `<script src="${host}/v1/embed.js" defer></script>`,
-      `<script>ShopTalk.init({ shop: "${data?.shopDomain ?? ''}" });</script>`,
     ].join('\n');
   }, [data?.shopDomain]);
 
@@ -119,7 +125,7 @@ export function EmbedCard() {
             <div className="mt-2 flex gap-2">
               <Input
                 value={entry}
-                placeholder="https://www.example.com"
+                placeholder={t('embed.originPlaceholder')}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEntry(e.target.value)}
                 onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
                   if (e.key === 'Enter') {

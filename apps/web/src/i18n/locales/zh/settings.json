@@ -476,6 +476,7 @@
     "rotateWarning": "用当前密钥生成的签名会立即失效。在您更新服务器之前登录对接将中断，访客会显示为游客。",
     "secretOnce": "请立即复制 — 该值不会再次显示。",
     "secretRotated": "已生成新密钥",
-    "secretRotateError": "无法生成密钥"
+    "secretRotateError": "无法生成密钥",
+    "originPlaceholder": "https://www.example.com"
   }
 }

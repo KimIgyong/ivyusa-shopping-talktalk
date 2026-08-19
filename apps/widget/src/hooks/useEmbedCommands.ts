@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useWidgetStore, type TabKey } from '../store/widgetStore';
-import { identify as identifyRequest } from '../services/sessionService';
+import { ensureSession, identify as identifyRequest } from '../services/sessionService';
+import { getParentOrigin, getShopDomain } from './useSession';
 
 const TABS: TabKey[] = ['chat', 'orders', 'notifications'];
 
@@ -56,11 +57,24 @@ export function useEmbedCommands(): void {
           case 'locale':
             if (d.locale) store.setLanguage(d.locale.toUpperCase());
             return;
-          case 'logout':
-            // Drop the bound session; the next ensure opens a fresh guest one.
+          case 'logout': {
+            // Clearing the token is not enough: useEnsureSession runs once on
+            // mount, so nothing would re-open a session and the widget would sit
+            // there unable to send anything. Open the guest session here.
             store.setSessionToken(null);
             store.setAuthenticated(false);
+            store.setCustomerName(null);
+            const fresh = await ensureSession(
+              null,
+              useWidgetStore.getState().language,
+              getShopDomain(),
+              getParentOrigin(),
+            ).catch(() => null);
+            // Tenant config (theme, tabs, copy) does not change on logout, so it
+            // is deliberately not re-applied — only the identity is reset.
+            if (fresh?.sessionToken) store.setSessionToken(fresh.sessionToken);
             return;
+          }
           default:
             return;
         }

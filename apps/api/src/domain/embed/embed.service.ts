@@ -133,8 +133,27 @@ export class EmbedService {
     if (input.email && !customer.email) customer.email = input.email;
     if (input.phone && !customer.phone) customer.phone = input.phone;
 
-    return this.customerRepo.save(customer);
+    try {
+      return await this.customerRepo.save(customer);
+    } catch (err) {
+      // Two tabs signing in at once both miss the lookup and both insert. The
+      // unique key is what makes that safe; losing the race is not an error, so
+      // re-read the row the winner created instead of 500-ing.
+      if (!existing && isDuplicateKey(err)) {
+        const winner = await this.customerRepo.findOne({
+          where: { tenantId, externalCustomerId: input.userId },
+        });
+        if (winner) return winner;
+      }
+      throw err;
+    }
   }
+}
+
+/** MySQL duplicate-entry, whichever driver shape it arrives in. */
+function isDuplicateKey(err: unknown): boolean {
+  const e = err as { code?: string; errno?: number; driverError?: { code?: string } };
+  return e?.code === 'ER_DUP_ENTRY' || e?.errno === 1062 || e?.driverError?.code === 'ER_DUP_ENTRY';
 }
 
 /** Constant-time compare that tolerates length mismatch without throwing. */

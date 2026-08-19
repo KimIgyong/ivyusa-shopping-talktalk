@@ -180,7 +180,7 @@ PR #308이 깐 CSS 변수 기반이 **정확히 이 확장을 위한 토대**다
 
 | 갭 | 해소 방향 | 크기 |
 |---|---|---|
-| G-1 오리진 검증 | `tenant_embed_origins` 테이블 + `session/ensure`에서 `Origin` 헤더 대조. **위반은 로그로 남긴다**(4xx는 기본 미로깅) | S |
+| G-1 오리진 검증 | 테넌트별 허용목록(구현은 `tenants.embed_origins` **JSON 컬럼** — 조회가 항상 '테넌트 확정 후 대조'라 테이블·인덱스가 불필요) + `session/ensure`에서 대조. **위반은 로그로 남긴다**(4xx는 기본 미로깅) | S |
 | G-2 범용 신원 | 테넌트별 시크릿 발급 → 고객사 서버가 `user_hash` 생성 → SDK `identify()` → 서버 검증 후 고객 바인딩. Shopify/Cafe24 기존 경로는 **그대로 둔다**(회귀 금지) | M |
 | G-3 공개 API | 로더에 `window.ShopTalk` 네임스페이스 + 이벤트 버스. postMessage 프로토콜은 이미 있으므로 **표면만 씌우면 된다** | S |
 | G-4 런타임 설정 | `api-client.ts`의 빌드타임 상수를 부트스트랩 주입으로 교체 | S |

@@ -476,6 +476,7 @@
     "rotateWarning": "現在のシークレットで作成した署名は直ちに無効になります。サーバー側の値を更新するまでログイン連携は切れ、訪問者はゲスト表示になります。",
     "secretOnce": "今すぐコピーしてください — この値は二度と表示されません。",
     "secretRotated": "新しいシークレットを発行しました",
-    "secretRotateError": "シークレットを発行できませんでした"
+    "secretRotateError": "シークレットを発行できませんでした",
+    "originPlaceholder": "https://www.example.com"
   }
 }

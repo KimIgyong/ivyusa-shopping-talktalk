@@ -476,6 +476,7 @@
     "rotateWarning": "기존 시크릿으로 만든 서명은 즉시 무효가 됩니다. 서버의 값을 바꾸기 전까지 로그인 연동이 끊기고 방문자는 게스트로 표시됩니다.",
     "secretOnce": "지금 복사하세요 — 이 값은 다시 표시되지 않습니다.",
     "secretRotated": "새 시크릿을 발급했습니다",
-    "secretRotateError": "시크릿을 발급하지 못했습니다"
+    "secretRotateError": "시크릿을 발급하지 못했습니다",
+    "originPlaceholder": "https://www.example.com"
   }
 }

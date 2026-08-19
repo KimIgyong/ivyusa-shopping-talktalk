@@ -476,6 +476,7 @@
     "rotateWarning": "Las firmas hechas con el secreto actual dejan de funcionar de inmediato. El inicio de sesión seguirá roto hasta que actualices tu servidor y los visitantes aparecerán como invitados.",
     "secretOnce": "Cópialo ahora: este valor no se vuelve a mostrar.",
     "secretRotated": "Nuevo secreto generado",
-    "secretRotateError": "No se pudo generar el secreto"
+    "secretRotateError": "No se pudo generar el secreto",
+    "originPlaceholder": "https://www.example.com"
   }
 }

@@ -149,10 +149,12 @@ ShopTalk.version                   // 로더 버전
 ### 4.2 런타임 설정 — 빌드타임 상수 제거
 
 현재 `VITE_API_BASE_URL`이 번들에 인라인된다(`api-client.ts:4`) → 고객사마다 별도 빌드.
-번들 옆에 `widget-config.json`을 두고 **부팅 시 1회 읽는다**(`no-store`).
+번들 옆에 `widget-config.js`를 두고 **모듈 번들보다 먼저 동기 로드한다**(`no-store`).
+확장자가 `.json`이 아닌 이유는 fetch가 첫 요청과 경합하기 때문이다 — `api-client`는 import 시점에
+주소를 읽으므로, 설정은 그 전에 이미 `window`에 있어야 한다.
 
-```json
-{ "apiBase": "https://talk.ivyusa.com/api/v1", "ga4Id": null }
+```js
+window.__SHOPTALK_CONFIG__ = { apiBase: 'https://talk.ivyusa.com/api/v1' };
 ```
 
 URL 파라미터로 API 주소를 받지 않는다 — 임의 오리진을 주입할 수 있는 표면을 만들 이유가 없다.
@@ -285,7 +287,8 @@ ALTER TABLE customers
 ## 9. 배포 · 롤백
 
 - SQL 선적용 → 코드 배포 → 부팅 로그 + 새 라우트 상태코드(401/404/502 판별)
-- `EMBED_ORIGIN_ENFORCE=false`로 **관측 모드 배포**가 기본. 차단은 별도 결정으로 켠다
+- `EMBED_ORIGIN_ENFORCE=false`로 **관측 모드 배포**가 기본. 차단 전환의 조건은 두 가지다:
+  (1) 관측 로그에서 오탐 0, (2) `session/ensure`의 오리진·IP 단위 상한 도입(현재 `@SkipThrottle`)
 - 롤백: `EMBED_ORIGIN_ENFORCE=false`(오리진 게이트 무력화). 신원·SDK 표면은 **추가 기능**이라
   기존 경로에 영향이 없어 코드 롤백 없이 무시된다
 - 컬럼은 남겨도 무해(NULL) — 되돌릴 때 DROP 하지 않는다

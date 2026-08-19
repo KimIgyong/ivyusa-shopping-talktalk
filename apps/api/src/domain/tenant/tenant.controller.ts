@@ -204,7 +204,13 @@ export class TenantController {
       throw new BusinessException(ERROR_CODE.FORBIDDEN, HttpStatus.FORBIDDEN);
     }
     const secret = await this.embedService.rotateSecret(user.tenantId);
-    await this.tenantService.auditEmbedSecretRotated(user.tenantId, user.userId);
+    // The secret is already rotated by this point and this response is the only
+    // place it exists in plaintext. A failing audit write must not turn that into
+    // a 500 the operator reads as "nothing happened" — they would be locked out
+    // of a secret that is already live.
+    await this.tenantService
+      .auditEmbedSecretRotated(user.tenantId, user.userId)
+      .catch(() => undefined);
     return { secret };
   }
 

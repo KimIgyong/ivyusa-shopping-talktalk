@@ -8,11 +8,15 @@
 콘솔 → **설정 → 임베드 · SDK**에서 설치 코드를 복사해 페이지에 붙여넣습니다.
 
 ```html
-<script src="https://talk.example.com/v1/embed.js" defer></script>
 <script>
-  ShopTalk.init({ shop: "your-store.myshopify.com" });
+  window.ShopTalk = window.ShopTalk || { q: [] };
+  ShopTalk.q.push(['init', { shop: "your-store.myshopify.com" }]);
 </script>
+<script src="https://talk.example.com/v1/embed.js" defer></script>
 ```
+
+> 설정을 **스크립트 태그보다 먼저** 큐에 넣는 이유: `defer` 스크립트는 문서 파싱이 끝난 뒤
+> 실행되므로, 그 아래에 `ShopTalk.init(...)`을 인라인으로 쓰면 로더가 아직 없어 오류가 납니다.
 
 `init()` 옵션
 
@@ -29,6 +33,10 @@
 ## 2. 허용 도메인
 
 위젯은 **콘솔에 등록된 도메인에서만** 뜹니다. 비워두면 스토어 도메인만 허용합니다.
+
+> **현재 기본값은 관측 모드입니다.** 아메바가 차단을 켜기 전까지는 목록에 없는 도메인도
+> 동작하며 서버 로그에만 기록됩니다. 실제 차단 전환 전에 목록을 채워두시면 전환 시점에
+> 아무것도 끊기지 않습니다.
 
 - 정확히 일치: `https://www.example.com`
 - 서브도메인: `https://*.example.com` (⚠️ 최상위 `example.com`은 **포함하지 않습니다** — 둘 다

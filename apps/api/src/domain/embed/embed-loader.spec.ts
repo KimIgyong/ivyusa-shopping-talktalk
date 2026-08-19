@@ -54,6 +54,21 @@ describe('embed.js — SDK contract (PLN-260819 S3)', () => {
     expect(LOADER).toContain("'&parent=' + encodeURIComponent(window.location.origin)");
   });
 
+  it('builds the iframe URL at boot, not at load', () => {
+    // Otherwise an init()-only install boots with no shop: the src would have
+    // been frozen before init() merged its options.
+    expect(LOADER).toContain('function frameSrc()');
+    expect(LOADER).toContain('frame.src = frameSrc();');
+  });
+
+  it('queues commands until the widget says it is listening', () => {
+    // open() right after init() used to postMessage into an iframe that had not
+    // loaded yet, and the command was simply lost.
+    expect(LOADER).toContain('var commandQueue = []');
+    expect(LOADER).toContain('flushCommands();');
+    expect(LOADER).not.toMatch(/api\.open = function[\s\S]{0,120}sendToWidget\(/);
+  });
+
   it('never signs anything in the browser', () => {
     // A hash computed here would mean the secret is in the page — the whole
     // point of the handshake is that it is not.

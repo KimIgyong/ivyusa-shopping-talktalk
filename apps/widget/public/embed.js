@@ -196,18 +196,30 @@
     'sandbox',
     'allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox',
   );
-  frame.src =
-    base +
-    '/?embed=1&shop=' +
-    encodeURIComponent(shop) +
-    '&locale=' +
-    encodeURIComponent(locale) +
-    (ga4Id ? '&ga4=' + encodeURIComponent(ga4Id) : '') +
-    (reopenTab ? '&reopen=' + encodeURIComponent(reopenTab) : '') +
-    // The widget reports this to the API's embed allowlist. Browsers that expose
-    // ancestorOrigins prefer their own answer over this one (PLN-260819 S1).
-    '&parent=' + encodeURIComponent(window.location.origin) +
-    (attribution ? '&' + attribution : '');
+  /**
+   * The iframe URL is built at BOOT, not at script load: ShopTalk.init() can
+   * change `shop`, `widgetUrl` and `locale`, and a src frozen before that would
+   * send an init()-only install to the widget with no shop at all.
+   */
+  function frameSrc() {
+    // Re-read from cfg so init()'s merge is reflected.
+    var s0 = cfg.shop || shop;
+    var l0 = String(cfg.locale || locale).slice(0, 2);
+    var g0 = cfg.ga4Id && /^G-[A-Z0-9]+$/i.test(cfg.ga4Id) ? cfg.ga4Id : ga4Id;
+    return (
+      base +
+      '/?embed=1&shop=' +
+      encodeURIComponent(s0) +
+      '&locale=' +
+      encodeURIComponent(l0) +
+      (g0 ? '&ga4=' + encodeURIComponent(g0) : '') +
+      (reopenTab ? '&reopen=' + encodeURIComponent(reopenTab) : '') +
+      // The widget reports this to the API's embed allowlist. Browsers that expose
+      // ancestorOrigins prefer their own answer over this one (PLN-260819 S1).
+      '&parent=' + encodeURIComponent(window.location.origin) +
+      (attribution ? '&' + attribution : '')
+    );
+  }
 
   var s = frame.style;
   s.position = 'fixed';
@@ -232,12 +244,41 @@
   function boot() {
     if (booted) return;
     booted = true;
+    // `base` is resolved from cfg at load; if init() changed widgetUrl, honour it.
+    if (cfg.widgetUrl) {
+      base = String(cfg.widgetUrl).replace(/\/+$/, '');
+      try {
+        baseOrigin = new URL(base, window.location.href).origin;
+      } catch (_) {
+        baseOrigin = base;
+      }
+    }
+    frame.src = frameSrc();
     if (document.body) mount();
     else document.addEventListener('DOMContentLoaded', mount);
   }
 
   function sendToWidget(msg) {
     if (frame.contentWindow) frame.contentWindow.postMessage(msg, base);
+  }
+
+  /**
+   * Commands issued before the widget is listening.
+   *
+   * `open()` right after `init()` used to be dropped: the iframe had not loaded,
+   * let alone mounted the React listener, so the postMessage went nowhere. The
+   * widget announces itself with `ivy:ready`; until then commands wait here and
+   * are replayed in order.
+   */
+  var commandQueue = [];
+  function command(msg) {
+    if (widgetReady) sendToWidget(msg);
+    else commandQueue.push(msg);
+  }
+  function flushCommands() {
+    var pending = commandQueue;
+    commandQueue = [];
+    for (var i = 0; i < pending.length; i++) sendToWidget(pending[i]);
   }
 
   // Report the proxy's answer to the widget, once both sides are ready: the proxy
@@ -499,6 +540,7 @@
     } else if (d.type === 'ivy:ready') {
       widgetReady = true;
       maybeSendIdentity();
+      flushCommands();
     } else if (d.type === 'ivy:login') {
       // Only the widget iframe may trigger sign-in. The widget forwards the
       // tenant-configured mode (console setting); anything but an explicit
@@ -587,17 +629,19 @@
 
   api.open = function (tab) {
     boot();
-    sendToWidget({ type: 'ivy:command', action: 'open', tab: tab || null });
+    command({ type: 'ivy:command', action: 'open', tab: tab || null });
   };
   api.close = function () {
-    sendToWidget({ type: 'ivy:command', action: 'close' });
+    boot();
+    command({ type: 'ivy:command', action: 'close' });
   };
   api.toggle = function () {
     boot();
-    sendToWidget({ type: 'ivy:command', action: 'toggle' });
+    command({ type: 'ivy:command', action: 'toggle' });
   };
   api.setLocale = function (next) {
-    sendToWidget({ type: 'ivy:command', action: 'locale', locale: String(next || '').slice(0, 5) });
+    boot();
+    command({ type: 'ivy:command', action: 'locale', locale: String(next || '').slice(0, 5) });
   };
 
   /**
@@ -608,11 +652,12 @@
   api.identify = function (user) {
     boot();
     if (!user || !user.userId || !user.hash) return;
-    sendToWidget({ type: 'ivy:identify', user: user });
+    command({ type: 'ivy:identify', user: user });
   };
 
   api.logout = function () {
-    sendToWidget({ type: 'ivy:command', action: 'logout' });
+    boot();
+    command({ type: 'ivy:command', action: 'logout' });
   };
 
   api.on = function (event, fn) {

@@ -476,6 +476,7 @@
     "rotateWarning": "Signatures made with the current secret stop working immediately. Sign-in stays broken until your server is updated, and visitors show as guests.",
     "secretOnce": "Copy it now — this value is not shown again.",
     "secretRotated": "New secret generated",
-    "secretRotateError": "Could not generate a secret"
+    "secretRotateError": "Could not generate a secret",
+    "originPlaceholder": "https://www.example.com"
   }
 }

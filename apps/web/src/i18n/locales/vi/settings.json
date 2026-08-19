@@ -476,6 +476,7 @@
     "rotateWarning": "Các chữ ký tạo bằng khoá hiện tại sẽ ngừng hoạt động ngay lập tức. Việc đăng nhập sẽ lỗi cho đến khi bạn cập nhật máy chủ, và khách sẽ hiển thị là khách vãng lai.",
     "secretOnce": "Hãy sao chép ngay — giá trị này không hiển thị lại.",
     "secretRotated": "Đã tạo khoá bí mật mới",
-    "secretRotateError": "Không thể tạo khoá bí mật"
+    "secretRotateError": "Không thể tạo khoá bí mật",
+    "originPlaceholder": "https://www.example.com"
   }
 }
