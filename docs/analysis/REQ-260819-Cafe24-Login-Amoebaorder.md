@@ -145,3 +145,45 @@ Cafe24 몰에서 로그인 버튼을 누르면 `embed.js`가 **최상위 창을*
 - annehearts 연결이 의도된 것인지, tenant 3 재연결로 tenant 2가 영향받는지
 - 재연결 후 로그인 전 구간(authorize → callback → ticket → exchange) 동작 — 지금은 시작
   단계에서 막혀 있어 그 뒤를 검증할 수 없다
+
+## 8. 실몰 확인 (2026-08-19, `amoebaorder.cafe24.com/myshop/index.html`)
+
+몰에 회원 로그인된 상태(마이쇼핑에 "김익용 님", 총주문 3회)에서 확인.
+
+### 8-1. 위젯은 정상 설치·정상 동작한다
+
+| 확인 | 결과 |
+|---|---|
+| `shoptalk.amoeba.site` 스크립트·iframe | ✅ 로드됨 |
+| `IVY_WIDGET_CONFIG` | ✅ `{ shop: "amoebaorder.cafe24.com" }` — 설정 정확 |
+| `POST /session/ensure` | ✅ 성공, `displayName: "amoebaorder"` |
+
+**즉 설치·설정 문제가 아니다.**
+
+### 8-2. 왜 채팅은 되는데 신원만 안 붙나 — 경로가 둘이다
+
+| 경로 | 테넌트를 찾는 방법 | 결과 |
+|---|---|---|
+| 채팅 세션 `session/ensure` | `tenants.shop_domain` 직접 조회 | ✅ tenant 3 찾음 |
+| **회원 로그인 `customer-auth/start`** | **자격증명을 복호화해 `mallId` 스캔** | ❌ `amoebaorder` 없음 → 200 bounce |
+
+같은 테넌트를 **서로 다른 근거로** 찾는다. `shop_domain`은 맞고 자격증명은 틀렸으니,
+위젯은 멀쩡히 뜨는데 신원만 영원히 안 붙는다. 사용자가 본 증상 그대로다.
+
+### 8-3. "몰에 이미 로그인돼 있는데 왜?"
+
+Cafe24에는 Shopify의 App Proxy 같은 것이 없다. 몰의 회원 세션은 **몰 오리진의 쿠키**이고,
+위젯 iframe은 교차 오리진이라 그것을 읽을 수 없다. 유일한 다리가 customer-auth OAuth이고,
+그게 지금 막힌 경로다.
+
+⚠️ 뒤집어 말하면 **자격증명만 고치면 체감은 자동에 가까워진다.** 이미 몰에 로그인한
+쇼핑객은 authorize 단계에서 로그인 화면 없이 통과해 바로 티켓을 받는다. 지금은 그 단계
+자체에 도달하지 못한다.
+
+### 8-4. 곁가지 관찰 (별건)
+
+- 위젯 iframe의 `title`이 amoebaorder 몰에서도 **"IVY USA Support"**로 고정돼 있다.
+  `session/ensure`의 `displayName`은 `amoebaorder`로 정상이므로 iframe 제목만 남은
+  하드코딩으로 보인다. 접근성 트리에 그대로 노출된다.
+- 자동화로 런처 클릭 시 패널이 열리지 않았다. 교차 오리진 iframe 클릭 좌표 문제일 수
+  있어 **결함으로 단정하지 않는다** — 수동 확인 필요.
