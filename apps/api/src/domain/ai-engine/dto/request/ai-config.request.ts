@@ -35,4 +35,7 @@ export class UpdateAiConfigRequest {
 
   /** Why this change was made — stored on the revision, never sent to the model. */
   @IsOptional() @IsString() note?: string;
+
+  /** Which AI agent a persona/rules write targets (PLN-260820); omitted = the default agent. */
+  @IsOptional() @IsInt() ai_agent_id?: number;
 }

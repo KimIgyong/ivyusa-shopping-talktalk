@@ -266,5 +266,31 @@
     "field_rules": "quy tắc",
     "field_scenarioOverrides": "câu trả lời kịch bản",
     "notePlaceholder": "Vì sao thay đổi này? (không bắt buộc, sẽ lưu vào lịch sử)"
+  },
+  "agents": {
+    "title": "Nhân viên AI",
+    "add": "Thêm nhân viên",
+    "hint": "Mỗi nhân viên là một quầy tư vấn với cá tính riêng — khách trang chủ, nhân viên nội bộ, đối tác khách sạn… Chọn một nhân viên để chỉnh cá tính bên dưới. Trang web ghim nhân viên bằng đoạn mã cài đặt; nếu không, nhân viên mặc định sẽ trả lời.",
+    "active": "Hoạt động",
+    "inactive": "Tắt",
+    "default": "Mặc định",
+    "created": "Đã thêm nhân viên.",
+    "saved": "Đã lưu nhân viên.",
+    "deleted": "Đã xóa nhân viên.",
+    "defaultSet": "Đã đổi nhân viên mặc định.",
+    "addTitle": "Thêm nhân viên AI",
+    "editTitle": "Sửa nhân viên AI",
+    "makeDefault": "Đặt làm mặc định",
+    "deleteConfirm": "Xóa nhân viên \"{{name}}\"? Các trang dùng mã này sẽ chuyển về nhân viên mặc định.",
+    "name": "Tên",
+    "code": "Mã",
+    "codeHint": "Chỉ chữ thường, số và gạch nối. Dùng trong đoạn mã cài đặt, không đổi được sau khi tạo.",
+    "defaultAlwaysActive": "(nhân viên mặc định luôn hoạt động)",
+    "snippet": "Đoạn mã cài đặt",
+    "snippetCopied": "Đã sao chép.",
+    "snippetCopyFailed": "Không sao chép được — hãy chọn và sao chép thủ công.",
+    "snippetHint": "Dán vào trang mà nhân viên này phụ trách. Đã cài rồi? Chỉ cần thêm dòng agent vào IVY_WIDGET_CONFIG.",
+    "shared": "chung cho mọi nhân viên",
+    "studioAgent": "Nhân viên: {{name}}"
   }
 }

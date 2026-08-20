@@ -50,6 +50,7 @@ export class AiConfigController {
         handoffConfig: body.handoff_config as HandoffConfig | undefined,
       },
       { kind: CONFIG_REVISION_KIND.MANUAL, actorUserId: user.userId, note: body.note ?? null },
+      body.ai_agent_id ?? null,
     );
   }
 

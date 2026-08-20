@@ -32,8 +32,11 @@ export interface PreviewScenarioTurn {
 }
 
 export const previewService = {
-  createSession: (language: string) =>
-    apiPost<{ sessionToken: string; language: string }>('/ai-config/preview-session', { language }),
+  createSession: (language: string, aiAgentId?: number) =>
+    apiPost<{ sessionToken: string; language: string }>('/ai-config/preview-session', {
+      language,
+      ai_agent_id: aiAgentId,
+    }),
   send: (sessionToken: string, message: string) =>
     apiPost<PreviewChatTurn>('/chat/message', { session_token: sessionToken, message }),
   scenario: (sessionToken: string, action: string) =>
