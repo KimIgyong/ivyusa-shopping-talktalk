@@ -85,7 +85,8 @@ export const coachService = {
   // apiGetList, not apiGet — the api-client strips pagination off paginated
   // endpoints when unwrapped with apiGet.
   listThreads: () => apiGetList<CoachThread>('/ai-coach/threads', { page: 1, size: 50 }),
-  createThread: (title?: string) => apiPost<CoachThread>('/ai-coach/threads', { title }),
+  createThread: (title?: string, aiAgentId?: number | null) =>
+    apiPost<CoachThread>('/ai-coach/threads', { title, ai_agent_id: aiAgentId ?? undefined }),
   getThread: (id: number) => apiGet<CoachThreadDetail>(`/ai-coach/threads/${id}`),
   archiveThread: (id: number) => apiDelete<{ archived: boolean }>(`/ai-coach/threads/${id}`),
   send: (threadId: number, message: string, refMessageId?: number) =>

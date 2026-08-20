@@ -57,11 +57,18 @@ export class AiCoachService {
     return { items, total };
   }
 
-  async createThread(tenantId: number, userId: number, title?: string): Promise<CoachingThread> {
+  async createThread(
+    tenantId: number,
+    userId: number,
+    title?: string,
+    aiAgentId?: number | null,
+  ): Promise<CoachingThread> {
     return this.threadRepo.save(
       this.threadRepo.create({
         tenantId,
         userId,
+        // Which agent is being coached (PLN-260820); null = the default agent.
+        aiAgentId: aiAgentId ?? null,
         title: title?.trim().slice(0, 200) || null,
         status: COACHING_THREAD_STATUS.OPEN,
       }),
@@ -193,6 +200,7 @@ export class AiCoachService {
 
     const ctx = await this.context.build({
       tenantId: params.tenantId,
+      aiAgentId: thread.aiAgentId ?? null,
       history,
       question: cleanText,
       citations,

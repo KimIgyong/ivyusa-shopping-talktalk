@@ -84,7 +84,7 @@ export class AiCoachController {
   @ApiOperation({ summary: 'Start a coaching thread' })
   async createThread(@CurrentUser() user: Principal, @Body() body: CreateThreadRequest) {
     const { tenantId, userId } = this.tenantUser(user);
-    const thread = await this.coach.createThread(tenantId, userId, body.title);
+    const thread = await this.coach.createThread(tenantId, userId, body.title, body.ai_agent_id ?? null);
     return AiCoachMapper.toThread(thread);
   }
 

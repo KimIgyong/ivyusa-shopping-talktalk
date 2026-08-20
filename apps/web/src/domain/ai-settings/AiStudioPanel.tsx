@@ -78,6 +78,7 @@ export function AiStudioPanel({ agent }: { agent?: AiAgentRow | null }) {
       <div className={cn(tab === 'coach' ? 'block' : 'hidden')}>
         <Card title={t('coach.title')}>
           <CoachPanel
+            agentId={agent?.id ?? null}
             target={coachTarget}
             onClearTarget={() => setCoachTarget(null)}
             onVerifyInPreview={(question) => {

@@ -22,9 +22,11 @@ interface CoachPanelProps {
   onClearTarget?: () => void;
   /** Send a question back to the preview tab to be re-asked after a change. */
   onVerifyInPreview?: (question: string) => void;
+  /** Which AI agent NEW threads coach (PLN-260820); null = the default agent. */
+  agentId?: number | null;
 }
 
-export function CoachPanel({ target, onClearTarget, onVerifyInPreview }: CoachPanelProps = {}) {
+export function CoachPanel({ target, onClearTarget, onVerifyInPreview, agentId }: CoachPanelProps = {}) {
   const { t } = useTranslation('aiSetting');
   const { t: tc } = useTranslation('common');
 
@@ -47,7 +49,7 @@ export function CoachPanel({ target, onClearTarget, onVerifyInPreview }: CoachPa
   }, [detail?.messages.length, busy]);
 
   async function startThread() {
-    const created = await createThread.mutateAsync(undefined);
+    const created = await createThread.mutateAsync({ aiAgentId: agentId });
     setThreadId(created.id);
   }
 
@@ -59,7 +61,7 @@ export function CoachPanel({ target, onClearTarget, onVerifyInPreview }: CoachPa
     let threadTarget = threadId;
     if (threadTarget === null) {
       try {
-        const created = await createThread.mutateAsync(undefined);
+        const created = await createThread.mutateAsync({ aiAgentId: agentId });
         threadTarget = created.id;
         setThreadId(created.id);
       } catch {
