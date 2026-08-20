@@ -39,15 +39,15 @@
 
 | # | 시나리오 | 확인 방법 | 결과 |
 |---|----------|-----------|------|
-| S1 | `sql/260820-ai-agents.sql` 선적용 → 테넌트 6곳 백필(default 6행) | mysql 카운트 | ⏳ 대기 |
-| S2 | 배포 후 신규 라우트 `GET /ai-agents` → 401(=배포됨) + 부팅 로그 | curl/logs | ⏳ 대기 |
-| S3 | go2joy 콘솔에서 예시 4종 에이전트 등록(부록 A) + 페르소나 저장 | API/콘솔 | ⏳ 대기 |
-| S4 | 서명 위젯 세션: `agent=go2joy-hotel-partner` → 실 LLM 답변이 해당 페르소나 톤 반영 | 위젯 프로브 | ⏳ 대기 |
-| S5 | 파라미터 없는 기존 세션 → 기본 에이전트(현행 페르소나) — 무회귀 | 위젯 프로브 | ⏳ 대기 |
-| S6 | 미지 코드 → 기본 폴백 + warn 로그 | 로그 grep | ⏳ 대기 |
-| S7 | 미리보기 패널 에이전트 전환 → 세션 재생성·톤 변화 | API | ⏳ 대기 |
+| S1 | `sql/260820-ai-agents.sql` 선적용 → 테넌트 6곳 백필(default 6행, go2joy는 자체 페르소나 상속) | mysql 카운트 | ✅ 8/20 |
+| S2 | 배포 검증 3종: 부팅 로그 `successfully started` · api 컨테이너 재생성(Up 28s healthy) · `GET /ai-agents` 401 / health 200 | curl/logs | ✅ 8/20 |
+| S3 | go2joy에 예시 4종 등록(landing-guest·admin-staff·hotel-partner·ad-partner, id 8~11) — 페르소나·규칙 포함 | API (임시 master 계정, 종료 후 삭제) | ✅ 8/20 |
+| S4 | `agent_code=hotel-partner` 위젯 세션 → 실 LLM 답변이 격식체+정산은 매니저 이관 / `landing-guest` → 친근한 예약 유도(지역·날짜·예산 질문) — 톤 명확 분리 | 위젯 프로브 | ✅ 8/20 |
+| S5 | 파라미터 없는 세션 → 기본 에이전트(go2joy 현행 페르소나) 응답 — 무회귀 | 위젯 프로브 | ✅ 8/20 |
+| S6 | `agent_code=nope-agent` → 세션 정상(ai_agent_id NULL)·기본 응답 + `ai agent code did not match: tenant=4` warn 1줄 | 로그 grep | ✅ 8/20 |
+| S7 | 미리보기 세션 ai_agent_id 10↔8 전환, 동일 질문("정산 일정") → 파트너 데스크는 절차 안내+매니저 이관, 랜딩 게스트는 범위 밖 안내+상담원 이관 — 페르소나별 응답 확인 | API | ✅ 8/20 |
 
-상세 결과·측정값은 `RPT-260820-Multi-AI-Agent-Personas.md` §4.
+세션 고정 DB 검증: staging sessions 1309=agent 10, 1310=agent 8, 1311/1312=NULL. 상세는 `docs/implementation/RPT-260820-Multi-AI-Agent-Personas.md` §4.
 
 ## 4. 엣지 케이스 (설계 검증)
 
