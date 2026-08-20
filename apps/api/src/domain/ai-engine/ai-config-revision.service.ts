@@ -24,6 +24,8 @@ export interface RecordRevisionMeta {
   actorUserId?: number | null;
   note?: string | null;
   proposalId?: number | null;
+  /** Which AI agent the persona write targeted; null/omitted = the default agent. */
+  aiAgentId?: number | null;
 }
 
 /**
@@ -111,6 +113,7 @@ export class AiConfigRevisionService {
   ): TenantAiConfigRevision {
     return this.revRepo.create({
       tenantId,
+      aiAgentId: meta.aiAgentId ?? null,
       revisionNo,
       persona: cfg.persona ?? null,
       rules: cfg.rules ?? null,

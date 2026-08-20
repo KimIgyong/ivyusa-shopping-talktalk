@@ -26,6 +26,7 @@ export class SessionController {
       body.locale,
       body.shop_domain,
       body.parent_origin,
+      body.agent_code,
     );
     const notice = await this.sessionService.privacyNotice(s.tenantId);
     return SessionMapper.toResponse(s, notice, await this.sessionService.customerDisplayName(s));

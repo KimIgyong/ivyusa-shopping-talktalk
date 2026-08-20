@@ -11,6 +11,7 @@ import { UserJobLabel } from '../domain/user/entity/user-job-label.entity';
 import { AiEngine } from '../domain/ai-engine/entity/ai-engine.entity';
 import { TenantAiSetting } from '../domain/ai-engine/entity/tenant-ai-setting.entity';
 import { TenantAiConfig } from '../domain/ai-engine/entity/tenant-ai-config.entity';
+import { AiAgent } from '../domain/ai-engine/entity/ai-agent.entity';
 import { DEFAULT_PERSONA, DEFAULT_SCENARIO_BUTTONS } from '../domain/ai-engine/ai-config.service';
 import { ContentFilterRule } from '../domain/moderation/entity/content-filter-rule.entity';
 import { KnowledgeSource } from '../domain/knowledge/entity/knowledge-source.entity';
@@ -216,6 +217,24 @@ export async function runSeed(ds: DataSource, opts: SeedOptions = {}): Promise<v
           'Offer to connect a human agent when unsure or out of scope.',
         ],
         scenarioButtons: DEFAULT_SCENARIO_BUTTONS,
+      }),
+    );
+  }
+
+  // Default AI agent (PLN-260820): persona/rules live per-agent now; the
+  // default row is the routing fallback every unpinned session answers as.
+  const aiAgentRepo = ds.getRepository(AiAgent);
+  if (!(await aiAgentRepo.findOne({ where: { tenantId: tenant.id, isDefault: 1 } }))) {
+    const cfg = await aiConfigRepo.findOne({ where: { tenantId: tenant.id } });
+    await aiAgentRepo.save(
+      aiAgentRepo.create({
+        tenantId: tenant.id,
+        code: 'default',
+        name: 'Default',
+        persona: cfg?.persona ?? DEFAULT_PERSONA,
+        rules: cfg?.rules ?? null,
+        active: 1,
+        isDefault: 1,
       }),
     );
   }

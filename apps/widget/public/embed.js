@@ -317,12 +317,18 @@
     var s0 = cfg.shop || shop;
     var l0 = String(cfg.locale || locale).slice(0, 2);
     var g0 = cfg.ga4Id && /^G-[A-Z0-9]+$/i.test(cfg.ga4Id) ? cfg.ga4Id : ga4Id;
+    // AI agent code (PLN-260820): which persona answers sessions opened from
+    // THIS page. Validated to the server's code shape; anything else is dropped
+    // here so a malformed value degrades to the default agent, never a broken src.
+    var a0 = String(cfg.agent || '').toLowerCase();
+    if (!/^[a-z0-9][a-z0-9-]{0,63}$/.test(a0)) a0 = '';
     return (
       base +
       '/?embed=1&shop=' +
       encodeURIComponent(s0) +
       '&locale=' +
       encodeURIComponent(l0) +
+      (a0 ? '&agent=' + encodeURIComponent(a0) : '') +
       (g0 ? '&ga4=' + encodeURIComponent(g0) : '') +
       (reopenTab ? '&reopen=' + encodeURIComponent(reopenTab) : '') +
       // The widget reports this to the API's embed allowlist. Browsers that expose
@@ -733,8 +739,8 @@
    * IVY_WIDGET_CONFIG keeps booting on load exactly as before.
    *
    * Recognised keys mirror IVY_WIDGET_CONFIG (shop, widgetUrl, locale, ga4Id,
-   * apiBase, loginPath …). Calling it a second time is a no-op beyond the
-   * queued-call drain, because the frame is already on the page.
+   * apiBase, loginPath, agent …). Calling it a second time is a no-op beyond
+   * the queued-call drain, because the frame is already on the page.
    */
   api.init = function (options) {
     if (options && typeof options === 'object') {

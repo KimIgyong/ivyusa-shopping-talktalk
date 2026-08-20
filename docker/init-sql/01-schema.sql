@@ -25,6 +25,9 @@
 -- There used to be a second copy at sql/01-schema.sql that disagreed with this
 -- one. Two DDL files with different contents is how the gap went unnoticed, so
 -- there is now exactly one.
+--
+-- 2026-08-20: +ai_agents, +ai_agent_id on sessions / tenant_ai_config_revisions /
+-- agent_coaching_threads (PLN-260820, mirrors sql/260820-ai-agents.sql). 74 tables.
 
 CREATE TABLE `admin_users` (
   `id` bigint NOT NULL AUTO_INCREMENT,
@@ -98,6 +101,7 @@ CREATE TABLE `agent_coaching_proposals` (
 CREATE TABLE `agent_coaching_threads` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `tenant_id` bigint NOT NULL,
+  `ai_agent_id` bigint DEFAULT NULL,
   `user_id` bigint NOT NULL,
   `title` varchar(200) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `status` varchar(16) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'open',
@@ -142,6 +146,21 @@ CREATE TABLE `agents` (
   `status` varchar(16) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'offline',
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_agents_email` (`email`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+CREATE TABLE `ai_agents` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `tenant_id` bigint NOT NULL,
+  `code` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `persona` text COLLATE utf8mb4_unicode_ci,
+  `rules` json DEFAULT NULL,
+  `active` tinyint(1) NOT NULL DEFAULT '1',
+  `is_default` tinyint(1) NOT NULL DEFAULT '0',
+  `created_at` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  `updated_at` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_aiagent_code` (`tenant_id`,`code`),
+  KEY `idx_aiagent_tenant` (`tenant_id`,`is_default`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 CREATE TABLE `ai_engines` (
   `id` bigint NOT NULL AUTO_INCREMENT,
@@ -1001,6 +1020,7 @@ CREATE TABLE `sessions` (
   `session_token` varchar(128) COLLATE utf8mb4_unicode_ci NOT NULL,
   `channel` varchar(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `tenant_id` bigint DEFAULT NULL,
+  `ai_agent_id` bigint DEFAULT NULL COMMENT 'AI agent (ai_agents.id) answering this session; NULL = tenant default',
   `customer_id` bigint DEFAULT NULL,
   `language` varchar(8) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'EN',
   `language_locked` tinyint(1) NOT NULL DEFAULT '0' COMMENT '1 = shopper picked the language themselves; auto-detection must not override',
@@ -1045,6 +1065,7 @@ CREATE TABLE `tenant_ai_config` (
 CREATE TABLE `tenant_ai_config_revisions` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `tenant_id` bigint NOT NULL,
+  `ai_agent_id` bigint DEFAULT NULL,
   `revision_no` int NOT NULL,
   `persona` text COLLATE utf8mb4_unicode_ci,
   `rules` json DEFAULT NULL,

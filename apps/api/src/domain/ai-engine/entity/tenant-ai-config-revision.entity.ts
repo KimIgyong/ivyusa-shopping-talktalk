@@ -33,6 +33,10 @@ export class TenantAiConfigRevision {
   @Column({ name: 'tenant_id', type: 'bigint', transformer: bigintTransformer })
   tenantId: number;
 
+  /** Which AI agent's persona this version belongs to; NULL = the default agent (incl. pre-multi-agent history). */
+  @Column({ name: 'ai_agent_id', type: 'bigint', nullable: true, transformer: bigintTransformer })
+  aiAgentId: number | null;
+
   /** Per-tenant sequence: max+1, never count+1 (code convention §2). */
   @Column({ name: 'revision_no', type: 'int' })
   revisionNo: number;

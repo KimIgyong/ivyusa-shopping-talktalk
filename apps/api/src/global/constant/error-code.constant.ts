@@ -147,6 +147,15 @@ export const ERROR_CODE = {
   /** Logo upload refused: wrong format, too large, or unreadable. */
   WIDGET_LOGO_REJECTED: { code: 'E5049', message: 'Logo could not be accepted' },
 
+  // E5050-E5052 — AI agents (PLN-260820-Multi-AI-Agent-Personas).
+  AI_AGENT_NOT_FOUND: { code: 'E5050', message: 'AI agent not found' },
+  /** The default agent is the routing fallback — it cannot be deleted or deactivated. */
+  AI_AGENT_DEFAULT_LOCKED: {
+    code: 'E5051',
+    message: 'The default AI agent cannot be deleted or deactivated',
+  },
+  AI_AGENT_CODE_TAKEN: { code: 'E5052', message: 'An AI agent with this code already exists' },
+
   // E9xxx — system
   INTERNAL_ERROR: { code: 'E9001', message: 'Internal server error' },
   EXTERNAL_SERVICE_ERROR: { code: 'E9002', message: 'External service error' },

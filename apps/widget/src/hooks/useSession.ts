@@ -60,6 +60,19 @@ export function getShopDomain(): string | undefined {
 }
 
 /**
+ * AI agent code the embed loader forwards from the page's snippet (`?agent=`,
+ * PLN-260820). Decides which persona answers sessions born on this page;
+ * absent (older loaders, direct open) = the tenant's default agent.
+ */
+export function getAgentCode(): string | undefined {
+  try {
+    return new URLSearchParams(window.location.search).get('agent') ?? undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
  * Normalize the session/ensure consent fields into the store snapshot and keep
  * the localStorage cache in line with the server (server is source of truth).
  */
@@ -192,7 +205,7 @@ export function useEnsureSession() {
     // token the backend returns reaches the store/queries.
     const resumeToken =
       useWidgetStore.getState().sessionToken ?? (embedded ? null : getStoredSessionToken());
-    ensureSession(resumeToken, language, getShopDomain(), getParentOrigin())
+    ensureSession(resumeToken, language, getShopDomain(), getParentOrigin(), getAgentCode())
       .then((res) => {
         if (cancelled) return;
         // Tenant widget config is safe to adopt regardless of which session wins

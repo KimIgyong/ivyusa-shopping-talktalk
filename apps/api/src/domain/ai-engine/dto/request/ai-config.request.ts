@@ -1,4 +1,4 @@
-import { IsArray, IsBoolean, IsObject, IsOptional, IsString } from 'class-validator';
+import { IsArray, IsBoolean, IsInt, IsObject, IsOptional, IsString } from 'class-validator';
 
 class ScenarioButtonDto {
   @IsString() id: string;
@@ -10,6 +10,9 @@ class ScenarioButtonDto {
 /** /ai-setting preview sandbox session (PLN-AiSetting-Preview W1). */
 export class CreatePreviewSessionRequest {
   @IsOptional() @IsString() language?: string; // en/es/ko
+
+  /** Which AI agent to preview as (PLN-260820); omitted = the default agent. */
+  @IsOptional() @IsInt() ai_agent_id?: number;
 }
 
 /** Request DTO — snake_case. */

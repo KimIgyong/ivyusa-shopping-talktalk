@@ -667,6 +667,7 @@ export class ChatService {
         nonQuestion,
         egressText,
         session.language,
+        session.aiAgentId ?? null,
       );
       // Same gate as any other AI egress (FR-069, non-bypassable).
       const checked = await this.moderation.moderate({
@@ -760,6 +761,7 @@ export class ChatService {
           // so searching on it alone scored off-topic and escalated a question the
           // knowledge base could answer.
           await this.retrievalQueryFor(conversation.id, userTurn.id, egressText),
+          session.aiAgentId ?? null,
         );
 
     // Mandatory moderation gate (FR-069).
