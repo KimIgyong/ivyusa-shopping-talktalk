@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactElement } from 'react';
 import { Settings, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useWidgetStore, type TabKey } from '../../store/widgetStore';
+import { isAppMode, postToHost } from '../../lib/host-bridge';
 import { logoUrl } from '../../lib/branding';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { TopTabs } from './TopTabs';
@@ -27,6 +28,14 @@ export function WidgetPanel() {
   const { t } = useTranslation();
   const activeTab = useWidgetStore((s) => s.activeTab);
   const setPanelOpen = useWidgetStore((s) => s.setPanelOpen);
+  /**
+   * In a host app the widget IS the screen: closing the panel would leave the
+   * WebView showing nothing. Ask the host to dismiss it instead (PLN-260820).
+   */
+  const dismiss = () => {
+    if (isAppMode()) postToHost({ type: 'ivy:close-request' });
+    else setPanelOpen(false);
+  };
   // Store-held so other surfaces (e.g. the consent banner's "privacy choices"
   // link) can open the settings/preferences area too.
   const showSettings = useWidgetStore((s) => s.settingsOpen);
@@ -50,7 +59,7 @@ export function WidgetPanel() {
   // Esc closes the panel; focus the panel on open.
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setPanelOpen(false);
+      if (e.key === 'Escape') dismiss();
     };
     document.addEventListener('keydown', onKeyDown);
     panelRef.current?.focus();
@@ -114,7 +123,7 @@ export function WidgetPanel() {
             <Settings className="h-5 w-5" />
           </button>
           <button
-            onClick={() => setPanelOpen(false)}
+            onClick={dismiss}
             aria-label={t('a11y.close')}
             className="rounded-lg p-1.5 text-header-dim hover:bg-header-fg/10 hover:text-header-fg focus:outline-none focus:ring-2 focus:ring-primary-500"
           >

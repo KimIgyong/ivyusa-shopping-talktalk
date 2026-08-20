@@ -14,6 +14,7 @@ import { WidgetPanel } from './WidgetPanel';
 import { ErrorBoundary } from '../ui/ErrorBoundary';
 import { LAUNCHER_CLASSES, resolveLauncher } from '../../lib/launcher';
 import { logoUrl } from '../../lib/branding';
+import { isAppMode } from '../../lib/host-bridge';
 
 export function Widget() {
   const { t } = useTranslation();
@@ -37,6 +38,9 @@ export function Widget() {
   const launcher = resolveLauncher(theme);
   const sizeClasses = LAUNCHER_CLASSES[launcher.size] ?? LAUNCHER_CLASSES.md;
   const brandMark = theme?.logo ? logoUrl(theme.logo) : null;
+  // A host app opens the widget from its own button and owns the whole screen,
+  // so there is no floating launcher and nothing to open into.
+  const appMode = isAppMode();
 
   // Returning from a redirect-mode sign-in: the loader consumed its one-shot
   // flag and passed ?reopen=<tab>, so bring the widget straight back up where
@@ -129,7 +133,7 @@ export function Widget() {
       {/* Floating launcher — closed state only. While the panel is open the
           bottom-right X would duplicate the panel header's close button (and
           sit right under it on mobile), so closing is the header X / Esc. */}
-      {!panelOpen && (
+      {!panelOpen && !appMode && (
         <button
           onClick={togglePanel}
           aria-label={t('a11y.openSupport')}

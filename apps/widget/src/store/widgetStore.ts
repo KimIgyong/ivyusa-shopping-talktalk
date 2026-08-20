@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { setStoredSessionToken } from '../lib/api-client';
 import { initialLanguage } from '../i18n/i18n';
 import { WIDGET_TABS_DEFAULT } from '../lib/widget-tabs';
+import { isAppMode } from '../lib/host-bridge';
 import type {
   ConsentState,
   WidgetCopy,
@@ -120,7 +121,8 @@ export const useWidgetStore = create<WidgetState>()((set, get) => ({
   // for a different visitor (privacy) — the app-proxy handshake decides instead.
   sessionToken: null,
   activeTab: 'chat',
-  panelOpen: false,
+  // App mode has no launcher, so a closed panel would render an empty WebView.
+  panelOpen: isAppMode(),
   settingsOpen: false,
   authenticated: false,
   authPending: false,

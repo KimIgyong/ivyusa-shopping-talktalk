@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useAnalytics } from '../lib/analytics';
 import type { PurchasePayload } from '../lib/analytics';
+import { hostKind, onHostMessage } from '../lib/host-bridge';
 
 interface PurchaseMessage {
   type?: string;
@@ -23,11 +24,12 @@ export function usePurchaseSignal(): void {
 
   useEffect(() => {
     if (!analytics.enabled) return;
-    if (window.parent === window) return; // not embedded — no storefront to report
+    // Storefront-only: the purchase signal comes from embed.js watching a
+    // thank-you page. A mobile app has no such page.
+    if (hostKind() !== 'frame') return;
 
-    function onMessage(e: MessageEvent) {
-      if (e.source !== window.parent) return; // only from our embedder frame
-      const d = (e.data || {}) as PurchaseMessage;
+    function onMessage(raw: Record<string, unknown>) {
+      const d = raw as PurchaseMessage;
       if (d.type !== 'ivy:purchase') return;
       const txId = d.transaction_id != null ? String(d.transaction_id) : '';
       const value = typeof d.value === 'string' ? Number(d.value) : d.value;
@@ -40,7 +42,6 @@ export function usePurchaseSignal(): void {
       });
     }
 
-    window.addEventListener('message', onMessage);
-    return () => window.removeEventListener('message', onMessage);
+    return onHostMessage(onMessage);
   }, [analytics]);
 }

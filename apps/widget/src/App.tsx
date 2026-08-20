@@ -4,9 +4,15 @@ import { Widget } from './components/widget/Widget';
 import { Ga4Provider } from './lib/analytics';
 import { useWidgetStore } from './store/widgetStore';
 import { getStoredConsent } from './lib/consent';
+import { isAppMode } from './lib/host-bridge';
 
-/** Embedded on a real storefront (via embed.js) — render only the widget. */
-const isEmbed = new URLSearchParams(window.location.search).get('embed') === '1';
+/**
+ * Render only the widget: embedded on a real storefront (via embed.js), or
+ * inside a host app's WebView (?mode=app). The demo storefront exists for the
+ * standalone preview and has no business appearing inside a customer's app.
+ */
+const isEmbed =
+  new URLSearchParams(window.location.search).get('embed') === '1' || isAppMode();
 
 /** Tenant shop + language merged into every GA4 event as common context. */
 function useAnalyticsContext() {

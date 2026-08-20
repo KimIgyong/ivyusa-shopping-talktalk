@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ShopTalk — native host simulator</title>
+    <style>
+      body { font: 14px system-ui, sans-serif; margin: 0; display: flex; height: 100vh; }
+      #panel { width: 380px; padding: 16px; border-right: 1px solid #e5e7eb; overflow: auto; }
+      #phone { flex: 1; display: flex; align-items: center; justify-content: center; background: #f3f4f6; }
+      iframe { width: 390px; height: 780px; border: 12px solid #111827; border-radius: 32px; background: #fff; }
+      button { display: block; width: 100%; margin: 6px 0; padding: 8px; cursor: pointer; }
+      input { width: 100%; box-sizing: border-box; margin: 2px 0 8px; padding: 6px; }
+      #log { font: 12px ui-monospace, monospace; white-space: pre-wrap; background: #111827; color: #d1d5db;
+             padding: 8px; border-radius: 6px; height: 320px; overflow: auto; }
+      h1 { font-size: 15px; } h2 { font-size: 13px; color: #6b7280; margin: 16px 0 4px; }
+    </style>
+  </head>
+  <body>
+    <div id="panel">
+      <h1>Native host simulator</h1>
+      <p style="color:#6b7280">
+        Pretends to be the app around the widget (PLN-260820). It speaks the same
+        bridge a React Native, iOS or Android host speaks, so the contract can be
+        exercised without a device. It is NOT a substitute for testing in the
+        real app.
+      </p>
+
+      <h2>Widget URL</h2>
+      <input id="url" value="/widget/?embed=1&mode=app" />
+      <button onclick="reload()">Load</button>
+
+      <h2>identify()</h2>
+      <input id="userId" placeholder="userId" value="app-user-1" />
+      <input id="hash" placeholder="hash (HMAC from your server)" value="" />
+      <button onclick="send({type:'ivy:identify', user:{userId:val('userId'), hash:val('hash')}})">
+        Send identify
+      </button>
+
+      <h2>Commands</h2>
+      <button onclick="send({type:'ivy:command', action:'open', tab:'chat'})">open(chat)</button>
+      <button onclick="send({type:'ivy:command', action:'open', tab:'orders'})">open(orders)</button>
+      <button onclick="send({type:'ivy:command', action:'locale', locale:'VI'})">setLocale(vi)</button>
+      <button onclick="send({type:'ivy:command', action:'logout'})">logout()</button>
+
+      <h2>From the widget</h2>
+      <div id="log"></div>
+    </div>
+    <div id="phone"><iframe id="w"></iframe></div>
+
+    <script>
+      const frame = document.getElementById('w');
+      const log = (dir, msg) => {
+        const el = document.getElementById('log');
+        el.textContent += `${dir} ${JSON.stringify(msg)}\n`;
+        el.scrollTop = el.scrollHeight;
+      };
+      const val = (id) => document.getElementById(id).value;
+
+      function reload() {
+        frame.src = val('url');
+        document.getElementById('log').textContent = '';
+      }
+
+      /**
+       * Host → widget. A real native host calls the same global through
+       * injectJavaScript / evaluateJavaScript; here it is reachable directly
+       * because the simulator and the widget share an origin.
+       */
+      function send(message) {
+        log('→', message);
+        const w = frame.contentWindow;
+        if (w && w.__shoptalkHost) w.__shoptalkHost(JSON.stringify(message));
+        else log('!', 'bridge not ready — the widget has not loaded yet');
+      }
+
+      /**
+       * Widget → host. A native host receives these through
+       * ReactNativeWebView.postMessage / webkit.messageHandlers; in a browser
+       * the widget falls back to its parent frame, which is us.
+       */
+      window.addEventListener('message', (e) => {
+        if (e.source !== frame.contentWindow) return;
+        log('←', e.data);
+        if (e.data && e.data.type === 'ivy:close-request') {
+          log('!', 'host would dismiss the chat screen now');
+        }
+      });
+
+      reload();
+    </script>
+  </body>
+</html>

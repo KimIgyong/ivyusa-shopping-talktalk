@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useWidgetStore } from '../store/widgetStore';
+import { hostPresent, onHostMessage, postToHost } from '../lib/host-bridge';
 
 /**
  * Storefront identity handshake. When embedded in a Shopify store via embed.js,
@@ -15,7 +16,7 @@ export function useEmbedIdentity() {
   const setEmbedIdentity = useWidgetStore((s) => s.setEmbedIdentity);
 
   useEffect(() => {
-    if (window.parent === window) return; // not embedded — nothing to do
+    if (!hostPresent()) return; // standalone — nothing to hand shake with
 
     // FE-M2 hardening: adopt the passive identity token at most once, from a
     // secure parent origin. A hostile page can still embed the widget, but it
@@ -25,20 +26,9 @@ export function useEmbedIdentity() {
     // user-initiated sign-in (authPending): the shopper clicked "Sign in", so a
     // fresh customer-bound token from the loader is expected and welcome.
     let adopted = false;
-    function isTrustedOrigin(origin: string): boolean {
-      try {
-        const { protocol, hostname } = new URL(origin);
-        if (protocol === 'https:') return true;
-        return protocol === 'http:' && (hostname === 'localhost' || hostname === '127.0.0.1');
-      } catch {
-        return false;
-      }
-    }
 
-    function onMessage(e: MessageEvent) {
-      if (e.source !== window.parent) return; // only from our embedder frame
-      if (!isTrustedOrigin(e.origin)) return;
-      const d = (e.data || {}) as {
+    function onMessage(raw: Record<string, unknown>) {
+      const d = raw as {
         type?: string;
         token?: string;
         authenticated?: boolean;
@@ -60,9 +50,9 @@ export function useEmbedIdentity() {
         setAuthPending(false);
       }
     }
-    window.addEventListener('message', onMessage);
-    // Tell the loader we're mounted and ready to receive the identity token.
-    window.parent.postMessage({ type: 'ivy:ready' }, '*');
-    return () => window.removeEventListener('message', onMessage);
+    const stop = onHostMessage(onMessage);
+    // Tell the host we're mounted and ready to receive the identity token.
+    postToHost({ type: 'ivy:ready' });
+    return stop;
   }, [setSessionToken, setAuthenticated, setAuthPending, setEmbedIdentity]);
 }
