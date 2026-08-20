@@ -10,6 +10,9 @@ export class ListThreadsQuery {
 
 export class CreateThreadRequest {
   @IsOptional() @IsString() @MaxLength(200) title?: string;
+
+  /** Which AI agent to coach (PLN-260820); omitted = the default agent. */
+  @IsOptional() @IsInt() ai_agent_id?: number;
 }
 
 export class SendCoachMessageRequest {

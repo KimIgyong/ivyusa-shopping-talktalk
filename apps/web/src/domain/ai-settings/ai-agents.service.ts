@@ -1,0 +1,26 @@
+import { apiDelete, apiGet, apiPatch, apiPost } from '@/lib/api-client';
+
+/** One AI counter persona of this tenant (PLN-260820-Multi-AI-Agent-Personas). */
+export interface AiAgentRow {
+  id: number;
+  /** Routing key used in embed snippets / channel bindings; locked after create. */
+  code: string;
+  name: string;
+  persona: string | null;
+  rules: string[];
+  active: boolean;
+  isDefault: boolean;
+  updatedAt: string;
+}
+
+export const aiAgentsService = {
+  list: async (): Promise<AiAgentRow[]> => {
+    const d = await apiGet<{ items: AiAgentRow[] }>('/ai-agents');
+    return d.items ?? [];
+  },
+  create: (body: { code: string; name: string }) => apiPost<AiAgentRow>('/ai-agents', body),
+  update: (id: number, body: { name?: string; active?: boolean }) =>
+    apiPatch<AiAgentRow>(`/ai-agents/${id}`, body),
+  remove: (id: number) => apiDelete<{ deleted: true }>(`/ai-agents/${id}`),
+  setDefault: (id: number) => apiPost<AiAgentRow>(`/ai-agents/${id}/default`),
+};

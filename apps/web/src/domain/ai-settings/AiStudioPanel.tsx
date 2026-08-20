@@ -5,6 +5,7 @@ import { Card } from '@/components/Card';
 import { cn } from '@/lib/cn';
 import { PreviewPanel, type CoachTarget } from './PreviewPanel';
 import { CoachPanel } from './CoachPanel';
+import type { AiAgentRow } from './ai-agents.service';
 
 type StudioTab = 'preview' | 'coach';
 
@@ -18,7 +19,7 @@ type StudioTab = 'preview' | 'coach';
  * coaching, and a question sent back to be re-asked after a change was applied.
  * Both panels stay mounted so a running preview session survives tab switches.
  */
-export function AiStudioPanel() {
+export function AiStudioPanel({ agent }: { agent?: AiAgentRow | null }) {
   const { t } = useTranslation('aiSetting');
   const [tab, setTab] = useState<StudioTab>('preview');
   const [coachTarget, setCoachTarget] = useState<CoachTarget | null>(null);
@@ -54,10 +55,17 @@ export function AiStudioPanel() {
         ))}
       </div>
 
+      {agent && (
+        <p className="mb-2 text-xs text-gray-400">
+          {t('agents.studioAgent', { name: agent.name })}
+        </p>
+      )}
+
       {/* Hidden rather than unmounted: unmounting Preview would drop the sandbox
           session, so every trip to the coaching tab would restart the chat. */}
       <div className={cn(tab === 'preview' ? 'block' : 'hidden')}>
         <PreviewPanel
+          agentId={agent?.id ?? null}
           onCoach={(target) => {
             setCoachTarget(target);
             setTab('coach');
@@ -70,6 +78,7 @@ export function AiStudioPanel() {
       <div className={cn(tab === 'coach' ? 'block' : 'hidden')}>
         <Card title={t('coach.title')}>
           <CoachPanel
+            agentId={agent?.id ?? null}
             target={coachTarget}
             onClearTarget={() => setCoachTarget(null)}
             onVerifyInPreview={(question) => {

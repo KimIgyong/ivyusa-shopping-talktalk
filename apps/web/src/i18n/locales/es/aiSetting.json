@@ -266,5 +266,31 @@
     "field_rules": "reglas",
     "field_scenarioOverrides": "respuestas de escenario",
     "notePlaceholder": "¿Por qué este cambio? (opcional, se guarda en el historial)"
+  },
+  "agents": {
+    "title": "Agentes de IA",
+    "add": "Añadir agente",
+    "hint": "Cada agente es un mostrador con su propia personalidad: visitantes de la landing, personal interno, hoteles asociados… Selecciona uno para editar su personalidad abajo. Las páginas fijan un agente con el fragmento de instalación; sin él responde el predeterminado.",
+    "active": "Activo",
+    "inactive": "Inactivo",
+    "default": "Predeterminado",
+    "created": "Agente creado.",
+    "saved": "Agente guardado.",
+    "deleted": "Agente eliminado.",
+    "defaultSet": "Agente predeterminado cambiado.",
+    "addTitle": "Añadir agente de IA",
+    "editTitle": "Editar agente de IA",
+    "makeDefault": "Hacer predeterminado",
+    "deleteConfirm": "¿Eliminar el agente \"{{name}}\"? Las páginas que usen su código volverán al agente predeterminado.",
+    "name": "Nombre",
+    "code": "Código",
+    "codeHint": "Minúsculas, dígitos y guiones. Se usa en el fragmento de instalación y se bloquea tras crearlo.",
+    "defaultAlwaysActive": "(el agente predeterminado siempre está activo)",
+    "snippet": "Fragmento de instalación",
+    "snippetCopied": "Fragmento copiado.",
+    "snippetCopyFailed": "No se pudo copiar — selecciónalo y cópialo manualmente.",
+    "snippetHint": "Pégalo en la página que debe atender este agente. ¿Ya instalado? Añade solo la línea agent a IVY_WIDGET_CONFIG.",
+    "shared": "común a todos los agentes",
+    "studioAgent": "Agente: {{name}}"
   }
 }

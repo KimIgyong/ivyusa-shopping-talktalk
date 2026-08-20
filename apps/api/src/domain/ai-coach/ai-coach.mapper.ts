@@ -9,6 +9,8 @@ export class AiCoachMapper {
   static toThread(t: CoachingThread) {
     return {
       id: Number(t.id),
+      /** Which AI agent this thread coaches; null = the default agent. */
+      aiAgentId: t.aiAgentId == null ? null : Number(t.aiAgentId),
       title: t.title,
       status: t.status,
       createdAt: t.createdAt,

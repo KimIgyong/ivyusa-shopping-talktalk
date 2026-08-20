@@ -9,6 +9,8 @@ import {
   ScenarioOverride,
   TenantAiConfig,
 } from './entity/tenant-ai-config.entity';
+import { AiAgent } from './entity/ai-agent.entity';
+import { AiAgentService } from './ai-agent.service';
 import { Session } from '../session/entity/session.entity';
 import { Tenant } from '../tenant/entity/tenant.entity';
 import { BusinessException } from '../../global/exception/business.exception';
@@ -19,8 +21,13 @@ import { AiConfigRevisionService, RecordRevisionMeta } from './ai-config-revisio
 /** TTL for the per-tenant persona/rules cache (PERF-11) — read on every RAG turn. */
 const PERSONA_CACHE_TTL_SEC = 60;
 
-function personaCacheKey(tenantId: number): string {
-  return `aicfg:persona:${tenantId}`;
+/**
+ * Per (tenant, agent) since PLN-260820 — sessions pinned to different AI agents
+ * must not share one cached persona. `null` (unpinned session / legacy caller)
+ * resolves the tenant default.
+ */
+export function personaCacheKey(tenantId: number, aiAgentId?: number | null): string {
+  return `aicfg:persona:${tenantId}:${aiAgentId ?? 'default'}`;
 }
 
 /** Default scenario buttons (FR-003) seeded when a tenant has no custom set. */
@@ -80,18 +87,25 @@ export interface AiConfigInput {
 export class AiConfigService {
   constructor(
     @InjectRepository(TenantAiConfig) private readonly configRepo: Repository<TenantAiConfig>,
+    @InjectRepository(AiAgent) private readonly agentRepo: Repository<AiAgent>,
     @InjectRepository(Session) private readonly sessionRepo: Repository<Session>,
     @InjectRepository(Tenant) private readonly tenantRepo: Repository<Tenant>,
     private readonly redis: RedisService,
     private readonly revisions: AiConfigRevisionService,
+    private readonly agents: AiAgentService,
   ) {}
 
-  /** Admin read — returns stored config or defaults. */
-  async getConfig(tenantId: number): Promise<AiConfigResponse> {
+  /**
+   * Admin read — returns stored config or defaults. Persona/rules come from the
+   * chosen agent (default agent when omitted) since PLN-260820; scenario
+   * buttons/overrides and handoff stay tenant-wide.
+   */
+  async getConfig(tenantId: number, aiAgentId?: number | null): Promise<AiConfigResponse> {
     const row = await this.configRepo.findOne({ where: { tenantId } });
+    const { persona, rules } = await this.resolvePersonaRules(tenantId, aiAgentId ?? null, row);
     return {
-      persona: row?.persona ?? DEFAULT_PERSONA,
-      rules: row?.rules ?? DEFAULT_RULES,
+      persona,
+      rules,
       scenarioButtons: row?.scenarioButtons ?? DEFAULT_SCENARIO_BUTTONS,
       scenarioOverrides: row?.scenarioOverrides ?? {},
       handoffConfig: row?.handoffConfig ?? null,
@@ -131,21 +145,44 @@ export class AiConfigService {
     tenantId: number,
     input: AiConfigInput,
     meta?: RecordRevisionMeta,
+    aiAgentId?: number | null,
   ): Promise<AiConfigResponse> {
-    const before = await this.getConfig(tenantId);
+    const before = await this.getConfig(tenantId, aiAgentId);
+
+    // Persona/rules live on the agent row since PLN-260820 (null = default
+    // agent, created on first write for tenants predating the feature).
+    let agent: AiAgent | null = null;
+    if (input.persona !== undefined || input.rules !== undefined) {
+      agent =
+        aiAgentId != null
+          ? await this.agentRepo.findOne({ where: { id: aiAgentId, tenantId } })
+          : await this.agents.ensureDefault(tenantId);
+      if (!agent) {
+        throw new BusinessException(ERROR_CODE.AI_AGENT_NOT_FOUND, HttpStatus.NOT_FOUND);
+      }
+      if (input.persona !== undefined) agent.persona = input.persona;
+      if (input.rules !== undefined) agent.rules = input.rules;
+      await this.agentRepo.save(agent);
+    }
+
+    // Scenario buttons/overrides and handoff stay tenant-wide on the legacy row.
     const row =
       (await this.configRepo.findOne({ where: { tenantId } })) ??
       this.configRepo.create({ tenantId });
-    if (input.persona !== undefined) row.persona = input.persona;
-    if (input.rules !== undefined) row.rules = input.rules;
     if (input.scenarioButtons !== undefined) row.scenarioButtons = this.sanitize(input.scenarioButtons);
     if (input.scenarioOverrides !== undefined) {
       row.scenarioOverrides = this.sanitizeOverrides(input.scenarioOverrides);
     }
     if (input.handoffConfig !== undefined) row.handoffConfig = input.handoffConfig;
     await this.configRepo.save(row);
-    await this.redis.del(personaCacheKey(tenantId));
-    const after = await this.getConfig(tenantId);
+
+    await this.redis.del(personaCacheKey(tenantId, aiAgentId ?? null));
+    if (agent) {
+      await this.redis.del(personaCacheKey(tenantId, Number(agent.id)));
+      // A write to the default agent must also refresh unpinned sessions.
+      if (agent.isDefault === 1) await this.redis.del(personaCacheKey(tenantId, null));
+    }
+    const after = await this.getConfig(tenantId, aiAgentId);
 
     // History is best-effort by design: the service swallows its own failures
     // so a bad revision write can never fail the save it is describing.
@@ -154,24 +191,63 @@ export class AiConfigService {
         tenantId,
         { persona: after.persona, rules: after.rules, scenarioOverrides: after.scenarioOverrides },
         { persona: before.persona, rules: before.rules, scenarioOverrides: before.scenarioOverrides },
-        meta,
+        { ...meta, aiAgentId: agent ? Number(agent.id) : (meta.aiAgentId ?? null) },
       );
     }
     return after;
   }
 
   /** RAG (FN-016/017) — persona + rules to inject into the system prompt. */
-  async getPersonaRules(tenantId: number): Promise<{ persona: string; rules: string[] }> {
-    const key = personaCacheKey(tenantId);
+  async getPersonaRules(
+    tenantId: number,
+    aiAgentId?: number | null,
+  ): Promise<{ persona: string; rules: string[] }> {
+    const key = personaCacheKey(tenantId, aiAgentId ?? null);
     if (this.redis.available()) {
       const hit = await this.redis.get(key);
       if (hit) return JSON.parse(hit) as { persona: string; rules: string[] };
     }
-    const row = await this.configRepo.findOne({ where: { tenantId } });
-    const result = { persona: row?.persona ?? DEFAULT_PERSONA, rules: row?.rules ?? DEFAULT_RULES };
+    // Runtime path: a deactivated agent stops answering — pinned sessions
+    // degrade to the tenant default rather than keeping a retired persona alive.
+    const result = await this.resolvePersonaRules(tenantId, aiAgentId ?? null, undefined, {
+      requireActive: true,
+    });
     await this.redis.set(key, JSON.stringify(result), PERSONA_CACHE_TTL_SEC);
     return result;
   }
+
+  /**
+   * Agent → default agent → legacy tenant row → built-in defaults.
+   *
+   * The legacy tenant_ai_config fallback matters during rollout: SQL backfill
+   * runs before the code deploy, but a dev database (synchronize) or a tenant
+   * created in between has no agent rows yet, and shoppers must not meet a
+   * blank persona because of that.
+   */
+  private async resolvePersonaRules(
+    tenantId: number,
+    aiAgentId: number | null,
+    legacyRow?: TenantAiConfig | null,
+    opts: { requireActive?: boolean } = {},
+  ): Promise<{ persona: string; rules: string[] }> {
+    if (aiAgentId != null) {
+      const where = opts.requireActive
+        ? { id: aiAgentId, tenantId, active: 1 }
+        : { id: aiAgentId, tenantId };
+      const row = await this.agentRepo.findOne({ where });
+      if (row) {
+        return { persona: row.persona ?? DEFAULT_PERSONA, rules: row.rules ?? DEFAULT_RULES };
+      }
+    }
+    const def = await this.agentRepo.findOne({ where: { tenantId, isDefault: 1 } });
+    if (def) {
+      return { persona: def.persona ?? DEFAULT_PERSONA, rules: def.rules ?? DEFAULT_RULES };
+    }
+    const legacy =
+      legacyRow !== undefined ? legacyRow : await this.configRepo.findOne({ where: { tenantId } });
+    return { persona: legacy?.persona ?? DEFAULT_PERSONA, rules: legacy?.rules ?? DEFAULT_RULES };
+  }
+
 
   /** Widget (public) — enabled scenario buttons for the session's tenant. */
   async getScenarioForSession(sessionToken: string): Promise<ScenarioConfigResponse> {

@@ -431,12 +431,20 @@ export class MessengerIngestService {
     }
 
     const noticeVersion = await this.sessionService.effectiveNoticeVersion(channel.tenantId);
+    // Channel-level AI-agent binding (PLN-260820): an operator can point e.g.
+    // the partner-support Kakao channel at the partner persona. Unset/unknown
+    // codes pin nothing — the tenant default answers, as before.
+    const aiAgentId = await this.sessionService.resolveAiAgentId(
+      channel.tenantId,
+      typeof channel.config?.ai_agent_code === 'string' ? channel.config.ai_agent_code : undefined,
+    );
     const session = await this.sessionRepo.save(
       this.sessionRepo.create({
         sessionToken: generateToken(),
         // The badge in the console and the AI's channel awareness both read this.
         channel: thread.subChannel ?? channel.provider,
         tenantId: channel.tenantId,
+        aiAgentId,
         customerId: null,
         identityLevel: SESSION_IDENTITY.GUEST,
         // Tenant default when the platform gives no locale — a relay sends

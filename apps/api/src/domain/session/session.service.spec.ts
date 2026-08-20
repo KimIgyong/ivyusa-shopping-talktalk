@@ -380,3 +380,37 @@ describe('SessionService.requireCustomer', () => {
     });
   });
 });
+
+describe('SessionService.resolveAiAgentId (PLN-260820)', () => {
+  // TypeORM hands bigint PKs back as strings — the fixture id is a string on purpose.
+  const agents = [
+    { id: '7', tenantId: 1, code: 'hotel-partner', active: 1 },
+    { id: '8', tenantId: 1, code: 'retired', active: 0 },
+  ];
+  const aiAgentRepo = {
+    findOne: jest.fn(async ({ where }: { where: { tenantId: number; code: string; active: number } }) =>
+      agents.find(
+        (a) => a.tenantId === where.tenantId && a.code === where.code && a.active === where.active,
+      ) ?? null,
+    ),
+  };
+  const svc = new SessionService(
+    {} as never,
+    {} as never,
+    {} as never,
+    { publish: jest.fn() } as never,
+    new FakeRedis() as never,
+    aiAgentRepo as never,
+  );
+
+  it('resolves an active code the way it is typed into a snippet (case/space-insensitive)', async () => {
+    await expect(svc.resolveAiAgentId(1, ' Hotel-Partner ')).resolves.toBe(7);
+  });
+
+  it('falls back to null (default agent) for unknown, inactive or cross-tenant codes', async () => {
+    await expect(svc.resolveAiAgentId(1, 'no-such')).resolves.toBeNull();
+    await expect(svc.resolveAiAgentId(1, 'retired')).resolves.toBeNull();
+    await expect(svc.resolveAiAgentId(2, 'hotel-partner')).resolves.toBeNull();
+    await expect(svc.resolveAiAgentId(1, undefined)).resolves.toBeNull();
+  });
+});

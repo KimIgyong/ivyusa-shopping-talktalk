@@ -145,6 +145,8 @@ export const aiSettingsService = {
     handoff_config?: HandoffConfig;
     /** Why this change was made — recorded on the config revision. */
     note?: string;
+    /** Which AI agent a persona/rules write targets (PLN-260820); omitted = default. */
+    ai_agent_id?: number;
   }) =>
     apiPut<AiConfig>('/ai-config', body),
   rules: () => apiGet<ModerationRule[]>('/moderation/rules'),

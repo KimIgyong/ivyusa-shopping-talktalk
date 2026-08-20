@@ -11,6 +11,12 @@ export class EnsureSessionRequest {
    * not be read as a violation.
    */
   @IsOptional() @IsString() parent_origin?: string;
+  /**
+   * AI agent code from the embed snippet's `data-agent` (PLN-260820). Unknown
+   * or inactive codes fall back to the tenant's default agent — a typo in a
+   * snippet must never take the widget down.
+   */
+  @IsOptional() @IsString() agent_code?: string;
 }
 
 export class ConsentRequest {

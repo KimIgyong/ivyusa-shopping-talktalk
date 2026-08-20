@@ -328,6 +328,7 @@ export class RagService {
     orderContext?: string,
     preferGroup?: string,
     retrievalQuery?: string,
+    aiAgentId?: number | null,
   ): Promise<RagAnswer> {
     // The caller decides the group preference; RAG only applies it. Keeping the
     // judgement out of here means the chat path can use its intent label and
@@ -356,8 +357,9 @@ export class RagService {
       hasOrderContext ? ORDER_CONTEXT_CONFIDENCE : 0,
     );
 
-    // Persona + response rules from the tenant's AI config (FR-047 / FN-040).
-    const { persona, rules } = await this.aiConfig.getPersonaRules(tenantId);
+    // Persona + response rules of the session's AI agent (FR-047 / PLN-260820);
+    // null falls back to the tenant's default agent.
+    const { persona, rules } = await this.aiConfig.getPersonaRules(tenantId, aiAgentId);
     const rulesBlock = rules.length ? `\nResponse rules:\n${rules.map((r) => `- ${r}`).join('\n')}` : '';
     const orderBlock = hasOrderContext
       ? `\nCUSTOMER_ORDERS_START\n${orderContext!.trim()}\nCUSTOMER_ORDERS_END`
@@ -437,8 +439,9 @@ export class RagService {
     kind: 'smalltalk' | 'out_of_scope' | 'unintelligible',
     query: string,
     language: string,
+    aiAgentId?: number | null,
   ): Promise<string> {
-    const { persona, rules } = await this.aiConfig.getPersonaRules(tenantId);
+    const { persona, rules } = await this.aiConfig.getPersonaRules(tenantId, aiAgentId);
     const instruction = NO_KNOWLEDGE_INSTRUCTION[kind];
     const res = await this.ai.complete({
       tenantId,

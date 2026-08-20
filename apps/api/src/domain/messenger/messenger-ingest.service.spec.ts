@@ -134,6 +134,8 @@ describe('MessengerIngestService', () => {
 
     const sessionService = {
       effectiveNoticeVersion: jest.fn(async () => '2026-07'),
+      // Channel AI-agent binding (PLN-260820): unset in these fixtures → default.
+      resolveAiAgentId: jest.fn(async () => null),
       languageForChannel: jest.fn(async (_tenantId: number, hint?: string | null) =>
         (hint ?? '').toLowerCase().startsWith('ko') ? 'KO' : 'EN',
       ),

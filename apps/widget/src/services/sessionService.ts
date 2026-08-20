@@ -6,12 +6,16 @@ export function ensureSession(
   locale: string,
   shopDomain?: string,
   parentOrigin?: string,
+  agentCode?: string,
 ): Promise<SessionResponse> {
   return apiClient.post<SessionResponse>('/session/ensure', {
     session_token: sessionToken ?? undefined,
     locale,
     shop_domain: shopDomain ?? undefined,
     parent_origin: parentOrigin ?? undefined,
+    // AI agent for sessions born on this page (PLN-260820); server falls back
+    // to the tenant default on unknown codes.
+    agent_code: agentCode ?? undefined,
   });
 }
 

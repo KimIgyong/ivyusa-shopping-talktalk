@@ -266,5 +266,31 @@
     "field_rules": "rules",
     "field_scenarioOverrides": "scenario replies",
     "notePlaceholder": "Why this change? (optional, saved to the history)"
+  },
+  "agents": {
+    "title": "AI agents",
+    "add": "Add agent",
+    "hint": "Each agent is one counter with its own persona — landing visitors, internal staff, hotel partners… Select one to edit its persona below. Pages pin an agent via the install snippet; everything else answers as the default.",
+    "active": "Active",
+    "inactive": "Inactive",
+    "default": "Default",
+    "created": "Agent created.",
+    "saved": "Agent saved.",
+    "deleted": "Agent deleted.",
+    "defaultSet": "Default agent changed.",
+    "addTitle": "Add AI agent",
+    "editTitle": "Edit AI agent",
+    "makeDefault": "Make default",
+    "deleteConfirm": "Delete agent \"{{name}}\"? Pages using its code will fall back to the default agent.",
+    "name": "Name",
+    "code": "Code",
+    "codeHint": "Lowercase letters, digits and hyphens. Used in the install snippet and locked after creation.",
+    "defaultAlwaysActive": "(the default agent is always active)",
+    "snippet": "Install snippet",
+    "snippetCopied": "Snippet copied.",
+    "snippetCopyFailed": "Could not copy — select and copy manually.",
+    "snippetHint": "Paste on the page that should talk as this agent. Already installed? Just add the agent line to IVY_WIDGET_CONFIG.",
+    "shared": "shared across all agents",
+    "studioAgent": "Agent: {{name}}"
   }
 }

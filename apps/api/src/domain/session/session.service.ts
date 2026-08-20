@@ -24,6 +24,7 @@ import { generateToken } from '@ivy/common';
 import { Session } from './entity/session.entity';
 import { Tenant } from '../tenant/entity/tenant.entity';
 import { Customer } from '../customer/entity/customer.entity';
+import { AiAgent } from '../ai-engine/entity/ai-agent.entity';
 import { EventBusService, EVENTS } from '../../infrastructure/infrastructure.module';
 import { RedisService } from '../../infrastructure/cache/redis.service';
 import { BusinessException } from '../../global/exception/business.exception';
@@ -88,6 +89,7 @@ export class SessionService {
     @InjectRepository(Customer) private readonly customerRepo: Repository<Customer>,
     private readonly bus: EventBusService,
     private readonly redis: RedisService,
+    @InjectRepository(AiAgent) private readonly aiAgentRepo?: Repository<AiAgent>,
   ) {}
 
   async ensure(
@@ -95,6 +97,7 @@ export class SessionService {
     locale: string | undefined,
     shopDomain?: string,
     parentOrigin?: string,
+    agentCode?: string,
   ): Promise<Session> {
     if (token) {
       const existing = await this.sessionRepo.findOne({ where: { sessionToken: token } });
@@ -107,6 +110,8 @@ export class SessionService {
       this.sessionRepo.create({
         sessionToken: generateToken(),
         tenantId: tenant.id,
+        // Pinned once here — the session keeps its agent for its whole life.
+        aiAgentId: await this.resolveAiAgentId(tenant.id, agentCode),
         language: this.resolveLanguage(locale, tenant.timezone),
         consentState: CONSENT_STATE.PENDING,
         customerId: null,
@@ -130,18 +135,42 @@ export class SessionService {
    * gate and never fans out escalation alerts or enters the agent queue.
    * No CJM event — preview traffic must not pollute journey analytics.
    */
-  async createPreview(tenantId: number, locale?: string): Promise<Session> {
+  async createPreview(tenantId: number, locale?: string, aiAgentId?: number | null): Promise<Session> {
+    // Tenant-scoped check only — previewing an inactive agent's draft persona
+    // is exactly what the console needs before switching it on.
+    const agent =
+      aiAgentId != null && this.aiAgentRepo
+        ? await this.aiAgentRepo.findOne({ where: { id: aiAgentId, tenantId } })
+        : null;
     return this.sessionRepo.save(
       this.sessionRepo.create({
         sessionToken: generateToken(),
         tenantId,
         channel: 'preview',
+        aiAgentId: agent ? Number(agent.id) : null,
         language: this.resolveLanguage(locale),
         consentState: CONSENT_STATE.GRANTED,
         customerId: null,
         identityLevel: SESSION_IDENTITY.GUEST,
       }),
     );
+  }
+
+  /**
+   * Embed/channel agent code → agent id for this tenant (PLN-260820). Unknown,
+   * inactive or cross-tenant codes resolve to null — the default agent — with a
+   * warn line as the only trace: the shopper must never see an error because an
+   * operator mistyped a snippet.
+   */
+  async resolveAiAgentId(tenantId: number, code?: string | null): Promise<number | null> {
+    const trimmed = code?.trim().toLowerCase();
+    if (!trimmed || !this.aiAgentRepo) return null;
+    const row = await this.aiAgentRepo.findOne({ where: { tenantId, code: trimmed, active: 1 } });
+    if (!row) {
+      this.logger.warn(`ai agent code did not match: tenant=${tenantId} code=${trimmed}`);
+      return null;
+    }
+    return Number(row.id);
   }
 
   /**

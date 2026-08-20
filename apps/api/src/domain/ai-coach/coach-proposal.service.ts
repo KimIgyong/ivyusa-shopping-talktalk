@@ -21,6 +21,7 @@ import {
   ProposalPayload,
   ProposalType,
 } from './entity/coaching-proposal.entity';
+import { CoachingThread } from './entity/coaching-thread.entity';
 import { RULE_LIMITS } from './coach-context.service';
 
 /** A proposal as parsed out of the model reply, before it is persisted. */
@@ -48,7 +49,19 @@ export class CoachProposalService {
     private readonly aiConfig: AiConfigService,
     private readonly knowledge: KnowledgeService,
     private readonly audit: AuditService,
+    @InjectRepository(CoachingThread) private readonly threadRepo?: Repository<CoachingThread>,
   ) {}
+
+  /**
+   * Which agent this proposal's thread coaches (PLN-260820). Persona/rule
+   * writes must land on THAT agent's row — applying a hotel-partner coaching
+   * proposal to the default persona would be a silent cross-agent write.
+   */
+  private async agentIdFor(proposal: CoachingProposal): Promise<number | null> {
+    if (!this.threadRepo) return null;
+    const thread = await this.threadRepo.findOne({ where: { id: proposal.threadId } });
+    return thread?.aiAgentId ?? null;
+  }
 
   // ---- parsing ----
 
@@ -165,7 +178,8 @@ export class CoachProposalService {
       throw new BusinessException(ERROR_CODE.COACH_PROPOSAL_NOT_PENDING, HttpStatus.CONFLICT);
     }
 
-    const config = await this.aiConfig.getConfig(tenantId);
+    const aiAgentId = await this.agentIdFor(proposal);
+    const config = await this.aiConfig.getConfig(tenantId, aiAgentId);
     const payload: ProposalPayload = { ...proposal.payload };
     if (override?.persona) payload.persona = override.persona.slice(0, RULE_LIMITS.MAX_PERSONA_CHARS);
     if (override?.rule) payload.rule = override.rule.slice(0, RULE_LIMITS.MAX_RULE_CHARS);
@@ -201,6 +215,7 @@ export class CoachProposalService {
         tenantId,
         { persona: payload.persona },
         this.revisionMeta(proposal, payload, CONFIG_REVISION_KIND.COACHING, userId),
+        aiAgentId,
       );
     } else {
       const rules = [...config.rules];
@@ -226,6 +241,7 @@ export class CoachProposalService {
         tenantId,
         { rules },
         this.revisionMeta(proposal, payload, CONFIG_REVISION_KIND.COACHING, userId),
+        aiAgentId,
       );
     }
 
@@ -389,7 +405,8 @@ export class CoachProposalService {
       throw new BusinessException(ERROR_CODE.COACH_PROPOSAL_STALE, HttpStatus.CONFLICT);
     }
 
-    const config = await this.aiConfig.getConfig(tenantId);
+    const aiAgentId = await this.agentIdFor(proposal);
+    const config = await this.aiConfig.getConfig(tenantId, aiAgentId);
     if (proposal.type === PROPOSAL_TYPE.PERSONA_PATCH) {
       if (config.persona !== proposal.payload.persona) {
         throw new BusinessException(ERROR_CODE.COACH_PROPOSAL_STALE, HttpStatus.CONFLICT);
@@ -398,6 +415,7 @@ export class CoachProposalService {
         tenantId,
         { persona: previous.persona },
         this.revisionMeta(proposal, proposal.payload, CONFIG_REVISION_KIND.REVERT, userId),
+        aiAgentId,
       );
     } else if (proposal.type === PROPOSAL_TYPE.SCENARIO_OVERRIDE) {
       await this.aiConfig.upsertConfig(
@@ -410,6 +428,7 @@ export class CoachProposalService {
         tenantId,
         { rules: previous.rules ?? [] },
         this.revisionMeta(proposal, proposal.payload, CONFIG_REVISION_KIND.REVERT, userId),
+        aiAgentId,
       );
     }
 

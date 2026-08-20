@@ -41,6 +41,8 @@ export function useUpdateAiConfig() {
     mutationFn: aiSettingsService.updateConfig,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['ai-config', tenantKey] });
+      // Persona/rules live on the agent rows now — keep the agent bar in sync.
+      qc.invalidateQueries({ queryKey: ['ai-agents', tenantKey] });
       toast.success('AI configuration saved.');
     },
     onError: (e: Error) => toast.error(e.message),

@@ -34,6 +34,8 @@ export interface CoachTarget {
 }
 
 interface PreviewPanelProps {
+  /** Which AI agent the sandbox answers as (PLN-260820); null = the default agent. */
+  agentId?: number | null;
   /** Hand an AI turn to the coaching tab. Omit to hide the coach affordance. */
   onCoach?: (target: CoachTarget) => void;
   /**
@@ -52,7 +54,7 @@ let nextId = 1;
  * pipeline (persona, rules, KB retrieval, moderation, scenario scripts) on an
  * isolated preview session — no agent alerts, no queue entries, no analytics.
  */
-export function PreviewPanel({ onCoach, replayQuestion, onReplayed }: PreviewPanelProps = {}) {
+export function PreviewPanel({ agentId, onCoach, replayQuestion, onReplayed }: PreviewPanelProps = {}) {
   const { t } = useTranslation('aiSetting');
   const { data: config } = useAiConfig();
 
@@ -75,7 +77,7 @@ export function PreviewPanel({ onCoach, replayQuestion, onReplayed }: PreviewPan
     setMessages([]);
     setFollowUps([]);
     try {
-      const res = await previewService.createSession(lang);
+      const res = await previewService.createSession(lang, agentId ?? undefined);
       setSessionToken(res.sessionToken);
     } catch (e) {
       setError((e as Error).message);
@@ -84,10 +86,12 @@ export function PreviewPanel({ onCoach, replayQuestion, onReplayed }: PreviewPan
     }
   }
 
+  // Also re-created when the selected agent changes: the whole point of the
+  // sandbox is hearing THAT agent's voice, and a stale session keeps the old one.
   useEffect(() => {
     void resetSession();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [agentId]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });

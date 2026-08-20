@@ -87,8 +87,8 @@ export class CoachContextService {
   }
 
   /** The tenant's live configuration, verbatim, so proposals target real text. */
-  private async currentConfig(tenantId: number): Promise<string> {
-    const cfg = await this.aiConfig.getConfig(tenantId);
+  private async currentConfig(tenantId: number, aiAgentId: number | null): Promise<string> {
+    const cfg = await this.aiConfig.getConfig(tenantId, aiAgentId);
     const rules = cfg.rules.length
       ? cfg.rules.map((r, i) => `${i + 1}. ${r}`).join('\n')
       : '(none)';
@@ -193,6 +193,8 @@ export class CoachContextService {
 
   async build(params: {
     tenantId: number;
+    /** Which agent the thread coaches (PLN-260820); null = the default agent. */
+    aiAgentId?: number | null;
     history: CoachingMessage[];
     question: string;
     citations: NonNullable<CoachingMessageMeta['citations']>;
@@ -203,7 +205,7 @@ export class CoachContextService {
     const system = [
       this.instructions(),
       '',
-      await this.currentConfig(params.tenantId),
+      await this.currentConfig(params.tenantId, params.aiAgentId ?? null),
       this.kbBlock(params.citations, params.snippets, params.categories),
       params.refTurn ? this.refTurnBlock(params.refTurn) : '',
     ].join('\n');

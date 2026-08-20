@@ -24,6 +24,15 @@ export class Session {
   @Index('idx_sessions_tenant')
   tenantId: number | null;
 
+  /**
+   * AI agent answering this session (PLN-260820), pinned once at creation from
+   * the entry point (embed `data-agent`, messenger channel binding, preview
+   * pick). NULL = the tenant's default agent — every session predating the
+   * feature keeps today's behaviour.
+   */
+  @Column({ name: 'ai_agent_id', type: 'bigint', nullable: true, transformer: bigintTransformer })
+  aiAgentId: number | null;
+
   @Column({ name: 'customer_id', type: 'bigint', nullable: true, transformer: bigintTransformer })
   @Index('idx_sessions_customer')
   customerId: number | null;

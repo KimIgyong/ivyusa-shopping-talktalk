@@ -50,6 +50,7 @@ export class AiConfigController {
         handoffConfig: body.handoff_config as HandoffConfig | undefined,
       },
       { kind: CONFIG_REVISION_KIND.MANUAL, actorUserId: user.userId, note: body.note ?? null },
+      body.ai_agent_id ?? null,
     );
   }
 
@@ -73,7 +74,11 @@ export class AiConfigController {
   @RequireCapability(CAPABILITY.AI_SETTINGS_MANAGE)
   @ApiOperation({ summary: 'Create an isolated sandbox chat session for the /ai-setting preview' })
   async createPreviewSession(@CurrentUser() user: Principal, @Body() body: CreatePreviewSessionRequest) {
-    const session = await this.sessionService.createPreview(this.tenantId(user), body.language);
+    const session = await this.sessionService.createPreview(
+      this.tenantId(user),
+      body.language,
+      body.ai_agent_id ?? null,
+    );
     return { sessionToken: session.sessionToken, language: session.language };
   }
 

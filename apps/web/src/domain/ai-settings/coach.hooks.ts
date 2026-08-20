@@ -26,7 +26,8 @@ export function useCreateCoachThread() {
   const tenantKey = useTenantKey();
   const { t } = useTranslation('aiSetting');
   return useMutation({
-    mutationFn: (title?: string) => coachService.createThread(title),
+    mutationFn: (args?: { title?: string; aiAgentId?: number | null }) =>
+      coachService.createThread(args?.title, args?.aiAgentId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['ai-coach', tenantKey, 'threads'] });
       toast.success(t('coach.toastThreadCreated'));

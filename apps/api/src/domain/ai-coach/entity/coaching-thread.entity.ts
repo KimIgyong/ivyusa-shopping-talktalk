@@ -23,6 +23,15 @@ export class CoachingThread {
   @Column({ name: 'tenant_id', type: 'bigint', transformer: bigintTransformer })
   tenantId: number;
 
+  /**
+   * Which AI agent this thread is coaching (PLN-260820). NULL = the default
+   * agent — including every thread from before agents became plural. Proposals
+   * apply to THIS agent's persona/rules, so the dimension lives on the thread,
+   * not per proposal.
+   */
+  @Column({ name: 'ai_agent_id', type: 'bigint', nullable: true, transformer: bigintTransformer })
+  aiAgentId: number | null;
+
   /** Author. Threads are readable by any AI_SETTINGS_MANAGE holder in the tenant. */
   @Column({ name: 'user_id', type: 'bigint', transformer: bigintTransformer })
   userId: number;

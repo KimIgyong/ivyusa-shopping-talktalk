@@ -25,6 +25,9 @@ import {
   useAiConfig,
   useUpdateAiConfig,
 } from './ai-settings.hooks';
+import { AgentsSection } from './AgentsSection';
+import { useAiAgents } from './ai-agents.hooks';
+import type { AiAgentRow } from './ai-agents.service';
 import type {
   AiFunctionSetting,
   ModerationRule,
@@ -50,6 +53,16 @@ export function AiSettingsPage() {
   // restoring must go through the same review-and-save a manual edit does.
   const [restoreDraft, setRestoreDraft] = useState<{ persona: string; rules: string[] } | null>(null);
 
+  // Which AI agent the persona/rules editors and the studio speak for
+  // (PLN-260820). null until the list loads, then the default agent.
+  const [selectedAgentId, setSelectedAgentId] = useState<number | null>(null);
+  const { data: agents } = useAiAgents();
+  const selectedAgent =
+    agents?.find((a) => a.id === selectedAgentId) ?? agents?.find((a) => a.isDefault) ?? agents?.[0];
+  useEffect(() => {
+    if (selectedAgentId == null && selectedAgent) setSelectedAgentId(selectedAgent.id);
+  }, [selectedAgentId, selectedAgent]);
+
   return (
     <div>
       <PageHeader title={t('title')} subtitle={t('subtitle')} />
@@ -59,8 +72,9 @@ export function AiSettingsPage() {
           reachable on tablets. */}
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_400px]">
         <div className="space-y-6">
-          <PersonaSection draft={restoreDraft?.persona} />
-          <ResponseRulesSection draft={restoreDraft?.rules} />
+          <AgentsSection selectedId={selectedAgent?.id ?? null} onSelect={setSelectedAgentId} />
+          <PersonaSection draft={restoreDraft?.persona} agent={selectedAgent} />
+          <ResponseRulesSection draft={restoreDraft?.rules} agent={selectedAgent} />
           <ScenarioButtonsSection />
           <AiFunctionsSection />
           <ModerationSection />
@@ -70,7 +84,7 @@ export function AiSettingsPage() {
           <HandoffMovedNotice />
         </div>
         <div className="xl:sticky xl:top-6 xl:self-start">
-          <AiStudioPanel />
+          <AiStudioPanel agent={selectedAgent ?? null} />
         </div>
       </div>
     </div>
@@ -81,16 +95,24 @@ export function AiSettingsPage() {
 /* a. Bot persona                                                             */
 /* -------------------------------------------------------------------------- */
 
-function PersonaSection({ draft }: { draft?: string }) {
+function PersonaSection({ draft, agent }: { draft?: string; agent?: AiAgentRow }) {
   const { t } = useTranslation('aiSetting');
   const { t: tc } = useTranslation('common');
   const { data: config, isLoading, error } = useAiConfig();
   const updateConfig = useUpdateAiConfig();
   const [persona, setPersona] = useState('');
 
+  // Seed from the selected agent. The default agent may hold NULL (= built-in
+  // persona); /ai-config resolves that to the effective text, so the operator
+  // edits what actually runs instead of an empty box.
   useEffect(() => {
-    if (config) setPersona(config.persona ?? '');
-  }, [config]);
+    if (!agent) return;
+    if (agent.isDefault) {
+      if (config) setPersona(config.persona ?? '');
+    } else {
+      setPersona(agent.persona ?? '');
+    }
+  }, [config, agent]);
 
   const [note, setNote] = useState('');
 
@@ -101,12 +123,12 @@ function PersonaSection({ draft }: { draft?: string }) {
 
   const save = () =>
     updateConfig.mutate(
-      { persona, note: note.trim() || undefined },
+      { persona, note: note.trim() || undefined, ai_agent_id: agent?.id },
       { onSuccess: () => setNote('') },
     );
 
   return (
-    <Card title={t('persona')}>
+    <Card title={agent && !agent.isDefault ? `${t('persona')} — ${agent.name}` : t('persona')}>
       {isLoading && <p className="text-sm text-gray-400">{tc('loading')}</p>}
       {!isLoading && error && (
         <p className="text-sm text-error">{error instanceof Error ? error.message : tc('empty')}</p>
@@ -136,16 +158,23 @@ function PersonaSection({ draft }: { draft?: string }) {
 /* b. Response rules                                                          */
 /* -------------------------------------------------------------------------- */
 
-function ResponseRulesSection({ draft }: { draft?: string[] }) {
+function ResponseRulesSection({ draft, agent }: { draft?: string[]; agent?: AiAgentRow }) {
   const { t } = useTranslation('aiSetting');
   const { t: tc } = useTranslation('common');
   const { data: config, isLoading, error } = useAiConfig();
   const updateConfig = useUpdateAiConfig();
   const [rules, setRules] = useState<string[]>([]);
 
+  // Same seeding as PersonaSection: the default agent shows the effective
+  // (resolved) rules, a per-entry-point agent shows exactly its own.
   useEffect(() => {
-    if (config) setRules(config.rules ?? []);
-  }, [config]);
+    if (!agent) return;
+    if (agent.isDefault) {
+      if (config) setRules(config.rules ?? []);
+    } else {
+      setRules(agent.rules ?? []);
+    }
+  }, [config, agent]);
 
   const [note, setNote] = useState('');
 
@@ -164,13 +193,14 @@ function ResponseRulesSection({ draft }: { draft?: string[] }) {
       {
         rules: rules.map((r) => r.trim()).filter((r) => r.length > 0),
         note: note.trim() || undefined,
+        ai_agent_id: agent?.id,
       },
       { onSuccess: () => setNote('') },
     );
 
   return (
     <Card
-      title={t('responseRules')}
+      title={agent && !agent.isDefault ? `${t('responseRules')} — ${agent.name}` : t('responseRules')}
       action={
         <Button size="sm" variant="secondary" onClick={addRule} disabled={isLoading || !!error}>
           <Plus className="h-4 w-4" /> {t('addRule')}
@@ -268,7 +298,7 @@ function ScenarioButtonsSection() {
 
   return (
     <Card
-      title={t('scenarioButtons')}
+      title={`${t('scenarioButtons')} · ${t('agents.shared')}`}
       action={
         <Button size="sm" variant="secondary" onClick={add} disabled={isLoading || !!error}>
           <Plus className="h-4 w-4" /> {t('addButton')}
@@ -380,7 +410,7 @@ function AiFunctionsSection() {
   const update = useUpdateAiSetting();
 
   return (
-    <Card title={t('aiFunctions')}>
+    <Card title={`${t('aiFunctions')} · ${t('agents.shared')}`}>
       {isLoading && <p className="text-sm text-gray-400">{tc('loading')}</p>}
       {!isLoading && error && (
         <p className="text-sm text-error">{error instanceof Error ? error.message : tc('empty')}</p>
@@ -596,7 +626,7 @@ function ModerationSection() {
 
   return (
     <Card
-      title={t('moderationRules')}
+      title={`${t('moderationRules')} · ${t('agents.shared')}`}
       action={
         <Button size="sm" onClick={() => setOpen(true)}>
           <Plus className="h-4 w-4" /> {t('addRule')}
