@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useWidgetStore, type TabKey } from '../store/widgetStore';
 import { ensureSession, identify as identifyRequest } from '../services/sessionService';
 import { getParentOrigin, getShopDomain } from './useSession';
+import { hostPresent, onHostMessage, postToHost } from '../lib/host-bridge';
 
 const TABS: TabKey[] = ['chat', 'orders', 'notifications'];
 
@@ -18,22 +19,10 @@ const TABS: TabKey[] = ['chat', 'orders', 'notifications'];
  */
 export function useEmbedCommands(): void {
   useEffect(() => {
-    if (window.parent === window) return; // not embedded
+    if (!hostPresent()) return; // standalone — no host to take commands from
 
-    function isTrustedOrigin(origin: string): boolean {
-      try {
-        const { protocol, hostname } = new URL(origin);
-        if (protocol === 'https:') return true;
-        return protocol === 'http:' && (hostname === 'localhost' || hostname === '127.0.0.1');
-      } catch {
-        return false;
-      }
-    }
-
-    async function onMessage(e: MessageEvent) {
-      if (e.source !== window.parent) return;
-      if (!isTrustedOrigin(e.origin)) return;
-      const d = (e.data || {}) as {
+    async function onMessage(raw: Record<string, unknown>) {
+      const d = raw as {
         type?: string;
         action?: string;
         tab?: string | null;
@@ -88,22 +77,17 @@ export function useEmbedCommands(): void {
         try {
           const res = await identifyRequest(token, d.user);
           store.setAuthenticated(res.authenticated);
-          window.parent.postMessage(
-            { type: 'ivy:event', event: 'identified', ok: true },
-            e.origin,
-          );
+          postToHost({ type: 'ivy:event', event: 'identified', ok: true });
         } catch {
           // A rejected signature leaves the visitor a guest: they can still ask
           // a question, which is the part that must never depend on identity.
-          window.parent.postMessage(
-            { type: 'ivy:event', event: 'identified', ok: false },
-            e.origin,
-          );
+          postToHost({ type: 'ivy:event', event: 'identified', ok: false });
         }
       }
     }
 
-    window.addEventListener('message', onMessage);
-    return () => window.removeEventListener('message', onMessage);
+    return onHostMessage((message) => {
+      void onMessage(message);
+    });
   }, []);
 }

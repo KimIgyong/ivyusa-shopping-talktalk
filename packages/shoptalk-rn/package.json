@@ -1,0 +1,14 @@
+{
+  "name": "@ivy/shoptalk-rn",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Reference React Native component that hosts the ShopTalk widget in a WebView",
+  "main": "src/index.tsx",
+  "types": "src/index.tsx",
+  "peerDependencies": {
+    "react": ">=18",
+    "react-native": ">=0.72",
+    "react-native-webview": ">=13"
+  },
+  "files": ["src"]
+}
