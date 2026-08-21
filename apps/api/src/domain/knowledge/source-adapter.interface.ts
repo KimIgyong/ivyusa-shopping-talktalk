@@ -19,8 +19,34 @@ export interface SourceItem {
   category: string | null;
 }
 
+/**
+ * What an adapter returns when a plain list is not the whole story.
+ *
+ * Added for Notion (PLN-260821), whose per-sync page cap can leave work
+ * undone: a truncated run that reports the same shape as a complete one is
+ * indistinguishable from success, which is how silent data loss starts.
+ * Adapters with nothing extra to say keep returning an array.
+ */
+export interface SourceFetch {
+  items: SourceItem[];
+  /** Items the source held that this run deliberately did not convert. */
+  dropped?: number;
+}
+
 export interface SourceAdapter {
   readonly type: string;
+
+  /**
+   * A credential that must already exist before a source of this type can be
+   * created, as `{ provider }` in `integration_credentials` plus the name to
+   * put in front of the operator.
+   *
+   * Declared by the adapter rather than branched on by the service: the check
+   * is the same for every credentialled source, and the first version of it was
+   * a hardcoded `type === 'gdrive'` that a second such source would have had to
+   * copy (REQ-260821 G5).
+   */
+  readonly credential?: { provider: string; label: string };
 
   /**
    * Whether an empty listing proves the source is empty.
@@ -49,5 +75,5 @@ export interface SourceAdapter {
    * time, and "what exists now" is the only question an adapter can answer
    * without keeping its own bookkeeping.
    */
-  fetchAll(tenantId: number, source: KnowledgeSource): Promise<SourceItem[]>;
+  fetchAll(tenantId: number, source: KnowledgeSource): Promise<SourceItem[] | SourceFetch>;
 }

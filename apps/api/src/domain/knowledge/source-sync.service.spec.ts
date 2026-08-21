@@ -5,6 +5,7 @@ import { KnowledgeSource } from './entity/knowledge-source.entity';
 import { KbRevisionService } from './kb-revision.service';
 import { BoardAdapter } from './adapters/board.adapter';
 import { GdriveAdapter } from './adapters/gdrive.adapter';
+import { NotionAdapter } from './adapters/notion.adapter';
 import { SourceItem } from './source-adapter.interface';
 
 const source = (over: Partial<KnowledgeSource> = {}) =>
@@ -23,7 +24,7 @@ describe('SourceSyncService.sync', () => {
   let saved: KbDocument[];
   let recorded: string[];
 
-  const build = (opts: { items?: SourceItem[]; existing?: Partial<KbDocument>[] } = {}) => {
+  const build = (opts: { items?: SourceItem[]; existing?: Partial<KbDocument>[]; dropped?: number } = {}) => {
     saved = [];
     recorded = [];
     let nextId = 700;
@@ -61,7 +62,16 @@ describe('SourceSyncService.sync', () => {
       fetchAll: jest.fn(async () => opts.items ?? []),
     } as unknown as GdriveAdapter;
 
-    return new SourceSyncService(docRepo, sourceRepo, revisions, board, gdrive);
+    // Notion answers with { items, dropped } rather than a bare array — the
+    // pipeline has to accept both shapes.
+    const notion = {
+      type: 'notion',
+      trustEmptyListing: false,
+      validateConfig: () => null,
+      fetchAll: jest.fn(async () => ({ items: opts.items ?? [], dropped: opts.dropped ?? 0 })),
+    } as unknown as NotionAdapter;
+
+    return new SourceSyncService(docRepo, sourceRepo, revisions, board, gdrive, notion);
   };
 
   it('creates a document for a new source item', async () => {
@@ -210,7 +220,7 @@ describe('SourceSyncService.sync', () => {
   });
 
   it('reports which source types can actually ingest', async () => {
-    expect(build().supportedTypes()).toEqual(['board', 'gdrive']);
+    expect(build().supportedTypes()).toEqual(['board', 'gdrive', 'notion']);
   });
 
   it('never embeds inline — it hands ids back for batching', async () => {
@@ -243,7 +253,13 @@ describe('SourceSyncService — empty-listing guard for external sources', () =>
       validateConfig: () => null,
       fetchAll: jest.fn(async () => items),
     } as unknown as GdriveAdapter;
-    return { svc: new SourceSyncService(docRepo, sourceRepo, revisions, board, gdrive), saved };
+    const notion = {
+      type: 'notion',
+      trustEmptyListing: false,
+      validateConfig: () => null,
+      fetchAll: jest.fn(async () => ({ items })),
+    } as unknown as NotionAdapter;
+    return { svc: new SourceSyncService(docRepo, sourceRepo, revisions, board, gdrive, notion), saved };
   };
 
   const live = (id: number) =>
@@ -296,5 +312,58 @@ describe('SourceSyncService — empty-listing guard for external sources', () =>
     expect(result.guardedEmpty).toBeUndefined();
     expect(result.hidden).toBe(1);
     expect(saved[0]).toMatchObject({ active: 0 });
+  });
+});
+
+describe('SourceSyncService — adapters that hold work back', () => {
+  const notionSource = { id: 9, tenantId: 1, type: 'notion', name: 'Manual' } as KnowledgeSource;
+
+  const build = (fetched: unknown) => {
+    const docRepo = {
+      find: jest.fn(async () => [] as KbDocument[]),
+      create: (d: Partial<KbDocument>) => d as KbDocument,
+      save: jest.fn(async (d: KbDocument) => ({ ...d, id: 1 }) as KbDocument),
+    } as unknown as Repository<KbDocument>;
+    const sourceRepo = { save: jest.fn(async (s: KnowledgeSource) => s) } as unknown as Repository<KnowledgeSource>;
+    const revisions = { record: jest.fn(async () => null) } as unknown as KbRevisionService;
+    const stub = (type: string) =>
+      ({ type, trustEmptyListing: false, validateConfig: () => null, fetchAll: jest.fn(async () => fetched) }) as unknown as NotionAdapter;
+    return new SourceSyncService(
+      docRepo,
+      sourceRepo,
+      revisions,
+      stub('board') as unknown as BoardAdapter,
+      stub('gdrive') as unknown as GdriveAdapter,
+      stub('notion'),
+    );
+  };
+
+  it('carries an adapter’s dropped count into the result', async () => {
+    // A run that converted 1 of 3 pages must not report the same shape as one
+    // that converted everything.
+    const svc = build({ items: [item()], dropped: 2 });
+    const { result } = await svc.sync(1, notionSource, 7);
+    expect(result.fetched).toBe(1);
+    expect(result.dropped).toBe(2);
+  });
+
+  it('leaves dropped out entirely when nothing was held back', async () => {
+    const svc = build({ items: [item()] });
+    const { result } = await svc.sync(1, notionSource, 7);
+    expect(result.dropped).toBeUndefined();
+  });
+
+  it('still accepts an adapter that answers with a bare array', async () => {
+    // board and gdrive were written before the richer shape existed.
+    const svc = build([item()]);
+    const { result } = await svc.sync(1, notionSource, 7);
+    expect(result.created).toBe(1);
+    expect(result.dropped).toBeUndefined();
+  });
+
+  it('times the run, because a Notion sync is minutes not milliseconds', async () => {
+    const svc = build({ items: [item()] });
+    const { result } = await svc.sync(1, notionSource, 7);
+    expect(typeof result.elapsedMs).toBe('number');
   });
 });

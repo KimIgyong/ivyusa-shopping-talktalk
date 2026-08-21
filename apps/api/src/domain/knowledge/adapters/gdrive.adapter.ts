@@ -24,6 +24,9 @@ export class GdriveAdapter implements SourceAdapter {
    */
   readonly trustEmptyListing = false;
 
+  /** Checked before a Drive source can be created (REQ-260821 G5). */
+  readonly credential = { provider: 'google_drive', label: 'Google service account key' };
+
   private readonly logger = new Logger(GdriveAdapter.name);
 
   constructor(

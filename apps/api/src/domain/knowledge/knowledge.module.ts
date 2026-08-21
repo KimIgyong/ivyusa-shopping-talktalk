@@ -21,6 +21,9 @@ import { BoardAdapter } from './adapters/board.adapter';
 import { GdriveAdapter } from './adapters/gdrive.adapter';
 import { GdriveClient } from './gdrive.client';
 import { GdriveCredentialService } from './gdrive-credential.service';
+import { NotionAdapter } from './adapters/notion.adapter';
+import { NotionClient } from './notion.client';
+import { NotionCredentialService } from './notion-credential.service';
 import { IntegrationCredential } from '../tenant/entity/integration-credential.entity';
 import { AuditModule } from '../audit/audit.module';
 import { KnowledgeGapTask } from './entity/knowledge-gap-task.entity';
@@ -48,8 +51,8 @@ import { ModerationModule } from '../moderation/moderation.module';
       KnowledgeGapTask,
       QuestionStatDaily,
       Message,
-      // Repository only — the Drive service-account key lives with the other
-      // provider secrets; no TenantModule import.
+      // Repository only — the Drive service-account key and the Notion token
+      // live with the other provider secrets; no TenantModule import.
       IntegrationCredential,
     ]),
     // RagService answers the console's knowledge questions; Chat does not depend
@@ -75,6 +78,9 @@ import { ModerationModule } from '../moderation/moderation.module';
     GdriveAdapter,
     GdriveClient,
     GdriveCredentialService,
+    NotionAdapter,
+    NotionClient,
+    NotionCredentialService,
   ],
   exports: [KnowledgeService, KbConflictService, KbRevisionService],
 })
