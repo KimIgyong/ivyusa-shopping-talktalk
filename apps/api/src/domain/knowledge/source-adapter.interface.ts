@@ -1,3 +1,4 @@
+import { IntegrationProvider } from '@ivy/types';
 import { KnowledgeSource } from './entity/knowledge-source.entity';
 
 /**
@@ -31,6 +32,11 @@ export interface SourceFetch {
   items: SourceItem[];
   /** Items the source held that this run deliberately did not convert. */
   dropped?: number;
+  /**
+   * Items converted, but not in full — a page cut at the character cap or at
+   * the per-page request budget. They are in the corpus; part of them is not.
+   */
+  truncated?: number;
 }
 
 export interface SourceAdapter {
@@ -46,7 +52,7 @@ export interface SourceAdapter {
    * a hardcoded `type === 'gdrive'` that a second such source would have had to
    * copy (REQ-260821 G5).
    */
-  readonly credential?: { provider: string; label: string };
+  readonly credential?: { provider: IntegrationProvider; label: string };
 
   /**
    * Whether an empty listing proves the source is empty.

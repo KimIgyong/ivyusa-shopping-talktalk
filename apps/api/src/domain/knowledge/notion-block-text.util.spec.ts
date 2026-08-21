@@ -110,6 +110,34 @@ describe('blocksToText', () => {
     expect(text.length).toBeLessThanOrEqual(100);
   });
 
+  it('drops a prefix with nothing after it', () => {
+    // An empty heading would otherwise reach the index as a bare "#", and a
+    // spacer bullet as "- ".
+    const { text, skipped } = blocksToText([
+      block('heading_1', { rich_text: [] }),
+      block('bulleted_list_item', { rich_text: rt('   ') }),
+      block('to_do', { rich_text: [], checked: false }),
+      block('code', { rich_text: [], language: 'ts' }),
+      block('quote', { rich_text: [] }),
+      block('paragraph', { rich_text: rt('Kept.') }),
+    ]);
+    expect(text).toBe('Kept.');
+    expect(skipped).toEqual({
+      heading_1: 1,
+      bulleted_list_item: 1,
+      to_do: 1,
+      code: 1,
+      quote: 1,
+    });
+  });
+
+  it('renders a callout the same as a quote — the icon is not text', () => {
+    const { text } = blocksToText([
+      block('callout', { rich_text: rt('Heads up'), icon: { emoji: '💡' } }),
+    ]);
+    expect(text).toBe('> Heads up');
+  });
+
   it('keeps a child page title, since the parent page reads that way', () => {
     const { text } = blocksToText([block('child_page', { title: 'Shipping' })]);
     expect(text).toBe('## Shipping');

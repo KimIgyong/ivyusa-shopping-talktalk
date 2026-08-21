@@ -1,4 +1,5 @@
 import {
+  MAX_REQUESTS_PER_PAGE,
   NotionAuthError,
   NotionClient,
   NotionRequestError,
@@ -147,10 +148,45 @@ describe('NotionClient', () => {
       .mockResolvedValueOnce(withChild('lvl1'))
       .mockResolvedValueOnce(withChild('lvl2'))
       .mockResolvedValueOnce(withChild('lvl3'));
-    const blocks = await client.pageBlocks('t', ID);
+    const { blocks, truncated } = await client.pageBlocks('t', ID);
     // One request for the page, then one per parent block until the cap.
     expect(fetchMock).toHaveBeenCalledTimes(3);
     expect(blocks[0].children?.[0].children?.[0].children).toBeUndefined();
+    expect(truncated).toBe(false);
+  });
+
+  it('stops a page that would cost more requests than it is worth', async () => {
+    // Depth alone does not bound this: one page of many toggles is one request
+    // each, and at 350ms apiece a single document could run for minutes.
+    fetchMock.mockResolvedValue(
+      res({
+        results: Array.from({ length: 5 }, (_, i) => ({
+          id: `b${i}`,
+          type: 'paragraph',
+          has_children: true,
+          paragraph: {},
+        })),
+        has_more: false,
+      }),
+    );
+    const { truncated } = await client.pageBlocks('t', ID);
+    expect(truncated).toBe(true);
+    expect(fetchMock.mock.calls.length).toBeLessThanOrEqual(MAX_REQUESTS_PER_PAGE);
+  });
+
+  it('caps how long a Retry-After can park the sync', async () => {
+    fetchMock
+      .mockResolvedValueOnce(res({ code: 'rate_limited' }, false, 429, { 'Retry-After': '86400' }))
+      .mockResolvedValueOnce(res({ bot: { workspace_name: 'IVY' } }));
+    await client.me('t');
+    // Honouring a day-long wait verbatim is worse than failing the run.
+    expect(Math.max(...client.waits)).toBeLessThanOrEqual(30_000);
+  });
+
+  it('gives every request a timeout so a stalled one cannot hold the sync', async () => {
+    fetchMock.mockResolvedValue(res({ bot: {} }));
+    await client.me('t');
+    expect(fetchMock.mock.calls[0][1].signal).toBeInstanceOf(AbortSignal);
   });
 
   it('honours Retry-After once, then gives up', async () => {

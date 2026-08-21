@@ -251,5 +251,15 @@
   "notionTargetIdHint": "노션 링크나 32자리 ID를 붙여넣으세요. 데이터베이스는 행 하나당 문서 하나로, 페이지는 자신과 직계 하위 페이지가 수집됩니다.",
   "shareWithIntegration": "노션에서 대상 페이지·데이터베이스를 열고 ⋯ → 연결(Connections)에 이 통합을 추가하세요. 이 단계를 건너뛰면 목록에 보이지 않습니다.",
   "registerTokenFirst": "노션 소스를 추가하려면 아래에서 노션 통합 토큰을 먼저 등록하세요.",
-  "syncDropped": "회당 상한 때문에 {{count}}건이 수집되지 않았습니다"
+  "syncDropped": "회당 상한 때문에 {{count}}건이 수집되지 않았습니다",
+  "syncSummary": "동기화: {{detail}}",
+  "syncCreated": "신규 {{count}}건",
+  "syncUpdated": "갱신 {{count}}건",
+  "syncUnchanged": "변경없음 {{count}}건",
+  "syncHidden": "숨김 {{count}}건",
+  "syncFailed": "건너뜀 {{count}}건",
+  "syncNotIndexed": "색인 실패 {{count}}건",
+  "syncNotConverted": "미수집 {{count}}건",
+  "syncPartial": "일부만 저장 {{count}}건",
+  "syncTruncated": "{{count}}건은 본문 일부만 저장되었습니다"
 }

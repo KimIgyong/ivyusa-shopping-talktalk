@@ -101,12 +101,14 @@ export class NotionAdapter implements SourceAdapter {
     let truncatedPages = 0;
 
     for (const ref of selected) {
-      const blocks = await this.client.pageBlocks(token, bare(ref.id));
-      const flat = blocksToText(blocks);
+      const page = await this.client.pageBlocks(token, bare(ref.id));
+      const flat = blocksToText(page.blocks);
       for (const [type, count] of Object.entries(flat.skipped)) {
         skippedTypes[type] = (skippedTypes[type] ?? 0) + count;
       }
-      if (flat.truncated) truncatedPages += 1;
+      // Both cuts mean the same thing to a reader: part of this page is not in
+      // the document that was stored.
+      if (flat.truncated || page.truncated) truncatedPages += 1;
       if (!flat.text.trim()) {
         // An empty page carries nothing to retrieve on, and embedding it would
         // spend a call to make the index worse.
@@ -139,6 +141,6 @@ export class NotionAdapter implements SourceAdapter {
     // `dropped` counts only what the cap left out. Empty pages are not
     // withheld work — there was nothing in them to withhold — so folding them
     // in here would make a healthy sync look truncated.
-    return { items, dropped };
+    return { items, dropped, truncated: truncatedPages };
   }
 }

@@ -251,5 +251,15 @@
   "notionTargetIdHint": "Pega el enlace de Notion o su ID de 32 caracteres. Una base de datos importa un documento por fila; una página se importa a sí misma y a sus subpáginas directas.",
   "shareWithIntegration": "En Notion, abre la página o base de datos → ⋯ → Conexiones → añade esta integración. Sin ese paso permanece invisible.",
   "registerTokenFirst": "Registra abajo un token de integración de Notion antes de añadir una fuente de Notion.",
-  "syncDropped": "{{count}} página(s) sin convertir por el límite de cada sincronización"
+  "syncDropped": "{{count}} página(s) sin convertir por el límite de cada sincronización",
+  "syncSummary": "Sincronización: {{detail}}",
+  "syncCreated": "{{count}} creados",
+  "syncUpdated": "{{count}} actualizados",
+  "syncUnchanged": "{{count}} sin cambios",
+  "syncHidden": "{{count}} ocultos",
+  "syncFailed": "{{count}} omitidos",
+  "syncNotIndexed": "{{count}} sin indexar",
+  "syncNotConverted": "{{count}} sin convertir",
+  "syncPartial": "{{count}} guardados incompletos",
+  "syncTruncated": "{{count}} página(s) guardadas con solo parte de su contenido"
 }

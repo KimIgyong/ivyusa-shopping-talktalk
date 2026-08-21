@@ -4,6 +4,7 @@ import { IntegrationCredential } from '../tenant/entity/integration-credential.e
 import { Repository } from 'typeorm';
 import { BusinessException } from '../../global/exception/business.exception';
 import { decryptSecret } from '../../global/util/crypto.util';
+import { AuditService } from '../audit/audit.service';
 
 const OLD_ENV = process.env;
 beforeAll(() => {
@@ -40,7 +41,8 @@ const build = (over: Partial<Record<string, unknown>> = {}, stored?: Integration
     listChildPages: jest.fn(async () => ({ pages: [], hasMore: false })),
     ...over,
   } as unknown as NotionClient;
-  return { svc: new NotionCredentialService(repo, client), repo, rows, client };
+  const audit = { write: jest.fn(async () => undefined) } as unknown as AuditService;
+  return { svc: new NotionCredentialService(repo, client, audit), repo, rows, client, audit };
 };
 
 describe('NotionCredentialService.save', () => {
@@ -52,6 +54,29 @@ describe('NotionCredentialService.save', () => {
     expect(rows[0].secretEnc?.toString()).not.toContain(TOKEN);
     expect(decryptSecret(rows[0].secretEnc as Buffer)).toBe(TOKEN);
     expect(rows[0].status).toBe('connected');
+  });
+
+  it('leaves an audit record that carries no part of the token', async () => {
+    const { svc, audit } = build();
+    await svc.save(1, TOKEN, 42);
+    expect(audit.write).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tenantId: 1,
+        actorId: 42,
+        action: 'knowledge.notion_credential.save',
+      }),
+    );
+    const written = JSON.stringify((audit.write as jest.Mock).mock.calls[0][0]);
+    expect(written).not.toContain(TOKEN);
+    expect(written).not.toContain(TOKEN.slice(-4));
+  });
+
+  it('records the removal too', async () => {
+    const { svc, audit } = build();
+    await svc.remove(1, 42);
+    expect(audit.write).toHaveBeenCalledWith(
+      expect.objectContaining({ action: 'knowledge.notion_credential.remove', actorId: 42 }),
+    );
   });
 
   it('rejects a wrong paste with the reason', async () => {

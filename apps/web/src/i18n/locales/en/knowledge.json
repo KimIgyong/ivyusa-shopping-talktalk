@@ -251,5 +251,15 @@
   "notionTargetIdHint": "Paste the Notion link or its 32-character ID. A database imports one document per row; a page imports itself and its direct child pages.",
   "shareWithIntegration": "In Notion, open the page or database → ⋯ → Connections → add this integration. Without that step it stays invisible.",
   "registerTokenFirst": "Register a Notion integration token below before adding a Notion source.",
-  "syncDropped": "{{count}} page(s) left unconverted by the per-sync cap"
+  "syncDropped": "{{count}} page(s) left unconverted by the per-sync cap",
+  "syncSummary": "Sync: {{detail}}",
+  "syncCreated": "{{count}} created",
+  "syncUpdated": "{{count}} updated",
+  "syncUnchanged": "{{count}} unchanged",
+  "syncHidden": "{{count}} hidden",
+  "syncFailed": "{{count}} skipped",
+  "syncNotIndexed": "{{count}} not indexed",
+  "syncNotConverted": "{{count}} not converted",
+  "syncPartial": "{{count}} stored incomplete",
+  "syncTruncated": "{{count}} page(s) stored with only part of their content"
 }

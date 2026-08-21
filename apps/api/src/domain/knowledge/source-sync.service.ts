@@ -32,6 +32,8 @@ export interface SyncResult {
    * complete one.
    */
   dropped?: number;
+  /** Documents stored with only part of their source content (see SourceFetch). */
+  truncated?: number;
   /** How long the pull took. Notion syncs are minutes, not milliseconds. */
   elapsedMs?: number;
 }
@@ -103,6 +105,7 @@ export class SourceSyncService {
     const fetched = await adapter.fetchAll(tenantId, source);
     const items = Array.isArray(fetched) ? fetched : fetched.items;
     const dropped = Array.isArray(fetched) ? 0 : (fetched.dropped ?? 0);
+    const truncated = Array.isArray(fetched) ? 0 : (fetched.truncated ?? 0);
     const result: SyncResult = {
       fetched: items.length,
       created: 0,
@@ -111,6 +114,7 @@ export class SourceSyncService {
       hidden: 0,
       failed: 0,
       ...(dropped ? { dropped } : {}),
+      ...(truncated ? { truncated } : {}),
     };
     const touchedIds: number[] = [];
 

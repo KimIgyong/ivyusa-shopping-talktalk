@@ -251,5 +251,15 @@
   "notionTargetIdHint": "请粘贴 Notion 链接或其 32 位 ID。数据库按每行导入一篇文档；页面导入自身及其直接子页面。",
   "shareWithIntegration": "在 Notion 中打开该页面或数据库 → ⋯ → 连接 → 添加此集成。跳过这一步它就不会出现在列表中。",
   "registerTokenFirst": "添加 Notion 来源前，请先在下方注册 Notion 集成令牌。",
-  "syncDropped": "受单次同步上限限制，{{count}} 个页面未被转换"
+  "syncDropped": "受单次同步上限限制，{{count}} 个页面未被转换",
+  "syncSummary": "同步：{{detail}}",
+  "syncCreated": "新增 {{count}}",
+  "syncUpdated": "更新 {{count}}",
+  "syncUnchanged": "未变更 {{count}}",
+  "syncHidden": "已隐藏 {{count}}",
+  "syncFailed": "已跳过 {{count}}",
+  "syncNotIndexed": "未建索引 {{count}}",
+  "syncNotConverted": "未转换 {{count}}",
+  "syncPartial": "仅部分保存 {{count}}",
+  "syncTruncated": "{{count}} 个页面仅保存了部分内容"
 }

@@ -251,5 +251,15 @@
   "notionTargetIdHint": "Notionのリンク、または32文字のIDを貼り付けてください。データベースは1行につき1件、ページは自身と直下の子ページが取り込まれます。",
   "shareWithIntegration": "Notionで対象のページ・データベースを開き、⋯ →「接続」からこのインテグレーションを追加してください。この手順を省くと一覧に表示されません。",
   "registerTokenFirst": "Notionソースを追加する前に、下でNotionインテグレーショントークンを登録してください。",
-  "syncDropped": "1回あたりの上限により{{count}}件が取り込まれませんでした"
+  "syncDropped": "1回あたりの上限により{{count}}件が取り込まれませんでした",
+  "syncSummary": "同期：{{detail}}",
+  "syncCreated": "新規{{count}}件",
+  "syncUpdated": "更新{{count}}件",
+  "syncUnchanged": "変更なし{{count}}件",
+  "syncHidden": "非表示{{count}}件",
+  "syncFailed": "スキップ{{count}}件",
+  "syncNotIndexed": "未インデックス{{count}}件",
+  "syncNotConverted": "未取り込み{{count}}件",
+  "syncPartial": "一部のみ保存{{count}}件",
+  "syncTruncated": "{{count}}件は本文の一部のみ保存されました"
 }

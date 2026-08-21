@@ -37,6 +37,8 @@ export interface SyncResult {
   embedFailed?: number;
   /** Pages the source held but this run did not convert (Notion's page cap). */
   dropped?: number;
+  /** Documents stored with only part of their source content. */
+  truncated?: number;
   elapsedMs?: number;
 }
 

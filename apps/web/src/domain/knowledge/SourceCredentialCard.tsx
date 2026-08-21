@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/Badge';
 import { Button } from '@/components/Button';
@@ -48,6 +48,8 @@ export function SourceCredentialCard({
   const { t } = useTranslation('knowledge');
   const { t: tc } = useTranslation('common');
   const [draft, setDraft] = useState('');
+  // Both cards render at once, so the hint id has to be unique per instance.
+  const hintId = useId();
 
   return (
     <div className="rounded-md border border-gray-200 p-3">
@@ -67,13 +69,20 @@ export function SourceCredentialCard({
             <code className="block break-all font-mono text-xs">{identityValue}</code>
           )}
           <div className="flex gap-2">
-            <Button variant="ghost" size="sm" disabled={busy.testing} onClick={onTest}>
+            {/* Either action in flight disables both: a test that started
+                first can report success on a credential already deleted. */}
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={busy.testing || busy.removing}
+              onClick={onTest}
+            >
               {t('testConnection')}
             </Button>
             <Button
               variant="ghost"
               size="sm"
-              disabled={busy.removing}
+              disabled={busy.removing || busy.testing}
               onClick={() => {
                 if (window.confirm(removeConfirm)) onRemove();
               }}
@@ -88,6 +97,8 @@ export function SourceCredentialCard({
             <textarea
               className="h-28 w-full rounded-md border border-gray-300 p-2 font-mono text-xs"
               placeholder={placeholder}
+              aria-label={title}
+              aria-describedby={hintId}
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
             />
@@ -96,13 +107,17 @@ export function SourceCredentialCard({
               type="password"
               className="w-full rounded-md border border-gray-300 p-2 font-mono text-xs"
               placeholder={placeholder}
+              aria-label={title}
+              aria-describedby={hintId}
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
             />
           )}
           {/* Says plainly that the paste is one-way: the secret is never shown
               again, only what identifies it. */}
-          <p className="text-xs text-gray-500">{inputHint}</p>
+          <p id={hintId} className="text-xs text-gray-500">
+            {inputHint}
+          </p>
           <Button
             size="sm"
             disabled={busy.saving || !draft.trim()}

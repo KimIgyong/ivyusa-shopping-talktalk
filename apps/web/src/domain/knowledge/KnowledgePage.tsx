@@ -54,7 +54,15 @@ import {
 import type { KnowledgeSource, KnowledgeDocument } from './knowledge.service';
 
 const PAGE_SIZE = 20;
-const SOURCE_TYPES = ['board', 'repository', 'gdrive', 'notion'];
+/** Source types the console offers; the API decides which can actually ingest. */
+const SOURCE_TYPE = {
+  BOARD: 'board',
+  REPOSITORY: 'repository',
+  GDRIVE: 'gdrive',
+  NOTION: 'notion',
+} as const;
+type SourceType = (typeof SOURCE_TYPE)[keyof typeof SOURCE_TYPE];
+const SOURCE_TYPES = Object.values(SOURCE_TYPE);
 /** Known category values: legacy seed tags + policy import taxonomy. */
 const CATEGORIES = [
   'faq',
@@ -216,7 +224,7 @@ export function KnowledgePage() {
 
   const [sourceOpen, setSourceOpen] = useState(false);
   const [sourceName, setSourceName] = useState('');
-  const [sourceType, setSourceType] = useState(SOURCE_TYPES[0]);
+  const [sourceType, setSourceType] = useState<SourceType>(SOURCE_TYPE.BOARD);
   const [folderId, setFolderId] = useState('');
   /** A Notion page/database id, or the share URL it was copied from. */
   const [notionTarget, setNotionTarget] = useState('');
@@ -274,7 +282,7 @@ export function KnowledgePage() {
   const closeSource = () => {
     setSourceOpen(false);
     setSourceName('');
-    setSourceType(SOURCE_TYPES[0]);
+    setSourceType(SOURCE_TYPE.BOARD);
     setFolderId('');
     setNotionTarget('');
   };
@@ -284,8 +292,8 @@ export function KnowledgePage() {
       {
         name: sourceName,
         type: sourceType,
-        ...(sourceType === 'gdrive' ? { config_json: { folderId: folderId.trim() } } : {}),
-        ...(sourceType === 'notion' ? { config_json: { targetId: notionTarget.trim() } } : {}),
+        ...(sourceType === SOURCE_TYPE.GDRIVE ? { config_json: { folderId: folderId.trim() } } : {}),
+        ...(sourceType === SOURCE_TYPE.NOTION ? { config_json: { targetId: notionTarget.trim() } } : {}),
       },
       { onSuccess: closeSource },
     );
@@ -364,9 +372,14 @@ export function KnowledgePage() {
                 })}
               </span>
             )}
-            {/* A capped run must not read like a complete one. */}
+            {/* A capped or half-read run must not look like a complete one. */}
             {!!c?.dropped && (
               <span className="text-xs text-error">{t('syncDropped', { count: c.dropped })}</span>
+            )}
+            {!!c?.truncated && (
+              <span className="text-xs text-error">
+                {t('syncTruncated', { count: c.truncated })}
+              </span>
             )}
           </div>
         );
@@ -1061,7 +1074,7 @@ export function KnowledgePage() {
           <Input value={sourceName} onChange={(e) => setSourceName(e.target.value)} />
         </FormRow>
         <FormRow label={t('type')}>
-          <Select value={sourceType} onChange={(e) => setSourceType(e.target.value)}>
+          <Select value={sourceType} onChange={(e) => setSourceType(e.target.value as SourceType)}>
             {SOURCE_TYPES.map((v) => (
               <option key={v} value={v}>
                 {v}
@@ -1069,7 +1082,7 @@ export function KnowledgePage() {
             ))}
           </Select>
         </FormRow>
-        {sourceType === 'gdrive' && (
+        {sourceType === SOURCE_TYPE.GDRIVE && (
           <>
             <FormRow label={t('folderId')}>
               <Input
@@ -1102,7 +1115,7 @@ export function KnowledgePage() {
             </div>
           </>
         )}
-        {sourceType === 'notion' && (
+        {sourceType === SOURCE_TYPE.NOTION && (
           <>
             <FormRow label={t('notionTargetId')}>
               <Input

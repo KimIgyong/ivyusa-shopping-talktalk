@@ -26,6 +26,7 @@ import { CatalogSyncPreview, CatalogSyncService } from './catalog-sync.service';
 import { UsageGuideService, UsageGuideSummary } from './usage-guide.service';
 import { SourceSyncService } from './source-sync.service';
 import { IntegrationCredential } from '../tenant/entity/integration-credential.entity';
+import { decryptSecret } from '../../global/util/crypto.util';
 import { REVISION_KIND } from './entity/kb-document-revision.entity';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
@@ -95,7 +96,10 @@ export class KnowledgeService {
       const cred = await this.credRepo.findOne({
         where: { tenantId, provider: adapter.credential.provider },
       });
-      if (!cred?.secretEnc) {
+      // Present is not the same as usable: a secret written under a rotated
+      // key still has a row, and the source would be created only to fail at
+      // every sync afterwards.
+      if (!cred?.secretEnc || !this.isReadable(cred.secretEnc)) {
         throw new BusinessException(ERROR_CODE.VALIDATION_FAILED, HttpStatus.BAD_REQUEST, {
           credential: [`Register the ${adapter.credential.label} before adding this source.`],
         });
@@ -111,6 +115,15 @@ export class KnowledgeService {
       configJson: body.config_json ?? null,
     });
     return this.sourceRepo.save(source);
+  }
+
+  private isReadable(secret: Buffer): boolean {
+    try {
+      return decryptSecret(secret).length > 0;
+    } catch (e) {
+      this.logger.warn(`stored credential could not be decrypted: ${(e as Error).message}`);
+      return false;
+    }
   }
 
   async updateSource(

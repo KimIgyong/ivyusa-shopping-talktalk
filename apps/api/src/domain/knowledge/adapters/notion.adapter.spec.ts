@@ -33,7 +33,10 @@ const build = (over: Partial<Record<string, unknown>> = {}) => {
     retrieveTarget: jest.fn(async () => ({ kind: 'database', ref: ref(0), archived: false })),
     listDatabasePages: jest.fn(async () => ({ pages: [ref(1)], hasMore: false })),
     listChildPages: jest.fn(async () => ({ pages: [], hasMore: false })),
-    pageBlocks: jest.fn(async () => [paragraph('Refunds within 30 days.')]),
+    pageBlocks: jest.fn(async () => ({
+      blocks: [paragraph('Refunds within 30 days.')],
+      truncated: false,
+    })),
     ...over,
   } as unknown as NotionClient;
   const credentials = { load: jest.fn(async () => 'ntn_token') } as unknown as NotionCredentialService;
@@ -101,8 +104,8 @@ describe('NotionAdapter.fetchAll', () => {
       listDatabasePages: jest.fn(async () => ({ pages: [ref(1), ref(2)], hasMore: false })),
       pageBlocks: jest
         .fn()
-        .mockResolvedValueOnce([paragraph('Real content')])
-        .mockResolvedValueOnce([{ id: 'x', type: 'image', image: {} }]),
+        .mockResolvedValueOnce({ blocks: [paragraph('Real content')], truncated: false })
+        .mockResolvedValueOnce({ blocks: [{ id: 'x', type: 'image', image: {} }], truncated: false }),
     });
     const result = fetched(await adapter.fetchAll(1, source()));
     expect(result.items).toHaveLength(1);
@@ -155,6 +158,46 @@ describe('NotionAdapter.fetchAll', () => {
       retrieveTarget: jest.fn(async () => ({ kind: 'page', ref: ref(0), archived: true })),
     });
     await expect(trashed.adapter.fetchAll(1, source())).rejects.toThrow(/trash/);
+  });
+
+  it('reports no drop when the count lands exactly on the cap', async () => {
+    const pages = Array.from({ length: MAX_PAGES_PER_SYNC }, (_, i) => ref(i + 1));
+    const { adapter } = build({ listDatabasePages: jest.fn(async () => ({ pages, hasMore: false })) });
+    const result = fetched(await adapter.fetchAll(1, source()));
+    expect(result.items).toHaveLength(MAX_PAGES_PER_SYNC);
+    expect(result.dropped).toBe(0);
+  });
+
+  it('counts the page target itself against the cap', async () => {
+    // A page target prepends itself, so the boundary sits one child earlier
+    // than it does for a database.
+    const pages = Array.from({ length: MAX_PAGES_PER_SYNC }, (_, i) => ref(i + 1));
+    const { adapter } = build({
+      retrieveTarget: jest.fn(async () => ({ kind: 'page', ref: ref(0), archived: false })),
+      listChildPages: jest.fn(async () => ({ pages, hasMore: false })),
+    });
+    const result = fetched(await adapter.fetchAll(1, source()));
+    expect(result.items).toHaveLength(MAX_PAGES_PER_SYNC);
+    expect(result.dropped).toBe(1);
+  });
+
+  it('reports a page whose content was cut, from either cause', async () => {
+    // A document stored half-read is in the corpus and wrong; the console has
+    // to be able to say so, and the log alone cannot.
+    const long = {
+      id: 'b1',
+      type: 'paragraph',
+      paragraph: { rich_text: [{ plain_text: 'x'.repeat(40_000) }] },
+    };
+    const charCapped = build({
+      pageBlocks: jest.fn(async () => ({ blocks: [long, long], truncated: false })),
+    });
+    expect(fetched(await charCapped.adapter.fetchAll(1, source())).truncated).toBe(1);
+
+    const budgetCapped = build({
+      pageBlocks: jest.fn(async () => ({ blocks: [paragraph('short')], truncated: true })),
+    });
+    expect(fetched(await budgetCapped.adapter.fetchAll(1, source())).truncated).toBe(1);
   });
 
   it('does not let an empty listing stand as proof the source is empty', () => {

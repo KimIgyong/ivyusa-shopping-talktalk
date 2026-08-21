@@ -70,31 +70,41 @@ const text = (block: NotionBlock): string => richTextToPlain(payload(block).rich
 function lineFor(block: NotionBlock): string | null {
   const type = typeof block.type === 'string' ? block.type : '';
   const body = payload(block);
+  /**
+   * A prefix with nothing after it is noise, not content: an empty heading
+   * would reach the index as a bare "#", and a spacer bullet as "- ". Every
+   * prefixed type goes through here so none of them can forget.
+   */
+  const prefixed = (prefix: string): string | null => {
+    const content = text(block);
+    return content.trim() ? `${prefix}${content}` : null;
+  };
 
   switch (type) {
     case 'paragraph':
     case 'toggle':
-      return text(block) || null;
+      return prefixed('');
     case 'heading_1':
-      return `# ${text(block)}`;
+      return prefixed('# ');
     case 'heading_2':
-      return `## ${text(block)}`;
+      return prefixed('## ');
     case 'heading_3':
-      return `### ${text(block)}`;
+      return prefixed('### ');
     case 'bulleted_list_item':
     // Numbering is not tracked: the API gives no index, and inventing one that
     // disagrees with what the page shows is worse than a plain bullet.
     case 'numbered_list_item':
-      return `- ${text(block)}`;
+      return prefixed('- ');
     case 'to_do':
-      return `- [${body.checked === true ? 'x' : ' '}] ${text(block)}`;
+      return prefixed(`- [${body.checked === true ? 'x' : ' '}] `);
+    // A callout is a quote with an icon; the icon is not text.
     case 'quote':
-      return `> ${text(block)}`;
     case 'callout':
-      return `> ${text(block)}`;
+      return prefixed('> ');
     case 'code': {
       const language = typeof body.language === 'string' ? body.language : '';
-      return `\`\`\`${language}\n${text(block)}\n\`\`\``;
+      const content = text(block);
+      return content.trim() ? `\`\`\`${language}\n${content}\n\`\`\`` : null;
     }
     case 'divider':
       return '---';

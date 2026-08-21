@@ -1,14 +1,16 @@
 import { HttpStatus, Injectable, Logger } from '@nestjs/common';
+import { INTEGRATION_PROVIDER } from '@ivy/types';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { IntegrationCredential } from '../tenant/entity/integration-credential.entity';
 import { decryptSecret, encryptSecret } from '../../global/util/crypto.util';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
+import { AuditService } from '../audit/audit.service';
 import { NotionAuthError, NotionClient, NotionRequestError, NOT_FOUND_CODE } from './notion.client';
 import { extractNotionId, validateNotionToken } from './notion.util';
 
-export const NOTION_PROVIDER = 'notion';
+export const NOTION_PROVIDER = INTEGRATION_PROVIDER.NOTION;
 
 /**
  * Stores and reads the Notion internal-integration token (PLN-260821 W1, G3).
@@ -25,9 +27,10 @@ export class NotionCredentialService {
     @InjectRepository(IntegrationCredential)
     private readonly credRepo: Repository<IntegrationCredential>,
     private readonly client: NotionClient,
+    private readonly audit: AuditService,
   ) {}
 
-  async save(tenantId: number, rawToken: string): Promise<{ hint: string }> {
+  async save(tenantId: number, rawToken: string, actorUserId?: number): Promise<{ hint: string }> {
     const reason = validateNotionToken(rawToken);
     if (reason) {
       // The reason reaches the operator; "invalid" alone means pasting the same
@@ -45,6 +48,16 @@ export class NotionCredentialService {
     row.status = 'connected';
     await this.credRepo.save(row);
     this.logger.log(`notion token stored for tenant ${tenantId}`);
+    // Writing a tenant secret is a privileged action. The record carries no
+    // part of the token — only that it changed, and who changed it.
+    await this.audit.write({
+      tenantId,
+      actorType: 'user',
+      actorId: actorUserId ?? 0,
+      action: 'knowledge.notion_credential.save',
+      target: `tenant:${tenantId}`,
+      metadata: { provider: NOTION_PROVIDER, replaced: !!existing },
+    });
     return { hint: hintOf(token) };
   }
 
@@ -68,9 +81,17 @@ export class NotionCredentialService {
     return { connected: !!token, tokenHint: token ? hintOf(token) : null };
   }
 
-  async remove(tenantId: number): Promise<void> {
+  async remove(tenantId: number, actorUserId?: number): Promise<void> {
     await this.credRepo.delete({ tenantId, provider: NOTION_PROVIDER });
     this.logger.log(`notion token removed for tenant ${tenantId}`);
+    await this.audit.write({
+      tenantId,
+      actorType: 'user',
+      actorId: actorUserId ?? 0,
+      action: 'knowledge.notion_credential.remove',
+      target: `tenant:${tenantId}`,
+      metadata: { provider: NOTION_PROVIDER },
+    });
   }
 
   /**

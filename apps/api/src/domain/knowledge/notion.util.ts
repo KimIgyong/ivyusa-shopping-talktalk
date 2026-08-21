@@ -6,8 +6,6 @@
  * the console never disagree about what "the ID" is.
  */
 
-export class InvalidNotionInputError extends Error {}
-
 /**
  * Pull the 32-hex object id out of whatever the operator pasted: a bare id, a
  * dashed UUID, or a notion.so URL (where the id is the LAST hex run — page

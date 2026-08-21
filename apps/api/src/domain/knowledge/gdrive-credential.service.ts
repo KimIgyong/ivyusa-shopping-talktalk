@@ -1,10 +1,12 @@
 import { HttpStatus, Injectable, Logger } from '@nestjs/common';
+import { INTEGRATION_PROVIDER } from '@ivy/types';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { IntegrationCredential } from '../tenant/entity/integration-credential.entity';
 import { decryptSecret, encryptSecret } from '../../global/util/crypto.util';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
+import { AuditService } from '../audit/audit.service';
 import { GdriveClient } from './gdrive.client';
 import {
   GoogleServiceAccount,
@@ -14,7 +16,8 @@ import {
   serializeServiceAccount,
 } from './gdrive-credential.util';
 
-const PROVIDER = 'google_drive';
+export const GDRIVE_PROVIDER = INTEGRATION_PROVIDER.GOOGLE_DRIVE;
+const PROVIDER = GDRIVE_PROVIDER;
 
 /**
  * Stores and reads the Drive service-account key (PLN-260815 G1).
@@ -30,10 +33,11 @@ export class GdriveCredentialService {
     @InjectRepository(IntegrationCredential)
     private readonly credRepo: Repository<IntegrationCredential>,
     private readonly client: GdriveClient,
+    private readonly audit: AuditService,
   ) {}
 
   /** Accepts the JSON Google hands out; keeps only what signing needs. */
-  async save(tenantId: number, rawJson: string): Promise<{ clientEmail: string }> {
+  async save(tenantId: number, rawJson: string, actorUserId?: number): Promise<{ clientEmail: string }> {
     let sa: GoogleServiceAccount;
     try {
       sa = parseServiceAccount(rawJson);
@@ -57,6 +61,15 @@ export class GdriveCredentialService {
     // The address is not secret and is exactly what the operator must share the
     // folder with, so it is the one field worth echoing back.
     this.logger.log(`google_drive credential stored for tenant ${tenantId} (${sa.clientEmail})`);
+    // Same privileged action as the Notion token; the key itself is not logged.
+    await this.audit.write({
+      tenantId,
+      actorType: 'user',
+      actorId: actorUserId ?? 0,
+      action: 'knowledge.gdrive_credential.save',
+      target: `tenant:${tenantId}`,
+      metadata: { provider: PROVIDER, clientEmail: sa.clientEmail, replaced: !!existing },
+    });
     return { clientEmail: sa.clientEmail };
   }
 
@@ -77,9 +90,17 @@ export class GdriveCredentialService {
     return { connected: !!sa, clientEmail: sa?.clientEmail ?? null };
   }
 
-  async remove(tenantId: number): Promise<void> {
+  async remove(tenantId: number, actorUserId?: number): Promise<void> {
     await this.credRepo.delete({ tenantId, provider: PROVIDER });
     this.logger.log(`google_drive credential removed for tenant ${tenantId}`);
+    await this.audit.write({
+      tenantId,
+      actorType: 'user',
+      actorId: actorUserId ?? 0,
+      action: 'knowledge.gdrive_credential.remove',
+      target: `tenant:${tenantId}`,
+      metadata: { provider: PROVIDER },
+    });
   }
 
   /**

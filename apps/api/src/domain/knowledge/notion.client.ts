@@ -30,6 +30,23 @@ const MIN_INTERVAL_MS = 350;
 /** How many rows to list before giving up on an exact count (see listing cap). */
 export const LIST_CEILING = 1000;
 
+/**
+ * Requests one page's blocks may cost.
+ *
+ * Depth alone does not bound this: every block with children costs a request,
+ * so a page of 500 toggles is 500 requests — three minutes at the pace below,
+ * for one document. The character cap cannot help, because it applies after
+ * everything has been fetched. Stopping early and saying so beats a sync that
+ * runs for hours.
+ */
+export const MAX_REQUESTS_PER_PAGE = 30;
+
+/** A request that never settles would hold a sync open indefinitely. */
+const REQUEST_TIMEOUT_MS = 30_000;
+
+/** Notion may ask for a long wait; past this it is better to fail the run. */
+const MAX_RETRY_AFTER_MS = 30_000;
+
 export interface NotionPageRef {
   id: string;
   title: string;
@@ -186,11 +203,21 @@ export class NotionClient {
   /**
    * A page's blocks, with nested children resolved up to `maxDepth`.
    *
-   * The nesting costs one request per parent block, which is why the depth is
-   * capped here rather than left to the caller.
+   * `truncated` says the request budget ran out before the page did, so the
+   * caller can report an incomplete document rather than pass a partial one
+   * off as whole.
    */
-  async pageBlocks(token: string, id32: string, maxDepth = MAX_BLOCK_DEPTH): Promise<NotionBlock[]> {
-    return this.blocksOf(token, dashedNotionId(id32), 1, maxDepth);
+  async pageBlocks(
+    token: string,
+    id32: string,
+    maxDepth = MAX_BLOCK_DEPTH,
+  ): Promise<{ blocks: NotionBlock[]; truncated: boolean }> {
+    const budget = { left: MAX_REQUESTS_PER_PAGE };
+    const blocks = await this.blocksOf(token, dashedNotionId(id32), 1, maxDepth, budget);
+    if (budget.left <= 0) {
+      this.logger.warn(`notion page ${id32} exceeded ${MAX_REQUESTS_PER_PAGE} requests; stopped early`);
+    }
+    return { blocks, truncated: budget.left <= 0 };
   }
 
   private async blocksOf(
@@ -198,15 +225,24 @@ export class NotionClient {
     id: string,
     depth: number,
     maxDepth: number,
+    budget: { left: number },
   ): Promise<NotionBlock[]> {
     const blocks: NotionBlock[] = [];
     let cursor: string | undefined;
     do {
+      if (budget.left <= 0) return blocks;
+      budget.left -= 1;
       const json = await this.childrenPage(token, id, cursor);
       for (const raw of json.results ?? []) {
         const block = raw as NotionBlock;
-        if (block.has_children && depth < maxDepth) {
-          block.children = await this.blocksOf(token, String(block.id ?? ''), depth + 1, maxDepth);
+        if (block.has_children && depth < maxDepth && budget.left > 0) {
+          block.children = await this.blocksOf(
+            token,
+            String(block.id ?? ''),
+            depth + 1,
+            maxDepth,
+            budget,
+          );
         }
         blocks.push(block);
       }
@@ -245,6 +281,8 @@ export class NotionClient {
     await this.pace();
     const res = await fetch(`${NOTION_API}${path}`, {
       method: init.method ?? 'GET',
+      // A request that never settles would hold the whole sync open.
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
       headers: {
         Authorization: `Bearer ${token}`,
         'Notion-Version': NOTION_VERSION,
@@ -254,9 +292,12 @@ export class NotionClient {
     });
 
     if (res.status === 429 && !retried) {
-      const after = Number(res.headers?.get?.('Retry-After') ?? '') || 1;
-      this.logger.warn(`notion rate limited on ${path}; retrying in ${after}s`);
-      await this.wait(after * 1000);
+      // Honour the header, but not without limit: a long Retry-After would
+      // park the sync for hours, which is worse than failing it now.
+      const asked = (Number(res.headers?.get?.('Retry-After') ?? '') || 1) * 1000;
+      const after = Math.min(asked, MAX_RETRY_AFTER_MS);
+      this.logger.warn(`notion rate limited on ${path}; retrying in ${after}ms`);
+      await this.wait(after);
       return this.request<T>(token, path, init, true);
     }
     if (!res.ok) {

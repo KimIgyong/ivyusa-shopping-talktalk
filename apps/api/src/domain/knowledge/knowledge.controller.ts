@@ -200,14 +200,16 @@ export class KnowledgeController {
   ) {
     // Only the address comes back — the key itself is never echoed, so a
     // console that leaks its own screenshot does not leak the secret.
-    return this.gdriveCredentials.save(this.tenantUser(user).tenantId, body.key_json);
+    const actor = this.tenantUser(user);
+    return this.gdriveCredentials.save(actor.tenantId, body.key_json, actor.userId);
   }
 
   @Delete('gdrive/credential')
   @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
   @ApiOperation({ summary: 'Remove the Drive service account key' })
   async deleteGdriveCredential(@CurrentUser() user: Principal) {
-    await this.gdriveCredentials.remove(this.tenantUser(user).tenantId);
+    const actor = this.tenantUser(user);
+    await this.gdriveCredentials.remove(actor.tenantId, actor.userId);
     return { removed: true };
   }
 
@@ -236,14 +238,16 @@ export class KnowledgeController {
     @Body() body: SaveNotionCredentialRequest,
   ) {
     // Only the last four characters come back; the token is never echoed.
-    return this.notionCredentials.save(this.tenantUser(user).tenantId, body.token);
+    const actor = this.tenantUser(user);
+    return this.notionCredentials.save(actor.tenantId, body.token, actor.userId);
   }
 
   @Delete('notion/credential')
   @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
   @ApiOperation({ summary: 'Remove the Notion integration token' })
   async deleteNotionCredential(@CurrentUser() user: Principal) {
-    await this.notionCredentials.remove(this.tenantUser(user).tenantId);
+    const actor = this.tenantUser(user);
+    await this.notionCredentials.remove(actor.tenantId, actor.userId);
     return { removed: true };
   }
 

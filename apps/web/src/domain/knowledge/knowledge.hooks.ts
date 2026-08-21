@@ -145,6 +145,7 @@ export function useTestNotion() {
 export function useSyncSource() {
   const qc = useQueryClient();
   const tenantKey = useTenantKey();
+  const { t } = useTranslation('knowledge');
   return useMutation({
     mutationFn: (id: string) => knowledgeService.syncSource(id),
     onSuccess: (r) => {
@@ -153,17 +154,20 @@ export function useSyncSource() {
       qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'categories'] });
       // Same reasoning as the CSV import: a bare "synced" hides the rows that
       // came back but never got indexed.
-      const parts = [`${r.created} created`, `${r.updated} updated`];
-      if (r.skipped) parts.push(`${r.skipped} unchanged`);
-      if (r.hidden) parts.push(`${r.hidden} hidden`);
-      if (r.failed) parts.push(`${r.failed} skipped`);
-      if (r.embedFailed) parts.push(`${r.embedFailed} not indexed`);
-      // A run that left pages behind is not a success, however tidy the rest
-      // of the counts look — the source is only partly in the corpus.
-      if (r.dropped) parts.push(`${r.dropped} not converted`);
-      toast[r.failed || r.embedFailed || r.dropped ? 'error' : 'success'](
-        `Sync: ${parts.join(', ')}`,
-      );
+      const parts = [
+        t('syncCreated', { count: r.created }),
+        t('syncUpdated', { count: r.updated }),
+      ];
+      if (r.skipped) parts.push(t('syncUnchanged', { count: r.skipped }));
+      if (r.hidden) parts.push(t('syncHidden', { count: r.hidden }));
+      if (r.failed) parts.push(t('syncFailed', { count: r.failed }));
+      if (r.embedFailed) parts.push(t('syncNotIndexed', { count: r.embedFailed }));
+      // A run that left pages behind, or stored them half-read, is not a
+      // success however tidy the rest of the counts look.
+      if (r.dropped) parts.push(t('syncNotConverted', { count: r.dropped }));
+      if (r.truncated) parts.push(t('syncPartial', { count: r.truncated }));
+      const incomplete = !!(r.failed || r.embedFailed || r.dropped || r.truncated);
+      toast[incomplete ? 'error' : 'success'](t('syncSummary', { detail: parts.join(', ') }));
     },
     onError: (err: Error) => toast.error(err.message),
   });
