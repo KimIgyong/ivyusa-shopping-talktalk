@@ -2,7 +2,7 @@ import { DOC_GROUP } from '../../entity/kb-document.entity';
 import { IsIn, IsInt, IsObject, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
 
 /** Knowledge source ingestion modes (FR-064). */
-export const KNOWLEDGE_SOURCE_TYPES = ['board', 'repository', 'gdrive'] as const;
+export const KNOWLEDGE_SOURCE_TYPES = ['board', 'repository', 'gdrive', 'notion'] as const;
 
 // ---- Sources ----
 
@@ -20,6 +20,16 @@ export class SaveGdriveCredentialRequest {
 
 export class TestGdriveRequest {
   @IsOptional() @IsString() folder_id?: string;
+}
+
+/** Notion internal-integration token, pasted whole (PLN-260821 W1). */
+export class SaveNotionCredentialRequest {
+  @IsString() token: string;
+}
+
+export class TestNotionRequest {
+  /** A page/database id or the share URL it came from; both are accepted. */
+  @IsOptional() @IsString() target_id?: string;
 }
 
 export class UpdateSourceRequest {

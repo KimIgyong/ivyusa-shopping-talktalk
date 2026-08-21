@@ -17,6 +17,7 @@ import { FormRow, Input, Select } from '@/components/Field';
 import { ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { KnowledgeQaPanel } from './KnowledgeQaPanel';
+import { SourceCredentialCard } from './SourceCredentialCard';
 import { GapTasksSection } from './GapTasksSection';
 import { ConflictReview } from './ConflictReview';
 import { RevisionHistory } from './RevisionHistory';
@@ -31,6 +32,10 @@ import {
   useSaveGdriveCredential,
   useDeleteGdriveCredential,
   useTestGdrive,
+  useNotionCredential,
+  useSaveNotionCredential,
+  useDeleteNotionCredential,
+  useTestNotion,
   useDocuments,
   useDocument,
   useCreateDocument,
@@ -49,7 +54,15 @@ import {
 import type { KnowledgeSource, KnowledgeDocument } from './knowledge.service';
 
 const PAGE_SIZE = 20;
-const SOURCE_TYPES = ['board', 'repository', 'gdrive'];
+/** Source types the console offers; the API decides which can actually ingest. */
+const SOURCE_TYPE = {
+  BOARD: 'board',
+  REPOSITORY: 'repository',
+  GDRIVE: 'gdrive',
+  NOTION: 'notion',
+} as const;
+type SourceType = (typeof SOURCE_TYPE)[keyof typeof SOURCE_TYPE];
+const SOURCE_TYPES = Object.values(SOURCE_TYPE);
 /** Known category values: legacy seed tags + policy import taxonomy. */
 const CATEGORIES = [
   'faq',
@@ -83,7 +96,10 @@ export function KnowledgePage() {
   const saveGdriveCred = useSaveGdriveCredential();
   const deleteGdriveCred = useDeleteGdriveCredential();
   const testGdrive = useTestGdrive();
-  const [keyJson, setKeyJson] = useState('');
+  const notionCred = useNotionCredential();
+  const saveNotionCred = useSaveNotionCredential();
+  const deleteNotionCred = useDeleteNotionCredential();
+  const testNotion = useTestNotion();
 
   const [page, setPage] = useState(1);
   const [category, setCategory] = useState('');
@@ -208,8 +224,10 @@ export function KnowledgePage() {
 
   const [sourceOpen, setSourceOpen] = useState(false);
   const [sourceName, setSourceName] = useState('');
-  const [sourceType, setSourceType] = useState(SOURCE_TYPES[0]);
+  const [sourceType, setSourceType] = useState<SourceType>(SOURCE_TYPE.BOARD);
   const [folderId, setFolderId] = useState('');
+  /** A Notion page/database id, or the share URL it was copied from. */
+  const [notionTarget, setNotionTarget] = useState('');
 
   const [importOpen, setImportOpen] = useState(false);
   const [importFile, setImportFile] = useState<File | null>(null);
@@ -264,8 +282,9 @@ export function KnowledgePage() {
   const closeSource = () => {
     setSourceOpen(false);
     setSourceName('');
-    setSourceType(SOURCE_TYPES[0]);
+    setSourceType(SOURCE_TYPE.BOARD);
     setFolderId('');
+    setNotionTarget('');
   };
 
   const saveSource = () => {
@@ -273,7 +292,8 @@ export function KnowledgePage() {
       {
         name: sourceName,
         type: sourceType,
-        ...(sourceType === 'gdrive' ? { config_json: { folderId: folderId.trim() } } : {}),
+        ...(sourceType === SOURCE_TYPE.GDRIVE ? { config_json: { folderId: folderId.trim() } } : {}),
+        ...(sourceType === SOURCE_TYPE.NOTION ? { config_json: { targetId: notionTarget.trim() } } : {}),
       },
       { onSuccess: closeSource },
     );
@@ -350,6 +370,15 @@ export function KnowledgePage() {
                   skipped: c.skipped,
                   hidden: c.hidden,
                 })}
+              </span>
+            )}
+            {/* A capped or half-read run must not look like a complete one. */}
+            {!!c?.dropped && (
+              <span className="text-xs text-error">{t('syncDropped', { count: c.dropped })}</span>
+            )}
+            {!!c?.truncated && (
+              <span className="text-xs text-error">
+                {t('syncTruncated', { count: c.truncated })}
               </span>
             )}
           </div>
@@ -491,65 +520,45 @@ export function KnowledgePage() {
             rowKey={(r) => r.id}
           />
 
-          {/* The Drive key is what makes a gdrive source possible at all, so it
-              belongs beside the source list rather than in a separate screen. */}
-          <div className="mt-4 rounded-md border border-gray-200 p-3">
-            <div className="flex items-center justify-between">
-              <h4 className="text-sm font-medium">{t('gdriveCredential')}</h4>
-              {gdriveCred.data?.connected ? (
-                <Badge tone="success">{t('gdriveConnected')}</Badge>
-              ) : (
-                <Badge tone="gray">{t('gdriveNotConnected')}</Badge>
-              )}
-            </div>
-
-            {gdriveCred.data?.connected ? (
-              <div className="mt-2 space-y-2">
-                <p className="text-xs text-gray-500">{t('shareFolderWith')}</p>
-                <code className="block break-all font-mono text-xs">{gdriveCred.data.clientEmail}</code>
-                <div className="flex gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    disabled={testGdrive.isPending}
-                    onClick={() => testGdrive.mutate(undefined)}
-                  >
-                    {t('testConnection')}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    disabled={deleteGdriveCred.isPending}
-                    onClick={() => {
-                      if (window.confirm(t('gdriveRemoveConfirm'))) deleteGdriveCred.mutate();
-                    }}
-                  >
-                    {tc('delete')}
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <div className="mt-2 space-y-2">
-                <textarea
-                  className="h-28 w-full rounded-md border border-gray-300 p-2 font-mono text-xs"
-                  placeholder='{ "type": "service_account", ... }'
-                  value={keyJson}
-                  onChange={(e) => setKeyJson(e.target.value)}
-                />
-                {/* Says plainly that the paste is one-way: the key is never
-                    shown again, only the address it belongs to. */}
-                <p className="text-xs text-gray-500">{t('gdriveKeyHint')}</p>
-                <Button
-                  size="sm"
-                  disabled={saveGdriveCred.isPending || !keyJson.trim()}
-                  onClick={() =>
-                    saveGdriveCred.mutate(keyJson.trim(), { onSuccess: () => setKeyJson('') })
-                  }
-                >
-                  {tc('save')}
-                </Button>
-              </div>
-            )}
+          {/* A source of either type is impossible without its credential, so
+              both cards sit beside the source list rather than on a screen an
+              operator would have to know to visit. */}
+          <div className="mt-4 grid gap-3 md:grid-cols-2">
+            <SourceCredentialCard
+              title={t('gdriveCredential')}
+              connected={!!gdriveCred.data?.connected}
+              identityLabel={t('shareFolderWith')}
+              identityValue={gdriveCred.data?.clientEmail ?? null}
+              inputHint={t('gdriveKeyHint')}
+              placeholder='{ "type": "service_account", ... }'
+              multiline
+              removeConfirm={t('gdriveRemoveConfirm')}
+              busy={{
+                saving: saveGdriveCred.isPending,
+                removing: deleteGdriveCred.isPending,
+                testing: testGdrive.isPending,
+              }}
+              onSave={(value, clear) => saveGdriveCred.mutate(value, { onSuccess: clear })}
+              onRemove={() => deleteGdriveCred.mutate()}
+              onTest={() => testGdrive.mutate(undefined)}
+            />
+            <SourceCredentialCard
+              title={t('notionCredential')}
+              connected={!!notionCred.data?.connected}
+              identityLabel={t('notionTokenStored')}
+              identityValue={notionCred.data?.tokenHint ?? null}
+              inputHint={t('notionKeyHint')}
+              placeholder="ntn_..."
+              removeConfirm={t('notionRemoveConfirm')}
+              busy={{
+                saving: saveNotionCred.isPending,
+                removing: deleteNotionCred.isPending,
+                testing: testNotion.isPending,
+              }}
+              onSave={(value, clear) => saveNotionCred.mutate(value, { onSuccess: clear })}
+              onRemove={() => deleteNotionCred.mutate()}
+              onTest={() => testNotion.mutate(undefined)}
+            />
           </div>
         </Card>
 
@@ -1065,7 +1074,7 @@ export function KnowledgePage() {
           <Input value={sourceName} onChange={(e) => setSourceName(e.target.value)} />
         </FormRow>
         <FormRow label={t('type')}>
-          <Select value={sourceType} onChange={(e) => setSourceType(e.target.value)}>
+          <Select value={sourceType} onChange={(e) => setSourceType(e.target.value as SourceType)}>
             {SOURCE_TYPES.map((v) => (
               <option key={v} value={v}>
                 {v}
@@ -1073,7 +1082,7 @@ export function KnowledgePage() {
             ))}
           </Select>
         </FormRow>
-        {sourceType === 'gdrive' && (
+        {sourceType === SOURCE_TYPE.GDRIVE && (
           <>
             <FormRow label={t('folderId')}>
               <Input
@@ -1102,6 +1111,39 @@ export function KnowledgePage() {
                 </>
               ) : (
                 <p>{t('registerKeyFirst')}</p>
+              )}
+            </div>
+          </>
+        )}
+        {sourceType === SOURCE_TYPE.NOTION && (
+          <>
+            <FormRow label={t('notionTargetId')}>
+              <Input
+                value={notionTarget}
+                placeholder="https://www.notion.so/Support-Manual-1a2b3c…"
+                onChange={(e) => setNotionTarget(e.target.value)}
+              />
+              <p className="mt-1 text-xs text-gray-500">{t('notionTargetIdHint')}</p>
+            </FormRow>
+            {/* Connecting the target to the integration is a separate step in
+                Notion that nothing prompts for, and skipping it looks exactly
+                like an empty page. */}
+            <div className="rounded-md bg-warning/10 p-3 text-xs text-gray-700">
+              {notionCred.data?.connected ? (
+                <>
+                  <p>{t('shareWithIntegration')}</p>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="mt-1"
+                    disabled={testNotion.isPending || !notionTarget.trim()}
+                    onClick={() => testNotion.mutate(notionTarget.trim())}
+                  >
+                    {t('testConnection')}
+                  </Button>
+                </>
+              ) : (
+                <p>{t('registerTokenFirst')}</p>
               )}
             </div>
           </>

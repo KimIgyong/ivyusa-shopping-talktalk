@@ -8,6 +8,7 @@ import { KbRevisionService } from './kb-revision.service';
 import { SourceAdapter, SourceItem } from './source-adapter.interface';
 import { BoardAdapter } from './adapters/board.adapter';
 import { GdriveAdapter } from './adapters/gdrive.adapter';
+import { NotionAdapter } from './adapters/notion.adapter';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
 
@@ -25,6 +26,16 @@ export interface SyncResult {
    * is lost access, not an emptied folder (PLN-260815 §6).
    */
   guardedEmpty?: boolean;
+  /**
+   * Items the adapter held back this run — Notion's per-sync page cap today.
+   * Recorded because a truncated sync otherwise reports exactly like a
+   * complete one.
+   */
+  dropped?: number;
+  /** Documents stored with only part of their source content (see SourceFetch). */
+  truncated?: number;
+  /** How long the pull took. Notion syncs are minutes, not milliseconds. */
+  elapsedMs?: number;
 }
 
 /**
@@ -48,9 +59,11 @@ export class SourceSyncService {
     private readonly revisions: KbRevisionService,
     board: BoardAdapter,
     gdrive: GdriveAdapter,
+    notion: NotionAdapter,
   ) {
     this.register(board);
     this.register(gdrive);
+    this.register(notion);
   }
 
   private register(adapter: SourceAdapter): void {
@@ -86,7 +99,13 @@ export class SourceSyncService {
       throw new BusinessException(ERROR_CODE.VALIDATION_FAILED, HttpStatus.BAD_REQUEST);
     }
 
-    const items = await adapter.fetchAll(tenantId, source);
+    const startedAt = Date.now();
+    // Adapters may answer with a bare list or with a list plus what it left
+    // out; normalise here so neither shape leaks past this line.
+    const fetched = await adapter.fetchAll(tenantId, source);
+    const items = Array.isArray(fetched) ? fetched : fetched.items;
+    const dropped = Array.isArray(fetched) ? 0 : (fetched.dropped ?? 0);
+    const truncated = Array.isArray(fetched) ? 0 : (fetched.truncated ?? 0);
     const result: SyncResult = {
       fetched: items.length,
       created: 0,
@@ -94,6 +113,8 @@ export class SourceSyncService {
       skipped: 0,
       hidden: 0,
       failed: 0,
+      ...(dropped ? { dropped } : {}),
+      ...(truncated ? { truncated } : {}),
     };
     const touchedIds: number[] = [];
 
@@ -176,10 +197,12 @@ export class SourceSyncService {
         `source ${source.id} (${source.type}) returned 0 items while ${liveDocs} document(s) are live — ` +
           `refusing to hide them; check the source's access`,
       );
+      result.elapsedMs = Date.now() - startedAt;
       return { result, touchedIds };
     }
 
     result.hidden = await this.hideMissing(tenantId, existing, seen, actorUserId);
+    result.elapsedMs = Date.now() - startedAt;
     return { result, touchedIds };
   }
 

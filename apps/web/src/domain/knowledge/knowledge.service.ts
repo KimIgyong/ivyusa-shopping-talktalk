@@ -13,6 +13,19 @@ export interface GdriveTestResult {
   files?: number;
 }
 
+export interface NotionCredentialStatus {
+  connected: boolean;
+  /** Last four characters only — enough to tell two tokens apart. */
+  tokenHint: string | null;
+}
+
+export interface NotionTestResult {
+  ok: boolean;
+  message: string;
+  kind?: string;
+  pages?: number;
+}
+
 export interface SyncResult {
   fetched: number;
   created: number;
@@ -22,11 +35,16 @@ export interface SyncResult {
   failed: number;
   embedded?: number;
   embedFailed?: number;
+  /** Pages the source held but this run did not convert (Notion's page cap). */
+  dropped?: number;
+  /** Documents stored with only part of their source content. */
+  truncated?: number;
+  elapsedMs?: number;
 }
 
 export interface KnowledgeSource {
   id: string;
-  type: string; // board/repository/gdrive
+  type: string; // board/repository/gdrive/notion
   name: string;
   status: string; // active/inactive
   designated: number;
@@ -248,6 +266,12 @@ export const knowledgeService = {
   deleteGdriveCredential: () => apiDelete<{ removed: boolean }>('/knowledge/gdrive/credential'),
   testGdrive: (folderId?: string) =>
     apiPost<GdriveTestResult>('/knowledge/gdrive/test', { folder_id: folderId }),
+  notionCredential: () => apiGet<NotionCredentialStatus>('/knowledge/notion/credential'),
+  saveNotionCredential: (token: string) =>
+    apiPut<{ hint: string }>('/knowledge/notion/credential', { token }),
+  deleteNotionCredential: () => apiDelete<{ removed: boolean }>('/knowledge/notion/credential'),
+  testNotion: (targetId?: string) =>
+    apiPost<NotionTestResult>('/knowledge/notion/test', { target_id: targetId }),
   createSource: (body: { name: string; type: string; config_json?: Record<string, unknown> }) =>
     apiPost<KnowledgeSource>('/knowledge/sources', body),
   setSourceStatus: (id: string, status: 'active' | 'inactive') =>

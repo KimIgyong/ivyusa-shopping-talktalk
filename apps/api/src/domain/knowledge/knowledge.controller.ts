@@ -26,6 +26,7 @@ import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
 import { KnowledgeService } from './knowledge.service';
 import { GdriveCredentialService } from './gdrive-credential.service';
+import { NotionCredentialService } from './notion-credential.service';
 import { KnowledgeMapper } from './knowledge.mapper';
 import {
   AskKnowledgeRequest,
@@ -42,6 +43,8 @@ import {
   RejectProposalRequest,
   SaveGdriveCredentialRequest,
   TestGdriveRequest,
+  SaveNotionCredentialRequest,
+  TestNotionRequest,
 } from './dto/request/knowledge.request';
 import { KbConflictService } from './kb-conflict.service';
 import { KbRevisionService } from './kb-revision.service';
@@ -62,6 +65,7 @@ export class KnowledgeController {
     private readonly answerProposals: AnswerProposalService,
     private readonly gapService: KnowledgeGapService,
     private readonly gdriveCredentials: GdriveCredentialService,
+    private readonly notionCredentials: NotionCredentialService,
   ) {}
 
   // ---- Knowledge-gap proposals (P5, 결정 9: human approval only) ----
@@ -122,7 +126,7 @@ export class KnowledgeController {
 
   @Post('sources')
   @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
-  @ApiOperation({ summary: 'Create a knowledge source (board/repository/gdrive)' })
+  @ApiOperation({ summary: 'Create a knowledge source (board/repository/gdrive/notion)' })
   async createSource(@CurrentUser() user: Principal, @Body() body: CreateSourceRequest) {
     const source = await this.knowledgeService.createSource(this.tenantUser(user).tenantId, body);
     return KnowledgeMapper.toSource(
@@ -196,14 +200,16 @@ export class KnowledgeController {
   ) {
     // Only the address comes back — the key itself is never echoed, so a
     // console that leaks its own screenshot does not leak the secret.
-    return this.gdriveCredentials.save(this.tenantUser(user).tenantId, body.key_json);
+    const actor = this.tenantUser(user);
+    return this.gdriveCredentials.save(actor.tenantId, body.key_json, actor.userId);
   }
 
   @Delete('gdrive/credential')
   @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
   @ApiOperation({ summary: 'Remove the Drive service account key' })
   async deleteGdriveCredential(@CurrentUser() user: Principal) {
-    await this.gdriveCredentials.remove(this.tenantUser(user).tenantId);
+    const actor = this.tenantUser(user);
+    await this.gdriveCredentials.remove(actor.tenantId, actor.userId);
     return { removed: true };
   }
 
@@ -213,6 +219,44 @@ export class KnowledgeController {
   @ApiOperation({ summary: 'Check the key, and a folder when given' })
   async testGdrive(@CurrentUser() user: Principal, @Body() body: TestGdriveRequest) {
     return this.gdriveCredentials.test(this.tenantUser(user).tenantId, body.folder_id);
+  }
+
+  // ---- Notion credential (PLN-260821 W1) ----
+
+  @Get('notion/credential')
+  @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
+  @ApiOperation({ summary: 'Whether a Notion integration token is registered' })
+  async notionCredentialStatus(@CurrentUser() user: Principal) {
+    return this.notionCredentials.status(this.tenantUser(user).tenantId);
+  }
+
+  @Put('notion/credential')
+  @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
+  @ApiOperation({ summary: 'Register a Notion integration token' })
+  async saveNotionCredential(
+    @CurrentUser() user: Principal,
+    @Body() body: SaveNotionCredentialRequest,
+  ) {
+    // Only the last four characters come back; the token is never echoed.
+    const actor = this.tenantUser(user);
+    return this.notionCredentials.save(actor.tenantId, body.token, actor.userId);
+  }
+
+  @Delete('notion/credential')
+  @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
+  @ApiOperation({ summary: 'Remove the Notion integration token' })
+  async deleteNotionCredential(@CurrentUser() user: Principal) {
+    const actor = this.tenantUser(user);
+    await this.notionCredentials.remove(actor.tenantId, actor.userId);
+    return { removed: true };
+  }
+
+  @Post('notion/test')
+  @HttpCode(HttpStatus.OK)
+  @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
+  @ApiOperation({ summary: 'Check the token, and a page/database when given' })
+  async testNotion(@CurrentUser() user: Principal, @Body() body: TestNotionRequest) {
+    return this.notionCredentials.test(this.tenantUser(user).tenantId, body.target_id);
   }
 
   @Post('sources/:id/sync')

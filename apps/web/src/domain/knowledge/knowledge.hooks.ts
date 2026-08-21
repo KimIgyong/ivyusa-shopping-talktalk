@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { knowledgeService } from './knowledge.service';
 import type { CatalogSyncJob, DocumentListParams } from './knowledge.service';
@@ -53,6 +54,7 @@ export function useGdriveCredential() {
 export function useSaveGdriveCredential() {
   const qc = useQueryClient();
   const tenantKey = useTenantKey();
+  const { t } = useTranslation('knowledge');
   return useMutation({
     mutationFn: (keyJson: string) => knowledgeService.saveGdriveCredential(keyJson),
     onSuccess: (r) => {
@@ -60,7 +62,7 @@ export function useSaveGdriveCredential() {
       qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'sources'] });
       // Echo the address, because sharing the folder with it is the next step
       // and nothing else on screen says what it is.
-      toast.success(`Connected as ${r.clientEmail}`);
+      toast.success(t('gdriveConnectedAs', { email: r.clientEmail }));
     },
     onError: (err: Error) => toast.error(err.message),
   });
@@ -69,11 +71,12 @@ export function useSaveGdriveCredential() {
 export function useDeleteGdriveCredential() {
   const qc = useQueryClient();
   const tenantKey = useTenantKey();
+  const { t } = useTranslation('knowledge');
   return useMutation({
     mutationFn: () => knowledgeService.deleteGdriveCredential(),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'gdrive-credential'] });
-      toast.success('Service account removed');
+      toast.success(t('gdriveRemoved'));
     },
     onError: (err: Error) => toast.error(err.message),
   });
@@ -89,9 +92,60 @@ export function useTestGdrive() {
   });
 }
 
+/** Notion token: status, registration, removal, connection test. */
+export function useNotionCredential() {
+  const tenantKey = useTenantKey();
+  return useQuery({
+    queryKey: ['knowledge', tenantKey, 'notion-credential'],
+    queryFn: () => knowledgeService.notionCredential(),
+  });
+}
+
+export function useSaveNotionCredential() {
+  const qc = useQueryClient();
+  const tenantKey = useTenantKey();
+  const { t } = useTranslation('knowledge');
+  return useMutation({
+    mutationFn: (token: string) => knowledgeService.saveNotionCredential(token),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'notion-credential'] });
+      qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'sources'] });
+      // No address to echo the way Drive has one; connecting the target to the
+      // integration is the next step, so the toast points at that instead.
+      toast.success(t('notionSaved'));
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+}
+
+export function useDeleteNotionCredential() {
+  const qc = useQueryClient();
+  const tenantKey = useTenantKey();
+  const { t } = useTranslation('knowledge');
+  return useMutation({
+    mutationFn: () => knowledgeService.deleteNotionCredential(),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'notion-credential'] });
+      toast.success(t('notionRemoved'));
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+}
+
+export function useTestNotion() {
+  return useMutation({
+    mutationFn: (targetId?: string) => knowledgeService.testNotion(targetId),
+    // A failed check is a result, not a request error: the message says which
+    // half is wrong — the token, or the target nobody connected.
+    onSuccess: (r) => (r.ok ? toast.success(r.message) : toast.error(r.message)),
+    onError: (err: Error) => toast.error(err.message),
+  });
+}
+
 export function useSyncSource() {
   const qc = useQueryClient();
   const tenantKey = useTenantKey();
+  const { t } = useTranslation('knowledge');
   return useMutation({
     mutationFn: (id: string) => knowledgeService.syncSource(id),
     onSuccess: (r) => {
@@ -100,12 +154,20 @@ export function useSyncSource() {
       qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'categories'] });
       // Same reasoning as the CSV import: a bare "synced" hides the rows that
       // came back but never got indexed.
-      const parts = [`${r.created} created`, `${r.updated} updated`];
-      if (r.skipped) parts.push(`${r.skipped} unchanged`);
-      if (r.hidden) parts.push(`${r.hidden} hidden`);
-      if (r.failed) parts.push(`${r.failed} skipped`);
-      if (r.embedFailed) parts.push(`${r.embedFailed} not indexed`);
-      toast[r.failed || r.embedFailed ? 'error' : 'success'](`Sync: ${parts.join(', ')}`);
+      const parts = [
+        t('syncCreated', { count: r.created }),
+        t('syncUpdated', { count: r.updated }),
+      ];
+      if (r.skipped) parts.push(t('syncUnchanged', { count: r.skipped }));
+      if (r.hidden) parts.push(t('syncHidden', { count: r.hidden }));
+      if (r.failed) parts.push(t('syncFailed', { count: r.failed }));
+      if (r.embedFailed) parts.push(t('syncNotIndexed', { count: r.embedFailed }));
+      // A run that left pages behind, or stored them half-read, is not a
+      // success however tidy the rest of the counts look.
+      if (r.dropped) parts.push(t('syncNotConverted', { count: r.dropped }));
+      if (r.truncated) parts.push(t('syncPartial', { count: r.truncated }));
+      const incomplete = !!(r.failed || r.embedFailed || r.dropped || r.truncated);
+      toast[incomplete ? 'error' : 'success'](t('syncSummary', { detail: parts.join(', ') }));
     },
     onError: (err: Error) => toast.error(err.message),
   });

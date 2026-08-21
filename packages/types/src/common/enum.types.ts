@@ -304,7 +304,12 @@ export const MODERATION_DECISION = {
 export type ModerationDecision = (typeof MODERATION_DECISION)[keyof typeof MODERATION_DECISION];
 
 // ---- Knowledge sources ----
-export const KNOWLEDGE_SOURCE_TYPE = { BOARD: 'board', REPOSITORY: 'repository', GDRIVE: 'gdrive' } as const;
+export const KNOWLEDGE_SOURCE_TYPE = {
+  BOARD: 'board',
+  REPOSITORY: 'repository',
+  GDRIVE: 'gdrive',
+  NOTION: 'notion',
+} as const;
 export type KnowledgeSourceType = (typeof KNOWLEDGE_SOURCE_TYPE)[keyof typeof KNOWLEDGE_SOURCE_TYPE];
 
 // ---- Integrations ----
@@ -319,6 +324,7 @@ export const INTEGRATION_PROVIDER = {
   YOTPO: 'yotpo',
   GORGIAS: 'gorgias',
   GOOGLE_DRIVE: 'google_drive',
+  NOTION: 'notion',
 } as const;
 export type IntegrationProvider = (typeof INTEGRATION_PROVIDER)[keyof typeof INTEGRATION_PROVIDER];
 
