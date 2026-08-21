@@ -200,6 +200,18 @@ describe('NotionAdapter.fetchAll', () => {
     expect(fetched(await budgetCapped.adapter.fetchAll(1, source())).truncated).toBe(1);
   });
 
+  it('does not count a page it discarded as a partly-stored document', async () => {
+    // A page that was cut short AND had no usable text is not in the corpus at
+    // all; calling it "stored incomplete" would point at a document that does
+    // not exist.
+    const { adapter } = build({
+      pageBlocks: jest.fn(async () => ({ blocks: [], truncated: true })),
+    });
+    const result = fetched(await adapter.fetchAll(1, source()));
+    expect(result.items).toHaveLength(0);
+    expect(result.truncated).toBe(0);
+  });
+
   it('does not let an empty listing stand as proof the source is empty', () => {
     const { adapter } = build();
     // Disconnecting an integration looks exactly like an empty page.

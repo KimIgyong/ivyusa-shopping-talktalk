@@ -174,6 +174,17 @@ describe('NotionClient', () => {
     expect(fetchMock.mock.calls.length).toBeLessThanOrEqual(MAX_REQUESTS_PER_PAGE);
   });
 
+  it('does not flag a page that finished on its last allowance', async () => {
+    // Spending the budget exactly is completion, not truncation — and the
+    // adapter turns this flag into a warning on the whole document.
+    fetchMock.mockResolvedValue(
+      res({ results: [{ id: 'b1', type: 'paragraph', paragraph: {} }], has_more: false }),
+    );
+    const only = new TestClient();
+    const { truncated } = await only.pageBlocks('t', ID, 1);
+    expect(truncated).toBe(false);
+  });
+
   it('caps how long a Retry-After can park the sync', async () => {
     fetchMock
       .mockResolvedValueOnce(res({ code: 'rate_limited' }, false, 429, { 'Retry-After': '86400' }))

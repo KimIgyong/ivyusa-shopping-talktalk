@@ -106,15 +106,16 @@ export class NotionAdapter implements SourceAdapter {
       for (const [type, count] of Object.entries(flat.skipped)) {
         skippedTypes[type] = (skippedTypes[type] ?? 0) + count;
       }
-      // Both cuts mean the same thing to a reader: part of this page is not in
-      // the document that was stored.
-      if (flat.truncated || page.truncated) truncatedPages += 1;
       if (!flat.text.trim()) {
         // An empty page carries nothing to retrieve on, and embedding it would
         // spend a call to make the index worse.
         empty += 1;
         continue;
       }
+      // Counted only once the page becomes a document: `truncated` means "this
+      // many stored documents hold part of their source", not "this many pages
+      // stopped early".
+      if (flat.truncated || page.truncated) truncatedPages += 1;
       items.push({
         // Keyed by page id: retitling a page must update its document rather
         // than orphan the old one and create a second alongside it.
@@ -133,7 +134,7 @@ export class NotionAdapter implements SourceAdapter {
       this.logger.log(
         `source ${source.id}: ${items.length} page(s) converted` +
           (empty ? `, ${empty} empty` : '') +
-          (truncatedPages ? `, ${truncatedPages} cut at the character cap` : '') +
+          (truncatedPages ? `, ${truncatedPages} stored incomplete` : '') +
           (skippedSummary ? `, unconverted blocks: ${skippedSummary}` : ''),
       );
     }

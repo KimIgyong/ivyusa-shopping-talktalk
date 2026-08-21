@@ -160,8 +160,17 @@ export function blocksToText(
       } else if (line !== '') {
         const rendered = indent ? line.split('\n').map((l) => `${indent}${l}`).join('\n') : line;
         // +1 for the newline that joins it, so the cap matches the output.
-        if (length + rendered.length + 1 > maxChars) {
+        const room = maxChars - length;
+        if (rendered.length + 1 > room) {
           truncated = true;
+          // Keep the part that fits rather than dropping the block whole: one
+          // oversized paragraph would otherwise make the entire page look
+          // empty, and an empty page is discarded without being counted as
+          // content that was lost.
+          if (room > 1) {
+            lines.push(rendered.slice(0, room - 1));
+            length += room;
+          }
           return;
         }
         lines.push(rendered);

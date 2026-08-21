@@ -212,12 +212,15 @@ export class NotionClient {
     id32: string,
     maxDepth = MAX_BLOCK_DEPTH,
   ): Promise<{ blocks: NotionBlock[]; truncated: boolean }> {
-    const budget = { left: MAX_REQUESTS_PER_PAGE };
+    // Spending the last request is not the same as running out: a page that
+    // finished on its final allowance is complete, and flagging it would put a
+    // false warning on a whole document.
+    const budget = { left: MAX_REQUESTS_PER_PAGE, hitLimit: false };
     const blocks = await this.blocksOf(token, dashedNotionId(id32), 1, maxDepth, budget);
-    if (budget.left <= 0) {
+    if (budget.hitLimit) {
       this.logger.warn(`notion page ${id32} exceeded ${MAX_REQUESTS_PER_PAGE} requests; stopped early`);
     }
-    return { blocks, truncated: budget.left <= 0 };
+    return { blocks, truncated: budget.hitLimit };
   }
 
   private async blocksOf(
@@ -225,24 +228,33 @@ export class NotionClient {
     id: string,
     depth: number,
     maxDepth: number,
-    budget: { left: number },
+    budget: { left: number; hitLimit: boolean },
   ): Promise<NotionBlock[]> {
     const blocks: NotionBlock[] = [];
     let cursor: string | undefined;
     do {
-      if (budget.left <= 0) return blocks;
+      if (budget.left <= 0) {
+        // Another cursor page was waiting and we cannot pay for it.
+        budget.hitLimit = true;
+        return blocks;
+      }
       budget.left -= 1;
       const json = await this.childrenPage(token, id, cursor);
       for (const raw of json.results ?? []) {
         const block = raw as NotionBlock;
-        if (block.has_children && depth < maxDepth && budget.left > 0) {
-          block.children = await this.blocksOf(
-            token,
-            String(block.id ?? ''),
-            depth + 1,
-            maxDepth,
-            budget,
-          );
+        if (block.has_children && depth < maxDepth) {
+          if (budget.left > 0) {
+            block.children = await this.blocksOf(
+              token,
+              String(block.id ?? ''),
+              depth + 1,
+              maxDepth,
+              budget,
+            );
+          } else {
+            // Children we were meant to expand and did not.
+            budget.hitLimit = true;
+          }
         }
         blocks.push(block);
       }

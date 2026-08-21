@@ -110,6 +110,16 @@ describe('blocksToText', () => {
     expect(text.length).toBeLessThanOrEqual(100);
   });
 
+  it('keeps the part that fits when one block is bigger than the whole cap', () => {
+    // Dropping it whole would leave the page empty, and an empty page is
+    // discarded — losing content that was there without counting it.
+    const huge = block('paragraph', { rich_text: rt('y'.repeat(500)) });
+    const { text, truncated } = blocksToText([huge], { maxChars: 100 });
+    expect(truncated).toBe(true);
+    expect(text.length).toBeGreaterThan(0);
+    expect(text.length).toBeLessThanOrEqual(100);
+  });
+
   it('drops a prefix with nothing after it', () => {
     // An empty heading would otherwise reach the index as a bare "#", and a
     // spacer bullet as "- ".
