@@ -42,10 +42,10 @@ TCR-260824 §1 T1~T9 전부 통과(파일 세트 19·dist 복사·API 타입체�
 
 | 항목 | 상태 |
 |---|---|
-| PR | **#337** (`KimIgyong/user-manual`) — 매뉴얼 본문 작성분과 같은 PR에 후속 커밋으로 포함 |
+| PR | **#337** 머지(main `22ec15c`) + 후속 **#338**(#336 repository 드롭다운 제거 반영, main `1790701`) |
 | 마이그레이션 | 해당 없음 (sql/·entity 변경 없음) |
-| 스테이징 | **미배포** — 머지 후 서버에서 `deploy-staging.sh` (web·api 이미지 재빌드 필요, nginx.web.conf는 web 이미지에 포함) |
-| 배포 검증 | TCR §2: `/manual/` 200 · `.md` Content-Type · 18문서 전수 200 · 슬러그 `manual` 예약 · SPA 회귀 |
+| 스테이징 | ✅ **배포 완료 2026-08-24** — 서버 main `1790701` pull 후 `deploy-staging.sh` (api·web·widget·pwa 재빌드, 엣지 nginx 재생성, SEED_ON_BOOT=false 유지) |
+| 배포 검증 | ✅ TCR §2 전부 통과: health ok · `/manual/` 200(`/manual`→301) · `.md` = `text/markdown; charset=utf-8` · **18문서 URL 전수 200** · 배포 번들에 `'manual'` 예약 확인 · SPA 회귀 없음(`/`·`/ivyusa`·`/widget/` 200) · 브라우저 실측: 카드뷰 렌더+언어 토글(ko↔en, en/vi 고지 표시)+문서 페이지 렌더 확인 |
 
 ## 6. 잔여 과제
 
