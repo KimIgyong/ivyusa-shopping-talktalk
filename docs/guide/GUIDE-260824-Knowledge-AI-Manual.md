@@ -149,8 +149,7 @@
    notion은 `페이지·DB ID 또는 공유 URL` 입력
 3. 소스 행의 **↻(동기화)** 실행 → *마지막 동기화* 열에서 결과 카운트 확인
 
-지원 유형: 게시판(board) ✅ · Google Drive ✅ · Notion ✅ · 리포지터리(repository)는
-드롭다운에 보이지만 **미지원**("준비 안 됨" 배지, 동기화 비활성).
+지원 유형: 게시판(board) ✅ · Google Drive ✅ · Notion ✅ · GitHub 리포지터리 소스는 **지원하지 않습니다**.
 
 💡 **팁**
 - 동기화 결과에 빨간 **dropped/truncated** 경고가 보이면 페이지가 너무 크거나 깊어
