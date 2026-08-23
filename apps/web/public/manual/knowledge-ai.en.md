@@ -153,8 +153,7 @@ product type. **[Write]** → save a title and body (20+ characters).
    `folder ID`; for notion enter the `page·DB ID or a shared URL`
 3. Run **↻ (sync)** on the source row → check the result counts in the *last sync* column
 
-Supported types: board ✅ · Google Drive ✅ · Notion ✅ · repository appears in the dropdown
-but is **unsupported** ("not ready" badge, sync disabled).
+Supported types: board ✅ · Google Drive ✅ · Notion ✅ · the GitHub repository source type is **not supported**.
 
 💡 **Tips**
 - If a red **dropped/truncated** warning appears in the sync result, the page was too large

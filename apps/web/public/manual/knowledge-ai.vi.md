@@ -152,8 +152,7 @@ viết theo từng loại sản phẩm. **[Viết]** → lưu tiêu đề·nội
    notion nhập `ID trang·DB hoặc URL chia sẻ`
 3. Chạy **↻(đồng bộ)** trên hàng nguồn → kiểm tra số đếm kết quả ở cột *Đồng bộ lần cuối*
 
-Loại được hỗ trợ: bảng tin (board) ✅ · Google Drive ✅ · Notion ✅ · repository có trong
-danh sách thả xuống nhưng **chưa hỗ trợ** (huy hiệu "chưa sẵn sàng", đồng bộ bị tắt).
+Loại được hỗ trợ: bảng tin (board) ✅ · Google Drive ✅ · Notion ✅ · nguồn kho lưu trữ GitHub (repository) **không được hỗ trợ**.
 
 💡 **Mẹo**
 - Nếu kết quả đồng bộ hiện cảnh báo đỏ **dropped/truncated**, nghĩa là trang quá lớn hoặc
