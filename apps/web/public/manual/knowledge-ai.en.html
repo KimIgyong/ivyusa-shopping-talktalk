@@ -1,0 +1,545 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ShopTalk Knowledge &amp; AI Setup Manual</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@700;800&family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --accent:#2B7FFF; --accent-deep:#1D5FD6; --accent-tint:#EAF2FF;
+  --ink:#1B2430; --muted:#5C6675; --line:#E3E8F0;
+  --bg:#FAFBFD; --card:#FFFFFF; --soft:#F1F5FB;
+  --tip-bg:#EAF2FF; --tip-edge:#2B7FFF;
+  --warn-bg:#FFF7E6; --warn-edge:#D97706; --warn-ink:#8A4B04;
+  --code-bg:#EEF2F8; --mono-ink:#31435E;
+}
+:root:not([data-theme="light"]){}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --accent:#5C9BFF; --accent-deep:#82B4FF; --accent-tint:#16243C;
+    --ink:#E6EBF3; --muted:#93A0B4; --line:#28313F;
+    --bg:#0F141B; --card:#161C25; --soft:#1B222D;
+    --tip-bg:#152238; --tip-edge:#5C9BFF;
+    --warn-bg:#2A2010; --warn-edge:#E8A23D; --warn-ink:#EFC584;
+    --code-bg:#1E2632; --mono-ink:#B9C7DC;
+  }
+}
+:root[data-theme="dark"]{
+  --accent:#5C9BFF; --accent-deep:#82B4FF; --accent-tint:#16243C;
+  --ink:#E6EBF3; --muted:#93A0B4; --line:#28313F;
+  --bg:#0F141B; --card:#161C25; --soft:#1B222D;
+  --tip-bg:#152238; --tip-edge:#5C9BFF;
+  --warn-bg:#2A2010; --warn-edge:#E8A23D; --warn-ink:#EFC584;
+  --code-bg:#1E2632; --mono-ink:#B9C7DC;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:"IBM Plex Sans KR","Apple SD Gothic Neo","Segoe UI",sans-serif;
+  font-size:16px;line-height:1.75}
+.shell{max-width:1120px;margin:0 auto;padding:0 24px 96px;
+  display:grid;grid-template-columns:220px minmax(0,1fr);gap:48px}
+@media(max-width:860px){.shell{display:block}}
+header.hero{grid-column:1/-1;padding:56px 0 8px;border-bottom:1px solid var(--line);margin-bottom:8px}
+.eyebrow{font-size:12px;font-weight:700;letter-spacing:.14em;color:var(--accent);text-transform:uppercase}
+h1{font-family:"Gothic A1",sans-serif;font-weight:800;font-size:clamp(28px,4.5vw,40px);
+  line-height:1.25;margin:10px 0 12px;text-wrap:balance}
+.meta{color:var(--muted);font-size:14px;display:flex;flex-wrap:wrap;gap:6px 18px}
+.lead{max-width:68ch;color:var(--muted);margin-top:14px}
+nav.toc{position:sticky;top:24px;align-self:start;font-size:13.5px;padding-top:24px}
+@media(max-width:860px){nav.toc{position:static;border:1px solid var(--line);border-radius:10px;
+  background:var(--card);padding:14px 16px;margin:20px 0}}
+nav.toc .toc-label{font-size:11px;font-weight:700;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;margin-bottom:8px}
+nav.toc a{display:flex;gap:8px;color:var(--muted);text-decoration:none;padding:4px 0;line-height:1.4}
+nav.toc a:hover,nav.toc a:focus-visible{color:var(--accent)}
+nav.toc a .n{font-family:"IBM Plex Mono",monospace;color:var(--accent);font-size:12px;min-width:18px;padding-top:1px}
+main{min-width:0;max-width:74ch}
+section{padding-top:40px}
+.ch{display:flex;align-items:baseline;gap:12px;border-top:2px solid var(--ink);padding-top:14px}
+.ch .num{font-family:"IBM Plex Mono",monospace;font-size:13px;font-weight:500;color:var(--accent)}
+h2{font-family:"Gothic A1",sans-serif;font-weight:800;font-size:24px;margin:0;line-height:1.35;text-wrap:balance}
+.actor{display:inline-block;font-size:12px;font-weight:700;border-radius:999px;padding:2px 12px;
+  background:var(--accent-tint);color:var(--accent-deep);margin-top:10px}
+h3{font-family:"Gothic A1",sans-serif;font-weight:700;font-size:17.5px;margin:30px 0 8px}
+p{margin:10px 0;max-width:68ch}
+a{color:var(--accent-deep)}
+strong{font-weight:700}
+table{border-collapse:collapse;width:100%;font-size:14.5px;margin:14px 0}
+th{font-size:12.5px;letter-spacing:.04em;color:var(--muted);text-align:left;font-weight:700;
+  border-bottom:2px solid var(--line);padding:7px 12px 7px 0}
+td{border-bottom:1px solid var(--line);padding:8px 12px 8px 0;vertical-align:top}
+.tablewrap{overflow-x:auto}
+.terms{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:6px 18px 14px;margin:16px 0}
+.terms .t-label{font-size:11px;font-weight:700;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;margin:12px 0 2px}
+.terms td:first-child{font-weight:700;white-space:nowrap;padding-right:18px}
+.callout{border-left:3px solid var(--tip-edge);background:var(--tip-bg);border-radius:0 10px 10px 0;
+  padding:12px 18px;margin:16px 0;font-size:14.5px}
+.callout .c-label{font-weight:700;color:var(--accent-deep)}
+.callout.warn{border-left-color:var(--warn-edge);background:var(--warn-bg);color:var(--warn-ink)}
+.callout.warn .c-label{color:var(--warn-ink)}
+.callout p{margin:6px 0}
+.callout ul{margin:6px 0}
+code,kbd{font-family:"IBM Plex Mono",monospace;font-size:.86em;background:var(--code-bg);
+  color:var(--mono-ink);border-radius:5px;padding:1px 6px}
+pre{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px 18px;
+  overflow-x:auto;font-size:13px;line-height:1.6}
+pre code{background:none;padding:0;color:var(--mono-ink)}
+ol.steps{padding-left:0;margin:14px 0;list-style:none;counter-reset:st}
+ol.steps>li{counter-increment:st;position:relative;padding:0 0 14px 40px}
+ol.steps>li::before{content:counter(st);position:absolute;left:0;top:1px;width:24px;height:24px;
+  border-radius:50%;background:var(--accent);color:#fff;font-size:13px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;font-family:"IBM Plex Mono",monospace}
+ul{margin:10px 0;padding-left:22px}
+li{margin:4px 0}
+.check{list-style:none;padding-left:0}
+.check li{padding-left:30px;position:relative}
+.check li::before{content:"";position:absolute;left:2px;top:6px;width:14px;height:14px;
+  border:2px solid var(--accent);border-radius:4px}
+.faq dt{font-weight:700;margin-top:18px}
+.faq dd{margin:4px 0 0;color:var(--muted)}
+.next{margin-top:56px;border:1px solid var(--line);background:var(--card);border-radius:12px;padding:20px 24px}
+.pagenav{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;padding-top:18px;color:var(--muted)}
+.pagenav a{color:var(--muted);text-decoration:none}
+.pagenav a:hover,.pagenav a:focus-visible{color:var(--accent)}
+.pagenav .cur{color:var(--accent-deep);font-weight:700}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media(prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
+</style>
+</head>
+<body>
+
+<div class="shell">
+<nav class="pagenav" aria-label="Manual navigation"><a href="./">← All manuals</a><span>·</span><a href="knowledge-ai.ko.html">한국어</a><span class="cur">English</span><a href="knowledge-ai.vi.html">Tiếng Việt</a><span>·</span><a href="knowledge-ai.en.md">Raw MD</a></nav>
+<header class="hero">
+  <div class="eyebrow">ShopTalk User Manual · 2/2</div>
+  <h1>ShopTalk Knowledge &amp; AI Setup Manual</h1>
+  <div class="meta"><span>Version 1.0 · 2026-08-24 · Written against the code</span><span>Audience: tenant operators · CS staff (AI settings: master/director)</span></div>
+  <p class="lead">Covers how to enter and validate the knowledge in use, AI settings, and customer-response settings in real live chat.
+  Each chapter is structured as <strong>terms → procedure → 💡 operating tips</strong>. For the setup procedure, read the <em>Quick Setup Manual</em> (Part 1) first.</p>
+  <p class="lead">⚠ AI-translated draft pending native review. The Korean edition is authoritative.</p>
+</header>
+
+<nav class="toc" aria-label="Table of contents">
+  <div class="toc-label">Contents</div>
+  <a href="#ch0"><span class="n">0</span>AI response pipeline</a>
+  <a href="#ch1"><span class="n">1</span>Knowledge structure</a>
+  <a href="#ch2"><span class="n">2</span>Registering knowledge</a>
+  <a href="#ch3"><span class="n">3</span>Validation &amp; quality</a>
+  <a href="#ch4"><span class="n">4</span>AI settings</a>
+  <a href="#ch5"><span class="n">5</span>Live chat response settings</a>
+  <a href="#ch6"><span class="n">6</span>Validation &amp; improvement loop</a>
+  <a href="#ch7"><span class="n">7</span>Operations checklist</a>
+  <a href="#ch8"><span class="n">8</span>FAQ / troubleshooting</a>
+</nav>
+
+<main>
+
+<section id="ch0">
+  <div class="ch"><span class="num">00</span><h2>Understanding the AI Response Pipeline</h2></div>
+  <p>This is the full flow one customer message goes through. Every setting in this document adjusts some point in this flow.</p>
+  <pre><code>Customer message
+  ▼
+① Intent classification ─── if orders/personal data are needed → identity-verification (login) prompt
+  ▼
+② Knowledge search (RAG) ─ find relevant evidence in the registered knowledge documents
+  ▼
+③ Answer generation ─── compose from persona·response rules + retrieved evidence, score confidence
+  ▼
+④ Moderation ── check the moderation rules (a failing answer is never shown to the customer)
+  ▼
+⑤ Branch: confidence sufficient → answer the customer (+sources)
+        low confidence / blocked / customer request → agent queue (escalation)</code></pre>
+  <ul>
+    <li><strong>The answer language</strong> follows the customer's session language (en/es/ko/vi/ja/zh).</li>
+    <li>Messages sent by agents also pass ④ moderation identically (non-bypassable).</li>
+  </ul>
+</section>
+
+<section id="ch1">
+  <div class="ch"><span class="num">01</span><h2>Understanding the Knowledge Structure</h2></div>
+  <div class="terms"><div class="t-label">Terms</div>
+  <div class="tablewrap"><table>
+    <tr><td>Knowledge document</td><td>One piece of text the AI uses as answer evidence. Consists of title·category·body</td></tr>
+    <tr><td>Embedding</td><td>The indexing job that turns a document into a searchable vector. Runs automatically on create/update</td></tr>
+    <tr><td>RAG</td><td>The method of searching for documents related to the question and answering only from that evidence</td></tr>
+    <tr><td>Source</td><td>A connection that imports documents automatically from outside (board·Google Drive·Notion)</td></tr>
+    <tr><td>Group</td><td>Top-level document classification: <strong>support</strong> (policy·FAQ) / <strong>product</strong> (from the catalog)</td></tr>
+    <tr><td>Category</td><td>Sub-classification under a group (autocomplete presets: faq, policy, product, warranty, etc.)</td></tr>
+    <tr><td>Active/visible</td><td>Whether the document is included in search — <strong>inactive documents are never used as answer evidence</strong></td></tr>
+    <tr><td>Confidence</td><td>A score of how well the answer is supported by evidence. Low values hand off to an agent</td></tr>
+  </table></div></div>
+  <p>The knowledge screen (<code>/knowledge</code>) has source·document management on the left, with the <strong>knowledge QA panel</strong>
+  and <strong>conflict review</strong> pinned on the right, so you can move between registering ↔ verifying on one screen.</p>
+</section>
+
+<section id="ch2">
+  <div class="ch"><span class="num">02</span><h2>Registering Knowledge</h2></div>
+
+  <h3>2.1 Manual document creation &amp; editing</h3>
+  <p>Documents card → <strong>[Add document]</strong> → enter title / category / content → save.
+  Clicking a title opens the detail dialog; <strong>[Edit]</strong> manages the following.</p>
+  <div class="tablewrap"><table>
+    <tr><th>Field</th><th>Purpose</th></tr>
+    <tr><td>Source URL</td><td>Link to the external document the content is based on (opens directly from the list)</td></tr>
+    <tr><td>Effective date</td><td>The date the policy takes effect</td></tr>
+    <tr><td>Review interval (days)</td><td>When exceeded, a <code>stale</code> (needs review) badge appears in the list → §3.3</td></tr>
+    <tr><td>Content</td><td>On save, <strong>automatically re-embedded</strong> (search index refreshed)</td></tr>
+  </table></div>
+  <div class="callout"><span class="c-label">💡 Tips</span>
+  <ul>
+    <li>One document = one topic. Splitting "shipping+refund+exchange" into separate documents instead of one makes search more accurate.</li>
+    <li>Include <strong>customers' actual phrasing</strong> ("how long does shipping take") in titles·bodies — search is similarity-based, so the closer to customer vocabulary, the better it hits.</li>
+    <li>Instead of deleting outdated policies, exclude them with the <strong>visibility toggle OFF (inactive)</strong>. History is preserved and reverting is easy.</li>
+  </ul></div>
+
+  <h3>2.2 Product knowledge — catalog sync · CSV · usage guides</h3>
+  <div class="terms"><div class="t-label">Terms</div>
+  <div class="tablewrap"><table>
+    <tr><td>Product cache</td><td>The raw product list synced from the platform (the result of product sync on the Settings screen)</td></tr>
+    <tr><td>Catalog sync</td><td>Product cache → product knowledge documents. Two stages: <strong>preview → run</strong></td></tr>
+    <tr><td>Variant folding (merge)</td><td>Grouping dash-separated variants like "Lipstick-Red/Lipstick-Pink" into one representative product</td></tr>
+    <tr><td>Curation preserved</td><td>Product documents hand-polished by operators are kept from being overwritten by sync</td></tr>
+    <tr><td>Usage guide</td><td>A shared how-to document per product <strong>type</strong> — answer evidence separate from product documents</td></tr>
+  </table></div></div>
+  <ol class="steps">
+    <li><strong>[Sync from catalog]</strong> → a <strong>preview</strong> runs first: scan count and expected results
+      (created/updated/curation preserved/absorbed by merge/unchanged/held), estimated embedding batches, and a sample list of merges</li>
+    <li>In the merge samples, verify <strong>that different products were not folded into one</strong>, then <strong>[Run]</strong></li>
+    <li>Watch the two progress lines (writing/embedding); after completion check the <strong>embedding failure count</strong> in the results table (failed items are not searchable — re-run needed)</li>
+  </ol>
+  <p><strong>Product CSV import</strong>: [Import product CSV] → choose a file → check the result statistics (parsed/created/updated/skipped/invalid/embedded)
+  and per-row errors (up to 20). Re-uploading the same product overwrites it (upsert).</p>
+  <p><strong>Usage guides</strong>: check the written/unwritten badges per type in the card → [Write] → save a title·body (20+ characters).</p>
+  <div class="callout"><span class="c-label">💡 Tips</span>
+  <ul>
+    <li><strong>Always look at the preview first.</strong> A wrong merge can only be caught in the preview, before running.</li>
+    <li>When platform products change, run the <strong>two stages in order</strong> — product sync in [Settings] → catalog sync in [Knowledge] — for the change to land.</li>
+    <li>With thin product descriptions, tags become the raw material of knowledge — tidying product tags on the platform side raises answer quality.</li>
+  </ul></div>
+
+  <h3>2.3 External source integration (board · Google Drive · Notion)</h3>
+  <div class="terms"><div class="t-label">Terms</div>
+  <div class="tablewrap"><table>
+    <tr><td>Service account</td><td>The robot account for the Google Drive integration — the folder must be shared with this account's email to be readable</td></tr>
+    <tr><td>Integration</td><td>The unit by which Notion grants external tool access — must be "connected" to the target page</td></tr>
+    <tr><td>Sync result counts</td><td>Created·updated·skipped·hidden counts. <code>dropped</code>/<code>truncated</code> is a <strong>warning that part could not be imported</strong></td></tr>
+  </table></div></div>
+  <ol class="steps">
+    <li><strong>Register credentials</strong> — Google Drive: paste the service-account key JSON → share the target folder with the
+      displayed service-account email → [Test connection] / Notion: register the token (<code>ntn_…</code>) → connect the integration to the target page·DB → [Test connection]</li>
+    <li><strong>[Add source]</strong> → choose the type (board/gdrive/notion) → for gdrive the folder ID; for notion the page·DB ID or a shared URL</li>
+    <li>Run <strong>↻ (sync)</strong> on the source row → check the result counts in the last-sync column</li>
+  </ol>
+  <p>Supported types: board ✅ · Google Drive ✅ · Notion ✅ · repository appears in the dropdown but is <strong>unsupported</strong> ("not ready").</p>
+  <div class="callout"><span class="c-label">💡 Tips</span>
+  <ul>
+    <li>A red <strong>dropped/truncated</strong> warning means the page was too large or too deep and part was cut off — check the document's ending, split the original, and re-sync.</li>
+    <li>If a sync suddenly imports <strong>0 items</strong> (folder unshared·integration disconnected, etc.), existing documents are left as-is rather than hidden — restore the connection first.</li>
+    <li>Clicking a source's status cell = toggles active↔inactive. Inactive only stops syncing; imported documents remain.</li>
+  </ul></div>
+</section>
+
+<section id="ch3">
+  <div class="ch"><span class="num">03</span><h2>Knowledge Validation &amp; Quality Management</h2></div>
+  <div class="terms"><div class="t-label">Terms</div>
+  <div class="tablewrap"><table>
+    <tr><td>Knowledge QA panel</td><td>A test panel for asking the knowledge base questions as a customer would (pinned on the right)</td></tr>
+    <tr><td>Citation</td><td>The list of documents the answer is based on — shown with similarity scores</td></tr>
+    <tr><td>Conflict</td><td>A state where two documents are detected as containing <strong>mutually contradictory content</strong></td></tr>
+    <tr><td>stale</td><td>The badge on a document whose review interval has passed and needs re-checking</td></tr>
+    <tr><td>Knowledge gap</td><td>A topic customers asked about that the knowledge had no answer for — proposed by the system as a document draft</td></tr>
+    <tr><td>Answer proposal</td><td>A proposal to promote an agent's real answer into a knowledge document (human approval required)</td></tr>
+    <tr><td>Revision</td><td>A snapshot of a document's change history — supports diff view·restore</td></tr>
+  </table></div></div>
+
+  <h3>3.1 Knowledge QA panel — always verify after registering</h3>
+  <p>Enter a question → check the answer + <strong>confidence score</strong> + <strong>source list</strong> → if an evidence document is wrong, press
+  <strong>[Fix]</strong> next to the source (that document opens directly in edit mode) → after fixing, re-check with <strong>[Ask again]</strong>.</p>
+  <div class="callout"><span class="c-label">💡 Tips</span>
+  <ul>
+    <li>A <strong>blocked by moderation</strong> badge means the answer hit a moderation rule (§4.5) — a real customer would never have seen it.</li>
+    <li>If a source carries a <code>conflicted</code>/<code>stale</code> badge, clean up that document first.</li>
+    <li>Whenever a policy changes, the habit of throwing "3 questions a customer would ask" at the panel is the cheapest regression test (automation: §6.3).</li>
+  </ul></div>
+
+  <h3>3.2 Conflict review</h3>
+  <p><em>Conflict review</em> panel → status filter (pending/resolved/dismissed/failed) → per item, check similarity·detection time·verdict rationale → choose an action.
+  <strong>[Re-scan]</strong> re-checks everything.</p>
+  <div class="tablewrap"><table>
+    <tr><th>Action</th><th>Behavior</th></tr>
+    <tr><td>Keep A / Keep B</td><td>Keep the chosen one and deactivate the other</td></tr>
+    <tr><td>Keep both</td><td>Judged not a contradiction — both stay active</td></tr>
+    <tr><td>Dismiss</td><td>Close this conflict item</td></tr>
+    <tr><td>Re-judge</td><td>Request a new verdict after fixing the documents</td></tr>
+  </table></div>
+  <div class="callout"><span class="c-label">💡 Tip</span>
+  <p>Conflicts usually come from <strong>not retiring the old version when a policy is revised</strong>. Don't stop at "Keep A" — record the
+  effective date on the surviving document so it doesn't repeat at the next revision.</p></div>
+
+  <h3>3.3 Review interval · stale / change history</h3>
+  <p>When a document's <code>review interval (days)</code> is exceeded, a <code>stale</code> badge appears in the list.
+  Pressing <strong>[Mark reviewed]</strong> in the review-status box of the document detail recalculates the deadline.
+  In the <strong>change history tab</strong> you can view per-revision diffs and <strong>[Restore]</strong>.</p>
+  <div class="callout"><span class="c-label">💡 Tip</span>
+  <p>Give frequently changing documents (shipping fees·promotions) a short review interval of around 30 days and stable ones (legal notices)
+  a long one, and the stale badges become a practical to-do list.</p></div>
+
+  <h3>3.4 Knowledge gap proposals · answer proposal approval (closed loop)</h3>
+  <ul>
+    <li><strong>Knowledge gap proposals</strong> (top, only when there are items): topics where the knowledge was empty accumulate as document drafts —
+      <strong>[Accept]</strong> (confirm after editing title·content) / <strong>[Dismiss]</strong></li>
+    <li><strong>Answer proposals</strong> (when items are pending): proposals to promote an agent's real answer into knowledge —
+      check the question·answer·source-conversation link, then <strong>[Approve]</strong> / <strong>[Reject]</strong> (reason required)</li>
+  </ul>
+  <div class="callout warn"><span class="c-label">⚠️ Check for personal data before approving</span>
+  <p>Always verify that no order numbers·names remain in the answer — knowledge documents are reused as evidence for every customer's answers.</p></div>
+  <div class="callout"><span class="c-label">💡 Tip</span>
+  <p>These two are the channels through which the knowledge grows on its own. A weekly routine of emptying them
+  reduces the root cause of "the AI keeps handing off to agents".</p></div>
+</section>
+
+<section id="ch4">
+  <div class="ch"><span class="num">04</span><h2>AI Settings</h2></div>
+  <span class="actor">Left menu [AI settings] · master/director</span>
+  <div class="terms"><div class="t-label">Terms</div>
+  <div class="tablewrap"><table>
+    <tr><td>AI agent</td><td>A bot unit with its own persona·rule set — create several and run different bots per channel·page</td></tr>
+    <tr><td>Default agent</td><td>The agent used by widgets with no specific assignment (always active)</td></tr>
+    <tr><td>Entry snippet</td><td>An installation code fragment that launches the widget with a specific agent</td></tr>
+    <tr><td>Persona / response rules</td><td>The bot's tone·principles description / the list of rules it must obey (injected at pipeline ③)</td></tr>
+    <tr><td>Scenario buttons</td><td>The quick-menu buttons at the bottom of the widget — choose among 7 actions</td></tr>
+    <tr><td>AI functions</td><td>The 5 places AI is used (chat/rag/summary/assist/moderation) — an engine is assigned per place</td></tr>
+    <tr><td>Moderation rules</td><td>The rules that inspect outbound messages (pipeline ④)</td></tr>
+    <tr><td>Answer reuse</td><td>Replaying an approved past answer for the same question without an LLM call</td></tr>
+    <tr><td>Change note</td><td>A one-line note recorded when saving persona·rules — viewable in the settings change history</td></tr>
+  </table></div></div>
+
+  <h3>4.1 AI agents (multi-persona)</h3>
+  <p>Selecting an agent in the <em>AI agents</em> card switches the persona·response rules cards below to <strong>that agent's</strong>.
+  Create with <strong>[Add]</strong> (name·lowercase code), manage <strong>[Set as default]</strong>·the active toggle·<strong>[Delete]</strong>,
+  and copy the <strong>entry snippet</strong> to install on a specific page·channel.</p>
+  <div class="callout"><span class="c-label">💡 Tips</span>
+  <ul>
+    <li>An agent is <strong>assigned once at session start</strong> — the bot of a session in progress does not change even if you swap snippets.</li>
+    <li>Entering with a non-existent code falls back to the default agent (the widget never breaks).</li>
+    <li>The "AI agents" here have nothing to do with (human) agent accounts — human accounts live in the [Users] menu.</li>
+  </ul></div>
+
+  <h3>4.2 Persona &amp; response rules</h3>
+  <p>Write the persona text → enter a <strong>change note</strong> → save. Response rules are added one line at a time via [Add rule] (blank lines are removed on save).</p>
+  <div class="callout"><span class="c-label">💡 Tips</span>
+  <ul>
+    <li>Put identity·tone in the persona and <strong>behavioral constraints</strong> in the rules. Factual information (shipping fees, etc.) goes in <strong>knowledge documents</strong> —
+      the persona is not searched.</li>
+    <li>After saving, propagation can take up to 60 seconds because of caching.</li>
+    <li>[Load into editor] in the <em>change history</em> does not apply anything by itself — <strong>you must also save</strong> for it to take effect.</li>
+  </ul></div>
+
+  <h3>4.3 Scenario buttons</h3>
+  <p>Per row, edit the label (max 60 chars) / action / enabled checkbox / order (↑↓).
+  In <strong>[Edit reply]</strong>, edit each action's response copy across <strong>6 language tabs</strong> and configure follow-up buttons (label·action·URL).</p>
+  <div class="tablewrap"><table>
+    <tr><th>Action</th><th>Actual behavior in the widget</th></tr>
+    <tr><td>Track shipping</td><td>Fixed shipping-policy answer + follow-up buttons</td></tr>
+    <tr><td>Cancel / refund</td><td>Fixed cancellation·refund·return answer + follow-up buttons</td></tr>
+    <tr><td>Product help</td><td>Submenu (usage·ingredients·exchange/return·restock)</td></tr>
+    <tr><td>Contact support</td><td>Leave-your-contact form — the path to an agent</td></tr>
+    <tr><td>My orders</td><td>Identity verification, then jumps to the orders tab</td></tr>
+    <tr><td>Partnership</td><td>Partnership info card</td></tr>
+    <tr><td>Send message</td><td><strong>Sends the label text verbatim as the question</strong> → the AI answers from knowledge</td></tr>
+  </table></div>
+  <div class="callout"><span class="c-label">💡 Tips</span>
+  <ul>
+    <li>To turn a frequent question into a button, use the <strong>Send message</strong> action with the label written as the question sentence (e.g. "What is the free-shipping threshold?").</li>
+    <li>Hide buttons by unchecking them rather than deleting. Keeping <strong>Contact support</strong> always on is recommended.</li>
+    <li>Keep the fixed answer copy and the policy content of knowledge documents in step — update both together when a policy is revised.</li>
+  </ul></div>
+
+  <h3>4.4 AI functions (engine·parameters)</h3>
+  <p>On each function's row, choose the applied engine, enter temperature (0–1)·max_tokens, and save individually.
+  Unassigned functions show an inherited/default/stub badge plus the actually applied engine name.</p>
+  <div class="tablewrap"><table>
+    <tr><th>Function</th><th>Actual use</th></tr>
+    <tr><td>chat</td><td>Conversation control such as intent classification of customer messages</td></tr>
+    <tr><td>rag</td><td><strong>Knowledge-based answer generation — the body of what customers see</strong></td></tr>
+    <tr><td>summary</td><td>Conversation summaries (history·handoff briefing)</td></tr>
+    <tr><td>assist</td><td>AI assistance in the agent console</td></tr>
+    <tr><td>moderation</td><td>LLM verdicts for context-type moderation rules</td></tr>
+  </table></div>
+  <p><strong>Fallback chain</strong>: chosen engine unavailable → tenant default → platform default → stub (demo responses) — automatic downgrade, so the conversation never breaks.</p>
+  <div class="callout warn"><span class="c-label">⚠️ temperature is not applied to Anthropic (Claude) engines</span>
+  <p>Current Claude models reject the sampling parameter, so the system deliberately does not send it.
+  Entering a value is ignored; it applies only to OpenAI-family engines. <strong>max_tokens</strong> applies normally (512–1024 recommended for chat answers).</p></div>
+  <div class="callout"><span class="c-label">💡 Tip</span>
+  <p>A lingering <code>stub</code> badge means you are not at production quality — engine registration is a platform-administrator permission.
+  The embedding model for knowledge search is not on this screen (shared across all tenants, server-managed).</p></div>
+
+  <h3>4.5 Moderation rules</h3>
+  <div class="tablewrap"><table>
+    <tr><th>Item</th><th>Choices</th><th>Meaning</th></tr>
+    <tr><td rowspan="3">Type</td><td>Word / phrase</td><td>Containment match (case-insensitive)</td></tr>
+    <tr><td>Regex</td><td>Pattern match</td></tr>
+    <tr><td>Context (LLM)</td><td>Write "what to block" as a sentence and the AI judges each message</td></tr>
+    <tr><td>Scope</td><td>AI only / agents only / both</td><td>Whose outbound messages to inspect</td></tr>
+    <tr><td rowspan="3">Action</td><td>Block</td><td>Do not send the message (an AI answer converts into an agent handoff)</td></tr>
+    <tr><td>Mask</td><td>Only the matched part becomes ▇▇▇, then delivered</td></tr>
+    <tr><td>Rewrite</td><td>The AI rewrites it into a safe sentence, then delivers</td></tr>
+  </table></div>
+  <div class="callout"><span class="c-label">💡 Tips</span>
+  <ul>
+    <li>This gate <strong>cannot be turned off</strong>, and if the check itself fails it resolves to <strong>block</strong> for safety.
+      If an agent message is refused, rephrase and send again.</li>
+    <li>The context (LLM) type uses the moderation function's engine — in stub state there is no verdict quality.</li>
+    <li>Excessive word rules block legitimate answers too. <strong>Start with mask/rewrite</strong>, watch the logs, then escalate to block. Propagation takes up to 60 seconds.</li>
+  </ul></div>
+
+  <h3>4.6 Answer reuse</h3>
+  <p>In the <em>answer reuse</em> card, search the stored Q&amp;As (filter to active only), edit/delete per item, and stop everything at once with <strong>[Deactivate all]</strong>.</p>
+  <div class="callout"><span class="c-label">💡 Tip</span>
+  <p>A reused answer goes out instantly without an LLM call — fast and cheap — but <strong>when a policy changes, a stale answer can go out unchanged.</strong>
+  Put updating/deactivating the related items on your policy-revision checklist. Reused answers still pass moderation.</p></div>
+</section>
+
+<section id="ch5">
+  <div class="ch"><span class="num">05</span><h2>Live Chat Customer-Response Settings</h2></div>
+  <span class="actor">The Agent handoff section of the [Settings] page</span>
+  <div class="terms"><div class="t-label">Terms</div>
+  <div class="tablewrap"><table>
+    <tr><td>Escalation (handoff)</td><td>The AI passing a conversation to the agent queue</td></tr>
+    <tr><td>Handoff settings</td><td>The bundle of settings for assignment·hours·notices after escalation</td></tr>
+    <tr><td>Business hours</td><td>The window when agents respond — outside it, the flow switches to off-hours notice·email intake</td></tr>
+    <tr><td>SLA</td><td>Response target time — the basis of the issue board's delay badges (⚠️/🔥)</td></tr>
+    <tr><td>Waiting (queue)</td><td>The state of a handed-off conversation waiting for an agent to take it</td></tr>
+  </table></div></div>
+
+  <h3>5.1 Assignees · business hours · off-hours notice</h3>
+  <ol class="steps">
+    <li><strong>Assignees</strong> — check the agents who receive handoffs</li>
+    <li><strong>Business hours</strong> toggle → timezone·start/end·weekdays, plus a <strong>break time</strong> toggle if needed</li>
+    <li><strong>Off-hours intake email</strong> — the address that receives inquiries outside business hours (a warning shows if SMTP is not configured)</li>
+    <li><strong>Off-hours notice copy</strong> — written per language tab</li>
+    <li><strong>SLA</strong> — normal/urgent response targets (hours, 1–168h)</li>
+    <li><strong>Policy-forced handoff (deny-list)</strong> — register keyword (comma-separated) + inquiry type + duty-label rules.
+      A matched message is delivered <strong>straight to an agent without passing through the AI</strong>, and the created issue gets the type·label stamped automatically.</li>
+  </ol>
+  <div class="callout"><span class="c-label">💡 Tips</span>
+  <ul>
+    <li>Set the business-hours <strong>timezone</strong> precisely to the store's — a US store left on Korean time sends the notices exactly backwards.</li>
+    <li>Off-hours email intake requires server SMTP configuration first — if you see the warning, ask the platform administrator.</li>
+    <li>If no assignee is designated, handed-off conversations only pile up in the shared queue — designate at least one.</li>
+  </ul></div>
+
+  <h3>5.2 Understanding escalation triggers</h3>
+  <div class="tablewrap"><table>
+    <tr><th>Trigger</th><th>Behavior</th></tr>
+    <tr><td><strong>Low confidence</strong></td><td>Appends "Shall I connect you to an agent?" to the answer and queues it</td></tr>
+    <tr><td><strong>Blocked by moderation</strong></td><td>The AI answer is withheld; an agent-connection notice is shown, then queued</td></tr>
+    <tr><td><strong>Customer request</strong></td><td>The scenario's Contact support or an explicit request → queued immediately</td></tr>
+    <tr><td><strong>Policy-forced handoff</strong></td><td>On a registered-keyword match, queued <strong>immediately with no AI response</strong> — the message is stored·displayed normally, and the issue is stamped with type·label (this is not a message-blocking feature)</td></tr>
+  </table></div>
+  <div class="callout"><span class="c-label">💡 Tip</span>
+  <p>The confidence threshold is not adjustable on screen (code policy). If handoffs are frequent, the right response is
+  <strong>reinforcing the knowledge</strong>, not the threshold (find the cause with the QA panel, §3.1). Handling handed-off conversations
+  (accepting·AI briefing·closing·reassignment) happens in the live chat console (<code>/live-chat</code>).</p></div>
+</section>
+
+<section id="ch6">
+  <div class="ch"><span class="num">06</span><h2>Validation &amp; Improvement Loop</h2></div>
+  <span class="actor">The studio on the right of [AI settings] + the regression check card</span>
+  <div class="terms"><div class="t-label">Terms</div>
+  <div class="tablewrap"><table>
+    <tr><td>Preview</td><td>A test panel for chatting with the bot without creating a real customer session</td></tr>
+    <tr><td>AI coaching</td><td>Give natural-language feedback and receive a <strong>proposed</strong> settings change, applied only on approval</td></tr>
+    <tr><td>Proposal</td><td>The settings-change card coaching produced — can be applied/rejected/reverted</td></tr>
+    <tr><td>Golden questions</td><td>The list of representative questions whose answer quality you want to keep checking (regression-test input)</td></tr>
+    <tr><td>Regression check</td><td>Re-running all golden questions after settings·knowledge changes to confirm answers did not degrade</td></tr>
+    <tr><td>Variability measurement</td><td>Running the same question repeatedly to see how much the answer fluctuates</td></tr>
+  </table></div></div>
+
+  <h3>6.1 Preview</h3>
+  <p><strong>Preview</strong> tab → choose a language → <strong>[New session]</strong> → choose the mode (customer/agent) and type messages.
+  Responses display the responsible <strong>agent badge</strong> and <strong>whether escalation occurred</strong>.
+  <strong>[Coach this]</strong> on a response attaches that turn to coaching.</p>
+  <div class="callout"><span class="c-label">💡 Tip</span>
+  <p>After changing settings, save and then start with <strong>[New session]</strong> to see a conversation with the new settings applied.
+  The answer language follows the session language, so check your key questions across languages.</p></div>
+
+  <h3>6.2 AI coaching</h3>
+  <p><strong>Agent coaching</strong> tab → pick a thread or [New thread] → review the reference turns and instruct in natural language
+  (e.g. "The refund explanation is too long. Keep it under 3 sentences") → review the changes in the <strong>proposal card</strong> →
+  <strong>[Apply]</strong> / <strong>[Reject]</strong> / after applying, <strong>[Revert]</strong>.</p>
+  <div class="callout"><span class="c-label">💡 Tips</span>
+  <ul>
+    <li>Coaching <strong>changes nothing without approval.</strong> Read the actual changes in the proposal card (persona·rules diff) before applying.</li>
+    <li><strong>Factual information</strong> like "free shipping over ₩50,000" belongs in a knowledge document, not in coaching —
+      coaching is a tool for polishing tone·behavioral rules.</li>
+    <li>Slight wording drift is normal variation. <strong>Falling confidence·rising escalations</strong> are the real warning signs.</li>
+  </ul></div>
+
+  <h3>6.3 Regression check (golden questions)</h3>
+  <p><em>Regression check</em> card → register golden questions (10–20 representative ones) → <strong>[Run now]</strong> →
+  <strong>[Compare with previous]</strong> in the recent-runs list shows answer changes side by side. <strong>[Variability measurement]</strong>
+  shows how much the same question's answer fluctuates.</p>
+  <div class="callout"><span class="c-label">💡 Tips</span>
+  <ul>
+    <li>Put into the golden questions: ① revenue-critical questions (shipping·refunds) ② questions that produced wrong answers in the past ③ questions affected by policy revisions.</li>
+    <li>Make it a routine to run once <strong>right after bulk knowledge changes·catalog sync·persona revisions</strong>.
+      A <code>truncated</code> badge on a run means the question count exceeded the run ceiling and only part was executed.</li>
+  </ul></div>
+</section>
+
+<section id="ch7">
+  <div class="ch"><span class="num">07</span><h2>Operations Checklist</h2></div>
+  <h3>When a policy changes (e.g. shipping-fee revision)</h3>
+  <ul class="check">
+    <li>Update the related knowledge documents (re-embedding automatic) + deactivate old versions</li>
+    <li>Check the scenario fixed answers (track shipping·cancel/refund) copy</li>
+    <li>Search answer-reuse items → fix/deactivate stale answers</li>
+    <li>Verify 3 representative questions in the QA panel → run the golden-question regression</li>
+    <li>Update the documents' effective date·review interval</li>
+  </ul>
+  <h3>Weekly routine</h3>
+  <ul class="check">
+    <li>Empty the knowledge gap proposals·answer proposals (§3.4)</li>
+    <li>Process pending conflict-review items (§3.2)</li>
+    <li>Review <code>stale</code>-badged documents (§3.3)</li>
+    <li>Topics with frequent handoffs in live chat → reinforce the knowledge</li>
+  </ul>
+</section>
+
+<section id="ch8">
+  <div class="ch"><span class="num">08</span><h2>FAQ / Troubleshooting</h2></div>
+  <dl class="faq">
+    <dt>Q. I registered a document but the AI doesn't know its content.</dt>
+    <dd>Check ① the document is active (visibility ON) ② the document appears in the QA panel's source list.
+    If it doesn't, reinforce the title·body with customer vocabulary. Also check for embedding failures in the catalog sync.</dd>
+    <dt>Q. The AI keeps handing off to agents.</dt>
+    <dd>Check the question's confidence·sources in the QA panel. If there is no evidence document, registering one is the answer;
+    if there is one but confidence is low, split the document and reinforce the vocabulary.</dd>
+    <dt>Q. An agent's message is refused on send.</dt>
+    <dd>That is a moderation block. Rephrase the expression that hit a moderation rule (§4.5) and send again.
+    If the rules are excessive, ask the master to soften the action (block→mask).</dd>
+    <dt>Q. Answers come out only in English.</dt>
+    <dd>The answer language follows the customer's session language. Verify by setting the language in the preview.
+    Writing the persona in Korean is unrelated to the answer language.</dd>
+    <dt>Q. Google Drive/Notion sync imports 0 items.</dt>
+    <dd>Most often the folder share (service-account email) or the Notion integration connection is broken.
+    Start over from [Test connection] on the credentials card.</dd>
+    <dt>Q. I applied a coaching proposal and answers got worse.</dt>
+    <dd>Recover with [Revert] on that proposal card. You can also open the previous revision in the settings change history, load it into the editor, and save.</dd>
+    <dt>Q. The same question gets slightly different answers each time.</dt>
+    <dd>That is normal LLM variation (check the spread with §6.3 variability measurement). If the <strong>content</strong> — not the wording — differs,
+    suspect a knowledge conflict (§3.2). Adjusting temperature has no effect on Anthropic engines (§4.4).</dd>
+  </dl>
+</section>
+
+<div class="next">
+  <strong>See also →</strong> <a href="quick-setup.en.html"><em>ShopTalk Quick Setup Manual</em></a> (Part 1): tenant creation·first login·platform integration·widget install.
+  For the full screen reference, see the <a href="user-manual.en.html">integrated user manual</a> (v2.0).
+</div>
+
+</main>
+</div>
+
+</body>
+</html>

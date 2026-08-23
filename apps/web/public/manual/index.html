@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>샵톡 사용자설명서</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@700;800&family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --accent:#2B7FFF; --accent-deep:#1D5FD6; --accent-tint:#EAF2FF;
+  --ink:#1B2430; --muted:#5C6675; --line:#E3E8F0;
+  --bg:#FAFBFD; --card:#FFFFFF; --soft:#F1F5FB;
+  --warn-bg:#FFF7E6; --warn-ink:#8A4B04;
+}
+:root:not([data-theme="light"]){}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --accent:#5C9BFF; --accent-deep:#82B4FF; --accent-tint:#16243C;
+    --ink:#E6EBF3; --muted:#93A0B4; --line:#28313F;
+    --bg:#0F141B; --card:#161C25; --soft:#1B222D;
+    --warn-bg:#2A2010; --warn-ink:#EFC584;
+  }
+}
+:root[data-theme="dark"]{
+  --accent:#5C9BFF; --accent-deep:#82B4FF; --accent-tint:#16243C;
+  --ink:#E6EBF3; --muted:#93A0B4; --line:#28313F;
+  --bg:#0F141B; --card:#161C25; --soft:#1B222D;
+  --warn-bg:#2A2010; --warn-ink:#EFC584;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:"IBM Plex Sans KR","Apple SD Gothic Neo","Segoe UI",sans-serif;
+  font-size:16px;line-height:1.7}
+.shell{max-width:1040px;margin:0 auto;padding:0 24px 80px}
+header{padding:64px 0 36px;border-bottom:1px solid var(--line);
+  display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:20px}
+.eyebrow{font-size:12px;font-weight:700;letter-spacing:.14em;color:var(--accent);text-transform:uppercase}
+h1{font-family:"Gothic A1",sans-serif;font-weight:800;font-size:clamp(28px,4.5vw,40px);
+  line-height:1.25;margin:10px 0 8px;text-wrap:balance}
+.sub{color:var(--muted);max-width:60ch;margin:0}
+.langbar{display:flex;gap:4px;border:1px solid var(--line);border-radius:999px;padding:4px;background:var(--card)}
+.langbar button{border:0;background:none;color:var(--muted);font:inherit;font-size:13.5px;font-weight:700;
+  padding:6px 16px;border-radius:999px;cursor:pointer}
+.langbar button[aria-pressed="true"]{background:var(--accent);color:#fff}
+.langbar button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:20px;margin-top:36px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:26px 26px 22px;
+  display:flex;flex-direction:column;gap:8px}
+.card .no{font-family:"IBM Plex Mono",monospace;font-size:13px;color:var(--accent);font-weight:500}
+.card h2{font-family:"Gothic A1",sans-serif;font-weight:800;font-size:20px;margin:0;line-height:1.35;text-wrap:balance}
+.card p{margin:0;color:var(--muted);font-size:14.5px;flex:1}
+.card .aud{font-size:12.5px;color:var(--muted);border-top:1px solid var(--line);padding-top:12px;margin-top:8px}
+.card .links{display:flex;gap:10px;margin-top:10px}
+.btn{display:inline-block;text-decoration:none;font-size:14px;font-weight:700;border-radius:8px;padding:9px 18px}
+.btn.primary{background:var(--accent);color:#fff}
+.btn.primary:hover{background:var(--accent-deep)}
+.btn.ghost{border:1px solid var(--line);color:var(--accent-deep)}
+.btn.ghost:hover{border-color:var(--accent)}
+.btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.notice{margin-top:28px;font-size:13.5px;color:var(--warn-ink);background:var(--warn-bg);
+  border-radius:10px;padding:10px 16px;display:none}
+.notice.show{display:block}
+footer{margin-top:48px;color:var(--muted);font-size:13px}
+</style>
+</head>
+<body>
+<div class="shell">
+<header>
+  <div>
+    <div class="eyebrow" data-i18n="eyebrow">ShopTalk 사용자설명서</div>
+    <h1 data-i18n="title">샵톡 매뉴얼</h1>
+    <p class="sub" data-i18n="sub">개설부터 운영까지 — 3권으로 안내합니다. 각 매뉴얼은 HTML과 Markdown 원문으로 제공됩니다.</p>
+  </div>
+  <div class="langbar" role="group" aria-label="Language">
+    <button type="button" data-lang="ko" aria-pressed="true">한국어</button>
+    <button type="button" data-lang="en" aria-pressed="false">English</button>
+    <button type="button" data-lang="vi" aria-pressed="false">Tiếng Việt</button>
+  </div>
+</header>
+
+<div class="cards">
+  <article class="card">
+    <span class="no">01</span>
+    <h2 data-i18n="c1t">간단 세팅 매뉴얼</h2>
+    <p data-i18n="c1d">테넌트 개설 → 관리자 초대·임시 비밀번호 → 첫 로그인 → 플랫폼 연동(Cafe24·Shopify·Odoo) → 위젯 설치 → AI·지식 최소 설정, 첫 상담까지의 최단 경로.</p>
+    <div class="aud" data-i18n="c1a">플랫폼 관리자 · 신규 테넌트 관리자</div>
+    <div class="links">
+      <a class="btn primary" data-doc="quick-setup" data-fmt="html" href="quick-setup.ko.html" data-i18n="html">HTML 보기</a>
+      <a class="btn ghost" data-doc="quick-setup" data-fmt="md" href="quick-setup.ko.md" data-i18n="md">MD 원문</a>
+    </div>
+  </article>
+
+  <article class="card">
+    <span class="no">02</span>
+    <h2 data-i18n="c2t">지식 등록·AI 설정 매뉴얼</h2>
+    <p data-i18n="c2d">지식 등록(수동·카탈로그·CSV·외부 소스)과 검증, AI 설정, 라이브챗 대응, 개선 루프 — 각 단계 용어 설명과 동작 팁 포함.</p>
+    <div class="aud" data-i18n="c2a">테넌트 운영자 · CS 담당</div>
+    <div class="links">
+      <a class="btn primary" data-doc="knowledge-ai" data-fmt="html" href="knowledge-ai.ko.html" data-i18n="html">HTML 보기</a>
+      <a class="btn ghost" data-doc="knowledge-ai" data-fmt="md" href="knowledge-ai.ko.md" data-i18n="md">MD 원문</a>
+    </div>
+  </article>
+
+  <article class="card">
+    <span class="no">03</span>
+    <h2 data-i18n="c3t">통합 사용자 매뉴얼</h2>
+    <p data-i18n="c3d">콘솔 화면 전체를 훑는 참조 매뉴얼(v2.0) — 라이브챗·이슈 보드·통계·캠페인·리뷰·관리자 콘솔까지.</p>
+    <div class="aud" data-i18n="c3a">운영자 · 상담원 · 플랫폼 관리자</div>
+    <div class="links">
+      <a class="btn primary" data-doc="user-manual" data-fmt="html" href="user-manual.ko.html" data-i18n="html">HTML 보기</a>
+      <a class="btn ghost" data-doc="user-manual" data-fmt="md" href="user-manual.ko.md" data-i18n="md">MD 원문</a>
+    </div>
+  </article>
+</div>
+
+<p class="notice" id="mtNotice" data-i18n="notice"></p>
+<footer data-i18n="footer">ShopTalk · shoptalk.amoeba.site</footer>
+</div>
+
+<script>
+(function(){
+  var STR = {
+    ko: {
+      eyebrow:"ShopTalk 사용자설명서", title:"샵톡 매뉴얼",
+      sub:"개설부터 운영까지 — 3권으로 안내합니다. 각 매뉴얼은 HTML과 Markdown 원문으로 제공됩니다.",
+      c1t:"간단 세팅 매뉴얼",
+      c1d:"테넌트 개설 → 관리자 초대·임시 비밀번호 → 첫 로그인 → 플랫폼 연동(Cafe24·Shopify·Odoo) → 위젯 설치 → AI·지식 최소 설정, 첫 상담까지의 최단 경로.",
+      c1a:"플랫폼 관리자 · 신규 테넌트 관리자",
+      c2t:"지식 등록·AI 설정 매뉴얼",
+      c2d:"지식 등록(수동·카탈로그·CSV·외부 소스)과 검증, AI 설정, 라이브챗 대응, 개선 루프 — 각 단계 용어 설명과 동작 팁 포함.",
+      c2a:"테넌트 운영자 · CS 담당",
+      c3t:"통합 사용자 매뉴얼",
+      c3d:"콘솔 화면 전체를 훑는 참조 매뉴얼(v2.0) — 라이브챗·이슈 보드·통계·캠페인·리뷰·관리자 콘솔까지.",
+      c3a:"운영자 · 상담원 · 플랫폼 관리자",
+      html:"HTML 보기", md:"MD 원문", notice:"",
+      footer:"ShopTalk · shoptalk.amoeba.site", docLang:"ko"
+    },
+    en: {
+      eyebrow:"ShopTalk User Guides", title:"ShopTalk Manuals",
+      sub:"From setup to daily operations — three guides. Each manual is available as HTML and raw Markdown.",
+      c1t:"Quick Setup Manual",
+      c1d:"Create a tenant → invite an admin with a temporary password → first login → connect your platform (Cafe24·Shopify·Odoo) → install the widget → minimal AI & knowledge setup, all the way to the first chat.",
+      c1a:"Platform admins · new tenant admins",
+      c2t:"Knowledge & AI Settings Manual",
+      c2d:"Registering knowledge (manual, catalog, CSV, external sources) and verifying it, AI settings, live-chat handoff, and the improvement loop — with glossary and tips at every step.",
+      c2a:"Tenant operators · CS staff",
+      c3t:"Complete User Manual",
+      c3d:"A screen-by-screen reference (v2.0) — live chat, issue board, statistics, campaigns, reviews, and the platform admin console.",
+      c3a:"Operators · agents · platform admins",
+      html:"View HTML", md:"Raw MD",
+      notice:"⚠ The English and Vietnamese editions are AI-translated drafts pending native review. Where they disagree, the Korean edition is authoritative.",
+      footer:"ShopTalk · shoptalk.amoeba.site", docLang:"en"
+    },
+    vi: {
+      eyebrow:"Tài liệu hướng dẫn ShopTalk", title:"Sổ tay ShopTalk",
+      sub:"Từ khởi tạo đến vận hành hằng ngày — gồm 3 quyển. Mỗi sổ tay có bản HTML và bản Markdown gốc.",
+      c1t:"Sổ tay cài đặt nhanh",
+      c1d:"Tạo tenant → mời quản trị viên với mật khẩu tạm → đăng nhập lần đầu → kết nối nền tảng (Cafe24·Shopify·Odoo) → cài widget → thiết lập AI & tri thức tối thiểu, cho đến phiên chat đầu tiên.",
+      c1a:"Quản trị nền tảng · quản trị tenant mới",
+      c2t:"Sổ tay tri thức & cấu hình AI",
+      c2d:"Đăng ký tri thức (thủ công, catalog, CSV, nguồn ngoài) và kiểm chứng, cấu hình AI, chuyển tiếp live chat, vòng lặp cải tiến — kèm giải thích thuật ngữ và mẹo ở từng bước.",
+      c2a:"Người vận hành tenant · nhân viên CS",
+      c3t:"Sổ tay tổng hợp",
+      c3d:"Tài liệu tham chiếu từng màn hình (v2.0) — live chat, bảng issue, thống kê, chiến dịch, đánh giá và bảng quản trị nền tảng.",
+      c3a:"Người vận hành · tư vấn viên · quản trị nền tảng",
+      html:"Xem HTML", md:"Bản MD",
+      notice:"⚠ Bản tiếng Anh và tiếng Việt là bản dịch AI, đang chờ hiệu đính bởi người bản ngữ. Nếu có khác biệt, bản tiếng Hàn là bản chuẩn.",
+      footer:"ShopTalk · shoptalk.amoeba.site", docLang:"vi"
+    }
+  };
+  var KEY = "shoptalk_manual_lang";
+  function apply(lang){
+    var s = STR[lang] || STR.ko;
+    document.documentElement.lang = lang;
+    document.querySelectorAll("[data-i18n]").forEach(function(el){
+      var k = el.getAttribute("data-i18n");
+      if (k in s) el.textContent = s[k];
+    });
+    document.querySelectorAll("a[data-doc]").forEach(function(a){
+      a.setAttribute("href", a.getAttribute("data-doc") + "." + s.docLang + "." + a.getAttribute("data-fmt"));
+    });
+    document.querySelectorAll(".langbar button").forEach(function(b){
+      b.setAttribute("aria-pressed", String(b.getAttribute("data-lang") === lang));
+    });
+    var n = document.getElementById("mtNotice");
+    n.className = "notice" + (s.notice ? " show" : "");
+    try { localStorage.setItem(KEY, lang); } catch(e){}
+  }
+  document.querySelectorAll(".langbar button").forEach(function(b){
+    b.addEventListener("click", function(){ apply(b.getAttribute("data-lang")); });
+  });
+  var saved = null;
+  try { saved = localStorage.getItem(KEY); } catch(e){}
+  if (!saved) {
+    var nav = (navigator.language || "ko").slice(0,2);
+    saved = (nav === "en" || nav === "vi") ? nav : "ko";
+  }
+  apply(saved in STR ? saved : "ko");
+})();
+</script>
+</body>
+</html>

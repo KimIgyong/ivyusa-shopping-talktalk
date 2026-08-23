@@ -1,0 +1,409 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sổ tay thiết lập nhanh ShopTalk</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@700;800&family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --accent:#2B7FFF; --accent-deep:#1D5FD6; --accent-tint:#EAF2FF;
+  --ink:#1B2430; --muted:#5C6675; --line:#E3E8F0;
+  --bg:#FAFBFD; --card:#FFFFFF; --soft:#F1F5FB;
+  --tip-bg:#EAF2FF; --tip-edge:#2B7FFF;
+  --warn-bg:#FFF7E6; --warn-edge:#D97706; --warn-ink:#8A4B04;
+  --code-bg:#EEF2F8; --mono-ink:#31435E;
+}
+:root:not([data-theme="light"]){}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --accent:#5C9BFF; --accent-deep:#82B4FF; --accent-tint:#16243C;
+    --ink:#E6EBF3; --muted:#93A0B4; --line:#28313F;
+    --bg:#0F141B; --card:#161C25; --soft:#1B222D;
+    --tip-bg:#152238; --tip-edge:#5C9BFF;
+    --warn-bg:#2A2010; --warn-edge:#E8A23D; --warn-ink:#EFC584;
+    --code-bg:#1E2632; --mono-ink:#B9C7DC;
+  }
+}
+:root[data-theme="dark"]{
+  --accent:#5C9BFF; --accent-deep:#82B4FF; --accent-tint:#16243C;
+  --ink:#E6EBF3; --muted:#93A0B4; --line:#28313F;
+  --bg:#0F141B; --card:#161C25; --soft:#1B222D;
+  --tip-bg:#152238; --tip-edge:#5C9BFF;
+  --warn-bg:#2A2010; --warn-edge:#E8A23D; --warn-ink:#EFC584;
+  --code-bg:#1E2632; --mono-ink:#B9C7DC;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:"IBM Plex Sans KR","Apple SD Gothic Neo","Segoe UI",sans-serif;
+  font-size:16px;line-height:1.75}
+.shell{max-width:1120px;margin:0 auto;padding:0 24px 96px;
+  display:grid;grid-template-columns:220px minmax(0,1fr);gap:48px}
+@media(max-width:860px){.shell{display:block}}
+header.hero{grid-column:1/-1;padding:56px 0 8px;border-bottom:1px solid var(--line);margin-bottom:8px}
+.eyebrow{font-size:12px;font-weight:700;letter-spacing:.14em;color:var(--accent);text-transform:uppercase}
+h1{font-family:"Gothic A1",sans-serif;font-weight:800;font-size:clamp(28px,4.5vw,40px);
+  line-height:1.25;margin:10px 0 12px;text-wrap:balance}
+.meta{color:var(--muted);font-size:14px;display:flex;flex-wrap:wrap;gap:6px 18px}
+.lead{max-width:68ch;color:var(--muted);margin-top:14px}
+nav.toc{position:sticky;top:24px;align-self:start;font-size:13.5px;padding-top:24px}
+@media(max-width:860px){nav.toc{position:static;border:1px solid var(--line);border-radius:10px;
+  background:var(--card);padding:14px 16px;margin:20px 0}}
+nav.toc .toc-label{font-size:11px;font-weight:700;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;margin-bottom:8px}
+nav.toc a{display:flex;gap:8px;color:var(--muted);text-decoration:none;padding:4px 0;line-height:1.4}
+nav.toc a:hover,nav.toc a:focus-visible{color:var(--accent)}
+nav.toc a .n{font-family:"IBM Plex Mono",monospace;color:var(--accent);font-size:12px;min-width:18px;padding-top:1px}
+main{min-width:0;max-width:74ch}
+section{padding-top:40px}
+.ch{display:flex;align-items:baseline;gap:12px;border-top:2px solid var(--ink);padding-top:14px}
+.ch .num{font-family:"IBM Plex Mono",monospace;font-size:13px;font-weight:500;color:var(--accent)}
+h2{font-family:"Gothic A1",sans-serif;font-weight:800;font-size:24px;margin:0;line-height:1.35;text-wrap:balance}
+.actor{display:inline-block;font-size:12px;font-weight:700;border-radius:999px;padding:2px 12px;
+  background:var(--accent-tint);color:var(--accent-deep);margin-top:10px}
+h3{font-family:"Gothic A1",sans-serif;font-weight:700;font-size:17.5px;margin:30px 0 8px}
+p{margin:10px 0;max-width:68ch}
+a{color:var(--accent-deep)}
+strong{font-weight:700}
+table{border-collapse:collapse;width:100%;font-size:14.5px;margin:14px 0}
+th{font-size:12.5px;letter-spacing:.04em;color:var(--muted);text-align:left;font-weight:700;
+  border-bottom:2px solid var(--line);padding:7px 12px 7px 0}
+td{border-bottom:1px solid var(--line);padding:8px 12px 8px 0;vertical-align:top}
+.tablewrap{overflow-x:auto}
+.terms{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:6px 18px 14px;margin:16px 0}
+.terms .t-label{font-size:11px;font-weight:700;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;margin:12px 0 2px}
+.terms td:first-child{font-weight:700;white-space:nowrap;padding-right:18px}
+.callout{border-left:3px solid var(--tip-edge);background:var(--tip-bg);border-radius:0 10px 10px 0;
+  padding:12px 18px;margin:16px 0;font-size:14.5px}
+.callout .c-label{font-weight:700;color:var(--accent-deep)}
+.callout.warn{border-left-color:var(--warn-edge);background:var(--warn-bg);color:var(--warn-ink)}
+.callout.warn .c-label{color:var(--warn-ink)}
+.callout p{margin:6px 0}
+code,kbd{font-family:"IBM Plex Mono",monospace;font-size:.86em;background:var(--code-bg);
+  color:var(--mono-ink);border-radius:5px;padding:1px 6px}
+pre{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px 18px;
+  overflow-x:auto;font-size:13px;line-height:1.6}
+pre code{background:none;padding:0;color:var(--mono-ink)}
+ol.steps{padding-left:0;margin:14px 0;list-style:none;counter-reset:st}
+ol.steps>li{counter-increment:st;position:relative;padding:0 0 14px 40px}
+ol.steps>li::before{content:counter(st);position:absolute;left:0;top:1px;width:24px;height:24px;
+  border-radius:50%;background:var(--accent);color:#fff;font-size:13px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;font-family:"IBM Plex Mono",monospace}
+ul{margin:10px 0;padding-left:22px}
+li{margin:4px 0}
+.check{list-style:none;padding-left:0}
+.check li{padding-left:30px;position:relative}
+.check li::before{content:"";position:absolute;left:2px;top:6px;width:14px;height:14px;
+  border:2px solid var(--accent);border-radius:4px}
+.faq dt{font-weight:700;margin-top:18px}
+.faq dd{margin:4px 0 0;color:var(--muted)}
+.next{margin-top:56px;border:1px solid var(--line);background:var(--card);border-radius:12px;padding:20px 24px}
+.pagenav{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;padding-top:18px;color:var(--muted)}
+.pagenav a{color:var(--muted);text-decoration:none}
+.pagenav a:hover,.pagenav a:focus-visible{color:var(--accent)}
+.pagenav .cur{color:var(--accent-deep);font-weight:700}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media(prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
+</style>
+</head>
+<body>
+
+<div class="shell">
+<nav class="pagenav" aria-label="Điều hướng sổ tay"><a href="./">← Danh sách sổ tay</a><span>·</span><a href="quick-setup.ko.html">한국어</a><a href="quick-setup.en.html">English</a><span class="cur">Tiếng Việt</span><span>·</span><a href="quick-setup.vi.md">Bản MD</a></nav>
+<header class="hero">
+  <div class="eyebrow">Sổ tay người dùng ShopTalk · 1/2</div>
+  <h1>Sổ tay thiết lập nhanh ShopTalk</h1>
+  <div class="meta"><span>Phiên bản 1.0 · 2026-08-24 · Biên soạn dựa trên mã nguồn</span><span>Đối tượng: quản trị viên nền tảng (chương 1) · quản trị viên tenant mới (chương 2~8)</span></div>
+  <p class="lead">Trình bày con đường ngắn nhất từ khi mở một cửa hàng (tenant) mới đến khi <strong>widget trò chuyện thực sự bắt đầu tiếp khách hàng</strong>.
+  URL staging chuẩn là <code>https://shoptalk.amoeba.site</code>; thời gian cần: thao tác admin khoảng 5 phút + thiết lập tenant lần đầu khoảng 30 phút.
+  Về cách thiết lập chuyên sâu tri thức·AI, xem <em>Sổ tay đăng ký tri thức·cài đặt AI</em> (tập 2).</p>
+  <p class="lead">⚠ Bản dịch AI, đang chờ hiệu đính bởi người bản ngữ. Bản tiếng Hàn là bản chuẩn.</p>
+</header>
+
+<nav class="toc" aria-label="Mục lục">
+  <div class="toc-label">Mục lục</div>
+  <a href="#ch0"><span class="n">0</span>Trước khi bắt đầu</a>
+  <a href="#ch1"><span class="n">1</span>Mở tenant (admin)</a>
+  <a href="#ch2"><span class="n">2</span>Đăng nhập lần đầu</a>
+  <a href="#ch3"><span class="n">3</span>Tích hợp nền tảng thương mại</a>
+  <a href="#ch4"><span class="n">4</span>Cài đặt·cài widget</a>
+  <a href="#ch5"><span class="n">5</span>Cài đặt AI tối thiểu</a>
+  <a href="#ch6"><span class="n">6</span>Nhập tri thức lần đầu</a>
+  <a href="#ch7"><span class="n">7</span>Mời thành viên·chuyển tiếp tư vấn</a>
+  <a href="#ch8"><span class="n">8</span>Danh sách kiểm tra hoàn tất</a>
+  <a href="#ch9"><span class="n">9</span>Xử lý sự cố</a>
+</nav>
+
+<main>
+
+<section id="ch0">
+  <div class="ch"><span class="num">00</span><h2>Trước khi bắt đầu</h2></div>
+  <div class="terms"><div class="t-label">Thuật ngữ</div>
+  <div class="tablewrap"><table>
+    <tr><td>Tenant</td><td>Một cửa hàng "vào ở" trong ShopTalk. Dữ liệu·cài đặt·tri thức được tách biệt hoàn toàn theo từng cửa hàng.</td></tr>
+    <tr><td>Slug</td><td>Đoạn địa chỉ đăng nhập riêng của tenant. Được gắn vào cuối URL như <code>…/ivyusa</code>.</td></tr>
+    <tr><td>Quản trị viên nền tảng</td><td>Quản trị viên của đơn vị vận hành ShopTalk, đăng nhập qua <code>/admin</code>. Có quyền mở tenant.</td></tr>
+    <tr><td>Quản trị viên tenant (master)</td><td>Cấp bậc cao nhất trong bảng điều khiển cửa hàng. Quản lý toàn bộ thành viên·quyền·cài đặt.</td></tr>
+    <tr><td>Mật khẩu tạm thời</td><td>Mật khẩu dùng một lần do hệ thống cấp khi mời. <strong>Chỉ hiển thị trên màn hình đúng một lần</strong>.</td></tr>
+  </table></div></div>
+  <h3>Cần chuẩn bị</h3>
+  <ul>
+    <li>Tài khoản quản trị viên nền tảng (<code>/admin/login</code>)</li>
+    <li><strong>Tên miền cửa hàng</strong> của cửa hàng sẽ mở (ví dụ: <code>example.myshopify.com</code>, <code>mallid.cafe24.com</code>)</li>
+    <li>Địa chỉ email của người sẽ được mời làm quản trị viên tenant</li>
+    <li>Thông tin xác thực của nền tảng cần tích hợp (chương 3 — quản trị viên tenant chuẩn bị)</li>
+  </ul>
+</section>
+
+<section id="ch1">
+  <div class="ch"><span class="num">01</span><h2>Mở tenant</h2></div>
+  <span class="actor">Quản trị viên nền tảng · /admin/tenants</span>
+
+  <h3>1.1 Tạo tenant mới</h3>
+  <p><code>/admin/tenants</code> → <strong>[Gian hàng mới]</strong> → nhập 4 trường trong hộp thoại.</p>
+  <div class="tablewrap"><table>
+    <tr><th>Trường</th><th>Bắt buộc</th><th>Mô tả</th></tr>
+    <tr><td>Tên</td><td>✅</td><td>Tên hiển thị của cửa hàng</td></tr>
+    <tr><td>Đường dẫn đăng nhập (slug)</td><td>—</td><td>Để trống sẽ tự tạo từ tên. Khi nhập sẽ tự chuyển thành chữ thường</td></tr>
+    <tr><td>Tên miền cửa hàng</td><td>✅</td><td>Tên miền đại diện của cửa hàng — <strong>dùng chung cho mọi nền tảng</strong></td></tr>
+    <tr><td>Gói dịch vụ</td><td>✅</td><td>starter / growth / enterprise — menu mặc định khác nhau theo gói</td></tr>
+  </table></div>
+  <div class="callout"><span class="c-label">💡 Quy tắc slug</span>
+  <p>Chỉ được dùng chữ thường·số·gạch ngang, và không được trùng với tên màn hình của bảng điều khiển (<code>admin</code>, <code>login</code>, <code>dashboard</code>, <code>settings</code> v.v. — các từ dành riêng).
+  Nhập từ dành riêng thì máy chủ tự thêm hậu tố <code>-shop</code>. Slug chính là URL đăng nhập, nên khuyến nghị chọn giá trị dễ nhớ với cửa hàng.</p></div>
+
+  <h3>1.2 (Tùy chọn) Điều chỉnh menu được cung cấp</h3>
+  <p>Trên hàng của tenant → <strong>[Menu]</strong> → chọn 1 trong 3 chế độ cho từng menu: <strong>Theo gói</strong> (mặc định) / <strong>Buộc cung cấp</strong> / <strong>Không cung cấp</strong>.
+  Cột kết quả đổi ngay lập tức, mục ngoại lệ hiển thị dấu <code>*</code>.</p>
+  <div class="callout"><span class="c-label">💡 Mẹo</span>
+  <p>Menu bị chặn ở đây sẽ không hiển thị kể cả khi master của tenant cấp quyền theo cấp bậc (2 tầng: admin cung cấp → quyền nội bộ của tenant).
+  Bảng yêu cầu còn cần cài đặt chế độ quy trình đi kèm.</p></div>
+
+  <h3>1.3 Mời quản trị viên tenant + cấp mật khẩu tạm thời</h3>
+  <ol class="steps">
+    <li>Trên hàng của tenant → <strong>[Người dùng]</strong> → <strong>[Mời người dùng]</strong></li>
+    <li>Nhập <code>email</code>, giữ <code>cấp bậc</code> ở mặc định <strong>master</strong> (vì là quản trị viên đầu tiên)</li>
+    <li><strong>[Gửi lời mời]</strong> → <strong>hộp thoại mật khẩu tạm thời</strong> hiện ra ngay — sao chép giá trị</li>
+  </ol>
+  <pre><code>┌─ Đã cấp mật khẩu tạm thời ─────────────────┐
+│ Mật khẩu tạm thời của user@shop.com         │
+│ ┌────────────────────────┐                 │
+│ │  IvyXXXXXXXXX!         │   [Sao chép]    │
+│ └────────────────────────┘                 │
+│ ⚠️ Giá trị này chỉ hiển thị một lần.        │
+└────────────────────────────────────────────┘</code></pre>
+  <div class="callout warn"><span class="c-label">⚠️ Mật khẩu tạm thời không được gửi qua email</span>
+  <p>Quản trị viên phải sao chép giá trị hiển thị một lần trong hộp thoại và <strong>tự tay chuyển giao</strong>. Nếu lỡ đóng cửa sổ và mất giá trị,
+  hãy cấp lại bằng nút <strong>[Mật khẩu tạm]</strong> trên hàng người dùng đó (giá trị cũ sẽ bị vô hiệu).</p></div>
+  <div class="callout"><span class="c-label">💡 Bảo mật khi chuyển giao</span>
+  <p>Đừng để mật khẩu trong nội dung email hay nhóm chat. Hãy chuyển qua tin nhắn bảo mật 1:1 hoặc điện thoại,
+  và quy trình mở tenant chỉ hoàn tất khi đã xác nhận đăng nhập lần đầu (= đổi mật khẩu bắt buộc) xong. Lịch sử cấp phát được ghi vào nhật ký kiểm tra (<code>/admin/audit</code>).</p></div>
+
+  <h3>1.4 Chuyển giao URL đăng nhập</h3>
+  <p>Bấm <strong>[Sao chép]</strong> <strong>URL trang đăng nhập</strong> (<code>https://…/slug</code>) ở thẻ đầu cùng màn hình và gửi kèm.</p>
+  <p>3 thứ cần chuyển giao — ① URL đăng nhập ② email (ID tài khoản) ③ mật khẩu tạm thời</p>
+</section>
+
+<section id="ch2">
+  <div class="ch"><span class="num">02</span><h2>Đăng nhập lần đầu</h2></div>
+  <span class="actor">Quản trị viên tenant · https://shoptalk.amoeba.site/&lt;slug&gt;</span>
+
+  <h3>2.1 Đăng nhập</h3>
+  <p>Truy cập URL được cung cấp, màn hình đăng nhập hiển thị tên cửa hàng sẽ hiện ra. Đăng nhập bằng email + mật khẩu tạm thời.</p>
+  <div class="callout"><span class="c-label">💡 Mẹo</span>
+  <p>Nếu thấy "Không tìm thấy cửa hàng", hãy kiểm tra chính tả slug trong URL.
+  Bật <strong>Ghi nhớ email</strong> thì từ lần sau trình duyệt này sẽ tự điền email.</p></div>
+
+  <h3>2.2 Đổi mật khẩu bắt buộc</h3>
+  <p>Ngay sau khi đăng nhập, <strong>cửa sổ đổi mật khẩu không thể đóng</strong> hiện ra (không thể hủy — không thể dùng bảng điều khiển với mật khẩu tạm thời).</p>
+  <ul>
+    <li>Nhập mật khẩu hiện tại (tạm thời) + mật khẩu mới + xác nhận</li>
+    <li>3 quy tắc hiển thị ✓/✕ theo thời gian thực: <strong>① tối thiểu 10 ký tự ② ít nhất 3 trong 4 loại chữ hoa·chữ thường·số·ký tự đặc biệt ③ không phải mật khẩu phổ biến</strong></li>
+    <li>Mật khẩu chứa email của chính mình, hoặc trùng mật khẩu ngay trước, bị máy chủ từ chối</li>
+  </ul>
+
+  <h3>2.3 Đăng ký MFA (xác thực 2 bước)</h3>
+  <div class="terms"><div class="t-label">Thuật ngữ</div>
+  <div class="tablewrap"><table>
+    <tr><td>TOTP</td><td>Mã 6 chữ số do ứng dụng xác thực (Google Authenticator v.v.) tạo mỗi 30 giây</td></tr>
+    <tr><td>Mã khôi phục</td><td>10 mã dùng một lần thay thế khi mất ứng dụng xác thực — <strong>chỉ hiển thị một lần ngay sau khi đăng ký</strong></td></tr>
+  </table></div></div>
+  <p>Cấp bậc master·director bắt buộc đăng ký MFA (TOTP) theo chính sách bảo mật.
+  Trước ngày hiệu lực có biểu ngữ gia hạn ở trên cùng (có thể đăng ký trước tại Trang của tôi); sau ngày hiệu lực, bảng điều khiển bị chặn cho đến khi đăng ký xong.</p>
+  <p>Đăng ký: quét QR (hoặc nhập khóa thủ công) → nhập mã 6 chữ số từ ứng dụng → <strong>tải về·lưu giữ 10 mã khôi phục</strong> → hoàn tất.
+  Từ đó mỗi lần đăng nhập nhập thêm mã 6 chữ số.</p>
+  <div class="callout warn"><span class="c-label">⚠️ Mã khôi phục chỉ hiển thị đúng lúc này một lần</span>
+  <p>Nhất định phải lưu lại. Nếu mất cả ứng dụng xác thực lẫn mã khôi phục thì chỉ có thể gỡ bằng
+  <strong>[Đặt lại MFA]</strong> của quản trị viên (admin hoặc master của cửa hàng).</p></div>
+</section>
+
+<section id="ch3">
+  <div class="ch"><span class="num">03</span><h2>Tích hợp nền tảng thương mại</h2></div>
+  <span class="actor">Bảng điều khiển [Cài đặt gian hàng] → thẻ Tích hợp cửa hàng</span>
+  <div class="terms"><div class="t-label">Thuật ngữ</div>
+  <div class="tablewrap"><table>
+    <tr><td>Thông tin xác thực</td><td>Khóa·token để truy cập API nền tảng. Lưu mã hóa; sau khi lưu chỉ hiển thị là "Đã lưu"</td></tr>
+    <tr><td>Kiểm tra kết nối</td><td>Nút gọi API thật một lần bằng thông tin xác thực đã lưu để kiểm tra tính hợp lệ</td></tr>
+    <tr><td>Đồng bộ</td><td>Thao tác lấy dữ liệu đơn hàng·sản phẩm của nền tảng về bộ nhớ đệm ShopTalk</td></tr>
+  </table></div></div>
+
+  <h3>3.1 Cafe24 — kết nối OAuth (khuyến nghị) ✅</h3>
+  <ol class="steps">
+    <li>Tại thẻ <em>Kết nối Cafe24</em> trên trang cài đặt, nhập <code>mall ID</code> (phần mallID trong <code>mallID.cafe24.com</code>)</li>
+    <li><strong>[Kết nối]</strong> → trang ủy quyền Cafe24 → đăng nhập·chấp thuận quyền → tự quay lại bảng điều khiển</li>
+    <li>Xác nhận huy hiệu Đã kết nối rồi chạy <strong>[Đồng bộ ngay]</strong> (đơn hàng) / <strong>[Đồng bộ sản phẩm]</strong></li>
+  </ol>
+  <div class="callout"><span class="c-label">💡 Mẹo</span>
+  <p>Đồng bộ sản phẩm chỉ nạp đến <strong>bộ nhớ đệm</strong> sản phẩm. Để AI dùng các sản phẩm này trong câu trả lời, phải chạy riêng
+  <strong>Đồng bộ từ danh mục sản phẩm</strong> (xem trước→thực thi) ở màn hình [Kho tri thức] — xem chương 2.2 sổ tay tập 2.
+  Nếu đã có sẵn token, cũng có thể nhập thủ công vào hộp thoại cafe24 của ô Tích hợp cửa hàng, nhưng kết nối OAuth là cách chuẩn.</p></div>
+
+  <h3>3.2 Shopify ✅</h3>
+  <p>Hộp thoại Shopify của ô Tích hợp cửa hàng: <code>tên miền cửa hàng</code> (bắt buộc, <code>*.myshopify.com</code>) ·
+  <code>Admin API Access Token</code> (bắt buộc) · API Key/Secret (tùy chọn).</p>
+  <p>Sau khi lưu, chạy theo thứ tự <strong>[Kiểm tra kết nối] → [Đồng bộ ngay] → [Đăng ký webhook]</strong>.
+  Phải đăng ký webhook thì thay đổi trạng thái đơn hàng·giao hàng mới vào thông báo widget theo thời gian thực.</p>
+
+  <h3>3.3 Odoo — thông tin xác thực·kiểm tra kết nối ✅ / đồng bộ thời gian thực 🟡</h3>
+  <p>Nhập <code>URL máy chủ</code> / <code>tên DB</code> / <code>tên người dùng</code> / <code>API Key</code> vào hộp thoại odoo và kiểm tra kết nối.
+  Đồng bộ dữ liệu thời gian thực đang ở giai đoạn chuẩn bị.</p>
+
+  <h3>3.4 URL storefront</h3>
+  <p>Nhập <strong>địa chỉ trang dành cho khách hàng</strong> của cửa hàng vào thẻ <em>Cửa hàng (storefront)</em>.
+  Nếu chưa đặt, liên kết sản phẩm trong widget bị vô hiệu (thẻ hiển thị cảnh báo).</p>
+  <p style="color:var(--muted);font-size:14px">Ngoài ra WooCommerce·Haravan (thương mại), Klaviyo·Yotpo (marketing), Gorgias (helpdesk),
+  các kênh nhắn tin (Telegram·Gmail v.v.) cũng tích hợp bằng ô/thẻ theo cùng cách.</p>
+</section>
+
+<section id="ch4">
+  <div class="ch"><span class="num">04</span><h2>Cài đặt·cài lên trang widget trò chuyện</h2></div>
+  <span class="actor">Các thẻ widget trên trang [Cài đặt gian hàng]</span>
+
+  <h3>4.1 Cài widget lên trang</h3>
+  <p>Trong <strong>thẻ hướng dẫn cài đặt</strong>, chọn tab nền tảng (Shopify / Cafe24 / WooCommerce / Odoo) để xem
+  đoạn mã cài đặt và các bước hướng dẫn cho nền tảng đó (mọi khối mã đều có nút sao chép).</p>
+  <ul>
+    <li><strong>Shopify</strong>: 3 cách — App embed (khuyến nghị) / ScriptTag / dán mã thủ công</li>
+    <li><strong>Cafe24</strong>: đoạn mã chuyên dụng dán vào thiết kế mall (kèm đường dẫn đăng nhập thành viên)</li>
+    <li><strong>WooCommerce</strong>: đoạn mã PHP cho <code>functions.php</code> / <strong>Odoo</strong>: đoạn mã HTML đa dụng</li>
+  </ul>
+  <p>Trong <strong>thẻ Embed &amp; SDK</strong>: sao chép đoạn mã cài đặt đa dụng (<code>embed.js</code>),
+  quản lý <strong>tên miền được phép</strong> (để trống thì áp dụng URL storefront),
+  tạo <strong>khóa bí mật ký (signing secret)</strong> (dùng cho liên kết danh tính thành viên).</p>
+  <div class="callout warn"><span class="c-label">⚠️ Khóa bí mật ký chỉ hiển thị một lần khi [Tạo]</span>
+  <p>Hãy sao chép ngay và chuyển cho người phụ trách máy chủ của cửa hàng.</p></div>
+  <div class="callout"><span class="c-label">💡 Mẹo</span>
+  <p>Sau khi cài, mở trang cửa hàng thật và kiểm tra launcher (nút bong bóng chat) xuất hiện ở góc dưới bên phải là cách xác minh chắc chắn nhất.</p></div>
+
+  <h3>4.2 Nội dung·hành vi (thẻ Hành vi của widget)</h3>
+  <div class="tablewrap"><table>
+    <tr><th>Mục</th><th>Mô tả</th></tr>
+    <tr><td>Cách đăng nhập</td><td><code>redirect</code> (chuyển đến trang đăng nhập của cửa hàng rồi quay lại, mặc định) / <code>popup</code></td></tr>
+    <tr><td>Múi giờ</td><td>Múi giờ chuẩn của cửa hàng — dùng cho hiển thị giờ làm việc v.v.</td></tr>
+    <tr><td>Tên hiển thị</td><td>Tên cửa hàng hiện trên đầu widget (tối đa 80 ký tự)</td></tr>
+    <tr><td>Lời chào lần đầu / lời chào khi đã đăng nhập</td><td>Viết riêng theo từng tab ngôn ngữ (EN/ES/KO) (tối đa 500 ký tự)</td></tr>
+  </table></div>
+  <div class="callout"><span class="c-label">💡 Mẹo</span>
+  <p>Để trống lời chào cho một ngôn ngữ thì nội dung mặc định sẽ được gửi. Viết kỹ trước cho một ngôn ngữ chủ lực, phần còn lại điền sau cũng được.</p></div>
+
+  <h3>4.3 Tab·chủ đề giao diện</h3>
+  <p><strong>Thẻ Tab của widget</strong>: chọn tab hiển thị trong 3 tab Thông báo / Đơn hàng / Trò chuyện (giữ tối thiểu 1 — không thể tắt tab cuối), vị trí thanh tab trên/dưới.</p>
+  <p><strong>Thẻ Chủ đề widget</strong>: màu thương hiệu (bộ chọn/HEX) · kiểu phần đầu (trắng/màu thương hiệu) · tải logo ·
+  launcher vị trí (trái/phải)·kích thước (sm/md/lg)·biểu tượng (chat/dấu hỏi/tai nghe/logo). Xem ngay ở phần xem trước bên phải.</p>
+  <div class="callout"><span class="c-label">💡 Mẹo</span>
+  <p>Chỉ cần chọn <strong>một màu thương hiệu duy nhất</strong>. Các bậc sáng và màu chữ được tính tự động theo chuẩn tương phản (4.5:1).
+  Chủ đề đã lưu có hiệu lực <strong>từ phiên widget tiếp theo của khách hàng</strong>.</p></div>
+</section>
+
+<section id="ch5">
+  <div class="ch"><span class="num">05</span><h2>Cài đặt AI tối thiểu</h2></div>
+  <span class="actor">Menu trái [Cài đặt AI]</span>
+  <div class="terms"><div class="t-label">Thuật ngữ</div>
+  <div class="tablewrap"><table>
+    <tr><td>Persona</td><td>Đoạn văn mô tả giọng điệu·thái độ·nguyên tắc của bot tư vấn AI. Quyết định tông của mọi câu trả lời AI</td></tr>
+    <tr><td>Quy tắc trả lời</td><td>Danh sách quy tắc AI nhất định phải tuân thủ (mỗi dòng = 1 quy tắc)</td></tr>
+    <tr><td>Công cụ (engine)</td><td>Mô hình AI tạo câu trả lời. Chọn trong số công cụ do quản trị viên nền tảng đăng ký</td></tr>
+    <tr><td>stub</td><td>Bộ trả lời demo hoạt động không cần khóa AI thật — <strong>không phải chất lượng dịch vụ thật</strong></td></tr>
+  </table></div></div>
+  <ol class="steps">
+    <li>Viết phần giới thiệu cửa hàng·giọng điệu·điều cấm vào thẻ <strong>Persona của bot</strong> rồi lưu
+      (ví dụ: "Là tư vấn viên thân thiện và súc tích của cửa hàng OO. Chỉ trả lời từ tri thức được cung cấp.")</li>
+    <li>Đăng ký tối thiểu 2~3 mục trong <strong>Quy tắc trả lời</strong> (ví dụ: "Không khẳng định hoàn tiền đã hoàn tất")</li>
+    <li>Kiểm tra công cụ áp dụng trong thẻ <strong>Chức năng AI</strong> — thấy huy hiệu <code>stub</code> nghĩa là chưa nối công cụ thật.
+      Đề nghị quản trị viên nền tảng đăng ký công cụ (<code>/admin/ai-engines</code>)</li>
+  </ol>
+  <div class="callout"><span class="c-label">💡 Mẹo</span>
+  <p>Nút kịch bản (menu nhanh dưới cùng của widget) đã có sẵn 6 loại mặc định (Tình trạng giao hàng·Hủy/Hoàn tiền·Hỗ trợ sản phẩm·Liên hệ hỗ trợ·Cộng tác viên·Đơn hàng của tôi)
+  được áp dụng tự động, nên ở giai đoạn mở tenant không cần đụng đến.</p></div>
+</section>
+
+<section id="ch6">
+  <div class="ch"><span class="num">06</span><h2>Nhập tri thức lần đầu</h2></div>
+  <span class="actor">Menu trái [Kho tri thức]</span>
+  <p>AI <strong>chỉ trả lời từ tri thức đã đăng ký</strong>. Chưa có tri thức thì đa số câu hỏi bị chuyển sang nhân viên tư vấn,
+  nên ở giai đoạn mở tenant hãy đăng ký 3~5 tài liệu chính sách cốt lõi.</p>
+  <ol class="steps">
+    <li>Thẻ tài liệu → <strong>[Thêm tài liệu]</strong> → nhập tiêu đề / danh mục (tự gợi ý) / nội dung → lưu.
+      Tài liệu đầu tiên nên có: <strong>Chính sách giao hàng · Chính sách hủy/hoàn tiền · Quy trình đổi/trả · FAQ</strong>. Khi lưu, tài liệu tự động được lập chỉ mục tìm kiếm (embedding).</li>
+    <li>Nhập những câu khách hàng có thể hỏi vào <strong>bảng QA tri thức</strong> bên phải để kiểm tra câu trả lời·nguồn·độ tin cậy —
+      tài liệu vừa đăng ký hiện trong danh sách nguồn là thành công</li>
+  </ol>
+  <div class="callout"><span class="c-label">💡 Mẹo</span>
+  <p>Đưa vào tiêu đề·nội dung <strong>cách nói thực tế của khách hàng</strong> (ví dụ: "giao hàng mất bao lâu") sẽ tăng tỷ lệ khớp khi tìm kiếm.
+  Đăng ký hàng loạt tri thức sản phẩm·tích hợp nguồn ngoài·quản lý chất lượng được đề cập trong sổ tay tập 2.</p></div>
+</section>
+
+<section id="ch7">
+  <div class="ch"><span class="num">07</span><h2>(Tùy chọn) Mời thành viên·chuyển tiếp tư vấn</h2></div>
+  <ul>
+    <li><strong>Mời thành viên</strong>: menu [Người dùng] → [Mời người dùng] → chọn email·cấp bậc (director/manager/staff)·nhãn công việc →
+      <strong>hộp thoại mật khẩu tạm thời</strong> giống chương 1 (hiển thị 1 lần·tự tay chuyển giao). Quyền truy cập từng menu điều chỉnh theo
+      cấp bậc tại thẻ <em>Quyền truy cập menu</em> trong [Cài đặt gian hàng] (chỉ master).</li>
+    <li><strong>Chuyển tiếp tư vấn (handoff)</strong>: trong mục <em>Chuyển tiếp tư vấn</em> của [Cài đặt gian hàng], chỉ định nhân viên tư vấn phụ trách·giờ làm việc·email
+      tiếp nhận ngoài giờ — chi tiết xem chương 5 sổ tay tập 2.</li>
+  </ul>
+</section>
+
+<section id="ch8">
+  <div class="ch"><span class="num">08</span><h2>Danh sách kiểm tra hoàn tất</h2></div>
+  <ul class="check">
+    <li>Tạo tenant + mời quản trị viên·chuyển giao mật khẩu tạm (admin)</li>
+    <li>Đăng nhập lần đầu → đổi mật khẩu → đăng ký MFA</li>
+    <li>Tích hợp nền tảng: lưu thông tin xác thực + <strong>kiểm tra kết nối đạt</strong> + (Shopify) đăng ký webhook</li>
+    <li>Đặt URL storefront</li>
+    <li>Cài đoạn mã widget → <strong>xác nhận launcher hiển thị trên cửa hàng thật</strong></li>
+    <li>Viết tên hiển thị·lời chào</li>
+    <li>Lưu persona·quy tắc trả lời, xác nhận công cụ AI không phải <code>stub</code></li>
+    <li>Đăng ký từ 3 tài liệu chính sách cốt lõi trở lên → kiểm tra câu trả lời bằng bảng QA</li>
+    <li>Hỏi trực tiếp trong widget để xác nhận câu trả lời AI + hiển thị nguồn (đầu-cuối)</li>
+  </ul>
+</section>
+
+<section id="ch9">
+  <div class="ch"><span class="num">09</span><h2>Xử lý sự cố</h2></div>
+  <dl class="faq">
+    <dt>Q. Không đăng nhập được (mật khẩu tạm thời).</dt>
+    <dd>Mật khẩu tạm thời khi cấp lại sẽ vô hiệu hóa giá trị cũ. Kiểm tra xem có phải bản cấp mới nhất không; nếu vẫn không được, đề nghị quản trị viên cấp lại.
+    Cũng kiểm tra xem slug trong URL đăng nhập có phải của cửa hàng khác không.</dd>
+    <dt>Q. Tôi lỡ đóng cửa sổ mật khẩu tạm thời.</dt>
+    <dd>Không thể xem lại giá trị. Cấp lại bằng nút [Mật khẩu tạm] trên hàng người dùng.</dd>
+    <dt>Q. Widget không hiện trên cửa hàng.</dt>
+    <dd>Kiểm tra theo thứ tự: ① đoạn mã có nằm trên trang đã triển khai thực tế không ② tên miền đó có trong danh sách tên miền được phép không ③ làm mới bộ nhớ đệm trình duyệt.</dd>
+    <dt>Q. Câu trả lời của AI máy móc một cách kỳ lạ.</dt>
+    <dd>Xem thẻ Chức năng AI có huy hiệu <code>stub</code> không. Stub là bộ trả lời demo. Hãy đề nghị đăng ký công cụ thật.</dd>
+    <dt>Q. AI cứ chuyển sang "kết nối nhân viên tư vấn".</dt>
+    <dd>Nhiều khả năng chưa có tài liệu tri thức về chủ đề đó hoặc tài liệu đang tắt. Đăng ký tài liệu theo chương 6 và kiểm tra bằng bảng QA.</dd>
+    <dt>Q. Đã đổi cài đặt nhưng widget vẫn như cũ.</dt>
+    <dd>Cài đặt widget (nội dung·chủ đề·tab) có hiệu lực từ phiên tiếp theo của khách hàng. Hãy đóng-mở lại widget hoặc làm mới trang.</dd>
+  </dl>
+</section>
+
+<div class="next">
+  <strong>Bước tiếp theo →</strong> <a href="knowledge-ai.vi.html"><em>Sổ tay tri thức·cài đặt AI ShopTalk</em></a> (tập 2): toàn bộ pipeline tri thức (catalog·CSV·nguồn ngoài),
+  kiểm chứng·quản lý chất lượng, cài đặt AI chi tiết, ứng phó live chat, vòng lặp cải thiện. Tham chiếu toàn bộ màn hình xem <a href="user-manual.vi.html">Sổ tay người dùng tổng hợp</a>.
+</div>
+
+</main>
+</div>
+
+</body>
+</html>

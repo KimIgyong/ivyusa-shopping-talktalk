@@ -1,0 +1,407 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ShopTalk Integrated User Manual</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@700;800&family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --accent:#2B7FFF; --accent-deep:#1D5FD6; --accent-tint:#EAF2FF;
+  --ink:#1B2430; --muted:#5C6675; --line:#E3E8F0;
+  --bg:#FAFBFD; --card:#FFFFFF; --soft:#F1F5FB;
+  --tip-bg:#EAF2FF; --tip-edge:#2B7FFF;
+  --warn-bg:#FFF7E6; --warn-edge:#D97706; --warn-ink:#8A4B04;
+  --code-bg:#EEF2F8; --mono-ink:#31435E;
+}
+:root:not([data-theme="light"]){}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --accent:#5C9BFF; --accent-deep:#82B4FF; --accent-tint:#16243C;
+    --ink:#E6EBF3; --muted:#93A0B4; --line:#28313F;
+    --bg:#0F141B; --card:#161C25; --soft:#1B222D;
+    --tip-bg:#152238; --tip-edge:#5C9BFF;
+    --warn-bg:#2A2010; --warn-edge:#E8A23D; --warn-ink:#EFC584;
+    --code-bg:#1E2632; --mono-ink:#B9C7DC;
+  }
+}
+:root[data-theme="dark"]{
+  --accent:#5C9BFF; --accent-deep:#82B4FF; --accent-tint:#16243C;
+  --ink:#E6EBF3; --muted:#93A0B4; --line:#28313F;
+  --bg:#0F141B; --card:#161C25; --soft:#1B222D;
+  --tip-bg:#152238; --tip-edge:#5C9BFF;
+  --warn-bg:#2A2010; --warn-edge:#E8A23D; --warn-ink:#EFC584;
+  --code-bg:#1E2632; --mono-ink:#B9C7DC;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:"IBM Plex Sans KR","Apple SD Gothic Neo","Segoe UI",sans-serif;
+  font-size:16px;line-height:1.75}
+.shell{max-width:1120px;margin:0 auto;padding:0 24px 96px;
+  display:grid;grid-template-columns:220px minmax(0,1fr);gap:48px}
+@media(max-width:860px){.shell{display:block}}
+.pagenav{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;padding-top:18px;color:var(--muted)}
+.pagenav a{color:var(--muted);text-decoration:none}
+.pagenav a:hover,.pagenav a:focus-visible{color:var(--accent)}
+.pagenav .cur{color:var(--accent-deep);font-weight:700}
+header.hero{grid-column:1/-1;padding:56px 0 8px;border-bottom:1px solid var(--line);margin-bottom:8px}
+.eyebrow{font-size:12px;font-weight:700;letter-spacing:.14em;color:var(--accent);text-transform:uppercase}
+h1{font-family:"Gothic A1",sans-serif;font-weight:800;font-size:clamp(28px,4.5vw,40px);
+  line-height:1.25;margin:10px 0 12px;text-wrap:balance}
+.meta{color:var(--muted);font-size:14px;display:flex;flex-wrap:wrap;gap:6px 18px}
+.lead{max-width:68ch;color:var(--muted);margin-top:14px}
+nav.toc{position:sticky;top:24px;align-self:start;font-size:13.5px;padding-top:24px}
+@media(max-width:860px){nav.toc{position:static;border:1px solid var(--line);border-radius:10px;
+  background:var(--card);padding:14px 16px;margin:20px 0}}
+nav.toc .toc-label{font-size:11px;font-weight:700;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;margin-bottom:8px}
+nav.toc a{display:flex;gap:8px;color:var(--muted);text-decoration:none;padding:3px 0;line-height:1.4}
+nav.toc a:hover,nav.toc a:focus-visible{color:var(--accent)}
+nav.toc a .n{font-family:"IBM Plex Mono",monospace;color:var(--accent);font-size:12px;min-width:18px;padding-top:1px}
+main{min-width:0;max-width:74ch}
+section{padding-top:40px}
+.ch{display:flex;align-items:baseline;gap:12px;border-top:2px solid var(--ink);padding-top:14px}
+.ch .num{font-family:"IBM Plex Mono",monospace;font-size:13px;font-weight:500;color:var(--accent)}
+h2{font-family:"Gothic A1",sans-serif;font-weight:800;font-size:24px;margin:0;line-height:1.35;text-wrap:balance}
+.actor{display:inline-block;font-size:12px;font-weight:700;border-radius:999px;padding:2px 12px;
+  background:var(--accent-tint);color:var(--accent-deep);margin-top:10px}
+h3{font-family:"Gothic A1",sans-serif;font-weight:700;font-size:17.5px;margin:30px 0 8px}
+p{margin:10px 0;max-width:68ch}
+a{color:var(--accent-deep)}
+strong{font-weight:700}
+table{border-collapse:collapse;width:100%;font-size:14.5px;margin:14px 0}
+th{font-size:12.5px;letter-spacing:.04em;color:var(--muted);text-align:left;font-weight:700;
+  border-bottom:2px solid var(--line);padding:7px 12px 7px 0}
+td{border-bottom:1px solid var(--line);padding:8px 12px 8px 0;vertical-align:top}
+.tablewrap{overflow-x:auto}
+.callout{border-left:3px solid var(--tip-edge);background:var(--tip-bg);border-radius:0 10px 10px 0;
+  padding:12px 18px;margin:16px 0;font-size:14.5px}
+.callout .c-label{font-weight:700;color:var(--accent-deep)}
+.callout.warn{border-left-color:var(--warn-edge);background:var(--warn-bg);color:var(--warn-ink)}
+.callout.warn .c-label{color:var(--warn-ink)}
+.callout p{margin:6px 0}
+code,kbd{font-family:"IBM Plex Mono",monospace;font-size:.86em;background:var(--code-bg);
+  color:var(--mono-ink);border-radius:5px;padding:1px 6px}
+pre{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px 18px;
+  overflow-x:auto;font-size:13px;line-height:1.6}
+pre code{background:none;padding:0;color:var(--mono-ink)}
+ul{margin:10px 0;padding-left:22px}
+li{margin:4px 0}
+.faq dt{font-weight:700;margin-top:18px}
+.faq dd{margin:4px 0 0;color:var(--muted)}
+.next{margin-top:56px;border:1px solid var(--line);background:var(--card);border-radius:12px;padding:20px 24px}
+.legend{font-size:14px;color:var(--muted)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media(prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
+</style>
+</head>
+<body>
+
+<div class="shell">
+<nav class="pagenav" aria-label="Manual navigation"><a href="./">← All manuals</a><span>·</span><a href="user-manual.ko.html">한국어</a><span class="cur">English</span><a href="user-manual.vi.html">Tiếng Việt</a><span>·</span><a href="user-manual.en.md">Raw MD</a></nav>
+<header class="hero">
+  <div class="eyebrow">ShopTalk User Manual · Integrated Reference</div>
+  <h1>ShopTalk Integrated User Manual</h1>
+  <div class="meta"><span>Version 2.0.0 · Fully revised 2026-08-24 (against the code)</span><span>Audience: tenant operators · agents · platform administrators</span></div>
+  <p class="lead"><strong>The reference manual that walks every screen.</strong> If you are setting up for the first time, start with the
+  <a href="quick-setup.en.html">Quick Setup Manual</a> (Part 1); if you are refining knowledge and AI, see the
+  <a href="knowledge-ai.en.html">Knowledge &amp; AI Setup Manual</a> (Part 2).
+  <span class="legend">Legend: ✅ implemented / 🟡 in preparation·roadmap — marked honestly against the actual code.</span></p>
+  <p class="lead">⚠ AI-translated draft pending native review. The Korean edition is authoritative.</p>
+</header>
+
+<nav class="toc" aria-label="Table of contents">
+  <div class="toc-label">Contents</div>
+  <a href="#ch1"><span class="n">1</span>Getting started</a>
+  <a href="#ch2"><span class="n">2</span>Customer widget</a>
+  <a href="#ch3"><span class="n">3</span>AI response flow</a>
+  <a href="#ch4"><span class="n">4</span>Live chat console</a>
+  <a href="#ch5"><span class="n">5</span>Issue board</a>
+  <a href="#ch6"><span class="n">6</span>Conversation history</a>
+  <a href="#ch7"><span class="n">7</span>Work log</a>
+  <a href="#ch8"><span class="n">8</span>Question statistics</a>
+  <a href="#ch9"><span class="n">9</span>Dashboard</a>
+  <a href="#ch10"><span class="n">10</span>Customers·orders·products</a>
+  <a href="#ch11"><span class="n">11</span>Campaigns</a>
+  <a href="#ch12"><span class="n">12</span>Reviews</a>
+  <a href="#ch13"><span class="n">13</span>Knowledge &amp; AI settings</a>
+  <a href="#ch14"><span class="n">14</span>Settings</a>
+  <a href="#ch15"><span class="n">15</span>Privacy·my page</a>
+  <a href="#ch16"><span class="n">16</span>Platform admin</a>
+  <a href="#ch17"><span class="n">17</span>FAQ</a>
+</nav>
+
+<main>
+
+<section id="ch1">
+  <div class="ch"><span class="num">01</span><h2>Getting Started</h2></div>
+  <h3>1.1 Accessing the console</h3>
+  <ul>
+    <li>Tenant console: <code>https://shoptalk.amoeba.site/&lt;slug&gt;</code> — a store-specific login address</li>
+    <li>Platform administrators: <code>/admin/login</code></li>
+    <li>Invited accounts sign in first with a <strong>temporary password</strong>, then go through a <strong>forced change</strong> (10+ characters·3 character classes·no common passwords)</li>
+    <li>master/director·system administrators are required to enroll <strong>MFA (TOTP)</strong> — at enrollment the 10 recovery codes are shown <strong>only once</strong></li>
+  </ul>
+  <p>Full onboarding procedure: <a href="quick-setup.en.html">Quick Setup Manual, Ch. 1–2</a>.</p>
+  <h3>1.2 Roles &amp; permissions (RBAC)</h3>
+  <ul>
+    <li><strong>Ranks</strong>: master · director · manager · staff / <strong>duty labels</strong>: consult · accounting · operations</li>
+    <li>Menu visibility is <strong>2-tier</strong>: ① the menus the platform administrator provides to the tenant → ② the tenant master's per-rank permissions + per-user exceptions
+      (the <em>Menu access</em> card in [Settings]). Typing a URL directly is re-validated and blocked by the server</li>
+    <li>The owner-visibility policy (ACL) applies on top of feature permissions</li>
+  </ul>
+  <h3>1.3 Console menu</h3>
+  <p>Clicking the sidebar logo opens the card list of accessible screens (<code>/menu</code>).</p>
+  <div class="tablewrap"><table>
+    <tr><th>Menu</th><th>Path</th><th>Purpose</th></tr>
+    <tr><td>Dashboard</td><td><code>/dashboard</code></td><td>KPIs·popular questions·integration status</td></tr>
+    <tr><td>Live chat</td><td><code>/live-chat</code></td><td>Real-time support·handoff handling</td></tr>
+    <tr><td>Issues</td><td><code>/issues</code></td><td>Inquiry-ticket kanban board (native-workflow tenants)</td></tr>
+    <tr><td>History</td><td><code>/history</code></td><td>Browse past conversations·verify evidence</td></tr>
+    <tr><td>Work log</td><td><code>/work-log</code></td><td>Audit trail of agent actions</td></tr>
+    <tr><td>Statistics</td><td><code>/statistics</code></td><td>Customer question statistics</td></tr>
+    <tr><td>AI settings</td><td><code>/ai-setting</code></td><td>Agents·persona·rules·scenarios·engines·moderation·coaching</td></tr>
+    <tr><td>Knowledge</td><td><code>/knowledge</code></td><td>Knowledge documents·sources·validation</td></tr>
+    <tr><td>Customers / Orders / Products</td><td><code>/customers</code> <code>/orders</code> <code>/products</code></td><td>Browse·manage cached data</td></tr>
+    <tr><td>Campaigns / Reviews</td><td><code>/campaigns</code> <code>/reviews</code></td><td>Sending·review management</td></tr>
+    <tr><td>Users</td><td><code>/users</code></td><td>Team invites·ranks·labels</td></tr>
+    <tr><td>Settings</td><td><code>/settings</code></td><td>Integrations·widget·agent handoff·menu access</td></tr>
+    <tr><td>Privacy notice</td><td><code>/privacy-notice</code></td><td>Policy URL·consent version</td></tr>
+    <tr><td>My page</td><td><code>/my-page</code></td><td>Profile·password·MFA</td></tr>
+    <tr><td>Admin</td><td><code>/admin/*</code></td><td>Platform administration (system administrators only)</td></tr>
+  </table></div>
+</section>
+
+<section id="ch2">
+  <div class="ch"><span class="num">02</span><h2>Customer Widget</h2></div>
+  <h3>2.1 Screen layout</h3>
+  <ul>
+    <li>The <strong>launcher</strong> on the shop page (position·size·icon set by the tenant theme settings) → panel (full screen on mobile / floating card on desktop)</li>
+    <li>Header: store display name (or logo), <strong>language switcher</strong> (6 languages en/es/ko/vi/ja/zh — switching also updates the session language on the server, changing the AI answer language), settings (gear), close</li>
+    <li><strong>Tabs</strong>: notifications / orders / chat — shown tabs·order·position (top/bottom) follow the tenant settings. With only one tab, the tab bar itself hides</li>
+  </ul>
+  <h3>2.2 Notifications &amp; orders tabs</h3>
+  <ul>
+    <li>Notification tab chips: All · Events / order tab chips: Orders (order list) · Shipping · Reviews · Inquiries. <strong>Turning one tab off absorbs its chips into the remaining tab</strong> — disabling a tab never loses the feature</li>
+    <li>Items: icon·title·status badge·body·relative time·unread dot. The latest unread item is highlighted</li>
+    <li><strong>Order detail</strong>: line items·totals·shipping-tracking stepper·track shipping·<strong>Ask about this order</strong> (feeds the order number into chat)·per-item review writing (1–5 stars + comment)</li>
+    <li>The inline order list shows only the recent window — "See more" links to the shop's own My Page (the order list on Cafe24, the account page elsewhere)</li>
+  </ul>
+  <h3>2.3 Chat tab</h3>
+  <ul>
+    <li>Top: <strong>AI-consultation disclosure</strong> + <strong>End chat</strong> link (only while in progress)</li>
+    <li><strong>Consent banner</strong>: shown on first entry or when the notice version changes — before consent, personal-data features are restricted</li>
+    <li><strong>Scenario buttons</strong>: the quick menu the tenant configured (6 defaults). Product help opens a submenu (usage·ingredients·exchange/return·restock). After an answer, quick chips (my orders/shipping/returns/connect to agent)</li>
+    <li><strong>Identity verification</strong>, 2 methods: ① store login — redirect (default)/popup, Cafe24·Shopify login paths handled automatically, widget auto-reopens on return ② guest order lookup — order number+email (rate-limited)</li>
+    <li><strong>Attachments</strong>: images ≤10MB (HEIC auto-converted) / files ≤20MB (pdf·txt·csv·docx·xlsx), max 5 per message</li>
+    <li><strong>Waiting indicators</strong>, 3 kinds: AI generating / agent responding / awaiting handoff</li>
+    <li><strong>Closing·satisfaction</strong>: a closed conversation shows a satisfaction card (5-level emoji = 1–5 points) within 24 hours. Sending a new message starts a new conversation</li>
+  </ul>
+  <h3>2.4 Settings (gear)</h3>
+  <ul>
+    <li><strong>Consent management</strong>: view status·time·version, withdraw (2-step confirmation — withdrawal stops the conversation), re-consent</li>
+    <li>After login: <strong>marketing opt-out</strong> (a single toggle — declines promotions·coupons·review requests; order·shipping notifications unaffected), <strong>do-not-sell/share</strong> (CCPA/CPRA), <strong>export my data</strong> (JSON), <strong>delete my data</strong> (2-step confirmation — on completion the widget resets to logged-out)</li>
+    <li>The category×channel subscription matrix was removed from the widget — relocated to <strong>store policy (the console's notification channel settings)</strong></li>
+  </ul>
+</section>
+
+<section id="ch3">
+  <div class="ch"><span class="num">03</span><h2>AI Response Flow (Summary)</h2></div>
+  <pre><code>Customer message → intent classification (identity-verification prompt if personal data is needed)
+  → if policy-forced handoff (deny-list) matches, straight to an agent with no AI
+  → knowledge search (RAG) → answer generation (persona+rules, confidence scoring) → moderation
+  → confidence sufficient: answer + sources to the customer / low·blocked·customer request: agent queue</code></pre>
+  <ul>
+    <li>Agent-sent messages pass moderation identically (non-bypassable; blocked on failure)</li>
+    <li>How to adjust each point: <a href="knowledge-ai.en.html">Knowledge &amp; AI Manual</a></li>
+  </ul>
+</section>
+
+<section id="ch4">
+  <div class="ch"><span class="num">04</span><h2>Live Chat Console</h2></div>
+  <span class="actor">/live-chat · holders of the consult label</span>
+  <p>Three columns: <strong>queue (left) — conversation (center) — context (right)</strong>. Lists auto-refresh every 5 seconds.</p>
+  <h3>4.1 Queue (left)</h3>
+  <ul>
+    <li>Scope: <strong>All / Queue / Closed</strong> (default All — conversations the AI is handling are shown too)</li>
+    <li>Channel filter: widget·Telegram·Viber·Zalo·LINE·WhatsApp·Kakao·SMS·email + customer name/email search</li>
+    <li>Each row: <strong>session alias</strong> (editable inline), channel·status badges, an "auto-reply OFF" chip, the last message, elapsed time</li>
+  </ul>
+  <h3>4.2 Conversation (center)</h3>
+  <ul>
+    <li><strong>Auto-reply control</strong>: Follow channel default / Automatic / Send after approval / Off + state badge. Once an agent takes over, agent handling takes precedence</li>
+    <li>Buttons: <strong>[Accept]</strong> (take over) · <strong>[Hand back to AI]</strong> (only from agent state, confirmation modal) · <strong>[End]</strong> · [Sync]</li>
+    <li><strong>Send-after-approval mode</strong>: review the AI draft in an editable panel (with confidence) → [Approve &amp; send] (in the agent's name; moderation·audit identical) / [Discard]</li>
+    <li><strong>Composing messages</strong>: text + attachments (same limits as the widget). A refused send = moderation block. <strong>The SMS channel is receive-only</strong> (composing disabled)</li>
+    <li>Under an AI bubble, <strong>[Save as knowledge]</strong> (master/director) — captures the answer as a knowledge document draft</li>
+  </ul>
+  <h3>4.3 Context (right)</h3>
+  <ul>
+    <li><strong>AI briefing</strong>: summary·intent·sentiment·recommended actions</li>
+    <li><strong>Knowledge lookup</strong>: ask the knowledge base directly mid-conversation → answer·sources (stale/conflict badges) → [Send to customer] / [Edit &amp; send] / [Propose as knowledge] (queued for approval)</li>
+    <li><strong>Customer card</strong>: name·email·phone·tier + customer matching/creation · <strong>recent orders</strong> card</li>
+    <li><strong>Issue panel</strong> (native workflow): issue number·status·type·reopen count, [Resolve]/[Decline] (reason required), reassignment, event timeline</li>
+  </ul>
+  <h3>4.4 Handoff alerts·auto-wrap-up</h3>
+  <ul>
+    <li><strong>Escalation alarm</strong>: on a new handoff, an alert modal within 10 seconds (reason: low confidence/moderation block/customer request) → [Open chat]</li>
+    <li><strong>Idle auto-wrap-up</strong> (server, widget channel only): 30 min silence on both sides → "Is there anything else we can help with?" → closed after 1 more silent minute. Conversations older than 7 days close quietly. Conversations awaiting an email reply are never auto-closed</li>
+  </ul>
+</section>
+
+<section id="ch5">
+  <div class="ch"><span class="num">05</span><h2>Issue Board</h2></div>
+  <span class="actor">/issues · native-workflow tenants only</span>
+  <ul>
+    <li>Kanban columns: Open → In progress → Resolved/Declined → Closed (only allowed moves can be dragged — on touch, use the card's move selector)</li>
+    <li>Top KPIs: open·in progress·<strong>unassigned</strong>·average resolution time·reopen rate (30-second refresh)</li>
+    <li>Cards: issue number·type·<strong>SLA badge (⚠️ approaching / 🔥 exceeded)</strong>·reopen count·session alias·customer's last utterance·assignee·urgent/normal toggle</li>
+    <li><strong>Declining</strong> requires a reason (policy-impossible/misassigned/spam + memo). Reopening is possible after resolve/decline</li>
+    <li>Card click → read-only preview of the last 10 turns (viewing is audit-logged) → [Open session]</li>
+    <li>SLA baseline hours (normal/urgent, 1–168h) are set in the Agent handoff section of [Settings]</li>
+  </ul>
+</section>
+
+<section id="ch6">
+  <div class="ch"><span class="num">06</span><h2>Conversation History</h2></div>
+  <span class="actor">/history</span>
+  <ul>
+    <li>Filters: period · assignee (consult label) · status · escalation · <strong>message body search</strong> (runs via the button — audit-logged) · include preview conversations</li>
+    <li>Row click → full conversation: customer/assignee/channel/<strong>language</strong>/start·end + per-utterance bubbles. <strong>Every AI answer shows evidence-document chips (title+similarity, jumps to the knowledge document) and a confidence badge</strong> — you can trace why it answered that way. Handoff moments carry a reason badge</li>
+    <li>Viewing is recorded in the audit log. Export (CSV, etc.) is 🟡 not provided</li>
+  </ul>
+</section>
+
+<section id="ch7">
+  <div class="ch"><span class="num">07</span><h2>Work Log</h2></div>
+  <span class="actor">/work-log</span>
+  <p>The audit trail of agent actions (an agent lens over the same store as the admin audit log).
+  Filters: period·agent·action (accept/message sent/customer linked/customer created/closed/conversation viewed/full-text viewed).
+  Columns: time·agent·action·target·result (success/failure).</p>
+</section>
+
+<section id="ch8">
+  <div class="ch"><span class="num">08</span><h2>Question Statistics</h2></div>
+  <span class="actor">/statistics</span>
+  <ul>
+    <li>4 dimension tabs — <strong>intent / documents / keywords / clusters</strong> (default last 30 days, daily snapshots)</li>
+    <li>Trend chart (daily question counts) + table: label·question count·share·<strong>escalation rate</strong>·<strong>no source</strong>·<strong>average confidence</strong></li>
+    <li><strong>⚠ attention markers</strong>: rows with 25%+ escalation rate or low average confidence — use as <strong>the list of knowledge to reinforce</strong>. In the documents tab, clicking a row jumps to that knowledge document</li>
+  </ul>
+</section>
+
+<section id="ch9">
+  <div class="ch"><span class="num">09</span><h2>Dashboard</h2></div>
+  <span class="actor">/dashboard</span>
+  <p>6 KPIs (each linking to its screen): conversations in progress · today's notifications · AI resolution rate · unresolved Top N · total conversations · total orders.
+  <strong>Popular questions</strong> ranking, <strong>integration status</strong> (badge per provider), <strong>5 most recent orders</strong>.</p>
+</section>
+
+<section id="ch10">
+  <div class="ch"><span class="num">10</span><h2>Customers·Orders·Products</h2></div>
+  <h3>10.1 Customers (/customers)</h3>
+  <p>A list (name·email·<strong>tier</strong>·order count·total spend·signup date) + email search.
+  The only editable thing is the <strong>tier change</strong> (guest/subscriber/regular) — tiers segment customers in widget·AI responses.</p>
+  <h3>10.2 Orders (/orders)</h3>
+  <p>A read-only list of orders synced from the platform (order number·status·amount·item count·date).</p>
+  <h3>10.3 Products (/products)</h3>
+  <ul>
+    <li>The synced product catalog (archived products included). KPIs: total·active·archived·<strong>knowledge-registered count</strong> (with last sync time)</li>
+    <li>The <strong>knowledge-registered badge</strong> is what matters — a product marked <code>none</code> <strong>cannot be used by the AI in answers</strong>. Products with no description at all are not converted into knowledge (explicit in the detail)</li>
+    <li>The procedure to push products into knowledge (catalog sync): <a href="knowledge-ai.en.html">Knowledge &amp; AI Manual, Ch. 2.2</a></li>
+  </ul>
+</section>
+
+<section id="ch11">
+  <div class="ch"><span class="num">11</span><h2>Campaigns</h2></div>
+  <span class="actor">/campaigns · operations</span>
+  <ul>
+    <li>Creation fields: name · <strong>channel (email / sms / kakao)</strong> · message · <strong>link</strong> (none / product handle / https URL — validated at send time)</li>
+    <li><strong>[Send]</strong> in the list <strong>sends immediately (no confirmation dialog)</strong> — be careful</li>
+    <li>🟡 Scheduled sending·audience builder UI are on the roadmap — currently create → send immediately</li>
+  </ul>
+</section>
+
+<section id="ch12">
+  <div class="ch"><span class="num">12</span><h2>Reviews</h2></div>
+  <span class="actor">/reviews</span>
+  <p>The management list of product reviews customers left in the widget (customer·order item·stars·body·status).
+  The only action is <strong>hide ↔ unhide</strong> — a hidden review <strong>remains visible to its author</strong> (only store exposure is removed).</p>
+</section>
+
+<section id="ch13">
+  <div class="ch"><span class="num">13</span><h2>Knowledge &amp; AI Settings</h2></div>
+  <p>Knowledge registration (manual/catalog/CSV/external sources), validation (QA panel·conflict review·gap proposals), AI settings (agents·persona·rules·scenarios·engines·moderation·answer reuse),
+  and the improvement loop (preview·coaching·regression checks) are all organized in the <a href="knowledge-ai.en.html"><strong>Knowledge &amp; AI Setup Manual</strong></a>.</p>
+  <ul>
+    <li>The AI answers <strong>only from active knowledge documents</strong> — frequent handoffs mean missing knowledge</li>
+    <li>All outbound messages (AI·agent) pass moderation — on error, safely <strong>blocked</strong></li>
+    <li>AI coaching·settings changes go through an <strong>approval gate</strong> — review proposals before applying</li>
+  </ul>
+</section>
+
+<section id="ch14">
+  <div class="ch"><span class="num">14</span><h2>Settings</h2></div>
+  <p>Platform integrations (Cafe24 OAuth·Shopify·Odoo, etc.), widget installation·copy·tabs·theme, notification channel policy,
+  <strong>agent handoff (assignees·business hours·off-hours email·SLA·policy-forced handoff)</strong>, and menu access all live in <code>/settings</code>.
+  → <a href="quick-setup.en.html">Quick Setup Manual, Ch. 3–4</a></p>
+</section>
+
+<section id="ch15">
+  <div class="ch"><span class="num">15</span><h2>Privacy Notice·My Page</h2></div>
+  <ul>
+    <li><strong>Privacy notice</strong> (<code>/privacy-notice</code>, master/director): manages the policy URL and the <strong>consent notice version</strong></li>
+    <li><strong>My page</strong> (<code>/my-page</code>): profile (rank·labels·workspace), password change, MFA enroll/remove</li>
+  </ul>
+  <div class="callout warn"><span class="c-label">⚠️ Bumping the consent notice version</span>
+  <p>re-displays the consent banner to every customer. Bump only when the notice actually changes.</p></div>
+</section>
+
+<section id="ch16">
+  <div class="ch"><span class="num">16</span><h2>Platform Admin Console</h2></div>
+  <span class="actor">/admin/* · system administrators</span>
+  <div class="tablewrap"><table>
+    <tr><th>Screen</th><th>Path</th><th>Purpose</th></tr>
+    <tr><td>Overview</td><td><code>/admin</code></td><td>Tenant count·integration status</td></tr>
+    <tr><td>Tenants</td><td><code>/admin/tenants</code></td><td>Create (name·slug·domain·plan) · <strong>provided menus</strong> · suspend/activate</td></tr>
+    <tr><td>Tenant users</td><td><code>/admin/tenants/…/users</code></td><td>Invite · <strong>temporary password issuance (shown once·no email sent)</strong> · MFA reset · suspend</td></tr>
+    <tr><td>AI engines</td><td><code>/admin/ai-engines</code></td><td>Register engines (provider·model·API key)·manage activation — tenants pick per function</td></tr>
+    <tr><td>Audit log</td><td><code>/admin/audit</code></td><td>Tracking privileged actions (temp password issuance·permission changes·PII views, etc.)</td></tr>
+  </table></div>
+  <p>Full tenant-creation procedure: <a href="quick-setup.en.html">Quick Setup Manual, Ch. 1</a>.</p>
+</section>
+
+<section id="ch17">
+  <div class="ch"><span class="num">17</span><h2>FAQ / Troubleshooting</h2></div>
+  <dl class="faq">
+    <dt>Q. The bot keeps handing off to agents.</dt>
+    <dd>Missing knowledge is the most common cause. Find the cause via the ⚠ rows in statistics and the knowledge QA panel, then reinforce the documents.
+    Also check whether the keyword matches the deny-list (policy-forced handoff) — in that case the AI is skipped intentionally.</dd>
+    <dt>Q. An agent's reply won't send.</dt>
+    <dd>That is a moderation block. Rephrase and retry; if the rules are excessive, ask the master to adjust them.</dd>
+    <dt>Q. A conversation closed by itself.</dt>
+    <dd>That is idle-conversation auto-wrap-up (30 min silence → notice → close). When the customer messages again, a new conversation starts.</dd>
+    <dt>Q. I can't see the issue board.</dt>
+    <dd>It is exclusive to tenants whose workflow mode is native. If the menu itself is missing, check the provided menus/rank permissions (2-tier).</dd>
+    <dt>Q. I changed widget settings but nothing changed.</dt>
+    <dd>The widget reads new settings from the customer's next session. Close and reopen the widget, or refresh.</dd>
+    <dt>Q. A customer isn't receiving notifications (email, etc.).</dt>
+    <dd>Check ① the channel is enabled in the console's notification channel policy ② the customer opted out of marketing (affects promotional messages only).
+    A channel the store disabled cannot be enabled by the customer.</dd>
+    <dt>Q. I changed temperature but answers stayed the same.</dt>
+    <dd>temperature is not applied to Anthropic (Claude) engines (the model rejects it, so it is not sent). Only max_tokens is effective.</dd>
+    <dt>Q. It works even though there is no AI key.</dt>
+    <dd>Those are demo responses from the stub adapter. Be sure to register and assign a real engine before production.</dd>
+    <dt>Q. I hid a review but the customer still sees it.</dt>
+    <dd>That is by design — hiding only removes store exposure; the review stays visible to its author.</dd>
+  </dl>
+</section>
+
+<div class="next">
+  <strong>See also →</strong> <a href="quick-setup.en.html">① Quick Setup Manual</a> ·
+  <a href="knowledge-ai.en.html">② Knowledge &amp; AI Setup Manual</a>
+</div>
+
+</main>
+</div>
+</body>
+</html>

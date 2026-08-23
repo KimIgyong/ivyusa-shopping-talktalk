@@ -1,0 +1,408 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>샵톡 간단 세팅 매뉴얼</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@700;800&family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --accent:#2B7FFF; --accent-deep:#1D5FD6; --accent-tint:#EAF2FF;
+  --ink:#1B2430; --muted:#5C6675; --line:#E3E8F0;
+  --bg:#FAFBFD; --card:#FFFFFF; --soft:#F1F5FB;
+  --tip-bg:#EAF2FF; --tip-edge:#2B7FFF;
+  --warn-bg:#FFF7E6; --warn-edge:#D97706; --warn-ink:#8A4B04;
+  --code-bg:#EEF2F8; --mono-ink:#31435E;
+}
+:root:not([data-theme="light"]){}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --accent:#5C9BFF; --accent-deep:#82B4FF; --accent-tint:#16243C;
+    --ink:#E6EBF3; --muted:#93A0B4; --line:#28313F;
+    --bg:#0F141B; --card:#161C25; --soft:#1B222D;
+    --tip-bg:#152238; --tip-edge:#5C9BFF;
+    --warn-bg:#2A2010; --warn-edge:#E8A23D; --warn-ink:#EFC584;
+    --code-bg:#1E2632; --mono-ink:#B9C7DC;
+  }
+}
+:root[data-theme="dark"]{
+  --accent:#5C9BFF; --accent-deep:#82B4FF; --accent-tint:#16243C;
+  --ink:#E6EBF3; --muted:#93A0B4; --line:#28313F;
+  --bg:#0F141B; --card:#161C25; --soft:#1B222D;
+  --tip-bg:#152238; --tip-edge:#5C9BFF;
+  --warn-bg:#2A2010; --warn-edge:#E8A23D; --warn-ink:#EFC584;
+  --code-bg:#1E2632; --mono-ink:#B9C7DC;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:"IBM Plex Sans KR","Apple SD Gothic Neo","Segoe UI",sans-serif;
+  font-size:16px;line-height:1.75}
+.shell{max-width:1120px;margin:0 auto;padding:0 24px 96px;
+  display:grid;grid-template-columns:220px minmax(0,1fr);gap:48px}
+@media(max-width:860px){.shell{display:block}}
+header.hero{grid-column:1/-1;padding:56px 0 8px;border-bottom:1px solid var(--line);margin-bottom:8px}
+.eyebrow{font-size:12px;font-weight:700;letter-spacing:.14em;color:var(--accent);text-transform:uppercase}
+h1{font-family:"Gothic A1",sans-serif;font-weight:800;font-size:clamp(28px,4.5vw,40px);
+  line-height:1.25;margin:10px 0 12px;text-wrap:balance}
+.meta{color:var(--muted);font-size:14px;display:flex;flex-wrap:wrap;gap:6px 18px}
+.lead{max-width:68ch;color:var(--muted);margin-top:14px}
+nav.toc{position:sticky;top:24px;align-self:start;font-size:13.5px;padding-top:24px}
+@media(max-width:860px){nav.toc{position:static;border:1px solid var(--line);border-radius:10px;
+  background:var(--card);padding:14px 16px;margin:20px 0}}
+nav.toc .toc-label{font-size:11px;font-weight:700;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;margin-bottom:8px}
+nav.toc a{display:flex;gap:8px;color:var(--muted);text-decoration:none;padding:4px 0;line-height:1.4}
+nav.toc a:hover,nav.toc a:focus-visible{color:var(--accent)}
+nav.toc a .n{font-family:"IBM Plex Mono",monospace;color:var(--accent);font-size:12px;min-width:18px;padding-top:1px}
+main{min-width:0;max-width:74ch}
+section{padding-top:40px}
+.ch{display:flex;align-items:baseline;gap:12px;border-top:2px solid var(--ink);padding-top:14px}
+.ch .num{font-family:"IBM Plex Mono",monospace;font-size:13px;font-weight:500;color:var(--accent)}
+h2{font-family:"Gothic A1",sans-serif;font-weight:800;font-size:24px;margin:0;line-height:1.35;text-wrap:balance}
+.actor{display:inline-block;font-size:12px;font-weight:700;border-radius:999px;padding:2px 12px;
+  background:var(--accent-tint);color:var(--accent-deep);margin-top:10px}
+h3{font-family:"Gothic A1",sans-serif;font-weight:700;font-size:17.5px;margin:30px 0 8px}
+p{margin:10px 0;max-width:68ch}
+a{color:var(--accent-deep)}
+strong{font-weight:700}
+table{border-collapse:collapse;width:100%;font-size:14.5px;margin:14px 0}
+th{font-size:12.5px;letter-spacing:.04em;color:var(--muted);text-align:left;font-weight:700;
+  border-bottom:2px solid var(--line);padding:7px 12px 7px 0}
+td{border-bottom:1px solid var(--line);padding:8px 12px 8px 0;vertical-align:top}
+.tablewrap{overflow-x:auto}
+.terms{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:6px 18px 14px;margin:16px 0}
+.terms .t-label{font-size:11px;font-weight:700;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;margin:12px 0 2px}
+.terms td:first-child{font-weight:700;white-space:nowrap;padding-right:18px}
+.callout{border-left:3px solid var(--tip-edge);background:var(--tip-bg);border-radius:0 10px 10px 0;
+  padding:12px 18px;margin:16px 0;font-size:14.5px}
+.callout .c-label{font-weight:700;color:var(--accent-deep)}
+.callout.warn{border-left-color:var(--warn-edge);background:var(--warn-bg);color:var(--warn-ink)}
+.callout.warn .c-label{color:var(--warn-ink)}
+.callout p{margin:6px 0}
+code,kbd{font-family:"IBM Plex Mono",monospace;font-size:.86em;background:var(--code-bg);
+  color:var(--mono-ink);border-radius:5px;padding:1px 6px}
+pre{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px 18px;
+  overflow-x:auto;font-size:13px;line-height:1.6}
+pre code{background:none;padding:0;color:var(--mono-ink)}
+ol.steps{padding-left:0;margin:14px 0;list-style:none;counter-reset:st}
+ol.steps>li{counter-increment:st;position:relative;padding:0 0 14px 40px}
+ol.steps>li::before{content:counter(st);position:absolute;left:0;top:1px;width:24px;height:24px;
+  border-radius:50%;background:var(--accent);color:#fff;font-size:13px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;font-family:"IBM Plex Mono",monospace}
+ul{margin:10px 0;padding-left:22px}
+li{margin:4px 0}
+.check{list-style:none;padding-left:0}
+.check li{padding-left:30px;position:relative}
+.check li::before{content:"";position:absolute;left:2px;top:6px;width:14px;height:14px;
+  border:2px solid var(--accent);border-radius:4px}
+.faq dt{font-weight:700;margin-top:18px}
+.faq dd{margin:4px 0 0;color:var(--muted)}
+.next{margin-top:56px;border:1px solid var(--line);background:var(--card);border-radius:12px;padding:20px 24px}
+.pagenav{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;padding-top:18px;color:var(--muted)}
+.pagenav a{color:var(--muted);text-decoration:none}
+.pagenav a:hover,.pagenav a:focus-visible{color:var(--accent)}
+.pagenav .cur{color:var(--accent-deep);font-weight:700}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media(prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
+</style>
+</head>
+<body>
+
+<div class="shell">
+<nav class="pagenav" aria-label="매뉴얼 내비게이션"><a href="./">← 매뉴얼 목록</a><span>·</span><span class="cur">한국어</span><a href="quick-setup.en.html">English</a><a href="quick-setup.vi.html">Tiếng Việt</a><span>·</span><a href="quick-setup.ko.md">MD 원문</a></nav>
+<header class="hero">
+  <div class="eyebrow">ShopTalk 사용자설명서 · 1/2</div>
+  <h1>샵톡 간단 세팅 매뉴얼</h1>
+  <div class="meta"><span>버전 1.0 · 2026-08-24 · 코드 기준 작성</span><span>대상: 플랫폼 관리자(1장) · 신규 테넌트 관리자(2~8장)</span></div>
+  <p class="lead">새 상점(테넌트)을 개설해 <strong>채팅 위젯이 실제로 고객 응대를 시작하기까지</strong>의 최단 경로를 다룹니다.
+  스테이징 기준 URL은 <code>https://shoptalk.amoeba.site</code>, 소요 시간은 어드민 작업 약 5분 + 테넌트 첫 세팅 약 30분입니다.
+  지식·AI를 깊이 설정하는 방법은 <em>지식 등록·AI 설정 매뉴얼</em>(2편)을 보세요.</p>
+</header>
+
+<nav class="toc" aria-label="목차">
+  <div class="toc-label">목차</div>
+  <a href="#ch0"><span class="n">0</span>시작 전에</a>
+  <a href="#ch1"><span class="n">1</span>테넌트 개설 (어드민)</a>
+  <a href="#ch2"><span class="n">2</span>첫 로그인</a>
+  <a href="#ch3"><span class="n">3</span>커머스 플랫폼 연동</a>
+  <a href="#ch4"><span class="n">4</span>채팅위젯 설정·설치</a>
+  <a href="#ch5"><span class="n">5</span>AI 최소 설정</a>
+  <a href="#ch6"><span class="n">6</span>지식 최초 입력</a>
+  <a href="#ch7"><span class="n">7</span>팀원 초대·상담 전환</a>
+  <a href="#ch8"><span class="n">8</span>완료 체크리스트</a>
+  <a href="#ch9"><span class="n">9</span>문제 해결</a>
+</nav>
+
+<main>
+
+<section id="ch0">
+  <div class="ch"><span class="num">00</span><h2>시작 전에</h2></div>
+  <div class="terms"><div class="t-label">용어</div>
+  <div class="tablewrap"><table>
+    <tr><td>테넌트</td><td>샵톡에 입주한 하나의 상점. 데이터·설정·지식이 상점 단위로 완전히 분리됩니다.</td></tr>
+    <tr><td>슬러그(slug)</td><td>테넌트 전용 로그인 주소 조각. <code>…/ivyusa</code>처럼 주소 끝에 붙습니다.</td></tr>
+    <tr><td>플랫폼 관리자</td><td><code>/admin</code>으로 로그인하는 샵톡 운영사 관리자. 테넌트 개설 권한을 가집니다.</td></tr>
+    <tr><td>테넌트 관리자(master)</td><td>상점 콘솔의 최고 권한 직급. 팀원·권한·설정 전체를 관리합니다.</td></tr>
+    <tr><td>임시 비밀번호</td><td>초대 시 시스템이 발급하는 1회용 비밀번호. <strong>화면에 한 번만 표시</strong>됩니다.</td></tr>
+  </table></div></div>
+  <h3>준비물</h3>
+  <ul>
+    <li>플랫폼 관리자 계정 (<code>/admin/login</code>)</li>
+    <li>개설할 상점의 <strong>쇼핑몰 도메인</strong> (예: <code>example.myshopify.com</code>, <code>mallid.cafe24.com</code>)</li>
+    <li>테넌트 관리자로 초대할 사람의 이메일 주소</li>
+    <li>연동할 플랫폼의 자격증명 (3장 — 테넌트 관리자가 준비)</li>
+  </ul>
+</section>
+
+<section id="ch1">
+  <div class="ch"><span class="num">01</span><h2>테넌트 개설</h2></div>
+  <span class="actor">플랫폼 관리자 · /admin/tenants</span>
+
+  <h3>1.1 새 테넌트 생성</h3>
+  <p><code>/admin/tenants</code> → <strong>[새 테넌트]</strong> → 모달에서 4개 필드를 입력합니다.</p>
+  <div class="tablewrap"><table>
+    <tr><th>필드</th><th>필수</th><th>설명</th></tr>
+    <tr><td>이름</td><td>✅</td><td>상점 표시 이름</td></tr>
+    <tr><td>로그인 경로(slug)</td><td>—</td><td>비우면 이름에서 자동 파생. 입력 시 자동 소문자화</td></tr>
+    <tr><td>쇼핑몰 도메인</td><td>✅</td><td>상점 대표 도메인 — <strong>모든 플랫폼 공용</strong></td></tr>
+    <tr><td>요금제</td><td>✅</td><td>starter / growth / enterprise — 플랜에 따라 기본 제공 메뉴가 다름</td></tr>
+  </table></div>
+  <div class="callout"><span class="c-label">💡 슬러그 규칙</span>
+  <p>소문자·숫자·하이픈만 가능하며, 콘솔 화면 이름(<code>admin</code>, <code>login</code>, <code>dashboard</code>, <code>settings</code> 등 예약어)과 겹칠 수 없습니다.
+  예약어를 입력하면 서버가 자동으로 <code>-shop</code> 접미를 붙입니다. 슬러그는 곧 로그인 URL이므로 상점이 기억하기 쉬운 값을 권장합니다.</p></div>
+
+  <h3>1.2 (선택) 제공 메뉴 조정</h3>
+  <p>테넌트 행의 <strong>[제공 메뉴]</strong> → 메뉴별 3단 선택: <strong>플랜 따름</strong>(기본) / <strong>강제 제공</strong> / <strong>차단</strong>.
+  결과 열이 즉시 바뀌고 예외 항목엔 <code>*</code>가 표시됩니다.</p>
+  <div class="callout"><span class="c-label">💡 팁</span>
+  <p>여기서 차단한 메뉴는 테넌트 master가 직급 권한을 줘도 보이지 않습니다(2계층: 어드민 제공 → 테넌트 내부 권한).
+  이슈 보드는 워크플로우 모드 설정도 함께 필요합니다.</p></div>
+
+  <h3>1.3 테넌트 관리자 초대 + 임시 비밀번호 발급</h3>
+  <ol class="steps">
+    <li>테넌트 행의 <strong>[사용자 관리]</strong> → <strong>[사용자 초대]</strong></li>
+    <li><code>이메일</code> 입력, <code>직급</code>은 기본값 <strong>master</strong> 유지(첫 관리자이므로)</li>
+    <li><strong>[초대]</strong> → 즉시 <strong>임시 비밀번호 모달</strong>이 뜸 — 값을 복사</li>
+  </ol>
+  <pre><code>┌─ 임시 비밀번호 발급됨 ─────────────────────┐
+│ user@shop.com 님의 임시 비밀번호            │
+│ ┌────────────────────────┐                 │
+│ │  IvyXXXXXXXXX!         │   [복사]        │
+│ └────────────────────────┘                 │
+│ ⚠️ 이 값은 지금 한 번만 표시됩니다.         │
+└────────────────────────────────────────────┘</code></pre>
+  <div class="callout warn"><span class="c-label">⚠️ 임시 비밀번호는 이메일로 발송되지 않습니다</span>
+  <p>모달에 1회 표시되는 값을 관리자가 복사해 <strong>직접 전달</strong>해야 합니다. 창을 닫아 값을 잃었다면
+  해당 사용자 행의 <strong>[임시 비밀번호]</strong> 버튼으로 재발급하세요(이전 값은 무효화됩니다).</p></div>
+  <div class="callout"><span class="c-label">💡 전달 보안</span>
+  <p>비밀번호를 이메일 본문이나 단체 채팅에 남기지 마세요. 1:1 보안 메신저나 전화로 전달하고,
+  첫 로그인(=강제 변경) 완료를 확인하는 것까지가 개설 절차입니다. 발급 이력은 감사 로그(<code>/admin/audit</code>)에 남습니다.</p></div>
+
+  <h3>1.4 로그인 URL 전달</h3>
+  <p>같은 화면 상단 카드의 <strong>로그인 페이지 URL</strong>(<code>https://…/슬러그</code>)을 <strong>[복사]</strong>해서 함께 전달하세요.</p>
+  <p>전달할 것 3가지 — ① 로그인 URL ② 이메일(계정 ID) ③ 임시 비밀번호</p>
+</section>
+
+<section id="ch2">
+  <div class="ch"><span class="num">02</span><h2>첫 로그인</h2></div>
+  <span class="actor">테넌트 관리자 · https://shoptalk.amoeba.site/&lt;슬러그&gt;</span>
+
+  <h3>2.1 로그인</h3>
+  <p>전달받은 URL로 접속하면 상점 이름이 표시된 로그인 화면이 나옵니다. 이메일 + 임시 비밀번호로 로그인합니다.</p>
+  <div class="callout"><span class="c-label">💡 팁</span>
+  <p>"해당 매장을 찾을 수 없음"이 나오면 URL의 슬러그 철자를 확인하세요.
+  <strong>이메일 기억하기</strong>를 켜면 이 브라우저에서 다음부터 이메일이 채워집니다.</p></div>
+
+  <h3>2.2 강제 비밀번호 변경</h3>
+  <p>로그인 직후 <strong>닫을 수 없는 비밀번호 변경 창</strong>이 뜹니다(취소 불가 — 임시 비밀번호로는 콘솔을 쓸 수 없습니다).</p>
+  <ul>
+    <li>현재(임시) 비밀번호 + 새 비밀번호 + 확인 입력</li>
+    <li>규칙 3가지가 실시간 ✓/✕ 표시: <strong>① 최소 10자 ② 대문자·소문자·숫자·특수문자 중 3종 이상 ③ 흔한 비밀번호 아님</strong></li>
+    <li>본인 이메일이 포함된 비밀번호, 직전과 같은 비밀번호는 서버에서 거부</li>
+  </ul>
+
+  <h3>2.3 MFA(2단계 인증) 등록</h3>
+  <div class="terms"><div class="t-label">용어</div>
+  <div class="tablewrap"><table>
+    <tr><td>TOTP</td><td>Google Authenticator 등 인증 앱이 30초마다 생성하는 6자리 코드</td></tr>
+    <tr><td>복구 코드</td><td>인증 앱을 잃었을 때 대신 쓰는 1회용 코드 10개 — <strong>등록 직후 한 번만 표시</strong></td></tr>
+  </table></div></div>
+  <p>master·director 직급은 보안 정책상 MFA(TOTP) 등록이 강제됩니다.
+  시행일 전에는 상단 유예 배너(마이페이지에서 미리 등록), 시행일 후에는 등록 전까지 콘솔이 차단됩니다.</p>
+  <p>등록: QR 스캔(또는 수동 키 입력) → 앱의 6자리 코드 입력 → <strong>복구 코드 10개 다운로드·보관</strong> → 완료.
+  이후 로그인마다 6자리 코드를 추가 입력합니다.</p>
+  <div class="callout warn"><span class="c-label">⚠️ 복구 코드는 이때 한 번만 보여줍니다</span>
+  <p>반드시 저장하세요. 인증 앱과 복구 코드를 모두 잃으면 관리자(어드민 또는 상점 master)의
+  <strong>[MFA 리셋]</strong>으로만 풀 수 있습니다.</p></div>
+</section>
+
+<section id="ch3">
+  <div class="ch"><span class="num">03</span><h2>커머스 플랫폼 연동</h2></div>
+  <span class="actor">콘솔 [설정] → 스토어 연동 카드</span>
+  <div class="terms"><div class="t-label">용어</div>
+  <div class="tablewrap"><table>
+    <tr><td>자격증명</td><td>플랫폼 API 접근용 키·토큰. 암호화 저장되며 저장 후에는 "설정됨"으로만 표시</td></tr>
+    <tr><td>연결 테스트</td><td>저장한 자격증명으로 실제 API를 1회 호출해 유효성을 확인하는 버튼</td></tr>
+    <tr><td>동기화</td><td>플랫폼의 주문·상품 데이터를 샵톡 캐시로 가져오는 작업</td></tr>
+  </table></div></div>
+
+  <h3>3.1 Cafe24 — OAuth 연결(권장) ✅</h3>
+  <ol class="steps">
+    <li>설정 페이지의 <em>Cafe24 연결</em> 카드에서 <code>몰 ID</code> 입력 (<code>몰ID.cafe24.com</code>의 몰ID 부분)</li>
+    <li><strong>[연결]</strong> → Cafe24 인가 페이지 → 로그인·권한 승인 → 콘솔 자동 복귀</li>
+    <li>연결됨 배지 확인 후 <strong>[지금 동기화]</strong>(주문) / <strong>[상품 동기화]</strong> 실행</li>
+  </ol>
+  <div class="callout"><span class="c-label">💡 팁</span>
+  <p>상품 동기화는 상품 <strong>캐시</strong>까지만 채웁니다. 이 상품들을 AI가 답변에 쓰게 하려면 [지식] 화면의
+  <strong>카탈로그 동기화</strong>(미리보기→실행)를 별도로 실행해야 합니다 — 2편 매뉴얼 2.2장 참조.
+  토큰을 이미 보유했다면 스토어 연동 타일의 cafe24 모달에 수동 입력할 수도 있지만 OAuth 연결이 표준입니다.</p></div>
+
+  <h3>3.2 Shopify ✅</h3>
+  <p>스토어 연동 타일의 Shopify 모달: <code>쇼핑몰 도메인</code>(필수, <code>*.myshopify.com</code>) ·
+  <code>Admin API Access Token</code>(필수) · API Key/Secret(선택).</p>
+  <p>저장 후 <strong>[연결 테스트] → [지금 동기화] → [웹훅 등록]</strong> 순으로 실행합니다.
+  웹훅을 등록해야 주문·배송 상태 변화가 실시간으로 위젯 알림에 반영됩니다.</p>
+
+  <h3>3.3 Odoo — 자격증명·연결 테스트 ✅ / 실시간 동기화 🟡</h3>
+  <p>odoo 타일 모달에 <code>서버 URL</code> / <code>DB 이름</code> / <code>사용자명</code> / <code>API Key</code>를 입력하고 연결 테스트합니다.
+  실시간 데이터 동기화는 준비 단계입니다.</p>
+
+  <h3>3.4 스토어프론트 URL</h3>
+  <p><em>스토어프론트</em> 카드에 상점의 <strong>고객용 사이트 주소</strong>를 입력하세요.
+  미설정 시 위젯의 상품 링크가 비활성화됩니다(카드에 경고 표시).</p>
+  <p style="color:var(--muted);font-size:14px">그 외 WooCommerce·Haravan(커머스), Klaviyo·Yotpo(마케팅), Gorgias(헬프데스크),
+  메신저 채널(텔레그램·Gmail 등)도 같은 방식의 타일/카드로 연동합니다.</p>
+</section>
+
+<section id="ch4">
+  <div class="ch"><span class="num">04</span><h2>채팅위젯 설정·설치</h2></div>
+  <span class="actor">[설정] 페이지의 위젯 카드들</span>
+
+  <h3>4.1 위젯 설치</h3>
+  <p><strong>설치 가이드 카드</strong>에서 플랫폼 탭(Shopify / Cafe24 / WooCommerce / Odoo)을 선택하면
+  해당 플랫폼용 설치 스니펫과 단계 안내가 나옵니다(모든 코드 블록에 복사 버튼).</p>
+  <ul>
+    <li><strong>Shopify</strong>: 앱 임베드(권장) / ScriptTag / 수동 설치 3방식</li>
+    <li><strong>Cafe24</strong>: 몰 디자인에 붙여넣는 전용 스니펫(회원 로그인 경로 포함)</li>
+    <li><strong>WooCommerce</strong>: <code>functions.php</code>용 PHP 스니펫 / <strong>Odoo</strong>: 범용 HTML 스니펫</li>
+  </ul>
+  <p><strong>임베드 &amp; SDK 카드</strong>에서는 범용 설치 스니펫(<code>embed.js</code>) 복사,
+  <strong>허용 도메인</strong> 관리(비워두면 스토어프론트 URL 적용),
+  <strong>서명 시크릿</strong>(회원 신원 연동용) 생성을 합니다.</p>
+  <div class="callout warn"><span class="c-label">⚠️ 서명 시크릿은 [생성] 시 한 번만 표시됩니다</span>
+  <p>즉시 복사해 쇼핑몰 서버 담당자에게 전달하세요.</p></div>
+  <div class="callout"><span class="c-label">💡 팁</span>
+  <p>설치 후 실제 쇼핑몰 페이지를 열어 우하단 런처(말풍선 버튼)가 뜨는지 확인하는 것이 가장 확실한 검증입니다.</p></div>
+
+  <h3>4.2 문구·동작 (위젯 동작 카드)</h3>
+  <div class="tablewrap"><table>
+    <tr><th>항목</th><th>설명</th></tr>
+    <tr><td>로그인 방식</td><td><code>redirect</code>(쇼핑몰 로그인 페이지로 이동 후 복귀, 기본) / <code>popup</code></td></tr>
+    <tr><td>타임존</td><td>상점 기준 시간대 — 영업시간 표시 등에 사용</td></tr>
+    <tr><td>표시 이름</td><td>위젯 헤더에 보이는 상점 이름 (최대 80자)</td></tr>
+    <tr><td>첫 방문 인사 / 로그인 후 인사</td><td>언어 탭(EN/ES/KO)별 각각 작성 (최대 500자)</td></tr>
+  </table></div>
+  <div class="callout"><span class="c-label">💡 팁</span>
+  <p>인사말을 언어별로 비워두면 기본 문구가 나갑니다. 주력 언어 하나만 먼저 정성껏 쓰고 나머지는 나중에 채워도 됩니다.</p></div>
+
+  <h3>4.3 탭·테마</h3>
+  <p><strong>위젯 탭 카드</strong>: 알림 / 주문 / 채팅 3탭 중 노출할 탭 선택(최소 1개 유지 — 마지막 1개는 해제 불가), 탭 위치는 상단/하단.</p>
+  <p><strong>위젯 테마 카드</strong>: 브랜드 색상(피커/HEX) · 헤더 스타일(흰색/브랜드색) · 로고 업로드 ·
+  런처 위치(좌/우)·크기(sm/md/lg)·아이콘(채팅/물음표/헤드셋/로고). 오른쪽 미리보기로 즉시 확인.</p>
+  <div class="callout"><span class="c-label">💡 팁</span>
+  <p>색은 <strong>브랜드 색 하나만</strong> 고르면 됩니다. 밝기 단계와 글자색은 대비 기준(4.5:1)에 맞춰 자동 계산됩니다.
+  저장한 테마는 <strong>고객의 다음 위젯 세션부터</strong> 반영됩니다.</p></div>
+</section>
+
+<section id="ch5">
+  <div class="ch"><span class="num">05</span><h2>AI 최소 설정</h2></div>
+  <span class="actor">좌측 메뉴 [AI 설정]</span>
+  <div class="terms"><div class="t-label">용어</div>
+  <div class="tablewrap"><table>
+    <tr><td>페르소나</td><td>AI 상담봇의 말투·태도·원칙 서술 텍스트. 모든 AI 답변의 톤을 결정</td></tr>
+    <tr><td>응답 규칙</td><td>AI가 반드시 지킬 규칙 목록 (한 줄 = 규칙 1개)</td></tr>
+    <tr><td>엔진</td><td>답변을 생성하는 AI 모델. 플랫폼 관리자가 등록한 것 중 선택</td></tr>
+    <tr><td>stub(스텁)</td><td>실제 AI 키 없이 동작하는 데모 응답기 — <strong>실서비스 품질이 아님</strong></td></tr>
+  </table></div></div>
+  <ol class="steps">
+    <li><strong>봇 페르소나</strong> 카드에 상점 소개·말투·금지사항을 서술하고 저장
+      (예: "OO몰의 친절하고 간결한 상담사입니다. 제공된 지식에서만 답하세요.")</li>
+    <li><strong>응답 규칙</strong>에 최소 2~3개 등록 (예: "환불 완료를 단정하지 말 것")</li>
+    <li><strong>AI 기능</strong> 카드에서 적용 엔진 확인 — <code>stub</code> 배지가 보이면 실제 엔진 미연결.
+      플랫폼 관리자에게 엔진 등록(<code>/admin/ai-engines</code>)을 요청</li>
+  </ol>
+  <div class="callout"><span class="c-label">💡 팁</span>
+  <p>시나리오 버튼(위젯 하단 빠른 메뉴)은 기본 6종(배송 조회·취소/환불·상품 도움말·고객 지원 문의·제휴·내 주문)이
+  자동 적용되므로 개설 단계에서 손대지 않아도 됩니다.</p></div>
+</section>
+
+<section id="ch6">
+  <div class="ch"><span class="num">06</span><h2>지식 최초 입력</h2></div>
+  <span class="actor">좌측 메뉴 [지식]</span>
+  <p>AI는 <strong>등록된 지식에서만</strong> 답합니다. 지식이 없으면 대부분의 질문이 상담원에게 넘어가므로,
+  개설 단계에서 핵심 정책 문서 3~5건은 등록하세요.</p>
+  <ol class="steps">
+    <li>문서 카드의 <strong>[문서 추가]</strong> → 제목 / 카테고리(자동완성) / 내용 입력 → 저장.
+      권장 최초 문서: <strong>배송 정책 · 취소/환불 정책 · 교환/반품 절차 · FAQ</strong>. 저장 시 자동으로 검색 색인(임베딩)됩니다.</li>
+    <li>오른쪽 <strong>지식 QA 패널</strong>에 고객이 물을 법한 질문을 입력해 답변·출처·신뢰도 확인 —
+      방금 등록한 문서가 출처 목록에 뜨면 성공</li>
+  </ol>
+  <div class="callout"><span class="c-label">💡 팁</span>
+  <p>문서 제목·본문에 <strong>고객이 실제 쓰는 표현</strong>(예: "배송 얼마나 걸려요")을 포함하면 검색 적중률이 올라갑니다.
+  상품 지식 대량 등록·외부 소스 연동·품질 관리는 2편 매뉴얼에서 다룹니다.</p></div>
+</section>
+
+<section id="ch7">
+  <div class="ch"><span class="num">07</span><h2>(선택) 팀원 초대·상담 전환</h2></div>
+  <ul>
+    <li><strong>팀원 초대</strong>: [사용자] 메뉴 → [사용자 초대] → 이메일·직급(director/manager/staff)·직무 라벨 선택 →
+      1장과 동일한 <strong>임시 비밀번호 모달</strong>(1회 표시·직접 전달). 메뉴별 접근 권한은
+      [설정]의 <em>메뉴 접근 권한</em> 카드(master 전용)에서 직급별로 조정합니다.</li>
+    <li><strong>상담 전환(핸드오프)</strong>: [설정]의 <em>상담 전환</em> 섹션에서 담당 상담원·영업시간·영업시간 외 접수
+      이메일을 지정합니다 — 상세는 2편 매뉴얼 5장.</li>
+  </ul>
+</section>
+
+<section id="ch8">
+  <div class="ch"><span class="num">08</span><h2>완료 체크리스트</h2></div>
+  <ul class="check">
+    <li>테넌트 생성 + 관리자 초대·임시비번 전달 (어드민)</li>
+    <li>첫 로그인 → 비밀번호 변경 → MFA 등록</li>
+    <li>플랫폼 연동: 자격증명 저장 + <strong>연결 테스트 통과</strong> + (Shopify) 웹훅 등록</li>
+    <li>스토어프론트 URL 설정</li>
+    <li>위젯 스니펫 설치 → <strong>실제 쇼핑몰에서 런처 표시 확인</strong></li>
+    <li>표시 이름·인사말 작성</li>
+    <li>페르소나·응답 규칙 저장, AI 엔진 <code>stub</code> 아님 확인</li>
+    <li>핵심 정책 문서 3건 이상 등록 → QA 패널로 답변 확인</li>
+    <li>위젯에서 직접 질문해 AI 답변 + 출처 표시 확인 (엔드투엔드)</li>
+  </ul>
+</section>
+
+<section id="ch9">
+  <div class="ch"><span class="num">09</span><h2>문제 해결</h2></div>
+  <dl class="faq">
+    <dt>Q. 로그인이 안 됩니다 (임시 비밀번호).</dt>
+    <dd>임시 비밀번호는 재발급하면 이전 값이 무효화됩니다. 최신 발급본인지 확인하고, 안 되면 관리자에게 재발급을 요청하세요.
+    로그인 URL의 슬러그가 다른 상점 것은 아닌지도 확인하세요.</dd>
+    <dt>Q. 임시 비밀번호 창을 닫아버렸습니다.</dt>
+    <dd>값은 다시 볼 수 없습니다. 사용자 행의 [임시 비밀번호] 버튼으로 재발급하세요.</dd>
+    <dt>Q. 위젯이 쇼핑몰에 안 뜹니다.</dt>
+    <dd>① 스니펫이 실제 배포된 페이지에 있는지 ② 허용 도메인에 해당 도메인이 포함되는지 ③ 브라우저 캐시 새로고침 순으로 확인하세요.</dd>
+    <dt>Q. AI 답변이 이상하게 기계적입니다.</dt>
+    <dd>AI 기능 카드에 <code>stub</code> 배지가 있는지 보세요. 스텁은 데모용 응답기입니다. 실제 엔진 등록을 요청하세요.</dd>
+    <dt>Q. AI가 자꾸 "상담원 연결"로 넘깁니다.</dt>
+    <dd>해당 주제의 지식 문서가 없거나 비활성 상태일 가능성이 큽니다. 6장대로 문서를 등록하고 QA 패널로 확인하세요.</dd>
+    <dt>Q. 설정을 바꿨는데 위젯이 그대로입니다.</dt>
+    <dd>위젯 설정(문구·테마·탭)은 고객의 다음 세션부터 반영됩니다. 위젯을 닫았다 열거나 페이지를 새로고침하세요.</dd>
+  </dl>
+</section>
+
+<div class="next">
+  <strong>다음 단계 →</strong> <a href="knowledge-ai.ko.html"><em>샵톡 지식·AI 설정 매뉴얼</em></a>(2편): 지식 파이프라인 전체(카탈로그·CSV·외부 소스),
+  검증·품질 관리, AI 세부 설정, 라이브챗 대응, 개선 루프. 화면 전체 참조는 <a href="user-manual.ko.html">통합 사용자 매뉴얼</a>.
+</div>
+
+</main>
+</div>
+
+</body>
+</html>

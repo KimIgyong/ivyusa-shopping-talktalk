@@ -1,0 +1,409 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ShopTalk Quick Setup Manual</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@700;800&family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --accent:#2B7FFF; --accent-deep:#1D5FD6; --accent-tint:#EAF2FF;
+  --ink:#1B2430; --muted:#5C6675; --line:#E3E8F0;
+  --bg:#FAFBFD; --card:#FFFFFF; --soft:#F1F5FB;
+  --tip-bg:#EAF2FF; --tip-edge:#2B7FFF;
+  --warn-bg:#FFF7E6; --warn-edge:#D97706; --warn-ink:#8A4B04;
+  --code-bg:#EEF2F8; --mono-ink:#31435E;
+}
+:root:not([data-theme="light"]){}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --accent:#5C9BFF; --accent-deep:#82B4FF; --accent-tint:#16243C;
+    --ink:#E6EBF3; --muted:#93A0B4; --line:#28313F;
+    --bg:#0F141B; --card:#161C25; --soft:#1B222D;
+    --tip-bg:#152238; --tip-edge:#5C9BFF;
+    --warn-bg:#2A2010; --warn-edge:#E8A23D; --warn-ink:#EFC584;
+    --code-bg:#1E2632; --mono-ink:#B9C7DC;
+  }
+}
+:root[data-theme="dark"]{
+  --accent:#5C9BFF; --accent-deep:#82B4FF; --accent-tint:#16243C;
+  --ink:#E6EBF3; --muted:#93A0B4; --line:#28313F;
+  --bg:#0F141B; --card:#161C25; --soft:#1B222D;
+  --tip-bg:#152238; --tip-edge:#5C9BFF;
+  --warn-bg:#2A2010; --warn-edge:#E8A23D; --warn-ink:#EFC584;
+  --code-bg:#1E2632; --mono-ink:#B9C7DC;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:"IBM Plex Sans KR","Apple SD Gothic Neo","Segoe UI",sans-serif;
+  font-size:16px;line-height:1.75}
+.shell{max-width:1120px;margin:0 auto;padding:0 24px 96px;
+  display:grid;grid-template-columns:220px minmax(0,1fr);gap:48px}
+@media(max-width:860px){.shell{display:block}}
+header.hero{grid-column:1/-1;padding:56px 0 8px;border-bottom:1px solid var(--line);margin-bottom:8px}
+.eyebrow{font-size:12px;font-weight:700;letter-spacing:.14em;color:var(--accent);text-transform:uppercase}
+h1{font-family:"Gothic A1",sans-serif;font-weight:800;font-size:clamp(28px,4.5vw,40px);
+  line-height:1.25;margin:10px 0 12px;text-wrap:balance}
+.meta{color:var(--muted);font-size:14px;display:flex;flex-wrap:wrap;gap:6px 18px}
+.lead{max-width:68ch;color:var(--muted);margin-top:14px}
+nav.toc{position:sticky;top:24px;align-self:start;font-size:13.5px;padding-top:24px}
+@media(max-width:860px){nav.toc{position:static;border:1px solid var(--line);border-radius:10px;
+  background:var(--card);padding:14px 16px;margin:20px 0}}
+nav.toc .toc-label{font-size:11px;font-weight:700;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;margin-bottom:8px}
+nav.toc a{display:flex;gap:8px;color:var(--muted);text-decoration:none;padding:4px 0;line-height:1.4}
+nav.toc a:hover,nav.toc a:focus-visible{color:var(--accent)}
+nav.toc a .n{font-family:"IBM Plex Mono",monospace;color:var(--accent);font-size:12px;min-width:18px;padding-top:1px}
+main{min-width:0;max-width:74ch}
+section{padding-top:40px}
+.ch{display:flex;align-items:baseline;gap:12px;border-top:2px solid var(--ink);padding-top:14px}
+.ch .num{font-family:"IBM Plex Mono",monospace;font-size:13px;font-weight:500;color:var(--accent)}
+h2{font-family:"Gothic A1",sans-serif;font-weight:800;font-size:24px;margin:0;line-height:1.35;text-wrap:balance}
+.actor{display:inline-block;font-size:12px;font-weight:700;border-radius:999px;padding:2px 12px;
+  background:var(--accent-tint);color:var(--accent-deep);margin-top:10px}
+h3{font-family:"Gothic A1",sans-serif;font-weight:700;font-size:17.5px;margin:30px 0 8px}
+p{margin:10px 0;max-width:68ch}
+a{color:var(--accent-deep)}
+strong{font-weight:700}
+table{border-collapse:collapse;width:100%;font-size:14.5px;margin:14px 0}
+th{font-size:12.5px;letter-spacing:.04em;color:var(--muted);text-align:left;font-weight:700;
+  border-bottom:2px solid var(--line);padding:7px 12px 7px 0}
+td{border-bottom:1px solid var(--line);padding:8px 12px 8px 0;vertical-align:top}
+.tablewrap{overflow-x:auto}
+.terms{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:6px 18px 14px;margin:16px 0}
+.terms .t-label{font-size:11px;font-weight:700;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;margin:12px 0 2px}
+.terms td:first-child{font-weight:700;white-space:nowrap;padding-right:18px}
+.callout{border-left:3px solid var(--tip-edge);background:var(--tip-bg);border-radius:0 10px 10px 0;
+  padding:12px 18px;margin:16px 0;font-size:14.5px}
+.callout .c-label{font-weight:700;color:var(--accent-deep)}
+.callout.warn{border-left-color:var(--warn-edge);background:var(--warn-bg);color:var(--warn-ink)}
+.callout.warn .c-label{color:var(--warn-ink)}
+.callout p{margin:6px 0}
+code,kbd{font-family:"IBM Plex Mono",monospace;font-size:.86em;background:var(--code-bg);
+  color:var(--mono-ink);border-radius:5px;padding:1px 6px}
+pre{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px 18px;
+  overflow-x:auto;font-size:13px;line-height:1.6}
+pre code{background:none;padding:0;color:var(--mono-ink)}
+ol.steps{padding-left:0;margin:14px 0;list-style:none;counter-reset:st}
+ol.steps>li{counter-increment:st;position:relative;padding:0 0 14px 40px}
+ol.steps>li::before{content:counter(st);position:absolute;left:0;top:1px;width:24px;height:24px;
+  border-radius:50%;background:var(--accent);color:#fff;font-size:13px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;font-family:"IBM Plex Mono",monospace}
+ul{margin:10px 0;padding-left:22px}
+li{margin:4px 0}
+.check{list-style:none;padding-left:0}
+.check li{padding-left:30px;position:relative}
+.check li::before{content:"";position:absolute;left:2px;top:6px;width:14px;height:14px;
+  border:2px solid var(--accent);border-radius:4px}
+.faq dt{font-weight:700;margin-top:18px}
+.faq dd{margin:4px 0 0;color:var(--muted)}
+.next{margin-top:56px;border:1px solid var(--line);background:var(--card);border-radius:12px;padding:20px 24px}
+.pagenav{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;padding-top:18px;color:var(--muted)}
+.pagenav a{color:var(--muted);text-decoration:none}
+.pagenav a:hover,.pagenav a:focus-visible{color:var(--accent)}
+.pagenav .cur{color:var(--accent-deep);font-weight:700}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media(prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
+</style>
+</head>
+<body>
+
+<div class="shell">
+<nav class="pagenav" aria-label="Manual navigation"><a href="./">← All manuals</a><span>·</span><a href="quick-setup.ko.html">한국어</a><span class="cur">English</span><a href="quick-setup.vi.html">Tiếng Việt</a><span>·</span><a href="quick-setup.en.md">Raw MD</a></nav>
+<header class="hero">
+  <div class="eyebrow">ShopTalk User Manual · 1/2</div>
+  <h1>ShopTalk Quick Setup Manual</h1>
+  <div class="meta"><span>Version 1.0 · 2026-08-24 · Written against the code</span><span>Audience: platform administrators (Ch. 1) · new tenant administrators (Ch. 2–8)</span></div>
+  <p class="lead">This manual covers the shortest path from opening a new store (tenant) to <strong>the chat widget actually serving customers</strong>.
+  The staging base URL is <code>https://shoptalk.amoeba.site</code>; time required is about 5 minutes of admin work + about 30 minutes of initial tenant setup.
+  For in-depth knowledge and AI configuration, see the <em>Knowledge &amp; AI Setup Manual</em> (Part 2).</p>
+  <p class="lead">⚠ AI-translated draft pending native review. The Korean edition is authoritative.</p>
+</header>
+
+<nav class="toc" aria-label="Table of contents">
+  <div class="toc-label">Contents</div>
+  <a href="#ch0"><span class="n">0</span>Before you start</a>
+  <a href="#ch1"><span class="n">1</span>Creating a tenant (admin)</a>
+  <a href="#ch2"><span class="n">2</span>First login</a>
+  <a href="#ch3"><span class="n">3</span>Commerce platform integration</a>
+  <a href="#ch4"><span class="n">4</span>Chat widget setup &amp; install</a>
+  <a href="#ch5"><span class="n">5</span>Minimum AI configuration</a>
+  <a href="#ch6"><span class="n">6</span>Initial knowledge entry</a>
+  <a href="#ch7"><span class="n">7</span>Team invites &amp; handoff</a>
+  <a href="#ch8"><span class="n">8</span>Completion checklist</a>
+  <a href="#ch9"><span class="n">9</span>Troubleshooting</a>
+</nav>
+
+<main>
+
+<section id="ch0">
+  <div class="ch"><span class="num">00</span><h2>Before You Start</h2></div>
+  <div class="terms"><div class="t-label">Terms</div>
+  <div class="tablewrap"><table>
+    <tr><td>Tenant</td><td>One store hosted on ShopTalk. Data, settings, and knowledge are fully isolated per store.</td></tr>
+    <tr><td>Slug</td><td>The tenant's dedicated login URL fragment. Appended to the address like <code>…/ivyusa</code>.</td></tr>
+    <tr><td>Platform administrator</td><td>A ShopTalk operator admin who logs in at <code>/admin</code>. Holds tenant-creation rights.</td></tr>
+    <tr><td>Tenant administrator (master)</td><td>The highest rank in the store console. Manages all team members, permissions, and settings.</td></tr>
+    <tr><td>Temporary password</td><td>A one-time password issued by the system at invite time. <strong>Shown on screen only once</strong>.</td></tr>
+  </table></div></div>
+  <h3>What you need</h3>
+  <ul>
+    <li>A platform administrator account (<code>/admin/login</code>)</li>
+    <li>The <strong>shop domain</strong> of the store to create (e.g. <code>example.myshopify.com</code>, <code>mallid.cafe24.com</code>)</li>
+    <li>The email address of the person to invite as tenant administrator</li>
+    <li>Credentials for the platform to integrate (Ch. 3 — prepared by the tenant administrator)</li>
+  </ul>
+</section>
+
+<section id="ch1">
+  <div class="ch"><span class="num">01</span><h2>Creating a Tenant</h2></div>
+  <span class="actor">Platform administrator · /admin/tenants</span>
+
+  <h3>1.1 Create a new tenant</h3>
+  <p><code>/admin/tenants</code> → <strong>[New tenant]</strong> → fill the 4 fields in the modal.</p>
+  <div class="tablewrap"><table>
+    <tr><th>Field</th><th>Required</th><th>Description</th></tr>
+    <tr><td>Name</td><td>✅</td><td>Display name of the store</td></tr>
+    <tr><td>Login path (slug)</td><td>—</td><td>Auto-derived from the name if left blank. Lowercased automatically when typed</td></tr>
+    <tr><td>Shop domain</td><td>✅</td><td>The store's primary domain — <strong>shared across all platforms</strong></td></tr>
+    <tr><td>Plan</td><td>✅</td><td>starter / growth / enterprise — the default menus provided differ by plan</td></tr>
+  </table></div>
+  <div class="callout"><span class="c-label">💡 Slug rules</span>
+  <p>Lowercase letters, digits, and hyphens only; it cannot collide with console screen names (reserved words such as <code>admin</code>, <code>login</code>, <code>dashboard</code>, <code>settings</code>).
+  If you enter a reserved word, the server automatically appends a <code>-shop</code> suffix. Since the slug is the login URL itself, choose a value the store can remember easily.</p></div>
+
+  <h3>1.2 (Optional) Adjust provided menus</h3>
+  <p>On the tenant row, <strong>[Provided menus]</strong> → three-way choice per menu: <strong>Follow plan</strong> (default) / <strong>Force provide</strong> / <strong>Block</strong>.
+  The result column updates immediately, and exceptions show a <code>*</code>.</p>
+  <div class="callout"><span class="c-label">💡 Tip</span>
+  <p>A menu blocked here stays invisible even if the tenant master grants rank permissions for it (2-tier: admin provisioning → tenant-internal permissions).
+  The issue board also requires the workflow mode to be configured.</p></div>
+
+  <h3>1.3 Invite the tenant administrator + issue a temporary password</h3>
+  <ol class="steps">
+    <li>On the tenant row, <strong>[Users]</strong> → <strong>[Invite user]</strong></li>
+    <li>Enter the <code>email</code>; keep <code>rank</code> at the default <strong>master</strong> (this is the first administrator)</li>
+    <li><strong>[Invite]</strong> → a <strong>temporary password modal</strong> appears immediately — copy the value</li>
+  </ol>
+  <pre><code>┌─ Temporary password issued ────────────────┐
+│ Temporary password for user@shop.com        │
+│ ┌────────────────────────┐                 │
+│ │  IvyXXXXXXXXX!         │   [Copy]        │
+│ └────────────────────────┘                 │
+│ ⚠️ This value is shown only once, now.      │
+└────────────────────────────────────────────┘</code></pre>
+  <div class="callout warn"><span class="c-label">⚠️ The temporary password is not sent by email</span>
+  <p>The administrator must copy the value shown once in the modal and <strong>deliver it directly</strong>. If you closed the window and lost the value,
+  reissue it with the <strong>[Temp password]</strong> button on that user's row (the previous value is invalidated).</p></div>
+  <div class="callout"><span class="c-label">💡 Secure delivery</span>
+  <p>Never leave the password in an email body or a group chat. Deliver it via a 1:1 secure messenger or a phone call,
+  and the creation procedure is complete only after confirming the first login (= forced change). Every issuance is recorded in the audit log (<code>/admin/audit</code>).</p></div>
+
+  <h3>1.4 Hand over the login URL</h3>
+  <p><strong>[Copy]</strong> the <strong>login page URL</strong> (<code>https://…/slug</code>) from the card at the top of the same screen and hand it over together.</p>
+  <p>Three things to deliver — ① login URL ② email (account ID) ③ temporary password</p>
+</section>
+
+<section id="ch2">
+  <div class="ch"><span class="num">02</span><h2>First Login</h2></div>
+  <span class="actor">Tenant administrator · https://shoptalk.amoeba.site/&lt;slug&gt;</span>
+
+  <h3>2.1 Log in</h3>
+  <p>Opening the URL you received shows a login screen bearing the store name. Sign in with the email + temporary password.</p>
+  <div class="callout"><span class="c-label">💡 Tip</span>
+  <p>If you see "store not found", check the spelling of the slug in the URL.
+  Turn on <strong>Remember email</strong> and this browser will pre-fill the email next time.</p></div>
+
+  <h3>2.2 Forced password change</h3>
+  <p>Immediately after login, a <strong>non-dismissable password change dialog</strong> appears (it cannot be cancelled — the console cannot be used with a temporary password).</p>
+  <ul>
+    <li>Enter the current (temporary) password + new password + confirmation</li>
+    <li>The 3 rules show live ✓/✕: <strong>① at least 10 characters ② at least 3 of: uppercase·lowercase·digits·special characters ③ not a common password</strong></li>
+    <li>Passwords containing your own email, or identical to the previous one, are rejected by the server</li>
+  </ul>
+
+  <h3>2.3 MFA (two-factor authentication) enrollment</h3>
+  <div class="terms"><div class="t-label">Terms</div>
+  <div class="tablewrap"><table>
+    <tr><td>TOTP</td><td>The 6-digit code an authenticator app (Google Authenticator, etc.) generates every 30 seconds</td></tr>
+    <tr><td>Recovery codes</td><td>10 one-time codes to use if you lose the authenticator app — <strong>shown only once, right after enrollment</strong></td></tr>
+  </table></div></div>
+  <p>The master and director ranks are required to enroll MFA (TOTP) by security policy.
+  Before the enforcement date there is a grace banner at the top (enroll early from My Page); after it, the console is blocked until you enroll.</p>
+  <p>Enrollment: scan the QR (or enter the manual key) → type the app's 6-digit code → <strong>download &amp; store the 10 recovery codes</strong> → done.
+  From then on, every login asks for the 6-digit code as an extra step.</p>
+  <div class="callout warn"><span class="c-label">⚠️ The recovery codes are shown only this once</span>
+  <p>Be sure to save them. If you lose both the authenticator app and the recovery codes, only an administrator's (system admin or store master)
+  <strong>[Reset MFA]</strong> can unlock you.</p></div>
+</section>
+
+<section id="ch3">
+  <div class="ch"><span class="num">03</span><h2>Commerce Platform Integration</h2></div>
+  <span class="actor">Console [Settings] → store integration cards</span>
+  <div class="terms"><div class="t-label">Terms</div>
+  <div class="tablewrap"><table>
+    <tr><td>Credential</td><td>Keys/tokens for platform API access. Stored encrypted; after saving, only "Configured" is shown</td></tr>
+    <tr><td>Test connection</td><td>A button that makes one real API call with the saved credentials to verify their validity</td></tr>
+    <tr><td>Sync</td><td>The job that pulls the platform's order·product data into the ShopTalk cache</td></tr>
+  </table></div></div>
+
+  <h3>3.1 Cafe24 — OAuth connection (recommended) ✅</h3>
+  <ol class="steps">
+    <li>In the <em>Cafe24 connection</em> card of the Settings page, enter the <code>mall ID</code> (the mallID part of <code>mallID.cafe24.com</code>)</li>
+    <li><strong>[Connect]</strong> → the Cafe24 authorization page → sign in and approve → automatically returned to the console</li>
+    <li>Confirm the Connected badge, then run <strong>[Sync now]</strong> (orders) / <strong>[Import products]</strong></li>
+  </ol>
+  <div class="callout"><span class="c-label">💡 Tip</span>
+  <p>Product sync fills only the product <strong>cache</strong>. For the AI to use these products in answers, you must separately run
+  <strong>Sync from catalog</strong> (preview → run) on the [Knowledge] screen — see Ch. 2.2 of the Part 2 manual.
+  If you already hold a token, you can also enter it manually in the cafe24 modal of the store integration tile, but the OAuth connection is the standard.</p></div>
+
+  <h3>3.2 Shopify ✅</h3>
+  <p>Shopify modal in the store integration tile: <code>shop domain</code> (required, <code>*.myshopify.com</code>) ·
+  <code>Admin API Access Token</code> (required) · API Key/Secret (optional).</p>
+  <p>After saving, run <strong>[Test connection] → [Sync now] → [Register webhooks]</strong> in that order.
+  Webhooks must be registered for order·shipping status changes to reach widget notifications in real time.</p>
+
+  <h3>3.3 Odoo — credentials·connection test ✅ / real-time sync 🟡</h3>
+  <p>In the odoo tile modal, enter <code>server URL</code> / <code>DB name</code> / <code>username</code> / <code>API Key</code> and test the connection.
+  Real-time data sync is in preparation.</p>
+
+  <h3>3.4 Storefront URL</h3>
+  <p>Enter the store's <strong>customer-facing site address</strong> in the <em>Storefront</em> card.
+  If unset, the widget's product links are disabled (the card shows a warning).</p>
+  <p style="color:var(--muted);font-size:14px">Other integrations — WooCommerce·Haravan (commerce), Klaviyo·Yotpo (marketing), Gorgias (helpdesk),
+  messenger channels (Telegram·Gmail, etc.) — connect through the same kind of tiles/cards.</p>
+</section>
+
+<section id="ch4">
+  <div class="ch"><span class="num">04</span><h2>Chat Widget Setup &amp; Installation</h2></div>
+  <span class="actor">The widget cards on the [Settings] page</span>
+
+  <h3>4.1 Install the widget</h3>
+  <p>In the <strong>installation guide card</strong>, pick the platform tab (Shopify / Cafe24 / WooCommerce / Odoo) to see
+  that platform's installation snippet and step-by-step guide (every code block has a copy button).</p>
+  <ul>
+    <li><strong>Shopify</strong>: 3 methods — app embed (recommended) / ScriptTag / manual install</li>
+    <li><strong>Cafe24</strong>: a dedicated snippet to paste into the mall design (includes the member login path)</li>
+    <li><strong>WooCommerce</strong>: a PHP snippet for <code>functions.php</code> / <strong>Odoo</strong>: a generic HTML snippet</li>
+  </ul>
+  <p>In the <strong>Embed &amp; SDK card</strong>, copy the universal installation snippet (<code>embed.js</code>),
+  manage <strong>allowed domains</strong> (if left blank, the storefront URL applies),
+  and generate the <strong>signing secret</strong> (for member identity federation).</p>
+  <div class="callout warn"><span class="c-label">⚠️ The signing secret is shown only once at [Generate]</span>
+  <p>Copy it immediately and hand it to the shop's server engineer.</p></div>
+  <div class="callout"><span class="c-label">💡 Tip</span>
+  <p>The surest verification is to open the live shop page and check that the launcher (speech-bubble button) appears at the bottom right.</p></div>
+
+  <h3>4.2 Copy &amp; behavior (widget behavior card)</h3>
+  <div class="tablewrap"><table>
+    <tr><th>Item</th><th>Description</th></tr>
+    <tr><td>Login method</td><td><code>redirect</code> (go to the shop login page and return, default) / <code>popup</code></td></tr>
+    <tr><td>Timezone</td><td>The store's timezone — used for business-hours display, etc.</td></tr>
+    <tr><td>Display name</td><td>The store name shown in the widget header (max 80 characters)</td></tr>
+    <tr><td>First-visit greeting / post-login greeting</td><td>Written per language tab (EN/ES/KO) (max 500 characters)</td></tr>
+  </table></div>
+  <div class="callout"><span class="c-label">💡 Tip</span>
+  <p>If a greeting is left empty for a language, the default copy is used. It is fine to write one primary language carefully first and fill in the rest later.</p></div>
+
+  <h3>4.3 Tabs &amp; theme</h3>
+  <p><strong>Widget tabs card</strong>: choose which of the 3 tabs — notifications / orders / chat — to show (at least 1 must remain — the last one cannot be unchecked); tab position is top/bottom.</p>
+  <p><strong>Widget theme card</strong>: brand color (picker/HEX) · header style (white/brand color) · logo upload ·
+  launcher position (left/right)·size (sm/md/lg)·icon (chat/question mark/headset/logo). Verify instantly in the preview on the right.</p>
+  <div class="callout"><span class="c-label">💡 Tip</span>
+  <p>You only need to pick <strong>one brand color</strong>. Lightness steps and text colors are computed automatically against the contrast standard (4.5:1).
+  A saved theme takes effect <strong>from the customer's next widget session</strong>.</p></div>
+</section>
+
+<section id="ch5">
+  <div class="ch"><span class="num">05</span><h2>Minimum AI Configuration</h2></div>
+  <span class="actor">Left menu [AI settings]</span>
+  <div class="terms"><div class="t-label">Terms</div>
+  <div class="tablewrap"><table>
+    <tr><td>Persona</td><td>Text describing the AI assistant's tone·attitude·principles. Sets the tone of every AI answer</td></tr>
+    <tr><td>Response rules</td><td>The list of rules the AI must obey (one line = one rule)</td></tr>
+    <tr><td>Engine</td><td>The AI model that generates answers. Choose among those registered by the platform administrator</td></tr>
+    <tr><td>stub</td><td>A demo responder that works without a real AI key — <strong>not production quality</strong></td></tr>
+  </table></div></div>
+  <ol class="steps">
+    <li>Describe the store introduction·tone·prohibitions in the <strong>bot persona</strong> card and save
+      (e.g. "You are the friendly, concise assistant of OO Mall. Answer only from the provided knowledge.")</li>
+    <li>Register at least 2–3 <strong>response rules</strong> (e.g. "Never state that a refund is complete")</li>
+    <li>Check the applied engine in the <strong>AI functions</strong> card — a <code>stub</code> badge means no real engine is connected.
+      Ask the platform administrator to register engines (<code>/admin/ai-engines</code>)</li>
+  </ol>
+  <div class="callout"><span class="c-label">💡 Tip</span>
+  <p>The scenario buttons (the quick menu at the bottom of the widget) come with 6 defaults (track shipping·cancel/refund·product help·contact support·partnership·my orders)
+  applied automatically, so you do not need to touch them at the setup stage.</p></div>
+</section>
+
+<section id="ch6">
+  <div class="ch"><span class="num">06</span><h2>Initial Knowledge Entry</h2></div>
+  <span class="actor">Left menu [Knowledge]</span>
+  <p>The AI answers <strong>only from registered knowledge</strong>. Without knowledge, most questions get handed to agents,
+  so register the 3–5 core policy documents at the setup stage.</p>
+  <ol class="steps">
+    <li>In the documents card, <strong>[Add document]</strong> → enter title / category (autocomplete) / content → save.
+      Recommended first documents: <strong>shipping policy · cancellation/refund policy · exchange/return procedure · FAQ</strong>. On save, the document is search-indexed (embedded) automatically.</li>
+    <li>In the <strong>knowledge QA panel</strong> on the right, type questions a customer would ask and check the answer·sources·confidence —
+      if the document you just registered appears in the source list, you succeeded</li>
+  </ol>
+  <div class="callout"><span class="c-label">💡 Tip</span>
+  <p>Including <strong>the phrasing customers actually use</strong> (e.g. "how long does shipping take") in document titles and bodies raises search hit rates.
+  Bulk product knowledge, external source integration, and quality management are covered in the Part 2 manual.</p></div>
+</section>
+
+<section id="ch7">
+  <div class="ch"><span class="num">07</span><h2>(Optional) Team Invites &amp; Handoff Settings</h2></div>
+  <ul>
+    <li><strong>Invite team members</strong>: [Users] menu → [Invite user] → choose email·rank (director/manager/staff)·duty labels →
+      the same <strong>temporary password modal</strong> as in Ch. 1 (shown once·deliver directly). Per-menu access is adjusted per rank in
+      the <em>Menu access</em> card of [Settings] (master only).</li>
+    <li><strong>Handoff settings</strong>: in the <em>Agent handoff</em> section of [Settings], assign the responsible agents·business hours·off-hours intake
+      email — details in Ch. 5 of the Part 2 manual.</li>
+  </ul>
+</section>
+
+<section id="ch8">
+  <div class="ch"><span class="num">08</span><h2>Completion Checklist</h2></div>
+  <ul class="check">
+    <li>Tenant created + administrator invited·temp password delivered (admin)</li>
+    <li>First login → password changed → MFA enrolled</li>
+    <li>Platform integration: credentials saved + <strong>connection test passed</strong> + (Shopify) webhooks registered</li>
+    <li>Storefront URL configured</li>
+    <li>Widget snippet installed → <strong>launcher confirmed visible on the live shop</strong></li>
+    <li>Display name·greetings written</li>
+    <li>Persona·response rules saved; AI engine confirmed not <code>stub</code></li>
+    <li>3+ core policy documents registered → answers verified in the QA panel</li>
+    <li>Asked a question directly in the widget and confirmed AI answer + sources (end-to-end)</li>
+  </ul>
+</section>
+
+<section id="ch9">
+  <div class="ch"><span class="num">09</span><h2>Troubleshooting</h2></div>
+  <dl class="faq">
+    <dt>Q. I cannot log in (temporary password).</dt>
+    <dd>Reissuing a temporary password invalidates the previous value. Make sure you have the latest issuance; if it still fails, ask the administrator to reissue.
+    Also check that the slug in the login URL is not another store's.</dd>
+    <dt>Q. I closed the temporary password window.</dt>
+    <dd>The value cannot be viewed again. Reissue it with the [Temp password] button on the user's row.</dd>
+    <dt>Q. The widget does not appear on the shop.</dt>
+    <dd>Check, in order: ① the snippet is on the actually deployed page ② the domain is included in the allowed domains ③ refresh the browser cache.</dd>
+    <dt>Q. AI answers feel oddly mechanical.</dt>
+    <dd>Check whether the AI functions card shows a <code>stub</code> badge. The stub is a demo responder. Ask for real engine registration.</dd>
+    <dt>Q. The AI keeps handing off to "connect to an agent".</dt>
+    <dd>Most likely there is no knowledge document on that topic, or it is inactive. Register documents as in Ch. 6 and verify with the QA panel.</dd>
+    <dt>Q. I changed settings but the widget looks the same.</dt>
+    <dd>Widget settings (copy·theme·tabs) take effect from the customer's next session. Close and reopen the widget, or refresh the page.</dd>
+  </dl>
+</section>
+
+<div class="next">
+  <strong>Next step →</strong> <a href="knowledge-ai.en.html"><em>ShopTalk Knowledge &amp; AI Setup Manual</em></a> (Part 2): the full knowledge pipeline (catalog·CSV·external sources),
+  validation·quality management, detailed AI settings, live chat operations, the improvement loop. For the full screen reference, see the <a href="user-manual.en.html">integrated user manual</a>.
+</div>
+
+</main>
+</div>
+
+</body>
+</html>

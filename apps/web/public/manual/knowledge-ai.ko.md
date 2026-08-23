@@ -2,10 +2,8 @@
 
 > 버전 1.0 · 2026-08-24 · 코드 기준 작성
 > 대상: 테넌트 운영자 · CS 담당 (master/director 권장 — AI 설정은 상위 직급 전용)
-> 공유용 아티팩트(HTML): https://claude.ai/code/artifact/e3e455f7-6886-4414-8ef1-53c79eaeff89
-> 온라인판: https://shoptalk.amoeba.site/manual (md·html × ko/en/vi) — **이 문서를 개정하면
-> `apps/web/public/manual/knowledge-ai.*`(ko 사본 + en/vi 번역판)도 함께 갱신할 것**
-> 표기: ✅ 구현됨 / 🟡 준비 중·로드맵. 선행 문서: [간단 세팅 매뉴얼](GUIDE-260824-Quick-Setup-Manual.md)
+> 온라인판: https://shoptalk.amoeba.site/manual (HTML판 및 EN·VI 번역 제공)
+> 표기: ✅ 구현됨 / 🟡 준비 중·로드맵. 선행 문서: [간단 세팅 매뉴얼](quick-setup.ko.md)
 
 각 장은 **용어 설명 → 절차 → 💡 동작 팁** 순서로 구성되어 있습니다.
 
@@ -519,6 +517,6 @@ Anthropic 엔진에는 적용되지 않습니다(§4.4).
 
 ---
 
-*선행: [간단 세팅 매뉴얼](GUIDE-260824-Quick-Setup-Manual.md) · 화면 전체 참조:
-[사용자 매뉴얼(통합)](사용자매뉴얼_User-Manual.ko.md) · AI 설정 심화:
-[AI-SETTINGS-GUIDE](AI-SETTINGS-GUIDE.md) · 위젯: [위젯설정가이드](위젯설정가이드_Widget-Settings.ko.md)*
+*선행: [간단 세팅 매뉴얼](quick-setup.ko.md) · 화면 전체 참조:
+[사용자 매뉴얼(통합)](user-manual.ko.md) · AI 설정 심화:
+AI-SETTINGS-GUIDE · 위젯: 위젯설정가이드*
