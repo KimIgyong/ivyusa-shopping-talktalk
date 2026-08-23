@@ -35,7 +35,7 @@
 
 ## 3. 배포 상태
 
-- 브랜치: `KimIgyong/user-manual` → PR (본 문서 작성 시점에 생성, PR# 는 PR 본문·머지 커밋 참조)
+- 브랜치: `KimIgyong/user-manual` → **PR #337** (커밋 `02b3ca6`)
 - docs-only이므로 스테이징/프로덕션 배포·마이그레이션 해당 없음.
 
 ## 4. 잔여 과제
