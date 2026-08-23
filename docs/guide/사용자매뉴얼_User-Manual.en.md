@@ -1,5 +1,11 @@
 # IVY USA Chat & Support Widget — User Manual
 
+> ⚠️ **OUTDATED (v1.1.0, as of 2026-07-06).** The Korean manual was fully revised to
+> v2.0.0 on 2026-08-24 (`사용자매뉴얼_User-Manual.ko.md`), together with two new guides:
+> `GUIDE-260824-Quick-Setup-Manual.md` and `GUIDE-260824-Knowledge-AI-Manual.md`.
+> This English edition has not yet been re-translated — where they disagree, the Korean
+> v2.0.0 is correct.
+
 > Version 1.1.0 · 2026-07-01 · Revised 2026-07-06
 > Audience: Tenant operators · Agents · Platform admins
 > Legend: **✅ Implemented / 🟡 Wired-and-designed or Roadmap**. Marked honestly against the actual code.

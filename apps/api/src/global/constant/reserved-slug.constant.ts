@@ -22,6 +22,7 @@ export const RESERVED_TENANT_SLUGS: readonly string[] = [
   'settings',
   'index',
   'static',
+  'manual',
 ];
 
 /** Lowercase letters/digits, single dashes inside, 1–64 chars. */

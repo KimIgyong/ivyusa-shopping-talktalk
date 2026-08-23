@@ -3,11 +3,9 @@
 > 버전 2.0.0 · 최초 2026-07-01 · **전면 개정 2026-08-24** (코드 기준)
 > 대상: 테넌트 운영자 · 상담원 · 플랫폼 관리자
 > 표기 규칙: **✅ 구현됨 / 🟡 준비 중·로드맵**. 실제 코드 기준으로 정직하게 표기합니다.
-> 온라인판: https://shoptalk.amoeba.site/manual (md·html × ko/en/vi) — **이 문서를 개정하면
-> `apps/web/public/manual/user-manual.*`(ko 사본 + en/vi 번역판)도 함께 갱신할 것**
 >
-> 처음 개설하는 분은 [간단 세팅 매뉴얼](GUIDE-260824-Quick-Setup-Manual.md)부터,
-> 지식·AI를 다듬는 분은 [지식 등록·AI 설정 매뉴얼](GUIDE-260824-Knowledge-AI-Manual.md)을 보세요.
+> 처음 개설하는 분은 [간단 세팅 매뉴얼](quick-setup.ko.md)부터,
+> 지식·AI를 다듬는 분은 [지식 등록·AI 설정 매뉴얼](knowledge-ai.ko.md)을 보세요.
 > 이 문서는 **화면 전체를 훑는 참조 매뉴얼**입니다.
 
 ---
@@ -42,7 +40,7 @@
   **강제 변경**(10자 이상·문자 종류 3종·흔한 비밀번호 금지)을 거칩니다.
 - master/director와 시스템 관리자는 **MFA(TOTP)** 등록이 강제됩니다(시행일 전 유예
   배너 → 시행일 후 차단 모달). 등록 시 복구 코드 10개가 **한 번만** 표시됩니다.
-- 온보딩 절차 전체: [간단 세팅 매뉴얼 1~2장](GUIDE-260824-Quick-Setup-Manual.md).
+- 온보딩 절차 전체: [간단 세팅 매뉴얼 1~2장](quick-setup.ko.md).
 
 ### 1.2 역할·권한 (RBAC)
 - **직급(rank)**: master · director · manager · staff / **직무 라벨**: consult(상담) ·
@@ -132,7 +130,7 @@
 ```
 
 - 상담원 발신 메시지도 모더레이션을 동일하게 통과합니다(우회 불가, 실패 시 차단).
-- 파이프라인의 각 지점을 조정하는 방법: [지식·AI 매뉴얼](GUIDE-260824-Knowledge-AI-Manual.md).
+- 파이프라인의 각 지점을 조정하는 방법: [지식·AI 매뉴얼](knowledge-ai.ko.md).
 
 ---
 
@@ -257,7 +255,7 @@
 - 목록의 **지식 등록 여부** 배지가 중요합니다 — `없음`인 상품은 **AI가 답변에 쓸 수
   없습니다.** 상세 모달에서 설명·태그·SKU를 확인하세요. 설명이 아예 없는 상품은
   지식으로 변환되지 않습니다(상세에 명시 표시).
-- 지식 반영 절차(카탈로그 동기화): [지식·AI 매뉴얼 2.2장](GUIDE-260824-Knowledge-AI-Manual.md).
+- 지식 반영 절차(카탈로그 동기화): [지식·AI 매뉴얼 2.2장](knowledge-ai.ko.md).
 
 ---
 
@@ -284,8 +282,8 @@
 
 지식 등록(수동/카탈로그/CSV/외부 소스), 검증(QA 패널·충돌 검토·공백 제안), AI 설정
 (에이전트·페르소나·규칙·시나리오·엔진·모더레이션·답변 재사용), 개선 루프(미리보기·
-코칭·회귀 테스트) 전체가 **[지식 등록·AI 설정 매뉴얼](GUIDE-260824-Knowledge-AI-Manual.md)**
-에 정리되어 있습니다. 화면별 심화 설명은 [AI-SETTINGS-GUIDE](AI-SETTINGS-GUIDE.md) 참조.
+코칭·회귀 테스트) 전체가 **[지식 등록·AI 설정 매뉴얼](knowledge-ai.ko.md)**
+에 정리되어 있습니다. 화면별 심화 설명은 AI-SETTINGS-GUIDE 참조.
 
 핵심만 요약:
 - AI는 **활성 지식 문서에서만** 답합니다. 인계가 잦으면 지식 부족이 원인입니다.
@@ -297,8 +295,8 @@
 플랫폼 연동(Cafe24 OAuth·Shopify·Odoo 등), 위젯 설치·문구·탭·테마, 알림 채널 정책,
 **상담 전환(담당자·영업시간·영업외 이메일·SLA·정책 강제 핸드오프)**, 메뉴 접근 권한이
 모두 `/settings`에 있습니다.
-→ [간단 세팅 매뉴얼 3~4장](GUIDE-260824-Quick-Setup-Manual.md) ·
-[위젯설정가이드](위젯설정가이드_Widget-Settings.ko.md)
+→ [간단 세팅 매뉴얼 3~4장](quick-setup.ko.md) ·
+위젯설정가이드
 
 ---
 
@@ -323,7 +321,7 @@
 | AI 엔진 | `/admin/ai-engines` | 엔진 등록(제공사·모델·API 키)·활성 관리 — 테넌트가 기능별로 선택 |
 | 감사 로그 | `/admin/audit` | 특권 작업 추적 (임시비번 발급·권한 변경·PII 조회 등) |
 
-테넌트 개설 절차 상세: [간단 세팅 매뉴얼 1장](GUIDE-260824-Quick-Setup-Manual.md).
+테넌트 개설 절차 상세: [간단 세팅 매뉴얼 1장](quick-setup.ko.md).
 
 ---
 
@@ -365,7 +363,7 @@ Anthropic(Claude) 엔진에는 temperature가 적용되지 않습니다(모델�
 
 ---
 
-*관련 문서: [간단 세팅 매뉴얼](GUIDE-260824-Quick-Setup-Manual.md) ·
-[지식 등록·AI 설정 매뉴얼](GUIDE-260824-Knowledge-AI-Manual.md) ·
-[위젯설정가이드](위젯설정가이드_Widget-Settings.ko.md) · [AI-SETTINGS-GUIDE](AI-SETTINGS-GUIDE.md) ·
+*관련 문서: [간단 세팅 매뉴얼](quick-setup.ko.md) ·
+[지식 등록·AI 설정 매뉴얼](knowledge-ai.ko.md) ·
+위젯설정가이드 · AI-SETTINGS-GUIDE ·
 서비스 소개서 · SPEC.md*

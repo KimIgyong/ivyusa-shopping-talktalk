@@ -1,0 +1,545 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sổ tay tri thức·cài đặt AI ShopTalk</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@700;800&family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --accent:#2B7FFF; --accent-deep:#1D5FD6; --accent-tint:#EAF2FF;
+  --ink:#1B2430; --muted:#5C6675; --line:#E3E8F0;
+  --bg:#FAFBFD; --card:#FFFFFF; --soft:#F1F5FB;
+  --tip-bg:#EAF2FF; --tip-edge:#2B7FFF;
+  --warn-bg:#FFF7E6; --warn-edge:#D97706; --warn-ink:#8A4B04;
+  --code-bg:#EEF2F8; --mono-ink:#31435E;
+}
+:root:not([data-theme="light"]){}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --accent:#5C9BFF; --accent-deep:#82B4FF; --accent-tint:#16243C;
+    --ink:#E6EBF3; --muted:#93A0B4; --line:#28313F;
+    --bg:#0F141B; --card:#161C25; --soft:#1B222D;
+    --tip-bg:#152238; --tip-edge:#5C9BFF;
+    --warn-bg:#2A2010; --warn-edge:#E8A23D; --warn-ink:#EFC584;
+    --code-bg:#1E2632; --mono-ink:#B9C7DC;
+  }
+}
+:root[data-theme="dark"]{
+  --accent:#5C9BFF; --accent-deep:#82B4FF; --accent-tint:#16243C;
+  --ink:#E6EBF3; --muted:#93A0B4; --line:#28313F;
+  --bg:#0F141B; --card:#161C25; --soft:#1B222D;
+  --tip-bg:#152238; --tip-edge:#5C9BFF;
+  --warn-bg:#2A2010; --warn-edge:#E8A23D; --warn-ink:#EFC584;
+  --code-bg:#1E2632; --mono-ink:#B9C7DC;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:"IBM Plex Sans KR","Apple SD Gothic Neo","Segoe UI",sans-serif;
+  font-size:16px;line-height:1.75}
+.shell{max-width:1120px;margin:0 auto;padding:0 24px 96px;
+  display:grid;grid-template-columns:220px minmax(0,1fr);gap:48px}
+@media(max-width:860px){.shell{display:block}}
+header.hero{grid-column:1/-1;padding:56px 0 8px;border-bottom:1px solid var(--line);margin-bottom:8px}
+.eyebrow{font-size:12px;font-weight:700;letter-spacing:.14em;color:var(--accent);text-transform:uppercase}
+h1{font-family:"Gothic A1",sans-serif;font-weight:800;font-size:clamp(28px,4.5vw,40px);
+  line-height:1.25;margin:10px 0 12px;text-wrap:balance}
+.meta{color:var(--muted);font-size:14px;display:flex;flex-wrap:wrap;gap:6px 18px}
+.lead{max-width:68ch;color:var(--muted);margin-top:14px}
+nav.toc{position:sticky;top:24px;align-self:start;font-size:13.5px;padding-top:24px}
+@media(max-width:860px){nav.toc{position:static;border:1px solid var(--line);border-radius:10px;
+  background:var(--card);padding:14px 16px;margin:20px 0}}
+nav.toc .toc-label{font-size:11px;font-weight:700;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;margin-bottom:8px}
+nav.toc a{display:flex;gap:8px;color:var(--muted);text-decoration:none;padding:4px 0;line-height:1.4}
+nav.toc a:hover,nav.toc a:focus-visible{color:var(--accent)}
+nav.toc a .n{font-family:"IBM Plex Mono",monospace;color:var(--accent);font-size:12px;min-width:18px;padding-top:1px}
+main{min-width:0;max-width:74ch}
+section{padding-top:40px}
+.ch{display:flex;align-items:baseline;gap:12px;border-top:2px solid var(--ink);padding-top:14px}
+.ch .num{font-family:"IBM Plex Mono",monospace;font-size:13px;font-weight:500;color:var(--accent)}
+h2{font-family:"Gothic A1",sans-serif;font-weight:800;font-size:24px;margin:0;line-height:1.35;text-wrap:balance}
+.actor{display:inline-block;font-size:12px;font-weight:700;border-radius:999px;padding:2px 12px;
+  background:var(--accent-tint);color:var(--accent-deep);margin-top:10px}
+h3{font-family:"Gothic A1",sans-serif;font-weight:700;font-size:17.5px;margin:30px 0 8px}
+p{margin:10px 0;max-width:68ch}
+a{color:var(--accent-deep)}
+strong{font-weight:700}
+table{border-collapse:collapse;width:100%;font-size:14.5px;margin:14px 0}
+th{font-size:12.5px;letter-spacing:.04em;color:var(--muted);text-align:left;font-weight:700;
+  border-bottom:2px solid var(--line);padding:7px 12px 7px 0}
+td{border-bottom:1px solid var(--line);padding:8px 12px 8px 0;vertical-align:top}
+.tablewrap{overflow-x:auto}
+.terms{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:6px 18px 14px;margin:16px 0}
+.terms .t-label{font-size:11px;font-weight:700;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;margin:12px 0 2px}
+.terms td:first-child{font-weight:700;white-space:nowrap;padding-right:18px}
+.callout{border-left:3px solid var(--tip-edge);background:var(--tip-bg);border-radius:0 10px 10px 0;
+  padding:12px 18px;margin:16px 0;font-size:14.5px}
+.callout .c-label{font-weight:700;color:var(--accent-deep)}
+.callout.warn{border-left-color:var(--warn-edge);background:var(--warn-bg);color:var(--warn-ink)}
+.callout.warn .c-label{color:var(--warn-ink)}
+.callout p{margin:6px 0}
+.callout ul{margin:6px 0}
+code,kbd{font-family:"IBM Plex Mono",monospace;font-size:.86em;background:var(--code-bg);
+  color:var(--mono-ink);border-radius:5px;padding:1px 6px}
+pre{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px 18px;
+  overflow-x:auto;font-size:13px;line-height:1.6}
+pre code{background:none;padding:0;color:var(--mono-ink)}
+ol.steps{padding-left:0;margin:14px 0;list-style:none;counter-reset:st}
+ol.steps>li{counter-increment:st;position:relative;padding:0 0 14px 40px}
+ol.steps>li::before{content:counter(st);position:absolute;left:0;top:1px;width:24px;height:24px;
+  border-radius:50%;background:var(--accent);color:#fff;font-size:13px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;font-family:"IBM Plex Mono",monospace}
+ul{margin:10px 0;padding-left:22px}
+li{margin:4px 0}
+.check{list-style:none;padding-left:0}
+.check li{padding-left:30px;position:relative}
+.check li::before{content:"";position:absolute;left:2px;top:6px;width:14px;height:14px;
+  border:2px solid var(--accent);border-radius:4px}
+.faq dt{font-weight:700;margin-top:18px}
+.faq dd{margin:4px 0 0;color:var(--muted)}
+.next{margin-top:56px;border:1px solid var(--line);background:var(--card);border-radius:12px;padding:20px 24px}
+.pagenav{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;padding-top:18px;color:var(--muted)}
+.pagenav a{color:var(--muted);text-decoration:none}
+.pagenav a:hover,.pagenav a:focus-visible{color:var(--accent)}
+.pagenav .cur{color:var(--accent-deep);font-weight:700}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media(prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
+</style>
+</head>
+<body>
+
+<div class="shell">
+<nav class="pagenav" aria-label="Điều hướng sổ tay"><a href="./">← Danh sách sổ tay</a><span>·</span><a href="knowledge-ai.ko.html">한국어</a><a href="knowledge-ai.en.html">English</a><span class="cur">Tiếng Việt</span><span>·</span><a href="knowledge-ai.vi.md">Bản MD</a></nav>
+<header class="hero">
+  <div class="eyebrow">Sổ tay người dùng ShopTalk · 2/2</div>
+  <h1>Sổ tay tri thức·cài đặt AI ShopTalk</h1>
+  <div class="meta"><span>Phiên bản 1.0 · 2026-08-24 · Biên soạn dựa trên mã nguồn</span><span>Đối tượng: người vận hành tenant · phụ trách CS (Cài đặt AI: master/director)</span></div>
+  <p class="lead">Trình bày cách nhập và kiểm chứng tri thức sẽ sử dụng, cài đặt AI, và cấu hình tiếp khách trong live chat thực tế.
+  Mỗi chương sắp xếp theo thứ tự <strong>giải thích thuật ngữ → quy trình → 💡 mẹo vận hành</strong>. Quy trình mở tenant xem trước <em>Sổ tay thiết lập nhanh</em> (tập 1).</p>
+  <p class="lead">⚠ Bản dịch AI, đang chờ hiệu đính bởi người bản ngữ. Bản tiếng Hàn là bản chuẩn.</p>
+</header>
+
+<nav class="toc" aria-label="Mục lục">
+  <div class="toc-label">Mục lục</div>
+  <a href="#ch0"><span class="n">0</span>Pipeline trả lời của AI</a>
+  <a href="#ch1"><span class="n">1</span>Hiểu cấu trúc tri thức</a>
+  <a href="#ch2"><span class="n">2</span>Đăng ký tri thức</a>
+  <a href="#ch3"><span class="n">3</span>Kiểm chứng·quản lý chất lượng</a>
+  <a href="#ch4"><span class="n">4</span>Cài đặt AI</a>
+  <a href="#ch5"><span class="n">5</span>Cài đặt tiếp khách live chat</a>
+  <a href="#ch6"><span class="n">6</span>Vòng lặp kiểm chứng·cải thiện</a>
+  <a href="#ch7"><span class="n">7</span>Danh sách kiểm tra vận hành</a>
+  <a href="#ch8"><span class="n">8</span>FAQ / Xử lý sự cố</a>
+</nav>
+
+<main>
+
+<section id="ch0">
+  <div class="ch"><span class="num">00</span><h2>Hiểu pipeline trả lời của AI</h2></div>
+  <p>Đây là toàn bộ luồng xử lý một tin nhắn của khách hàng. Mọi cài đặt trong tài liệu này đều là việc điều chỉnh một điểm nào đó trong luồng này.</p>
+  <pre><code>Tin nhắn khách hàng
+  ▼
+① Phân loại ý định ─── cần đơn hàng·thông tin cá nhân → hướng dẫn xác minh danh tính (đăng nhập)
+  ▼
+② Tìm kiếm tri thức (RAG) ─ tìm căn cứ liên quan trong tài liệu tri thức đã đăng ký
+  ▼
+③ Tạo câu trả lời ─── soạn từ persona·quy tắc trả lời + căn cứ tìm được, tính độ tin cậy
+  ▼
+④ Kiểm duyệt ── kiểm tra quy tắc cấm (không đạt thì không hiển thị cho khách)
+  ▼
+⑤ Rẽ nhánh: độ tin cậy đủ → trả lời khách hàng (+nguồn)
+        độ tin cậy thấp / bị chặn / khách yêu cầu → hàng chờ nhân viên tư vấn (escalation)</code></pre>
+  <ul>
+    <li><strong>Ngôn ngữ trả lời</strong> theo ngôn ngữ phiên của khách hàng (en/es/ko/vi/ja/zh).</li>
+    <li>Tin nhắn do nhân viên tư vấn gửi cũng đi qua ④ kiểm duyệt y hệt (không thể bỏ qua).</li>
+  </ul>
+</section>
+
+<section id="ch1">
+  <div class="ch"><span class="num">01</span><h2>Hiểu cấu trúc tri thức</h2></div>
+  <div class="terms"><div class="t-label">Thuật ngữ</div>
+  <div class="tablewrap"><table>
+    <tr><td>Tài liệu tri thức</td><td>Một bài viết AI dùng làm căn cứ trả lời. Gồm tiêu đề·danh mục·nội dung</td></tr>
+    <tr><td>Embedding</td><td>Thao tác lập chỉ mục chuyển tài liệu thành vector tìm kiếm được. Tự động khi đăng ký·sửa</td></tr>
+    <tr><td>RAG</td><td>Cách tìm tài liệu liên quan đến câu hỏi và chỉ tạo câu trả lời từ căn cứ đó</td></tr>
+    <tr><td>Nguồn</td><td>Kết nối tự động lấy tài liệu từ bên ngoài (bảng tin·Google Drive·Notion)</td></tr>
+    <tr><td>Nhóm</td><td>Phân loại lớn: <strong>Thông tin tư vấn</strong> (chính sách·FAQ) / <strong>Thông tin sản phẩm</strong> (từ catalog)</td></tr>
+    <tr><td>Danh mục</td><td>Phân loại chi tiết dưới nhóm (faq, policy, product, warranty v.v. có gợi ý tự động)</td></tr>
+    <tr><td>Đang bật/hiển thị</td><td>Có nằm trong phạm vi tìm kiếm hay không — <strong>tài liệu tắt không được dùng làm căn cứ trả lời</strong></td></tr>
+    <tr><td>Độ tin cậy</td><td>Chỉ số câu trả lời được căn cứ hỗ trợ đến đâu. Thấp thì chuyển tiếp nhân viên tư vấn</td></tr>
+  </table></div></div>
+  <p>Màn hình Kho tri thức (<code>/knowledge</code>): bên trái quản lý nguồn·tài liệu, bên phải cố định <strong>bảng QA tri thức</strong> và
+  <strong>Rà soát mâu thuẫn</strong>, nên có thể qua lại giữa đăng ký↔kiểm chứng trong một màn hình.</p>
+</section>
+
+<section id="ch2">
+  <div class="ch"><span class="num">02</span><h2>Đăng ký tri thức</h2></div>
+
+  <h3>2.1 Đăng ký·sửa tài liệu thủ công</h3>
+  <p>Thẻ tài liệu → <strong>[Thêm tài liệu]</strong> → nhập tiêu đề / danh mục / nội dung → lưu.
+  Bấm tiêu đề để mở cửa sổ chi tiết, quản lý các mục sau trong <strong>[Sửa]</strong>.</p>
+  <div class="tablewrap"><table>
+    <tr><th>Trường</th><th>Công dụng</th></tr>
+    <tr><td>URL gốc</td><td>Liên kết tài liệu ngoài làm căn cứ (mở trực tiếp từ danh sách)</td></tr>
+    <tr><td>Hiệu lực từ</td><td>Ngày chính sách có hiệu lực</td></tr>
+    <tr><td>Chu kỳ rà soát (ngày)</td><td>Quá hạn thì danh sách hiển thị huy hiệu <code>stale</code> (cần rà soát) → mục 3.3</td></tr>
+    <tr><td>Nội dung</td><td>Khi lưu sẽ <strong>tự động embedding lại</strong> (cập nhật chỉ mục tìm kiếm)</td></tr>
+  </table></div>
+  <div class="callout"><span class="c-label">💡 Mẹo</span>
+  <ul>
+    <li>1 tài liệu = 1 chủ đề. Thay vì dồn "giao hàng+hoàn tiền+đổi hàng" vào một tài liệu, tách ra đăng ký thì tìm kiếm mới chính xác.</li>
+    <li>Đưa vào tiêu đề·nội dung <strong>cách nói thực tế của khách hàng</strong> ("giao hàng mất bao lâu") — tìm kiếm theo độ tương đồng nên càng gần từ ngữ của khách càng khớp.</li>
+    <li>Chính sách phiên bản cũ đừng xóa mà <strong>tắt công tắc hiển thị (OFF)</strong> để loại khỏi căn cứ. Lịch sử còn lại và dễ khôi phục.</li>
+  </ul></div>
+
+  <h3>2.2 Tri thức sản phẩm — đồng bộ danh mục sản phẩm · CSV · hướng dẫn sử dụng</h3>
+  <div class="terms"><div class="t-label">Thuật ngữ</div>
+  <div class="tablewrap"><table>
+    <tr><td>Bộ nhớ đệm sản phẩm</td><td>Danh sách sản phẩm gốc đồng bộ từ nền tảng (kết quả đồng bộ sản phẩm ở màn hình cài đặt)</td></tr>
+    <tr><td>Đồng bộ danh mục sản phẩm</td><td>Chuyển bộ nhớ đệm sản phẩm → tài liệu tri thức sản phẩm. 2 bước <strong>xem trước → thực thi</strong></td></tr>
+    <tr><td>Gộp biến thể</td><td>Gom các biến thể phân tách bằng gạch ngang như "Son-Đỏ/Son-Hồng" thành 1 sản phẩm đại diện</td></tr>
+    <tr><td>Giữ bản biên tập</td><td>Bảo toàn tài liệu sản phẩm được người vận hành chỉnh tay, không để đồng bộ ghi đè</td></tr>
+    <tr><td>Hướng dẫn sử dụng</td><td>Tài liệu cách dùng chung theo <strong>loại sản phẩm</strong> — căn cứ trả lời riêng biệt với tài liệu sản phẩm</td></tr>
+  </table></div></div>
+  <ol class="steps">
+    <li><strong>[Đồng bộ từ danh mục sản phẩm]</strong> → <strong>xem trước</strong> chạy trước: số đã quét và kết quả dự kiến
+      (tạo mới/sửa/giữ bản biên tập/gộp hấp thu/không đổi/treo lại), ước lượng lô embedding, danh sách mẫu các mục gộp</li>
+    <li>Kiểm tra trong mẫu gộp xem <strong>các sản phẩm khác nhau có bị gom nhầm thành một không</strong> rồi bấm <strong>[Thực thi]</strong></li>
+    <li>Theo dõi 2 dòng tiến độ (soạn/embedding), sau khi xong kiểm tra <strong>số mục embedding thất bại</strong> trong bảng kết quả (mục thất bại không tìm kiếm được — cần chạy lại)</li>
+  </ol>
+  <p><strong>Nhập CSV sản phẩm</strong>: [Nhập CSV sản phẩm] → chọn tệp → kiểm tra thống kê kết quả (đã phân tích/tạo/sửa/bỏ qua/không hợp lệ/đã embedding)
+  và lỗi theo dòng (tối đa 20 mục). Tải lại cùng sản phẩm sẽ ghi đè (upsert).</p>
+  <p><strong>Hướng dẫn sử dụng</strong>: kiểm tra huy hiệu đã viết/chưa viết theo loại trong thẻ → [Viết] → lưu tiêu đề·nội dung (từ 20 ký tự trở lên).</p>
+  <div class="callout"><span class="c-label">💡 Mẹo</span>
+  <ul>
+    <li><strong>Nhất định phải xem trước.</strong> Gộp sai chỉ có thể bắt được ở bước xem trước, trước khi thực thi.</li>
+    <li>Sản phẩm trên nền tảng thay đổi thì phải chạy <strong>2 bước theo thứ tự</strong>: đồng bộ sản phẩm ở [Cài đặt gian hàng] → đồng bộ danh mục sản phẩm ở [Kho tri thức] mới được phản ánh.</li>
+    <li>Mô tả sản phẩm sơ sài thì thẻ tag là nguyên liệu của tri thức — dọn gọn tag sản phẩm phía nền tảng sẽ nâng chất lượng câu trả lời.</li>
+  </ul></div>
+
+  <h3>2.3 Tích hợp nguồn ngoài (bảng tin · Google Drive · Notion)</h3>
+  <div class="terms"><div class="t-label">Thuật ngữ</div>
+  <div class="tablewrap"><table>
+    <tr><td>Tài khoản dịch vụ</td><td>Tài khoản robot cho tích hợp Google Drive — phải chia sẻ thư mục cho email của tài khoản này mới đọc được</td></tr>
+    <tr><td>Integration</td><td>Đơn vị cho phép công cụ ngoài truy cập trong Notion — cần "kết nối" vào trang đích</td></tr>
+    <tr><td>Số đếm kết quả đồng bộ</td><td>Số mục tạo·sửa·bỏ qua·ẩn. <code>dropped</code>/<code>truncated</code> là <strong>cảnh báo có phần không lấy về được</strong></td></tr>
+  </table></div></div>
+  <ol class="steps">
+    <li><strong>Đăng ký thông tin xác thực</strong> — Google Drive: dán JSON khóa tài khoản dịch vụ → chia sẻ thư mục đích cho
+      email tài khoản dịch vụ được hiển thị → [Kiểm tra kết nối] / Notion: đăng ký token (<code>ntn_…</code>) → kết nối integration vào trang·DB đích → [Kiểm tra kết nối]</li>
+    <li><strong>[Thêm nguồn]</strong> → chọn loại (board/gdrive/notion) → gdrive nhập ID thư mục, notion nhập ID trang·DB hoặc URL chia sẻ</li>
+    <li>Chạy <strong>↻(đồng bộ)</strong> trên hàng nguồn → kiểm tra số đếm kết quả ở cột Đồng bộ lần cuối</li>
+  </ol>
+  <p>Loại được hỗ trợ: bảng tin ✅ · Google Drive ✅ · Notion ✅ · repository có trong danh sách thả xuống nhưng <strong>chưa hỗ trợ</strong> ("chưa sẵn sàng").</p>
+  <div class="callout"><span class="c-label">💡 Mẹo</span>
+  <ul>
+    <li>Thấy cảnh báo đỏ <strong>dropped/truncated</strong> nghĩa là trang quá lớn hoặc quá sâu nên một phần bị cắt — kiểm tra phần cuối tài liệu đó và chia nhỏ bản gốc rồi đồng bộ lại.</li>
+    <li>Đồng bộ đột nhiên được <strong>0 mục</strong> (hủy chia sẻ thư mục·hủy kết nối integration v.v.) thì các tài liệu hiện có được giữ nguyên, không bị ẩn — hãy khôi phục kết nối trước.</li>
+    <li>Bấm ô trạng thái của nguồn = bật↔tắt. Nguồn tắt chỉ dừng đồng bộ, tài liệu đã lấy về vẫn còn.</li>
+  </ul></div>
+</section>
+
+<section id="ch3">
+  <div class="ch"><span class="num">03</span><h2>Kiểm chứng·quản lý chất lượng tri thức</h2></div>
+  <div class="terms"><div class="t-label">Thuật ngữ</div>
+  <div class="tablewrap"><table>
+    <tr><td>Bảng QA tri thức</td><td>Bảng thử nghiệm đặt câu hỏi với tri thức từ góc nhìn khách hàng (cố định bên phải)</td></tr>
+    <tr><td>Nguồn trích dẫn (citation)</td><td>Danh sách tài liệu làm căn cứ cho câu trả lời — hiển thị kèm chỉ số độ tương đồng</td></tr>
+    <tr><td>Mâu thuẫn (conflict)</td><td>Trạng thái hai tài liệu bị phát hiện chứa <strong>nội dung mâu thuẫn nhau</strong></td></tr>
+    <tr><td>stale</td><td>Huy hiệu tài liệu đã quá chu kỳ rà soát, cần xác nhận lại</td></tr>
+    <tr><td>Khoảng trống tri thức (gap)</td><td>Chủ đề khách đã hỏi nhưng tri thức không có câu trả lời — hệ thống đề xuất thành bản nháp tài liệu</td></tr>
+    <tr><td>Đề xuất câu trả lời</td><td>Đề xuất nâng câu trả lời thực tế của nhân viên tư vấn thành tài liệu tri thức (bắt buộc người duyệt)</td></tr>
+    <tr><td>Revision</td><td>Ảnh chụp lịch sử thay đổi của tài liệu — hỗ trợ xem diff·khôi phục</td></tr>
+  </table></div></div>
+
+  <h3>3.1 Bảng QA tri thức — nhất định kiểm tra sau khi đăng ký</h3>
+  <p>Nhập câu hỏi → kiểm tra câu trả lời + <strong>chỉ số độ tin cậy</strong> + <strong>danh sách nguồn</strong> → tài liệu căn cứ sai thì bấm
+  <strong>[Sửa]</strong> cạnh nguồn (tài liệu đó mở ngay ở chế độ sửa) → sửa xong bấm <strong>[Hỏi lại]</strong> để kiểm tra lại.</p>
+  <div class="callout"><span class="c-label">💡 Mẹo</span>
+  <ul>
+    <li>Hiện huy hiệu <strong>bị kiểm duyệt chặn</strong> nghĩa là vướng quy tắc cấm (mục 4.5) — câu trả lời mà nếu là khách thật thì đã không được hiển thị.</li>
+    <li>Nguồn có huy hiệu <code>conflicted</code>/<code>stale</code> thì hãy xử lý tài liệu đó trước.</li>
+    <li>Mỗi khi đổi chính sách, thói quen ném "3 câu hỏi khách có thể hỏi" là bài kiểm tra hồi quy rẻ nhất (tự động hóa xem mục 6.3).</li>
+  </ul></div>
+
+  <h3>3.2 Rà soát mâu thuẫn</h3>
+  <p>Bảng <em>Rà soát mâu thuẫn</em> → lọc trạng thái (chờ/đã xử lý/bỏ qua/thất bại) → theo từng mục kiểm tra độ tương đồng·thời điểm phát hiện·lý do phán định → chọn hành động.
+  Có thể quét lại toàn bộ bằng <strong>[Quét lại]</strong>.</p>
+  <div class="tablewrap"><table>
+    <tr><th>Hành động</th><th>Tác dụng</th></tr>
+    <tr><td>Theo A / Theo B</td><td>Giữ bên được chọn và tắt bên còn lại</td></tr>
+    <tr><td>Giữ cả hai</td><td>Phán định không phải mâu thuẫn — cả hai vẫn bật</td></tr>
+    <tr><td>Bỏ qua</td><td>Đóng mục mâu thuẫn này</td></tr>
+    <tr><td>Phán định lại</td><td>Sửa tài liệu xong yêu cầu đánh giá lại</td></tr>
+  </table></div>
+  <div class="callout"><span class="c-label">💡 Mẹo</span>
+  <p>Mâu thuẫn thường sinh ra do <strong>khi sửa chính sách mà không gỡ phiên bản cũ</strong>. Đừng dừng ở "Theo A" — hãy ghi
+  ngày hiệu lực vào tài liệu được giữ để lần sửa sau không lặp lại.</p></div>
+
+  <h3>3.3 Chu kỳ rà soát·stale / lịch sử thay đổi</h3>
+  <p>Quá hạn <code>chu kỳ rà soát (ngày)</code> đặt trong phần sửa tài liệu thì danh sách gắn huy hiệu <code>stale</code>.
+  Bấm <strong>[Đánh dấu đã rà soát]</strong> trong hộp trạng thái rà soát ở chi tiết tài liệu thì thời hạn được tính lại.
+  Trong <strong>tab lịch sử thay đổi</strong>, xem diff theo revision và có thể <strong>[Khôi phục]</strong>.</p>
+  <div class="callout"><span class="c-label">💡 Mẹo</span>
+  <p>Tài liệu hay thay đổi như phí giao hàng·khuyến mãi đặt chu kỳ rà soát ngắn khoảng 30 ngày, tài liệu ổn định như thông báo pháp lý
+  đặt dài — huy hiệu stale sẽ trở thành danh sách việc cần làm thực thụ.</p></div>
+
+  <h3>3.4 Hộp đề xuất khoảng trống tri thức · duyệt đề xuất câu trả lời (vòng khép kín)</h3>
+  <ul>
+    <li><strong>Hộp đề xuất bổ sung tri thức</strong> (trên cùng, chỉ hiện khi có mục): chủ đề mà tri thức còn trống được tích lũy thành bản nháp tài liệu —
+      <strong>[Chấp nhận]</strong> (sửa tiêu đề·nội dung rồi xác nhận) / <strong>[Bỏ qua]</strong></li>
+    <li><strong>Đề xuất câu trả lời</strong> (hiện khi có mục chờ): đề xuất đưa câu trả lời thực tế của nhân viên tư vấn vào tri thức —
+      kiểm tra câu hỏi·câu trả lời·liên kết hội thoại nguồn rồi <strong>[Duyệt]</strong> / <strong>[Từ chối]</strong> (bắt buộc lý do)</li>
+  </ul>
+  <div class="callout warn"><span class="c-label">⚠️ Kiểm tra thông tin cá nhân trước khi duyệt</span>
+  <p>Nhất định kiểm tra mã đơn hàng·tên v.v. không còn sót trong câu trả lời — tài liệu tri thức được tái sử dụng làm căn cứ cho câu trả lời của mọi khách hàng.</p></div>
+  <div class="callout"><span class="c-label">💡 Mẹo</span>
+  <p>Hai kênh này là con đường để tri thức tự lớn lên. Tạo thói quen dọn sạch mỗi tuần một lần
+  sẽ giảm nguyên nhân gốc của "AI cứ chuyển sang nhân viên tư vấn".</p></div>
+</section>
+
+<section id="ch4">
+  <div class="ch"><span class="num">04</span><h2>Cài đặt AI</h2></div>
+  <span class="actor">Menu trái [Cài đặt AI] · master/director</span>
+  <div class="terms"><div class="t-label">Thuật ngữ</div>
+  <div class="tablewrap"><table>
+    <tr><td>Nhân viên AI (agent)</td><td>Đơn vị bot tư vấn có bộ persona·quy tắc riêng — tạo nhiều bot khác nhau cho từng kênh·trang</td></tr>
+    <tr><td>Nhân viên mặc định</td><td>Agent mà widget dùng khi không chỉ định riêng (luôn hoạt động)</td></tr>
+    <tr><td>Đoạn mã điểm vào</td><td>Đoạn mã cài đặt để mở widget với một agent cụ thể</td></tr>
+    <tr><td>Persona / quy tắc trả lời</td><td>Mô tả giọng điệu·nguyên tắc của bot / danh sách quy tắc phải tuân thủ (nạp vào bước ③ pipeline)</td></tr>
+    <tr><td>Nút kịch bản</td><td>Nút menu nhanh dưới cùng của widget — chọn trong 7 loại hành động</td></tr>
+    <tr><td>Chức năng AI</td><td>5 vị trí AI được dùng (chat/rag/summary/assist/moderation) — mỗi vị trí chỉ định công cụ</td></tr>
+    <tr><td>Quy tắc kiểm duyệt</td><td>Quy tắc cấm kiểm tra tin nhắn gửi đi (bước ④ pipeline)</td></tr>
+    <tr><td>Tái sử dụng câu trả lời</td><td>Phát lại câu trả lời cũ đã duyệt cho cùng câu hỏi, không gọi LLM</td></tr>
+    <tr><td>Ghi chú thay đổi</td><td>Dòng ghi chú để lại khi lưu persona·quy tắc — tra trong lịch sử thay đổi cài đặt</td></tr>
+  </table></div></div>
+
+  <h3>4.1 Nhân viên AI (đa persona)</h3>
+  <p>Chọn một agent trong thẻ <em>Nhân viên AI</em> thì các thẻ persona·quy tắc trả lời bên dưới chuyển thành <strong>của agent đó</strong>.
+  Dùng <strong>[Thêm nhân viên]</strong> đặt tên·mã (chữ thường) để tạo, quản lý <strong>[Đặt làm mặc định]</strong>·công tắc hoạt động·<strong>[Xóa]</strong>,
+  sao chép <strong>đoạn mã điểm vào</strong> để cài lên trang·kênh cụ thể.</p>
+  <div class="callout"><span class="c-label">💡 Mẹo</span>
+  <ul>
+    <li>Agent được <strong>gán một lần khi phiên bắt đầu</strong> — đổi đoạn mã giữa chừng cũng không đổi bot của phiên đang chạy.</li>
+    <li>Vào bằng mã không tồn tại thì rơi về agent mặc định (widget không chết).</li>
+    <li>"Nhân viên AI" ở đây không liên quan tài khoản nhân viên tư vấn (con người) — tài khoản người thật ở menu [Người dùng].</li>
+  </ul></div>
+
+  <h3>4.2 Persona·quy tắc trả lời</h3>
+  <p>Viết nội dung persona → nhập <strong>ghi chú thay đổi</strong> → lưu. Quy tắc trả lời thêm từng dòng bằng [Thêm quy tắc] (dòng trống bị loại khi lưu).</p>
+  <div class="callout"><span class="c-label">💡 Mẹo</span>
+  <ul>
+    <li>Persona chứa danh tính·tông giọng, quy tắc chứa <strong>ràng buộc hành vi</strong> — tách ra như vậy. Thông tin sự thật (phí giao hàng v.v.) đưa vào <strong>tài liệu tri thức</strong> —
+      persona không được tìm kiếm.</li>
+    <li>Sau khi lưu, hiệu lực có thể mất tối đa 60 giây do bộ nhớ đệm.</li>
+    <li>[Nạp vào ô soạn thảo] trong <em>Lịch sử thay đổi</em> chỉ nạp thì chưa áp dụng — <strong>phải lưu</strong> mới có hiệu lực.</li>
+  </ul></div>
+
+  <h3>4.3 Nút kịch bản</h3>
+  <p>Từng hàng chỉnh nhãn (tối đa 60 ký tự) / hành động / ô chọn đang bật / thứ tự (↑↓).
+  Trong <strong>[Sửa câu trả lời]</strong>, chỉnh nội dung phản hồi theo hành động bằng <strong>tab 6 ngôn ngữ</strong> và cấu hình nút tiếp theo (nhãn·hành động·URL).</p>
+  <div class="tablewrap"><table>
+    <tr><th>Hành động</th><th>Hành vi thực tế trong widget</th></tr>
+    <tr><td>Tình trạng giao hàng</td><td>Câu trả lời cố định về chính sách giao hàng + nút tiếp theo</td></tr>
+    <tr><td>Hủy / Hoàn tiền</td><td>Câu trả lời cố định về hủy·hoàn tiền·trả hàng + nút tiếp theo</td></tr>
+    <tr><td>Hỗ trợ sản phẩm</td><td>Menu con (cách dùng·thành phần·đổi/trả·hàng về lại)</td></tr>
+    <tr><td>Liên hệ hỗ trợ</td><td>Biểu mẫu để lại liên hệ — đường kết nối nhân viên tư vấn</td></tr>
+    <tr><td>Đơn hàng của tôi</td><td>Chuyển đến tab đơn hàng sau khi xác minh danh tính</td></tr>
+    <tr><td>Cộng tác viên</td><td>Thẻ giới thiệu hợp tác</td></tr>
+    <tr><td>Gửi tin nhắn</td><td><strong>Gửi nguyên văn nhãn làm câu hỏi</strong> → AI trả lời dựa trên tri thức</td></tr>
+  </table></div>
+  <div class="callout"><span class="c-label">💡 Mẹo</span>
+  <ul>
+    <li>Muốn biến câu hỏi thường gặp thành nút, dùng hành động <strong>Gửi tin nhắn</strong> với nhãn là câu hỏi (ví dụ: "Điều kiện miễn phí giao hàng là gì?").</li>
+    <li>Thay vì xóa nút, hãy ẩn bằng cách bỏ chọn đang bật. Khuyến nghị luôn bật <strong>Liên hệ hỗ trợ</strong>.</li>
+    <li>Khi sửa chính sách, cập nhật đồng thời để nội dung câu trả lời cố định và tài liệu tri thức không lệch nhau.</li>
+  </ul></div>
+
+  <h3>4.4 Chức năng AI (công cụ·tham số)</h3>
+  <p>Trên hàng của từng chức năng chọn công cụ áp dụng, nhập temperature (0~1)·max_tokens rồi lưu riêng từng mục.
+  Chức năng chưa chỉ định hiển thị huy hiệu kế thừa/mặc định/stub cùng tên công cụ thực tế đang áp dụng.</p>
+  <div class="tablewrap"><table>
+    <tr><th>Chức năng</th><th>Công dụng thực tế</th></tr>
+    <tr><td>chat</td><td>Điều khiển hội thoại như phân loại ý định tin nhắn khách</td></tr>
+    <tr><td>rag</td><td><strong>Tạo câu trả lời dựa trên tri thức — phần chính của câu trả lời khách nhìn thấy</strong></td></tr>
+    <tr><td>summary</td><td>Tóm tắt hội thoại (lịch sử·bản tóm tắt khi chuyển tiếp)</td></tr>
+    <tr><td>assist</td><td>Hỗ trợ AI trong bảng điều khiển của nhân viên tư vấn</td></tr>
+    <tr><td>moderation</td><td>Phán định LLM cho quy tắc cấm dạng ngữ cảnh (context)</td></tr>
+  </table></div>
+  <p><strong>Chuỗi dự phòng</strong>: công cụ đã chọn không dùng được → mặc định của tenant → mặc định của nền tảng → stub (trả lời demo) — tự hạ bậc theo thứ tự, hội thoại không bị đứt.</p>
+  <div class="callout warn"><span class="c-label">⚠️ temperature không áp dụng cho công cụ Anthropic (Claude)</span>
+  <p>Các mô hình Claude hiện hành từ chối tham số lấy mẫu nên hệ thống chủ đích không gửi.
+  Nhập cũng bị bỏ qua; chỉ áp dụng cho các công cụ dòng OpenAI. <strong>max_tokens</strong> áp dụng bình thường (trả lời chat khuyến nghị 512~1024).</p></div>
+  <div class="callout"><span class="c-label">💡 Mẹo</span>
+  <p>Còn huy hiệu <code>stub</code> thì chưa phải chất lượng dịch vụ thật — đăng ký công cụ là quyền của quản trị viên nền tảng.
+  Mô hình embedding cho tìm kiếm tri thức không có trong màn hình này (dùng chung mọi tenant, máy chủ quản lý).</p></div>
+
+  <h3>4.5 Quy tắc kiểm duyệt (cấm)</h3>
+  <div class="tablewrap"><table>
+    <tr><th>Mục</th><th>Lựa chọn</th><th>Ý nghĩa</th></tr>
+    <tr><td rowspan="3">Loại</td><td>Từ / Cụm từ</td><td>Khớp chứa (không phân biệt hoa thường)</td></tr>
+    <tr><td>Biểu thức chính quy</td><td>Khớp mẫu</td></tr>
+    <tr><td>Ngữ cảnh (LLM)</td><td>Viết "cần chặn cái gì" thành câu, AI phán định từng tin nhắn</td></tr>
+    <tr><td>Phạm vi</td><td>Chỉ AI / Chỉ nhân viên / Cả hai</td><td>Kiểm tra tin nhắn của bên gửi nào</td></tr>
+    <tr><td rowspan="3">Hành động</td><td>Chặn</td><td>Không gửi tin nhắn ra (câu trả lời AI thì chuyển sang chuyển tiếp nhân viên tư vấn)</td></tr>
+    <tr><td>Che</td><td>Chỉ phần vướng bị xử lý thành ▇▇▇ rồi chuyển đi</td></tr>
+    <tr><td>Diễn đạt lại</td><td>AI sửa thành câu an toàn rồi chuyển đi</td></tr>
+  </table></div>
+  <div class="callout"><span class="c-label">💡 Mẹo</span>
+  <ul>
+    <li>Cổng này <strong>không thể tắt</strong>, kiểm tra thất bại thì vì an toàn xử lý là <strong>chặn</strong>.
+      Tin nhắn của nhân viên tư vấn bị từ chối thì đổi cách diễn đạt rồi gửi lại.</li>
+    <li>Loại ngữ cảnh (LLM) dùng công cụ của chức năng moderation — đang stub thì không có chất lượng phán định.</li>
+    <li>Quy tắc từ khóa quá mức sẽ chặn cả câu trả lời bình thường. <strong>Bắt đầu bằng Che/Diễn đạt lại</strong>, xem log rồi mới nâng lên chặn. Hiệu lực tối đa 60 giây.</li>
+  </ul></div>
+
+  <h3>4.6 Tái sử dụng câu trả lời</h3>
+  <p>Trong thẻ <em>Tái sử dụng câu trả lời</em>: tìm các cặp hỏi-đáp đã lưu (lọc chỉ mục đang bật), sửa/xóa từng mục, <strong>[Tắt tất cả]</strong> để dừng hàng loạt.</p>
+  <div class="callout"><span class="c-label">💡 Mẹo</span>
+  <p>Câu trả lời tái sử dụng được gửi ngay không gọi LLM nên nhanh và rẻ, nhưng <strong>khi chính sách thay đổi, câu trả lời cũ có thể vẫn được gửi nguyên xi.</strong>
+  Hãy đưa việc sửa/tắt các mục liên quan vào danh sách kiểm tra mỗi khi sửa chính sách. Câu trả lời tái sử dụng vẫn qua kiểm duyệt.</p></div>
+</section>
+
+<section id="ch5">
+  <div class="ch"><span class="num">05</span><h2>Cài đặt tiếp khách live chat</h2></div>
+  <span class="actor">Mục Chuyển tiếp tư vấn trên trang [Cài đặt gian hàng]</span>
+  <div class="terms"><div class="t-label">Thuật ngữ</div>
+  <div class="tablewrap"><table>
+    <tr><td>Escalation (chuyển tiếp)</td><td>Việc AI đẩy hội thoại sang hàng chờ nhân viên tư vấn</td></tr>
+    <tr><td>Handoff (chuyển tiếp tư vấn)</td><td>Bộ cài đặt quyết định phân công·thời gian·hướng dẫn sau khi chuyển tiếp</td></tr>
+    <tr><td>Giờ làm việc</td><td>Khung giờ nhân viên tư vấn tiếp khách — ngoài khung này chuyển sang hướng dẫn ngoài giờ·tiếp nhận email</td></tr>
+    <tr><td>SLA</td><td>Thời gian mục tiêu phản hồi — tiêu chuẩn cho huy hiệu trễ (⚠️/🔥) trên bảng yêu cầu</td></tr>
+    <tr><td>Hàng chờ (waiting)</td><td>Trạng thái hội thoại đã chuyển tiếp đang đợi nhân viên tư vấn tiếp nhận</td></tr>
+  </table></div></div>
+
+  <h3>5.1 Người phụ trách·giờ làm việc·hướng dẫn ngoài giờ</h3>
+  <ol class="steps">
+    <li><strong>Chỉ định người phụ trách</strong> — tích chọn nhân viên tư vấn sẽ nhận chuyển tiếp</li>
+    <li>Công tắc <strong>Dùng giờ làm việc</strong> → múi giờ·bắt đầu/kết thúc·ngày trong tuần, khi cần công tắc <strong>giờ nghỉ</strong></li>
+    <li><strong>Email tiếp nhận ngoài giờ</strong> — địa chỉ nhận câu hỏi ngoài giờ làm việc (hiển thị cảnh báo nếu chưa cấu hình SMTP)</li>
+    <li><strong>Nội dung hướng dẫn ngoài giờ</strong> — viết theo từng tab ngôn ngữ</li>
+    <li><strong>SLA</strong> — mục tiêu phản hồi thường/khẩn cấp (giờ, 1~168h)</li>
+    <li><strong>Chuyển tiếp bắt buộc theo chính sách (deny-list)</strong> — đăng ký quy tắc từ khóa (phân tách bằng phẩy) + loại yêu cầu + nhãn phụ trách.
+      Tin nhắn khớp được <strong>chuyển thẳng đến nhân viên tư vấn, không qua AI</strong>, và yêu cầu (issue) được tạo sẽ tự động gán loại·nhãn.</li>
+  </ol>
+  <div class="callout"><span class="c-label">💡 Mẹo</span>
+  <ul>
+    <li>Đặt <strong>múi giờ</strong> của giờ làm việc chính xác theo cửa hàng — cửa hàng ở Mỹ mà để giờ Hàn Quốc thì hướng dẫn sẽ ngược hết.</li>
+    <li>Tiếp nhận email ngoài giờ cần cấu hình SMTP máy chủ trước — thấy cảnh báo thì đề nghị quản trị viên nền tảng.</li>
+    <li>Không chỉ định người phụ trách nào thì hội thoại chuyển tiếp chỉ dồn trong hàng chờ chung — chỉ định tối thiểu 1 người.</li>
+  </ul></div>
+
+  <h3>5.2 Hiểu điều kiện chuyển tiếp (escalation)</h3>
+  <div class="tablewrap"><table>
+    <tr><th>Kích hoạt</th><th>Hành vi</th></tr>
+    <tr><td><strong>Độ tin cậy thấp</strong></td><td>Kèm câu "Tôi kết nối bạn với nhân viên tư vấn nhé?" vào câu trả lời và đưa vào hàng chờ</td></tr>
+    <tr><td><strong>Bị kiểm duyệt chặn</strong></td><td>Không hiển thị câu trả lời AI, hướng dẫn kết nối nhân viên tư vấn rồi vào hàng chờ</td></tr>
+    <tr><td><strong>Khách yêu cầu</strong></td><td>Nút kịch bản Liên hệ hỗ trợ hoặc yêu cầu rõ ràng → vào hàng chờ ngay</td></tr>
+    <tr><td><strong>Chuyển tiếp bắt buộc theo chính sách</strong></td><td>Khớp từ khóa đã đăng ký thì vào hàng chờ <strong>ngay lập tức, không có phản hồi AI</strong> — tin nhắn vẫn được lưu·hiển thị bình thường, yêu cầu được đóng dấu loại·nhãn (không phải chức năng chặn tin nhắn)</td></tr>
+  </table></div>
+  <div class="callout"><span class="c-label">💡 Mẹo</span>
+  <p>Ngưỡng độ tin cậy không điều chỉnh được trên màn hình (chính sách trong mã). Chuyển tiếp thường xuyên thì cách ứng phó đúng không phải là chỉnh ngưỡng
+  mà là <strong>bổ sung tri thức</strong> (xác định nguyên nhân bằng bảng QA mục 3.1). Xử lý hội thoại đã chuyển tiếp (tiếp nhận·bản tóm tắt AI·kết thúc·phân công lại)
+  làm tại bảng điều khiển live chat (<code>/live-chat</code>).</p></div>
+</section>
+
+<section id="ch6">
+  <div class="ch"><span class="num">06</span><h2>Vòng lặp kiểm chứng·cải thiện</h2></div>
+  <span class="actor">Studio bên phải của [Cài đặt AI] + thẻ kiểm tra hồi quy</span>
+  <div class="terms"><div class="t-label">Thuật ngữ</div>
+  <div class="tablewrap"><table>
+    <tr><td>Xem thử</td><td>Bảng thử nghiệm trò chuyện với bot mà không tạo phiên khách hàng thật</td></tr>
+    <tr><td>Huấn luyện AI</td><td>Phản hồi bằng ngôn ngữ tự nhiên để nhận <strong>đề xuất</strong> thay đổi cấu hình, chỉ áp dụng khi được duyệt</td></tr>
+    <tr><td>Đề xuất (proposal)</td><td>Thẻ phương án thay đổi cấu hình do huấn luyện tạo ra — áp dụng/bỏ qua/hoàn tác được</td></tr>
+    <tr><td>Câu hỏi vàng</td><td>Danh sách câu hỏi đại diện muốn liên tục theo dõi chất lượng trả lời (đầu vào kiểm tra hồi quy)</td></tr>
+    <tr><td>Kiểm tra hồi quy</td><td>Sau khi đổi cấu hình·tri thức, chạy lại toàn bộ câu hỏi vàng để xác nhận câu trả lời không tệ đi</td></tr>
+    <tr><td>Đo độ dao động</td><td>Chạy lặp lại cùng câu hỏi để xem câu trả lời dao động đến đâu</td></tr>
+  </table></div></div>
+
+  <h3>6.1 Xem thử</h3>
+  <p>Tab <strong>Xem thử</strong> → chọn ngôn ngữ → <strong>[Phiên mới]</strong> → chọn chế độ (khách hàng/nhân viên) rồi nhập tin nhắn.
+  Phản hồi hiển thị <strong>huy hiệu agent</strong> phụ trách và <strong>trạng thái chuyển tiếp</strong>.
+  Bấm <strong>[Huấn luyện câu này]</strong> trên từng phản hồi để đính lượt đó vào phần huấn luyện.</p>
+  <div class="callout"><span class="c-label">💡 Mẹo</span>
+  <p>Đã đổi cấu hình thì sau khi lưu phải bắt đầu bằng <strong>[Phiên mới]</strong> mới thấy hội thoại với cấu hình mới.
+  Ngôn ngữ trả lời theo ngôn ngữ phiên, hãy đổi ngôn ngữ để kiểm tra các câu hỏi chính.</p></div>
+
+  <h3>6.2 Huấn luyện AI</h3>
+  <p>Tab <strong>Huấn luyện AI</strong> → chọn chủ đề hoặc [Chủ đề mới] → kiểm tra lượt tham chiếu rồi ra chỉ dẫn bằng ngôn ngữ tự nhiên
+  (ví dụ: "Hướng dẫn hoàn tiền dài quá. Gói trong 3 câu") → xem xét nội dung thay đổi trong <strong>thẻ đề xuất</strong> →
+  <strong>[Áp dụng]</strong> / <strong>[Bỏ qua]</strong> / sau khi áp dụng có <strong>[Hoàn tác]</strong>.</p>
+  <div class="callout"><span class="c-label">💡 Mẹo</span>
+  <ul>
+    <li>Huấn luyện <strong>không thay đổi gì nếu chưa được duyệt.</strong> Đọc nội dung thay đổi thực tế (diff persona·quy tắc) trên thẻ đề xuất rồi mới áp dụng.</li>
+    <li><strong>Thông tin sự thật</strong> kiểu "miễn phí giao hàng cho đơn từ 50.000 won" là việc của tài liệu tri thức, không phải của huấn luyện —
+      huấn luyện là công cụ tinh chỉnh giọng điệu·quy tắc hành vi.</li>
+    <li>Câu chữ hơi khác đi là dao động bình thường. <strong>Độ tin cậy giảm·chuyển tiếp tăng</strong> mới là tín hiệu bất thường thật sự.</li>
+  </ul></div>
+
+  <h3>6.3 Kiểm tra hồi quy (câu hỏi vàng)</h3>
+  <p>Thẻ <em>Kiểm tra hồi quy</em> → đăng ký câu hỏi vàng (10~20 câu đại diện) → <strong>[Chạy ngay]</strong> →
+  bấm <strong>[So với lần trước]</strong> trong danh sách các lần chạy gần đây để so sánh song song thay đổi câu trả lời. <strong>[Đo độ dao động]</strong> cho thấy
+  mức dao động của cùng một câu hỏi.</p>
+  <div class="callout"><span class="c-label">💡 Mẹo</span>
+  <ul>
+    <li>Đưa vào câu hỏi vàng: ① câu hỏi gắn trực tiếp doanh thu (giao hàng·hoàn tiền) ② câu từng bị trả lời sai ③ câu thuộc diện chính sách sắp sửa đổi.</li>
+    <li>Lấy việc chạy một lần <strong>ngay sau khi thay đổi tri thức hàng loạt·đồng bộ danh mục sản phẩm·sửa persona</strong> làm thói quen.
+      Huy hiệu <code>truncated</code> trong kết quả nghĩa là số câu hỏi vượt trần thực thi nên chỉ chạy được một phần.</li>
+  </ul></div>
+</section>
+
+<section id="ch7">
+  <div class="ch"><span class="num">07</span><h2>Danh sách kiểm tra vận hành</h2></div>
+  <h3>Khi chính sách thay đổi (ví dụ: sửa phí giao hàng)</h3>
+  <ul class="check">
+    <li>Sửa tài liệu tri thức liên quan (tự động embedding lại) + tắt phiên bản cũ</li>
+    <li>Kiểm tra nội dung câu trả lời cố định của kịch bản (Tình trạng giao hàng·Hủy/Hoàn tiền)</li>
+    <li>Tìm các mục tái sử dụng câu trả lời → sửa/tắt câu trả lời cũ</li>
+    <li>Kiểm tra 3 câu hỏi đại diện bằng bảng QA → chạy hồi quy câu hỏi vàng</li>
+    <li>Cập nhật ngày hiệu lực·chu kỳ rà soát của tài liệu</li>
+  </ul>
+  <h3>Thói quen hằng tuần</h3>
+  <ul class="check">
+    <li>Dọn hộp đề xuất bổ sung tri thức·đề xuất câu trả lời (mục 3.4)</li>
+    <li>Xử lý các mục chờ trong Rà soát mâu thuẫn (mục 3.2)</li>
+    <li>Rà soát tài liệu có huy hiệu <code>stale</code> (mục 3.3)</li>
+    <li>Chủ đề hay bị chuyển tiếp trong live chat → bổ sung tri thức</li>
+  </ul>
+</section>
+
+<section id="ch8">
+  <div class="ch"><span class="num">08</span><h2>FAQ / Xử lý sự cố</h2></div>
+  <dl class="faq">
+    <dt>Q. Đã đăng ký tài liệu mà AI không biết nội dung đó.</dt>
+    <dd>Kiểm tra ① tài liệu có đang bật (hiển thị ON) không ② tài liệu có xuất hiện trong danh sách nguồn của bảng QA không.
+    Không hiện thì bổ sung tiêu đề·nội dung bằng từ ngữ của khách. Cũng kiểm tra kết quả đồng bộ danh mục sản phẩm có mục embedding thất bại không.</dd>
+    <dt>Q. AI cứ chuyển sang nhân viên tư vấn.</dt>
+    <dd>Kiểm tra độ tin cậy·nguồn của câu hỏi đó trong bảng QA. Không có tài liệu căn cứ thì đăng ký là lời giải;
+    có mà độ tin cậy thấp thì tách nhỏ tài liệu và bổ sung từ ngữ.</dd>
+    <dt>Q. Tin nhắn của nhân viên tư vấn bị từ chối gửi.</dt>
+    <dd>Là kiểm duyệt chặn. Đổi cách diễn đạt vướng quy tắc cấm (mục 4.5) rồi gửi lại.
+    Quy tắc quá gắt thì đề nghị master nới hành động (chặn→che).</dd>
+    <dt>Q. Câu trả lời chỉ ra tiếng Anh.</dt>
+    <dd>Ngôn ngữ trả lời theo ngôn ngữ phiên của khách. Chỉ định ngôn ngữ trong Xem thử để kiểm tra.
+    Viết persona bằng tiếng Hàn hay không không liên quan đến ngôn ngữ trả lời.</dd>
+    <dt>Q. Đồng bộ Google Drive/Notion được 0 mục.</dt>
+    <dd>Phần lớn do chia sẻ thư mục (email tài khoản dịch vụ) hoặc kết nối integration Notion bị đứt.
+    Làm lại từ [Kiểm tra kết nối] ở thẻ thông tin xác thực.</dd>
+    <dt>Q. Áp dụng đề xuất huấn luyện xong câu trả lời trở nên kỳ lạ.</dt>
+    <dd>Khôi phục bằng [Hoàn tác] trên thẻ đề xuất đó. Cũng có thể mở phiên bản trước trong Lịch sử thay đổi, nạp vào ô soạn thảo rồi lưu.</dd>
+    <dt>Q. Cùng một câu hỏi mà câu trả lời mỗi lần hơi khác nhau.</dt>
+    <dd>Là dao động bình thường của LLM (mức dao động xem bằng Đo độ dao động mục 6.3). Nếu khác nhau không phải câu chữ mà là <strong>nội dung</strong>,
+    hãy nghi ngờ mâu thuẫn tri thức (mục 3.2). Điều chỉnh temperature không áp dụng cho công cụ Anthropic (mục 4.4).</dd>
+  </dl>
+</section>
+
+<div class="next">
+  <strong>Xem cùng →</strong> <a href="quick-setup.vi.html"><em>Sổ tay thiết lập nhanh ShopTalk</em></a> (tập 1): mở tenant·đăng nhập lần đầu·tích hợp nền tảng·cài widget.
+  Tham chiếu toàn bộ màn hình xem <a href="user-manual.vi.html">Sổ tay người dùng tổng hợp</a> (v2.0).
+</div>
+
+</main>
+</div>
+
+</body>
+</html>

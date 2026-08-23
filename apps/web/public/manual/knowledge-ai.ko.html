@@ -1,0 +1,544 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>샵톡 지식·AI 설정 매뉴얼</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@700;800&family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --accent:#2B7FFF; --accent-deep:#1D5FD6; --accent-tint:#EAF2FF;
+  --ink:#1B2430; --muted:#5C6675; --line:#E3E8F0;
+  --bg:#FAFBFD; --card:#FFFFFF; --soft:#F1F5FB;
+  --tip-bg:#EAF2FF; --tip-edge:#2B7FFF;
+  --warn-bg:#FFF7E6; --warn-edge:#D97706; --warn-ink:#8A4B04;
+  --code-bg:#EEF2F8; --mono-ink:#31435E;
+}
+:root:not([data-theme="light"]){}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --accent:#5C9BFF; --accent-deep:#82B4FF; --accent-tint:#16243C;
+    --ink:#E6EBF3; --muted:#93A0B4; --line:#28313F;
+    --bg:#0F141B; --card:#161C25; --soft:#1B222D;
+    --tip-bg:#152238; --tip-edge:#5C9BFF;
+    --warn-bg:#2A2010; --warn-edge:#E8A23D; --warn-ink:#EFC584;
+    --code-bg:#1E2632; --mono-ink:#B9C7DC;
+  }
+}
+:root[data-theme="dark"]{
+  --accent:#5C9BFF; --accent-deep:#82B4FF; --accent-tint:#16243C;
+  --ink:#E6EBF3; --muted:#93A0B4; --line:#28313F;
+  --bg:#0F141B; --card:#161C25; --soft:#1B222D;
+  --tip-bg:#152238; --tip-edge:#5C9BFF;
+  --warn-bg:#2A2010; --warn-edge:#E8A23D; --warn-ink:#EFC584;
+  --code-bg:#1E2632; --mono-ink:#B9C7DC;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:"IBM Plex Sans KR","Apple SD Gothic Neo","Segoe UI",sans-serif;
+  font-size:16px;line-height:1.75}
+.shell{max-width:1120px;margin:0 auto;padding:0 24px 96px;
+  display:grid;grid-template-columns:220px minmax(0,1fr);gap:48px}
+@media(max-width:860px){.shell{display:block}}
+header.hero{grid-column:1/-1;padding:56px 0 8px;border-bottom:1px solid var(--line);margin-bottom:8px}
+.eyebrow{font-size:12px;font-weight:700;letter-spacing:.14em;color:var(--accent);text-transform:uppercase}
+h1{font-family:"Gothic A1",sans-serif;font-weight:800;font-size:clamp(28px,4.5vw,40px);
+  line-height:1.25;margin:10px 0 12px;text-wrap:balance}
+.meta{color:var(--muted);font-size:14px;display:flex;flex-wrap:wrap;gap:6px 18px}
+.lead{max-width:68ch;color:var(--muted);margin-top:14px}
+nav.toc{position:sticky;top:24px;align-self:start;font-size:13.5px;padding-top:24px}
+@media(max-width:860px){nav.toc{position:static;border:1px solid var(--line);border-radius:10px;
+  background:var(--card);padding:14px 16px;margin:20px 0}}
+nav.toc .toc-label{font-size:11px;font-weight:700;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;margin-bottom:8px}
+nav.toc a{display:flex;gap:8px;color:var(--muted);text-decoration:none;padding:4px 0;line-height:1.4}
+nav.toc a:hover,nav.toc a:focus-visible{color:var(--accent)}
+nav.toc a .n{font-family:"IBM Plex Mono",monospace;color:var(--accent);font-size:12px;min-width:18px;padding-top:1px}
+main{min-width:0;max-width:74ch}
+section{padding-top:40px}
+.ch{display:flex;align-items:baseline;gap:12px;border-top:2px solid var(--ink);padding-top:14px}
+.ch .num{font-family:"IBM Plex Mono",monospace;font-size:13px;font-weight:500;color:var(--accent)}
+h2{font-family:"Gothic A1",sans-serif;font-weight:800;font-size:24px;margin:0;line-height:1.35;text-wrap:balance}
+.actor{display:inline-block;font-size:12px;font-weight:700;border-radius:999px;padding:2px 12px;
+  background:var(--accent-tint);color:var(--accent-deep);margin-top:10px}
+h3{font-family:"Gothic A1",sans-serif;font-weight:700;font-size:17.5px;margin:30px 0 8px}
+p{margin:10px 0;max-width:68ch}
+a{color:var(--accent-deep)}
+strong{font-weight:700}
+table{border-collapse:collapse;width:100%;font-size:14.5px;margin:14px 0}
+th{font-size:12.5px;letter-spacing:.04em;color:var(--muted);text-align:left;font-weight:700;
+  border-bottom:2px solid var(--line);padding:7px 12px 7px 0}
+td{border-bottom:1px solid var(--line);padding:8px 12px 8px 0;vertical-align:top}
+.tablewrap{overflow-x:auto}
+.terms{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:6px 18px 14px;margin:16px 0}
+.terms .t-label{font-size:11px;font-weight:700;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;margin:12px 0 2px}
+.terms td:first-child{font-weight:700;white-space:nowrap;padding-right:18px}
+.callout{border-left:3px solid var(--tip-edge);background:var(--tip-bg);border-radius:0 10px 10px 0;
+  padding:12px 18px;margin:16px 0;font-size:14.5px}
+.callout .c-label{font-weight:700;color:var(--accent-deep)}
+.callout.warn{border-left-color:var(--warn-edge);background:var(--warn-bg);color:var(--warn-ink)}
+.callout.warn .c-label{color:var(--warn-ink)}
+.callout p{margin:6px 0}
+.callout ul{margin:6px 0}
+code,kbd{font-family:"IBM Plex Mono",monospace;font-size:.86em;background:var(--code-bg);
+  color:var(--mono-ink);border-radius:5px;padding:1px 6px}
+pre{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px 18px;
+  overflow-x:auto;font-size:13px;line-height:1.6}
+pre code{background:none;padding:0;color:var(--mono-ink)}
+ol.steps{padding-left:0;margin:14px 0;list-style:none;counter-reset:st}
+ol.steps>li{counter-increment:st;position:relative;padding:0 0 14px 40px}
+ol.steps>li::before{content:counter(st);position:absolute;left:0;top:1px;width:24px;height:24px;
+  border-radius:50%;background:var(--accent);color:#fff;font-size:13px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;font-family:"IBM Plex Mono",monospace}
+ul{margin:10px 0;padding-left:22px}
+li{margin:4px 0}
+.check{list-style:none;padding-left:0}
+.check li{padding-left:30px;position:relative}
+.check li::before{content:"";position:absolute;left:2px;top:6px;width:14px;height:14px;
+  border:2px solid var(--accent);border-radius:4px}
+.faq dt{font-weight:700;margin-top:18px}
+.faq dd{margin:4px 0 0;color:var(--muted)}
+.next{margin-top:56px;border:1px solid var(--line);background:var(--card);border-radius:12px;padding:20px 24px}
+.pagenav{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;padding-top:18px;color:var(--muted)}
+.pagenav a{color:var(--muted);text-decoration:none}
+.pagenav a:hover,.pagenav a:focus-visible{color:var(--accent)}
+.pagenav .cur{color:var(--accent-deep);font-weight:700}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media(prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
+</style>
+</head>
+<body>
+
+<div class="shell">
+<nav class="pagenav" aria-label="매뉴얼 내비게이션"><a href="./">← 매뉴얼 목록</a><span>·</span><span class="cur">한국어</span><a href="knowledge-ai.en.html">English</a><a href="knowledge-ai.vi.html">Tiếng Việt</a><span>·</span><a href="knowledge-ai.ko.md">MD 원문</a></nav>
+<header class="hero">
+  <div class="eyebrow">ShopTalk 사용자설명서 · 2/2</div>
+  <h1>샵톡 지식·AI 설정 매뉴얼</h1>
+  <div class="meta"><span>버전 1.0 · 2026-08-24 · 코드 기준 작성</span><span>대상: 테넌트 운영자 · CS 담당 (AI 설정은 master/director)</span></div>
+  <p class="lead">사용할 지식의 입력 방법과 검증, AI 설정, 실제 라이브챗에서의 고객 대응 설정을 다룹니다.
+  각 장은 <strong>용어 설명 → 절차 → 💡 동작 팁</strong> 순서로 구성됩니다. 개설 절차는 <em>간단 세팅 매뉴얼</em>(1편)을 먼저 보세요.</p>
+</header>
+
+<nav class="toc" aria-label="목차">
+  <div class="toc-label">목차</div>
+  <a href="#ch0"><span class="n">0</span>AI 응답 파이프라인</a>
+  <a href="#ch1"><span class="n">1</span>지식 구조 이해</a>
+  <a href="#ch2"><span class="n">2</span>지식 등록</a>
+  <a href="#ch3"><span class="n">3</span>지식 검증·품질 관리</a>
+  <a href="#ch4"><span class="n">4</span>AI 설정</a>
+  <a href="#ch5"><span class="n">5</span>라이브챗 대응 설정</a>
+  <a href="#ch6"><span class="n">6</span>검증·개선 루프</a>
+  <a href="#ch7"><span class="n">7</span>운영 체크리스트</a>
+  <a href="#ch8"><span class="n">8</span>FAQ / 문제 해결</a>
+</nav>
+
+<main>
+
+<section id="ch0">
+  <div class="ch"><span class="num">00</span><h2>AI 응답 파이프라인 이해</h2></div>
+  <p>고객 메시지 하나가 처리되는 전체 흐름입니다. 이 문서의 모든 설정은 이 흐름의 어딘가를 조정하는 일입니다.</p>
+  <pre><code>고객 메시지
+  ▼
+① 의도 분류 ─── 주문·개인정보가 필요하면 → 본인확인(로그인) 안내
+  ▼
+② 지식 검색(RAG) ─ 등록된 지식 문서에서 관련 근거를 찾음
+  ▼
+③ 답변 생성 ─── 페르소나·응답 규칙 + 검색 근거로 작성, 신뢰도 산정
+  ▼
+④ 모더레이션 ── 금칙 규칙 검사 (통과 못 하면 고객에게 미노출)
+  ▼
+⑤ 분기: 신뢰도 충분 → 고객에게 답변(+출처)
+        신뢰도 낮음 / 차단 / 고객 요청 → 상담원 대기열(에스컬레이션)</code></pre>
+  <ul>
+    <li><strong>답변 언어</strong>는 고객 세션 언어를 따릅니다 (en/es/ko/vi/ja/zh).</li>
+    <li>상담원이 보내는 메시지도 ④ 모더레이션을 똑같이 통과합니다 (우회 불가).</li>
+  </ul>
+</section>
+
+<section id="ch1">
+  <div class="ch"><span class="num">01</span><h2>지식 구조 이해</h2></div>
+  <div class="terms"><div class="t-label">용어</div>
+  <div class="tablewrap"><table>
+    <tr><td>지식 문서</td><td>AI가 답변 근거로 쓰는 글 1건. 제목·카테고리·본문으로 구성</td></tr>
+    <tr><td>임베딩</td><td>문서를 검색 가능한 벡터로 변환하는 색인 작업. 등록·수정 시 자동 수행</td></tr>
+    <tr><td>RAG</td><td>질문과 관련된 문서를 검색해 그 근거로만 답변을 생성하는 방식</td></tr>
+    <tr><td>소스</td><td>문서를 외부에서 자동으로 가져오는 연결 (게시판·Google Drive·Notion)</td></tr>
+    <tr><td>그룹</td><td>문서 대분류: <strong>상담</strong>(정책·FAQ) / <strong>상품</strong>(카탈로그 유래)</td></tr>
+    <tr><td>카테고리</td><td>그룹 아래 세부 분류 (faq, policy, product, warranty 등 자동완성 프리셋)</td></tr>
+    <tr><td>활성/노출</td><td>검색 대상 포함 여부 — <strong>비활성 문서는 답변 근거로 쓰이지 않음</strong></td></tr>
+    <tr><td>신뢰도</td><td>답변이 근거에 얼마나 뒷받침되는지의 수치. 낮으면 상담원 인계</td></tr>
+  </table></div></div>
+  <p>지식 화면(<code>/knowledge</code>)은 왼쪽에 소스·문서 관리, 오른쪽에 <strong>지식 QA 패널</strong>과
+  <strong>충돌 검토</strong>가 고정되어 있어 등록↔검증을 한 화면에서 오갈 수 있습니다.</p>
+</section>
+
+<section id="ch2">
+  <div class="ch"><span class="num">02</span><h2>지식 등록</h2></div>
+
+  <h3>2.1 수동 문서 등록·편집</h3>
+  <p>문서 카드 → <strong>[문서 추가]</strong> → 제목 / 카테고리 / 내용 입력 → 저장.
+  제목을 클릭하면 상세 창이 열리고 <strong>[편집]</strong>에서 다음을 관리합니다.</p>
+  <div class="tablewrap"><table>
+    <tr><th>필드</th><th>용도</th></tr>
+    <tr><td>원문 URL</td><td>근거가 된 외부 문서 링크 (목록에서 바로 열기)</td></tr>
+    <tr><td>적용 시작일</td><td>정책 발효일</td></tr>
+    <tr><td>검토 주기(일)</td><td>지나면 목록에 <code>stale</code>(검토 필요) 배지 → 3.3절</td></tr>
+    <tr><td>내용</td><td>저장 시 <strong>자동 재임베딩</strong> (검색 색인 갱신)</td></tr>
+  </table></div>
+  <div class="callout"><span class="c-label">💡 팁</span>
+  <ul>
+    <li>문서 1건 = 주제 1개. "배송+환불+교환"을 한 문서에 몰기보다 나눠 등록해야 검색이 정확해집니다.</li>
+    <li>제목·본문에 <strong>고객의 실제 표현</strong>("배송 얼마나 걸려요")을 포함하세요 — 유사도 검색이라 고객 어휘와 가까울수록 적중합니다.</li>
+    <li>구버전 정책은 삭제 대신 <strong>노출 토글 OFF(비활성)</strong>로 제외하세요. 이력이 남고 되돌리기 쉽습니다.</li>
+  </ul></div>
+
+  <h3>2.2 상품 지식 — 카탈로그 동기화 · CSV · 사용 가이드</h3>
+  <div class="terms"><div class="t-label">용어</div>
+  <div class="tablewrap"><table>
+    <tr><td>상품 캐시</td><td>플랫폼에서 동기화한 원본 상품 목록 (설정 화면의 상품 동기화 결과)</td></tr>
+    <tr><td>카탈로그 동기화</td><td>상품 캐시 → 상품 지식 문서 변환. <strong>미리보기 → 실행</strong> 2단계</td></tr>
+    <tr><td>변형 접기(병합)</td><td>"립스틱-레드/립스틱-핑크"처럼 대시로 구분된 변형을 대표 상품 1건으로 묶는 것</td></tr>
+    <tr><td>큐레이션 유지</td><td>운영자가 손으로 다듬은 상품 문서를 동기화가 덮어쓰지 않고 보존</td></tr>
+    <tr><td>사용 가이드</td><td>상품 <strong>유형별</strong> 공통 사용법 문서 — 상품 문서와 별도의 답변 근거</td></tr>
+  </table></div></div>
+  <ol class="steps">
+    <li><strong>[카탈로그 동기화]</strong> → <strong>미리보기</strong>가 먼저 실행됨: 스캔 수와 예상 결과
+      (생성/수정/큐레이션 유지/병합 흡수/변경 없음/보류), 임베딩 배치 예상치, 병합 샘플 목록</li>
+    <li>병합 샘플에서 <strong>다른 상품이 하나로 묶이지 않았는지</strong> 확인 후 <strong>[실행]</strong></li>
+    <li>진행률 2줄(작성/임베딩) 확인, 완료 후 결과 표의 <strong>임베딩 실패 건수</strong> 확인 (실패 건은 검색 불가 — 재실행 필요)</li>
+  </ol>
+  <p><strong>상품 CSV 가져오기</strong>: [상품 가져오기(CSV)] → 파일 선택 → 결과 통계(파싱/생성/수정/건너뜀/무효/임베딩됨)와
+  행별 오류(최대 20건)를 확인합니다. 같은 상품 재업로드는 덮어쓰기(업서트)됩니다.</p>
+  <p><strong>사용 가이드</strong>: 카드에서 유형별 작성됨/미작성 배지 확인 → [작성] → 제목·본문(20자 이상) 저장.</p>
+  <div class="callout"><span class="c-label">💡 팁</span>
+  <ul>
+    <li><strong>반드시 미리보기부터 보세요.</strong> 잘못된 병합은 실행 전 미리보기에서만 잡을 수 있습니다.</li>
+    <li>플랫폼 상품이 바뀌면 [설정] 상품 동기화 → [지식] 카탈로그 동기화 <strong>2단계를 순서대로</strong> 실행해야 반영됩니다.</li>
+    <li>상품 설명이 빈약하면 태그가 지식의 재료가 됩니다 — 플랫폼 쪽 상품 태그를 정리해두면 답변 품질이 올라갑니다.</li>
+  </ul></div>
+
+  <h3>2.3 외부 소스 연동 (게시판 · Google Drive · Notion)</h3>
+  <div class="terms"><div class="t-label">용어</div>
+  <div class="tablewrap"><table>
+    <tr><td>서비스계정</td><td>Google Drive 연동용 로봇 계정 — 이 계정 이메일에 폴더를 공유해야 읽을 수 있음</td></tr>
+    <tr><td>통합(integration)</td><td>Notion에서 외부 도구 접근을 허용하는 단위 — 대상 페이지에 "연결" 필요</td></tr>
+    <tr><td>동기화 결과 카운트</td><td>생성·수정·건너뜀·숨김 건수. <code>dropped</code>/<code>truncated</code>는 <strong>일부를 못 가져왔다는 경고</strong></td></tr>
+  </table></div></div>
+  <ol class="steps">
+    <li><strong>자격증명 등록</strong> — Google Drive: 서비스계정 키 JSON 붙여넣기 → 표시되는 서비스계정 이메일에
+      대상 폴더 공유 → [연결 테스트] / Notion: 토큰(<code>ntn_…</code>) 등록 → 대상 페이지·DB에 통합 연결 → [연결 테스트]</li>
+    <li><strong>[소스 추가]</strong> → 유형 선택(board/gdrive/notion) → gdrive는 폴더 ID, notion은 페이지·DB ID 또는 공유 URL</li>
+    <li>소스 행의 <strong>↻(동기화)</strong> 실행 → 마지막 동기화 열에서 결과 카운트 확인</li>
+  </ol>
+  <p>지원 유형: 게시판 ✅ · Google Drive ✅ · Notion ✅ · 리포지터리(repository)는 드롭다운에 보이지만 <strong>미지원</strong>("준비 안 됨").</p>
+  <div class="callout"><span class="c-label">💡 팁</span>
+  <ul>
+    <li>빨간 <strong>dropped/truncated</strong> 경고가 보이면 페이지가 너무 크거나 깊어 일부가 잘린 것 — 해당 문서 끝부분을 확인하고 원본을 나눠 재동기화하세요.</li>
+    <li>동기화가 갑자기 <strong>0건</strong>이면(폴더 공유 해제·통합 연결 해제 등) 기존 문서를 숨기지 않고 그대로 둡니다 — 연결부터 복구하세요.</li>
+    <li>소스 상태 셀 클릭 = 활성↔비활성 토글. 비활성은 동기화만 멈추고 가져온 문서는 남습니다.</li>
+  </ul></div>
+</section>
+
+<section id="ch3">
+  <div class="ch"><span class="num">03</span><h2>지식 검증·품질 관리</h2></div>
+  <div class="terms"><div class="t-label">용어</div>
+  <div class="tablewrap"><table>
+    <tr><td>지식 QA 패널</td><td>고객 입장에서 지식에 질문해보는 테스트 패널 (오른쪽 고정)</td></tr>
+    <tr><td>출처(citation)</td><td>답변의 근거가 된 문서 목록 — 유사도 수치와 함께 표시</td></tr>
+    <tr><td>충돌(conflict)</td><td>두 문서가 <strong>서로 모순된 내용</strong>을 담고 있다고 탐지된 상태</td></tr>
+    <tr><td>stale</td><td>검토 주기가 지나 재확인이 필요한 문서 배지</td></tr>
+    <tr><td>지식 공백(gap)</td><td>고객이 물었지만 지식에 답이 없던 주제 — 시스템이 문서 초안으로 제안</td></tr>
+    <tr><td>답변 제안</td><td>상담원의 실제 답변을 지식 문서로 승격하자는 제안 (사람 승인 필수)</td></tr>
+    <tr><td>리비전</td><td>문서 변경 이력 스냅숏 — diff 보기·복원 지원</td></tr>
+  </table></div></div>
+
+  <h3>3.1 지식 QA 패널 — 등록 후 반드시 확인</h3>
+  <p>질문 입력 → 답변 + <strong>신뢰도 수치</strong> + <strong>출처 목록</strong> 확인 → 근거 문서가 틀렸으면 출처 옆
+  <strong>[수정]</strong>(해당 문서가 바로 편집 모드로 열림) → 고친 뒤 <strong>[다시 질문]</strong>으로 재확인.</p>
+  <div class="callout"><span class="c-label">💡 팁</span>
+  <ul>
+    <li><strong>모더레이션 차단</strong> 배지가 뜨면 금칙 규칙(4.5절)에 걸린 것 — 실제 고객에게라면 노출되지 않았을 답변입니다.</li>
+    <li>출처에 <code>conflicted</code>/<code>stale</code> 배지가 붙으면 그 문서부터 정리하세요.</li>
+    <li>정책을 바꿀 때마다 "고객이 물을 법한 질문 3개"를 던져보는 습관이 가장 저렴한 회귀 테스트입니다 (자동화는 6.3절).</li>
+  </ul></div>
+
+  <h3>3.2 충돌 검토</h3>
+  <p><em>충돌 검토</em> 패널 → 상태 필터(대기/해결/무시/실패) → 항목별 유사도·탐지 시각·판정 근거 확인 → 액션 선택.
+  <strong>[재스캔]</strong>으로 전체 재검사가 가능합니다.</p>
+  <div class="tablewrap"><table>
+    <tr><th>액션</th><th>동작</th></tr>
+    <tr><td>A 유지 / B 유지</td><td>선택한 쪽을 남기고 반대쪽을 비활성화</td></tr>
+    <tr><td>둘 다 유지</td><td>모순이 아니라고 판단 — 둘 다 활성 유지</td></tr>
+    <tr><td>무시</td><td>이 충돌 건을 닫음</td></tr>
+    <tr><td>재판정</td><td>문서를 고친 뒤 다시 판정 요청</td></tr>
+  </table></div>
+  <div class="callout"><span class="c-label">💡 팁</span>
+  <p>충돌은 대개 <strong>정책 개정 시 구버전을 안 내려서</strong> 생깁니다. "A 유지"로 끝내지 말고 남긴 문서에
+  적용 시작일을 기록해 다음 개정 때 반복되지 않게 하세요.</p></div>
+
+  <h3>3.3 검토 주기·stale / 변경 이력</h3>
+  <p>문서 편집의 <code>검토 주기(일)</code> 경과 시 목록에 <code>stale</code> 배지가 붙습니다.
+  문서 상세의 검토 상태 박스에서 <strong>[검토 완료 표시]</strong>를 누르면 기한이 재계산됩니다.
+  <strong>변경이력 탭</strong>에서 리비전별 diff를 보고 <strong>[복원]</strong>할 수 있습니다.</p>
+  <div class="callout"><span class="c-label">💡 팁</span>
+  <p>배송비·프로모션처럼 자주 바뀌는 문서는 검토 주기를 30일 안팎으로 짧게, 법적 고지처럼 안정적인 문서는
+  길게 두면 stale 배지가 실질적인 할 일 목록이 됩니다.</p></div>
+
+  <h3>3.4 지식 공백 제안함 · 답변 제안 승인 (폐루프)</h3>
+  <ul>
+    <li><strong>지식 공백 제안함</strong>(상단, 건수 있을 때만): 지식이 비어 있던 주제가 문서 초안으로 쌓임 —
+      <strong>[수락]</strong>(제목·내용 편집 후 확정) / <strong>[무시]</strong></li>
+    <li><strong>답변 제안</strong>(대기 건 있을 때): 상담원의 실제 답변을 지식으로 올리자는 제안 —
+      질문·답변·출처 대화 링크 확인 후 <strong>[승인]</strong> / <strong>[거절]</strong>(사유 필수)</li>
+  </ul>
+  <div class="callout warn"><span class="c-label">⚠️ 승인 전 개인정보 확인</span>
+  <p>주문번호·이름 등이 답변에 남아 있지 않은지 반드시 확인하세요 — 지식 문서는 모든 고객 답변의 근거로 재사용됩니다.</p></div>
+  <div class="callout"><span class="c-label">💡 팁</span>
+  <p>이 두 개가 지식이 스스로 자라는 통로입니다. 주 1회 비우는 루틴을 만들면
+  "AI가 자꾸 상담원에게 넘겨요"의 근본 원인이 줄어듭니다.</p></div>
+</section>
+
+<section id="ch4">
+  <div class="ch"><span class="num">04</span><h2>AI 설정</h2></div>
+  <span class="actor">좌측 메뉴 [AI 설정] · master/director</span>
+  <div class="terms"><div class="t-label">용어</div>
+  <div class="tablewrap"><table>
+    <tr><td>AI 에이전트</td><td>페르소나·규칙 세트를 가진 상담봇 단위 — 여러 개를 만들어 채널·페이지별로 다른 봇 운영</td></tr>
+    <tr><td>기본 에이전트</td><td>별도 지정이 없는 위젯이 사용하는 에이전트 (항상 활성)</td></tr>
+    <tr><td>진입점 스니펫</td><td>특정 에이전트로 위젯을 띄우는 설치 코드 조각</td></tr>
+    <tr><td>페르소나 / 응답 규칙</td><td>봇의 말투·원칙 서술 / 반드시 지킬 규칙 목록 (파이프라인 ③에 주입)</td></tr>
+    <tr><td>시나리오 버튼</td><td>위젯 하단 빠른 메뉴 버튼 — 동작 7종 중 선택</td></tr>
+    <tr><td>AI 기능</td><td>AI가 쓰이는 자리 5곳 (chat/rag/summary/assist/moderation) — 자리마다 엔진 지정</td></tr>
+    <tr><td>모더레이션 규칙</td><td>발신 메시지를 검사하는 금칙 규칙 (파이프라인 ④)</td></tr>
+    <tr><td>답변 재사용</td><td>승인된 과거 답변을 같은 질문에 LLM 호출 없이 재생</td></tr>
+    <tr><td>변경 메모</td><td>페르소나·규칙 저장 시 남기는 한 줄 기록 — 설정 변경 이력에서 조회</td></tr>
+  </table></div></div>
+
+  <h3>4.1 AI 에이전트 (멀티 페르소나)</h3>
+  <p><em>AI 에이전트</em> 카드에서 에이전트를 선택하면 아래 페르소나·응답 규칙 카드가 <strong>그 에이전트의 것</strong>으로 바뀝니다.
+  <strong>[추가]</strong>로 이름·코드(소문자)를 정해 생성, <strong>[기본으로 지정]</strong>·활성 토글·<strong>[삭제]</strong> 관리,
+  <strong>진입점 스니펫</strong> 복사로 특정 페이지·채널에 설치합니다.</p>
+  <div class="callout"><span class="c-label">💡 팁</span>
+  <ul>
+    <li>에이전트는 <strong>세션 시작 시 1회 배정</strong> — 진행 중 세션의 봇은 스니펫을 바꿔도 안 바뀝니다.</li>
+    <li>존재하지 않는 코드로 진입하면 기본 에이전트로 폴백합니다 (위젯이 죽지 않음).</li>
+    <li>여기의 "AI 에이전트"는 상담원(사람) 계정과 무관합니다 — 사람 계정은 [사용자] 메뉴입니다.</li>
+  </ul></div>
+
+  <h3>4.2 페르소나·응답 규칙</h3>
+  <p>페르소나 텍스트 작성 → <strong>변경 메모</strong> 입력 → 저장. 응답 규칙은 [규칙 추가]로 한 줄씩(빈 줄은 저장 시 제거).</p>
+  <div class="callout"><span class="c-label">💡 팁</span>
+  <ul>
+    <li>페르소나엔 정체성·톤, 규칙엔 <strong>행동 제약</strong>을 나눠 담으세요. 사실 정보(배송비 등)는 <strong>지식 문서</strong>에 —
+      페르소나는 검색되지 않습니다.</li>
+    <li>저장 후 반영은 캐시 때문에 최대 60초 걸릴 수 있습니다.</li>
+    <li><em>설정 변경 이력</em>의 [에디터로 불러오기]는 불러오기만으로는 적용되지 않습니다 — <strong>저장까지 해야</strong> 반영됩니다.</li>
+  </ul></div>
+
+  <h3>4.3 시나리오 버튼</h3>
+  <p>행마다 라벨(최대 60자) / 동작 / 사용 체크 / 순서(↑↓)를 편집합니다.
+  <strong>[답변 편집]</strong>에서 액션별 응답 문구를 <strong>6개 언어 탭</strong>으로 편집하고 후속 버튼(라벨·동작·URL)을 구성합니다.</p>
+  <div class="tablewrap"><table>
+    <tr><th>동작</th><th>위젯에서의 실제 동작</th></tr>
+    <tr><td>배송 조회</td><td>배송 정책 고정 답변 + 후속 버튼</td></tr>
+    <tr><td>취소 / 환불</td><td>취소·환불·반품 고정 답변 + 후속 버튼</td></tr>
+    <tr><td>상품 도움말</td><td>서브메뉴(사용법·성분·교환/반품·재입고)</td></tr>
+    <tr><td>고객 지원 문의</td><td>연락처 남기기 폼 — 상담원 연결 경로</td></tr>
+    <tr><td>내 주문</td><td>본인확인 후 주문 탭으로 이동</td></tr>
+    <tr><td>제휴</td><td>제휴 안내 카드</td></tr>
+    <tr><td>메시지 보내기</td><td><strong>라벨 문구를 그대로 질문으로 전송</strong> → AI가 지식 기반 답변</td></tr>
+  </table></div>
+  <div class="callout"><span class="c-label">💡 팁</span>
+  <ul>
+    <li>자주 묻는 질문을 버튼으로 만들려면 <strong>메시지 보내기</strong> 액션에 라벨을 질문 문장으로 쓰세요 (예: "무료배송 기준이 뭐예요?").</li>
+    <li>버튼은 삭제보다 사용 해제로 숨기세요. <strong>고객 지원 문의</strong>는 항상 켜두는 것을 권장합니다.</li>
+    <li>고정 답변 문구와 지식 문서의 정책 내용이 어긋나지 않게 정책 개정 시 함께 갱신하세요.</li>
+  </ul></div>
+
+  <h3>4.4 AI 기능 (엔진·파라미터)</h3>
+  <p>기능별 행에서 적용 엔진 선택, temperature(0~1)·max_tokens 입력 후 개별 저장.
+  미지정 기능에는 상속/기본/stub 배지와 실제 적용 엔진명이 표시됩니다.</p>
+  <div class="tablewrap"><table>
+    <tr><th>기능</th><th>실제 용도</th></tr>
+    <tr><td>chat</td><td>고객 메시지의 의도 분류 등 대화 제어</td></tr>
+    <tr><td>rag</td><td><strong>지식 기반 답변 생성 — 고객이 보는 답변의 본체</strong></td></tr>
+    <tr><td>summary</td><td>대화 요약 (이력·인계 브리핑)</td></tr>
+    <tr><td>assist</td><td>상담원 콘솔의 AI 보조</td></tr>
+    <tr><td>moderation</td><td>문맥(context) 금칙 규칙의 LLM 판정</td></tr>
+  </table></div>
+  <p><strong>폴백 사슬</strong>: 선택 엔진 사용 불가 → 테넌트 기본 → 플랫폼 기본 → stub(데모 응답) 순 자동 강등 — 대화가 끊기지는 않습니다.</p>
+  <div class="callout warn"><span class="c-label">⚠️ temperature는 Anthropic(Claude) 엔진에 적용되지 않습니다</span>
+  <p>현행 Claude 모델이 샘플링 파라미터를 거부하므로 시스템이 의도적으로 전송하지 않습니다.
+  입력해도 무시되며 OpenAI 계열 엔진에만 적용됩니다. <strong>max_tokens</strong>는 정상 적용됩니다(챗 답변은 512~1024 권장).</p></div>
+  <div class="callout"><span class="c-label">💡 팁</span>
+  <p><code>stub</code> 배지가 남아 있으면 실서비스 품질이 아닙니다 — 엔진 등록은 플랫폼 관리자 권한입니다.
+  지식 검색용 임베딩 모델은 이 화면에 없습니다(전 테넌트 공용, 서버 관리).</p></div>
+
+  <h3>4.5 모더레이션(금칙) 규칙</h3>
+  <div class="tablewrap"><table>
+    <tr><th>항목</th><th>선택지</th><th>의미</th></tr>
+    <tr><td rowspan="3">유형</td><td>단어 / 문구</td><td>포함 매칭 (대소문자 무시)</td></tr>
+    <tr><td>정규식</td><td>패턴 매칭</td></tr>
+    <tr><td>문맥(LLM)</td><td>"무엇을 차단할지"를 문장으로 쓰면 AI가 메시지마다 판정</td></tr>
+    <tr><td>범위</td><td>AI만 / 상담원만 / 둘 다</td><td>어느 발신자의 메시지를 검사할지</td></tr>
+    <tr><td rowspan="3">조치</td><td>차단</td><td>메시지를 내보내지 않음 (AI 답변이면 상담원 인계로 전환)</td></tr>
+    <tr><td>마스킹</td><td>걸린 부분만 ▇▇▇ 처리 후 전달</td></tr>
+    <tr><td>재작성</td><td>AI가 안전한 문장으로 고쳐서 전달</td></tr>
+  </table></div>
+  <div class="callout"><span class="c-label">💡 팁</span>
+  <ul>
+    <li>이 게이트는 <strong>끌 수 없으며</strong>, 검사 실패 시 안전을 위해 <strong>차단</strong> 처리됩니다.
+      상담원 메시지가 거부되면 표현을 바꿔 다시 보내세요.</li>
+    <li>문맥(LLM) 유형은 moderation 기능 엔진을 씁니다 — stub 상태면 판정 품질이 없습니다.</li>
+    <li>과도한 단어 규칙은 정상 답변까지 막습니다. <strong>마스킹/재작성으로 시작해</strong> 로그를 보고 차단으로 올리세요. 반영은 최대 60초.</li>
+  </ul></div>
+
+  <h3>4.6 답변 재사용</h3>
+  <p><em>답변 재사용</em> 카드에서 저장된 질답을 검색(활성만 필터), 항목별 편집/삭제, <strong>[전체 비활성화]</strong>로 일괄 중지.</p>
+  <div class="callout"><span class="c-label">💡 팁</span>
+  <p>재사용 답변은 LLM 호출 없이 즉시 나가 빠르고 저렴하지만, <strong>정책이 바뀌면 낡은 답변이 그대로 나갈 수 있습니다.</strong>
+  정책 개정 시 관련 항목 수정/비활성화를 체크리스트에 포함하세요. 재사용 답변도 모더레이션은 통과합니다.</p></div>
+</section>
+
+<section id="ch5">
+  <div class="ch"><span class="num">05</span><h2>라이브챗 고객 대응 설정</h2></div>
+  <span class="actor">[설정] 페이지의 상담 전환 섹션</span>
+  <div class="terms"><div class="t-label">용어</div>
+  <div class="tablewrap"><table>
+    <tr><td>에스컬레이션(인계)</td><td>AI가 대화를 상담원 대기열로 넘기는 것</td></tr>
+    <tr><td>핸드오프(상담 전환)</td><td>인계 이후의 배정·시간·안내를 정하는 설정 묶음</td></tr>
+    <tr><td>영업시간</td><td>상담원이 응대하는 시간대 — 밖이면 영업외 안내·이메일 접수로 전환</td></tr>
+    <tr><td>SLA</td><td>응답 목표 시간 — 이슈 보드의 지연 배지(⚠️/🔥) 기준</td></tr>
+    <tr><td>대기열(waiting)</td><td>인계된 대화가 상담원 인수를 기다리는 상태</td></tr>
+  </table></div></div>
+
+  <h3>5.1 담당자·영업시간·영업외 안내</h3>
+  <ol class="steps">
+    <li><strong>담당자 지정</strong> — 인계를 받을 상담원 체크</li>
+    <li><strong>영업시간 사용</strong> 토글 → 타임존·시작/종료·요일, 필요 시 <strong>휴게시간</strong> 토글</li>
+    <li><strong>영업외 접수 이메일</strong> — 영업시간 밖 문의를 받을 주소 (SMTP 미설정 시 경고 표시)</li>
+    <li><strong>영업외 안내 문구</strong> — 언어 탭별 작성</li>
+    <li><strong>SLA</strong> — 일반/긴급 응답 목표 (시간, 1~168h)</li>
+    <li><strong>정책 강제 핸드오프(deny-list)</strong> — 키워드(쉼표 구분) + 문의 유형 + 담당 라벨 규칙 등록.
+      매칭된 메시지는 <strong>AI를 거치지 않고 바로 상담원에게</strong> 전달되며, 생성되는 이슈에 유형·라벨이 자동 지정됩니다.</li>
+  </ol>
+  <div class="callout"><span class="c-label">💡 팁</span>
+  <ul>
+    <li>영업시간의 <strong>타임존</strong>을 상점 기준으로 정확히 — 미국 상점을 한국 시간으로 두면 안내가 반대로 나갑니다.</li>
+    <li>영업외 이메일 접수는 서버 SMTP 설정이 선행돼야 합니다 — 경고가 보이면 플랫폼 관리자에게 요청.</li>
+    <li>담당자를 아무도 지정하지 않으면 인계 대화가 공용 대기열에만 쌓입니다 — 최소 1명은 지정하세요.</li>
+  </ul></div>
+
+  <h3>5.2 인계(에스컬레이션) 조건 이해</h3>
+  <div class="tablewrap"><table>
+    <tr><th>트리거</th><th>동작</th></tr>
+    <tr><td><strong>신뢰도 낮음</strong></td><td>답변에 "상담원 연결을 도와드릴까요?"를 덧붙이고 대기열로</td></tr>
+    <tr><td><strong>모더레이션 차단</strong></td><td>AI 답변 미노출, 상담원 연결 안내 후 대기열로</td></tr>
+    <tr><td><strong>고객 요청</strong></td><td>시나리오의 고객 지원 문의 또는 명시적 요청 → 즉시 대기열로</td></tr>
+    <tr><td><strong>정책 강제 핸드오프</strong></td><td>등록 키워드 매칭 시 <strong>AI 응답 없이 즉시</strong> 대기열로 — 메시지는 정상 저장·표시되며 이슈에 유형·라벨 스탬프 (메시지를 막는 기능이 아님)</td></tr>
+  </table></div>
+  <div class="callout"><span class="c-label">💡 팁</span>
+  <p>신뢰도 임계값은 화면에서 조정할 수 없습니다(코드 정책). 인계가 잦다면 임계값이 아니라 <strong>지식을 보강</strong>하는 것이
+  올바른 대응입니다(3.1절 QA 패널로 원인 확인). 인계된 대화의 처리(인수·AI 브리핑·종료·재배정)는
+  라이브챗 콘솔(<code>/live-chat</code>)에서 합니다.</p></div>
+</section>
+
+<section id="ch6">
+  <div class="ch"><span class="num">06</span><h2>검증·개선 루프</h2></div>
+  <span class="actor">[AI 설정] 오른쪽 스튜디오 + 회귀 테스트 카드</span>
+  <div class="terms"><div class="t-label">용어</div>
+  <div class="tablewrap"><table>
+    <tr><td>미리보기</td><td>실제 고객 세션을 만들지 않고 봇과 대화해보는 테스트 패널</td></tr>
+    <tr><td>AI 코칭</td><td>자연어로 피드백하면 설정 변경안을 <strong>제안</strong>받고, 승인 시에만 적용되는 기능</td></tr>
+    <tr><td>제안(proposal)</td><td>코칭이 만든 설정 변경안 카드 — 적용/거절/되돌리기 가능</td></tr>
+    <tr><td>골든 질문</td><td>답변 품질을 계속 확인하고 싶은 대표 질문 목록 (회귀 테스트 입력)</td></tr>
+    <tr><td>회귀 테스트</td><td>설정·지식 변경 후 골든 질문 전체를 다시 돌려 답변이 나빠지지 않았는지 확인</td></tr>
+    <tr><td>변동성 측정</td><td>같은 질문을 반복 실행해 답변이 얼마나 흔들리는지 보는 기능</td></tr>
+  </table></div></div>
+
+  <h3>6.1 미리보기</h3>
+  <p><strong>미리보기</strong> 탭 → 언어 선택 → <strong>[새 세션]</strong> → 모드(고객/상담원) 선택 후 메시지 입력.
+  응답에 담당 <strong>에이전트 배지</strong>와 <strong>에스컬레이션 여부</strong>가 표시됩니다.
+  각 응답의 <strong>[이 답변 코칭]</strong>으로 그 턴을 코칭에 첨부합니다.</p>
+  <div class="callout"><span class="c-label">💡 팁</span>
+  <p>설정을 바꿨으면 저장 후 <strong>[새 세션]</strong>으로 시작해야 새 설정이 적용된 대화를 보게 됩니다.
+  답변 언어는 세션 언어를 따르니 언어를 바꿔가며 주요 질문을 확인하세요.</p></div>
+
+  <h3>6.2 AI 코칭</h3>
+  <p><strong>AI 코칭</strong> 탭 → 스레드 선택 또는 [새 스레드] → 참조 턴 확인 후 자연어 지시
+  (예: "환불 안내가 너무 길어. 3문장 이내로") → <strong>제안 카드</strong>의 변경 내용 검토 →
+  <strong>[적용]</strong> / <strong>[거절]</strong> / 적용 후 <strong>[되돌리기]</strong>.</p>
+  <div class="callout"><span class="c-label">💡 팁</span>
+  <ul>
+    <li>코칭은 <strong>승인 없이는 아무것도 바꾸지 않습니다.</strong> 제안 카드의 실제 변경 내용(페르소나·규칙 diff)을 읽고 적용하세요.</li>
+    <li>"배송비는 5만원 이상 무료" 같은 <strong>사실 정보</strong>는 코칭이 아니라 지식 문서에 넣을 일입니다 —
+      코칭은 말투·행동 규칙을 다듬는 도구입니다.</li>
+    <li>문구가 조금 달라지는 것은 정상 변동입니다. <strong>신뢰도 하락·에스컬레이션 증가</strong>가 진짜 이상 신호입니다.</li>
+  </ul></div>
+
+  <h3>6.3 회귀 테스트 (골든 질문)</h3>
+  <p><em>회귀 테스트</em> 카드 → 골든 질문 등록(대표 질문 10~20개) → <strong>[지금 실행]</strong> →
+  최근 실행 목록의 <strong>[이전과 비교]</strong>로 답변 변화를 나란히 확인. <strong>[변동성 측정]</strong>으로
+  같은 질문의 답변 흔들림을 볼 수 있습니다.</p>
+  <div class="callout"><span class="c-label">💡 팁</span>
+  <ul>
+    <li>골든 질문에는 ① 매출 직결 질문(배송·환불) ② 과거 오답이 났던 질문 ③ 정책 개정 대상 질문을 넣으세요.</li>
+    <li><strong>대량 지식 변경·카탈로그 동기화·페르소나 개정 직후</strong> 한 번씩 돌리는 것을 루틴으로.
+      결과의 <code>truncated</code> 배지는 질문 수가 실행 상한을 넘어 일부만 실행됐다는 뜻입니다.</li>
+  </ul></div>
+</section>
+
+<section id="ch7">
+  <div class="ch"><span class="num">07</span><h2>운영 체크리스트</h2></div>
+  <h3>정책이 바뀌었을 때 (예: 배송비 개정)</h3>
+  <ul class="check">
+    <li>관련 지식 문서 수정(재임베딩 자동) + 구버전 비활성</li>
+    <li>시나리오 고정 답변(배송 조회·취소/환불) 문구 확인</li>
+    <li>답변 재사용 항목 검색 → 낡은 답변 수정/비활성</li>
+    <li>QA 패널로 대표 질문 3개 확인 → 골든 질문 회귀 실행</li>
+    <li>문서의 적용 시작일·검토 주기 갱신</li>
+  </ul>
+  <h3>주간 루틴</h3>
+  <ul class="check">
+    <li>지식 공백 제안함·답변 제안 비우기 (3.4절)</li>
+    <li>충돌 검토 대기 건 처리 (3.2절)</li>
+    <li><code>stale</code> 배지 문서 검토 (3.3절)</li>
+    <li>라이브챗에서 인계가 잦았던 주제 → 지식 보강</li>
+  </ul>
+</section>
+
+<section id="ch8">
+  <div class="ch"><span class="num">08</span><h2>FAQ / 문제 해결</h2></div>
+  <dl class="faq">
+    <dt>Q. 문서를 등록했는데 AI가 그 내용을 모릅니다.</dt>
+    <dd>① 문서가 활성(노출 ON)인지 ② QA 패널의 출처 목록에 그 문서가 뜨는지 확인하세요.
+    안 뜨면 제목·본문을 고객 어휘로 보강하세요. 카탈로그 동기화의 임베딩 실패 여부도 확인.</dd>
+    <dt>Q. AI가 자꾸 상담원으로 넘깁니다.</dt>
+    <dd>QA 패널에서 해당 질문의 신뢰도·출처를 확인하세요. 근거 문서가 없으면 등록이 답이고,
+    있는데 신뢰도가 낮으면 문서를 쪼개고 어휘를 보강하세요.</dd>
+    <dt>Q. 상담원 메시지 전송이 거부됩니다.</dt>
+    <dd>모더레이션 차단입니다. 금칙 규칙(4.5절)에 걸린 표현을 바꿔 다시 보내세요.
+    규칙이 과하면 master에게 조치 완화(차단→마스킹)를 요청하세요.</dd>
+    <dt>Q. 답변이 영어로만 나옵니다.</dt>
+    <dd>답변 언어는 고객 세션 언어를 따릅니다. 미리보기에서 언어를 지정해 확인하세요.
+    페르소나를 한국어로 쓰는 것과 답변 언어는 무관합니다.</dd>
+    <dt>Q. Google Drive/Notion 동기화가 0건입니다.</dt>
+    <dd>폴더 공유(서비스계정 이메일) 또는 노션 통합 연결이 끊긴 경우가 대부분입니다.
+    자격증명 카드의 [연결 테스트]부터 다시 하세요.</dd>
+    <dt>Q. 코칭 제안을 적용했더니 답변이 이상해졌습니다.</dt>
+    <dd>해당 제안 카드의 [되돌리기]로 복구하세요. 설정 변경 이력에서 이전 리비전을 에디터로 불러와 저장하는 방법도 있습니다.</dd>
+    <dt>Q. 같은 질문인데 답변이 매번 조금씩 다릅니다.</dt>
+    <dd>LLM의 정상 변동입니다(폭은 6.3절 변동성 측정으로 확인). 문구가 아니라 <strong>내용</strong>이 달라지면
+    지식 충돌(3.2절)을 의심하세요. temperature 조정은 Anthropic 엔진에는 적용되지 않습니다(4.4절).</dd>
+  </dl>
+</section>
+
+<div class="next">
+  <strong>함께 보기 →</strong> <a href="quick-setup.ko.html"><em>샵톡 간단 세팅 매뉴얼</em></a>(1편): 테넌트 개설·첫 로그인·플랫폼 연동·위젯 설치.
+  화면 전체 참조는 <a href="user-manual.ko.html">통합 사용자 매뉴얼</a>(v2.0)을 보세요.
+</div>
+
+</main>
+</div>
+
+</body>
+</html>
