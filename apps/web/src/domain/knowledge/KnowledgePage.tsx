@@ -54,10 +54,17 @@ import {
 import type { KnowledgeSource, KnowledgeDocument } from './knowledge.service';
 
 const PAGE_SIZE = 20;
-/** Source types the console offers; the API decides which can actually ingest. */
+/**
+ * Source types the console offers; the API decides which can actually ingest.
+ *
+ * `repository` (GitHub) is deliberately absent: it was dropped from the roadmap
+ * on 2026-08-24, and an option that can be picked but never ingests is worse
+ * than no option — staging already holds a source an operator created that way.
+ * The value stays in the API enum because rows created before this still carry
+ * it, and the list renders `r.type` as stored rather than from this map.
+ */
 const SOURCE_TYPE = {
   BOARD: 'board',
-  REPOSITORY: 'repository',
   GDRIVE: 'gdrive',
   NOTION: 'notion',
 } as const;
