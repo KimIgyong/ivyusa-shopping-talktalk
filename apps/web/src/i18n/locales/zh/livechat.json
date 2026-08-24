@@ -55,7 +55,8 @@
   "scope": {
     "all": "全部",
     "queue": "需人工",
-    "ended": "已结束"
+    "ended": "已结束",
+    "groups": "分组"
   },
   "sync": "同步",
   "syncHint": "立即获取最新消息",
@@ -279,5 +280,54 @@
       "conversation": "关于此会话的备注（仅内部可见）…",
       "session": "跟随该客户访问会话的备注（仅内部可见）…"
     }
+  },
+  "groups": {
+    "tab": "分组",
+    "selectMode": "选择",
+    "cancel": "取消",
+    "selectSession": "选择此会话",
+    "selectedCount": "已选 {{count}} 个",
+    "openModal": "组成分组",
+    "empty": "暂无分组 — 请选择会话进行分组。",
+    "memberCount": "{{count}} 名成员",
+    "modalTitle": "组成分组",
+    "modeCreate": "新建分组",
+    "modeAdd": "加入现有分组",
+    "kind": "类型",
+    "kindLabel": {
+      "timeline": "时间线",
+      "project": "项目"
+    },
+    "kindHint": {
+      "timeline": "汇集同一位个人客户的多个会话。",
+      "project": "汇集同一客户公司相关人员的对话。"
+    },
+    "title": "分组标题",
+    "titlePlaceholder": "例：洪女士 — 退货案例",
+    "needTwo": "至少选择两个会话才能创建分组。",
+    "pickGroup": "分组",
+    "pickGroupPlaceholder": "请选择分组…",
+    "selectedMembers": "已选会话（{{count}}）",
+    "create": "创建分组",
+    "addToGroup": "加入分组",
+    "created": "分组已创建。",
+    "createError": "无法创建分组。",
+    "saved": "分组已保存。",
+    "saveError": "无法保存分组。",
+    "membersAdded": "会话已加入分组。",
+    "memberRemoved": "已从分组移除成员。",
+    "dissolved": "分组已解散。对话不受影响。",
+    "dissolveError": "无法解散分组。",
+    "settings": "设置",
+    "settingsTitle": "分组设置",
+    "recipient": "发送给",
+    "recipientPlaceholder": "请选择一位接收人…",
+    "pickRecipientFirst": "发送消息前请先选择接收人",
+    "removeMember": "移除成员",
+    "minMembersHint": "分组至少需要两名成员 — 请改为解散分组。",
+    "dissolve": "解散分组",
+    "confirmDissolve": "确认解散？",
+    "dissolveHint": "解散仅删除分组，对话和消息全部保留。",
+    "save": "保存"
   }
 }

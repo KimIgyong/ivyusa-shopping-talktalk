@@ -163,6 +163,16 @@ export const ERROR_CODE = {
   /** The model call failed — distinct from "no briefing generated yet". */
   BRIEFING_FAILED: { code: 'E5055', message: 'Briefing generation failed' },
 
+  // E5056-E5058 — session grouping / timeline·project (PLN-260824-Session-Grouping).
+  GROUP_NOT_FOUND: { code: 'E5056', message: 'Chat group not found' },
+  /** A group below two members is meaningless — dissolve it instead. */
+  GROUP_MIN_MEMBERS: { code: 'E5057', message: 'A chat group needs at least two member sessions' },
+  /** Send target must be a member session on a channel that can receive. */
+  GROUP_RECIPIENT_INVALID: {
+    code: 'E5058',
+    message: 'Recipient is not a member of this group or cannot receive messages',
+  },
+
   // E9xxx — system
   INTERNAL_ERROR: { code: 'E9001', message: 'Internal server error' },
   EXTERNAL_SERVICE_ERROR: { code: 'E9002', message: 'External service error' },

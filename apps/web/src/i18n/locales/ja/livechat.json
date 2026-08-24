@@ -55,7 +55,8 @@
   "scope": {
     "all": "すべて",
     "queue": "担当者が必要",
-    "ended": "終了"
+    "ended": "終了",
+    "groups": "グループ"
   },
   "sync": "同期",
   "syncHint": "最新のメッセージを今すぐ取得",
@@ -279,5 +280,54 @@
       "conversation": "このスレッドへのメモ（社内限定）…",
       "session": "この顧客セッションに付随するメモ（社内限定）…"
     }
+  },
+  "groups": {
+    "tab": "グループ",
+    "selectMode": "選択",
+    "cancel": "キャンセル",
+    "selectSession": "このセッションを選択",
+    "selectedCount": "{{count}}件選択中",
+    "openModal": "グループ化",
+    "empty": "グループはまだありません — セッションを選択してまとめてください。",
+    "memberCount": "メンバー {{count}}",
+    "modalTitle": "グループ化",
+    "modeCreate": "新規グループ",
+    "modeAdd": "既存グループに追加",
+    "kind": "種別",
+    "kindLabel": {
+      "timeline": "タイムライン",
+      "project": "プロジェクト"
+    },
+    "kindHint": {
+      "timeline": "個人顧客の複数セッションをまとめます。",
+      "project": "同一クライアント企業の関係者の会話をまとめます。"
+    },
+    "title": "グループ名",
+    "titlePlaceholder": "例: ホン様 — 返品対応",
+    "needTwo": "グループを作るにはセッションを2件以上選択してください。",
+    "pickGroup": "グループ",
+    "pickGroupPlaceholder": "グループを選択…",
+    "selectedMembers": "選択中のセッション（{{count}}）",
+    "create": "グループ作成",
+    "addToGroup": "グループに追加",
+    "created": "グループを作成しました。",
+    "createError": "グループを作成できませんでした。",
+    "saved": "グループを保存しました。",
+    "saveError": "グループを保存できませんでした。",
+    "membersAdded": "セッションをグループに追加しました。",
+    "memberRemoved": "グループからメンバーを削除しました。",
+    "dissolved": "グループを解除しました。会話はそのまま残ります。",
+    "dissolveError": "グループを解除できませんでした。",
+    "settings": "設定",
+    "settingsTitle": "グループ設定",
+    "recipient": "送信先",
+    "recipientPlaceholder": "送信先を1名選択…",
+    "pickRecipientFirst": "メッセージを送るには送信先を選択してください",
+    "removeMember": "メンバーを削除",
+    "minMembersHint": "グループには2名以上のメンバーが必要です — 代わりに解除してください。",
+    "dissolve": "グループ解除",
+    "confirmDissolve": "解除しますか？",
+    "dissolveHint": "解除してもグループが消えるだけで、会話とメッセージは残ります。",
+    "save": "保存"
   }
 }

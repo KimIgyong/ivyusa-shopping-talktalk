@@ -1,4 +1,5 @@
 import {
+  ArrayMinSize,
   IsArray,
   IsEmail,
   IsIn,
@@ -58,6 +59,28 @@ export class AgentMessageRequest {
   @IsString() body: string;
   /** Attachment uuids from the console upload endpoint, in display order. */
   @IsOptional() @IsArray() @IsString({ each: true }) attachment_ids?: string[];
+}
+
+/** Session group create (PLN-260824-Session-Grouping): kind is a classifier only. */
+export class CreateGroupRequest {
+  @IsIn(['timeline', 'project']) kind: 'timeline' | 'project';
+  @IsString() @MinLength(1) @MaxLength(100) title: string;
+  @IsArray() @ArrayMinSize(2) @IsInt({ each: true }) session_ids: number[];
+}
+
+export class UpdateGroupRequest {
+  @IsOptional() @IsString() @MinLength(1) @MaxLength(100) title?: string;
+  @IsOptional() @IsIn(['timeline', 'project']) kind?: 'timeline' | 'project';
+}
+
+export class AddGroupMembersRequest {
+  @IsArray() @ArrayMinSize(1) @IsInt({ each: true }) session_ids: number[];
+}
+
+/** 1:1 send from a group room — exactly one member session as the recipient. */
+export class GroupMessageRequest {
+  @IsInt() @Min(1) session_id: number;
+  @IsString() @MinLength(1) body: string;
 }
 
 /** Internal operator note on a thread or its session (REQ-260824 R4). */

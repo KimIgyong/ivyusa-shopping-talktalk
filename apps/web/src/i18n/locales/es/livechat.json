@@ -55,7 +55,8 @@
   "scope": {
     "all": "Todas",
     "queue": "Requiere agente",
-    "ended": "Finalizadas"
+    "ended": "Finalizadas",
+    "groups": "Grupos"
   },
   "sync": "Sincronizar",
   "syncHint": "Traer los mensajes más recientes ahora",
@@ -279,5 +280,54 @@
       "conversation": "Nota sobre esta conversación (solo interno)…",
       "session": "Nota que sigue a la sesión de este cliente (solo interno)…"
     }
+  },
+  "groups": {
+    "tab": "Grupos",
+    "selectMode": "Seleccionar",
+    "cancel": "Cancelar",
+    "selectSession": "Seleccionar esta sesión",
+    "selectedCount": "{{count}} seleccionadas",
+    "openModal": "Agrupar sesiones",
+    "empty": "Aún no hay grupos — selecciona sesiones y agrúpalas.",
+    "memberCount": "{{count}} miembros",
+    "modalTitle": "Agrupar sesiones",
+    "modeCreate": "Nuevo grupo",
+    "modeAdd": "Añadir a un grupo existente",
+    "kind": "Tipo",
+    "kindLabel": {
+      "timeline": "Cronología",
+      "project": "Proyecto"
+    },
+    "kindHint": {
+      "timeline": "Agrupa las sesiones de un cliente individual.",
+      "project": "Agrupa las conversaciones de los interesados de una empresa cliente."
+    },
+    "title": "Título del grupo",
+    "titlePlaceholder": "p. ej. Sra. Hong — caso de devolución",
+    "needTwo": "Elige al menos dos sesiones para crear un grupo.",
+    "pickGroup": "Grupo",
+    "pickGroupPlaceholder": "Elige un grupo…",
+    "selectedMembers": "Sesiones seleccionadas ({{count}})",
+    "create": "Crear grupo",
+    "addToGroup": "Añadir al grupo",
+    "created": "Grupo creado.",
+    "createError": "No se pudo crear el grupo.",
+    "saved": "Grupo guardado.",
+    "saveError": "No se pudo guardar el grupo.",
+    "membersAdded": "Sesiones añadidas al grupo.",
+    "memberRemoved": "Miembro eliminado del grupo.",
+    "dissolved": "Grupo disuelto. Las conversaciones no se tocan.",
+    "dissolveError": "No se pudo disolver el grupo.",
+    "settings": "Ajustes",
+    "settingsTitle": "Ajustes del grupo",
+    "recipient": "Enviar a",
+    "recipientPlaceholder": "Elige un destinatario…",
+    "pickRecipientFirst": "Elige un destinatario para enviar un mensaje",
+    "removeMember": "Quitar miembro",
+    "minMembersHint": "Un grupo necesita al menos dos miembros — disuélvelo en su lugar.",
+    "dissolve": "Disolver grupo",
+    "confirmDissolve": "¿Disolver?",
+    "dissolveHint": "Disolver elimina solo el grupo. Las conversaciones y mensajes permanecen.",
+    "save": "Guardar"
   }
 }

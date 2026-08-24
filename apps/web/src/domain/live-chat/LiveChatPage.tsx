@@ -38,13 +38,16 @@ import {
 } from './live-chat.hooks';
 import { BriefingCard } from './BriefingCard';
 import { CommentCard } from './CommentCard';
+import { GroupCreateModal } from './GroupCreateModal';
+import { GroupRoom } from './GroupRoom';
+import { useGroups } from './live-chat.hooks';
 import { KnowledgeCaptureModal } from './KnowledgeCaptureModal';
 import { MessageAttachments } from './MessageAttachments';
 import { useAgentUpload } from './useAgentUpload';
 import { IssuePanel } from './IssuePanel';
 import { useAuthStore } from '@/store/auth-store';
 import { liveChatService } from './live-chat.service';
-import type { ChatMessage, CustomerContext } from './live-chat.service';
+import type { AgentSession, ChatMessage, CustomerContext } from './live-chat.service';
 import { cn } from '@/lib/cn';
 
 /** HH:mm for a message bubble; empty when the row carries no timestamp. */
@@ -106,8 +109,30 @@ export function LiveChatPage() {
   }
 
   // 'all' by default: the queue-only view is what hid the conversation a shopper
-  // was having right now with the bot (PLN-260807 D1).
-  const [scope, setScope] = useState<'all' | 'queue' | 'ended'>('all');
+  // was having right now with the bot (PLN-260807 D1). 'groups' switches the
+  // list to timeline/project groups (REQ-260824-Session-Grouping).
+  const [scope, setScope] = useState<'all' | 'queue' | 'ended' | 'groups'>('all');
+
+  // Session grouping (REQ-260824): the open group room, the list's multi-select
+  // mode, and the sessions checked for grouping (keyed by sessionId — two rows
+  // of the same session collapse into one member).
+  const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
+  const [selectMode, setSelectMode] = useState(false);
+  const [checked, setChecked] = useState<Map<string, AgentSession>>(new Map());
+  const [groupModalOpen, setGroupModalOpen] = useState(false);
+  const exitSelectMode = () => {
+    setSelectMode(false);
+    setChecked(new Map());
+  };
+  const toggleChecked = (s: AgentSession) => {
+    if (!s.sessionId) return;
+    setChecked((prev) => {
+      const next = new Map(prev);
+      if (next.has(s.sessionId as string)) next.delete(s.sessionId as string);
+      else next.set(s.sessionId as string, s);
+      return next;
+    });
+  };
 
   // Origin-channel filter (PLN-260810 PR-M4). Kept separate from `scope` so an
   // agent can watch, say, only KakaoTalk without losing the queue/ended split.
@@ -127,7 +152,12 @@ export function LiveChatPage() {
   useEffect(() => {
     if (deepLink) setSelected(deepLink);
   }, [deepLink]);
-  const { data: sessions, isLoading: sessionsLoading } = useSessions(listSearch, scope, channel);
+  const { data: sessions, isLoading: sessionsLoading } = useSessions(
+    listSearch,
+    scope === 'groups' ? 'all' : scope,
+    channel,
+  );
+  const { data: groups, isLoading: groupsLoading } = useGroups(scope === 'groups');
   const { data: convo, isLoading: convoLoading, isFetching: convoFetching, refetch: refetchConvo } =
     useConversation(selected);
 
@@ -283,15 +313,37 @@ export function LiveChatPage() {
       <div className="grid h-[calc(100vh-220px)] grid-cols-12 gap-4">
         {/* Session list */}
         <div className="col-span-3 overflow-y-auto rounded-lg border border-gray-200 bg-white">
-          <div className="border-b border-gray-100 px-4 py-3 text-sm font-medium text-gray-600">
-            {t('sessions')} {sessions ? `(${sessions.length})` : ''}
+          <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3 text-sm font-medium text-gray-600">
+            <span>
+              {scope === 'groups'
+                ? `${t('groups.tab')} ${groups ? `(${groups.length})` : ''}`
+                : `${t('sessions')} ${sessions ? `(${sessions.length})` : ''}`}
+            </span>
+            {scope !== 'groups' && (
+              <button
+                type="button"
+                onClick={() => (selectMode ? exitSelectMode() : setSelectMode(true))}
+                className={cn(
+                  'rounded-full border px-2 py-0.5 text-[11px]',
+                  selectMode
+                    ? 'border-primary-400 bg-primary-500/10 text-primary-700'
+                    : 'border-gray-200 text-gray-500 hover:bg-gray-50',
+                )}
+              >
+                {selectMode ? t('groups.cancel') : t('groups.selectMode')}
+              </button>
+            )}
           </div>
           <div className="flex gap-1 border-b border-gray-100 px-2 pt-2">
-            {(['all', 'queue', 'ended'] as const).map((key) => (
+            {(['all', 'queue', 'ended', 'groups'] as const).map((key) => (
               <button
                 key={key}
                 type="button"
-                onClick={() => setScope(key)}
+                onClick={() => {
+                  setScope(key);
+                  if (key === 'groups') exitSelectMode();
+                  else setSelectedGroup(null);
+                }}
                 className={cn(
                   'rounded-full border px-2.5 py-1 text-xs',
                   scope === key
@@ -327,16 +379,65 @@ export function LiveChatPage() {
               />
             </div>
           </div>
-          {sessionsLoading && (
+          {/* Group tab: timeline/project list (REQ-260824). */}
+          {scope === 'groups' && (
+            <>
+              {groupsLoading && (
+                <div className="p-6 text-center text-sm text-gray-400">
+                  <Loader2 className="mx-auto h-5 w-5 animate-spin" />
+                </div>
+              )}
+              {!groupsLoading && (!groups || groups.length === 0) && (
+                <p className="p-6 text-center text-sm text-gray-400">{t('groups.empty')}</p>
+              )}
+              <ul className="divide-y divide-gray-100">
+                {groups?.map((g) => (
+                  <li key={g.id}>
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => {
+                        setSelectedGroup(g.id);
+                        setSelected(null);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          setSelectedGroup(g.id);
+                          setSelected(null);
+                        }
+                      }}
+                      className={cn(
+                        'w-full cursor-pointer px-4 py-3 text-left hover:bg-gray-50',
+                        selectedGroup === g.id && 'bg-primary-500/5',
+                      )}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Badge tone={g.kind === 'project' ? 'info' : 'primary'}>
+                          {t(`groups.kindLabel.${g.kind}`, { defaultValue: g.kind })}
+                        </Badge>
+                        <span className="truncate text-sm font-medium text-gray-800">{g.title}</span>
+                      </div>
+                      <p className="mt-1 text-[11px] text-gray-400">
+                        {t('groups.memberCount', { count: g.memberCount })} · {t('lastReplyShort')}{' '}
+                        {timeAgo(g.lastMessageAt)}
+                      </p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+          {scope !== 'groups' && sessionsLoading && (
             <div className="p-6 text-center text-sm text-gray-400">
               <Loader2 className="mx-auto h-5 w-5 animate-spin" />
             </div>
           )}
-          {!sessionsLoading && (!sessions || sessions.length === 0) && (
+          {scope !== 'groups' && !sessionsLoading && (!sessions || sessions.length === 0) && (
             <p className="p-6 text-center text-sm text-gray-400">{t('noActiveSessions')}</p>
           )}
           <ul className="divide-y divide-gray-100">
-            {sessions?.map((s) => (
+            {scope !== 'groups' && sessions?.map((s) => (
               <li key={s.id}>
                 {/* A div, not a button: the row now contains its own controls
                     (alias edit + input) and a button may not nest interactive
@@ -344,19 +445,44 @@ export function LiveChatPage() {
                 <div
                   role="button"
                   tabIndex={0}
-                  onClick={() => setSelected(s.id)}
+                  onClick={() => {
+                    if (selectMode) {
+                      toggleChecked(s);
+                    } else {
+                      setSelected(s.id);
+                      setSelectedGroup(null);
+                    }
+                  }}
                   onKeyDown={(e) => {
                     if (e.target !== e.currentTarget) return; // let the alias input type
                     if (e.key === 'Enter' || e.key === ' ') {
                       e.preventDefault();
-                      setSelected(s.id);
+                      if (selectMode) {
+                        toggleChecked(s);
+                      } else {
+                        setSelected(s.id);
+                        setSelectedGroup(null);
+                      }
                     }
                   }}
                   className={cn(
-                    'w-full cursor-pointer px-4 py-3 text-left hover:bg-gray-50',
-                    selected === s.id && 'bg-primary-500/5',
+                    'flex w-full cursor-pointer items-start gap-2 px-4 py-3 text-left hover:bg-gray-50',
+                    selected === s.id && !selectMode && 'bg-primary-500/5',
+                    selectMode && s.sessionId && checked.has(s.sessionId) && 'bg-primary-500/5',
                   )}
                 >
+                  {/* Multi-select for grouping (REQ-260824). */}
+                  {selectMode && (
+                    <input
+                      type="checkbox"
+                      checked={!!s.sessionId && checked.has(s.sessionId)}
+                      onChange={() => toggleChecked(s)}
+                      onClick={(e) => e.stopPropagation()}
+                      aria-label={t('groups.selectSession')}
+                      className="mt-1 shrink-0"
+                    />
+                  )}
+                  <div className="min-w-0 flex-1">
                   {/* Two lines instead of one (REQ-260824 R1): the name gets
                       the full row width, and session label + channel + status
                       stop competing with it for space. */}
@@ -404,20 +530,41 @@ export function LiveChatPage() {
                     {t('createdShort')} {timeAgo(s.createdAt)} · {t('lastReplyShort')}{' '}
                     {timeAgo(s.lastMessageAt)}
                   </p>
+                  </div>
                 </div>
               </li>
             ))}
           </ul>
+          {/* Grouping action bar (REQ-260824): visible only in select mode. */}
+          {selectMode && scope !== 'groups' && (
+            <div className="sticky bottom-0 border-t border-gray-200 bg-white p-2">
+              <p className="mb-1 text-xs text-gray-500">
+                {t('groups.selectedCount', { count: checked.size })}
+              </p>
+              <div className="flex gap-1">
+                <Button size="sm" disabled={!checked.size} onClick={() => setGroupModalOpen(true)}>
+                  {t('groups.openModal')}
+                </Button>
+                <Button size="sm" variant="ghost" onClick={exitSelectMode}>
+                  {t('groups.cancel')}
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Message thread */}
         <div className="col-span-6 flex flex-col rounded-lg border border-gray-200 bg-white">
-          {!selected && (
+          {/* Group room replaces the thread pane while a group is open. */}
+          {selectedGroup && (
+            <GroupRoom groupId={selectedGroup} onDissolved={() => setSelectedGroup(null)} />
+          )}
+          {!selectedGroup && !selected && (
             <div className="flex flex-1 items-center justify-center text-sm text-gray-400">
               {t('selectSession')}
             </div>
           )}
-          {selected && (
+          {!selectedGroup && selected && (
             <>
               <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
                 <div className="flex min-w-0 items-center gap-2">
@@ -925,6 +1072,18 @@ export function LiveChatPage() {
         answer={capture?.answer ?? ''}
         conversationId={selected}
         onClose={() => setCapture(null)}
+      />
+
+      {/* Timeline/project grouping of the checked sessions (REQ-260824). */}
+      <GroupCreateModal
+        open={groupModalOpen}
+        onClose={() => setGroupModalOpen(false)}
+        sessions={[...checked.values()]}
+        onDone={() => {
+          setGroupModalOpen(false);
+          exitSelectMode();
+          setScope('groups');
+        }}
       />
 
       <Modal

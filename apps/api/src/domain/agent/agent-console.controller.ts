@@ -21,6 +21,7 @@ import { AgentService } from './agent.service';
 import { AgentAlertService } from './agent-alert.service';
 import { BriefingService } from './briefing.service';
 import { ChatCommentService } from './chat-comment.service';
+import { ChatGroupService } from './chat-group.service';
 import { AttachmentService, UploadInput } from '../attachment/attachment.service';
 import { AttachmentMapper } from '../attachment/attachment.mapper';
 import { RequireCapability } from '../../global/decorator/auth.decorator';
@@ -29,9 +30,13 @@ import { Paginated } from '../../global/interceptor/transform.interceptor';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
 import {
+  AddGroupMembersRequest,
   AgentMessageRequest,
   CreateCommentRequest,
   CreateCustomerRequest,
+  CreateGroupRequest,
+  GroupMessageRequest,
+  UpdateGroupRequest,
   LinkCustomerRequest,
   ConversationQuery,
   ListSessionsQuery,
@@ -47,6 +52,9 @@ import {
   toAlertResponse,
   toBriefingResponse,
   toCommentResponse,
+  toGroupDetailResponse,
+  toGroupMessageResponse,
+  toGroupResponse,
   toMessageResponse,
   toProfileResponse,
   toSessionResponse,
@@ -71,7 +79,184 @@ export class AgentConsoleController {
     private readonly attachments: AttachmentService,
     private readonly briefingService: BriefingService,
     private readonly commentService: ChatCommentService,
+    private readonly groupService: ChatGroupService,
   ) {}
+
+  // ---- session groups: timeline / project (PLN-260824-Session-Grouping) ----
+
+  @Get('groups')
+  @RequireCapability(CAPABILITY.CONVERSATION_HANDLE)
+  @ApiOperation({ summary: 'List session groups (timeline/project)' })
+  async groups(@CurrentUser() user: Principal) {
+    const rows = await this.groupService.list(tenantOf(user));
+    return rows.map((r) => toGroupResponse(r.group, r.memberCount, r.lastMessageAt));
+  }
+
+  @Post('groups')
+  @RequireCapability(CAPABILITY.CONVERSATION_HANDLE)
+  @ApiOperation({ summary: 'Group 2+ sessions under a timeline/project title' })
+  async createGroup(@CurrentUser() user: Principal, @Body() body: CreateGroupRequest) {
+    const userId = actorIdOf(user);
+    const group = await this.groupService.create(
+      tenantOf(user),
+      userId,
+      body.kind,
+      body.title,
+      body.session_ids,
+    );
+    // Kind + size only — the title is operator-authored free text.
+    await this.agentService.auditAgentAction(userId, tenantOf(user), 'agent.group_created', `group:${group.id}`, {
+      kind: group.kind,
+      members: body.session_ids.length,
+    });
+    return toGroupResponse(group, body.session_ids.length);
+  }
+
+  @Get('groups/:id')
+  @RequireCapability(CAPABILITY.CONVERSATION_HANDLE)
+  @ApiOperation({ summary: 'Group detail with member sessions and send targets' })
+  async group(@CurrentUser() user: Principal, @Param('id', ParseIntPipe) id: number) {
+    const { group, members } = await this.groupService.detail(id, tenantOf(user));
+    return toGroupDetailResponse(group, members);
+  }
+
+  @Get('groups/:id/messages')
+  @RequireCapability(CAPABILITY.CONVERSATION_HANDLE)
+  @ApiOperation({ summary: 'Merged message feed across all member sessions' })
+  async groupMessages(
+    @CurrentUser() user: Principal,
+    @Param('id', ParseIntPipe) id: number,
+    @Query() query: ConversationQuery,
+  ) {
+    const { messages, hasMore, conversationMeta } = await this.groupService.messages(
+      id,
+      tenantOf(user),
+      {
+        limit: query.limit != null ? Number(query.limit) : undefined,
+        beforeId: query.before_id != null ? Number(query.before_id) : undefined,
+      },
+    );
+    const names = await this.agentService.resolveSenderNames(messages);
+    const attachments = await this.attachments.findByMessageIds(messages.map((m) => Number(m.id)));
+    return {
+      groupId: String(id),
+      messages: messages.map((m) =>
+        toGroupMessageResponse(
+          m,
+          conversationMeta.get(String(m.conversationId)),
+          m.senderId != null ? names.get(String(m.senderId)) ?? null : null,
+          attachments.get(String(m.id)),
+        ),
+      ),
+      hasMore,
+    };
+  }
+
+  @Post('groups/:id/messages')
+  @RequireCapability(CAPABILITY.CONVERSATION_HANDLE)
+  @ApiOperation({ summary: '1:1 send to ONE member session (no broadcast)' })
+  async sendGroupMessage(
+    @CurrentUser() user: Principal,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: GroupMessageRequest,
+  ) {
+    const agentId = actorIdOf(user);
+    const { message, conversationId, channel } = await this.groupService.sendTo(
+      id,
+      tenantOf(user),
+      agentId,
+      body.session_id,
+      body.body,
+    );
+    await this.agentService.auditAgentAction(
+      agentId,
+      tenantOf(user),
+      'agent.group_message_sent',
+      `group:${id}`,
+      { conversationId, sessionId: body.session_id, length: message.body.length },
+    );
+    const senderName = await this.agentService.agentName(agentId);
+    return toGroupMessageResponse(message, { sessionId: body.session_id, channel }, senderName);
+  }
+
+  @Patch('groups/:id')
+  @RequireCapability(CAPABILITY.CONVERSATION_HANDLE)
+  @ApiOperation({ summary: 'Rename a group or switch its classifier' })
+  async updateGroup(
+    @CurrentUser() user: Principal,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: UpdateGroupRequest,
+  ) {
+    const group = await this.groupService.update(id, tenantOf(user), body);
+    await this.agentService.auditAgentAction(
+      actorIdOf(user),
+      tenantOf(user),
+      'agent.group_updated',
+      `group:${id}`,
+      { kind: group.kind },
+    );
+    const { members } = await this.groupService.detail(id, tenantOf(user));
+    return toGroupDetailResponse(group, members);
+  }
+
+  @Post('groups/:id/members')
+  @RequireCapability(CAPABILITY.CONVERSATION_HANDLE)
+  @ApiOperation({ summary: 'Add member sessions (duplicates are skipped)' })
+  async addGroupMembers(
+    @CurrentUser() user: Principal,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: AddGroupMembersRequest,
+  ) {
+    const { added } = await this.groupService.addMembers(
+      id,
+      tenantOf(user),
+      actorIdOf(user),
+      body.session_ids,
+    );
+    await this.agentService.auditAgentAction(
+      actorIdOf(user),
+      tenantOf(user),
+      'agent.group_members_changed',
+      `group:${id}`,
+      { added },
+    );
+    const { group, members } = await this.groupService.detail(id, tenantOf(user));
+    return toGroupDetailResponse(group, members);
+  }
+
+  @Delete('groups/:id/members/:sessionId')
+  @RequireCapability(CAPABILITY.CONVERSATION_HANDLE)
+  @ApiOperation({ summary: 'Remove one member (refused below two members)' })
+  async removeGroupMember(
+    @CurrentUser() user: Principal,
+    @Param('id', ParseIntPipe) id: number,
+    @Param('sessionId', ParseIntPipe) sessionId: number,
+  ) {
+    await this.groupService.removeMember(id, tenantOf(user), sessionId);
+    await this.agentService.auditAgentAction(
+      actorIdOf(user),
+      tenantOf(user),
+      'agent.group_members_changed',
+      `group:${id}`,
+      { removed: sessionId },
+    );
+    const { group, members } = await this.groupService.detail(id, tenantOf(user));
+    return toGroupDetailResponse(group, members);
+  }
+
+  @Delete('groups/:id')
+  @RequireCapability(CAPABILITY.CONVERSATION_HANDLE)
+  @ApiOperation({ summary: 'Dissolve the group — conversations stay untouched' })
+  async dissolveGroup(@CurrentUser() user: Principal, @Param('id', ParseIntPipe) id: number) {
+    await this.groupService.dissolve(id, tenantOf(user));
+    await this.agentService.auditAgentAction(
+      actorIdOf(user),
+      tenantOf(user),
+      'agent.group_dissolved',
+      `group:${id}`,
+    );
+    return { id };
+  }
 
   @Get('alerts')
   @RequireCapability(CAPABILITY.CONVERSATION_HANDLE)
