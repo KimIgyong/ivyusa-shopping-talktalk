@@ -151,14 +151,44 @@ export class Cafe24TokenService {
           access_token?: string;
           expires_in?: number | string;
           refresh_token?: string;
+          scopes?: string[];
         };
         if (!data.access_token) return null;
-        // Persist the rotated refresh token (Cafe24 issues a new one each refresh).
-        if (data.refresh_token && data.refresh_token !== parsed.refreshToken) {
+
+        // What the mall grants can shrink without anyone here doing anything —
+        // an operator changes the app's permissions, or reinstalls it with
+        // fewer. Until this was read, the scopes recorded at connect time were
+        // copied forward on every refresh forever, so the stored credential
+        // kept claiming a permission the live token no longer had. The only
+        // symptom was a 403 at sync time, half an hour later, with a record
+        // that flatly contradicted it (staging: amoebaorder listed
+        // `mall.read_order` while /orders answered insufficient_scope).
+        const grantedScopes = Array.isArray(data.scopes) ? data.scopes : null;
+        const lost = grantedScopes
+          ? (parsed.scopes ?? []).filter((s) => !grantedScopes.includes(s))
+          : [];
+        if (lost.length) {
+          // Loud, because the sync failure it causes is not self-explanatory:
+          // the fix is re-authorising the mall, which no log line said before.
+          this.logger.warn(
+            `cafe24 tenant ${tenantId} (${parsed.mallId}) no longer grants ` +
+              `${lost.join(', ')} — re-authorise the mall to restore it`,
+          );
+        }
+
+        const rotated = !!data.refresh_token && data.refresh_token !== parsed.refreshToken;
+        const scopesChanged =
+          !!grantedScopes &&
+          JSON.stringify(grantedScopes) !== JSON.stringify(parsed.scopes ?? null);
+        // Saved when either changes: a scope change with an unrotated token
+        // would otherwise never reach the record.
+        if (rotated || scopesChanged) {
           const next: Cafe24Credential = {
             ...parsed,
-            refreshToken: data.refresh_token,
-            refreshIssuedAt: Date.now(),
+            ...(rotated
+              ? { refreshToken: data.refresh_token as string, refreshIssuedAt: Date.now() }
+              : {}),
+            ...(grantedScopes ? { scopes: grantedScopes } : {}),
           };
           cred.secretEnc = encryptSecret(JSON.stringify(next));
           await this.credRepo.save(cred);
