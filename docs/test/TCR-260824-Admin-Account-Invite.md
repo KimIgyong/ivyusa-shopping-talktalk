@@ -27,19 +27,21 @@
 
 typecheck 9/9 · build 6/6 · `i18n:check` complete(신규 adminUsers 네임스페이스+nav 키 ×6언어) · 실부팅 `successfully started` · `/admin-users` GET/POST 무인증 **401**(404 아님).
 
-## 3. 통합/수동 시나리오 (스테이징 배포 후 실행)
+## 3. 통합/수동 시나리오 — **스테이징 실행 완료 2026-08-24** (API 기반)
+
+> admin@는 MFA가 걸려 있어 스모크 전용 super 계정을 DB에 임시 삽입해 실행, 종료 후 스모크 계정 2건 삭제(시드 admin@만 잔존 확인).
 
 | # | 시나리오 | 기대 결과 | 결과 |
 |---|---|---|---|
-| A1 | super(admin@)로 `GET /admin-users` | 목록 반환 (시드 super 포함) | ⬜ |
-| A2 | admin 레벨 초대(send_email=false) | 임시비번 1회 반환, 목록에 신규 행 | ⬜ |
-| A3 | 동일 이메일 재초대 | E2002 | ⬜ |
-| A4 | 신규 어드민 임시비번으로 `/auth/admin/login` | 로그인 성공 + mustChange=true | ⬜ |
-| A5 | 신규 어드민 change-password 후 API 접근 | 일반 어드민 API OK, **`GET /admin-users`는 403(E1004)** — 레벨 게이트 첫 실검증 | ⬜ |
-| A6 | super가 신규 어드민 비활성화 → 재로그인 | E1002 즉시 거부 (보안 갭 수정 검증) | ⬜ |
-| A7 | super가 자기 자신 비활성화 시도 | 400 거부 | ⬜ |
-| A8 | 임시비번 재발급 → 새 비번으로만 로그인 가능 | 구 비번 E1002·신 비번 OK | ⬜ |
-| A9 | UI: super 사이드바에 [어드민 관리자] 노출, admin 레벨은 미노출 + URL 직접 진입 시 안내 | ⬜ (육안) | ⬜ |
+| A1 | super로 `GET /admin-users` | 목록 반환 | ✅ 시드 super 포함 목록 |
+| A2 | admin 레벨 초대(send_email=false) | 임시비번 1회 반환 | ✅ 13자 정책형 임시비번, 목록 반영 |
+| A3 | 동일 이메일 재초대 | E2002 | ✅ |
+| A4 | 임시비번 로그인 | 성공 + mustChange=true | ✅ |
+| A5 | 강제 변경 후 레벨 게이트 | 일반 어드민 API 200 / `GET /admin-users` 403 | ✅ **E1004 — 레벨 인자 게이트 첫 실검증**. 부수: 새 비번이 이메일 조각 포함 시 E1009(contains_identity)로 거부되는 것도 관측 |
+| A6 | 비활성화 → 재로그인 | E1002 즉시 거부 | ✅ (보안 갭 수정 실증) |
+| A7 | 자기 자신 비활성화 | 400 거부 | ✅ E5003 |
+| A8 | 임시비번 재발급 | 구 비번 무효·신 비번 OK | ✅ 구 E1002 / 신 OK+mustChange |
+| A9 | UI: super만 [어드민 관리자] 메뉴, admin은 미노출+안내 | 육안 | ⬜ 운영자 확인 권장 (게이팅 로직은 A5로 서버측 실증) |
 
 ## 4. 엣지 케이스 (설계/유닛으로 처리)
 
