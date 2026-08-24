@@ -26,5 +26,10 @@
   "mfaResetTitle": "Đặt lại MFA",
   "mfaResetConfirm": "Đặt lại MFA cho {{email}}?",
   "mfaResetWarning": "Người dùng sẽ phải đăng ký lại MFA ở lần đăng nhập tiếp theo. Thao tác này được ghi vào nhật ký kiểm tra.",
-  "mfaResetDone": "Đã đặt lại MFA."
+  "mfaResetDone": "Đã đặt lại MFA.",
+  "tempPwIssue": "Cấp",
+  "tempPwConfirm": "Cấp mật khẩu tạm thời cho",
+  "tempPwSendEmail": "Đồng thời gửi cho người dùng qua email",
+  "tempPwEmailSent": "Đã gửi cho người dùng qua email.",
+  "tempPwEmailFailed": "Gửi email thất bại — hãy chuyển mật khẩu trực tiếp."
 }

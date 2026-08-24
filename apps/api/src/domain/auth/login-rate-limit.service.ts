@@ -54,14 +54,51 @@ export class LoginRateLimitService {
     await this.redis.del(this.accountKey(scope, email));
   }
 
+  // ---- Generic quotas (PLN-260824 password recovery) ----
+  // Same Redis counters, but with per-call limits/window and their own error
+  // code. These are ALWAYS enforced and ALWAYS counted, independently of the
+  // login lockout above — a recovery endpoint must never become an unmetered
+  // credential-guessing channel just because the login counter is bypassed.
+
+  /** Throw 429 (E1013) when the account or IP exceeded its quota for `scope`. */
+  async assertQuota(
+    scope: string,
+    email: string,
+    ip: string,
+    limits: { maxPerAccount: number; maxPerIp: number },
+  ): Promise<void> {
+    const [accountHits, ipHits] = await Promise.all([
+      this.count(this.accountKey(scope, email)),
+      this.count(this.ipKey(scope, ip)),
+    ]);
+    if (accountHits >= limits.maxPerAccount || ipHits >= limits.maxPerIp) {
+      throw new BusinessException(
+        ERROR_CODE.PASSWORD_RESET_RATE_LIMITED,
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+  }
+
+  /** Count one attempt against both keys (TTL `windowSec` set on first hit). */
+  async bumpQuota(scope: string, email: string, ip: string, windowSec: number): Promise<void> {
+    await Promise.all([
+      this.bumpWithTtl(this.accountKey(scope, email), windowSec),
+      this.bumpWithTtl(this.ipKey(scope, ip), windowSec),
+    ]);
+  }
+
   private async count(key: string): Promise<number> {
     const raw = await this.redis.get(key);
     return raw ? Number(raw) : 0;
   }
 
   private async bump(key: string): Promise<void> {
+    await this.bumpWithTtl(key, WINDOW_SEC);
+  }
+
+  private async bumpWithTtl(key: string, windowSec: number): Promise<void> {
     const count = await this.redis.incr(key);
-    if (count === 1) await this.redis.set(key, '1', WINDOW_SEC);
+    if (count === 1) await this.redis.set(key, '1', windowSec);
   }
 
   private accountKey(scope: string, email: string): string {

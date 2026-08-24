@@ -19,6 +19,9 @@ export const ERROR_CODE = {
   MFA_REQUIRED: { code: 'E1010', message: 'Multi-factor authentication required' },
   MFA_CODE_INVALID: { code: 'E1011', message: 'Invalid or already used MFA code' },
   MFA_ALREADY_ENROLLED: { code: 'E1012', message: 'MFA is already enrolled for this account' },
+  // Self-service password recovery from the tenant login page (PLN-260824).
+  PASSWORD_RESET_RATE_LIMITED: { code: 'E1013', message: 'Too many recovery attempts, try again later' },
+  EMAIL_UNAVAILABLE: { code: 'E1014', message: 'Email delivery is not available' },
 
   // E2xxx — user / invitation
   USER_NOT_FOUND: { code: 'E2001', message: 'User not found' },

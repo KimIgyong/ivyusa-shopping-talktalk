@@ -16,7 +16,7 @@ interface AuthState {
   mfaEnforceFrom: string | null;
   mfaEnforced: boolean;
   /**
-   * Slug of the tenant login page the user last signed in from (/<slug>).
+   * Slug of the tenant login page the user last signed in from (/user/<slug>).
    * Deliberately survives clear() so logout/401 can route back to the right
    * login page — it is a route hint, not a credential.
    */

@@ -26,5 +26,10 @@
   "mfaResetTitle": "MFA 리셋",
   "mfaResetConfirm": "{{email}}의 MFA를 리셋할까요?",
   "mfaResetWarning": "리셋하면 다음 로그인 시 MFA를 다시 등록해야 하며, 이 작업은 감사 로그에 기록됩니다.",
-  "mfaResetDone": "MFA가 리셋되었습니다."
+  "mfaResetDone": "MFA가 리셋되었습니다.",
+  "tempPwIssue": "발급",
+  "tempPwConfirm": "임시비밀번호를 발급합니다:",
+  "tempPwSendEmail": "사용자 이메일로도 발송",
+  "tempPwEmailSent": "사용자 이메일로 발송되었습니다.",
+  "tempPwEmailFailed": "이메일 발송에 실패했습니다 — 비밀번호를 직접 전달하세요."
 }

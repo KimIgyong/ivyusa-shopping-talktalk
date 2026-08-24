@@ -33,7 +33,7 @@ chat widget actually serving customers**. For in-depth knowledge and AI configur
 | Term | Meaning |
 |---|---|
 | Tenant | One store hosted on ShopTalk. Data, settings, and knowledge are fully isolated per store |
-| Slug | The tenant's dedicated login URL fragment. Appended to the address like `https://shoptalk.amoeba.site/ivyusa` |
+| Slug | The tenant's dedicated login URL fragment. Appended to the address like `https://shoptalk.amoeba.site/user/ivyusa` |
 | Platform administrator | A ShopTalk operator admin who logs in at `/admin` (has tenant-creation rights) |
 | Tenant administrator (master) | The highest rank in the store console. Manages all team members, permissions, and settings |
 | Temporary password | A one-time password issued by the system at invite time. **Shown on screen only once** |
@@ -122,7 +122,7 @@ Three things to deliver: ① login URL ② email (account ID) ③ temporary pass
 ---
 
 ## 2. First Login
-*(Tenant administrator · `https://shoptalk.amoeba.site/<slug>`)*
+*(Tenant administrator · `https://shoptalk.amoeba.site/user/<slug>`)*
 
 ### 2.1 Log in
 

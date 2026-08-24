@@ -13,6 +13,7 @@ import { useTranslation } from 'react-i18next';
 import { LanguageSwitcher } from '@/layouts/Header';
 import { Button } from '@/components/Button';
 import { useAuthStore } from '@/store/auth-store';
+import { tenantLoginPath } from '@/lib/tenant-path';
 
 const FEATURES = [
   { icon: Bot, titleKey: 'featureAiTitle', descKey: 'featureAiDesc' },
@@ -32,7 +33,7 @@ export function LandingPage() {
   const goToWorkspace = (e: React.FormEvent) => {
     e.preventDefault();
     const slug = workspace.trim().toLowerCase();
-    if (slug) navigate(`/${slug}`);
+    if (slug) navigate(tenantLoginPath(slug));
   };
 
   // Signed-in visitors get a direct path back to their console.
@@ -96,7 +97,7 @@ export function LandingPage() {
           )}
           {!principal && tenantSlug && (
             <p className="mt-3 text-sm text-gray-400">
-              <Link to={`/${tenantSlug}`} className="text-primary-600 hover:underline">
+              <Link to={tenantLoginPath(tenantSlug)} className="text-primary-600 hover:underline">
                 {t('continueTo', { slug: tenantSlug })}
               </Link>
             </p>

@@ -4,6 +4,7 @@
  * (or a proxied prefix such as /api, /widget) would shadow it.
  */
 export const RESERVED_TENANT_SLUGS: readonly string[] = [
+  'user', // tenant login prefix /user/<slug> (PLN-260824)
   'admin',
   'login',
   'logout',

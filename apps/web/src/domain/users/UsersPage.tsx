@@ -71,7 +71,14 @@ export function UsersPage() {
   const resetMfa = useResetUserMfa();
 
   // Result of a temp-password issuance / invite — shown once for manual hand-off.
-  const [tempResult, setTempResult] = useState<{ email: string; tempPassword: string } | null>(null);
+  const [tempResult, setTempResult] = useState<{
+    email: string;
+    tempPassword: string;
+    emailSent?: boolean;
+  } | null>(null);
+  // Issuance confirm step (PLN-260824 S4): pick whether to also email it.
+  const [tempPwTarget, setTempPwTarget] = useState<TenantUser | null>(null);
+  const [tempPwSendEmail, setTempPwSendEmail] = useState(true);
   const [copied, setCopied] = useState(false);
 
   // Target of a pending MFA reset (confirm dialog).
@@ -133,10 +140,22 @@ export function UsersPage() {
     setTempResult({ email, tempPassword: res.tempPassword });
   };
 
-  const onIssueTempPw = async (u: TenantUser) => {
-    const res = await issueTempPw.mutateAsync(u.id);
+  const onIssueTempPw = (u: TenantUser) => {
+    setTempPwSendEmail(true);
+    setTempPwTarget(u);
+  };
+
+  const confirmIssueTempPw = async () => {
+    if (!tempPwTarget) return;
+    const u = tempPwTarget;
+    const res = await issueTempPw.mutateAsync({ id: u.id, sendEmail: tempPwSendEmail });
+    setTempPwTarget(null);
     setCopied(false);
-    setTempResult({ email: res.email ?? u.email, tempPassword: res.tempPassword });
+    setTempResult({
+      email: res.email ?? u.email,
+      tempPassword: res.tempPassword,
+      emailSent: res.emailSent,
+    });
     toast.success(t('tempPwIssued'));
   };
 
@@ -324,6 +343,37 @@ export function UsersPage() {
       </Modal>
 
       <Modal
+        open={tempPwTarget !== null}
+        onClose={() => setTempPwTarget(null)}
+        title={t('issueTempPassword')}
+        size="sm"
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setTempPwTarget(null)}>
+              {tc('cancel')}
+            </Button>
+            <Button onClick={confirmIssueTempPw} disabled={issueTempPw.isPending}>
+              {t('tempPwIssue')}
+            </Button>
+          </>
+        }
+      >
+        <p className="text-sm text-gray-600">
+          {t('tempPwConfirm')}{' '}
+          <span className="font-medium text-gray-900">{tempPwTarget?.email}</span>
+        </p>
+        <label className="mt-3 flex items-center gap-2 text-sm text-gray-700">
+          <input
+            type="checkbox"
+            checked={tempPwSendEmail}
+            onChange={(e) => setTempPwSendEmail(e.target.checked)}
+            className="h-4 w-4 rounded border-gray-300"
+          />
+          {t('tempPwSendEmail')}
+        </label>
+      </Modal>
+
+      <Modal
         open={tempResult !== null}
         onClose={() => setTempResult(null)}
         title={t('tempPwTitle')}
@@ -345,6 +395,14 @@ export function UsersPage() {
                 <span className="ml-1">{copied ? t('copied') : t('copy')}</span>
               </Button>
             </div>
+            {tempResult.emailSent === true && (
+              <p className="text-sm text-emerald-700">{t('tempPwEmailSent')}</p>
+            )}
+            {tempResult.emailSent === false && (
+              <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                {t('tempPwEmailFailed')}
+              </p>
+            )}
             <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
               {t('tempPwDesc')}
             </p>

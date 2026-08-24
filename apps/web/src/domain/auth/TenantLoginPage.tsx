@@ -8,6 +8,7 @@ import { AuthShell } from './AuthShell';
 import { LoginForm } from './LoginForm';
 import { MfaChallengeForm } from './MfaChallengeForm';
 import { LoginTroubleHint } from './LoginTroubleHint';
+import { PasswordRecoveryPanel, type RecoveryMode } from './PasswordRecoveryPanel';
 import { useAuthStore } from '@/store/auth-store';
 import { getErrorStatus } from '@/lib/api-client';
 import { toast } from '@/store/toast-store';
@@ -30,6 +31,10 @@ export function TenantLoginPage() {
   // never derived from the server's reason — see LoginTroubleHint on why.
   const [failCount, setFailCount] = useState(0);
   const [rateLimited, setRateLimited] = useState(false);
+
+  // Lockout recovery (PLN-260824 S3): which inline panel replaces the login
+  // form — null renders the form itself.
+  const [recovery, setRecovery] = useState<RecoveryMode | null>(null);
 
   // AMA-portal SSO (PLN-260813 S3): the iframe URL carries ?ama_token=. Capture
   // it once, then scrub it from the address bar before anything else can log or
@@ -203,11 +208,13 @@ export function TenantLoginPage() {
       )}
       {/* Two strikes is where "maybe I mistyped it" stops being the likeliest
           explanation and "maybe this is the wrong store" starts. */}
-      {!mfaToken && (failCount >= 2 || rateLimited) && (
+      {!mfaToken && !recovery && (failCount >= 2 || rateLimited) && (
         <LoginTroubleHint
           storeName={tenant.name ?? tenant.slug}
           slug={slug}
           rateLimited={rateLimited}
+          onChangePassword={rateLimited ? () => setRecovery('change') : undefined}
+          onRequestTemp={rateLimited ? () => setRecovery('temp-request') : undefined}
         />
       )}
       {mfaToken ? (
@@ -216,6 +223,18 @@ export function TenantLoginPage() {
           onSuccess={finishLogin}
           onExpired={() => setMfaToken(null)}
           onCancel={() => setMfaToken(null)}
+        />
+      ) : recovery ? (
+        <PasswordRecoveryPanel
+          mode={recovery}
+          slug={slug}
+          onClose={() => setRecovery(null)}
+          onChanged={() => {
+            // Fresh credentials mean the previous failure streak is stale.
+            setRecovery(null);
+            setFailCount(0);
+            setRateLimited(false);
+          }}
         />
       ) : (
         <LoginForm

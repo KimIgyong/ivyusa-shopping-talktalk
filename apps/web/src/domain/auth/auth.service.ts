@@ -33,6 +33,26 @@ export const authService = {
     apiPost<LoginResponse>('/auth/change-password', { current_password, new_password }),
   logout: (refresh_token?: string) =>
     apiPost<{ loggedOut: boolean }>('/auth/logout', { refresh_token }),
+  // ---- Self-service password recovery from the login page (PLN-260824) ----
+  // Neutral response: `{ requested: true }` whether or not the account exists.
+  tempPasswordRequest: (tenantSlug: string, email: string) =>
+    apiPost<{ requested: true }>('/auth/password/temp-request', {
+      tenant_slug: tenantSlug,
+      email,
+    }),
+  // Works while the login lockout is active; clears it on success.
+  passwordChangeSelf: (
+    tenantSlug: string,
+    email: string,
+    current_password: string,
+    new_password: string,
+  ) =>
+    apiPost<{ changed: true }>('/auth/password/change', {
+      tenant_slug: tenantSlug,
+      email,
+      current_password,
+      new_password,
+    }),
   // ---- MFA (TOTP) ----
   // `code` is a 6-digit TOTP or an xxxxx-xxxxx recovery code. 401 = mfaToken
   // expired (send the user back to the password step).

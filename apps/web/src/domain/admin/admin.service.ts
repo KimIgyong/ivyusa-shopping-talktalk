@@ -100,8 +100,10 @@ export const adminService = {
   tenantJobLabels: (tenantUuid: string) => apiGet<JobLabel[]>(`/tenants/${tenantUuid}/job-labels`),
   inviteTenantUser: (tenantUuid: string, body: InviteUserBody) =>
     apiPost<InviteResult>(`/tenants/${tenantUuid}/users/invite`, body),
-  issueTenantUserTempPassword: (tenantUuid: string, userId: string) =>
-    apiPost<TempPasswordResult>(`/tenants/${tenantUuid}/users/${userId}/temp-password`, {}),
+  issueTenantUserTempPassword: (tenantUuid: string, userId: string, sendEmail: boolean) =>
+    apiPost<TempPasswordResult>(`/tenants/${tenantUuid}/users/${userId}/temp-password`, {
+      send_email: sendEmail,
+    }),
   // Clear a tenant user's MFA enrollment — re-enrollment at next login (audited).
   // Mirrors the temp-password route pattern of the admin-scoped user routes.
   resetTenantUserMfa: (tenantUuid: string, userId: string) =>
