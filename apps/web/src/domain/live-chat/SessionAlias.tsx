@@ -24,8 +24,9 @@ export function SessionAlias({
   alias?: string | null;
   /** Derived name (customer → email) used when no alias is set. */
   fallback: string;
-  /** "Session a1b2c3" — always visible, behind the name. */
-  sessionLabel: string;
+  /** "Session a1b2c3" — rendered behind the name; omit to place it elsewhere
+   *  (the list row moved it to its own line, REQ-260824 R1). */
+  sessionLabel?: string;
   /** List row: smaller type, edit affordance only on hover/selection. */
   compact?: boolean;
 }) {
@@ -96,7 +97,9 @@ export function SessionAlias({
       >
         <Pencil className="h-3 w-3" />
       </button>
-      <span className="shrink-0 text-[11px] text-gray-400">{sessionLabel}</span>
+      {sessionLabel && (
+        <span className="shrink-0 text-[11px] text-gray-400">{sessionLabel}</span>
+      )}
     </span>
   );
 }

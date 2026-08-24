@@ -30,13 +30,14 @@ import { Input, FormRow } from '@/components/Field';
 import { toast } from '@/store/toast-store';
 import {
   useSessions,
-  useBriefing,
   useConversation,
   useConversationActions,
   useAskKnowledge,
   useProposeAnswer,
   useCustomerActions,
 } from './live-chat.hooks';
+import { BriefingCard } from './BriefingCard';
+import { CommentCard } from './CommentCard';
 import { KnowledgeCaptureModal } from './KnowledgeCaptureModal';
 import { MessageAttachments } from './MessageAttachments';
 import { useAgentUpload } from './useAgentUpload';
@@ -129,7 +130,6 @@ export function LiveChatPage() {
   const { data: sessions, isLoading: sessionsLoading } = useSessions(listSearch, scope, channel);
   const { data: convo, isLoading: convoLoading, isFetching: convoFetching, refetch: refetchConvo } =
     useConversation(selected);
-  const { data: briefingData, isLoading: briefingLoading } = useBriefing(selected);
 
   // Prefer the detail's channel (a deep-linked thread may not be in the list).
   const activeChannel = (
@@ -357,21 +357,23 @@ export function LiveChatPage() {
                     selected === s.id && 'bg-primary-500/5',
                   )}
                 >
-                  <div className="flex items-center justify-between gap-2">
-                    {/* Alias first, session label kept behind it — an agent
-                        needs to know who this is, and still refers to the
-                        thread by its label (PLN-260812). */}
-                    <SessionAlias
-                      conversationId={s.id}
-                      alias={s.alias}
-                      fallback={
-                        s.customerName ||
-                        s.customerEmail ||
-                        t('sessionLabel', { id: s.id.slice(0, 6) })
-                      }
-                      sessionLabel={t('sessionLabel', { id: s.id.slice(0, 6) })}
-                      compact
-                    />
+                  {/* Two lines instead of one (REQ-260824 R1): the name gets
+                      the full row width, and session label + channel + status
+                      stop competing with it for space. */}
+                  <SessionAlias
+                    conversationId={s.id}
+                    alias={s.alias}
+                    fallback={
+                      s.customerName ||
+                      s.customerEmail ||
+                      t('sessionLabel', { id: s.id.slice(0, 6) })
+                    }
+                    compact
+                  />
+                  <div className="mt-0.5 flex items-center justify-between gap-2">
+                    <span className="shrink-0 text-[11px] text-gray-400">
+                      {t('sessionLabel', { id: s.id.slice(0, 6) })}
+                    </span>
                     <div className="flex shrink-0 items-center gap-1">
                       {/* Silent thread, at a glance: the AI is not answering
                           this one and no agent has taken it either. */}
@@ -384,7 +386,10 @@ export function LiveChatPage() {
                         </span>
                       )}
                       <ChannelBadge channel={s.channel} />
-                      <StatusBadge status={s.status} />
+                      <StatusBadge
+                        status={s.status}
+                        label={t(`status.${s.status}`, { defaultValue: s.status })}
+                      />
                     </div>
                   </div>
                   <p className="mt-1 truncate text-xs text-gray-500">
@@ -424,7 +429,14 @@ export function LiveChatPage() {
                     fallback={convo?.customer?.name ?? t('conversation')}
                     sessionLabel={t('sessionLabel', { id: selected.slice(0, 6) })}
                   />
-                  <StatusBadge status={convo?.status} />
+                  <StatusBadge
+                    status={convo?.status}
+                    label={
+                      convo?.status
+                        ? t(`status.${convo.status}`, { defaultValue: convo.status })
+                        : undefined
+                    }
+                  />
                   <AutoReplyControl
                     conversationId={selected}
                     mode={convo?.autoReplyMode}
@@ -656,7 +668,7 @@ export function LiveChatPage() {
                   ref={fileInputRef}
                   type="file"
                   multiple
-                  accept=".jpg,.jpeg,.png,.gif,.webp,.heic,.heif,.avif,.pdf,.txt,.csv,.docx,.xlsx"
+                  accept=".jpg,.jpeg,.png,.gif,.webp,.heic,.heif,.avif,.pdf,.txt,.csv,.doc,.docx,.xls,.xlsx"
                   className="hidden"
                   onChange={(e) => {
                     void pickFiles(e.target.files);
@@ -708,18 +720,11 @@ export function LiveChatPage() {
 
         {/* Context + briefing */}
         <div className="col-span-3 space-y-4 overflow-y-auto">
-          <div className="rounded-lg border border-gray-200 bg-white p-4">
-            <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-gray-800">
-              <Sparkles className="h-4 w-4 text-primary-500" /> {t('aiBriefing')}
-            </div>
-            <p className="text-sm text-gray-600">
-              {!selected
-                ? t('selectConversation')
-                : briefingLoading
-                  ? t('briefingLoading')
-                  : briefingData?.briefing || t('noBriefing')}
-            </p>
-          </div>
+          {/* On-demand briefing + translation (REQ-260824 R3). */}
+          <BriefingCard conversationId={selected} />
+
+          {/* Internal notes on the thread / its session (REQ-260824 R4). */}
+          <CommentCard conversationId={selected} />
 
           {/* Knowledge lookup + draft delivery (PLN-260810 S2/S3). Read-only:
               asking never touches the conversation, and sending goes through

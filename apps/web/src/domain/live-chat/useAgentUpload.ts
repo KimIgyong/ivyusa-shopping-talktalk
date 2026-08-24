@@ -9,7 +9,7 @@ export const MAX_PER_MESSAGE = 5;
 // heic/heif accepted and converted server-side (PLN-260817) — an agent
 // forwarding a photo a customer emailed them should not have to convert it.
 const IMAGE_EXT = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'heif', 'avif'];
-const FILE_EXT = ['pdf', 'txt', 'csv', 'docx', 'xlsx'];
+const FILE_EXT = ['pdf', 'txt', 'csv', 'doc', 'docx', 'xls', 'xlsx'];
 
 export interface PendingUpload {
   key: string;

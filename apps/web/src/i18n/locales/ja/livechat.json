@@ -237,5 +237,47 @@
     "typeNotAllowed": "{{name}} は許可されていないファイル形式です",
     "tooMany": "1通あたり最大 {{max}} 件まで添付できます",
     "imageLabel": "画像"
+  },
+  "status": {
+    "ai_active": "AI応答中",
+    "waiting": "対応待ち",
+    "agent": "担当者対応中",
+    "ended": "終了"
+  },
+  "briefing": {
+    "none": "ブリーフィングはまだありません — 必要なときに生成してください。",
+    "generate": "ブリーフィング生成",
+    "generating": "生成中…",
+    "regenerate": "再生成",
+    "generatedAt": "生成 {{time}}",
+    "targetLanguage": "翻訳言語",
+    "translate": "翻訳",
+    "translating": "翻訳中…",
+    "generateError": "ブリーフィングを生成できませんでした。",
+    "translateError": "ブリーフィングを翻訳できませんでした。"
+  },
+  "comments": {
+    "title": "コメント",
+    "loading": "コメントを読み込み中…",
+    "empty": "コメントはありません。",
+    "unknownAuthor": "不明",
+    "edit": "コメントを編集",
+    "delete": "コメントを削除",
+    "confirmDelete": "削除しますか？",
+    "cancel": "キャンセル",
+    "save": "保存",
+    "saved": "コメントを保存しました。",
+    "saveError": "コメントを保存できませんでした。",
+    "deleted": "コメントを削除しました。",
+    "deleteError": "コメントを削除できませんでした。",
+    "submit": "追加",
+    "scope": {
+      "conversation": "スレッド",
+      "session": "セッション"
+    },
+    "placeholder": {
+      "conversation": "このスレッドへのメモ（社内限定）…",
+      "session": "この顧客セッションに付随するメモ（社内限定）…"
+    }
   }
 }

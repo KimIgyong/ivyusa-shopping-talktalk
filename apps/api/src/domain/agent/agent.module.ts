@@ -9,12 +9,16 @@ import { AgentProfile } from './entity/agent-profile.entity';
 import { Assignment } from './entity/assignment.entity';
 import { AgentDailyStat } from './entity/agent-daily-stat.entity';
 import { AgentAlert } from './entity/agent-alert.entity';
+import { ChatComment } from './entity/chat-comment.entity';
+import { ConversationBriefing } from './entity/conversation-briefing.entity';
 import { Conversation } from '../chat/entity/conversation.entity';
 import { Message } from '../chat/entity/message.entity';
 import { User } from '../user/entity/user.entity';
 import { Session } from '../session/entity/session.entity';
 import { AgentService } from './agent.service';
 import { AgentAlertService } from './agent-alert.service';
+import { BriefingService } from './briefing.service';
+import { ChatCommentService } from './chat-comment.service';
 import { AgentConsoleController } from './agent-console.controller';
 import { ModerationModule } from '../moderation/moderation.module';
 import { CustomerModule } from '../customer/customer.module';
@@ -34,6 +38,9 @@ import { AttachmentModule } from '../attachment/attachment.module';
       Assignment,
       AgentDailyStat,
       AgentAlert,
+      // Internal notes + stored briefings (REQ-260824 R3/R4).
+      ChatComment,
+      ConversationBriefing,
       Conversation,
       Message,
       User,
@@ -61,7 +68,7 @@ import { AttachmentModule } from '../attachment/attachment.module';
     IssueModule,
   ],
   controllers: [AgentConsoleController],
-  providers: [AgentService, AgentAlertService],
+  providers: [AgentService, AgentAlertService, BriefingService, ChatCommentService],
   exports: [AgentService, AgentAlertService],
 })
 export class AgentModule {}

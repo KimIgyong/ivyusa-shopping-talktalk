@@ -5,6 +5,8 @@ import { AgentDailyStat } from './entity/agent-daily-stat.entity';
 import { AgentAlert } from './entity/agent-alert.entity';
 import { MessageAttachment } from '../attachment/entity/message-attachment.entity';
 import { AttachmentMapper } from '../attachment/attachment.mapper';
+import { ChatComment } from './entity/chat-comment.entity';
+import { ConversationBriefing } from './entity/conversation-briefing.entity';
 
 /** Escalation alert row for the console alarm modal (FR-S3). */
 export function toAlertResponse(a: AgentAlert) {
@@ -69,6 +71,31 @@ export function toMessageResponse(
     createdAt: m.createdAt,
     // Signed links, minted per response (PLN-260814).
     attachments: AttachmentMapper.toResponseList(attachments),
+  };
+}
+
+/** Internal operator note (REQ-260824 R4) — console-only, never the shopper. */
+export function toCommentResponse(c: ChatComment, authorName: string | null = null) {
+  return {
+    id: c.id,
+    scope: c.scope,
+    body: c.body,
+    authorId: c.authorId,
+    authorName,
+    createdAt: c.createdAt,
+    updatedAt: c.updatedAt,
+  };
+}
+
+/** Stored on-demand briefing with its translations (REQ-260824 R3). */
+export function toBriefingResponse(b: ConversationBriefing, requestedByName: string | null = null) {
+  return {
+    id: b.id,
+    briefing: b.body,
+    translations: b.translations ?? {},
+    requestedBy: b.requestedBy,
+    requestedByName,
+    createdAt: b.createdAt,
   };
 }
 

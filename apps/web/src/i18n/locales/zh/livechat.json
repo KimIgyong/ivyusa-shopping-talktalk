@@ -237,5 +237,47 @@
     "typeNotAllowed": "{{name}} 不是允许的文件类型",
     "tooMany": "每条消息最多可添加 {{max}} 个文件",
     "imageLabel": "图片"
+  },
+  "status": {
+    "ai_active": "AI应答中",
+    "waiting": "等待人工",
+    "agent": "客服处理中",
+    "ended": "已结束"
+  },
+  "briefing": {
+    "none": "尚无简报 — 需要时点击生成。",
+    "generate": "生成简报",
+    "generating": "生成中…",
+    "regenerate": "重新生成",
+    "generatedAt": "生成于 {{time}}",
+    "targetLanguage": "翻译语言",
+    "translate": "翻译",
+    "translating": "翻译中…",
+    "generateError": "无法生成简报。",
+    "translateError": "无法翻译简报。"
+  },
+  "comments": {
+    "title": "备注",
+    "loading": "正在加载备注…",
+    "empty": "暂无备注。",
+    "unknownAuthor": "未知",
+    "edit": "编辑备注",
+    "delete": "删除备注",
+    "confirmDelete": "确认删除？",
+    "cancel": "取消",
+    "save": "保存",
+    "saved": "备注已保存。",
+    "saveError": "无法保存备注。",
+    "deleted": "备注已删除。",
+    "deleteError": "无法删除备注。",
+    "submit": "添加",
+    "scope": {
+      "conversation": "会话",
+      "session": "访问会话"
+    },
+    "placeholder": {
+      "conversation": "关于此会话的备注（仅内部可见）…",
+      "session": "跟随该客户访问会话的备注（仅内部可见）…"
+    }
   }
 }

@@ -1,4 +1,4 @@
-import { apiGet, apiPatch, apiPost, apiUpload } from '@/lib/api-client';
+import { apiDelete, apiGet, apiPatch, apiPost, apiUpload } from '@/lib/api-client';
 
 /** Mirrors the API's toSessionResponse — no invented fields (they render as '—'). */
 export interface AgentSession {
@@ -104,6 +104,30 @@ export interface CustomerLead {
   phone?: string;
 }
 
+/**
+ * Stored operator-requested briefing (REQ-260824 R3). `briefing` is null when
+ * none was generated for this conversation yet — the card offers the button.
+ */
+export interface StoredBriefing {
+  id?: string;
+  briefing: string | null;
+  /** lang code → translated text, grown lazily per request. */
+  translations?: Record<string, string>;
+  requestedByName?: string | null;
+  createdAt?: string;
+}
+
+/** Internal operator note on a thread or its session (REQ-260824 R4). */
+export interface ChatComment {
+  id: string;
+  scope: 'conversation' | 'session';
+  body: string;
+  authorId?: string | null;
+  authorName?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 /** Escalation alert row (FR-S3) shown in the console alarm modal. */
 export interface AgentAlert {
   id: string;
@@ -140,9 +164,20 @@ export const liveChatService = {
       `/agent/conversations/${id}`,
       beforeId ? { before_id: beforeId } : undefined,
     ),
-  // Separate call on purpose: it runs a summarisation model, and the transcript
-  // must not wait for it (PLN-260807 D1).
-  briefing: (id: string) => apiGet<{ briefing: string }>(`/agent/conversations/${id}/briefing`),
+  // Read-only: returns the stored briefing (or briefing:null) — generation is
+  // an explicit POST since REQ-260824 R3.
+  briefing: (id: string) => apiGet<StoredBriefing>(`/agent/conversations/${id}/briefing`),
+  generateBriefing: (id: string) =>
+    apiPost<StoredBriefing>(`/agent/conversations/${id}/briefing`),
+  translateBriefing: (briefingId: string, lang: string) =>
+    apiPost<StoredBriefing>(`/agent/briefings/${briefingId}/translate`, { lang }),
+  /** Internal notes: the thread's own plus its session-wide ones (REQ-260824 R4). */
+  comments: (id: string) => apiGet<ChatComment[]>(`/agent/conversations/${id}/comments`),
+  createComment: (id: string, scope: 'conversation' | 'session', body: string) =>
+    apiPost<ChatComment>(`/agent/conversations/${id}/comments`, { scope, body }),
+  updateComment: (commentId: string, body: string) =>
+    apiPatch<ChatComment>(`/agent/comments/${commentId}`, { body }),
+  deleteComment: (commentId: string) => apiDelete<{ id: string }>(`/agent/comments/${commentId}`),
   accept: (id: string) => apiPost<ConversationDetail>(`/agent/conversations/${id}/accept`),
   sendMessage: (id: string, body: string, attachmentIds?: string[]) =>
     apiPost<ChatMessage>(`/agent/conversations/${id}/message`, {

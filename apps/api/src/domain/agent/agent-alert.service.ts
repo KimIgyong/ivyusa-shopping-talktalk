@@ -67,6 +67,7 @@ export class AgentAlertService implements OnModuleInit {
     // for this conversation with the same reason.
     const existing = await this.alertRepo.findOne({
       where: {
+        tenantId: payload.tenantId ?? IsNull(),
         conversationId: payload.conversationId,
         reason: payload.reason ?? 'user_request',
         status: 'new',
@@ -138,24 +139,33 @@ export class AgentAlertService implements OnModuleInit {
     }
   }
 
-  /** Broadcast alerts plus the ones addressed to this agent. */
-  async list(status: string, userId?: number): Promise<AgentAlert[]> {
+  /**
+   * Broadcast alerts plus the ones addressed to this agent — always fenced to
+   * the caller's tenant (REQ-260824 R2). A broadcast row is a broadcast within
+   * its tenant, never across tenants.
+   */
+  async list(status: string, userId: number, tenantId: number): Promise<AgentAlert[]> {
+    if (!tenantId) return []; // platform admins have no tenant alarm feed
     return this.alertRepo.find({
-      where:
-        userId == null
-          ? { status }
-          : [
-              { status, targetUserId: IsNull() },
-              { status, targetUserId: userId },
-            ],
+      where: [
+        { status, tenantId, targetUserId: IsNull() },
+        { status, tenantId, targetUserId: userId },
+      ],
       order: { id: 'DESC' },
       take: 50,
     });
   }
 
-  async ack(id: number, userId: number): Promise<AgentAlert> {
-    const alert = await this.alertRepo.findOne({ where: { id } });
-    if (!alert) throw new BusinessException(ERROR_CODE.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND);
+  async ack(id: number, userId: number, tenantId: number): Promise<AgentAlert> {
+    const alert = tenantId
+      ? await this.alertRepo.findOne({ where: { id, tenantId } })
+      : null;
+    if (!alert) {
+      // Same 404 whether the row is missing or belongs to another tenant, but
+      // the cross-tenant attempt is worth a server-side trace (4xx are silent).
+      this.logger.warn(`alert ack refused: id=${id} tenant=${tenantId} user=${userId}`);
+      throw new BusinessException(ERROR_CODE.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND);
+    }
     if (alert.status === 'new') {
       alert.status = 'acked';
       alert.ackedBy = userId;

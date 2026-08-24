@@ -237,5 +237,47 @@
     "typeNotAllowed": "{{name}} không thuộc loại tệp được phép",
     "tooMany": "Bạn có thể đính kèm tối đa {{max}} tệp mỗi tin nhắn",
     "imageLabel": "Ảnh"
+  },
+  "status": {
+    "ai_active": "AI đang trả lời",
+    "waiting": "Đang chờ",
+    "agent": "Nhân viên xử lý",
+    "ended": "Đã kết thúc"
+  },
+  "briefing": {
+    "none": "Chưa có bản tóm tắt — hãy tạo khi cần.",
+    "generate": "Tạo tóm tắt",
+    "generating": "Đang tạo…",
+    "regenerate": "Tạo lại",
+    "generatedAt": "Tạo lúc {{time}}",
+    "targetLanguage": "Ngôn ngữ dịch",
+    "translate": "Dịch",
+    "translating": "Đang dịch…",
+    "generateError": "Không thể tạo bản tóm tắt.",
+    "translateError": "Không thể dịch bản tóm tắt."
+  },
+  "comments": {
+    "title": "Ghi chú",
+    "loading": "Đang tải ghi chú…",
+    "empty": "Chưa có ghi chú.",
+    "unknownAuthor": "Không rõ",
+    "edit": "Sửa ghi chú",
+    "delete": "Xóa ghi chú",
+    "confirmDelete": "Xóa?",
+    "cancel": "Hủy",
+    "save": "Lưu",
+    "saved": "Đã lưu ghi chú.",
+    "saveError": "Không thể lưu ghi chú.",
+    "deleted": "Đã xóa ghi chú.",
+    "deleteError": "Không thể xóa ghi chú.",
+    "submit": "Thêm",
+    "scope": {
+      "conversation": "Cuộc trò chuyện",
+      "session": "Phiên"
+    },
+    "placeholder": {
+      "conversation": "Ghi chú cho cuộc trò chuyện này (nội bộ)…",
+      "session": "Ghi chú theo phiên của khách hàng này (nội bộ)…"
+    }
   }
 }

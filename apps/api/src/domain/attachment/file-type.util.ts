@@ -53,6 +53,10 @@ const isZipContainer = (b: Buffer): boolean =>
   startsWith(b, [0x50, 0x4b, 0x05, 0x06]) ||
   startsWith(b, [0x50, 0x4b, 0x07, 0x08]);
 
+/** OLE2/CFB container (legacy .doc/.xls) — the D0 CF 11 E0 signature. */
+const isOle2Container = (b: Buffer): boolean =>
+  startsWith(b, [0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1]);
+
 /**
  * ISO base media container (HEIC/HEIF/AVIF): a `ftyp` box at offset 4, the major
  * brand at offset 8, then a list of compatible brands. Testing the brands — not
@@ -144,6 +148,20 @@ const SPECS: TypeSpec[] = [
     mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     kind: ATTACHMENT_KIND.FILE,
     sniff: isZipContainer,
+  },
+  // Legacy Office (REQ-260824 R5): container-level check, same strength as the
+  // zip test above for their OOXML successors.
+  {
+    ext: ['doc'],
+    mime: 'application/msword',
+    kind: ATTACHMENT_KIND.FILE,
+    sniff: isOle2Container,
+  },
+  {
+    ext: ['xls'],
+    mime: 'application/vnd.ms-excel',
+    kind: ATTACHMENT_KIND.FILE,
+    sniff: isOle2Container,
   },
   // Text formats have no signature. They are accepted on extension alone and
   // must therefore pass the "no NUL byte" check below — a renamed binary fails it.

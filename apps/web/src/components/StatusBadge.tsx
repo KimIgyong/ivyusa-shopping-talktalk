@@ -24,6 +24,10 @@ const MAP: Record<string, { tone: 'gray' | 'success' | 'warning' | 'error' | 'in
   open: { tone: 'info' },
   in_progress: { tone: 'info', label: 'in progress' },
   live: { tone: 'primary' },
+  // Live-chat conversation statuses (REQ-260824 R1) — previously fell through
+  // to gray, which made "AI answering" and "agent handling" indistinguishable.
+  ai_active: { tone: 'info' },
+  agent: { tone: 'primary' },
   // Cafe24 order statuses (PLN-260807).
   'pending payment': { tone: 'warning' },
   pending_payment: { tone: 'warning', label: 'pending payment' },
@@ -31,9 +35,11 @@ const MAP: Record<string, { tone: 'gray' | 'success' | 'warning' | 'error' | 'in
   cancel_requested: { tone: 'error', label: 'cancel requested' },
 };
 
-export function StatusBadge({ status }: { status?: string | null }) {
+export function StatusBadge({ status, label }: { status?: string | null; label?: string }) {
   if (!status) return <Badge tone="gray">-</Badge>;
   const key = status.toLowerCase();
   const meta = MAP[key] ?? { tone: 'gray' as const };
-  return <Badge tone={meta.tone}>{meta.label ?? status}</Badge>;
+  // Callers that localize their statuses pass the display text; the tone map
+  // stays keyed on the raw value.
+  return <Badge tone={meta.tone}>{label ?? meta.label ?? status}</Badge>;
 }
