@@ -33,5 +33,11 @@
     "description": "Esta pantalla no está disponible para tu cuenta. Pídesela al máster de tu espacio si la necesitas.",
     "goHome": "Ir al panel"
   },
-  "admins": "Operadores admin"
+  "admins": "Operadores admin",
+  "settingsBasic": "Básico",
+  "settingsWidget": "Widget",
+  "settingsPlatforms": "Plataformas",
+  "settingsMarketing": "Marketing y helpdesk",
+  "settingsMessengers": "Mensajeros",
+  "settingsEtc": "Otros ajustes"
 }

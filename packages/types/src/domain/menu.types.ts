@@ -27,7 +27,22 @@ export const MENU = {
   CAMPAIGNS: 'campaigns',
   REVIEWS: 'reviews',
   USERS: 'users',
+  /**
+   * The settings landing page. Kept after the split into six screens because
+   * plan presets and stored per-tenant overrides reference it, and because the
+   * left nav needs something to hang the group on. It now redirects to
+   * `settings_basic` rather than rendering everything itself.
+   */
   SETTINGS: 'settings',
+  // Six screens, six codes — the catalog's rule is one code per SCREEN, and a
+  // tenant that should see widget settings but not integration credentials was
+  // previously impossible to express (PLN-260824 B).
+  SETTINGS_BASIC: 'settings_basic',
+  SETTINGS_WIDGET: 'settings_widget',
+  SETTINGS_PLATFORMS: 'settings_platforms',
+  SETTINGS_MARKETING: 'settings_marketing',
+  SETTINGS_MESSENGERS: 'settings_messengers',
+  SETTINGS_ETC: 'settings_etc',
   PRIVACY_NOTICE: 'privacy_notice',
 } as const;
 export type MenuCode = (typeof MENU)[keyof typeof MENU];
@@ -62,6 +77,12 @@ export const MENU_CATALOG: readonly MenuCatalogEntry[] = [
   { code: MENU.REVIEWS, path: '/reviews', labelKey: 'reviews', requiredLabel: JOB_LABEL.OPERATIONS },
   { code: MENU.USERS, path: '/users', labelKey: 'users' },
   { code: MENU.SETTINGS, path: '/settings', labelKey: 'settings' },
+  { code: MENU.SETTINGS_BASIC, path: '/settings/basic', labelKey: 'settingsBasic' },
+  { code: MENU.SETTINGS_WIDGET, path: '/settings/widget', labelKey: 'settingsWidget' },
+  { code: MENU.SETTINGS_PLATFORMS, path: '/settings/platforms', labelKey: 'settingsPlatforms' },
+  { code: MENU.SETTINGS_MARKETING, path: '/settings/marketing', labelKey: 'settingsMarketing' },
+  { code: MENU.SETTINGS_MESSENGERS, path: '/settings/messengers', labelKey: 'settingsMessengers' },
+  { code: MENU.SETTINGS_ETC, path: '/settings/etc', labelKey: 'settingsEtc' },
   { code: MENU.PRIVACY_NOTICE, path: '/privacy-notice', labelKey: 'privacyNotice' },
 ] as const;
 
@@ -78,6 +99,21 @@ export function isMenuCode(value: string): value is MenuCode {
  * carry) provisions EVERYTHING. Defaulting to "nothing" would have silently
  * emptied every live console the moment this shipped.
  */
+/**
+ * The six settings screens, kept together so a plan that grants settings grants
+ * all of them. Splitting a plan across them is a sales decision nobody has
+ * made; encoding one here by accident would quietly take screens away from
+ * tenants that have them today.
+ */
+export const SETTINGS_MENUS: readonly MenuCode[] = [
+  MENU.SETTINGS_BASIC,
+  MENU.SETTINGS_WIDGET,
+  MENU.SETTINGS_PLATFORMS,
+  MENU.SETTINGS_MARKETING,
+  MENU.SETTINGS_MESSENGERS,
+  MENU.SETTINGS_ETC,
+];
+
 export const PLAN_MENUS: Record<string, readonly MenuCode[]> = {
   starter: [
     MENU.DASHBOARD,
@@ -88,6 +124,7 @@ export const PLAN_MENUS: Record<string, readonly MenuCode[]> = {
     MENU.ORDERS,
     MENU.USERS,
     MENU.SETTINGS,
+    ...SETTINGS_MENUS,
     MENU.PRIVACY_NOTICE,
   ],
   growth: [
@@ -105,6 +142,7 @@ export const PLAN_MENUS: Record<string, readonly MenuCode[]> = {
     MENU.REVIEWS,
     MENU.USERS,
     MENU.SETTINGS,
+    ...SETTINGS_MENUS,
     MENU.PRIVACY_NOTICE,
   ],
   enterprise: ALL_MENU_CODES,

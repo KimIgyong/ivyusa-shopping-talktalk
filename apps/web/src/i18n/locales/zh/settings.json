@@ -566,5 +566,43 @@
     "stub": "回退 {{count}} 次",
     "stubNote": "有 {{count}} 次回退到内置 stub：不消耗 token，也不是真实回答。",
     "noMoneyNote": "仅显示 token 数。各模型单价不同且会变动，故不估算金额。"
+  },
+  "groups": {
+    "basic": {
+      "title": "基本设置",
+      "subtitle": "AI 引擎、店铺与转接人工"
+    },
+    "widget": {
+      "title": "挂件设置",
+      "subtitle": "主题、标签页、行为、嵌入与安装"
+    },
+    "platforms": {
+      "title": "平台集成",
+      "subtitle": "你的商店运行在哪里"
+    },
+    "marketing": {
+      "title": "营销与客服",
+      "subtitle": "Klaviyo、Yotpo 与 Gorgias"
+    },
+    "messengers": {
+      "title": "消息渠道",
+      "subtitle": "从外部进入的会话"
+    },
+    "etc": {
+      "title": "其他设置",
+      "subtitle": "通知、菜单权限与已保存的凭据"
+    }
+  },
+  "selfDev": {
+    "title": "自研集成",
+    "hint": "适用于你自行开发的商店。将订单与履约事件发送到下面的 webhook，并用你的密钥签名。",
+    "webhookUrl": "Webhook 地址",
+    "secret": "签名密钥",
+    "secretStored": "已保存密钥",
+    "secretUnset": "未设置 — 正在使用应用级密钥",
+    "configured": "自有密钥",
+    "usingAppSecret": "应用级密钥",
+    "replaceWarning": "保存后密钥立即被替换。请同时更新发送方，否则其 webhook 会从此失败。",
+    "widgetPointer": "挂件本身请见挂件设置 → 嵌入与 SDK。"
   }
 }

@@ -566,5 +566,43 @@
     "stub": "{{count}} fallback",
     "stubNote": "{{count}} call(s) fell back to the built-in stub: no tokens, and not a real answer.",
     "noMoneyNote": "Token counts only. Prices differ per model and change, so no cost is estimated here."
+  },
+  "groups": {
+    "basic": {
+      "title": "Basic settings",
+      "subtitle": "AI engines, storefront and agent handoff"
+    },
+    "widget": {
+      "title": "Widget settings",
+      "subtitle": "Theme, tabs, behaviour, embedding and install"
+    },
+    "platforms": {
+      "title": "Platform integrations",
+      "subtitle": "Where your store runs"
+    },
+    "marketing": {
+      "title": "Marketing & helpdesk",
+      "subtitle": "Klaviyo, Yotpo and Gorgias"
+    },
+    "messengers": {
+      "title": "Messenger channels",
+      "subtitle": "External conversations that arrive here"
+    },
+    "etc": {
+      "title": "Other settings",
+      "subtitle": "Notifications, menu access and stored credentials"
+    }
+  },
+  "selfDev": {
+    "title": "Self-developed integration",
+    "hint": "For a store you built yourself. Send order and fulfilment events to the webhook below, signed with your secret.",
+    "webhookUrl": "Webhook URL",
+    "secret": "Signing secret",
+    "secretStored": "A secret is stored",
+    "secretUnset": "Not set — using the app-level secret",
+    "configured": "Own secret",
+    "usingAppSecret": "App-level secret",
+    "replaceWarning": "Saving replaces the secret immediately. Update the sending system in the same change, or its webhooks start failing.",
+    "widgetPointer": "For the widget itself, see Widget settings → Embed & SDK."
   }
 }

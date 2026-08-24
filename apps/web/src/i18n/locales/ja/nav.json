@@ -33,5 +33,11 @@
     "description": "この画面はお客様のアカウントではご利用いただけません。必要な場合はワークスペースのマスターにご依頼ください。",
     "goHome": "ダッシュボードへ"
   },
-  "admins": "管理者アカウント"
+  "admins": "管理者アカウント",
+  "settingsBasic": "基本設定",
+  "settingsWidget": "ウィジェット設定",
+  "settingsPlatforms": "プラットフォーム連携",
+  "settingsMarketing": "マーケティング・ヘルプデスク",
+  "settingsMessengers": "メッセンジャー",
+  "settingsEtc": "その他設定"
 }

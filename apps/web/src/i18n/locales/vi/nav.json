@@ -33,5 +33,11 @@
     "description": "Màn hình này không khả dụng với tài khoản của bạn. Nếu cần, hãy đề nghị master của không gian làm việc.",
     "goHome": "Về trang tổng quan"
   },
-  "admins": "Quản trị viên"
+  "admins": "Quản trị viên",
+  "settingsBasic": "Cơ bản",
+  "settingsWidget": "Widget",
+  "settingsPlatforms": "Nền tảng",
+  "settingsMarketing": "Marketing & Helpdesk",
+  "settingsMessengers": "Kênh nhắn tin",
+  "settingsEtc": "Cài đặt khác"
 }

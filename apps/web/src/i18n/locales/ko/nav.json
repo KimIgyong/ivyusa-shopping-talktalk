@@ -33,5 +33,11 @@
     "description": "이 화면은 현재 계정에서 사용할 수 없습니다. 필요하면 워크스페이스 마스터에게 요청하세요.",
     "goHome": "대시보드로"
   },
-  "admins": "어드민 관리자"
+  "admins": "어드민 관리자",
+  "settingsBasic": "기본 설정",
+  "settingsWidget": "위젯 설정",
+  "settingsPlatforms": "플랫폼 연동",
+  "settingsMarketing": "마케팅·헬프데스크",
+  "settingsMessengers": "메신저 채널",
+  "settingsEtc": "기타 설정"
 }

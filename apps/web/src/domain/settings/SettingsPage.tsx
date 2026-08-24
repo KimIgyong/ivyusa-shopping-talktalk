@@ -1,14 +1,10 @@
 import { useRef, useState } from 'react';
 import { CircleHelp, Headset, MessageCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { PageHeader } from '@/components/PageHeader';
+import { Navigate } from 'react-router-dom';
 import { Card } from '@/components/Card';
 import { apiBaseUrl } from '@/lib/api-client';
-import { Badge } from '@/components/Badge';
 import { Button } from '@/components/Button';
-import { Table } from '@/components/Table';
-import type { Column } from '@/components/Table';
-import { Modal } from '@/components/Modal';
 import { FormRow, Input, Select } from '@/components/Field';
 // Type-only: @ivy/types ships CJS whose runtime exports Rollup cannot see.
 import type {
@@ -33,12 +29,9 @@ import {
   resolveLauncher,
 } from '../../../../../packages/types/src/common/widget-theme';
 import type { ScenarioLang } from '../ai-settings/ai-settings.service';
-// Live-support routing lives here now (PLN-260806 D1); the editor itself stays
-// in the ai-settings domain because it saves through the same AI-config API.
-import { HandoffSection } from '../ai-settings/HandoffSection';
 import {
-  useCredentials,
-  useIntegration,
+  useShopifySettings,
+  useSaveShopify,
   useNotificationChannels,
   useSaveNotificationChannels,
   useSaveWidgetTheme,
@@ -46,28 +39,11 @@ import {
   useUploadWidgetLogo,
   useDeleteWidgetLogo,
   useSaveWidgetSettings,
-  useSaveShopify,
-  useShopifySettings,
-  useUpdateCredential,
   useStorefront,
   useUpdateStorefront,
   useWidgetSettings,
 } from './settings.hooks';
-import type { CredentialStatus, WidgetCopyDraft } from './settings.service';
-import {
-  ECOMMERCE_PROVIDERS,
-  HELPDESK_PROVIDERS,
-  MARKETING_PROVIDERS,
-  type GenericIntegrationProvider,
-} from './integration-providers';
-import { ProviderTile } from './ProviderTile';
-import { ShopifyConfigModal } from './ShopifyConfigModal';
-import { IntegrationConfigModal } from './IntegrationConfigModal';
-import { Cafe24ConnectCard } from './Cafe24ConnectCard';
-import { AiEngineCard } from './AiEngineCard';
-import { AiUsageCard } from './AiUsageCard';
-import { EmbedCard } from './EmbedCard';
-import { MenuAccessSection } from './MenuAccessSection';
+import type { WidgetCopyDraft } from './settings.service';
 import { MessengerChannelCard } from './MessengerChannelCard';
 import { MessengerChannelModal } from './MessengerChannelModal';
 import {
@@ -83,13 +59,6 @@ import {
   type MessengerChannel,
 } from './messenger.service';
 import { toast } from '@/store/toast-store';
-import { useAuthStore } from '@/store/auth-store';
-
-function fmtDate(value?: string | null): string {
-  if (!value) return '—';
-  const d = new Date(value);
-  return Number.isNaN(d.getTime()) ? value : d.toLocaleString();
-}
 
 // Where the widget SPA + embed.js are served. Env override lets each build target
 // its own host; default is the staging deployment (served under /widget).
@@ -100,7 +69,6 @@ const WIDGET_URL = (
 type InstallMethod = 'appEmbed' | 'scriptTag' | 'manual';
 
 /** Which store's config modal is open: Shopify, an e-commerce provider, or none. */
-type ConfiguringStore = 'shopify' | GenericIntegrationProvider | null;
 
 async function copyToClipboard(text: string): Promise<boolean> {
   try {
@@ -164,7 +132,7 @@ type InstallPlatform = 'shopify' | 'cafe24' | 'woocommerce' | 'odoo';
 /** Providers where several accounts make sense (one card per mailbox). */
 const MULTI_ACCOUNT_PROVIDERS = new Set<string>(['gmail']);
 
-function MessengerChannelsSection() {
+export function MessengerChannelsSection() {
   const { t } = useTranslation('settings');
   const { data, isLoading } = useMessengerChannels();
   const test = useTestMessengerChannel();
@@ -244,7 +212,7 @@ function MessengerChannelsSection() {
   );
 }
 
-function InstallGuideCard() {
+export function InstallGuideCard() {
   const { t } = useTranslation('settings');
   const { data } = useShopifySettings();
   const [platform, setPlatform] = useState<InstallPlatform>('shopify');
@@ -419,49 +387,6 @@ export function isShopifyDomain(domain?: string | null): boolean {
   return /\.myshopify\.com\/?$/i.test((domain ?? '').trim());
 }
 
-/** Shopify summary tile — data comes from the dedicated Shopify settings view. */
-function ShopifyTile({ onConfigure }: { onConfigure: () => void }) {
-  const { t } = useTranslation('settings');
-  const { data } = useShopifySettings();
-  // `shop_domain` is the tenant's store domain for ANY platform (the widget
-  // resolves the tenant by it), so a Cafe24 mall lives there too. Showing it
-  // here made those tenants look like Shopify stores — only a real
-  // *.myshopify.com domain belongs on this tile.
-  const domain = isShopifyDomain(data?.shopDomain) ? data?.shopDomain : null;
-  return (
-    <ProviderTile
-      title={t('shopify.title')}
-      subtitle={domain || t('shopify.shopDomainPlaceholder')}
-      status={data?.integration?.status}
-      configured={data?.credential.configured}
-      lastTested={data?.integration?.lastSyncAt}
-      onConfigure={onConfigure}
-    />
-  );
-}
-
-/** Generic e-commerce provider summary tile (cafe24/woocommerce/odoo/haravan). */
-function EcommerceTile({
-  provider,
-  onConfigure,
-}: {
-  provider: GenericIntegrationProvider;
-  onConfigure: () => void;
-}) {
-  const { t } = useTranslation('settings');
-  const { data } = useIntegration(provider);
-  return (
-    <ProviderTile
-      title={t(`integrations.${provider}.title`)}
-      subtitle={t(`integrations.${provider}.subtitle`)}
-      status={data?.integration?.status}
-      configured={data?.credential.configured}
-      lastTested={data?.integration?.lastSyncAt}
-      onConfigure={onConfigure}
-    />
-  );
-}
-
 /**
  * Customer-facing shop origin (PLN-260804-Product-Link-Recommendation).
  *
@@ -469,7 +394,7 @@ function EcommerceTile({
  * shopper's chat. Product URLs arrive in an uploaded CSV, so the server only
  * links the ones on this origin — until it is set, citations stay plain text.
  */
-function StorefrontCard() {
+export function StorefrontCard() {
   const { t } = useTranslation('settings');
   const { t: tc } = useTranslation('common');
   const { data, isLoading } = useStorefront();
@@ -538,7 +463,7 @@ function StorefrontCard() {
  */
 type CopyLang = ScenarioLang;
 
-function WidgetBehaviorCard() {
+export function WidgetBehaviorCard() {
   const { t } = useTranslation('settings');
   const { t: tc } = useTranslation('common');
   const { data, isLoading } = useWidgetSettings();
@@ -674,7 +599,7 @@ function WidgetBehaviorCard() {
  * Below this ceiling a customer's stored preference — including the mobile app's
  * push toggle — still decides.
  */
-function NotificationChannelsCard() {
+export function NotificationChannelsCard() {
   const { t } = useTranslation('settings');
   const { t: tc } = useTranslation('common');
   const { data, isLoading } = useNotificationChannels();
@@ -765,7 +690,7 @@ function NotificationChannelsCard() {
  * "where is it?". Discoverability was the actual defect, so the fix is a card
  * with the word Tabs on it, not another paragraph of documentation.
  */
-function WidgetTabsCard() {
+export function WidgetTabsCard() {
   const { t } = useTranslation('settings');
   const { t: tc } = useTranslation('common');
   const { data, isLoading } = useWidgetSettings();
@@ -870,7 +795,7 @@ function WidgetTabsCard() {
  * computed from the brand colour, because a UI that lets someone keep white on
  * yellow eventually ships a button nobody can read.
  */
-function WidgetThemeCard() {
+export function WidgetThemeCard() {
   const { t } = useTranslation('settings');
   const { t: tc } = useTranslation('common');
   const { data, isLoading } = useWidgetTheme();
@@ -1141,179 +1066,13 @@ function WidgetThemeCard() {
   );
 }
 
+/**
+ * `/settings` no longer renders anything: it is six screens now (PLN-260824 B).
+ *
+ * Kept as a redirect rather than deleted — links, bookmarks and the menu
+ * catalog's `settings` code all still point here, and breaking those to save a
+ * file would be a poor trade.
+ */
 export function SettingsPage() {
-  const { t } = useTranslation('settings');
-  const { t: tc } = useTranslation('common');
-  const { data, isLoading, error } = useCredentials();
-  const updateCredential = useUpdateCredential();
-
-  const isMaster = useAuthStore((s) => s.principal?.rank) === 'master';
-
-  const [configuring, setConfiguring] = useState<ConfiguringStore>(null);
-  const [editing, setEditing] = useState<CredentialStatus | null>(null);
-  const [apiKey, setApiKey] = useState('');
-  const [secret, setSecret] = useState('');
-
-  const openEdit = (c: CredentialStatus) => {
-    setEditing(c);
-    setApiKey('');
-    setSecret('');
-  };
-
-  const onSave = async () => {
-    if (!editing) return;
-    await updateCredential.mutateAsync({
-      provider: editing.provider,
-      body: { apiKey, secret },
-    });
-    setEditing(null);
-  };
-
-  const columns: Column<CredentialStatus>[] = [
-    { key: 'provider', header: t('provider'), render: (c) => c.provider },
-    {
-      key: 'configured',
-      header: t('status'),
-      render: (c) =>
-        c.configured ? <Badge tone="success">{t('connected')}</Badge> : <Badge>{t('notSet')}</Badge>,
-    },
-    {
-      key: 'maskedKey',
-      header: t('key'),
-      render: (c) => <span className="font-mono text-xs">{c.maskedKey || '—'}</span>,
-    },
-    { key: 'lastUpdatedAt', header: t('lastUpdated'), render: (c) => fmtDate(c.lastUpdatedAt) },
-    {
-      key: 'action',
-      header: '',
-      render: (c) => (
-        <Button variant="secondary" size="sm" onClick={() => openEdit(c)}>
-          {tc('update')}
-        </Button>
-      ),
-    },
-  ];
-
-  return (
-    <div className="space-y-6">
-      <PageHeader title={t('title')} subtitle={t('subtitle')} />
-
-      {/* Store integrations as compact cards; each opens its config modal. */}
-      <section>
-        <h2 className="mb-3 text-sm font-semibold text-gray-700">{t('storesTitle')}</h2>
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          <ShopifyTile onConfigure={() => setConfiguring('shopify')} />
-          {ECOMMERCE_PROVIDERS.map((p) => (
-            <EcommerceTile key={p} provider={p} onConfigure={() => setConfiguring(p)} />
-          ))}
-        </div>
-      </section>
-
-      {/* Marketing platforms + helpdesk on the same generic credential flow
-          (PLN-260808-Marketing-Integrations, Rev.2 adds Gorgias). */}
-      <section>
-        <h2 className="mb-3 text-sm font-semibold text-gray-700">{t('marketingTitle')}</h2>
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {MARKETING_PROVIDERS.map((p) => (
-            <EcommerceTile key={p} provider={p} onConfigure={() => setConfiguring(p)} />
-          ))}
-        </div>
-      </section>
-      <section>
-        <h2 className="mb-3 text-sm font-semibold text-gray-700">{t('helpdeskTitle')}</h2>
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {HELPDESK_PROVIDERS.map((p) => (
-            <EcommerceTile key={p} provider={p} onConfigure={() => setConfiguring(p)} />
-          ))}
-        </div>
-      </section>
-
-      <MessengerChannelsSection />
-
-      <Cafe24ConnectCard />
-
-      <AiEngineCard />
-
-      <AiUsageCard />
-
-      <InstallGuideCard />
-
-      {/* Where the widget may be embedded, and how a host proves its visitor
-          (PLN-260819). Sits next to the install guide because it is the same job. */}
-      <EmbedCard />
-
-      <WidgetBehaviorCard />
-
-      <WidgetTabsCard />
-
-      <WidgetThemeCard />
-
-      <NotificationChannelsCard />
-
-      {/* Live-support routing: business hours, break, off-hours mailbox. */}
-      <HandoffSection />
-      <StorefrontCard />
-
-      {/* Who on the team reaches which screen (PLN-260812 S3). Master-only:
-          the API gates it on TENANT_SETTINGS_MANAGE, and rendering it for
-          ranks that will only get a 403 is worse than not showing it. */}
-      {isMaster && <MenuAccessSection />}
-
-      <Card title={t('integrationCredentials')}>
-        <Table<CredentialStatus>
-          columns={columns}
-          data={data}
-          loading={isLoading}
-          error={error ? (error as Error).message : null}
-          emptyMessage={t('empty')}
-          rowKey={(c) => c.provider}
-        />
-      </Card>
-
-      <ShopifyConfigModal open={configuring === 'shopify'} onClose={() => setConfiguring(null)} />
-      {[...ECOMMERCE_PROVIDERS, ...MARKETING_PROVIDERS, ...HELPDESK_PROVIDERS].map((p) => (
-        <IntegrationConfigModal
-          key={p}
-          provider={p}
-          open={configuring === p}
-          onClose={() => setConfiguring(null)}
-        />
-      ))}
-
-      <Modal
-        open={editing !== null}
-        onClose={() => setEditing(null)}
-        title={editing ? t('updateProvider', { provider: editing.provider }) : t('updateCredential')}
-        footer={
-          <>
-            <Button variant="ghost" onClick={() => setEditing(null)}>
-              {tc('cancel')}
-            </Button>
-            <Button onClick={onSave} disabled={updateCredential.isPending}>
-              {updateCredential.isPending ? tc('saving') : tc('save')}
-            </Button>
-          </>
-        }
-      >
-        <FormRow label={t('apiKey')}>
-          <Input
-            type="password"
-            value={apiKey}
-            onChange={(e) => setApiKey(e.target.value)}
-            placeholder={t('apiKeyPlaceholder')}
-            autoComplete="off"
-          />
-        </FormRow>
-        <FormRow label={t('secretOptional')}>
-          <Input
-            type="password"
-            value={secret}
-            onChange={(e) => setSecret(e.target.value)}
-            placeholder={t('secretPlaceholder')}
-            autoComplete="off"
-          />
-        </FormRow>
-      </Modal>
-    </div>
-  );
+  return <Navigate to="/settings/basic" replace />;
 }

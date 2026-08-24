@@ -64,3 +64,7 @@ export const INTEGRATION_FIELDS: Record<GenericIntegrationProvider, IntegrationF
     { key: 'webhook_secret', secret: true, required: false },
   ],
 };
+
+export function isShopifyDomain(domain?: string | null): boolean {
+  return /\.myshopify\.com\/?$/i.test((domain ?? '').trim());
+}

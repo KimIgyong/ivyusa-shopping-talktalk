@@ -33,5 +33,11 @@
     "description": "此页面对您的账户不可用。如有需要，请联系您的工作区管理员（master）。",
     "goHome": "前往仪表盘"
   },
-  "admins": "管理员账号"
+  "admins": "管理员账号",
+  "settingsBasic": "基本设置",
+  "settingsWidget": "挂件设置",
+  "settingsPlatforms": "平台集成",
+  "settingsMarketing": "营销与客服",
+  "settingsMessengers": "消息渠道",
+  "settingsEtc": "其他设置"
 }

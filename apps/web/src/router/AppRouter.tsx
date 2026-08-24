@@ -33,6 +33,12 @@ const CampaignsPage = lazy(() => import('@/domain/campaigns/CampaignsPage').then
 const ReviewsPage = lazy(() => import('@/domain/reviews/ReviewsPage').then((m) => ({ default: m.ReviewsPage })));
 const UsersPage = lazy(() => import('@/domain/users/UsersPage').then((m) => ({ default: m.UsersPage })));
 const SettingsPage = lazy(() => import('@/domain/settings/SettingsPage').then((m) => ({ default: m.SettingsPage })));
+const SettingsBasicPage = lazy(() => import('@/domain/settings/SettingsBasicPage').then((m) => ({ default: m.SettingsBasicPage })));
+const SettingsWidgetPage = lazy(() => import('@/domain/settings/SettingsWidgetPage').then((m) => ({ default: m.SettingsWidgetPage })));
+const SettingsPlatformsPage = lazy(() => import('@/domain/settings/SettingsPlatformsPage').then((m) => ({ default: m.SettingsPlatformsPage })));
+const SettingsMarketingPage = lazy(() => import('@/domain/settings/SettingsMarketingPage').then((m) => ({ default: m.SettingsMarketingPage })));
+const SettingsMessengersPage = lazy(() => import('@/domain/settings/SettingsMessengersPage').then((m) => ({ default: m.SettingsMessengersPage })));
+const SettingsEtcPage = lazy(() => import('@/domain/settings/SettingsEtcPage').then((m) => ({ default: m.SettingsEtcPage })));
 const PrivacyNoticePage = lazy(() => import('@/domain/privacy-notice/PrivacyNoticePage').then((m) => ({ default: m.PrivacyNoticePage })));
 const MyPage = lazy(() => import('@/domain/my-page/MyPage').then((m) => ({ default: m.MyPage })));
 const AdminOverviewPage = lazy(() => import('@/domain/admin/AdminOverviewPage').then((m) => ({ default: m.AdminOverviewPage })));
@@ -93,6 +99,12 @@ const router = createBrowserRouter([
       { path: '/reviews', element: <ReviewsPage /> },
       { path: '/users', element: <UsersPage /> },
       { path: '/settings', element: <SettingsPage /> },
+      { path: '/settings/basic', element: <SettingsBasicPage /> },
+      { path: '/settings/widget', element: <SettingsWidgetPage /> },
+      { path: '/settings/platforms', element: <SettingsPlatformsPage /> },
+      { path: '/settings/marketing', element: <SettingsMarketingPage /> },
+      { path: '/settings/messengers', element: <SettingsMessengersPage /> },
+      { path: '/settings/etc', element: <SettingsEtcPage /> },
       { path: '/privacy-notice', element: <PrivacyNoticePage /> },
       { path: '/my-page', element: <MyPage /> },
     ],
