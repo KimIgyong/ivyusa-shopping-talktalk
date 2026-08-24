@@ -290,5 +290,6 @@
   "categoryHidden": "カテゴリを非表示にしました",
   "categoryShown": "カテゴリを表示しました",
   "categoryRemoved": "カテゴリを削除しました",
-  "usageTypeActive": "使用中（オフにするとガイドは残り、マッチングだけ止まります）"
+  "usageTypeActive": "使用中（オフにするとガイドは残り、マッチングだけ止まります）",
+  "usageTypeTakenHint": "{{count}}件が一致しますが、上にある「{{type}}」が取っています。このタイプを上に移すか、キーワードを絞ってください。"
 }

@@ -290,5 +290,6 @@
   "categoryHidden": "Đã ẩn danh mục",
   "categoryShown": "Đã hiện danh mục",
   "categoryRemoved": "Đã xóa danh mục",
-  "usageTypeActive": "Đang dùng (tắt thì giữ hướng dẫn, chỉ ngừng khớp sản phẩm)"
+  "usageTypeActive": "Đang dùng (tắt thì giữ hướng dẫn, chỉ ngừng khớp sản phẩm)",
+  "usageTypeTakenHint": "Có {{count}} sản phẩm khớp, nhưng \"{{type}}\" ở phía trên nhận chúng. Hãy đưa loại này lên trên hoặc thu hẹp từ khóa."
 }

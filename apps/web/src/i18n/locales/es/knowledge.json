@@ -290,5 +290,6 @@
   "categoryHidden": "Categoría oculta",
   "categoryShown": "Categoría visible",
   "categoryRemoved": "Categoría eliminada",
-  "usageTypeActive": "En uso (al desactivar se conserva la guía y solo deja de coincidir)"
+  "usageTypeActive": "En uso (al desactivar se conserva la guía y solo deja de coincidir)",
+  "usageTypeTakenHint": "Coinciden {{count}} productos, pero \"{{type}}\" está por encima y se los queda. Sube este tipo o afina las palabras clave."
 }
