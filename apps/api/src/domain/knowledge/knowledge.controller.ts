@@ -299,10 +299,14 @@ export class KnowledgeController {
     return new Paginated(KnowledgeMapper.toDocumentList(items), buildPagination(page, size, total));
   }
 
-  @Get('categories')
+  // `categories/counts`, not `categories`: this is a report about documents,
+  // while `GET categories` is the category list itself. Declared first, the
+  // bare path silently shadowed that list — the console asked for categories
+  // and got document counts, with no error anywhere (found in deploy checks).
+  @Get('categories/counts')
   @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
   @ApiOperation({ summary: 'Document counts per category (console category navigator)' })
-  async categories(@CurrentUser() user: Principal, @Query('group') group?: string) {
+  async categoryCounts(@CurrentUser() user: Principal, @Query('group') group?: string) {
     return this.knowledgeService.categoryCounts(this.tenantUser(user).tenantId, group);
   }
 
@@ -471,6 +475,16 @@ export class KnowledgeController {
     return KnowledgeMapper.toUsageType(row);
   }
 
+  @Put('usage-types/reorder')
+  @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
+  @ApiOperation({ summary: 'Set match order — the first matching type claims a product' })
+  async reorderUsageTypes(@CurrentUser() user: Principal, @Body() body: ReorderRequest) {
+    await this.usageTypes.reorder(this.tenantUser(user).tenantId, body.ids);
+    return { reordered: body.ids.length };
+  }
+
+  // Declared above `:id` on purpose — `reorder` is a path, not an id, and the
+  // parameter route would otherwise match it first.
   @Put('usage-types/:id')
   @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
   @ApiOperation({ summary: 'Rename a type, retune its keywords, or turn it off' })
@@ -485,14 +499,6 @@ export class KnowledgeController {
       active: body.active,
     });
     return KnowledgeMapper.toUsageType(row);
-  }
-
-  @Put('usage-types/reorder')
-  @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
-  @ApiOperation({ summary: 'Set match order — the first matching type claims a product' })
-  async reorderUsageTypes(@CurrentUser() user: Principal, @Body() body: ReorderRequest) {
-    await this.usageTypes.reorder(this.tenantUser(user).tenantId, body.ids);
-    return { reordered: body.ids.length };
   }
 
   @Post('usage-types/preview')
