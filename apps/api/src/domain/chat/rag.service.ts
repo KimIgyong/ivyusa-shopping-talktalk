@@ -373,6 +373,7 @@ export class RagService {
     const res = await this.ai.complete({
       tenantId,
       function: AI_FUNCTION.RAG,
+      feature: 'chat_answer',
       system:
         `${persona}${rulesBlock}\n` +
         `${sourceRule} If the information is insufficient, apologize briefly and ` +
@@ -446,6 +447,7 @@ export class RagService {
     const res = await this.ai.complete({
       tenantId,
       function: AI_FUNCTION.RAG,
+      feature: 'chat_rewrite',
       system:
         `${persona}\n${rules.map((r) => `- ${r}`).join('\n')}\n` +
         `${instruction}\nReply in ${language.toUpperCase()}. Two sentences at most.`,
@@ -461,6 +463,7 @@ export class RagService {
     const res = await this.ai.complete({
       tenantId,
       function: AI_FUNCTION.CHAT,
+      feature: 'chat_rewrite',
       system:
         // A closed set, not free text (PLN-260813 P1). Handing off when the
         // shopper asks for a person needs an intent value that arrives

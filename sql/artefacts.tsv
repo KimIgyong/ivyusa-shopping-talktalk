@@ -29,6 +29,7 @@ migration_agent_coaching.sql	table	agent_coaching_threads	-
 migration_agent_coaching.sql	table	agent_coaching_messages	-
 migration_agent_coaching.sql	table	agent_coaching_proposals	-
 migration_ai_config_revisions.sql	table	tenant_ai_config_revisions	-
+migration_ai_usage_daily.sql	table	ai_usage_daily	-
 migration_audit_context.sql	column	audit_logs	ip
 migration_audit_context.sql	column	audit_logs	request_id
 migration_audit_context.sql	column	audit_logs	result

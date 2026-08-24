@@ -229,6 +229,7 @@ export class KbConflictService {
       const res = await this.ai.complete({
         tenantId,
         function: AI_FUNCTION.CHAT,
+        feature: 'knowledge_conflict',
         system:
           'JSON_MODE:kb_conflict. Two knowledge base documents are given. Decide whether they ' +
           'contradict each other on any fact, figure, threshold or condition. Return ' +

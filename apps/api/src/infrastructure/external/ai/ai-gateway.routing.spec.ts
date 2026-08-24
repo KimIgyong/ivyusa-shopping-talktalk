@@ -41,6 +41,10 @@ function gatewayWith(settings: Array<{ func: string; engineId: number }>, engine
     },
   };
   const adapter = { provider: 'stub', complete: async () => ({}) } as never;
+  // Metering is a side effect of `complete()`; these tests only resolve
+  // routing, but the double is here so a test that does call complete() fails
+  // on its own assertion rather than on a missing collaborator.
+  const usage = { record: jest.fn(async () => undefined) };
   return new AiGatewayService(
     engineRepo as never,
     settingRepo as never,
@@ -48,6 +52,7 @@ function gatewayWith(settings: Array<{ func: string; engineId: number }>, engine
     adapter,
     adapter,
     adapter,
+    usage as never,
   );
 }
 

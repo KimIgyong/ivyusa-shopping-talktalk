@@ -68,6 +68,7 @@ export class BriefingService {
       const res = await this.aiGateway.complete({
         tenantId,
         function: AI_FUNCTION.ASSIST,
+        feature: 'agent_briefing',
         system:
           'Summarize the conversation: summary, intent, sentiment, recommended action. Reply concisely.',
         messages: [{ role: 'user', content: transcript }],
@@ -112,6 +113,7 @@ export class BriefingService {
       const res = await this.aiGateway.complete({
         tenantId,
         function: AI_FUNCTION.ASSIST,
+        feature: 'agent_briefing',
         system: `Translate the following conversation briefing into ${target}. Keep the structure and be faithful — no additions, no commentary.`,
         messages: [{ role: 'user', content: briefing.body }],
       });

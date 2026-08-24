@@ -9,6 +9,7 @@ import {
   Patch,
   Post,
   Put,
+  Query,
 } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CAPABILITY, Principal } from '@ivy/types';
@@ -17,8 +18,10 @@ import { CurrentUser } from '../../global/decorator/current-user.decorator';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
 import { TenantAiEngineService, TENANT_PROVIDERS } from './tenant-ai-engine.service';
+import { AiUsageService } from './ai-usage.service';
 import { AiEngineMapper } from './ai-engine.mapper';
 import {
+  AiUsageQueryRequest,
   SaveTenantEngineRequest,
   UpdateTenantEngineRequest,
 } from './dto/request/ai-engine.request';
@@ -30,7 +33,10 @@ import {
 @ApiTags('Tenant AI Engines')
 @Controller('tenants/me/ai-engines')
 export class TenantAiEngineController {
-  constructor(private readonly service: TenantAiEngineService) {}
+  constructor(
+    private readonly service: TenantAiEngineService,
+    private readonly usage: AiUsageService,
+  ) {}
 
   private tenantId(user: Principal): number {
     if (user.actorType !== 'user') {
@@ -55,6 +61,24 @@ export class TenantAiEngineController {
       // own engine wins over it. Never editable from here.
       platform: AiEngineMapper.toTenantEngineList(platform),
     };
+  }
+
+  /**
+   * Token usage over a range.
+   *
+   * Read-only, so it reuses AI_SETTINGS_MANAGE rather than the engine-editing
+   * capability — seeing what was spent is not the same authority as changing
+   * the key that spends it.
+   */
+  @Get('usage')
+  @RequireCapability(CAPABILITY.AI_SETTINGS_MANAGE)
+  @ApiOperation({ summary: 'AI token usage for a date range, grouped on one axis' })
+  async usageSummary(@CurrentUser() user: Principal, @Query() q: AiUsageQueryRequest) {
+    return this.usage.summarize(this.tenantId(user), {
+      from: q.from,
+      to: q.to,
+      groupBy: (q.group_by as 'feature' | 'function' | 'engine' | 'owner') ?? 'feature',
+    });
   }
 
   @Post()
