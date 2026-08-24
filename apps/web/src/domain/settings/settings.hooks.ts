@@ -7,6 +7,7 @@ import type {
   WidgetTab,
   WidgetTabPosition,
 } from '@ivy/types';
+import type { SaveTenantEngineBody } from './settings.service';
 import { settingsService } from './settings.service';
 import type { SaveShopifyBody, UpdateCredentialBody, WidgetCopyDraft } from './settings.service';
 import { toast } from '@/store/toast-store';
@@ -330,5 +331,81 @@ export function useDeleteWidgetLogo() {
     onError: (e: Error) => {
       toast.error(e.message || t('widgetTheme.logoError'), { sticky: true });
     },
+  });
+}
+
+// ---- Tenant AI engines (PLN-260824) ----
+
+export function useAiEngines() {
+  const tenantKey = useTenantKey();
+  return useQuery({
+    queryKey: ['settings', tenantKey, 'ai-engines'],
+    queryFn: () => settingsService.aiEngines(),
+  });
+}
+
+function useAiEngineInvalidator() {
+  const qc = useQueryClient();
+  const tenantKey = useTenantKey();
+  return () => {
+    qc.invalidateQueries({ queryKey: ['settings', tenantKey, 'ai-engines'] });
+    // The AI settings screen lists these as choices and shows which one is
+    // actually answering; leaving it stale would contradict this page.
+    qc.invalidateQueries({ queryKey: ['ai-settings'] });
+  };
+}
+
+export function useSaveAiEngine() {
+  const invalidate = useAiEngineInvalidator();
+  const { t } = useTranslation('settings');
+  return useMutation({
+    mutationFn: (v: { id?: string } & Partial<SaveTenantEngineBody>) =>
+      v.id
+        ? settingsService.updateAiEngine(v.id, v)
+        : settingsService.createAiEngine(v as SaveTenantEngineBody),
+    onSuccess: () => {
+      invalidate();
+      toast.success(t('aiEngines.saved'));
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+}
+
+export function useSetAiEngineDefault() {
+  const invalidate = useAiEngineInvalidator();
+  const { t } = useTranslation('settings');
+  return useMutation({
+    mutationFn: (id: string) => settingsService.setAiEngineDefault(id),
+    onSuccess: () => {
+      invalidate();
+      toast.success(t('aiEngines.defaultSet'));
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+}
+
+/** Not silent: an untested key looks exactly like a working one until a customer asks. */
+export function useTestAiEngine() {
+  return useMutation({
+    mutationFn: (id: string) => settingsService.testAiEngine(id),
+  });
+}
+
+export function useDeleteAiEngine() {
+  const invalidate = useAiEngineInvalidator();
+  const { t } = useTranslation('settings');
+  return useMutation({
+    mutationFn: (id: string) => settingsService.deleteAiEngine(id),
+    onSuccess: (res) => {
+      invalidate();
+      if (res.removed) {
+        toast.success(t('aiEngines.removed'));
+      } else {
+        // Refused, and the reason is actionable — say which functions hold it
+        // rather than "in use".
+        toast.error(t('aiEngines.inUse', { functions: res.usedBy.join(', ') }));
+      }
+    },
+    onError: (e: Error) => toast.error(e.message),
   });
 }

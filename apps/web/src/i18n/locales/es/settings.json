@@ -500,5 +500,41 @@
     "secretRotated": "Nuevo secreto generado",
     "secretRotateError": "No se pudo generar el secreto",
     "originPlaceholder": "https://www.example.com"
+  },
+  "aiEngines": {
+    "title": "Motores de IA",
+    "add": "Añadir motor",
+    "edit": "Editar motor",
+    "mine": "Míos",
+    "platform": "De la plataforma",
+    "hint": "Un motor registrado aquí se usa antes que el de la plataforma. Asigna qué función usa cuál en Ajustes de IA.",
+    "platformHint": "Los gestiona el operador del servicio. Tu propio motor tiene prioridad.",
+    "empty": "Aún no tienes motores propios: se usan los de la plataforma.",
+    "name": "Nombre",
+    "provider": "Proveedor",
+    "model": "Modelo",
+    "endpoint": "Endpoint",
+    "endpointHint": "Vacío para usar el del proveedor.",
+    "apiKey": "Clave API",
+    "apiKeyHint": "Déjalo vacío para conservar la clave guardada.",
+    "keyStored": "Hay una clave guardada",
+    "noKey": "sin clave API — desactivado",
+    "disabled": "Desactivado",
+    "default": "Predeterminado",
+    "makeDefault": "Hacer predeterminado",
+    "test": "Probar",
+    "testOk": "Respondió en {{ms}} ms",
+    "testFail": {
+      "auth": "Fallo de autenticación — revisa la clave API",
+      "model": "Modelo no encontrado — revisa el nombre",
+      "rate_limit": "Límite de peticiones — inténtalo en un momento",
+      "unreachable": "No se pudo contactar al proveedor — revisa el endpoint",
+      "ok": "Correcto"
+    },
+    "billingNote": "Las llamadas con tu propia clave se facturan a tu cuenta con ese proveedor.",
+    "saved": "Motor guardado",
+    "defaultSet": "Motor predeterminado establecido",
+    "removed": "Motor eliminado",
+    "inUse": "Aún lo usan: {{functions}}. Cambia antes esas funciones."
   }
 }
