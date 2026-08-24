@@ -81,7 +81,10 @@ export class ChatCommentService {
   /** Author-only: another agent's note is theirs to change. */
   async update(id: number, tenantId: number, userId: number, body: string): Promise<ChatComment> {
     const comment = await this.owned(id, tenantId);
-    if (Number(comment.authorId) !== userId) {
+    // Number() on BOTH sides: the JWT principal carries userId as a string
+    // ("1"), and a strict compare against the bigint-transformed column made
+    // every author fail their own ownership check (found in staging smoke).
+    if (Number(comment.authorId) !== Number(userId)) {
       this.logger.warn(`comment edit refused: id=${id} author=${comment.authorId} user=${userId}`);
       throw new BusinessException(ERROR_CODE.COMMENT_FORBIDDEN, HttpStatus.FORBIDDEN);
     }
@@ -96,7 +99,7 @@ export class ChatCommentService {
   /** Author or master — a master can clean up after an agent who left. */
   async remove(id: number, tenantId: number, userId: number, isMaster: boolean): Promise<void> {
     const comment = await this.owned(id, tenantId);
-    if (Number(comment.authorId) !== userId && !isMaster) {
+    if (Number(comment.authorId) !== Number(userId) && !isMaster) {
       this.logger.warn(`comment delete refused: id=${id} author=${comment.authorId} user=${userId}`);
       throw new BusinessException(ERROR_CODE.COMMENT_FORBIDDEN, HttpStatus.FORBIDDEN);
     }
