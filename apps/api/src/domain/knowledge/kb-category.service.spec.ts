@@ -168,10 +168,33 @@ describe('KbCategoryService', () => {
       expect(saved[0]).toMatchObject({ name: 'Nike', origin: 'catalog' });
     });
 
-    it('is a no-op when the row already exists', async () => {
-      const { svc, saved } = build([row({ id: 1, name: 'Nike' })]);
+    it('is a no-op when the row already exists with the same origin', async () => {
+      const { svc, saved } = build([
+        row({ id: 1, name: 'Nike', origin: CATEGORY_ORIGIN.CATALOG }),
+      ]);
 
       await svc.ensure(1, 'Nike', CATEGORY_ORIGIN.CATALOG);
+
+      expect(saved).toHaveLength(0);
+    });
+
+    it('locks a hand-made category once product sync files a document under it', async () => {
+      // Staging has two of these — `Kiss New York` holds 135 catalogue
+      // documents and 26 hand-written ones. Left editable, a rename would be
+      // undone for the catalogue half at the next sync and split the category.
+      const { svc, saved } = build([row({ id: 1, name: 'Kiss New York' })]);
+
+      await svc.ensure(1, 'Kiss New York', CATEGORY_ORIGIN.CATALOG);
+
+      expect(saved[0]).toMatchObject({ name: 'Kiss New York', origin: 'catalog' });
+    });
+
+    it('does not demote a catalogue category when a human files one there', async () => {
+      const { svc, saved } = build([
+        row({ id: 1, name: 'Nike', origin: CATEGORY_ORIGIN.CATALOG }),
+      ]);
+
+      await svc.ensure(1, 'Nike', CATEGORY_ORIGIN.MANUAL);
 
       expect(saved).toHaveLength(0);
     });

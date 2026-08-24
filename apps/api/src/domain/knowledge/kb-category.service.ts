@@ -87,7 +87,18 @@ export class KbCategoryService {
     const clean = name.trim();
     if (!clean) return;
     const existing = await this.repo.findOne({ where: { tenantId, name: clean } });
-    if (existing) return;
+    if (existing) {
+      // Promote, never demote. One catalogue document under a name is enough to
+      // make a rename bounce back — sync rewrites the category of everything it
+      // owns — so a name people also use by hand still has to be locked. The
+      // reverse is not true: a hand-written document under a catalogue name
+      // changes nothing about what sync will do.
+      if (origin === CATEGORY_ORIGIN.CATALOG && existing.origin !== CATEGORY_ORIGIN.CATALOG) {
+        existing.origin = CATEGORY_ORIGIN.CATALOG;
+        await this.repo.save(existing);
+      }
+      return;
+    }
     await this.repo
       .save(this.repo.create({ tenantId, name: clean, origin, sortOrder: 0, hidden: 0 }))
       // A concurrent sync may have inserted the same pair; the unique key is

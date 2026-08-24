@@ -87,14 +87,35 @@ INSERT IGNORE INTO usage_types (tenant_id, type_key, label, keywords, sort_order
 -- Every category a document already carries becomes a row, tagged with where it
 -- came from. Without this the console's category list would come up empty on the
 -- first load after deploy, and product-sync categories would look manual.
+-- A category counts as catalogue-derived if ANY document under it came from
+-- product sync, not merely if the first row inspected did. Sync rewrites the
+-- category of every document it owns, so one catalogue document under the name
+-- is enough to make a rename bounce back at the next run — and the name needs
+-- to be locked for that reason even when people also file documents there by
+-- hand. Measured on staging: two categories are used by both (`Kiss New York`
+-- holds 135 catalogue documents and 26 hand-written ones).
 INSERT IGNORE INTO kb_categories (tenant_id, name, origin)
-SELECT DISTINCT d.tenant_id,
+SELECT d.tenant_id,
        d.category,
-       CASE WHEN d.source = 'product_catalog' THEN 'catalog' ELSE 'manual' END
+       CASE WHEN MAX(d.source = 'product_catalog') = 1 THEN 'catalog' ELSE 'manual' END
 FROM kb_documents d
 WHERE d.tenant_id IS NOT NULL
   AND d.category IS NOT NULL
-  AND d.category <> '';
+  AND d.category <> ''
+GROUP BY d.tenant_id, d.category;
+
+-- Re-runs repair rows an earlier pass filed as 'manual' while catalogue
+-- documents were sitting under them. INSERT IGNORE alone cannot: the row
+-- already exists, so the insert is skipped and the wrong origin sticks.
+UPDATE kb_categories c
+   SET c.origin = 'catalog'
+ WHERE c.origin = 'manual'
+   AND EXISTS (
+     SELECT 1 FROM kb_documents d
+      WHERE d.tenant_id = c.tenant_id
+        AND d.category = c.name
+        AND d.source = 'product_catalog'
+   );
 
 -- ---------------------------------------------------------------------------
 -- 3. Verify
