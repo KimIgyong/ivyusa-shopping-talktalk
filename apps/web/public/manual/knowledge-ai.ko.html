@@ -102,6 +102,9 @@ li{margin:4px 0}
 .pagenav a{color:var(--muted);text-decoration:none}
 .pagenav a:hover,.pagenav a:focus-visible{color:var(--accent)}
 .pagenav .cur{color:var(--accent-deep);font-weight:700}
+figure.shot{margin:18px 0;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--card)}
+figure.shot img{display:block;width:100%}
+figure.shot figcaption{padding:8px 16px;font-size:13px;color:var(--muted);border-top:1px solid var(--line)}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 @media(prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
 </style>
@@ -152,6 +155,7 @@ li{margin:4px 0}
     <li><strong>답변 언어</strong>는 고객 세션 언어를 따릅니다 (en/es/ko/vi/ja/zh).</li>
     <li>상담원이 보내는 메시지도 ④ 모더레이션을 똑같이 통과합니다 (우회 불가).</li>
   </ul>
+  <figure class="shot"><img src="img/widget-chat.ko.jpg" alt="위젯의 AI 답변 — 아래에 참조한 지식 문서 목록이 붙습니다 (언어 전환 6종)" loading="lazy"><figcaption>위젯의 AI 답변 — 아래에 참조한 지식 문서 목록이 붙습니다 (언어 전환 6종)</figcaption></figure>
 </section>
 
 <section id="ch1">
@@ -190,6 +194,7 @@ li{margin:4px 0}
     <li>제목·본문에 <strong>고객의 실제 표현</strong>("배송 얼마나 걸려요")을 포함하세요 — 유사도 검색이라 고객 어휘와 가까울수록 적중합니다.</li>
     <li>구버전 정책은 삭제 대신 <strong>노출 토글 OFF(비활성)</strong>로 제외하세요. 이력이 남고 되돌리기 쉽습니다.</li>
   </ul></div>
+  <figure class="shot"><img src="img/knowledge.ko.jpg" alt="지식 화면 — 소스·자격증명(좌)과 지식 QA·충돌 검토(우)" loading="lazy"><figcaption>지식 화면 — 소스·자격증명(좌)과 지식 QA·충돌 검토(우)</figcaption></figure>
 
   <h3>2.2 상품 지식 — 카탈로그 동기화 · CSV · 사용 가이드</h3>
   <div class="terms"><div class="t-label">용어</div>
@@ -254,6 +259,7 @@ li{margin:4px 0}
   <h3>3.1 지식 QA 패널 — 등록 후 반드시 확인</h3>
   <p>질문 입력 → 답변 + <strong>신뢰도 수치</strong> + <strong>출처 목록</strong> 확인 → 근거 문서가 틀렸으면 출처 옆
   <strong>[수정]</strong>(해당 문서가 바로 편집 모드로 열림) → 고친 뒤 <strong>[다시 질문]</strong>으로 재확인.</p>
+  <figure class="shot"><img src="img/knowledge-qa.ko.jpg" alt="지식 QA 패널 — 답변·신뢰도·출처(유사도)와 문서별 [수정] 버튼" loading="lazy"><figcaption>지식 QA 패널 — 답변·신뢰도·출처(유사도)와 문서별 [수정] 버튼</figcaption></figure>
   <div class="callout"><span class="c-label">💡 팁</span>
   <ul>
     <li><strong>모더레이션 차단</strong> 배지가 뜨면 금칙 규칙(4.5절)에 걸린 것 — 실제 고객에게라면 노출되지 않았을 답변입니다.</li>
@@ -312,6 +318,7 @@ li{margin:4px 0}
     <tr><td>답변 재사용</td><td>승인된 과거 답변을 같은 질문에 LLM 호출 없이 재생</td></tr>
     <tr><td>변경 메모</td><td>페르소나·규칙 저장 시 남기는 한 줄 기록 — 설정 변경 이력에서 조회</td></tr>
   </table></div></div>
+  <figure class="shot"><img src="img/ai-setting.ko.jpg" alt="AI 설정 — 에이전트·페르소나·응답 규칙 카드와 우측 스튜디오" loading="lazy"><figcaption>AI 설정 — 에이전트·페르소나·응답 규칙 카드와 우측 스튜디오</figcaption></figure>
 
   <h3>4.1 AI 에이전트 (멀티 페르소나)</h3>
   <p><em>AI 에이전트</em> 카드에서 에이전트를 선택하면 아래 페르소나·응답 규칙 카드가 <strong>그 에이전트의 것</strong>으로 바뀝니다.
@@ -421,6 +428,7 @@ li{margin:4px 0}
     <li><strong>정책 강제 핸드오프(deny-list)</strong> — 키워드(쉼표 구분) + 문의 유형 + 담당 라벨 규칙 등록.
       매칭된 메시지는 <strong>AI를 거치지 않고 바로 상담원에게</strong> 전달되며, 생성되는 이슈에 유형·라벨이 자동 지정됩니다.</li>
   </ol>
+  <figure class="shot"><img src="img/handoff-settings.ko.jpg" alt="[설정]의 상담원 연결(핸드오프) 섹션 — 담당 상담원·근무시간·영업외 안내" loading="lazy"><figcaption>[설정]의 상담원 연결(핸드오프) 섹션 — 담당 상담원·근무시간·영업외 안내</figcaption></figure>
   <div class="callout"><span class="c-label">💡 팁</span>
   <ul>
     <li>영업시간의 <strong>타임존</strong>을 상점 기준으로 정확히 — 미국 상점을 한국 시간으로 두면 안내가 반대로 나갑니다.</li>

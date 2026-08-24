@@ -102,6 +102,9 @@ li{margin:4px 0}
 .pagenav a{color:var(--muted);text-decoration:none}
 .pagenav a:hover,.pagenav a:focus-visible{color:var(--accent)}
 .pagenav .cur{color:var(--accent-deep);font-weight:700}
+figure.shot{margin:18px 0;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--card)}
+figure.shot img{display:block;width:100%}
+figure.shot figcaption{padding:8px 16px;font-size:13px;color:var(--muted);border-top:1px solid var(--line)}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 @media(prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
 </style>
@@ -153,6 +156,7 @@ li{margin:4px 0}
     <li><strong>Ngôn ngữ trả lời</strong> theo ngôn ngữ phiên của khách hàng (en/es/ko/vi/ja/zh).</li>
     <li>Tin nhắn do nhân viên tư vấn gửi cũng đi qua ④ kiểm duyệt y hệt (không thể bỏ qua).</li>
   </ul>
+  <figure class="shot"><img src="img/widget-chat.en.jpg" alt="Câu trả lời AI trong widget — bên dưới kèm danh sách tài liệu tri thức được tham chiếu (chuyển đổi 6 ngôn ngữ) (ảnh chụp giao diện tiếng Anh — bảng điều khiển hỗ trợ cả tiếng Việt)" loading="lazy"><figcaption>Câu trả lời AI trong widget — bên dưới kèm danh sách tài liệu tri thức được tham chiếu (chuyển đổi 6 ngôn ngữ) (ảnh chụp giao diện tiếng Anh — bảng điều khiển hỗ trợ cả tiếng Việt)</figcaption></figure>
 </section>
 
 <section id="ch1">
@@ -191,6 +195,7 @@ li{margin:4px 0}
     <li>Đưa vào tiêu đề·nội dung <strong>cách nói thực tế của khách hàng</strong> ("giao hàng mất bao lâu") — tìm kiếm theo độ tương đồng nên càng gần từ ngữ của khách càng khớp.</li>
     <li>Chính sách phiên bản cũ đừng xóa mà <strong>tắt công tắc hiển thị (OFF)</strong> để loại khỏi căn cứ. Lịch sử còn lại và dễ khôi phục.</li>
   </ul></div>
+  <figure class="shot"><img src="img/knowledge.en.jpg" alt="Màn hình Kho tri thức — nguồn·thông tin xác thực (trái) và QA tri thức·rà soát mâu thuẫn (phải)" loading="lazy"><figcaption>Màn hình Kho tri thức — nguồn·thông tin xác thực (trái) và QA tri thức·rà soát mâu thuẫn (phải)</figcaption></figure>
 
   <h3>2.2 Tri thức sản phẩm — đồng bộ danh mục sản phẩm · CSV · hướng dẫn sử dụng</h3>
   <div class="terms"><div class="t-label">Thuật ngữ</div>
@@ -255,6 +260,7 @@ li{margin:4px 0}
   <h3>3.1 Bảng QA tri thức — nhất định kiểm tra sau khi đăng ký</h3>
   <p>Nhập câu hỏi → kiểm tra câu trả lời + <strong>chỉ số độ tin cậy</strong> + <strong>danh sách nguồn</strong> → tài liệu căn cứ sai thì bấm
   <strong>[Sửa]</strong> cạnh nguồn (tài liệu đó mở ngay ở chế độ sửa) → sửa xong bấm <strong>[Hỏi lại]</strong> để kiểm tra lại.</p>
+  <figure class="shot"><img src="img/knowledge-qa.en.jpg" alt="Bảng QA tri thức — câu trả lời·độ tin cậy·nguồn (độ tương đồng) và nút [Sửa] theo từng tài liệu" loading="lazy"><figcaption>Bảng QA tri thức — câu trả lời·độ tin cậy·nguồn (độ tương đồng) và nút [Sửa] theo từng tài liệu</figcaption></figure>
   <div class="callout"><span class="c-label">💡 Mẹo</span>
   <ul>
     <li>Hiện huy hiệu <strong>bị kiểm duyệt chặn</strong> nghĩa là vướng quy tắc cấm (mục 4.5) — câu trả lời mà nếu là khách thật thì đã không được hiển thị.</li>
@@ -313,6 +319,7 @@ li{margin:4px 0}
     <tr><td>Tái sử dụng câu trả lời</td><td>Phát lại câu trả lời cũ đã duyệt cho cùng câu hỏi, không gọi LLM</td></tr>
     <tr><td>Ghi chú thay đổi</td><td>Dòng ghi chú để lại khi lưu persona·quy tắc — tra trong lịch sử thay đổi cài đặt</td></tr>
   </table></div></div>
+  <figure class="shot"><img src="img/ai-setting.en.jpg" alt="Cài đặt AI — thẻ agent·persona·quy tắc trả lời và studio bên phải" loading="lazy"><figcaption>Cài đặt AI — thẻ agent·persona·quy tắc trả lời và studio bên phải</figcaption></figure>
 
   <h3>4.1 Nhân viên AI (đa persona)</h3>
   <p>Chọn một agent trong thẻ <em>Nhân viên AI</em> thì các thẻ persona·quy tắc trả lời bên dưới chuyển thành <strong>của agent đó</strong>.
@@ -422,6 +429,7 @@ li{margin:4px 0}
     <li><strong>Chuyển tiếp bắt buộc theo chính sách (deny-list)</strong> — đăng ký quy tắc từ khóa (phân tách bằng phẩy) + loại yêu cầu + nhãn phụ trách.
       Tin nhắn khớp được <strong>chuyển thẳng đến nhân viên tư vấn, không qua AI</strong>, và yêu cầu (issue) được tạo sẽ tự động gán loại·nhãn.</li>
   </ol>
+  <figure class="shot"><img src="img/handoff-settings.en.jpg" alt="Mục Chuyển tiếp tư vấn (handoff) trong [Cài đặt gian hàng] — nhân viên phụ trách·giờ làm việc·hướng dẫn ngoài giờ" loading="lazy"><figcaption>Mục Chuyển tiếp tư vấn (handoff) trong [Cài đặt gian hàng] — nhân viên phụ trách·giờ làm việc·hướng dẫn ngoài giờ</figcaption></figure>
   <div class="callout"><span class="c-label">💡 Mẹo</span>
   <ul>
     <li>Đặt <strong>múi giờ</strong> của giờ làm việc chính xác theo cửa hàng — cửa hàng ở Mỹ mà để giờ Hàn Quốc thì hướng dẫn sẽ ngược hết.</li>

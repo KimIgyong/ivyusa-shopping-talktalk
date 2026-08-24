@@ -102,6 +102,9 @@ li{margin:4px 0}
 .pagenav a{color:var(--muted);text-decoration:none}
 .pagenav a:hover,.pagenav a:focus-visible{color:var(--accent)}
 .pagenav .cur{color:var(--accent-deep);font-weight:700}
+figure.shot{margin:18px 0;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--card)}
+figure.shot img{display:block;width:100%}
+figure.shot figcaption{padding:8px 16px;font-size:13px;color:var(--muted);border-top:1px solid var(--line)}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 @media(prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
 </style>
@@ -153,6 +156,7 @@ li{margin:4px 0}
     <li><strong>The answer language</strong> follows the customer's session language (en/es/ko/vi/ja/zh).</li>
     <li>Messages sent by agents also pass ④ moderation identically (non-bypassable).</li>
   </ul>
+  <figure class="shot"><img src="img/widget-chat.en.jpg" alt="The widget's AI answer — the list of referenced knowledge documents appears below (6 languages)" loading="lazy"><figcaption>The widget's AI answer — the list of referenced knowledge documents appears below (6 languages)</figcaption></figure>
 </section>
 
 <section id="ch1">
@@ -191,6 +195,7 @@ li{margin:4px 0}
     <li>Include <strong>customers' actual phrasing</strong> ("how long does shipping take") in titles·bodies — search is similarity-based, so the closer to customer vocabulary, the better it hits.</li>
     <li>Instead of deleting outdated policies, exclude them with the <strong>visibility toggle OFF (inactive)</strong>. History is preserved and reverting is easy.</li>
   </ul></div>
+  <figure class="shot"><img src="img/knowledge.en.jpg" alt="The Knowledge screen — sources &amp; credentials (left) and knowledge QA &amp; conflict review (right)" loading="lazy"><figcaption>The Knowledge screen — sources &amp; credentials (left) and knowledge QA &amp; conflict review (right)</figcaption></figure>
 
   <h3>2.2 Product knowledge — catalog sync · CSV · usage guides</h3>
   <div class="terms"><div class="t-label">Terms</div>
@@ -255,6 +260,7 @@ li{margin:4px 0}
   <h3>3.1 Knowledge QA panel — always verify after registering</h3>
   <p>Enter a question → check the answer + <strong>confidence score</strong> + <strong>source list</strong> → if an evidence document is wrong, press
   <strong>[Fix]</strong> next to the source (that document opens directly in edit mode) → after fixing, re-check with <strong>[Ask again]</strong>.</p>
+  <figure class="shot"><img src="img/knowledge-qa.en.jpg" alt="The knowledge QA panel — answer, confidence, sources (similarity) and each document's [Fix] button" loading="lazy"><figcaption>The knowledge QA panel — answer, confidence, sources (similarity) and each document's [Fix] button</figcaption></figure>
   <div class="callout"><span class="c-label">💡 Tips</span>
   <ul>
     <li>A <strong>blocked by moderation</strong> badge means the answer hit a moderation rule (§4.5) — a real customer would never have seen it.</li>
@@ -313,6 +319,7 @@ li{margin:4px 0}
     <tr><td>Answer reuse</td><td>Replaying an approved past answer for the same question without an LLM call</td></tr>
     <tr><td>Change note</td><td>A one-line note recorded when saving persona·rules — viewable in the settings change history</td></tr>
   </table></div></div>
+  <figure class="shot"><img src="img/ai-setting.en.jpg" alt="AI settings — the agent, persona, and response-rule cards with the studio on the right" loading="lazy"><figcaption>AI settings — the agent, persona, and response-rule cards with the studio on the right</figcaption></figure>
 
   <h3>4.1 AI agents (multi-persona)</h3>
   <p>Selecting an agent in the <em>AI agents</em> card switches the persona·response rules cards below to <strong>that agent's</strong>.
@@ -422,6 +429,7 @@ li{margin:4px 0}
     <li><strong>Policy-forced handoff (deny-list)</strong> — register keyword (comma-separated) + inquiry type + duty-label rules.
       A matched message is delivered <strong>straight to an agent without passing through the AI</strong>, and the created issue gets the type·label stamped automatically.</li>
   </ol>
+  <figure class="shot"><img src="img/handoff-settings.en.jpg" alt="The Agent handoff section of [Settings] — responsible agents, business hours, off-hours notice" loading="lazy"><figcaption>The Agent handoff section of [Settings] — responsible agents, business hours, off-hours notice</figcaption></figure>
   <div class="callout"><span class="c-label">💡 Tips</span>
   <ul>
     <li>Set the business-hours <strong>timezone</strong> precisely to the store's — a US store left on Korean time sends the notices exactly backwards.</li>

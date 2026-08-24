@@ -44,6 +44,9 @@ body{margin:0;background:var(--bg);color:var(--ink);
 .pagenav a{color:var(--muted);text-decoration:none}
 .pagenav a:hover,.pagenav a:focus-visible{color:var(--accent)}
 .pagenav .cur{color:var(--accent-deep);font-weight:700}
+figure.shot{margin:18px 0;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--card)}
+figure.shot img{display:block;width:100%}
+figure.shot figcaption{padding:8px 16px;font-size:13px;color:var(--muted);border-top:1px solid var(--line)}
 header.hero{grid-column:1/-1;padding:56px 0 8px;border-bottom:1px solid var(--line);margin-bottom:8px}
 .eyebrow{font-size:12px;font-weight:700;letter-spacing:.14em;color:var(--accent);text-transform:uppercase}
 h1{font-family:"Gothic A1",sans-serif;font-weight:800;font-size:clamp(28px,4.5vw,40px);
@@ -190,12 +193,14 @@ li{margin:4px 0}
   <ul>
     <li>Trên cùng: <strong>thông báo tư vấn bằng AI</strong> + liên kết <strong>kết thúc tư vấn</strong> (chỉ khi đang diễn ra)</li>
     <li><strong>Biểu ngữ đồng ý</strong>: hiển thị khi vào lần đầu hoặc khi phiên bản thông báo thay đổi — trước khi đồng ý, chức năng cần thông tin cá nhân bị hạn chế</li>
+  <figure class="shot"><img src="img/widget-consent.ko.jpg" alt="Biểu ngữ đồng ý của widget — trước khi đồng ý, các chức năng cần thông tin cá nhân bị hạn chế (giao diện tiếng Hàn — widget hiển thị theo ngôn ngữ của khách)" loading="lazy"><figcaption>Biểu ngữ đồng ý của widget — trước khi đồng ý, các chức năng cần thông tin cá nhân bị hạn chế (giao diện tiếng Hàn — widget hiển thị theo ngôn ngữ của khách)</figcaption></figure>
     <li><strong>Nút kịch bản</strong>: menu nhanh do tenant cấu hình (mặc định 6 loại). Hỗ trợ sản phẩm mở menu con (cách dùng·thành phần·đổi/trả·hàng về lại). Sau câu trả lời có chip nhanh (đơn của tôi/giao hàng/trả hàng/kết nối nhân viên tư vấn)</li>
     <li><strong>Xác minh danh tính</strong> 2 cách: ① đăng nhập cửa hàng — redirect (mặc định)/popup, tự xử lý đường dẫn đăng nhập Cafe24·Shopify, quay lại thì widget tự mở lại ② tra cứu đơn không cần tài khoản — mã đơn+email (giới hạn số lần)</li>
     <li><strong>Đính kèm</strong>: ảnh ≤10MB (HEIC tự chuyển đổi) / tệp ≤20MB (pdf·txt·csv·docx·xlsx), tối đa 5 tệp mỗi tin nhắn</li>
     <li><strong>Chỉ báo chờ</strong> 3 loại: AI đang soạn / nhân viên tư vấn đang trả lời / chờ chuyển tiếp</li>
     <li><strong>Kết thúc·mức độ hài lòng</strong>: hội thoại đã kết thúc hiển thị thẻ mức độ hài lòng (5 mức emoji = 1~5 điểm) trong vòng 24 giờ. Gửi tin nhắn mới sẽ bắt đầu phiên tư vấn mới</li>
   </ul>
+  <figure class="shot"><img src="img/widget-chat.en.jpg" alt="Trò chuyện trong widget — câu trả lời AI, danh sách tri thức tham chiếu, chuyển đổi ngôn ngữ (6 loại) (ảnh chụp giao diện tiếng Anh — bảng điều khiển hỗ trợ cả tiếng Việt)" loading="lazy"><figcaption>Trò chuyện trong widget — câu trả lời AI, danh sách tri thức tham chiếu, chuyển đổi ngôn ngữ (6 loại) (ảnh chụp giao diện tiếng Anh — bảng điều khiển hỗ trợ cả tiếng Việt)</figcaption></figure>
   <h3>2.4 Cài đặt (bánh răng)</h3>
   <ul>
     <li><strong>Quản lý đồng ý</strong>: xem trạng thái·thời điểm·phiên bản, rút lại (xác nhận 2 bước — rút lại thì dừng tư vấn), đồng ý lại</li>
@@ -241,6 +246,7 @@ li{margin:4px 0}
     <li><strong>Thẻ khách hàng</strong>: tên·email·điện thoại·hạng + liên kết/tạo khách hàng · thẻ <strong>đơn hàng gần đây</strong></li>
     <li><strong>Bảng yêu cầu</strong> (quy trình native): số yêu cầu·trạng thái·loại·số lần mở lại, [Giải quyết]/[Từ chối] (bắt buộc lý do), phân công lại, dòng thời gian sự kiện</li>
   </ul>
+  <figure class="shot"><img src="img/live-chat.en.jpg" alt="Bàn điều khiển live chat 3 cột — hàng chờ·hội thoại (điều khiển trả lời tự động·tiếp nhận/kết thúc)·tóm tắt AI/tra cứu tri thức" loading="lazy"><figcaption>Bàn điều khiển live chat 3 cột — hàng chờ·hội thoại (điều khiển trả lời tự động·tiếp nhận/kết thúc)·tóm tắt AI/tra cứu tri thức</figcaption></figure>
   <h3>4.4 Cảnh báo chuyển tiếp·tự động kết thúc</h3>
   <ul>
     <li><strong>Cảnh báo escalation</strong>: có chuyển tiếp mới thì trong 10 giây hiện hộp thoại thông báo (lý do: độ tin cậy thấp/kiểm duyệt chặn/khách yêu cầu) → [Mở hội thoại]</li>
@@ -294,6 +300,7 @@ li{margin:4px 0}
   <span class="actor">/dashboard</span>
   <p>6 KPI (mỗi cái liên kết đến màn hình tương ứng): tư vấn đang diễn ra · thông báo hôm nay · tỷ lệ AI tự giải quyết · Top N chưa giải quyết · tổng hội thoại · tổng đơn hàng.
   Xếp hạng <strong>câu hỏi phổ biến</strong>, <strong>trạng thái tích hợp</strong> (huy hiệu theo nhà cung cấp), <strong>5 đơn hàng gần nhất</strong>.</p>
+  <figure class="shot"><img src="img/dashboard.en.jpg" alt="Tổng quan — 6 KPI·câu hỏi phổ biến·trạng thái tích hợp" loading="lazy"><figcaption>Tổng quan — 6 KPI·câu hỏi phổ biến·trạng thái tích hợp</figcaption></figure>
 </section>
 
 <section id="ch10">
@@ -368,6 +375,7 @@ li{margin:4px 0}
     <tr><td>Nhật ký kiểm tra</td><td><code>/admin/audit</code></td><td>Truy vết thao tác đặc quyền (cấp mật khẩu tạm·đổi quyền·xem PII v.v.)</td></tr>
   </table></div>
   <p>Chi tiết quy trình mở tenant: <a href="quick-setup.vi.html">Sổ tay thiết lập nhanh chương 1</a>.</p>
+  <figure class="shot"><img src="img/admin-temp-password.en.jpg" alt="Quản lý người dùng tenant trong admin — hộp thoại mật khẩu tạm thời hiển thị 1 lần" loading="lazy"><figcaption>Quản lý người dùng tenant trong admin — hộp thoại mật khẩu tạm thời hiển thị 1 lần</figcaption></figure>
 </section>
 
 <section id="ch17">

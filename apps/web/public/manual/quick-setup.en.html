@@ -101,6 +101,9 @@ li{margin:4px 0}
 .pagenav a{color:var(--muted);text-decoration:none}
 .pagenav a:hover,.pagenav a:focus-visible{color:var(--accent)}
 .pagenav .cur{color:var(--accent-deep);font-weight:700}
+figure.shot{margin:18px 0;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--card)}
+figure.shot img{display:block;width:100%}
+figure.shot figcaption{padding:8px 16px;font-size:13px;color:var(--muted);border-top:1px solid var(--line)}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 @media(prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
 </style>
@@ -170,6 +173,7 @@ li{margin:4px 0}
   <div class="callout"><span class="c-label">💡 Slug rules</span>
   <p>Lowercase letters, digits, and hyphens only; it cannot collide with console screen names (reserved words such as <code>admin</code>, <code>login</code>, <code>dashboard</code>, <code>settings</code>).
   If you enter a reserved word, the server automatically appends a <code>-shop</code> suffix. Since the slug is the login URL itself, choose a value the store can remember easily.</p></div>
+  <figure class="shot"><img src="img/admin-tenants.en.jpg" alt="The tenant list and the [New tenant] modal — name, login path, shop domain, plan" loading="lazy"><figcaption>The tenant list and the [New tenant] modal — name, login path, shop domain, plan</figcaption></figure>
 
   <h3>1.2 (Optional) Adjust provided menus</h3>
   <p>On the tenant row, <strong>[Provided menus]</strong> → three-way choice per menu: <strong>Follow plan</strong> (default) / <strong>Force provide</strong> / <strong>Block</strong>.
@@ -194,6 +198,7 @@ li{margin:4px 0}
   <div class="callout warn"><span class="c-label">⚠️ The temporary password is not sent by email</span>
   <p>The administrator must copy the value shown once in the modal and <strong>deliver it directly</strong>. If you closed the window and lost the value,
   reissue it with the <strong>[Temp password]</strong> button on that user's row (the previous value is invalidated).</p></div>
+  <figure class="shot"><img src="img/admin-temp-password.en.jpg" alt="The temporary password modal, shown only once right after the invite — [Copy] and deliver via a secure channel" loading="lazy"><figcaption>The temporary password modal, shown only once right after the invite — [Copy] and deliver via a secure channel</figcaption></figure>
   <div class="callout"><span class="c-label">💡 Secure delivery</span>
   <p>Never leave the password in an email body or a group chat. Deliver it via a 1:1 secure messenger or a phone call,
   and the creation procedure is complete only after confirming the first login (= forced change). Every issuance is recorded in the audit log (<code>/admin/audit</code>).</p></div>
@@ -212,6 +217,7 @@ li{margin:4px 0}
   <div class="callout"><span class="c-label">💡 Tip</span>
   <p>If you see "store not found", check the spelling of the slug in the URL.
   Turn on <strong>Remember email</strong> and this browser will pre-fill the email next time.</p></div>
+  <figure class="shot"><img src="img/tenant-login.en.jpg" alt="The tenant-dedicated login screen (/slug)" loading="lazy"><figcaption>The tenant-dedicated login screen (/slug)</figcaption></figure>
 
   <h3>2.2 Forced password change</h3>
   <p>Immediately after login, a <strong>non-dismissable password change dialog</strong> appears (it cannot be cancelled — the console cannot be used with a temporary password).</p>
@@ -220,6 +226,7 @@ li{margin:4px 0}
     <li>The 3 rules show live ✓/✕: <strong>① at least 10 characters ② at least 3 of: uppercase·lowercase·digits·special characters ③ not a common password</strong></li>
     <li>Passwords containing your own email, or identical to the previous one, are rejected by the server</li>
   </ul>
+  <figure class="shot"><img src="img/forced-password.en.jpg" alt="Forced password change on first login — the 3 rules are checked live" loading="lazy"><figcaption>Forced password change on first login — the 3 rules are checked live</figcaption></figure>
 
   <h3>2.3 MFA (two-factor authentication) enrollment</h3>
   <div class="terms"><div class="t-label">Terms</div>
@@ -245,6 +252,7 @@ li{margin:4px 0}
     <tr><td>Test connection</td><td>A button that makes one real API call with the saved credentials to verify their validity</td></tr>
     <tr><td>Sync</td><td>The job that pulls the platform's order·product data into the ShopTalk cache</td></tr>
   </table></div></div>
+  <figure class="shot"><img src="img/settings-stores.en.jpg" alt="The store integration tiles on [Settings] — enter credentials via each platform's [Configure] button" loading="lazy"><figcaption>The store integration tiles on [Settings] — enter credentials via each platform's [Configure] button</figcaption></figure>
 
   <h3>3.1 Cafe24 — OAuth connection (recommended) ✅</h3>
   <ol class="steps">
@@ -291,8 +299,10 @@ li{margin:4px 0}
   and generate the <strong>signing secret</strong> (for member identity federation).</p>
   <div class="callout warn"><span class="c-label">⚠️ The signing secret is shown only once at [Generate]</span>
   <p>Copy it immediately and hand it to the shop's server engineer.</p></div>
+  <figure class="shot"><img src="img/settings-install.en.jpg" alt="The Cafe24 OAuth connection card and the install-on-store card — per-platform snippet tabs" loading="lazy"><figcaption>The Cafe24 OAuth connection card and the install-on-store card — per-platform snippet tabs</figcaption></figure>
   <div class="callout"><span class="c-label">💡 Tip</span>
   <p>The surest verification is to open the live shop page and check that the launcher (speech-bubble button) appears at the bottom right.</p></div>
+  <figure class="shot"><img src="img/widget-chat.en.jpg" alt="The widget installed on a shop — 3 tabs, AI disclosure, scenario quick menu" loading="lazy"><figcaption>The widget installed on a shop — 3 tabs, AI disclosure, scenario quick menu</figcaption></figure>
 
   <h3>4.2 Copy &amp; behavior (widget behavior card)</h3>
   <div class="tablewrap"><table>
@@ -312,6 +322,7 @@ li{margin:4px 0}
   <div class="callout"><span class="c-label">💡 Tip</span>
   <p>You only need to pick <strong>one brand color</strong>. Lightness steps and text colors are computed automatically against the contrast standard (4.5:1).
   A saved theme takes effect <strong>from the customer's next widget session</strong>.</p></div>
+  <figure class="shot"><img src="img/settings-widget.en.jpg" alt="The widget tabs and widget theme cards — verified instantly in the preview on the right" loading="lazy"><figcaption>The widget tabs and widget theme cards — verified instantly in the preview on the right</figcaption></figure>
 </section>
 
 <section id="ch5">
@@ -334,6 +345,7 @@ li{margin:4px 0}
   <div class="callout"><span class="c-label">💡 Tip</span>
   <p>The scenario buttons (the quick menu at the bottom of the widget) come with 6 defaults (track shipping·cancel/refund·product help·contact support·partnership·my orders)
   applied automatically, so you do not need to touch them at the setup stage.</p></div>
+  <figure class="shot"><img src="img/ai-setting.en.jpg" alt="AI settings — the agent &amp; persona cards (left) and the preview &amp; coaching studio (right)" loading="lazy"><figcaption>AI settings — the agent &amp; persona cards (left) and the preview &amp; coaching studio (right)</figcaption></figure>
 </section>
 
 <section id="ch6">
@@ -350,6 +362,7 @@ li{margin:4px 0}
   <div class="callout"><span class="c-label">💡 Tip</span>
   <p>Including <strong>the phrasing customers actually use</strong> (e.g. "how long does shipping take") in document titles and bodies raises search hit rates.
   Bulk product knowledge, external source integration, and quality management are covered in the Part 2 manual.</p></div>
+  <figure class="shot"><img src="img/knowledge.en.jpg" alt="The Knowledge screen — sources &amp; credentials (left) and the knowledge QA panel (right)" loading="lazy"><figcaption>The Knowledge screen — sources &amp; credentials (left) and the knowledge QA panel (right)</figcaption></figure>
 </section>
 
 <section id="ch7">
