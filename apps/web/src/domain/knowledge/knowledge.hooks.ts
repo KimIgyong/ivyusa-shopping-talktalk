@@ -560,3 +560,158 @@ export function useImportProducts() {
     onError: (err: Error) => toast.error(err.message),
   });
 }
+
+// ---- Usage types (PLN-260824 A축) ----
+
+export function useUsageTypes() {
+  const tenantKey = useTenantKey();
+  return useQuery({
+    queryKey: ['knowledge', tenantKey, 'usage-types'],
+    queryFn: () => knowledgeService.usageTypes(),
+  });
+}
+
+/**
+ * Both lists move together: a type's label and order are what the guide list
+ * shows, so refreshing one and not the other leaves the screen disagreeing
+ * with itself.
+ */
+function useTaxonomyInvalidator(kind: 'usage-types' | 'categories') {
+  const qc = useQueryClient();
+  const tenantKey = useTenantKey();
+  return () => {
+    qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, kind] });
+    if (kind === 'usage-types') {
+      qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'usage-guides'] });
+    } else {
+      qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'documents'] });
+      qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'category-counts'] });
+    }
+  };
+}
+
+export function useSaveUsageType() {
+  const invalidate = useTaxonomyInvalidator('usage-types');
+  const { t } = useTranslation('knowledge');
+  return useMutation({
+    mutationFn: (v: { id?: string; label: string; keywords: string[]; active?: boolean }) =>
+      v.id
+        ? knowledgeService.updateUsageType(v.id, {
+            label: v.label,
+            keywords: v.keywords,
+            active: v.active,
+          })
+        : knowledgeService.createUsageType({ label: v.label, keywords: v.keywords }),
+    onSuccess: () => {
+      invalidate();
+      toast.success(t('usageTypeSaved'));
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+}
+
+export function useReorderUsageTypes() {
+  const invalidate = useTaxonomyInvalidator('usage-types');
+  const { t } = useTranslation('knowledge');
+  return useMutation({
+    mutationFn: (ids: string[]) => knowledgeService.reorderUsageTypes(ids),
+    onSuccess: () => {
+      invalidate();
+      toast.success(t('usageTypeReordered'));
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+}
+
+/**
+ * Live match count while the operator types keywords.
+ *
+ * A wrong keyword fails silently — it matches nothing, and "0 products" reads
+ * the same as "this catalogue has none of those". This is the only place that
+ * distinction is cheap to make (PLN D2), so it is a mutation the editor fires
+ * on change rather than something hidden behind a save.
+ */
+export function usePreviewUsageType() {
+  return useMutation({
+    mutationFn: (v: { keywords: string[]; excludeId?: string }) =>
+      knowledgeService.previewUsageType(v.keywords, v.excludeId),
+  });
+}
+
+// ---- Categories (PLN-260824 B축) ----
+
+export function useCategoryRows() {
+  const tenantKey = useTenantKey();
+  return useQuery({
+    queryKey: ['knowledge', tenantKey, 'categories'],
+    queryFn: () => knowledgeService.categoryRows(),
+  });
+}
+
+export function useCreateCategory() {
+  const invalidate = useTaxonomyInvalidator('categories');
+  const { t } = useTranslation('knowledge');
+  return useMutation({
+    mutationFn: (v: { name: string; label?: string }) => knowledgeService.createCategory(v),
+    onSuccess: () => {
+      invalidate();
+      toast.success(t('categorySaved'));
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+}
+
+export function useRenameCategory() {
+  const invalidate = useTaxonomyInvalidator('categories');
+  const { t } = useTranslation('knowledge');
+  return useMutation({
+    mutationFn: (v: { id: string; name: string }) =>
+      knowledgeService.renameCategory(v.id, v.name),
+    onSuccess: () => {
+      invalidate();
+      toast.success(t('categoryRenamed'));
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+}
+
+export function useMergeCategories() {
+  const invalidate = useTaxonomyInvalidator('categories');
+  const { t } = useTranslation('knowledge');
+  return useMutation({
+    mutationFn: (v: { fromIds: string[]; intoId: string }) =>
+      knowledgeService.mergeCategories(v.fromIds, v.intoId),
+    onSuccess: (res) => {
+      invalidate();
+      toast.success(t('categoryMerged', { count: res.moved }));
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+}
+
+export function useSetCategoryHidden() {
+  const invalidate = useTaxonomyInvalidator('categories');
+  const { t } = useTranslation('knowledge');
+  return useMutation({
+    mutationFn: (v: { id: string; hidden: boolean }) =>
+      knowledgeService.setCategoryHidden(v.id, v.hidden),
+    onSuccess: (_res, v) => {
+      invalidate();
+      toast.success(v.hidden ? t('categoryHidden') : t('categoryShown'));
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+}
+
+export function useRemoveCategory() {
+  const invalidate = useTaxonomyInvalidator('categories');
+  const { t } = useTranslation('knowledge');
+  return useMutation({
+    mutationFn: (id: string) => knowledgeService.removeCategory(id),
+    onSuccess: () => {
+      invalidate();
+      toast.success(t('categoryRemoved'));
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+}

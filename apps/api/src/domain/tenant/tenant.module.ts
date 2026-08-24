@@ -5,6 +5,7 @@ import { IntegrationCredential } from './entity/integration-credential.entity';
 import { User } from '../user/entity/user.entity';
 import { ContentFilterRule } from '../moderation/entity/content-filter-rule.entity';
 import { JobLabel } from '../user/entity/job-label.entity';
+import { UsageType } from '../knowledge/entity/usage-type.entity';
 import { TenantService } from './tenant.service';
 import { EcommerceIntegrationService } from './ecommerce-integration.service';
 import { WebhookSecretService } from './webhook-secret.service';
@@ -17,7 +18,14 @@ import { EmbedModule } from '../embed/embed.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Tenant, IntegrationCredential, User, ContentFilterRule, JobLabel]),
+    TypeOrmModule.forFeature([
+      Tenant,
+      IntegrationCredential,
+      User,
+      ContentFilterRule,
+      JobLabel,
+      UsageType,
+    ]),
     IntegrationModule,
     AuditModule,
     // For the secret-rotation route; EmbedModule owns the secret's lifecycle.

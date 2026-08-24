@@ -27,24 +27,33 @@ import { ERROR_CODE } from '../../global/constant/error-code.constant';
 import { KnowledgeService } from './knowledge.service';
 import { GdriveCredentialService } from './gdrive-credential.service';
 import { NotionCredentialService } from './notion-credential.service';
+import { UsageTypeService } from './usage-type.service';
+import { KbCategoryService } from './kb-category.service';
 import { KnowledgeMapper } from './knowledge.mapper';
 import {
+  ApproveProposalRequest,
   AskKnowledgeRequest,
+  CreateCategoryRequest,
   CreateDocumentRequest,
   CreatePostRequest,
   CreateSourceRequest,
   ListConflictsQuery,
   ListDocumentsQuery,
+  MergeCategoriesRequest,
+  PreviewUsageTypeRequest,
+  RejectProposalRequest,
+  RenameCategoryRequest,
+  ReorderRequest,
   ResolveConflictRequest,
+  SaveGdriveCredentialRequest,
+  SaveNotionCredentialRequest,
+  SaveUsageGuideRequest,
+  SaveUsageTypeRequest,
+  SetCategoryHiddenRequest,
+  TestGdriveRequest,
+  TestNotionRequest,
   UpdateDocumentRequest,
   UpdateSourceRequest,
-  SaveUsageGuideRequest,
-  ApproveProposalRequest,
-  RejectProposalRequest,
-  SaveGdriveCredentialRequest,
-  TestGdriveRequest,
-  SaveNotionCredentialRequest,
-  TestNotionRequest,
 } from './dto/request/knowledge.request';
 import { KbConflictService } from './kb-conflict.service';
 import { KbRevisionService } from './kb-revision.service';
@@ -66,6 +75,8 @@ export class KnowledgeController {
     private readonly gapService: KnowledgeGapService,
     private readonly gdriveCredentials: GdriveCredentialService,
     private readonly notionCredentials: NotionCredentialService,
+    private readonly usageTypes: UsageTypeService,
+    private readonly kbCategories: KbCategoryService,
   ) {}
 
   // ---- Knowledge-gap proposals (P5, 결정 9: human approval only) ----
@@ -437,6 +448,139 @@ export class KnowledgeController {
   ) {
     const actor = this.tenantUser(user);
     return this.answerProposals.reject(actor.tenantId, id, body.reason, actor.userId);
+  }
+
+  // ---- Usage types (PLN-260824 A축) ----
+
+  @Get('usage-types')
+  @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
+  @ApiOperation({ summary: "This tenant's usage-guide types, in match order" })
+  async listUsageTypes(@CurrentUser() user: Principal) {
+    const rows = await this.usageTypes.list(this.tenantUser(user).tenantId);
+    return KnowledgeMapper.toUsageTypeList(rows);
+  }
+
+  @Post('usage-types')
+  @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
+  @ApiOperation({ summary: 'Add a usage-guide type' })
+  async createUsageType(@CurrentUser() user: Principal, @Body() body: SaveUsageTypeRequest) {
+    const row = await this.usageTypes.create(this.tenantUser(user).tenantId, {
+      label: body.label,
+      keywords: body.keywords,
+    });
+    return KnowledgeMapper.toUsageType(row);
+  }
+
+  @Put('usage-types/:id')
+  @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
+  @ApiOperation({ summary: 'Rename a type, retune its keywords, or turn it off' })
+  async updateUsageType(
+    @CurrentUser() user: Principal,
+    @Param('id') id: string,
+    @Body() body: SaveUsageTypeRequest,
+  ) {
+    const row = await this.usageTypes.update(this.tenantUser(user).tenantId, Number(id), {
+      label: body.label,
+      keywords: body.keywords,
+      active: body.active,
+    });
+    return KnowledgeMapper.toUsageType(row);
+  }
+
+  @Put('usage-types/reorder')
+  @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
+  @ApiOperation({ summary: 'Set match order — the first matching type claims a product' })
+  async reorderUsageTypes(@CurrentUser() user: Principal, @Body() body: ReorderRequest) {
+    await this.usageTypes.reorder(this.tenantUser(user).tenantId, body.ids);
+    return { reordered: body.ids.length };
+  }
+
+  @Post('usage-types/preview')
+  @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
+  @ApiOperation({ summary: 'How many products a keyword set would claim, before saving it' })
+  async previewUsageType(
+    @CurrentUser() user: Principal,
+    @Body() body: PreviewUsageTypeRequest,
+  ) {
+    return this.usageTypes.preview(this.tenantUser(user).tenantId, body.keywords, {
+      excludeId: body.exclude_id,
+    });
+  }
+
+  // ---- Document categories (PLN-260824 B축) ----
+
+  @Get('categories')
+  @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
+  @ApiOperation({ summary: "This tenant's document categories with live document counts" })
+  async listCategories(@CurrentUser() user: Principal) {
+    return this.kbCategories.list(this.tenantUser(user).tenantId);
+  }
+
+  @Post('categories')
+  @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
+  @ApiOperation({ summary: 'Add a category' })
+  async createCategory(@CurrentUser() user: Principal, @Body() body: CreateCategoryRequest) {
+    const row = await this.kbCategories.create(
+      this.tenantUser(user).tenantId,
+      body.name,
+      body.label ?? null,
+    );
+    return KnowledgeMapper.toCategory(row);
+  }
+
+  @Put('categories/:id/rename')
+  @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
+  @ApiOperation({ summary: 'Rename a category and every document filed under it' })
+  async renameCategory(
+    @CurrentUser() user: Principal,
+    @Param('id') id: string,
+    @Body() body: RenameCategoryRequest,
+  ) {
+    const row = await this.kbCategories.rename(
+      this.tenantUser(user).tenantId,
+      Number(id),
+      body.name,
+    );
+    return KnowledgeMapper.toCategory(row);
+  }
+
+  @Post('categories/merge')
+  @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
+  @ApiOperation({ summary: 'Move documents into one category and drop the emptied ones' })
+  async mergeCategories(@CurrentUser() user: Principal, @Body() body: MergeCategoriesRequest) {
+    return this.kbCategories.merge(this.tenantUser(user).tenantId, body.from_ids, body.into_id);
+  }
+
+  @Put('categories/:id/hidden')
+  @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
+  @ApiOperation({ summary: 'Keep a category out of the pickers without moving its documents' })
+  async setCategoryHidden(
+    @CurrentUser() user: Principal,
+    @Param('id') id: string,
+    @Body() body: SetCategoryHiddenRequest,
+  ) {
+    const row = await this.kbCategories.setHidden(
+      this.tenantUser(user).tenantId,
+      Number(id),
+      body.hidden,
+    );
+    return KnowledgeMapper.toCategory(row);
+  }
+
+  @Put('categories/reorder')
+  @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
+  @ApiOperation({ summary: 'Set the order categories are listed in' })
+  async reorderCategories(@CurrentUser() user: Principal, @Body() body: ReorderRequest) {
+    await this.kbCategories.reorder(this.tenantUser(user).tenantId, body.ids);
+    return { reordered: body.ids.length };
+  }
+
+  @Delete('categories/:id')
+  @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
+  @ApiOperation({ summary: 'Delete a category that holds no documents' })
+  async removeCategory(@CurrentUser() user: Principal, @Param('id') id: string) {
+    await this.kbCategories.remove(this.tenantUser(user).tenantId, Number(id));
+    return { removed: true };
   }
 
   @Get('usage-guides')

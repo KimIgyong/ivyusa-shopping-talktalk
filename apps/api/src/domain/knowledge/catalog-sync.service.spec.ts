@@ -34,8 +34,16 @@ describe('CatalogSyncService', () => {
     const revisionSvc = {
       record: jest.fn(async (...args: any[]) => void revisions.push(args)),
     };
-    const svc = new CatalogSyncService(docRepo as never, productRepo as never, revisionSvc as never);
-    return { svc, saved, revisions, docRepo };
+    // Categories the run produces are registered so the console's list keeps
+    // describing reality; the sync itself does not depend on the result.
+    const categories = { ensure: jest.fn(async () => undefined) };
+    const svc = new CatalogSyncService(
+      docRepo as never,
+      productRepo as never,
+      revisionSvc as never,
+      categories as never,
+    );
+    return { svc, saved, revisions, docRepo, categories };
   }
 
   const shades = ['Sweet & Sour', 'Purple Rain', 'Iconic Neon'].map((shade, i) =>

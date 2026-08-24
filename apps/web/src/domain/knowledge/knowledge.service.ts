@@ -152,11 +152,42 @@ export interface AnswerProposal {
 
 /** One product type's usage guide and how many products it serves (PLN-260807 P2). */
 export interface UsageGuide {
+  /** Row id of the type — the guide is still addressed by `key`. */
+  id: string;
   key: string;
+  label: string;
+  active: boolean;
   productCount: number;
   documentId: string | null;
   title: string | null;
   updatedAt: string | null;
+}
+
+/** A tenant's usage-guide type (PLN-260824 A축). */
+export interface UsageType {
+  id: string;
+  key: string;
+  label: string;
+  keywords: string[];
+  sortOrder: number;
+  active: boolean;
+}
+
+/** What a keyword set would claim, before it is saved (PLN D2). */
+export interface UsageTypePreview {
+  matched: number;
+  samples: string[];
+}
+
+/** A tenant's document category (PLN-260824 B축). */
+export interface KbCategoryRow {
+  id: string;
+  name: string;
+  label: string | null;
+  /** manual | catalog | seed — `catalog` rows are read-only. */
+  origin: string;
+  hidden: boolean;
+  documentCount: number;
 }
 
 /** Live state of the async conversion (PLN-260807 P1 / RPT-260808 D3). */
@@ -331,6 +362,32 @@ export const knowledgeService = {
   rejectProposal: (id: string, reason: string) =>
     apiPost<AnswerProposal>(`/knowledge/proposals/${id}/reject`, { reason }),
   usageGuides: () => apiGet<UsageGuide[]>('/knowledge/usage-guides'),
+  usageTypes: () => apiGet<UsageType[]>('/knowledge/usage-types'),
+  createUsageType: (body: { label: string; keywords: string[] }) =>
+    apiPost<UsageType>('/knowledge/usage-types', body),
+  updateUsageType: (id: string, body: { label?: string; keywords?: string[]; active?: boolean }) =>
+    apiPut<UsageType>(`/knowledge/usage-types/${id}`, body),
+  reorderUsageTypes: (ids: string[]) =>
+    apiPut<{ reordered: number }>('/knowledge/usage-types/reorder', { ids: ids.map(Number) }),
+  previewUsageType: (keywords: string[], excludeId?: string) =>
+    apiPost<UsageTypePreview>('/knowledge/usage-types/preview', {
+      keywords,
+      ...(excludeId ? { exclude_id: Number(excludeId) } : {}),
+    }),
+  categoryRows: () => apiGet<KbCategoryRow[]>('/knowledge/categories'),
+  createCategory: (body: { name: string; label?: string }) =>
+    apiPost<KbCategoryRow>('/knowledge/categories', body),
+  renameCategory: (id: string, name: string) =>
+    apiPut<KbCategoryRow>(`/knowledge/categories/${id}/rename`, { name }),
+  mergeCategories: (fromIds: string[], intoId: string) =>
+    apiPost<{ moved: number }>('/knowledge/categories/merge', {
+      from_ids: fromIds.map(Number),
+      into_id: Number(intoId),
+    }),
+  setCategoryHidden: (id: string, hidden: boolean) =>
+    apiPut<KbCategoryRow>(`/knowledge/categories/${id}/hidden`, { hidden }),
+  removeCategory: (id: string) =>
+    apiDelete<{ removed: boolean }>(`/knowledge/categories/${id}`),
   saveUsageGuide: (key: string, body: { title: string; content: string }) =>
     apiPut<{ id: string; embedded: number; embedFailed: number }>(
       `/knowledge/usage-guides/${key}`,

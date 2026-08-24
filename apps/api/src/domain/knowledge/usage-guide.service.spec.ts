@@ -1,6 +1,34 @@
 import { USAGE_GUIDE_CATEGORY, UsageGuideService } from './usage-guide.service';
 import { DOC_GROUP } from './entity/kb-document.entity';
-import { classifyUsageType, USAGE_TYPES, usageGuideKey } from './usage-guide.types';
+import { classifyUsageType, usageGuideKey } from './usage-guide.types';
+
+/**
+ * The ten types IVY USA had in code and now has as rows. Kept here verbatim so
+ * the matching behaviour that shipped stays pinned: the migration copies these
+ * into `usage_types`, and a change in either place should break this file.
+ */
+const IVY_TYPES = [
+  { key: 'lash_adhesive', keywords: ['lash adhesive', 'eyelash adhesive', 'lash glue', 'brow glue'] },
+  { key: 'lashes', keywords: ['lash', 'eyelash'] },
+  { key: 'press_on_nails', keywords: ['press on', 'press-on', 'impress', 'artificial nail', 'false nail', 'fake nail'] },
+  { key: 'nail_polish', keywords: ['nail polish', 'gel polish', 'nail lacquer', 'top coat', 'base coat'] },
+  { key: 'hair_color', keywords: ['hair color', 'hair colour', 'hair dye', 'bleach', 'developer', 'toner kit'] },
+  { key: 'wig_hairpiece', keywords: ['wig', 'ponytail', 'hairpiece', 'hair piece', 'weave', 'braid', 'bundle', 'closure', 'frontal'] },
+  { key: 'heated_tool', keywords: ['flat iron', 'curling', 'blow dry', 'hair dryer', 'heated', 'straightener', 'hot comb'] },
+  { key: 'skincare', keywords: ['serum', 'ampoule', 'toner', 'essence', 'moisturizer', 'cream', 'cleanser', 'mask', 'sunscreen', 'spf', 'peeling', 'exfoliat', 'cleansing'] },
+  { key: 'makeup', keywords: ['lipstick', 'lip oil', 'lip gloss', 'lip balm', 'concealer', 'foundation', 'mascara', 'eyeliner', 'eyebrow', 'brow pencil', 'blush', 'powder', 'primer', 'palette', 'makeup'] },
+  { key: 'edge_styling', keywords: ['edge control', 'styling gel', 'hair wax', 'pomade', 'hair oil', 'hair spray', 'mousse'] },
+];
+
+/** As rows, in match order, for the service tests. */
+const ivyRows = IVY_TYPES.map((t, i) => ({
+  id: i + 1,
+  key: t.key,
+  label: t.key,
+  keywords: t.keywords.join('\n'),
+  sortOrder: (i + 1) * 10,
+  active: 1,
+}));
 
 describe('classifyUsageType', () => {
   it.each([
@@ -13,26 +41,26 @@ describe('classifyUsageType', () => {
     ['RED by KISS Edge Control Travel Duo', 'edge_styling'],
     ['RED by KISS Heated Roll Brush 2 in 1 Curling Iron', 'heated_tool'],
   ])('%s → %s', (title, expected) => {
-    expect(classifyUsageType({ title })).toBe(expected);
+    expect(classifyUsageType({ title }, IVY_TYPES)).toBe(expected);
   });
 
   it('puts an adhesive under its own type, not under lashes', () => {
     // Both titles contain "lash"; the adhesive needs different steps, which is
     // why its rule is ordered first.
-    expect(classifyUsageType({ title: 'i-ENVY Lash Adhesive Strip Lash Glue' })).toBe(
+    expect(classifyUsageType({ title: 'i-ENVY Lash Adhesive Strip Lash Glue' }, IVY_TYPES)).toBe(
       'lash_adhesive',
     );
   });
 
   it('returns null for products a usage guide would not help', () => {
     // A guide here would be padding, and padding competes for retrieval slots.
-    expect(classifyUsageType({ title: 'Arria 14K Gold Plated Figaro Chain Bracelet' })).toBeNull();
-    expect(classifyUsageType({ title: 'éclat 100% Pure Cotton Rounds' })).toBeNull();
+    expect(classifyUsageType({ title: 'Arria 14K Gold Plated Figaro Chain Bracelet' }, IVY_TYPES)).toBeNull();
+    expect(classifyUsageType({ title: 'éclat 100% Pure Cotton Rounds' }, IVY_TYPES)).toBeNull();
   });
 
   it('falls back to product type and tags when the title says nothing', () => {
-    expect(classifyUsageType({ title: 'Glow Set No. 3', category: 'Strip Lashes' })).toBe('lashes');
-    expect(classifyUsageType({ title: 'Glow Set No. 3', tags: 'gift, serum, vegan' })).toBe(
+    expect(classifyUsageType({ title: 'Glow Set No. 3', category: 'Strip Lashes' }, IVY_TYPES)).toBe('lashes');
+    expect(classifyUsageType({ title: 'Glow Set No. 3', tags: 'gift, serum, vegan' }, IVY_TYPES)).toBe(
       'skincare',
     );
   });
@@ -55,10 +83,17 @@ describe('UsageGuideService', () => {
     };
     const productRepo = { find: jest.fn(async () => products) };
     const revisions = { record: jest.fn(async () => undefined) };
+    const types = { list: jest.fn(async () => ivyRows) };
     return {
-      svc: new UsageGuideService(docRepo as never, productRepo as never, revisions as never),
+      svc: new UsageGuideService(
+        docRepo as never,
+        productRepo as never,
+        revisions as never,
+        types as never,
+      ),
       saved,
       revisions,
+      types,
     };
   };
 
@@ -68,7 +103,7 @@ describe('UsageGuideService', () => {
 
       const guides = await svc.list(1);
 
-      expect(guides).toHaveLength(USAGE_TYPES.length);
+      expect(guides).toHaveLength(ivyRows.length);
       expect(guides.find((g) => g.key === 'press_on_nails')).toMatchObject({
         productCount: 1,
         documentId: null,
@@ -156,7 +191,10 @@ describe('UsageGuideService', () => {
       expect(revisions.record).toHaveBeenCalledTimes(1);
     });
 
-    it('rejects a type that does not exist', async () => {
+    it('rejects a type this tenant does not have', async () => {
+      // Not "a type that does not exist" any more: the list is per tenant, so
+      // the question is whether THIS tenant has it. A stale console tab must
+      // not file a guide under another shop's vocabulary.
       const { svc } = build();
 
       await expect(

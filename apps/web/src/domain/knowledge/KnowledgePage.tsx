@@ -10,7 +10,7 @@ import { Table } from '@/components/Table';
 import type { Column } from '@/components/Table';
 import { Modal } from '@/components/Modal';
 import { knowledgeService } from './knowledge.service';
-import type { UsageGuide } from './knowledge.service';
+import type { UsageGuide, UsageType } from './knowledge.service';
 import { Progress } from '@/components/Progress';
 import { Pagination } from '@/components/Pagination';
 import { FormRow, Input, Select } from '@/components/Field';
@@ -18,6 +18,8 @@ import { ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { KnowledgeQaPanel } from './KnowledgeQaPanel';
 import { SourceCredentialCard } from './SourceCredentialCard';
+import { UsageTypeEditor } from './UsageTypeEditor';
+import { CategoryManagerCard } from './CategoryManagerCard';
 import { GapTasksSection } from './GapTasksSection';
 import { ConflictReview } from './ConflictReview';
 import { RevisionHistory } from './RevisionHistory';
@@ -45,6 +47,9 @@ import {
   useCatalogSyncStatus,
   useCatalogSyncCompletion,
   useUsageGuides,
+  useUsageTypes,
+  useReorderUsageTypes,
+  useCategoryRows,
   useProposals,
   useProposalDecision,
   useSaveUsageGuide,
@@ -70,27 +75,14 @@ const SOURCE_TYPE = {
 } as const;
 type SourceType = (typeof SOURCE_TYPE)[keyof typeof SOURCE_TYPE];
 const SOURCE_TYPES = Object.values(SOURCE_TYPE);
-/** Known category values: legacy seed tags + policy import taxonomy. */
-const CATEGORIES = [
-  'faq',
-  'policy',
-  'product',
-  'warranty',
-  'policy_legal',
-  'policy_shipping',
-  'policy_return',
-  'policy_cancellation',
-  'policy_claims',
-  'policy_payment',
-  'policy_promotion',
-  'policy_membership',
-  'policy_professional',
-  'policy_beautizen',
-  'policy_roundtable',
-  'policy_b2b',
-  'policy_safety',
-  'policy_fraud',
-];
+/**
+ * Category suggestions come from the tenant now (PLN-260824 G8).
+ *
+ * There used to be nineteen hardcoded values here — IVY USA's policy tags,
+ * offered to every tenant. Measured on staging, one tenant used eighteen of
+ * them and an apparel tenant used exactly one, while its own eight categories
+ * were nowhere in the list.
+ */
 
 export function KnowledgePage() {
   const { t } = useTranslation('knowledge');
@@ -127,6 +119,7 @@ export function KnowledgePage() {
   // Always fetched ungrouped: the tab counts need every group, and the category
   // list is derived from the same rows.
   const categories = useCategories();
+  const categoryRows = useCategoryRows();
   const allCounts = categories.data ?? [];
   const groupTotals = allCounts.reduce<Record<string, number>>((acc, c) => {
     acc[c.group] = (acc[c.group] ?? 0) + c.total;
@@ -152,12 +145,13 @@ export function KnowledgePage() {
     setCategory('');
     setPage(1);
   };
-  // Suggest what this tenant actually uses, plus the known taxonomy for a tenant
-  // that has not created anything yet.
+  // What this tenant actually uses, plus what it has registered.
   const categorySuggestions = [
     ...new Set([
       ...allCounts.map((c) => c.category).filter((c): c is string => !!c),
-      ...CATEGORIES,
+      // Registered but not yet used: a category created for documents that have
+      // not been filed yet would otherwise be impossible to pick.
+      ...(categoryRows.data ?? []).filter((c) => !c.hidden).map((c) => c.name),
     ]),
   ];
   const selectCategory = (value: string) => {
@@ -256,12 +250,29 @@ export function KnowledgePage() {
   const [rejectReason, setRejectReason] = useState('');
   const usageGuides = useUsageGuides();
   const saveUsageGuide = useSaveUsageGuide();
+  const usageTypes = useUsageTypes();
+  const reorderTypes = useReorderUsageTypes();
+  const [typeEditorOpen, setTypeEditorOpen] = useState(false);
+  const [editingType, setEditingType] = useState<UsageType | null>(null);
+
+  /**
+   * Move one type past its neighbour. The whole order is sent rather than a
+   * swap: the server stores positions, and reconciling two independent swaps
+   * is not worth the round trip it saves.
+   */
+  const moveType = (index: number, delta: number) => {
+    const ordered = (usageGuides.data ?? []).map((g) => g.id);
+    const target = index + delta;
+    if (target < 0 || target >= ordered.length) return;
+    [ordered[index], ordered[target]] = [ordered[target], ordered[index]];
+    reorderTypes.mutate(ordered);
+  };
   const [guideKey, setGuideKey] = useState<string | null>(null);
   const [guideTitle, setGuideTitle] = useState('');
   const [guideBody, setGuideBody] = useState('');
   const openGuide = async (g: UsageGuide) => {
     setGuideKey(g.key);
-    setGuideTitle(g.title ?? t(`usageType_${g.key}`));
+    setGuideTitle(g.title ?? g.label);
     setGuideBody('');
     // Editing starts from what is stored — a blank box would let a save
     // silently replace a written guide with whatever is typed next.
@@ -660,14 +671,36 @@ export function KnowledgePage() {
             at all — 31 of 2,275 products carry any — so these ten guides are
             where "how do I apply this?" gets answered. Types with no guide are
             listed on purpose: a gap nobody can see is a gap nobody fills. */}
-        <Card title={t('usageGuides')}>
+        <Card
+          title={t('usageGuides')}
+          action={
+            <Button
+              size="sm"
+              onClick={() => {
+                setEditingType(null);
+                setTypeEditorOpen(true);
+              }}
+            >
+              {t('usageTypeAdd')}
+            </Button>
+          }
+        >
           <p className="mb-2 text-xs text-gray-500">{t('usageGuidesHint')}</p>
+          {/* A tenant with no catalogue still writes guides; the count is just
+              always zero, and saying so beats hiding the whole feature (D3). */}
+          {usageGuides.data && usageGuides.data.every((g) => g.productCount === 0) ? (
+            <p className="mb-2 text-xs text-gray-500">{t('usageNoCatalogHint')}</p>
+          ) : null}
           <Table<UsageGuide>
             columns={[
               {
                 key: 'key',
                 header: t('usageType'),
-                render: (g) => <span className="font-medium">{t(`usageType_${g.key}`)}</span>,
+                render: (g) => (
+                  <span className={g.active ? 'font-medium' : 'font-medium text-gray-400'}>
+                    {g.label}
+                  </span>
+                ),
               },
               {
                 key: 'productCount',
@@ -689,11 +722,46 @@ export function KnowledgePage() {
               {
                 key: 'action',
                 header: '',
-                render: (g) => (
-                  <Button variant="ghost" onClick={() => void openGuide(g)}>
-                    {g.documentId ? t('usageEdit') : t('usageWrite')}
-                  </Button>
-                ),
+                render: (g) => {
+                  const i = usageGuides.data?.findIndex((x) => x.key === g.key) ?? 0;
+                  return (
+                  <div className="flex justify-end gap-1">
+                    <Button variant="ghost" onClick={() => void openGuide(g)}>
+                      {g.documentId ? t('usageEdit') : t('usageWrite')}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      onClick={() => {
+                        const type = usageTypes.data?.find((ty) => ty.key === g.key) ?? null;
+                        setEditingType(type);
+                        setTypeEditorOpen(true);
+                      }}
+                    >
+                      {t('usageTypeEditAction')}
+                    </Button>
+                    {/* Order decides which type claims a product, so it is
+                        editable here rather than buried in the dialog. */}
+                    <Button
+                      variant="ghost"
+                      disabled={i === 0 || reorderTypes.isPending}
+                      title={t('usageTypeMoveUp')}
+                      onClick={() => moveType(i, -1)}
+                    >
+                      ↑
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      disabled={
+                        i === (usageGuides.data?.length ?? 0) - 1 || reorderTypes.isPending
+                      }
+                      title={t('usageTypeMoveDown')}
+                      onClick={() => moveType(i, 1)}
+                    >
+                      ↓
+                    </Button>
+                  </div>
+                  );
+                },
               },
             ]}
             data={usageGuides.data}
@@ -703,6 +771,14 @@ export function KnowledgePage() {
             rowKey={(g) => g.key}
           />
         </Card>
+
+        <UsageTypeEditor
+          open={typeEditorOpen}
+          type={editingType}
+          onClose={() => setTypeEditorOpen(false)}
+        />
+
+        <CategoryManagerCard />
 
         <Card
           title={t('documents')}
@@ -796,7 +872,7 @@ export function KnowledgePage() {
       <Modal
         open={guideKey !== null}
         onClose={() => setGuideKey(null)}
-        title={guideKey ? t(`usageType_${guideKey}`) : ''}
+        title={usageGuides.data?.find((g) => g.key === guideKey)?.label ?? ''}
         footer={
           <>
             <Button variant="ghost" onClick={() => setGuideKey(null)}>
