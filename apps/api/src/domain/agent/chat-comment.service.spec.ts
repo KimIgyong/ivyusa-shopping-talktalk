@@ -98,6 +98,16 @@ describe('ChatCommentService', () => {
     expect(h.saved).toHaveLength(0);
   });
 
+  it('recognizes the author when the JWT delivers the user id as a string', async () => {
+    // Real tokens carry userId as "1"; a strict compare against the numeric
+    // column denied every author their own comment (staging smoke, FIX-260824).
+    const h = build({ rows: [{ id: 10, tenantId: 1, authorId: 7, body: 'x' }] });
+
+    const updated = await h.svc.update(10, 1, '7' as unknown as number, 'edited');
+
+    expect(updated.body).toBe('edited');
+  });
+
   it("lets a master delete someone else's comment, but not a staff member", async () => {
     const h = build({ rows: [{ id: 10, tenantId: 1, authorId: 8, body: 'x' }] });
 
