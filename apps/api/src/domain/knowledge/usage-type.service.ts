@@ -20,6 +20,17 @@ const PREVIEW_SAMPLE = 5;
 export interface UsageTypePreview {
   matched: number;
   samples: string[];
+  /**
+   * Products these keywords describe that a higher-ordered type already takes.
+   *
+   * Without this, "0 products" is ambiguous in the one case the operator is
+   * most likely to hit: typing terms that an existing type already covers. The
+   * count would be honest and the conclusion — "my keywords are wrong" —
+   * would be wrong.
+   */
+  takenByOthers: number;
+  /** The type doing the taking, when it is mostly one of them. */
+  takenBy: string | null;
 }
 
 /**
@@ -133,7 +144,7 @@ export class UsageTypeService {
       key: '__preview__',
       keywords: keywords.map((k) => k.trim().toLowerCase()).filter(Boolean),
     };
-    if (!own.keywords.length) return { matched: 0, samples: [] };
+    if (!own.keywords.length) return { matched: 0, samples: [], takenByOthers: 0, takenBy: null };
 
     const rows = await this.list(tenantId);
     const target = opts.excludeId ? rows.find((r) => String(r.id) === String(opts.excludeId)) : null;
@@ -150,13 +161,24 @@ export class UsageTypeService {
     });
 
     const samples: string[] = [];
+    const stolenBy = new Map<string, number>();
     let matched = 0;
     for (const p of products) {
-      if (classifyUsageType(p, [...ahead, own]) !== own.key) continue;
-      matched += 1;
-      if (samples.length < PREVIEW_SAMPLE) samples.push(p.title);
+      // Would these keywords describe it at all, ignoring everyone else?
+      if (!classifyUsageType(p, [own])) continue;
+      const winner = classifyUsageType(p, [...ahead, own]);
+      if (winner === own.key) {
+        matched += 1;
+        if (samples.length < PREVIEW_SAMPLE) samples.push(p.title);
+      } else if (winner) {
+        stolenBy.set(winner, (stolenBy.get(winner) ?? 0) + 1);
+      }
     }
-    return { matched, samples };
+
+    const takenByOthers = [...stolenBy.values()].reduce((a, b) => a + b, 0);
+    const top = [...stolenBy.entries()].sort((a, b) => b[1] - a[1])[0];
+    const label = top ? (rows.find((r) => r.key === top[0])?.label ?? top[0]) : null;
+    return { matched, samples, takenByOthers, takenBy: label };
   }
 
   /**

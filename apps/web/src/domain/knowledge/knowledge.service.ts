@@ -177,6 +177,9 @@ export interface UsageType {
 export interface UsageTypePreview {
   matched: number;
   samples: string[];
+  /** Products these keywords describe that a type above already claims. */
+  takenByOthers: number;
+  takenBy: string | null;
 }
 
 /** A tenant's document category (PLN-260824 B축). */

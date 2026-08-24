@@ -290,5 +290,6 @@
   "categoryHidden": "카테고리를 숨겼습니다",
   "categoryShown": "카테고리를 표시합니다",
   "categoryRemoved": "카테고리를 삭제했습니다",
-  "usageTypeActive": "사용 중 (끄면 매칭만 멈추고 작성한 가이드는 남습니다)"
+  "usageTypeActive": "사용 중 (끄면 매칭만 멈추고 작성한 가이드는 남습니다)",
+  "usageTypeTakenHint": "{{count}}개가 걸리지만 위에 있는 \"{{type}}\"이(가) 가져갑니다. 이 유형을 위로 올리거나 키워드를 좁히십시오."
 }

@@ -94,6 +94,17 @@ describe('UsageTypeService', () => {
       expect(res.samples).toEqual(['Botanical Cotton Shirt', 'Fluid Lounge Pants']);
     });
 
+    it('says who took them, so "0" is not read as "wrong keywords"', async () => {
+      // The likeliest mistake is typing terms an existing type already covers.
+      // The count would be honest and the conclusion drawn from it wrong.
+      const rows = [row({ id: 1, key: 'linens', label: 'Linens', keywords: 'linen\ncotton', sortOrder: 10 })];
+      const { svc } = build(rows, products);
+
+      const res = await svc.preview(1, ['cotton', 'linen']);
+
+      expect(res).toMatchObject({ matched: 0, takenByOthers: 2, takenBy: 'Linens' });
+    });
+
     it('subtracts what the types above it already claim', async () => {
       // Otherwise the preview promises products this type will never receive:
       // a higher rule tests first and takes them.
@@ -112,7 +123,12 @@ describe('UsageTypeService', () => {
     it('reports zero for no keywords without reading the catalogue', async () => {
       const { svc } = build([], products);
 
-      expect(await svc.preview(1, ['   '])).toEqual({ matched: 0, samples: [] });
+      expect(await svc.preview(1, ['   '])).toEqual({
+        matched: 0,
+        samples: [],
+        takenByOthers: 0,
+        takenBy: null,
+      });
     });
   });
 

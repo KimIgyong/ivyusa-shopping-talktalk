@@ -106,7 +106,16 @@ export function UsageTypeEditor({ open, type, onClose }: Props) {
                   {preview.data.samples.join(', ')}
                 </p>
               ) : null}
-              {lines.length && matched === 0 ? (
+              {/* "0 products" has two very different causes, and the wrong
+                  reading sends the operator off rewriting correct keywords. */}
+              {lines.length && matched === 0 && preview.data?.takenByOthers ? (
+                <p className="mt-1 text-xs text-amber-700">
+                  {t('usageTypeTakenHint', {
+                    count: preview.data.takenByOthers,
+                    type: preview.data.takenBy ?? '',
+                  })}
+                </p>
+              ) : lines.length && matched === 0 ? (
                 <p className="mt-1 text-xs text-amber-700">{t('usageTypeNoMatchHint')}</p>
               ) : null}
             </>
