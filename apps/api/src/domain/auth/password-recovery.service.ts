@@ -80,7 +80,7 @@ export class PasswordRecoveryService {
 
     const sent = await this.mailer.send(
       buildTempPasswordMail(
-        this.config.get<string>('PUBLIC_WEB_BASE_URL'),
+        this.config.get<string>('APP_PUBLIC_URL'),
         tenant.slug,
         user.email,
         tempPassword,
