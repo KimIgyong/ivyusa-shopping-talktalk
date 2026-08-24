@@ -7,7 +7,7 @@ import type {
   WidgetTab,
   WidgetTabPosition,
 } from '@ivy/types';
-import type { SaveTenantEngineBody } from './settings.service';
+import type { SaveTenantEngineBody, UsageGroupBy } from './settings.service';
 import { settingsService } from './settings.service';
 import type { SaveShopifyBody, UpdateCredentialBody, WidgetCopyDraft } from './settings.service';
 import { toast } from '@/store/toast-store';
@@ -407,5 +407,14 @@ export function useDeleteAiEngine() {
       }
     },
     onError: (e: Error) => toast.error(e.message),
+  });
+}
+
+/** Token usage for a range. Kept out of the engine cache: it changes on its own clock. */
+export function useAiUsage(from: string, to: string, groupBy: UsageGroupBy) {
+  const tenantKey = useTenantKey();
+  return useQuery({
+    queryKey: ['settings', tenantKey, 'ai-usage', from, to, groupBy],
+    queryFn: () => settingsService.aiUsage(from, to, groupBy),
   });
 }

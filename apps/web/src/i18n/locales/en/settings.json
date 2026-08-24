@@ -536,5 +536,35 @@
     "defaultSet": "Default engine set",
     "removed": "Engine deleted",
     "inUse": "Still used by: {{functions}}. Point those functions elsewhere first."
+  },
+  "aiUsage": {
+    "title": "AI usage",
+    "calls": "Calls",
+    "tokensIn": "Input tokens",
+    "tokensOut": "Output tokens",
+    "total": "Total",
+    "preset": {
+      "day": "Today",
+      "week": "7 days",
+      "month": "30 days",
+      "custom": "Range",
+      "all": "All time"
+    },
+    "axis": {
+      "feature": "Feature",
+      "function": "Function",
+      "engine": "Engine",
+      "owner": "Billed to"
+    },
+    "owner": {
+      "tenant": "My engine (billed to us)",
+      "platform": "Shared engine (billed to the operator)"
+    },
+    "since": "Counting since {{date}}. Anything before that was not measured.",
+    "noneYet": "Nothing measured yet — counting starts with the next AI call.",
+    "empty": "No usage in this range.",
+    "stub": "{{count}} fallback",
+    "stubNote": "{{count}} call(s) fell back to the built-in stub: no tokens, and not a real answer.",
+    "noMoneyNote": "Token counts only. Prices differ per model and change, so no cost is estimated here."
   }
 }
