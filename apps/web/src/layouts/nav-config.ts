@@ -60,7 +60,14 @@ export const TENANT_NAV: NavItem[] = [
   // Review moderation console (D3) — same operations group as the API's MODULE_OPERATIONS gate.
   { to: '/reviews', labelKey: 'reviews', icon: Star, code: 'reviews', capability: 'reviews' },
   { to: '/users', labelKey: 'users', icon: UserCog, code: 'users', capability: 'users' },
-  { to: '/settings', labelKey: 'settings', icon: Settings, code: 'settings', capability: 'settings' },
+  // Six screens under one heading (PLN-260824 B). The parent `/settings`
+  // redirects to the first child, so the old link keeps working.
+  { to: '/settings/basic', labelKey: 'settingsBasic', icon: Settings, code: 'settings_basic', capability: 'settings' },
+  { to: '/settings/widget', labelKey: 'settingsWidget', icon: Settings, code: 'settings_widget', capability: 'settings' },
+  { to: '/settings/platforms', labelKey: 'settingsPlatforms', icon: Settings, code: 'settings_platforms', capability: 'settings' },
+  { to: '/settings/marketing', labelKey: 'settingsMarketing', icon: Settings, code: 'settings_marketing', capability: 'settings' },
+  { to: '/settings/messengers', labelKey: 'settingsMessengers', icon: Settings, code: 'settings_messengers', capability: 'settings' },
+  { to: '/settings/etc', labelKey: 'settingsEtc', icon: Settings, code: 'settings_etc', capability: 'settings' },
   // Consent notice config — same master/director gate as tenant settings.
   { to: '/privacy-notice', labelKey: 'privacyNotice', icon: ShieldCheck, code: 'privacy_notice', capability: 'settings' },
 ];

@@ -33,5 +33,11 @@
     "description": "This screen isn't available for your account. Ask your workspace master if you need it.",
     "goHome": "Go to dashboard"
   },
-  "admins": "Admin operators"
+  "admins": "Admin operators",
+  "settingsBasic": "Basic",
+  "settingsWidget": "Widget",
+  "settingsPlatforms": "Platforms",
+  "settingsMarketing": "Marketing & Helpdesk",
+  "settingsMessengers": "Messengers",
+  "settingsEtc": "Other settings"
 }

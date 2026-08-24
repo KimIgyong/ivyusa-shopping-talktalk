@@ -566,5 +566,43 @@
     "stub": "{{count}} de respaldo",
     "stubNote": "{{count}} llamada(s) recurrieron al stub interno: sin tokens y sin respuesta real.",
     "noMoneyNote": "Solo tokens. Los precios varían por modelo y cambian, así que no se estima coste."
+  },
+  "groups": {
+    "basic": {
+      "title": "Ajustes básicos",
+      "subtitle": "Motores de IA, tienda y traspaso a agente"
+    },
+    "widget": {
+      "title": "Ajustes del widget",
+      "subtitle": "Tema, pestañas, comportamiento, inserción e instalación"
+    },
+    "platforms": {
+      "title": "Integraciones de plataforma",
+      "subtitle": "Dónde funciona tu tienda"
+    },
+    "marketing": {
+      "title": "Marketing y helpdesk",
+      "subtitle": "Klaviyo, Yotpo y Gorgias"
+    },
+    "messengers": {
+      "title": "Canales de mensajería",
+      "subtitle": "Conversaciones externas que llegan aquí"
+    },
+    "etc": {
+      "title": "Otros ajustes",
+      "subtitle": "Notificaciones, acceso a menús y credenciales"
+    }
+  },
+  "selfDev": {
+    "title": "Integración propia",
+    "hint": "Para una tienda que construiste tú. Envía eventos de pedido y envío al webhook de abajo, firmados con tu secreto.",
+    "webhookUrl": "URL del webhook",
+    "secret": "Secreto de firma",
+    "secretStored": "Hay un secreto guardado",
+    "secretUnset": "Sin configurar: se usa el secreto de la app",
+    "configured": "Secreto propio",
+    "usingAppSecret": "Secreto de la app",
+    "replaceWarning": "Al guardar, el secreto se reemplaza de inmediato. Cambia también el sistema emisor o sus webhooks empezarán a fallar.",
+    "widgetPointer": "Para el widget, ve a Ajustes del widget → Inserción y SDK."
   }
 }

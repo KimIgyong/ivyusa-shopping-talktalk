@@ -566,5 +566,43 @@
     "stub": "폴백 {{count}}회",
     "stubNote": "{{count}}회가 내장 stub으로 폴백했습니다. 토큰은 0이며 실제 응답이 아닙니다.",
     "noMoneyNote": "토큰 수만 표시합니다. 모델별 단가가 다르고 변하므로 금액은 추정하지 않습니다."
+  },
+  "groups": {
+    "basic": {
+      "title": "기본 설정",
+      "subtitle": "AI 엔진, 스토어프론트, 상담원 이관"
+    },
+    "widget": {
+      "title": "위젯 설정",
+      "subtitle": "테마·탭·동작·임베드·설치"
+    },
+    "platforms": {
+      "title": "플랫폼 연동",
+      "subtitle": "쇼핑몰이 돌아가는 곳"
+    },
+    "marketing": {
+      "title": "마케팅·헬프데스크",
+      "subtitle": "Klaviyo, Yotpo, Gorgias"
+    },
+    "messengers": {
+      "title": "메신저 채널",
+      "subtitle": "외부에서 들어오는 대화"
+    },
+    "etc": {
+      "title": "기타 설정",
+      "subtitle": "알림, 메뉴 권한, 저장된 자격증명"
+    }
+  },
+  "selfDev": {
+    "title": "자체 개발 연동",
+    "hint": "직접 만든 쇼핑몰용입니다. 주문·이행 이벤트를 아래 웹훅으로 보내고 시크릿으로 서명하십시오.",
+    "webhookUrl": "웹훅 주소",
+    "secret": "서명 시크릿",
+    "secretStored": "시크릿이 저장되어 있습니다",
+    "secretUnset": "미설정 — 앱 공통 시크릿 사용 중",
+    "configured": "자체 시크릿",
+    "usingAppSecret": "앱 공통 시크릿",
+    "replaceWarning": "저장하면 시크릿이 즉시 교체됩니다. 보내는 쪽을 같이 바꾸지 않으면 그 시점부터 웹훅이 실패합니다.",
+    "widgetPointer": "위젯 자체는 위젯 설정 → 임베드·SDK를 참고하십시오."
   }
 }

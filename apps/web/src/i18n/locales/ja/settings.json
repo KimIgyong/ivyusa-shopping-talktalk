@@ -566,5 +566,43 @@
     "stub": "フォールバック {{count}} 回",
     "stubNote": "{{count}} 件が内蔵スタブにフォールバックしました。トークンは 0 で、実際の応答ではありません。",
     "noMoneyNote": "トークン数のみを表示します。モデルごとに単価が異なり変動するため、金額は推定しません。"
+  },
+  "groups": {
+    "basic": {
+      "title": "基本設定",
+      "subtitle": "AI エンジン・ストアフロント・担当者への引き継ぎ"
+    },
+    "widget": {
+      "title": "ウィジェット設定",
+      "subtitle": "テーマ・タブ・動作・埋め込み・設置"
+    },
+    "platforms": {
+      "title": "プラットフォーム連携",
+      "subtitle": "ショップが動いている場所"
+    },
+    "marketing": {
+      "title": "マーケティング・ヘルプデスク",
+      "subtitle": "Klaviyo・Yotpo・Gorgias"
+    },
+    "messengers": {
+      "title": "メッセンジャー チャネル",
+      "subtitle": "外部から届く会話"
+    },
+    "etc": {
+      "title": "その他設定",
+      "subtitle": "通知・メニュー権限・保存済みの資格情報"
+    }
+  },
+  "selfDev": {
+    "title": "自社開発の連携",
+    "hint": "自分で作ったショップ向けです。注文・出荷イベントを下のWebhookへ、シークレットで署名して送ってください。",
+    "webhookUrl": "Webhook URL",
+    "secret": "署名シークレット",
+    "secretStored": "シークレットが保存されています",
+    "secretUnset": "未設定 — アプリ共通のシークレットを使用中",
+    "configured": "自社シークレット",
+    "usingAppSecret": "アプリ共通",
+    "replaceWarning": "保存するとシークレットは直ちに置き換わります。送信側も同時に変更しないと、その時点からWebhookが失敗します。",
+    "widgetPointer": "ウィジェット自体はウィジェット設定 → 埋め込み・SDK をご覧ください。"
   }
 }

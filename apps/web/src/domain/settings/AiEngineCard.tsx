@@ -221,6 +221,13 @@ export function AiEngineCard() {
               onChange={(e) => setApiKey(e.target.value)}
               placeholder={editing?.hasApiKey ? t('aiEngines.keyStored') : ''}
               maxLength={512}
+              // A password manager will happily offer the console login for any
+              // password field. Saving that here replaces a working provider key
+              // with a login, and the only symptom is a 401 hours later. The
+              // credential dialog next door already guarded against this; this
+              // field shipped without it.
+              autoComplete="off"
+              name="ai-engine-api-key"
             />
             <p className="mt-1 text-xs text-gray-500">{t('aiEngines.apiKeyHint')}</p>
           </FormRow>

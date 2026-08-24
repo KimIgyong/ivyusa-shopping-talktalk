@@ -62,6 +62,15 @@ const LEGACY_MENU_CAP: Record<MenuCode, string> = {
   reviews: 'reviews',
   users: 'users',
   settings: 'settings',
+  // The six settings screens inherit the capability the single screen had, so
+  // this fixture keeps asserting the same thing it always did: nobody gains or
+  // loses reach because the page was split (PLN-260824 B).
+  settings_basic: 'settings',
+  settings_widget: 'settings',
+  settings_platforms: 'settings',
+  settings_marketing: 'settings',
+  settings_messengers: 'settings',
+  settings_etc: 'settings',
   privacy_notice: 'settings',
 };
 

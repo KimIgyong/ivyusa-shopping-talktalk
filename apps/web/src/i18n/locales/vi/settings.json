@@ -566,5 +566,43 @@
     "stub": "{{count}} lần dự phòng",
     "stubNote": "{{count}} lượt đã rơi về stub nội bộ: không tốn token và không phải câu trả lời thật.",
     "noMoneyNote": "Chỉ hiển thị số token. Giá theo mô hình khác nhau và thay đổi nên không ước tính chi phí."
+  },
+  "groups": {
+    "basic": {
+      "title": "Cài đặt cơ bản",
+      "subtitle": "Công cụ AI, cửa hàng và chuyển cho nhân viên"
+    },
+    "widget": {
+      "title": "Cài đặt widget",
+      "subtitle": "Giao diện, tab, hành vi, nhúng và cài đặt"
+    },
+    "platforms": {
+      "title": "Tích hợp nền tảng",
+      "subtitle": "Nơi cửa hàng của bạn vận hành"
+    },
+    "marketing": {
+      "title": "Marketing & Helpdesk",
+      "subtitle": "Klaviyo, Yotpo và Gorgias"
+    },
+    "messengers": {
+      "title": "Kênh nhắn tin",
+      "subtitle": "Hội thoại từ bên ngoài đổ về đây"
+    },
+    "etc": {
+      "title": "Cài đặt khác",
+      "subtitle": "Thông báo, quyền menu và thông tin đăng nhập đã lưu"
+    }
+  },
+  "selfDev": {
+    "title": "Tích hợp tự phát triển",
+    "hint": "Dành cho cửa hàng bạn tự xây. Gửi sự kiện đơn hàng và giao hàng tới webhook bên dưới, ký bằng khóa bí mật của bạn.",
+    "webhookUrl": "Địa chỉ webhook",
+    "secret": "Khóa ký",
+    "secretStored": "Đã lưu một khóa",
+    "secretUnset": "Chưa đặt — đang dùng khóa chung của ứng dụng",
+    "configured": "Khóa riêng",
+    "usingAppSecret": "Khóa chung",
+    "replaceWarning": "Lưu sẽ thay khóa ngay lập tức. Hãy cập nhật hệ thống gửi trong cùng lần thay đổi, nếu không webhook sẽ bắt đầu lỗi.",
+    "widgetPointer": "Với widget, xem Cài đặt widget → Nhúng & SDK."
   }
 }
