@@ -1,5 +1,4 @@
 import { useTranslation } from 'react-i18next';
-import { PageHeader } from '@/components/PageHeader';
 import { NotificationChannelsCard } from './SettingsPage';
 import { MenuAccessSection } from './MenuAccessSection';
 import { IntegrationCredentialsCard } from './IntegrationCredentialsCard';
@@ -12,7 +11,8 @@ export function SettingsEtcPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title={t('groups.etc.title')} subtitle={t('groups.etc.subtitle')} />
+      {/* The tab already names the section; this says what it is for. */}
+      <p className="text-sm text-gray-500">{t('groups.etc.subtitle')}</p>
       <NotificationChannelsCard />
       {/* Who on the team reaches which screen (PLN-260812 S3). Master-only:
           the API gates it on TENANT_SETTINGS_MANAGE, and rendering it for

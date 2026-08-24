@@ -1,5 +1,4 @@
 import { useTranslation } from 'react-i18next';
-import { PageHeader } from '@/components/PageHeader';
 import { WidgetThemeCard, WidgetTabsCard, WidgetBehaviorCard, InstallGuideCard } from './SettingsPage';
 import { EmbedCard } from './EmbedCard';
 
@@ -9,7 +8,8 @@ export function SettingsWidgetPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title={t('groups.widget.title')} subtitle={t('groups.widget.subtitle')} />
+      {/* The tab already names the section; this says what it is for. */}
+      <p className="text-sm text-gray-500">{t('groups.widget.subtitle')}</p>
       <WidgetThemeCard />
       <WidgetTabsCard />
       <WidgetBehaviorCard />

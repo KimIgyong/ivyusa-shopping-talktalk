@@ -1,5 +1,4 @@
 import { useTranslation } from 'react-i18next';
-import { PageHeader } from '@/components/PageHeader';
 import { ProviderGrid } from './ProviderGrid';
 import { Cafe24ConnectCard } from './Cafe24ConnectCard';
 import { SelfDevelopmentCard } from './SelfDevelopmentCard';
@@ -11,7 +10,8 @@ export function SettingsPlatformsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title={t('groups.platforms.title')} subtitle={t('groups.platforms.subtitle')} />
+      {/* The tab already names the section; this says what it is for. */}
+      <p className="text-sm text-gray-500">{t('groups.platforms.subtitle')}</p>
       <ProviderGrid providers={ECOMMERCE_PROVIDERS} includeShopify />
       {/* Cafe24 needs an OAuth round trip the generic credential form cannot do. */}
       <Cafe24ConnectCard />

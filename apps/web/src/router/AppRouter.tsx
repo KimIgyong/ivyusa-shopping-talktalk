@@ -33,6 +33,7 @@ const CampaignsPage = lazy(() => import('@/domain/campaigns/CampaignsPage').then
 const ReviewsPage = lazy(() => import('@/domain/reviews/ReviewsPage').then((m) => ({ default: m.ReviewsPage })));
 const UsersPage = lazy(() => import('@/domain/users/UsersPage').then((m) => ({ default: m.UsersPage })));
 const SettingsPage = lazy(() => import('@/domain/settings/SettingsPage').then((m) => ({ default: m.SettingsPage })));
+const SettingsLayout = lazy(() => import('@/domain/settings/SettingsLayout').then((m) => ({ default: m.SettingsLayout })));
 const SettingsBasicPage = lazy(() => import('@/domain/settings/SettingsBasicPage').then((m) => ({ default: m.SettingsBasicPage })));
 const SettingsWidgetPage = lazy(() => import('@/domain/settings/SettingsWidgetPage').then((m) => ({ default: m.SettingsWidgetPage })));
 const SettingsPlatformsPage = lazy(() => import('@/domain/settings/SettingsPlatformsPage').then((m) => ({ default: m.SettingsPlatformsPage })));
@@ -98,14 +99,23 @@ const router = createBrowserRouter([
       { path: '/campaigns', element: <CampaignsPage /> },
       { path: '/reviews', element: <ReviewsPage /> },
       { path: '/users', element: <UsersPage /> },
-      { path: '/settings', element: <SettingsPage /> },
-      { path: '/settings/basic', element: <SettingsBasicPage /> },
-      { path: '/settings/widget', element: <SettingsWidgetPage /> },
-      { path: '/settings/platforms', element: <SettingsPlatformsPage /> },
-      { path: '/settings/marketing', element: <SettingsMarketingPage /> },
-      { path: '/settings/messengers', element: <SettingsMessengersPage /> },
-      { path: '/settings/etc', element: <SettingsEtcPage /> },
-      { path: '/privacy-notice', element: <PrivacyNoticePage /> },
+      {
+        path: '/settings',
+        element: <SettingsLayout />,
+        children: [
+          { index: true, element: <SettingsPage /> },
+          { path: 'basic', element: <SettingsBasicPage /> },
+          { path: 'widget', element: <SettingsWidgetPage /> },
+          { path: 'platforms', element: <SettingsPlatformsPage /> },
+          { path: 'marketing', element: <SettingsMarketingPage /> },
+          { path: 'messengers', element: <SettingsMessengersPage /> },
+          { path: 'etc', element: <SettingsEtcPage /> },
+          // Same page as before, reached as a tab now.
+          { path: 'privacy', element: <PrivacyNoticePage /> },
+        ],
+      },
+      // Moved into settings; the old link is kept so bookmarks survive.
+      { path: '/privacy-notice', element: <Navigate to="/settings/privacy" replace /> },
       { path: '/my-page', element: <MyPage /> },
     ],
   },
