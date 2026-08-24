@@ -1,5 +1,4 @@
 import { useTranslation } from 'react-i18next';
-import { PageHeader } from '@/components/PageHeader';
 import { AiEngineCard } from './AiEngineCard';
 import { AiUsageCard } from './AiUsageCard';
 import { StorefrontCard } from './SettingsPage';
@@ -11,7 +10,8 @@ export function SettingsBasicPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title={t('groups.basic.title')} subtitle={t('groups.basic.subtitle')} />
+      {/* The tab already names the section; this says what it is for. */}
+      <p className="text-sm text-gray-500">{t('groups.basic.subtitle')}</p>
       <AiEngineCard />
       <AiUsageCard />
       <StorefrontCard />

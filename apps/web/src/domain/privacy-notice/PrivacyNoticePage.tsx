@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { PageHeader } from '@/components/PageHeader';
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
 import { FormRow, Input } from '@/components/Field';
@@ -65,7 +64,9 @@ export function PrivacyNoticePage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title={t('privacyNotice.title')} subtitle={t('privacyNotice.subtitle')} />
+      {/* Rendered inside the settings tabs, which already carry the page
+          heading — a second one here read as two pages stacked. */}
+      <p className="text-sm text-gray-500">{t('privacyNotice.subtitle')}</p>
 
       <Card title={t('privacyNotice.cardTitle')}>
         {isLoading ? (

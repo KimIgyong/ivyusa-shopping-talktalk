@@ -1,5 +1,4 @@
 import { useTranslation } from 'react-i18next';
-import { PageHeader } from '@/components/PageHeader';
 import { ProviderGrid } from './ProviderGrid';
 import { MARKETING_PROVIDERS, HELPDESK_PROVIDERS } from './integration-providers';
 
@@ -9,7 +8,8 @@ export function SettingsMarketingPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title={t('groups.marketing.title')} subtitle={t('groups.marketing.subtitle')} />
+      {/* The tab already names the section; this says what it is for. */}
+      <p className="text-sm text-gray-500">{t('groups.marketing.subtitle')}</p>
       <ProviderGrid providers={[...MARKETING_PROVIDERS, ...HELPDESK_PROVIDERS]} />
     </div>
   );
