@@ -26,5 +26,10 @@
   "mfaResetTitle": "重置 MFA",
   "mfaResetConfirm": "要为 {{email}} 重置 MFA 吗？",
   "mfaResetWarning": "该用户下次登录时需要重新绑定 MFA。此操作会记录到审计日志。",
-  "mfaResetDone": "已重置 MFA。"
+  "mfaResetDone": "已重置 MFA。",
+  "tempPwIssue": "发放",
+  "tempPwConfirm": "为以下用户发放临时密码：",
+  "tempPwSendEmail": "同时通过邮件发送给用户",
+  "tempPwEmailSent": "已通过邮件发送给用户。",
+  "tempPwEmailFailed": "邮件发送失败 — 请手动转交密码。"
 }

@@ -26,5 +26,10 @@
   "mfaResetTitle": "Restablecer MFA",
   "mfaResetConfirm": "¿Restablecer la MFA de {{email}}?",
   "mfaResetWarning": "El usuario deberá registrar la MFA de nuevo en su próximo inicio de sesión. Esta acción se registra en el registro de auditoría.",
-  "mfaResetDone": "La MFA ha sido restablecida."
+  "mfaResetDone": "La MFA ha sido restablecida.",
+  "tempPwIssue": "Emitir",
+  "tempPwConfirm": "Emitir una contraseña temporal para",
+  "tempPwSendEmail": "Enviarla también al usuario por correo",
+  "tempPwEmailSent": "Enviada al usuario por correo.",
+  "tempPwEmailFailed": "Falló el envío del correo — entrega la contraseña manualmente."
 }

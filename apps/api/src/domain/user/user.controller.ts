@@ -21,6 +21,7 @@ import { asTenantUser } from './user-principal.util';
 import {
   AcceptInviteRequest,
   InviteUserRequest,
+  IssueTempPasswordRequest,
   UpdateLabelsRequest,
   UpdateRankRequest,
   UpdateStatusRequest,
@@ -73,10 +74,16 @@ export class UserController {
 
   @Post(':id/temp-password')
   @RequireCapability(CAPABILITY.USER_INVITE)
-  @ApiOperation({ summary: 'Issue a temporary password for a user (admin hands it off manually)' })
-  issueTempPassword(@CurrentUser() user: Principal, @Param('id', ParseIntPipe) id: number) {
+  @ApiOperation({ summary: 'Issue a temporary password for a user (manual hand-off and/or email)' })
+  issueTempPassword(
+    @CurrentUser() user: Principal,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body?: IssueTempPasswordRequest,
+  ) {
     const actor = asTenantUser(user);
-    return this.userService.issueTempPassword(actor.tenantId, id, actor.userId);
+    return this.userService.issueTempPassword(actor.tenantId, id, actor.userId, 'user', {
+      sendEmail: body?.send_email === true,
+    });
   }
 
   @Post(':id/mfa-reset')

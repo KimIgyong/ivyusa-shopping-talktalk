@@ -4,6 +4,7 @@ import { HttpStatus } from '@nestjs/common';
 import { Principal } from '@ivy/types';
 import { buildPagination, normalizePage } from '@ivy/common';
 import { UserService } from './user.service';
+import { IssueTempPasswordRequest } from './dto/request/user.request';
 import { MfaService } from '../auth/mfa.service';
 import { TenantService } from '../tenant/tenant.service';
 import { Paginated } from '../../global/interceptor/transform.interceptor';
@@ -76,9 +77,12 @@ export class AdminTenantUserController {
     @CurrentUser() admin: Principal,
     @Param('tenantUuid') tenantUuid: string,
     @Param('userId', ParseIntPipe) userId: number,
+    @Body() body?: IssueTempPasswordRequest,
   ) {
     const tenant = await this.tenantService.getByUuid(tenantUuid);
-    return this.userService.issueTempPassword(Number(tenant.id), userId, this.adminId(admin), 'admin');
+    return this.userService.issueTempPassword(Number(tenant.id), userId, this.adminId(admin), 'admin', {
+      sendEmail: body?.send_email === true,
+    });
   }
 
   @Post('users/:userId/mfa-reset')

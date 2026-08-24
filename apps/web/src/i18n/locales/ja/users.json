@@ -26,5 +26,10 @@
   "mfaResetTitle": "MFAをリセット",
   "mfaResetConfirm": "{{email}} のMFAをリセットしますか。",
   "mfaResetWarning": "このユーザーは次回ログイン時にMFAの登録をやり直す必要があります。この操作は監査ログに記録されます。",
-  "mfaResetDone": "MFAをリセットしました。"
+  "mfaResetDone": "MFAをリセットしました。",
+  "tempPwIssue": "発行",
+  "tempPwConfirm": "仮パスワードを発行します：",
+  "tempPwSendEmail": "ユーザーのメールにも送信する",
+  "tempPwEmailSent": "ユーザーのメールに送信しました。",
+  "tempPwEmailFailed": "メール送信に失敗しました — パスワードを手動で伝えてください。"
 }

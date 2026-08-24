@@ -2,6 +2,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { LogOut, Sparkles, UserCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '@/store/auth-store';
+import { tenantLoginPath } from '@/lib/tenant-path';
 import { useUiStore } from '@/store/ui-store';
 import { authService } from '@/domain/auth/auth.service';
 import { Badge } from '@/components/Badge';
@@ -29,7 +30,7 @@ export function Sidebar() {
     // local state is cleared regardless.
     const { refreshToken, tenantSlug: slug } = useAuthStore.getState();
     void authService.logout(refreshToken ?? undefined).catch(() => undefined);
-    const target = isAdmin ? '/admin/login' : slug ? `/${slug}` : '/';
+    const target = isAdmin ? '/admin/login' : slug ? tenantLoginPath(slug) : '/';
     clear();
     navigate(target);
   };

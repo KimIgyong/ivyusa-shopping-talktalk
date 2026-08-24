@@ -1,5 +1,12 @@
 import { lazy, Suspense } from 'react';
-import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom';
+import {
+  createBrowserRouter,
+  Navigate,
+  RouterProvider,
+  useLocation,
+  useParams,
+} from 'react-router-dom';
+import { tenantLoginPath } from '@/lib/tenant-path';
 import { Loader2 } from 'lucide-react';
 import { AppLayout } from '@/layouts/AppLayout';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
@@ -43,10 +50,22 @@ function PageFallback() {
   );
 }
 
+/**
+ * Legacy `/<slug>` → `/user/<slug>` (PLN-260824 S1), kept indefinitely so old
+ * bookmarks, manual links and the AMA portal iframe keep working. Search and
+ * hash are preserved — the ?ama_token= SSO handoff must survive the hop (its
+ * scrubbing runs on the target page).
+ */
+function LegacySlugRedirect() {
+  const { tenantSlug = '' } = useParams<{ tenantSlug: string }>();
+  const { search, hash } = useLocation();
+  return <Navigate to={{ pathname: tenantLoginPath(tenantSlug), search, hash }} replace />;
+}
+
 // Public: landing at /, system-admin login at /admin/login, per-tenant login
-// at /:tenantSlug. Static segments outrank the :tenantSlug param, so every
-// console route below stays reachable; slugs matching them are rejected
-// server-side (RESERVED_TENANT_SLUGS).
+// at /user/:tenantSlug (legacy /:tenantSlug redirects there). Static segments
+// outrank the :tenantSlug param, so every console route below stays reachable;
+// slugs matching them are rejected server-side (RESERVED_TENANT_SLUGS).
 const router = createBrowserRouter([
   { path: '/', element: <LandingPage /> },
   { path: '/admin/login', element: <AdminLoginPage /> },
@@ -94,7 +113,8 @@ const router = createBrowserRouter([
       { path: 'my-page', element: <MyPage /> },
     ],
   },
-  { path: '/:tenantSlug', element: <TenantLoginPage /> },
+  { path: '/user/:tenantSlug', element: <TenantLoginPage /> },
+  { path: '/:tenantSlug', element: <LegacySlugRedirect /> },
   { path: '*', element: <Navigate to="/" replace /> },
 ]);
 

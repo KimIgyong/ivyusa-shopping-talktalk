@@ -11,6 +11,7 @@ import { AuthService } from './auth.service';
 import { AmaSsoService } from './ama-sso.service';
 import { MfaService } from './mfa.service';
 import { LoginRateLimitService } from './login-rate-limit.service';
+import { PasswordRecoveryService } from './password-recovery.service';
 import { AuthController } from './auth.controller';
 import { AuditModule } from '../audit/audit.module';
 
@@ -28,7 +29,7 @@ import { AuditModule } from '../audit/audit.module';
     AuditModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService, AmaSsoService, MfaService, LoginRateLimitService],
+  providers: [AuthService, AmaSsoService, MfaService, LoginRateLimitService, PasswordRecoveryService],
   exports: [MfaService, LoginRateLimitService],
 })
 export class AuthModule {}

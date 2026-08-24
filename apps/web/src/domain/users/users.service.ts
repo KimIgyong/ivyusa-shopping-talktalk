@@ -37,6 +37,8 @@ export interface TempPasswordResult {
   userId: string;
   email: string;
   tempPassword: string;
+  /** Present when email delivery was requested (PLN-260824 S4). */
+  emailSent?: boolean;
 }
 
 export const usersService = {
@@ -56,9 +58,10 @@ export const usersService = {
       await apiPatch<TenantUser>(`/users/${id}/status`, { status: body.status });
     }
   },
-  // Issue a fresh temporary password for an existing user (admin relays it manually).
-  issueTempPassword: (id: string) =>
-    apiPost<TempPasswordResult>(`/users/${id}/temp-password`, {}),
+  // Issue a fresh temporary password for an existing user — relayed manually
+  // and/or emailed to the user (PLN-260824 S4).
+  issueTempPassword: (id: string, sendEmail: boolean) =>
+    apiPost<TempPasswordResult>(`/users/${id}/temp-password`, { send_email: sendEmail }),
   // Clear the user's MFA enrollment — they re-enroll at their next login (audited).
   resetMfa: (id: string) => apiPost<{ reset: boolean }>(`/users/${id}/mfa-reset`, {}),
 };

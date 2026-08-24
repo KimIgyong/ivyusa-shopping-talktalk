@@ -1,6 +1,7 @@
 import axios, { AxiosError } from 'axios';
 import type { ApiEnvelope, Paginated } from './types';
 import { useAuthStore } from '@/store/auth-store';
+import { tenantLoginPath } from '@/lib/tenant-path';
 
 /** Pagination meta the backend sends alongside list payloads (@ivy/types PaginationMeta). */
 interface PaginationMeta {
@@ -61,14 +62,21 @@ http.interceptors.response.use(
     return response;
   },
   (error: AxiosError<ApiEnvelope<unknown>>) => {
-    if (error.response?.status === 401) {
+    // A 401 from a PUBLIC auth attempt (login, SSO, MFA verify, password
+    // recovery) is that form's own feedback — bouncing to a login page would
+    // eat the error and, for a first-time visitor (no stored tenantSlug),
+    // dump them on the landing page mid-flow (found via PLN-260824 S3).
+    const requestUrl = error.config?.url ?? '';
+    const isPublicAuthAttempt =
+      /\/auth\/(user\/login|admin\/login|sso\/ama|mfa\/verify|password\/)/.test(requestUrl);
+    if (error.response?.status === 401 && !isPublicAuthAttempt) {
       const store = useAuthStore.getState();
       // Route back to the matching login page: /admin/* → admin login, tenant
       // users → their /<slug> page, otherwise the public landing page. When the
       // 401 IS the login attempt (already on the target page) we only clear.
       const isAdminContext =
         store.principal?.actorType === 'admin' || window.location.pathname.startsWith('/admin');
-      const target = isAdminContext ? '/admin/login' : store.tenantSlug ? `/${store.tenantSlug}` : '/';
+      const target = isAdminContext ? '/admin/login' : store.tenantSlug ? tenantLoginPath(store.tenantSlug) : '/';
       store.clear();
       if (window.location.pathname !== target) {
         window.location.href = target;

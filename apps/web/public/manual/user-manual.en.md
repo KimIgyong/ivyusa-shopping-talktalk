@@ -35,7 +35,7 @@
 ## 1. Getting Started
 
 ### 1.1 Accessing the console
-- Tenant console: `https://shoptalk.amoeba.site/<slug>` — a store-specific login address.
+- Tenant console: `https://shoptalk.amoeba.site/user/<slug>` — a store-specific login address.
 - Platform administrators: `/admin/login`.
 - Login is email + password (JWT). Invited accounts sign in first with a **temporary
   password** and then go through a **forced change** (10+ characters · 3 character classes ·

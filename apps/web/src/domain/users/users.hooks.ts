@@ -37,7 +37,8 @@ export function useInviteUser() {
 
 export function useIssueTempPassword() {
   return useMutation({
-    mutationFn: (id: string) => usersService.issueTempPassword(id),
+    mutationFn: ({ id, sendEmail }: { id: string; sendEmail: boolean }) =>
+      usersService.issueTempPassword(id, sendEmail),
     onError: (e: Error) => {
       toast.error(e.message || 'Failed to issue temporary password.');
     },

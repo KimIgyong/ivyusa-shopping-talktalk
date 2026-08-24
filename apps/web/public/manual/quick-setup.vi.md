@@ -34,7 +34,7 @@ tri thức·AI, xem [Sổ tay đăng ký tri thức·cài đặt AI](knowledge-a
 | Thuật ngữ | Ý nghĩa |
 |---|---|
 | Tenant (gian hàng) | Một cửa hàng "vào ở" trong ShopTalk. Dữ liệu·cài đặt·tri thức được tách biệt hoàn toàn theo từng cửa hàng |
-| Slug | Đoạn địa chỉ đăng nhập riêng của tenant. Được gắn vào cuối URL như `https://shoptalk.amoeba.site/ivyusa` |
+| Slug | Đoạn địa chỉ đăng nhập riêng của tenant. Được gắn vào cuối URL như `https://shoptalk.amoeba.site/user/ivyusa` |
 | Quản trị viên nền tảng | Quản trị viên của đơn vị vận hành ShopTalk, đăng nhập qua `/admin` (có quyền mở tenant) |
 | Quản trị viên tenant (master) | Cấp bậc cao nhất trong bảng điều khiển cửa hàng. Quản lý toàn bộ thành viên·quyền·cài đặt |
 | Mật khẩu tạm thời | Mật khẩu dùng một lần do hệ thống cấp khi mời. **Chỉ hiển thị trên màn hình đúng một lần** |
@@ -123,7 +123,7 @@ Bấm **[Sao chép]** và gửi kèm cùng mật khẩu tạm thời.
 ---
 
 ## 2. Đăng nhập lần đầu
-*(Quản trị viên tenant · `https://shoptalk.amoeba.site/<slug>`)*
+*(Quản trị viên tenant · `https://shoptalk.amoeba.site/user/<slug>`)*
 
 ### 2.1 Đăng nhập
 

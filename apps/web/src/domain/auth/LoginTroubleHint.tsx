@@ -1,5 +1,6 @@
 import { AlertTriangle, Ban } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { tenantLoginPath } from '@/lib/tenant-path';
 
 /**
  * Shown after repeated sign-in failures on a tenant login page.
@@ -20,10 +21,15 @@ export function LoginTroubleHint({
   storeName,
   slug,
   rateLimited,
+  onChangePassword,
+  onRequestTemp,
 }: {
   storeName: string;
   slug: string;
   rateLimited: boolean;
+  /** Lockout-recovery actions (PLN-260824 S3) — rendered inside the lock banner. */
+  onChangePassword?: () => void;
+  onRequestTemp?: () => void;
 }) {
   const { t } = useTranslation('auth');
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
@@ -36,11 +42,33 @@ export function LoginTroubleHint({
           role="alert"
         >
           <Ban className="mt-0.5 h-4 w-4 shrink-0" />
-          <div>
+          <div className="flex-1">
             <p className="font-medium">{t('lockedTitle')}</p>
             {/* No countdown: the server sends no Retry-After, and a guessed
                 number would be worse guidance than none. */}
             <p className="mt-0.5">{t('lockedDesc')}</p>
+            {(onChangePassword || onRequestTemp) && (
+              <div className="mt-2 flex flex-wrap gap-2">
+                {onChangePassword && (
+                  <button
+                    type="button"
+                    onClick={onChangePassword}
+                    className="rounded-md border border-red-300 bg-white px-2.5 py-1 text-xs font-medium text-red-700 hover:bg-red-100"
+                  >
+                    {t('recoveryChangePassword')}
+                  </button>
+                )}
+                {onRequestTemp && (
+                  <button
+                    type="button"
+                    onClick={onRequestTemp}
+                    className="rounded-md border border-red-300 bg-white px-2.5 py-1 text-xs font-medium text-red-700 hover:bg-red-100"
+                  >
+                    {t('recoveryRequestTemp')}
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -54,7 +82,8 @@ export function LoginTroubleHint({
           <p className="font-medium">{t('wrongStoreTitle')}</p>
           <p className="mt-0.5">{t('wrongStoreDesc', { store: storeName })}</p>
           <p className="mt-1 font-mono text-xs text-amber-700">
-            {origin}/{slug}
+            {origin}
+            {tenantLoginPath(slug)}
           </p>
         </div>
       </div>

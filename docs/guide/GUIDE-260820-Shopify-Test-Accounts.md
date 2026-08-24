@@ -4,7 +4,7 @@
 |---|---|
 | 문서 ID | GUIDE-260820-Shopify-Test-Accounts |
 | 대상 스토어 | `ambshop-dev.myshopify.com` (개발 스토어) |
-| 대상 테넌트 | ivyusa — 콘솔 `https://shoptalk.amoeba.site/ivyusa` (platform=shopify) |
+| 대상 테넌트 | ivyusa — 콘솔 `https://shoptalk.amoeba.site/user/ivyusa` (platform=shopify) |
 | 관련 문서 | `쇼피파이연동가이드_Shopify-Integration.ko.md`, `쇼피파이연동점검_Shopify-Integration-Status-20260723.bilingual.md`(B4), `REQ-Widget-Login-Redirect-Orders-20260803.md` |
 | 작성일 | 2026-08-20 |
 
@@ -15,7 +15,7 @@
 |---|---|---|
 | ① 고객(구매자) 테스트 계정 | 스토어프론트 로그인 → 위젯 신원연동·주문탭 테스트 | Shopify Admin → Customers |
 | ② 스태프(관리자) 계정 | ambshop-dev 어드민 접근(상품·주문·설정) | Shopify Admin → Settings → Users |
-| ③ ShopTalk 콘솔 계정 | shoptalk.amoeba.site/ivyusa 상담 콘솔 접근 | 콘솔 → 팀 관리 (참고용) |
+| ③ ShopTalk 콘솔 계정 | shoptalk.amoeba.site/user/ivyusa 상담 콘솔 접근 | 콘솔 → 팀 관리 (참고용) |
 
 ---
 
@@ -93,7 +93,7 @@ ambshop-dev 어드민에서 상품/주문/설정을 만질 테스터용.
 
 ## 4. ③ ShopTalk 콘솔 계정 (참고)
 
-상담 콘솔(`https://shoptalk.amoeba.site/ivyusa`) 쪽 테스터는 Shopify와 무관하게
+상담 콘솔(`https://shoptalk.amoeba.site/user/ivyusa`) 쪽 테스터는 Shopify와 무관하게
 테넌트 마스터(`dev@amoeba.group`)가 콘솔 **팀 관리**에서 팀원(직급·라벨)을
 추가한다. 최초 로그인 시 비밀번호 변경 필수.
 

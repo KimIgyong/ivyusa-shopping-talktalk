@@ -83,7 +83,8 @@ export function useInviteTenantUser(tenantId: string) {
 
 export function useIssueTenantUserTempPassword(tenantId: string) {
   return useMutation({
-    mutationFn: (userId: string) => adminService.issueTenantUserTempPassword(tenantId, userId),
+    mutationFn: ({ userId, sendEmail }: { userId: string; sendEmail: boolean }) =>
+      adminService.issueTenantUserTempPassword(tenantId, userId, sendEmail),
     onError: (err: Error) => toast.error(err.message),
   });
 }

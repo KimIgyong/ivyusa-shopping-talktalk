@@ -1,6 +1,7 @@
 import {
   ArrayUnique,
   IsArray,
+  IsBoolean,
   IsEmail,
   IsIn,
   IsOptional,
@@ -57,4 +58,11 @@ export class UpdateStatusRequest {
   @IsString()
   @IsIn(['active', 'suspended'])
   status: string;
+}
+
+export class IssueTempPasswordRequest {
+  // PLN-260824 S4: also email the temp password to the user (default: manual hand-off only).
+  @IsOptional()
+  @IsBoolean()
+  send_email?: boolean;
 }

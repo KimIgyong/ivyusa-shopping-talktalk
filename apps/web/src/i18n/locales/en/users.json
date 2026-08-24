@@ -26,5 +26,10 @@
   "mfaResetTitle": "Reset MFA",
   "mfaResetConfirm": "Reset MFA for {{email}}?",
   "mfaResetWarning": "The user will need to enroll MFA again at their next sign-in. This action is recorded in the audit log.",
-  "mfaResetDone": "MFA has been reset."
+  "mfaResetDone": "MFA has been reset.",
+  "tempPwIssue": "Issue",
+  "tempPwConfirm": "Issue a temporary password for",
+  "tempPwSendEmail": "Also send it to the user by email",
+  "tempPwEmailSent": "Sent to the user by email.",
+  "tempPwEmailFailed": "Email delivery failed — hand the password over manually."
 }

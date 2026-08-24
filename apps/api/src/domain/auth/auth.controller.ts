@@ -12,6 +12,11 @@ import {
 } from './dto/request/login.request';
 import { AmaSsoLoginRequest } from './dto/request/ama-sso.request';
 import {
+  PasswordChangeSelfRequest,
+  TempPasswordSelfRequest,
+} from './dto/request/password-recovery.request';
+import { PasswordRecoveryService } from './password-recovery.service';
+import {
   MfaDisableRequest,
   MfaEnrollVerifyRequest,
   MfaVerifyRequest,
@@ -36,7 +41,42 @@ export class AuthController {
     private readonly authService: AuthService,
     private readonly amaSsoService: AmaSsoService,
     private readonly mfaService: MfaService,
+    private readonly passwordRecovery: PasswordRecoveryService,
   ) {}
+
+  // ---- Self-service password recovery (PLN-260824) ----
+
+  @Post('password/temp-request')
+  @Public()
+  @ApiOperation({ summary: 'Email a temp password to a tenant account (neutral response)' })
+  requestTempPassword(
+    @Body() body: TempPasswordSelfRequest,
+    @Ip() ip: string,
+    @Headers('x-forwarded-for') xff?: string,
+  ) {
+    return this.passwordRecovery.requestTempPassword(
+      body.tenant_slug,
+      body.email,
+      clientIp(xff, ip),
+    );
+  }
+
+  @Post('password/change')
+  @Public()
+  @ApiOperation({ summary: 'Change password with current/temp password (works while locked)' })
+  changePasswordSelf(
+    @Body() body: PasswordChangeSelfRequest,
+    @Ip() ip: string,
+    @Headers('x-forwarded-for') xff?: string,
+  ) {
+    return this.passwordRecovery.changePassword(
+      body.tenant_slug,
+      body.email,
+      body.current_password,
+      body.new_password,
+      clientIp(xff, ip),
+    );
+  }
 
   @Post('admin/login')
   @Public()

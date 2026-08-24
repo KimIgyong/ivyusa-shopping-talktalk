@@ -36,7 +36,7 @@
 ## 1. Bắt đầu
 
 ### 1.1 Truy cập bảng điều khiển
-- Bảng điều khiển tenant: `https://shoptalk.amoeba.site/<slug>` — địa chỉ đăng nhập riêng theo từng cửa hàng.
+- Bảng điều khiển tenant: `https://shoptalk.amoeba.site/user/<slug>` — địa chỉ đăng nhập riêng theo từng cửa hàng.
 - Quản trị viên nền tảng: `/admin/login`.
 - Đăng nhập bằng email + mật khẩu (JWT). Tài khoản được mời đăng nhập lần đầu bằng **mật
   khẩu tạm thời** rồi qua bước **đổi bắt buộc** (từ 10 ký tự·3 loại ký tự·cấm mật khẩu phổ biến).

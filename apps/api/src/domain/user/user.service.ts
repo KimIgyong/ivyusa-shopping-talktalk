@@ -19,9 +19,13 @@ import {
 
 import { BCRYPT_ROUNDS } from '../../global/constant/security.constant';
 import { generateTempPassword, validatePassword } from '../../global/util/password-policy.util';
+import { buildTempPasswordMail } from '../../global/util/temp-password-mail.util';
 import { AuditService } from '../audit/audit.service';
 import { maskPii } from '../../global/util/pii.util';
 import { LoginRateLimitService } from '../auth/login-rate-limit.service';
+import { MailerService } from '../../infrastructure/infrastructure.module';
+import { TenantService } from '../tenant/tenant.service';
+import { ConfigService } from '@nestjs/config';
 const INVITE_TTL_MS = 72 * 60 * 60 * 1000;
 
 /**
@@ -39,6 +43,9 @@ export class UserService {
     @InjectRepository(Invitation) private readonly invitationRepo: Repository<Invitation>,
     private readonly audit: AuditService,
     private readonly loginLimiter: LoginRateLimitService,
+    private readonly mailer: MailerService,
+    private readonly tenantService: TenantService,
+    private readonly config: ConfigService,
   ) {}
 
   // ---- Users ----
@@ -129,7 +136,8 @@ export class UserService {
     userId: number,
     issuedBy: number,
     actorType: 'user' | 'admin' = 'user',
-  ): Promise<{ userId: number; email: string; tempPassword: string }> {
+    opts?: { sendEmail?: boolean },
+  ): Promise<{ userId: number; email: string; tempPassword: string; emailSent?: boolean }> {
     const user = await this.getTenantUser(tenantId, userId);
     const tempPassword = this.genTempPassword();
     user.passwordHash = await bcrypt.hash(tempPassword, BCRYPT_ROUNDS);
@@ -143,7 +151,27 @@ export class UserService {
       action: 'user.temp_password_issued',
       target: `user:${user.id} ${maskPii(user.email)}`,
     });
-    return { userId: user.id, email: user.email, tempPassword };
+    if (!opts?.sendEmail) {
+      return { userId: user.id, email: user.email, tempPassword };
+    }
+    // Email delivery is best-effort (PLN-260824 S4): the plaintext is still
+    // returned so the admin can fall back to manual hand-off when it fails.
+    let emailSent = false;
+    if (this.mailer.configured()) {
+      const tenant = await this.tenantService.findById(tenantId);
+      emailSent = await this.mailer.send(
+        buildTempPasswordMail(
+          this.config.get<string>('APP_PUBLIC_URL'),
+          tenant.slug,
+          user.email,
+          tempPassword,
+        ),
+      );
+    }
+    if (!emailSent) {
+      this.logger.warn(`Temp-password mail not delivered (tenant ${tenantId}, user ${user.id})`);
+    }
+    return { userId: user.id, email: user.email, tempPassword, emailSent };
   }
 
   async acceptInvite(token: string, newPassword: string): Promise<{ accepted: true }> {
