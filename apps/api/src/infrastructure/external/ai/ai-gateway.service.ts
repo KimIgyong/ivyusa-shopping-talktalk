@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 import { AiFunction } from '@ivy/types';
 import { AiEngine } from '../../../domain/ai-engine/entity/ai-engine.entity';
 import { TenantAiSetting } from '../../../domain/ai-engine/entity/tenant-ai-setting.entity';
@@ -86,6 +86,17 @@ export class AiGatewayService {
     ]);
   }
 
+  /**
+   * The adapter for a provider, or null when nothing can call it.
+   *
+   * Public so a caller that already knows which engine it means — the tenant
+   * engine connection test — can reach the provider without a second registry
+   * drifting out of step with this one.
+   */
+  adapterFor(provider: string): AiAdapter | null {
+    return this.adapters.get(provider) ?? null;
+  }
+
   async complete(req: GatewayRequest): Promise<AiCompletionResult> {
     const { engine } = await this.resolveRouting(req.tenantId, req.function);
     const params = (await this.resolveParams(req.tenantId, req.function)) ?? {};
@@ -156,8 +167,16 @@ export class AiGatewayService {
     });
     if (tenantDefault) return { engine: tenantDefault, source: ROUTING_SOURCE.TENANT_DEFAULT };
 
+    // `tenantId: IsNull()` is the difference between a platform default and
+    // *somebody's* default. Without it this picks any enabled engine flagged
+    // default, including one a tenant created — and a tenant's engine carries
+    // a tenant's API key, so another shop's conversation would have been
+    // answered on it and billed to them. Nothing had a tenant-owned engine
+    // when this was written, which is why it never showed; opening engine
+    // registration to tenants is exactly what would have made it real
+    // (REQ-260824 D-2).
     const platformDefault = await this.engineRepo.findOne({
-      where: { isDefault: 1, status: 'enabled' },
+      where: { tenantId: IsNull(), isDefault: 1, status: 'enabled' },
     });
     return platformDefault
       ? { engine: platformDefault, source: ROUTING_SOURCE.PLATFORM_DEFAULT }

@@ -1,6 +1,6 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, IsNull, Repository } from 'typeorm';
 import { AiEngine } from './entity/ai-engine.entity';
 import { CreateEngineRequest, UpdateEngineRequest } from './dto/request/ai-engine.request';
 import { encryptSecret } from '../../global/util/crypto.util';
@@ -20,7 +20,28 @@ export class AiEngineService {
     return this.engineRepo.find({ order: { id: 'DESC' } });
   }
 
-  /** Enabled engines available to tenants for function assignment. */
+  /**
+   * Enabled engines one tenant may assign a function to: its own, plus the
+   * platform ones.
+   *
+   * This used to return every enabled engine in the installation. With only
+   * platform engines that was the same list; the moment tenants can register
+   * their own it stops being — one shop's picker would show another shop's
+   * engine names and models. Assignment was already refused
+   * (`AiSettingService.upsert`), so the leak was the listing itself, plus a
+   * choice that could only end in a 400 (REQ-260824 D-1).
+   */
+  async listEnabledFor(tenantId: number): Promise<AiEngine[]> {
+    return this.engineRepo.find({
+      where: [
+        { status: 'enabled', tenantId: IsNull() },
+        { status: 'enabled', tenantId },
+      ],
+      order: { id: 'DESC' },
+    });
+  }
+
+  /** Every enabled engine, for the admin catalog. Not for tenant-facing lists. */
   async listEnabled(): Promise<AiEngine[]> {
     return this.engineRepo.find({ where: { status: 'enabled' }, order: { id: 'DESC' } });
   }
