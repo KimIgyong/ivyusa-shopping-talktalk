@@ -101,6 +101,9 @@ li{margin:4px 0}
 .pagenav a{color:var(--muted);text-decoration:none}
 .pagenav a:hover,.pagenav a:focus-visible{color:var(--accent)}
 .pagenav .cur{color:var(--accent-deep);font-weight:700}
+figure.shot{margin:18px 0;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--card)}
+figure.shot img{display:block;width:100%}
+figure.shot figcaption{padding:8px 16px;font-size:13px;color:var(--muted);border-top:1px solid var(--line)}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 @media(prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
 </style>
@@ -170,6 +173,7 @@ li{margin:4px 0}
   <div class="callout"><span class="c-label">💡 Quy tắc slug</span>
   <p>Chỉ được dùng chữ thường·số·gạch ngang, và không được trùng với tên màn hình của bảng điều khiển (<code>admin</code>, <code>login</code>, <code>dashboard</code>, <code>settings</code> v.v. — các từ dành riêng).
   Nhập từ dành riêng thì máy chủ tự thêm hậu tố <code>-shop</code>. Slug chính là URL đăng nhập, nên khuyến nghị chọn giá trị dễ nhớ với cửa hàng.</p></div>
+  <figure class="shot"><img src="img/admin-tenants.en.jpg" alt="Danh sách tenant và hộp thoại [Gian hàng mới] — tên·đường dẫn đăng nhập·tên miền cửa hàng·gói dịch vụ (ảnh chụp giao diện tiếng Anh — bảng điều khiển hỗ trợ cả tiếng Việt)" loading="lazy"><figcaption>Danh sách tenant và hộp thoại [Gian hàng mới] — tên·đường dẫn đăng nhập·tên miền cửa hàng·gói dịch vụ (ảnh chụp giao diện tiếng Anh — bảng điều khiển hỗ trợ cả tiếng Việt)</figcaption></figure>
 
   <h3>1.2 (Tùy chọn) Điều chỉnh menu được cung cấp</h3>
   <p>Trên hàng của tenant → <strong>[Menu]</strong> → chọn 1 trong 3 chế độ cho từng menu: <strong>Theo gói</strong> (mặc định) / <strong>Buộc cung cấp</strong> / <strong>Không cung cấp</strong>.
@@ -194,6 +198,7 @@ li{margin:4px 0}
   <div class="callout warn"><span class="c-label">⚠️ Mật khẩu tạm thời không được gửi qua email</span>
   <p>Quản trị viên phải sao chép giá trị hiển thị một lần trong hộp thoại và <strong>tự tay chuyển giao</strong>. Nếu lỡ đóng cửa sổ và mất giá trị,
   hãy cấp lại bằng nút <strong>[Mật khẩu tạm]</strong> trên hàng người dùng đó (giá trị cũ sẽ bị vô hiệu).</p></div>
+  <figure class="shot"><img src="img/admin-temp-password.en.jpg" alt="Hộp thoại mật khẩu tạm thời chỉ hiển thị một lần ngay sau khi mời — sao chép rồi chuyển giao qua kênh an toàn" loading="lazy"><figcaption>Hộp thoại mật khẩu tạm thời chỉ hiển thị một lần ngay sau khi mời — sao chép rồi chuyển giao qua kênh an toàn</figcaption></figure>
   <div class="callout"><span class="c-label">💡 Bảo mật khi chuyển giao</span>
   <p>Đừng để mật khẩu trong nội dung email hay nhóm chat. Hãy chuyển qua tin nhắn bảo mật 1:1 hoặc điện thoại,
   và quy trình mở tenant chỉ hoàn tất khi đã xác nhận đăng nhập lần đầu (= đổi mật khẩu bắt buộc) xong. Lịch sử cấp phát được ghi vào nhật ký kiểm tra (<code>/admin/audit</code>).</p></div>
@@ -212,6 +217,7 @@ li{margin:4px 0}
   <div class="callout"><span class="c-label">💡 Mẹo</span>
   <p>Nếu thấy "Không tìm thấy cửa hàng", hãy kiểm tra chính tả slug trong URL.
   Bật <strong>Ghi nhớ email</strong> thì từ lần sau trình duyệt này sẽ tự điền email.</p></div>
+  <figure class="shot"><img src="img/tenant-login.en.jpg" alt="Màn hình đăng nhập riêng của tenant (/slug)" loading="lazy"><figcaption>Màn hình đăng nhập riêng của tenant (/slug)</figcaption></figure>
 
   <h3>2.2 Đổi mật khẩu bắt buộc</h3>
   <p>Ngay sau khi đăng nhập, <strong>cửa sổ đổi mật khẩu không thể đóng</strong> hiện ra (không thể hủy — không thể dùng bảng điều khiển với mật khẩu tạm thời).</p>
@@ -220,6 +226,7 @@ li{margin:4px 0}
     <li>3 quy tắc hiển thị ✓/✕ theo thời gian thực: <strong>① tối thiểu 10 ký tự ② ít nhất 3 trong 4 loại chữ hoa·chữ thường·số·ký tự đặc biệt ③ không phải mật khẩu phổ biến</strong></li>
     <li>Mật khẩu chứa email của chính mình, hoặc trùng mật khẩu ngay trước, bị máy chủ từ chối</li>
   </ul>
+  <figure class="shot"><img src="img/forced-password.en.jpg" alt="Đổi mật khẩu bắt buộc ở lần đăng nhập đầu — 3 quy tắc được kiểm tra theo thời gian thực" loading="lazy"><figcaption>Đổi mật khẩu bắt buộc ở lần đăng nhập đầu — 3 quy tắc được kiểm tra theo thời gian thực</figcaption></figure>
 
   <h3>2.3 Đăng ký MFA (xác thực 2 bước)</h3>
   <div class="terms"><div class="t-label">Thuật ngữ</div>
@@ -245,6 +252,7 @@ li{margin:4px 0}
     <tr><td>Kiểm tra kết nối</td><td>Nút gọi API thật một lần bằng thông tin xác thực đã lưu để kiểm tra tính hợp lệ</td></tr>
     <tr><td>Đồng bộ</td><td>Thao tác lấy dữ liệu đơn hàng·sản phẩm của nền tảng về bộ nhớ đệm ShopTalk</td></tr>
   </table></div></div>
+  <figure class="shot"><img src="img/settings-stores.en.jpg" alt="Ô Tích hợp cửa hàng trong [Cài đặt gian hàng] — nhập thông tin xác thực bằng nút [Cài đặt] theo từng nền tảng" loading="lazy"><figcaption>Ô Tích hợp cửa hàng trong [Cài đặt gian hàng] — nhập thông tin xác thực bằng nút [Cài đặt] theo từng nền tảng</figcaption></figure>
 
   <h3>3.1 Cafe24 — kết nối OAuth (khuyến nghị) ✅</h3>
   <ol class="steps">
@@ -291,8 +299,10 @@ li{margin:4px 0}
   tạo <strong>khóa bí mật ký (signing secret)</strong> (dùng cho liên kết danh tính thành viên).</p>
   <div class="callout warn"><span class="c-label">⚠️ Khóa bí mật ký chỉ hiển thị một lần khi [Tạo]</span>
   <p>Hãy sao chép ngay và chuyển cho người phụ trách máy chủ của cửa hàng.</p></div>
+  <figure class="shot"><img src="img/settings-install.en.jpg" alt="Thẻ kết nối OAuth Cafe24 và thẻ hướng dẫn cài đặt — đoạn mã theo từng tab nền tảng" loading="lazy"><figcaption>Thẻ kết nối OAuth Cafe24 và thẻ hướng dẫn cài đặt — đoạn mã theo từng tab nền tảng</figcaption></figure>
   <div class="callout"><span class="c-label">💡 Mẹo</span>
   <p>Sau khi cài, mở trang cửa hàng thật và kiểm tra launcher (nút bong bóng chat) xuất hiện ở góc dưới bên phải là cách xác minh chắc chắn nhất.</p></div>
+  <figure class="shot"><img src="img/widget-chat.en.jpg" alt="Widget đã cài trên trang cửa hàng" loading="lazy"><figcaption>Widget đã cài trên trang cửa hàng</figcaption></figure>
 
   <h3>4.2 Nội dung·hành vi (thẻ Hành vi của widget)</h3>
   <div class="tablewrap"><table>
@@ -312,6 +322,7 @@ li{margin:4px 0}
   <div class="callout"><span class="c-label">💡 Mẹo</span>
   <p>Chỉ cần chọn <strong>một màu thương hiệu duy nhất</strong>. Các bậc sáng và màu chữ được tính tự động theo chuẩn tương phản (4.5:1).
   Chủ đề đã lưu có hiệu lực <strong>từ phiên widget tiếp theo của khách hàng</strong>.</p></div>
+  <figure class="shot"><img src="img/settings-widget.en.jpg" alt="Thẻ Tab của widget·Chủ đề widget — xem ngay ở phần xem trước bên phải" loading="lazy"><figcaption>Thẻ Tab của widget·Chủ đề widget — xem ngay ở phần xem trước bên phải</figcaption></figure>
 </section>
 
 <section id="ch5">
@@ -334,6 +345,7 @@ li{margin:4px 0}
   <div class="callout"><span class="c-label">💡 Mẹo</span>
   <p>Nút kịch bản (menu nhanh dưới cùng của widget) đã có sẵn 6 loại mặc định (Tình trạng giao hàng·Hủy/Hoàn tiền·Hỗ trợ sản phẩm·Liên hệ hỗ trợ·Cộng tác viên·Đơn hàng của tôi)
   được áp dụng tự động, nên ở giai đoạn mở tenant không cần đụng đến.</p></div>
+  <figure class="shot"><img src="img/ai-setting.en.jpg" alt="Cài đặt AI — thẻ agent·persona (trái) và studio xem trước·huấn luyện (phải)" loading="lazy"><figcaption>Cài đặt AI — thẻ agent·persona (trái) và studio xem trước·huấn luyện (phải)</figcaption></figure>
 </section>
 
 <section id="ch6">
@@ -350,6 +362,7 @@ li{margin:4px 0}
   <div class="callout"><span class="c-label">💡 Mẹo</span>
   <p>Đưa vào tiêu đề·nội dung <strong>cách nói thực tế của khách hàng</strong> (ví dụ: "giao hàng mất bao lâu") sẽ tăng tỷ lệ khớp khi tìm kiếm.
   Đăng ký hàng loạt tri thức sản phẩm·tích hợp nguồn ngoài·quản lý chất lượng được đề cập trong sổ tay tập 2.</p></div>
+  <figure class="shot"><img src="img/knowledge.en.jpg" alt="Màn hình Kho tri thức — nguồn·thông tin xác thực (trái) và bảng QA tri thức (phải)" loading="lazy"><figcaption>Màn hình Kho tri thức — nguồn·thông tin xác thực (trái) và bảng QA tri thức (phải)</figcaption></figure>
 </section>
 
 <section id="ch7">

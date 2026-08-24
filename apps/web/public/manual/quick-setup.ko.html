@@ -101,6 +101,9 @@ li{margin:4px 0}
 .pagenav a{color:var(--muted);text-decoration:none}
 .pagenav a:hover,.pagenav a:focus-visible{color:var(--accent)}
 .pagenav .cur{color:var(--accent-deep);font-weight:700}
+figure.shot{margin:18px 0;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--card)}
+figure.shot img{display:block;width:100%}
+figure.shot figcaption{padding:8px 16px;font-size:13px;color:var(--muted);border-top:1px solid var(--line)}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 @media(prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
 </style>
@@ -169,6 +172,7 @@ li{margin:4px 0}
   <div class="callout"><span class="c-label">💡 슬러그 규칙</span>
   <p>소문자·숫자·하이픈만 가능하며, 콘솔 화면 이름(<code>admin</code>, <code>login</code>, <code>dashboard</code>, <code>settings</code> 등 예약어)과 겹칠 수 없습니다.
   예약어를 입력하면 서버가 자동으로 <code>-shop</code> 접미를 붙입니다. 슬러그는 곧 로그인 URL이므로 상점이 기억하기 쉬운 값을 권장합니다.</p></div>
+  <figure class="shot"><img src="img/admin-tenants.ko.jpg" alt="테넌트 목록과 [새 테넌트] 모달 — 이름·로그인 경로·쇼핑몰 도메인·요금제" loading="lazy"><figcaption>테넌트 목록과 [새 테넌트] 모달 — 이름·로그인 경로·쇼핑몰 도메인·요금제</figcaption></figure>
 
   <h3>1.2 (선택) 제공 메뉴 조정</h3>
   <p>테넌트 행의 <strong>[제공 메뉴]</strong> → 메뉴별 3단 선택: <strong>플랜 따름</strong>(기본) / <strong>강제 제공</strong> / <strong>차단</strong>.
@@ -193,6 +197,7 @@ li{margin:4px 0}
   <div class="callout warn"><span class="c-label">⚠️ 임시 비밀번호는 이메일로 발송되지 않습니다</span>
   <p>모달에 1회 표시되는 값을 관리자가 복사해 <strong>직접 전달</strong>해야 합니다. 창을 닫아 값을 잃었다면
   해당 사용자 행의 <strong>[임시 비밀번호]</strong> 버튼으로 재발급하세요(이전 값은 무효화됩니다).</p></div>
+  <figure class="shot"><img src="img/admin-temp-password.ko.jpg" alt="초대 직후 1회만 표시되는 임시 비밀번호 모달 — [복사] 후 안전한 경로로 전달" loading="lazy"><figcaption>초대 직후 1회만 표시되는 임시 비밀번호 모달 — [복사] 후 안전한 경로로 전달</figcaption></figure>
   <div class="callout"><span class="c-label">💡 전달 보안</span>
   <p>비밀번호를 이메일 본문이나 단체 채팅에 남기지 마세요. 1:1 보안 메신저나 전화로 전달하고,
   첫 로그인(=강제 변경) 완료를 확인하는 것까지가 개설 절차입니다. 발급 이력은 감사 로그(<code>/admin/audit</code>)에 남습니다.</p></div>
@@ -211,6 +216,7 @@ li{margin:4px 0}
   <div class="callout"><span class="c-label">💡 팁</span>
   <p>"해당 매장을 찾을 수 없음"이 나오면 URL의 슬러그 철자를 확인하세요.
   <strong>이메일 기억하기</strong>를 켜면 이 브라우저에서 다음부터 이메일이 채워집니다.</p></div>
+  <figure class="shot"><img src="img/tenant-login.ko.jpg" alt="테넌트 전용 로그인 화면 (/슬러그)" loading="lazy"><figcaption>테넌트 전용 로그인 화면 (/슬러그)</figcaption></figure>
 
   <h3>2.2 강제 비밀번호 변경</h3>
   <p>로그인 직후 <strong>닫을 수 없는 비밀번호 변경 창</strong>이 뜹니다(취소 불가 — 임시 비밀번호로는 콘솔을 쓸 수 없습니다).</p>
@@ -219,6 +225,7 @@ li{margin:4px 0}
     <li>규칙 3가지가 실시간 ✓/✕ 표시: <strong>① 최소 10자 ② 대문자·소문자·숫자·특수문자 중 3종 이상 ③ 흔한 비밀번호 아님</strong></li>
     <li>본인 이메일이 포함된 비밀번호, 직전과 같은 비밀번호는 서버에서 거부</li>
   </ul>
+  <figure class="shot"><img src="img/forced-password.ko.jpg" alt="첫 로그인 강제 비밀번호 변경 — 규칙 3종이 실시간으로 검사됩니다" loading="lazy"><figcaption>첫 로그인 강제 비밀번호 변경 — 규칙 3종이 실시간으로 검사됩니다</figcaption></figure>
 
   <h3>2.3 MFA(2단계 인증) 등록</h3>
   <div class="terms"><div class="t-label">용어</div>
@@ -244,6 +251,7 @@ li{margin:4px 0}
     <tr><td>연결 테스트</td><td>저장한 자격증명으로 실제 API를 1회 호출해 유효성을 확인하는 버튼</td></tr>
     <tr><td>동기화</td><td>플랫폼의 주문·상품 데이터를 샵톡 캐시로 가져오는 작업</td></tr>
   </table></div></div>
+  <figure class="shot"><img src="img/settings-stores.ko.jpg" alt="[설정] 스토어 연동 타일 — 플랫폼별 [설정] 버튼으로 자격증명 입력" loading="lazy"><figcaption>[설정] 스토어 연동 타일 — 플랫폼별 [설정] 버튼으로 자격증명 입력</figcaption></figure>
 
   <h3>3.1 Cafe24 — OAuth 연결(권장) ✅</h3>
   <ol class="steps">
@@ -290,8 +298,10 @@ li{margin:4px 0}
   <strong>서명 시크릿</strong>(회원 신원 연동용) 생성을 합니다.</p>
   <div class="callout warn"><span class="c-label">⚠️ 서명 시크릿은 [생성] 시 한 번만 표시됩니다</span>
   <p>즉시 복사해 쇼핑몰 서버 담당자에게 전달하세요.</p></div>
+  <figure class="shot"><img src="img/settings-install.ko.jpg" alt="Cafe24 OAuth 연결 카드와 스토어에 설치 카드 — 플랫폼 탭별 스니펫" loading="lazy"><figcaption>Cafe24 OAuth 연결 카드와 스토어에 설치 카드 — 플랫폼 탭별 스니펫</figcaption></figure>
   <div class="callout"><span class="c-label">💡 팁</span>
   <p>설치 후 실제 쇼핑몰 페이지를 열어 우하단 런처(말풍선 버튼)가 뜨는지 확인하는 것이 가장 확실한 검증입니다.</p></div>
+  <figure class="shot"><img src="img/widget-menu.ko.jpg" alt="쇼핑몰에 설치된 위젯 — 3탭·AI 고지·시나리오 빠른 메뉴" loading="lazy"><figcaption>쇼핑몰에 설치된 위젯 — 3탭·AI 고지·시나리오 빠른 메뉴</figcaption></figure>
 
   <h3>4.2 문구·동작 (위젯 동작 카드)</h3>
   <div class="tablewrap"><table>
@@ -311,6 +321,7 @@ li{margin:4px 0}
   <div class="callout"><span class="c-label">💡 팁</span>
   <p>색은 <strong>브랜드 색 하나만</strong> 고르면 됩니다. 밝기 단계와 글자색은 대비 기준(4.5:1)에 맞춰 자동 계산됩니다.
   저장한 테마는 <strong>고객의 다음 위젯 세션부터</strong> 반영됩니다.</p></div>
+  <figure class="shot"><img src="img/settings-widget.ko.jpg" alt="위젯 탭 구성·위젯 테마 카드 — 오른쪽 미리보기로 즉시 확인" loading="lazy"><figcaption>위젯 탭 구성·위젯 테마 카드 — 오른쪽 미리보기로 즉시 확인</figcaption></figure>
 </section>
 
 <section id="ch5">
@@ -333,6 +344,7 @@ li{margin:4px 0}
   <div class="callout"><span class="c-label">💡 팁</span>
   <p>시나리오 버튼(위젯 하단 빠른 메뉴)은 기본 6종(배송 조회·취소/환불·상품 도움말·고객 지원 문의·제휴·내 주문)이
   자동 적용되므로 개설 단계에서 손대지 않아도 됩니다.</p></div>
+  <figure class="shot"><img src="img/ai-setting.ko.jpg" alt="AI 설정 — 에이전트·페르소나 카드(좌)와 미리보기·코칭 스튜디오(우)" loading="lazy"><figcaption>AI 설정 — 에이전트·페르소나 카드(좌)와 미리보기·코칭 스튜디오(우)</figcaption></figure>
 </section>
 
 <section id="ch6">
@@ -349,6 +361,7 @@ li{margin:4px 0}
   <div class="callout"><span class="c-label">💡 팁</span>
   <p>문서 제목·본문에 <strong>고객이 실제 쓰는 표현</strong>(예: "배송 얼마나 걸려요")을 포함하면 검색 적중률이 올라갑니다.
   상품 지식 대량 등록·외부 소스 연동·품질 관리는 2편 매뉴얼에서 다룹니다.</p></div>
+  <figure class="shot"><img src="img/knowledge.ko.jpg" alt="지식 화면 — 소스·자격증명(좌)과 지식 QA 패널(우)" loading="lazy"><figcaption>지식 화면 — 소스·자격증명(좌)과 지식 QA 패널(우)</figcaption></figure>
 </section>
 
 <section id="ch7">
