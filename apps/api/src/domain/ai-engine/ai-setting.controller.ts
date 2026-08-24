@@ -33,7 +33,7 @@ export class AiSettingController {
   async list(@CurrentUser() user: Principal) {
     const [settings, engines] = await Promise.all([
       this.aiSettingService.list(this.tenantId(user)),
-      this.aiEngineService.listEnabled(),
+      this.aiEngineService.listEnabledFor(this.tenantId(user)),
     ]);
     return {
       settings: settings.map((view) => AiEngineMapper.toSettingView(view)),

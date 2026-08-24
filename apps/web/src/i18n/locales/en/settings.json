@@ -500,5 +500,41 @@
     "secretRotated": "New secret generated",
     "secretRotateError": "Could not generate a secret",
     "originPlaceholder": "https://www.example.com"
+  },
+  "aiEngines": {
+    "title": "AI engines",
+    "add": "Add engine",
+    "edit": "Edit engine",
+    "mine": "Mine",
+    "platform": "Platform",
+    "hint": "An engine you register here is used before the platform engine. Pick which function uses which on the AI settings page.",
+    "platformHint": "Managed by the operator of this service. Your own engine takes precedence over these.",
+    "empty": "No engines of your own yet — the platform engines below are in use.",
+    "name": "Name",
+    "provider": "Provider",
+    "model": "Model",
+    "endpoint": "Endpoint",
+    "endpointHint": "Leave empty for the provider default.",
+    "apiKey": "API key",
+    "apiKeyHint": "Leave empty to keep the stored key.",
+    "keyStored": "A key is stored",
+    "noKey": "no API key — disabled",
+    "disabled": "Disabled",
+    "default": "Default",
+    "makeDefault": "Make default",
+    "test": "Test",
+    "testOk": "Responded in {{ms}} ms",
+    "testFail": {
+      "auth": "Authentication failed — check the API key",
+      "model": "Model not found — check the model name",
+      "rate_limit": "Rate limited — try again shortly",
+      "unreachable": "Could not reach the provider — check the endpoint",
+      "ok": "OK"
+    },
+    "billingNote": "Calls made with your own key are billed to your account with that provider.",
+    "saved": "Engine saved",
+    "defaultSet": "Default engine set",
+    "removed": "Engine deleted",
+    "inUse": "Still used by: {{functions}}. Point those functions elsewhere first."
   }
 }

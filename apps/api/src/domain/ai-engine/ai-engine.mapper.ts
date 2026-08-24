@@ -68,4 +68,30 @@ export class AiEngineMapper {
       inheritedFrom: v.inheritedFrom ?? null,
     };
   }
+
+  /**
+   * Tenant-facing engine shape (PLN-260824).
+   *
+   * The key never leaves as plaintext — only whether one is stored and its last
+   * four characters, which is enough to tell two keys apart when rotating and
+   * useless to anyone who reads the response.
+   */
+  static toTenantEngine(e: AiEngine) {
+    return {
+      id: String(e.id),
+      name: e.name,
+      provider: e.provider,
+      model: e.model,
+      endpoint: e.endpoint,
+      status: e.status,
+      isDefault: e.isDefault === 1,
+      hasApiKey: !!e.apiKeyEncrypted,
+      /** Read-only here: platform engines are the admin's to change. */
+      platform: e.tenantId == null,
+    };
+  }
+
+  static toTenantEngineList(rows: AiEngine[]) {
+    return rows.map((e) => this.toTenantEngine(e));
+  }
 }

@@ -16,6 +16,16 @@ export const CAPABILITY = {
   // Tenant (scope=tenant)
   INTEGRATION_CREDENTIALS_MANAGE: 'integration_credentials.manage',
   TENANT_SETTINGS_MANAGE: 'tenant_settings.manage',
+  /**
+   * Register and edit the tenant's OWN AI engines (PLN-260824 D1).
+   *
+   * Deliberately not AI_ENGINE_MANAGE: that one means "curate the platform
+   * catalogue for everyone" and is held by admins. Reusing it here would let a
+   * single grant mean two different scopes depending on who holds it, which is
+   * how a permission boundary stops being checkable.
+   */
+  TENANT_AI_ENGINE_MANAGE: 'tenant_ai_engine.manage',
+
   USER_INVITE: 'user.invite',
   USER_RANK_ADJUST: 'user.rank_adjust',
   LABEL_EDIT: 'label.edit',

@@ -44,6 +44,9 @@ const ADMIN_CAPS: Record<AdminLevel, Capability[]> = {
 const RANK_CAPS: Record<UserRank, Capability[]> = {
   [USER_RANK.MASTER]: [
     CAPABILITY.INTEGRATION_CREDENTIALS_MANAGE,
+    // Master only: this screen takes an API key and decides who is billed for
+    // the model calls (PLN-260824 D2).
+    CAPABILITY.TENANT_AI_ENGINE_MANAGE,
     CAPABILITY.TENANT_SETTINGS_MANAGE,
     CAPABILITY.USER_INVITE,
     CAPABILITY.USER_RANK_ADJUST,

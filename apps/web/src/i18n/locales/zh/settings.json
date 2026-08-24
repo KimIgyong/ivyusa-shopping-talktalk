@@ -500,5 +500,41 @@
     "secretRotated": "已生成新密钥",
     "secretRotateError": "无法生成密钥",
     "originPlaceholder": "https://www.example.com"
+  },
+  "aiEngines": {
+    "title": "AI 引擎",
+    "add": "添加引擎",
+    "edit": "编辑引擎",
+    "mine": "我的引擎",
+    "platform": "平台提供",
+    "hint": "在此注册的引擎会优先于平台引擎使用。各功能的绑定请在 AI 设置页指定。",
+    "platformHint": "由服务运营方管理。若你有自己的引擎，会优先使用你的。",
+    "empty": "你还没有自己的引擎 — 当前使用下方平台引擎。",
+    "name": "名称",
+    "provider": "提供商",
+    "model": "模型",
+    "endpoint": "端点",
+    "endpointHint": "留空则使用提供商默认端点。",
+    "apiKey": "API 密钥",
+    "apiKeyHint": "留空则保留已保存的密钥。",
+    "keyStored": "已保存密钥",
+    "noKey": "无 API 密钥 — 已停用",
+    "disabled": "已停用",
+    "default": "默认",
+    "makeDefault": "设为默认",
+    "test": "连接测试",
+    "testOk": "{{ms}} 毫秒内返回",
+    "testFail": {
+      "auth": "认证失败 — 请检查 API 密钥",
+      "model": "找不到模型 — 请检查模型名称",
+      "rate_limit": "请求过多 — 请稍后重试",
+      "unreachable": "无法连接提供商 — 请检查端点",
+      "ok": "正常"
+    },
+    "billingNote": "使用你自己的密钥发出的调用，将由该提供商向你的账户计费。",
+    "saved": "已保存引擎",
+    "defaultSet": "已设置默认引擎",
+    "removed": "已删除引擎",
+    "inUse": "仍被 {{functions}} 使用。请先将这些功能改用其他引擎。"
   }
 }

@@ -500,5 +500,41 @@
     "secretRotated": "Đã tạo khoá bí mật mới",
     "secretRotateError": "Không thể tạo khoá bí mật",
     "originPlaceholder": "https://www.example.com"
+  },
+  "aiEngines": {
+    "title": "Công cụ AI",
+    "add": "Thêm công cụ",
+    "edit": "Sửa công cụ",
+    "mine": "Của tôi",
+    "platform": "Của nền tảng",
+    "hint": "Công cụ bạn đăng ký ở đây được dùng trước công cụ của nền tảng. Gán từng chức năng ở trang Cài đặt AI.",
+    "platformHint": "Do đơn vị vận hành dịch vụ quản lý. Công cụ của bạn được ưu tiên hơn.",
+    "empty": "Bạn chưa có công cụ riêng — đang dùng công cụ của nền tảng.",
+    "name": "Tên",
+    "provider": "Nhà cung cấp",
+    "model": "Mô hình",
+    "endpoint": "Endpoint",
+    "endpointHint": "Để trống để dùng mặc định của nhà cung cấp.",
+    "apiKey": "Khóa API",
+    "apiKeyHint": "Để trống để giữ khóa đã lưu.",
+    "keyStored": "Đã lưu một khóa",
+    "noKey": "chưa có khóa API — đang tắt",
+    "disabled": "Đã tắt",
+    "default": "Mặc định",
+    "makeDefault": "Đặt làm mặc định",
+    "test": "Kiểm tra",
+    "testOk": "Phản hồi trong {{ms}} ms",
+    "testFail": {
+      "auth": "Xác thực thất bại — hãy kiểm tra khóa API",
+      "model": "Không tìm thấy mô hình — hãy kiểm tra tên mô hình",
+      "rate_limit": "Quá nhiều yêu cầu — hãy thử lại sau",
+      "unreachable": "Không kết nối được nhà cung cấp — hãy kiểm tra endpoint",
+      "ok": "Bình thường"
+    },
+    "billingNote": "Các lệnh gọi bằng khóa của bạn sẽ được tính phí vào tài khoản của bạn tại nhà cung cấp đó.",
+    "saved": "Đã lưu công cụ",
+    "defaultSet": "Đã đặt công cụ mặc định",
+    "removed": "Đã xóa công cụ",
+    "inUse": "Vẫn đang được dùng bởi: {{functions}}. Hãy chuyển các chức năng đó trước."
   }
 }

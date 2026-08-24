@@ -64,6 +64,7 @@ import { ProviderTile } from './ProviderTile';
 import { ShopifyConfigModal } from './ShopifyConfigModal';
 import { IntegrationConfigModal } from './IntegrationConfigModal';
 import { Cafe24ConnectCard } from './Cafe24ConnectCard';
+import { AiEngineCard } from './AiEngineCard';
 import { EmbedCard } from './EmbedCard';
 import { MenuAccessSection } from './MenuAccessSection';
 import { MessengerChannelCard } from './MessengerChannelCard';
@@ -1229,6 +1230,8 @@ export function SettingsPage() {
       <MessengerChannelsSection />
 
       <Cafe24ConnectCard />
+
+      <AiEngineCard />
 
       <InstallGuideCard />
 

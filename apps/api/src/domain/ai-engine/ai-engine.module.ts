@@ -9,12 +9,14 @@ import { Session } from '../session/entity/session.entity';
 import { Tenant } from '../tenant/entity/tenant.entity';
 import { SessionModule } from '../session/session.module';
 import { AiEngineService } from './ai-engine.service';
+import { TenantAiEngineService } from './tenant-ai-engine.service';
 import { AiSettingService } from './ai-setting.service';
 import { AiConfigService } from './ai-config.service';
 import { AiConfigRevisionService } from './ai-config-revision.service';
 import { AiAgentService } from './ai-agent.service';
 import { HandoffRouterService } from './handoff-router.service';
 import { AiEngineController } from './ai-engine.controller';
+import { TenantAiEngineController } from './tenant-ai-engine.controller';
 import { AiSettingController } from './ai-setting.controller';
 import { AiConfigController } from './ai-config.controller';
 import { AiAgentController } from './ai-agent.controller';
@@ -32,9 +34,16 @@ import { AiAgentController } from './ai-agent.controller';
     ]),
     SessionModule,
   ],
-  controllers: [AiEngineController, AiSettingController, AiConfigController, AiAgentController],
+  controllers: [
+    AiEngineController,
+    TenantAiEngineController,
+    AiSettingController,
+    AiConfigController,
+    AiAgentController,
+  ],
   providers: [
     AiEngineService,
+    TenantAiEngineService,
     AiSettingService,
     AiConfigService,
     AiConfigRevisionService,
@@ -43,6 +52,7 @@ import { AiAgentController } from './ai-agent.controller';
   ],
   exports: [
     AiEngineService,
+    TenantAiEngineService,
     AiSettingService,
     AiConfigService,
     AiConfigRevisionService,

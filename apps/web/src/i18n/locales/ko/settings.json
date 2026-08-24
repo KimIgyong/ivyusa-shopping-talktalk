@@ -500,5 +500,41 @@
     "secretRotated": "새 시크릿을 발급했습니다",
     "secretRotateError": "시크릿을 발급하지 못했습니다",
     "originPlaceholder": "https://www.example.com"
+  },
+  "aiEngines": {
+    "title": "AI 엔진",
+    "add": "엔진 추가",
+    "edit": "엔진 수정",
+    "mine": "내 엔진",
+    "platform": "플랫폼 제공",
+    "hint": "여기에 등록한 엔진이 플랫폼 엔진보다 먼저 사용됩니다. 기능별 연결은 AI 설정에서 지정합니다.",
+    "platformHint": "서비스 운영자가 관리합니다. 내 엔진이 있으면 그쪽이 우선합니다.",
+    "empty": "등록한 엔진이 없습니다 — 아래 플랫폼 엔진이 사용됩니다.",
+    "name": "이름",
+    "provider": "프로바이더",
+    "model": "모델",
+    "endpoint": "엔드포인트",
+    "endpointHint": "비우면 기본 엔드포인트를 사용합니다.",
+    "apiKey": "API 키",
+    "apiKeyHint": "비워두면 저장된 키를 유지합니다.",
+    "keyStored": "키가 저장되어 있습니다",
+    "noKey": "API 키 없음 — 비활성",
+    "disabled": "비활성",
+    "default": "기본값",
+    "makeDefault": "기본값으로",
+    "test": "연결 테스트",
+    "testOk": "{{ms}}ms 만에 응답했습니다",
+    "testFail": {
+      "auth": "인증 실패 — API 키를 확인하십시오",
+      "model": "모델을 찾을 수 없음 — 모델명을 확인하십시오",
+      "rate_limit": "요청이 많습니다 — 잠시 후 다시 시도하십시오",
+      "unreachable": "프로바이더에 연결하지 못했습니다 — 엔드포인트를 확인하십시오",
+      "ok": "정상"
+    },
+    "billingNote": "내 키로 나가는 호출은 해당 프로바이더에서 우리 계정으로 청구됩니다.",
+    "saved": "엔진을 저장했습니다",
+    "defaultSet": "기본 엔진을 지정했습니다",
+    "removed": "엔진을 삭제했습니다",
+    "inUse": "{{functions}} 기능이 아직 사용 중입니다. 먼저 다른 엔진으로 옮기십시오."
   }
 }

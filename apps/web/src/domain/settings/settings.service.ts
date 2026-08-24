@@ -193,6 +193,17 @@ export const settingsService = {
     apiPost<IntegrationTestResult>(`/tenants/me/integrations/${provider}/test`),
   // Cafe24 OAuth (PLN-260807 P-A1): begin the flow (returns the authorize URL the
   // browser navigates to) and run an on-demand order sync.
+  aiEngines: () => apiGet<TenantAiEngineList>('/tenants/me/ai-engines'),
+  createAiEngine: (body: SaveTenantEngineBody) =>
+    apiPost<TenantAiEngine>('/tenants/me/ai-engines', body),
+  updateAiEngine: (id: string, body: Partial<SaveTenantEngineBody>) =>
+    apiPatch<TenantAiEngine>(`/tenants/me/ai-engines/${id}`, body),
+  setAiEngineDefault: (id: string) =>
+    apiPut<TenantAiEngine>(`/tenants/me/ai-engines/${id}/default`, {}),
+  testAiEngine: (id: string) =>
+    apiPost<EngineTestResult>(`/tenants/me/ai-engines/${id}/test`, {}),
+  deleteAiEngine: (id: string) =>
+    apiDelete<{ removed: boolean; usedBy: string[] }>(`/tenants/me/ai-engines/${id}`),
   connectCafe24: (mallId: string) =>
     apiPost<{ authorizeUrl: string }>('/tenants/me/cafe24/connect', { mall_id: mallId }),
   syncCafe24: () => apiPost<Cafe24SyncResult>('/tenants/me/cafe24/sync'),
@@ -210,4 +221,41 @@ export interface Cafe24SyncResult {
 
 export interface Cafe24ProductSyncResult extends Cafe24SyncResult {
   archived: number;
+}
+
+/** One of the tenant's AI engines, or a read-only platform one (PLN-260824). */
+export interface TenantAiEngine {
+  id: string;
+  name: string;
+  provider: string;
+  model: string;
+  endpoint: string | null;
+  status: string;
+  isDefault: boolean;
+  /** Whether a key is stored — the key itself never leaves the server. */
+  hasApiKey: boolean;
+  platform: boolean;
+}
+
+export interface TenantAiEngineList {
+  providers: string[];
+  own: TenantAiEngine[];
+  platform: TenantAiEngine[];
+}
+
+/** Why a connection test failed; the fixes differ per reason. */
+export interface EngineTestResult {
+  ok: boolean;
+  reason: 'ok' | 'auth' | 'model' | 'rate_limit' | 'unreachable';
+  detail: string | null;
+  elapsedMs: number;
+}
+
+export interface SaveTenantEngineBody {
+  name: string;
+  provider: string;
+  model: string;
+  endpoint?: string;
+  /** Omit to keep the stored key. */
+  api_key?: string;
 }

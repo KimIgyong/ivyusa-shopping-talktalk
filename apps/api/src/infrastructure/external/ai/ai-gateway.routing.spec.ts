@@ -20,13 +20,22 @@ function gatewayWith(settings: Array<{ func: string; engineId: number }>, engine
   const engineRepo = {
     findOne: async ({ where }: { where: Record<string, unknown> }) => {
       if (where.id !== undefined) return engines.find((e) => e.id === where.id) ?? null;
-      // default lookups: tenant-scoped first, then platform-wide (tenantId absent)
+      // Default lookups. The platform pass asks for `tenantId: IsNull()` and the
+      // tenant pass for a number, so the double has to tell those apart — if it
+      // treated a missing tenant filter as "platform", it would pass while the
+      // real query happily returned another tenant's engine.
+      const wantsPlatform =
+        where.tenantId !== undefined &&
+        typeof where.tenantId === 'object' &&
+        (where.tenantId as { _type?: string })?._type === 'isNull';
       return (
         engines.find(
           (e) =>
             e.isDefault === 1 &&
             e.status === 'enabled' &&
-            (where.tenantId === undefined || e.tenantId === where.tenantId),
+            (wantsPlatform
+              ? (e.tenantId ?? null) === null
+              : where.tenantId === undefined || e.tenantId === where.tenantId),
         ) ?? null
       );
     },
@@ -41,6 +50,16 @@ function gatewayWith(settings: Array<{ func: string; engineId: number }>, engine
     adapter,
   );
 }
+
+/** A tenant's own engine, flagged default within that tenant. */
+const TENANT_OWNED = {
+  id: 9,
+  tenantId: 7,
+  provider: 'anthropic',
+  name: "Someone else's Claude",
+  status: 'enabled',
+  isDefault: 1,
+} as AiEngine;
 
 describe('AiGatewayService.resolveRouting', () => {
   it('uses the engine a function is explicitly assigned', async () => {
@@ -105,6 +124,40 @@ describe('AiGatewayService.resolveRouting', () => {
   it('reports no engine when the platform has none enabled', async () => {
     const g = gatewayWith([], []);
     const r = await g.resolveRouting(1, 'coach');
+    expect(r.engine).toBeNull();
+    expect(r.source).toBe(ROUTING_SOURCE.NONE);
+  });
+
+  it("never falls back onto another tenant's default engine", async () => {
+    // The platform fallback used to ask only for `isDefault: 1`, so any engine
+    // flagged default would do — including one a tenant registered. That engine
+    // carries that tenant's API key, so this shop's conversation would have
+    // been answered on it and billed to them (REQ-260824 D-2).
+    const g = gatewayWith([], [TENANT_OWNED, STUB]);
+
+    const r = await g.resolveRouting(1, 'chat');
+
+    expect(r.engine?.id).toBe(STUB.id);
+    expect(r.source).toBe(ROUTING_SOURCE.PLATFORM_DEFAULT);
+  });
+
+  it('still prefers the tenant\'s own default over the platform one', async () => {
+    const own = { ...TENANT_OWNED, tenantId: 1 } as AiEngine;
+    const g = gatewayWith([], [own, STUB]);
+
+    const r = await g.resolveRouting(1, 'chat');
+
+    expect(r.engine?.id).toBe(own.id);
+    expect(r.source).toBe(ROUTING_SOURCE.TENANT_DEFAULT);
+  });
+
+  it('reports NONE when only another tenant has a default', async () => {
+    // Answering with nothing is correct here: the alternative is answering
+    // with someone else's account.
+    const g = gatewayWith([], [TENANT_OWNED]);
+
+    const r = await g.resolveRouting(1, 'chat');
+
     expect(r.engine).toBeNull();
     expect(r.source).toBe(ROUTING_SOURCE.NONE);
   });
