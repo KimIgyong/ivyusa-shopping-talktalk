@@ -7,6 +7,8 @@ import { MessageAttachment } from '../attachment/entity/message-attachment.entit
 import { AttachmentMapper } from '../attachment/attachment.mapper';
 import { ChatComment } from './entity/chat-comment.entity';
 import { ConversationBriefing } from './entity/conversation-briefing.entity';
+import { ChatGroup } from './entity/chat-group.entity';
+import { GroupMemberView } from './chat-group.service';
 
 /** Escalation alert row for the console alarm modal (FR-S3). */
 export function toAlertResponse(a: AgentAlert) {
@@ -71,6 +73,52 @@ export function toMessageResponse(
     createdAt: m.createdAt,
     // Signed links, minted per response (PLN-260814).
     attachments: AttachmentMapper.toResponseList(attachments),
+  };
+}
+
+/** Group row for the console's group tab (PLN-260824-Session-Grouping). */
+export function toGroupResponse(
+  g: ChatGroup,
+  memberCount: number,
+  lastMessageAt: Date | null = null,
+) {
+  return {
+    id: g.id,
+    kind: g.kind,
+    title: g.title,
+    memberCount,
+    lastMessageAt,
+    createdBy: g.createdBy,
+    createdAt: g.createdAt,
+  };
+}
+
+export function toGroupDetailResponse(g: ChatGroup, members: GroupMemberView[]) {
+  return {
+    ...toGroupResponse(g, members.length),
+    members: members.map((m) => ({
+      sessionId: String(m.sessionId),
+      alias: m.alias,
+      customerName: m.customerName,
+      channel: m.channel,
+      receiveOnly: m.receiveOnly,
+      targetConversationId: m.targetConversationId != null ? String(m.targetConversationId) : null,
+    })),
+  };
+}
+
+/** Merged-feed row: a normal message plus which member session it came from. */
+export function toGroupMessageResponse(
+  m: Message,
+  meta: { sessionId: number; channel: string } | undefined,
+  senderName: string | null = null,
+  attachments?: MessageAttachment[],
+) {
+  return {
+    ...toMessageResponse(m, senderName, attachments),
+    conversationId: String(m.conversationId),
+    sessionId: meta ? String(meta.sessionId) : null,
+    channel: meta?.channel ?? 'widget',
   };
 }
 

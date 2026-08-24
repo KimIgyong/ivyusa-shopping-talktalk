@@ -10,7 +10,10 @@ import { Assignment } from './entity/assignment.entity';
 import { AgentDailyStat } from './entity/agent-daily-stat.entity';
 import { AgentAlert } from './entity/agent-alert.entity';
 import { ChatComment } from './entity/chat-comment.entity';
+import { ChatGroup } from './entity/chat-group.entity';
+import { ChatGroupMember } from './entity/chat-group-member.entity';
 import { ConversationBriefing } from './entity/conversation-briefing.entity';
+import { Customer } from '../customer/entity/customer.entity';
 import { Conversation } from '../chat/entity/conversation.entity';
 import { Message } from '../chat/entity/message.entity';
 import { User } from '../user/entity/user.entity';
@@ -19,6 +22,7 @@ import { AgentService } from './agent.service';
 import { AgentAlertService } from './agent-alert.service';
 import { BriefingService } from './briefing.service';
 import { ChatCommentService } from './chat-comment.service';
+import { ChatGroupService } from './chat-group.service';
 import { AgentConsoleController } from './agent-console.controller';
 import { ModerationModule } from '../moderation/moderation.module';
 import { CustomerModule } from '../customer/customer.module';
@@ -41,6 +45,11 @@ import { AttachmentModule } from '../attachment/attachment.module';
       // Internal notes + stored briefings (REQ-260824 R3/R4).
       ChatComment,
       ConversationBriefing,
+      // Session grouping: timeline/project (PLN-260824-Session-Grouping).
+      ChatGroup,
+      ChatGroupMember,
+      // Read-only: group member display names (session → customer).
+      Customer,
       Conversation,
       Message,
       User,
@@ -68,7 +77,7 @@ import { AttachmentModule } from '../attachment/attachment.module';
     IssueModule,
   ],
   controllers: [AgentConsoleController],
-  providers: [AgentService, AgentAlertService, BriefingService, ChatCommentService],
+  providers: [AgentService, AgentAlertService, BriefingService, ChatCommentService, ChatGroupService],
   exports: [AgentService, AgentAlertService],
 })
 export class AgentModule {}

@@ -128,6 +128,36 @@ export interface ChatComment {
   updatedAt?: string;
 }
 
+/** Session group (timeline/project) — kind is a classifier only (REQ-260824). */
+export interface ChatGroupSummary {
+  id: string;
+  kind: 'timeline' | 'project';
+  title: string;
+  memberCount: number;
+  lastMessageAt?: string | null;
+  createdAt?: string;
+}
+
+export interface ChatGroupMemberView {
+  sessionId: string;
+  alias?: string | null;
+  customerName?: string | null;
+  channel: string;
+  receiveOnly: boolean;
+  targetConversationId?: string | null;
+}
+
+export interface ChatGroupDetail extends ChatGroupSummary {
+  members: ChatGroupMemberView[];
+}
+
+/** Merged-feed row: a message plus which member session it came from. */
+export interface GroupMessage extends ChatMessage {
+  conversationId?: string;
+  sessionId?: string | null;
+  channel?: string;
+}
+
 /** Escalation alert row (FR-S3) shown in the console alarm modal. */
 export interface AgentAlert {
   id: string;
@@ -191,6 +221,35 @@ export const liveChatService = {
     return apiUpload<ChatAttachment>(`/agent/conversations/${id}/attachments`, form, onProgress);
   },
   end: (id: string) => apiPost<ConversationDetail>(`/agent/conversations/${id}/end`),
+  // Session groups: timeline/project (REQ-260824-Session-Grouping).
+  groups: () => apiGet<ChatGroupSummary[]>('/agent/groups'),
+  createGroup: (kind: 'timeline' | 'project', title: string, sessionIds: string[]) =>
+    apiPost<ChatGroupSummary>('/agent/groups', {
+      kind,
+      title,
+      session_ids: sessionIds.map(Number),
+    }),
+  group: (id: string) => apiGet<ChatGroupDetail>(`/agent/groups/${id}`),
+  groupMessages: (id: string, beforeId?: string) =>
+    apiGet<{ groupId: string; messages: GroupMessage[]; hasMore: boolean }>(
+      `/agent/groups/${id}/messages`,
+      beforeId ? { before_id: beforeId } : undefined,
+    ),
+  /** 1:1 only — one member session as the recipient, never a broadcast. */
+  sendGroupMessage: (id: string, sessionId: string, body: string) =>
+    apiPost<GroupMessage>(`/agent/groups/${id}/messages`, {
+      session_id: Number(sessionId),
+      body,
+    }),
+  updateGroup: (id: string, patch: { title?: string; kind?: 'timeline' | 'project' }) =>
+    apiPatch<ChatGroupDetail>(`/agent/groups/${id}`, patch),
+  addGroupMembers: (id: string, sessionIds: string[]) =>
+    apiPost<ChatGroupDetail>(`/agent/groups/${id}/members`, {
+      session_ids: sessionIds.map(Number),
+    }),
+  removeGroupMember: (id: string, sessionId: string) =>
+    apiDelete<ChatGroupDetail>(`/agent/groups/${id}/members/${sessionId}`),
+  dissolveGroup: (id: string) => apiDelete<{ id: string }>(`/agent/groups/${id}`),
   /** Read-only knowledge lookup for chat handlers (PLN-260810 S2). */
   askKnowledge: (question: string, language: string) =>
     apiPost<AgentKnowledgeAnswer>('/agent/knowledge/ask', { question, language }),

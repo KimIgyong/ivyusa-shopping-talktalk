@@ -55,7 +55,8 @@
   "scope": {
     "all": "전체",
     "queue": "상담 필요",
-    "ended": "종료"
+    "ended": "종료",
+    "groups": "그룹"
   },
   "sync": "싱크",
   "syncHint": "최근 대화를 지금 바로 가져옵니다",
@@ -279,5 +280,54 @@
       "conversation": "이 대화방에 대한 메모 (내부 전용)…",
       "session": "이 고객 세션 전체에 따라다니는 메모 (내부 전용)…"
     }
+  },
+  "groups": {
+    "tab": "그룹",
+    "selectMode": "선택",
+    "cancel": "취소",
+    "selectSession": "이 세션 선택",
+    "selectedCount": "{{count}}개 선택됨",
+    "openModal": "그룹으로 묶기",
+    "empty": "그룹이 없습니다 — 세션을 선택해 묶어보세요.",
+    "memberCount": "멤버 {{count}}",
+    "modalTitle": "그룹으로 묶기",
+    "modeCreate": "새 그룹",
+    "modeAdd": "기존 그룹에 추가",
+    "kind": "유형",
+    "kindLabel": {
+      "timeline": "타임라인",
+      "project": "프로젝트"
+    },
+    "kindHint": {
+      "timeline": "개인 고객의 여러 세션을 묶습니다.",
+      "project": "동일 고객사 관련 당사자들의 대화를 묶습니다."
+    },
+    "title": "그룹 제목",
+    "titlePlaceholder": "예: 홍길동 님 반품 건",
+    "needTwo": "그룹을 만들려면 세션을 2개 이상 선택하세요.",
+    "pickGroup": "그룹",
+    "pickGroupPlaceholder": "그룹을 선택하세요…",
+    "selectedMembers": "선택한 세션 ({{count}})",
+    "create": "그룹 만들기",
+    "addToGroup": "그룹에 추가",
+    "created": "그룹을 만들었습니다.",
+    "createError": "그룹을 만들지 못했습니다.",
+    "saved": "그룹을 저장했습니다.",
+    "saveError": "그룹을 저장하지 못했습니다.",
+    "membersAdded": "세션을 그룹에 추가했습니다.",
+    "memberRemoved": "그룹에서 멤버를 제거했습니다.",
+    "dissolved": "그룹을 해제했습니다. 대화는 그대로 유지됩니다.",
+    "dissolveError": "그룹을 해제하지 못했습니다.",
+    "settings": "설정",
+    "settingsTitle": "그룹 설정",
+    "recipient": "수신 대상",
+    "recipientPlaceholder": "수신자 1명을 선택하세요…",
+    "pickRecipientFirst": "메시지를 보내려면 수신 대상을 선택하세요",
+    "removeMember": "멤버 제거",
+    "minMembersHint": "그룹은 멤버가 2명 이상이어야 합니다 — 대신 그룹을 해제하세요.",
+    "dissolve": "그룹 해제",
+    "confirmDissolve": "해제할까요?",
+    "dissolveHint": "해제해도 그룹만 사라질 뿐 대화와 메시지는 그대로 남습니다.",
+    "save": "저장"
   }
 }

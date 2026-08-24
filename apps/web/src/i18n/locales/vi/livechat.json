@@ -55,7 +55,8 @@
   "scope": {
     "all": "Tất cả",
     "queue": "Cần nhân viên",
-    "ended": "Đã kết thúc"
+    "ended": "Đã kết thúc",
+    "groups": "Nhóm"
   },
   "sync": "Đồng bộ",
   "syncHint": "Lấy tin nhắn mới nhất ngay",
@@ -279,5 +280,54 @@
       "conversation": "Ghi chú cho cuộc trò chuyện này (nội bộ)…",
       "session": "Ghi chú theo phiên của khách hàng này (nội bộ)…"
     }
+  },
+  "groups": {
+    "tab": "Nhóm",
+    "selectMode": "Chọn",
+    "cancel": "Hủy",
+    "selectSession": "Chọn phiên này",
+    "selectedCount": "Đã chọn {{count}}",
+    "openModal": "Gom nhóm phiên",
+    "empty": "Chưa có nhóm — hãy chọn các phiên và gom nhóm.",
+    "memberCount": "{{count}} thành viên",
+    "modalTitle": "Gom nhóm phiên",
+    "modeCreate": "Nhóm mới",
+    "modeAdd": "Thêm vào nhóm có sẵn",
+    "kind": "Loại",
+    "kindLabel": {
+      "timeline": "Dòng thời gian",
+      "project": "Dự án"
+    },
+    "kindHint": {
+      "timeline": "Gom các phiên của một khách hàng cá nhân.",
+      "project": "Gom hội thoại của các bên liên quan thuộc một công ty khách hàng."
+    },
+    "title": "Tên nhóm",
+    "titlePlaceholder": "VD: Chị Hong — vụ đổi trả",
+    "needTwo": "Chọn ít nhất hai phiên để tạo nhóm.",
+    "pickGroup": "Nhóm",
+    "pickGroupPlaceholder": "Chọn một nhóm…",
+    "selectedMembers": "Phiên đã chọn ({{count}})",
+    "create": "Tạo nhóm",
+    "addToGroup": "Thêm vào nhóm",
+    "created": "Đã tạo nhóm.",
+    "createError": "Không thể tạo nhóm.",
+    "saved": "Đã lưu nhóm.",
+    "saveError": "Không thể lưu nhóm.",
+    "membersAdded": "Đã thêm phiên vào nhóm.",
+    "memberRemoved": "Đã xóa thành viên khỏi nhóm.",
+    "dissolved": "Đã giải tán nhóm. Hội thoại không bị ảnh hưởng.",
+    "dissolveError": "Không thể giải tán nhóm.",
+    "settings": "Cài đặt",
+    "settingsTitle": "Cài đặt nhóm",
+    "recipient": "Gửi đến",
+    "recipientPlaceholder": "Chọn một người nhận…",
+    "pickRecipientFirst": "Chọn người nhận để gửi tin nhắn",
+    "removeMember": "Xóa thành viên",
+    "minMembersHint": "Nhóm cần ít nhất hai thành viên — hãy giải tán nhóm thay vì xóa.",
+    "dissolve": "Giải tán nhóm",
+    "confirmDissolve": "Giải tán?",
+    "dissolveHint": "Giải tán chỉ xóa nhóm. Hội thoại và tin nhắn vẫn còn nguyên.",
+    "save": "Lưu"
   }
 }

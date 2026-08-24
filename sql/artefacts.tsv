@@ -34,6 +34,8 @@ migration_audit_context.sql	column	audit_logs	request_id
 migration_audit_context.sql	column	audit_logs	result
 migration_audit_context.sql	column	audit_logs	metadata
 migration_chat_comments.sql	table	chat_comments	-
+migration_chat_groups.sql	table	chat_groups	-
+migration_chat_groups.sql	table	chat_group_members	-
 migration_conv_idle_csat.sql	column	conversations	idle_prompt_at
 migration_conv_idle_csat.sql	index	conversations	idx_conv_idle
 migration_conv_list_index.sql	index	conversations	idx_conv_tenant_status_id

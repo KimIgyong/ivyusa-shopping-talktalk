@@ -199,6 +199,112 @@ export function useCommentActions(id: string | null) {
   return { create, update, remove };
 }
 
+/** Session groups (timeline/project) for the list's group tab (REQ-260824). */
+export const useGroups = (enabled = true) => {
+  const tenantKey = useTenantKey();
+  return useQuery({
+    queryKey: ['agent', tenantKey, 'groups'],
+    queryFn: () => liveChatService.groups(),
+    refetchInterval: 10000,
+    enabled,
+  });
+};
+
+export const useGroup = (id: string | null) => {
+  const tenantKey = useTenantKey();
+  return useQuery({
+    queryKey: ['agent', tenantKey, 'group', id],
+    queryFn: () => liveChatService.group(id as string),
+    enabled: !!id,
+    refetchInterval: 10000,
+  });
+};
+
+/** Merged feed of the group room — same 5s cadence as a normal thread. */
+export const useGroupMessages = (id: string | null) => {
+  const tenantKey = useTenantKey();
+  return useQuery({
+    queryKey: ['agent', tenantKey, 'group-messages', id],
+    queryFn: () => liveChatService.groupMessages(id as string),
+    enabled: !!id,
+    refetchInterval: 5000,
+  });
+};
+
+export function useGroupActions(id: string | null) {
+  const { t } = useTranslation('livechat');
+  const qc = useQueryClient();
+  const tenantKey = useTenantKey();
+  const invalidateAll = () => {
+    qc.invalidateQueries({ queryKey: ['agent', tenantKey, 'groups'] });
+    if (id) {
+      qc.invalidateQueries({ queryKey: ['agent', tenantKey, 'group', id] });
+      qc.invalidateQueries({ queryKey: ['agent', tenantKey, 'group-messages', id] });
+    }
+  };
+
+  const create = useMutation({
+    mutationFn: (v: { kind: 'timeline' | 'project'; title: string; sessionIds: string[] }) =>
+      liveChatService.createGroup(v.kind, v.title, v.sessionIds),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['agent', tenantKey, 'groups'] });
+      toast.success(t('groups.created'));
+    },
+    onError: (e: Error) => toast.error(e.message || t('groups.createError'), { sticky: true }),
+  });
+
+  const update = useMutation({
+    mutationFn: (v: { title?: string; kind?: 'timeline' | 'project' }) =>
+      liveChatService.updateGroup(id as string, v),
+    onSuccess: () => {
+      invalidateAll();
+      toast.success(t('groups.saved'));
+    },
+    onError: (e: Error) => toast.error(e.message || t('groups.saveError'), { sticky: true }),
+  });
+
+  const addMembers = useMutation({
+    mutationFn: (v: { groupId: string; sessionIds: string[] }) =>
+      liveChatService.addGroupMembers(v.groupId, v.sessionIds),
+    onSuccess: (_d, v) => {
+      qc.invalidateQueries({ queryKey: ['agent', tenantKey, 'groups'] });
+      qc.invalidateQueries({ queryKey: ['agent', tenantKey, 'group', v.groupId] });
+      qc.invalidateQueries({ queryKey: ['agent', tenantKey, 'group-messages', v.groupId] });
+      toast.success(t('groups.membersAdded'));
+    },
+    onError: (e: Error) => toast.error(e.message || t('groups.saveError'), { sticky: true }),
+  });
+
+  const removeMember = useMutation({
+    mutationFn: (sessionId: string) =>
+      liveChatService.removeGroupMember(id as string, sessionId),
+    onSuccess: () => {
+      invalidateAll();
+      toast.success(t('groups.memberRemoved'));
+    },
+    onError: (e: Error) => toast.error(e.message || t('groups.saveError'), { sticky: true }),
+  });
+
+  const dissolve = useMutation({
+    mutationFn: () => liveChatService.dissolveGroup(id as string),
+    onSuccess: () => {
+      invalidateAll();
+      toast.success(t('groups.dissolved'));
+    },
+    onError: (e: Error) => toast.error(e.message || t('groups.dissolveError'), { sticky: true }),
+  });
+
+  const send = useMutation({
+    mutationFn: (v: { sessionId: string; body: string }) =>
+      liveChatService.sendGroupMessage(id as string, v.sessionId, v.body),
+    onSuccess: () =>
+      qc.invalidateQueries({ queryKey: ['agent', tenantKey, 'group-messages', id] }),
+    onError: (e: Error) => toast.error(e.message || t('sendFailed'), { sticky: true }),
+  });
+
+  return { create, update, addMembers, removeMember, dissolve, send };
+}
+
 /** New escalation alerts for the alarm modal (FR-S3) — 10s poll. */
 export const useAgentAlerts = (enabled = true) => {
   const tenantKey = useTenantKey();
