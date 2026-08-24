@@ -536,5 +536,35 @@
     "defaultSet": "已设置默认引擎",
     "removed": "已删除引擎",
     "inUse": "仍被 {{functions}} 使用。请先将这些功能改用其他引擎。"
+  },
+  "aiUsage": {
+    "title": "AI 用量",
+    "calls": "调用",
+    "tokensIn": "输入 token",
+    "tokensOut": "输出 token",
+    "total": "合计",
+    "preset": {
+      "day": "今天",
+      "week": "7 天",
+      "month": "30 天",
+      "custom": "自定义",
+      "all": "累计"
+    },
+    "axis": {
+      "feature": "功能",
+      "function": "AI 功能",
+      "engine": "引擎",
+      "owner": "计费对象"
+    },
+    "owner": {
+      "tenant": "我的引擎（计费给我们）",
+      "platform": "共用引擎（计费给运营方）"
+    },
+    "since": "自 {{date}} 起统计，此前未被计量。",
+    "noneYet": "尚无计量数据 — 从下一次 AI 调用开始统计。",
+    "empty": "此期间没有用量。",
+    "stub": "回退 {{count}} 次",
+    "stubNote": "有 {{count}} 次回退到内置 stub：不消耗 token，也不是真实回答。",
+    "noMoneyNote": "仅显示 token 数。各模型单价不同且会变动，故不估算金额。"
   }
 }

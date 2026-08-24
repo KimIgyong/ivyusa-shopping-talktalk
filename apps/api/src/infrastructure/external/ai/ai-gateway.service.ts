@@ -4,6 +4,7 @@ import { IsNull, Repository } from 'typeorm';
 import { AiFunction } from '@ivy/types';
 import { AiEngine } from '../../../domain/ai-engine/entity/ai-engine.entity';
 import { TenantAiSetting } from '../../../domain/ai-engine/entity/tenant-ai-setting.entity';
+import { AiUsageService } from '../../../domain/ai-engine/ai-usage.service';
 import { decryptSecret } from '../../../global/util/crypto.util';
 import {
   AiAdapter,
@@ -19,6 +20,15 @@ import { VoyageAdapter } from './adapters/voyage.adapter';
 export interface GatewayRequest {
   tenantId: number;
   function: AiFunction;
+  /**
+   * What is spending, finer than the function (PLN-260824 D2).
+   *
+   * `summary` alone covers the knowledge-conflict review and the agent
+   * briefing, so per-function totals cannot answer which screen costs what.
+   * Optional: an unlabelled call is metered under its function name rather
+   * than dropped.
+   */
+  feature?: string;
   system?: string;
   messages: AiMessage[];
   temperature?: number;
@@ -77,6 +87,7 @@ export class AiGatewayService {
     anthropic: AnthropicAdapter,
     openai: OpenAiAdapter,
     voyage: VoyageAdapter,
+    private readonly usage: AiUsageService,
   ) {
     this.adapters = new Map<string, AiAdapter>([
       [stub.provider, stub],
@@ -104,7 +115,7 @@ export class AiGatewayService {
 
     const apiKey = engine?.apiKeyEncrypted ? this.safeDecrypt(engine.apiKeyEncrypted) : undefined;
     try {
-      return await adapter.complete({
+      const res = await adapter.complete({
         system: req.system,
         messages: req.messages,
         temperature: req.temperature ?? (params.temperature as number) ?? 0.3,
@@ -113,14 +124,50 @@ export class AiGatewayService {
         apiKey,
         endpoint: engine?.endpoint ?? undefined,
       });
+      this.meter(req, engine, res, { stub: adapter.provider === 'stub' });
+      return res;
     } catch (e) {
       this.logger.warn(`Adapter ${adapter.provider} failed, falling back to stub: ${(e as Error).message}`);
-      return this.adapters.get('stub')!.complete({
+      const res = await this.adapters.get('stub')!.complete({
         system: req.system,
         messages: req.messages,
         model: 'stub-1',
       });
+      // Recorded against the engine that was SUPPOSED to answer, not against
+      // the stub that caught it — otherwise a failing engine shows no usage and
+      // no failures, and looks simply unused.
+      this.meter(req, engine, res, { stub: true, failed: true });
+      return res;
     }
+  }
+
+  /**
+   * Record one call's usage. Deliberately not awaited.
+   *
+   * This sits on the path that answers a customer. A slow or throwing meter
+   * would delay or break a conversation to protect a statistic, which is the
+   * wrong trade — the number is a side effect, not part of the answer.
+   */
+  private meter(
+    req: GatewayRequest,
+    engine: AiEngine | null,
+    res: AiCompletionResult,
+    flags: { stub?: boolean; failed?: boolean },
+  ): void {
+    void this.usage
+      .record({
+        tenantId: req.tenantId,
+        feature: req.feature ?? req.function,
+        aiFunction: req.function,
+        engineId: engine ? Number(engine.id) : null,
+        provider: engine?.provider ?? res.provider,
+        model: engine?.model ?? res.model,
+        engineOwner: AiUsageService.ownerOf(engine?.tenantId),
+        tokensIn: res.tokensIn ?? 0,
+        tokensOut: res.tokensOut ?? 0,
+        ...flags,
+      })
+      .catch((e) => this.logger.warn(`ai usage not recorded: ${(e as Error).message}`));
   }
 
   /**

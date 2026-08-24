@@ -150,6 +150,7 @@ export class ModerationService {
     const res = await this.ai.complete({
       tenantId,
       function: AI_FUNCTION.MODERATION,
+      feature: 'moderation',
       system: 'Rephrase the assistant message to be polite and policy-compliant. Keep meaning.',
       messages: [{ role: 'user', content: text }],
     });
@@ -160,6 +161,7 @@ export class ModerationService {
     const res = await this.ai.complete({
       tenantId,
       function: AI_FUNCTION.MODERATION,
+      feature: 'moderation',
       system:
         'JSON_MODE:moderation. Decide if the message violates safety/policy. Return {"flagged":boolean,"reason":string}.',
       messages: [{ role: 'user', content: text }],

@@ -212,6 +212,7 @@ export class AiCoachService {
     const completion = await this.ai.complete({
       tenantId: params.tenantId,
       function: AI_FUNCTION.COACH,
+      feature: 'coaching',
       system: ctx.system,
       messages: ctx.messages,
     });

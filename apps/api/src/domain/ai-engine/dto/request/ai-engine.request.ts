@@ -71,3 +71,12 @@ export class UpdateTenantEngineRequest {
   @IsOptional() @IsString() @MaxLength(255) endpoint?: string;
   @IsOptional() @IsString() @MaxLength(512) api_key?: string;
 }
+
+/** GET /tenants/me/ai-usage — 기간·집계축 (PLN-260824 A). */
+export class AiUsageQueryRequest {
+  /** YYYY-MM-DD. 일·주·월·기간지정 모두 이 두 값으로 표현된다. */
+  @IsString() @MaxLength(10) from: string;
+  @IsString() @MaxLength(10) to: string;
+
+  @IsOptional() @IsIn(['feature', 'function', 'engine', 'owner']) group_by?: string;
+}

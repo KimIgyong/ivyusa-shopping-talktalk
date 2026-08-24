@@ -536,5 +536,35 @@
     "defaultSet": "Motor predeterminado establecido",
     "removed": "Motor eliminado",
     "inUse": "Aún lo usan: {{functions}}. Cambia antes esas funciones."
+  },
+  "aiUsage": {
+    "title": "Uso de IA",
+    "calls": "Llamadas",
+    "tokensIn": "Tokens de entrada",
+    "tokensOut": "Tokens de salida",
+    "total": "Total",
+    "preset": {
+      "day": "Hoy",
+      "week": "7 días",
+      "month": "30 días",
+      "custom": "Periodo",
+      "all": "Acumulado"
+    },
+    "axis": {
+      "feature": "Función",
+      "function": "Función de IA",
+      "engine": "Motor",
+      "owner": "Se factura a"
+    },
+    "owner": {
+      "tenant": "Mi motor (nos facturan)",
+      "platform": "Motor común (factura el operador)"
+    },
+    "since": "Contando desde {{date}}. Lo anterior no se midió.",
+    "noneYet": "Aún no hay mediciones: el conteo empieza en la próxima llamada.",
+    "empty": "Sin uso en este periodo.",
+    "stub": "{{count}} de respaldo",
+    "stubNote": "{{count}} llamada(s) recurrieron al stub interno: sin tokens y sin respuesta real.",
+    "noMoneyNote": "Solo tokens. Los precios varían por modelo y cambian, así que no se estima coste."
   }
 }

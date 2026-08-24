@@ -536,5 +536,35 @@
     "defaultSet": "Đã đặt công cụ mặc định",
     "removed": "Đã xóa công cụ",
     "inUse": "Vẫn đang được dùng bởi: {{functions}}. Hãy chuyển các chức năng đó trước."
+  },
+  "aiUsage": {
+    "title": "Mức dùng AI",
+    "calls": "Lượt gọi",
+    "tokensIn": "Token vào",
+    "tokensOut": "Token ra",
+    "total": "Tổng",
+    "preset": {
+      "day": "Hôm nay",
+      "week": "7 ngày",
+      "month": "30 ngày",
+      "custom": "Khoảng",
+      "all": "Tích lũy"
+    },
+    "axis": {
+      "feature": "Tính năng",
+      "function": "Chức năng AI",
+      "engine": "Công cụ",
+      "owner": "Tính phí cho"
+    },
+    "owner": {
+      "tenant": "Công cụ của tôi (tính cho chúng tôi)",
+      "platform": "Công cụ chung (tính cho nhà vận hành)"
+    },
+    "since": "Bắt đầu đếm từ {{date}}. Trước đó không được đo.",
+    "noneYet": "Chưa đo được gì — sẽ đếm từ lần gọi AI kế tiếp.",
+    "empty": "Không có mức dùng trong khoảng này.",
+    "stub": "{{count}} lần dự phòng",
+    "stubNote": "{{count}} lượt đã rơi về stub nội bộ: không tốn token và không phải câu trả lời thật.",
+    "noMoneyNote": "Chỉ hiển thị số token. Giá theo mô hình khác nhau và thay đổi nên không ước tính chi phí."
   }
 }

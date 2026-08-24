@@ -194,6 +194,8 @@ export const settingsService = {
   // Cafe24 OAuth (PLN-260807 P-A1): begin the flow (returns the authorize URL the
   // browser navigates to) and run an on-demand order sync.
   aiEngines: () => apiGet<TenantAiEngineList>('/tenants/me/ai-engines'),
+  aiUsage: (from: string, to: string, groupBy: UsageGroupBy) =>
+    apiGet<UsageSummary>('/tenants/me/ai-engines/usage', { from, to, group_by: groupBy }),
   createAiEngine: (body: SaveTenantEngineBody) =>
     apiPost<TenantAiEngine>('/tenants/me/ai-engines', body),
   updateAiEngine: (id: string, body: Partial<SaveTenantEngineBody>) =>
@@ -259,3 +261,24 @@ export interface SaveTenantEngineBody {
   /** Omit to keep the stored key. */
   api_key?: string;
 }
+
+/** One row of the usage table (PLN-260824 A). */
+export interface UsageBucket {
+  key: string;
+  label: string;
+  owner: string | null;
+  calls: number;
+  tokensIn: number;
+  tokensOut: number;
+  stubCalls: number;
+  failures: number;
+}
+
+export interface UsageSummary {
+  /** First day with recorded usage; null when nothing has been metered yet. */
+  since: string | null;
+  buckets: UsageBucket[];
+  totals: { calls: number; tokensIn: number; tokensOut: number; stubCalls: number; failures: number };
+}
+
+export type UsageGroupBy = 'feature' | 'function' | 'engine' | 'owner';
