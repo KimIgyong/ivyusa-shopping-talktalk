@@ -342,7 +342,7 @@ export const knowledgeService = {
     apiPost<KnowledgeDocumentDetail>(`/knowledge/documents/${id}/reviewed`, {}),
   deleteDocument: (id: string) => apiDelete<{ deleted: true }>(`/knowledge/documents/${id}`),
   categories: (group?: string) =>
-    apiGet<CategoryCount[]>('/knowledge/categories', group ? { group } : undefined),
+    apiGet<CategoryCount[]>('/knowledge/categories/counts', group ? { group } : undefined),
   importProducts: (file: File) => {
     const form = new FormData();
     form.append('file', file);
