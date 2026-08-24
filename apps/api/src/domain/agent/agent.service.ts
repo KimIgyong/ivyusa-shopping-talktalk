@@ -49,14 +49,8 @@ import {
 const MESSAGE_PAGE_SIZE = 30;
 /** Operator alias length — matches sessions.alias (PLN-260812). */
 export const SESSION_ALIAS_MAX = 60;
-/** Messages the briefing summarises — the tail is what an agent needs oriented. */
-const BRIEFING_WINDOW = 50;
-
 /** Identical agent reply inside this window counts as a double submission. */
 const DUPLICATE_REPLY_WINDOW_MS = 10_000;
-
-/** How long a generated briefing is reused for the same newest message. */
-const BRIEFING_CACHE_TTL_SEC = 900;
 
 /**
  * Built-in wording when an agent hands the thread back to the AI, used unless
@@ -638,35 +632,9 @@ export class AgentService {
     return { messages: rows.slice(0, limit).reverse(), hasMore };
   }
 
-  /** AI briefing for an agent picking up a conversation (FR-045). */
-  async briefing(tenantId: number, messages: Message[]): Promise<string> {
-    if (messages.length === 0) return '';
-    // The console re-reads the open thread every few seconds, and this used to
-    // run a fresh model call each time — seconds of latency per poll and a bill
-    // for summarizing an unchanged transcript. Keyed by the newest message id,
-    // so a real new turn (and only that) regenerates it (FIX-260806-Console).
-    const cacheKey = `agent:briefing:${messages[0]?.conversationId}:${messages[messages.length - 1]?.id}`;
-    if (this.redis.available()) {
-      const hit = await this.redis.get(cacheKey);
-      if (hit != null) return hit;
-    }
-    const transcript = messages.map((m) => `${m.senderType}: ${m.body}`).join('\n');
-    try {
-      const res = await this.aiGateway.complete({
-        tenantId,
-        function: AI_FUNCTION.ASSIST,
-        system:
-          'Summarize the conversation: summary, intent, sentiment, recommended action. Reply concisely.',
-        messages: [{ role: 'user', content: transcript }],
-      });
-      const text = res.text ?? '';
-      if (this.redis.available()) await this.redis.set(cacheKey, text, BRIEFING_CACHE_TTL_SEC);
-      return text;
-    } catch (e) {
-      this.logger.warn(`Briefing failed: ${(e as Error).message}`);
-      return '';
-    }
-  }
+  // The auto-generated briefing moved to BriefingService (REQ-260824 R3):
+  // generation is operator-requested and persisted, never a side effect of
+  // opening a conversation.
 
   /** Agent accepts/takes over a conversation. */
   async accept(conversationId: number, agentId: number, tenantId: number): Promise<Conversation> {

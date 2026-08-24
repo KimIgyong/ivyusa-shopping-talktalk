@@ -604,7 +604,7 @@ export function ChatTab() {
           ref={fileInputRef}
           type="file"
           multiple
-          accept=".jpg,.jpeg,.png,.gif,.webp,.heic,.heif,.avif,.pdf,.txt,.csv,.docx,.xlsx"
+          accept=".jpg,.jpeg,.png,.gif,.webp,.heic,.heif,.avif,.pdf,.txt,.csv,.doc,.docx,.xls,.xlsx"
           className="hidden"
           onChange={(e) => {
             void pickFiles(e.target.files);

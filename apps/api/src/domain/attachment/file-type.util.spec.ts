@@ -34,6 +34,26 @@ describe('resolveType', () => {
     expect(resolveType('bundle.zip', 'application/zip', zip)).toBeNull();
   });
 
+  it('accepts legacy Office files by their OLE2 container (REQ-260824 R5)', () => {
+    const ole2 = Buffer.concat([
+      Buffer.from([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1]),
+      Buffer.alloc(8),
+    ]);
+    expect(resolveType('quote.doc', 'application/msword', ole2)).toEqual({
+      ext: 'doc',
+      mime: 'application/msword',
+      kind: 'file',
+    });
+    expect(resolveType('sheet.xls', 'application/vnd.ms-excel', ole2)).toEqual({
+      ext: 'xls',
+      mime: 'application/vnd.ms-excel',
+      kind: 'file',
+    });
+    // A zip renamed .doc is not an OLE2 container — the sniff turns it away.
+    const zipHead = Buffer.from([0x50, 0x4b, 0x03, 0x04, 0x14, 0x00, 0x00, 0x00]);
+    expect(resolveType('fake.doc', 'application/msword', zipHead)).toBeNull();
+  });
+
   it('rejects a file with no extension', () => {
     expect(resolveType('screenshot', 'image/png', png())).toBeNull();
   });

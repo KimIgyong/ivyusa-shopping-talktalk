@@ -237,5 +237,47 @@
     "typeNotAllowed": "{{name}} is not an allowed file type",
     "tooMany": "You can attach up to {{max}} files per message",
     "imageLabel": "Image"
+  },
+  "status": {
+    "ai_active": "AI answering",
+    "waiting": "Waiting",
+    "agent": "With agent",
+    "ended": "Ended"
+  },
+  "briefing": {
+    "none": "No briefing yet — generate one when you need it.",
+    "generate": "Generate briefing",
+    "generating": "Generating…",
+    "regenerate": "Regenerate",
+    "generatedAt": "Generated {{time}}",
+    "targetLanguage": "Translation language",
+    "translate": "Translate",
+    "translating": "Translating…",
+    "generateError": "Could not generate the briefing.",
+    "translateError": "Could not translate the briefing."
+  },
+  "comments": {
+    "title": "Comments",
+    "loading": "Loading comments…",
+    "empty": "No comments yet.",
+    "unknownAuthor": "Unknown",
+    "edit": "Edit comment",
+    "delete": "Delete comment",
+    "confirmDelete": "Delete?",
+    "cancel": "Cancel",
+    "save": "Save",
+    "saved": "Comment saved.",
+    "saveError": "Could not save the comment.",
+    "deleted": "Comment deleted.",
+    "deleteError": "Could not delete the comment.",
+    "submit": "Add",
+    "scope": {
+      "conversation": "Thread",
+      "session": "Session"
+    },
+    "placeholder": {
+      "conversation": "Note on this thread (internal only)…",
+      "session": "Note that follows this customer’s session (internal only)…"
+    }
   }
 }

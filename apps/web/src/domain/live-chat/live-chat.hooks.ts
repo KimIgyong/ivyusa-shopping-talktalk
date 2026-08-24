@@ -109,8 +109,8 @@ export const useConversation = (id: string | null) => {
 };
 
 /**
- * AI briefing, fetched apart from the transcript so a slow model call never
- * delays the messages (PLN-260807). No polling: it only changes with new turns.
+ * The STORED briefing for a conversation (REQ-260824 R3). Cheap read, no model
+ * call — generation only ever happens through useGenerateBriefing.
  */
 export const useBriefing = (id: string | null) => {
   const tenantKey = useTenantKey();
@@ -121,6 +121,83 @@ export const useBriefing = (id: string | null) => {
     staleTime: 60_000,
   });
 };
+
+/** Operator-requested generation; the result lands in the briefing query. */
+export function useGenerateBriefing(id: string | null) {
+  const { t } = useTranslation('livechat');
+  const qc = useQueryClient();
+  const tenantKey = useTenantKey();
+  return useMutation({
+    mutationFn: () => liveChatService.generateBriefing(id as string),
+    onSuccess: (data) => {
+      qc.setQueryData(['agent', tenantKey, 'briefing', id], data);
+    },
+    onError: (e: Error) => toast.error(e.message || t('briefing.generateError'), { sticky: true }),
+  });
+}
+
+/** Translate the stored briefing into one system language (stored copy wins). */
+export function useTranslateBriefing(id: string | null) {
+  const { t } = useTranslation('livechat');
+  const qc = useQueryClient();
+  const tenantKey = useTenantKey();
+  return useMutation({
+    mutationFn: (v: { briefingId: string; lang: string }) =>
+      liveChatService.translateBriefing(v.briefingId, v.lang),
+    onSuccess: (data) => {
+      qc.setQueryData(['agent', tenantKey, 'briefing', id], data);
+    },
+    onError: (e: Error) => toast.error(e.message || t('briefing.translateError'), { sticky: true }),
+  });
+}
+
+/** Internal notes on the open thread + its session (REQ-260824 R4). */
+export const useComments = (id: string | null) => {
+  const tenantKey = useTenantKey();
+  return useQuery({
+    queryKey: ['agent', tenantKey, 'comments', id],
+    queryFn: () => liveChatService.comments(id as string),
+    enabled: !!id,
+  });
+};
+
+export function useCommentActions(id: string | null) {
+  const { t } = useTranslation('livechat');
+  const qc = useQueryClient();
+  const tenantKey = useTenantKey();
+  const invalidate = () => qc.invalidateQueries({ queryKey: ['agent', tenantKey, 'comments', id] });
+
+  const create = useMutation({
+    mutationFn: (v: { scope: 'conversation' | 'session'; body: string }) =>
+      liveChatService.createComment(id as string, v.scope, v.body),
+    onSuccess: () => {
+      invalidate();
+      toast.success(t('comments.saved'));
+    },
+    onError: (e: Error) => toast.error(e.message || t('comments.saveError'), { sticky: true }),
+  });
+
+  const update = useMutation({
+    mutationFn: (v: { commentId: string; body: string }) =>
+      liveChatService.updateComment(v.commentId, v.body),
+    onSuccess: () => {
+      invalidate();
+      toast.success(t('comments.saved'));
+    },
+    onError: (e: Error) => toast.error(e.message || t('comments.saveError'), { sticky: true }),
+  });
+
+  const remove = useMutation({
+    mutationFn: (commentId: string) => liveChatService.deleteComment(commentId),
+    onSuccess: () => {
+      invalidate();
+      toast.success(t('comments.deleted'));
+    },
+    onError: (e: Error) => toast.error(e.message || t('comments.deleteError'), { sticky: true }),
+  });
+
+  return { create, update, remove };
+}
 
 /** New escalation alerts for the alarm modal (FR-S3) — 10s poll. */
 export const useAgentAlerts = (enabled = true) => {

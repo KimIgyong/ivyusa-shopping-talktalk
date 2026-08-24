@@ -33,10 +33,12 @@ migration_audit_context.sql	column	audit_logs	ip
 migration_audit_context.sql	column	audit_logs	request_id
 migration_audit_context.sql	column	audit_logs	result
 migration_audit_context.sql	column	audit_logs	metadata
+migration_chat_comments.sql	table	chat_comments	-
 migration_conv_idle_csat.sql	column	conversations	idle_prompt_at
 migration_conv_idle_csat.sql	index	conversations	idx_conv_idle
 migration_conv_list_index.sql	index	conversations	idx_conv_tenant_status_id
 migration_conv_reply_channel.sql	column	conversations	reply_channel
+migration_conversation_briefings.sql	table	conversation_briefings	-
 migration_customer_shopify_unique.sql	index	customers	uq_customers_tenant_shopify
 migration_diary.sql	table	diary_notes	-
 migration_embed_sdk.sql	column	tenants	embed_origins

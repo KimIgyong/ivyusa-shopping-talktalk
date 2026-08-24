@@ -193,7 +193,8 @@ Core chat/commerce (19) + tenancy/RBAC (tenants, admin_users, users, job_labels,
 user_job_labels, roles_permissions, integration_credentials, audit_logs) + bootstrap
 (invitations) + knowledge (knowledge_sources, kb_documents, kb_board_posts, kb_files) +
 agent/moderation (agent_profiles, assignments, content_filter_rules, moderation_logs,
-agent_daily_stats) + AI (ai_engines, tenant_ai_settings) + mobile push (device_tokens).
+agent_daily_stats, chat_comments, conversation_briefings — REQ-260824) + AI (ai_engines,
+tenant_ai_settings) + mobile push (device_tokens).
 
 ### 6.4 Entity Authoring Rules
 Nullable columns specify explicit `type` in `@Column`; `BIGINT` via `bigintTransformer`,

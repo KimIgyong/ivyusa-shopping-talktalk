@@ -156,6 +156,13 @@ export const ERROR_CODE = {
   },
   AI_AGENT_CODE_TAKEN: { code: 'E5052', message: 'An AI agent with this code already exists' },
 
+  // E5053-E5055 — livechat comments & on-demand briefing (PLN-260824).
+  COMMENT_NOT_FOUND: { code: 'E5053', message: 'Comment not found' },
+  /** Editing is author-only; deleting is author-or-master. */
+  COMMENT_FORBIDDEN: { code: 'E5054', message: 'You cannot modify this comment' },
+  /** The model call failed — distinct from "no briefing generated yet". */
+  BRIEFING_FAILED: { code: 'E5055', message: 'Briefing generation failed' },
+
   // E9xxx — system
   INTERNAL_ERROR: { code: 'E9001', message: 'Internal server error' },
   EXTERNAL_SERVICE_ERROR: { code: 'E9002', message: 'External service error' },

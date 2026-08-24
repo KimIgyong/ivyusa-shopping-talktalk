@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpStatus,
   Param,
@@ -14,10 +15,12 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { CAPABILITY, Principal } from '@ivy/types';
+import { CAPABILITY, Principal, USER_RANK } from '@ivy/types';
 import { normalizePage, buildPagination } from '@ivy/common';
 import { AgentService } from './agent.service';
 import { AgentAlertService } from './agent-alert.service';
+import { BriefingService } from './briefing.service';
+import { ChatCommentService } from './chat-comment.service';
 import { AttachmentService, UploadInput } from '../attachment/attachment.service';
 import { AttachmentMapper } from '../attachment/attachment.mapper';
 import { RequireCapability } from '../../global/decorator/auth.decorator';
@@ -27,6 +30,7 @@ import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
 import {
   AgentMessageRequest,
+  CreateCommentRequest,
   CreateCustomerRequest,
   LinkCustomerRequest,
   ConversationQuery,
@@ -35,10 +39,14 @@ import {
   ApproveDraftRequest,
   SetAutoReplyRequest,
   SetSessionAliasRequest,
+  TranslateBriefingRequest,
+  UpdateCommentRequest,
   UpsertProfileRequest,
 } from './dto/request/agent.request';
 import {
   toAlertResponse,
+  toBriefingResponse,
+  toCommentResponse,
   toMessageResponse,
   toProfileResponse,
   toSessionResponse,
@@ -61,6 +69,8 @@ export class AgentConsoleController {
     private readonly agentService: AgentService,
     private readonly alertService: AgentAlertService,
     private readonly attachments: AttachmentService,
+    private readonly briefingService: BriefingService,
+    private readonly commentService: ChatCommentService,
   ) {}
 
   @Get('alerts')
@@ -68,8 +78,9 @@ export class AgentConsoleController {
   @ApiOperation({ summary: 'Escalation alerts for the console alarm modal (FR-S3)' })
   async alerts(@CurrentUser() user: Principal, @Query() query: ListAlertsQuery) {
     // An alert addressed to a specific agent is only shown to that agent;
-    // broadcast alerts (target NULL) stay visible to everyone (PLN-AiSetting W3).
-    const items = await this.alertService.list(query.status ?? 'new', actorIdOf(user));
+    // broadcast alerts (target NULL) stay visible to everyone in the SAME
+    // tenant (PLN-AiSetting W3, tenant fence REQ-260824 R2).
+    const items = await this.alertService.list(query.status ?? 'new', actorIdOf(user), tenantOf(user));
     return items.map(toAlertResponse);
   }
 
@@ -77,7 +88,7 @@ export class AgentConsoleController {
   @RequireCapability(CAPABILITY.CONVERSATION_HANDLE)
   @ApiOperation({ summary: 'Acknowledge an escalation alert' })
   async ackAlert(@CurrentUser() user: Principal, @Param('id', ParseIntPipe) id: number) {
-    const alert = await this.alertService.ack(id, actorIdOf(user));
+    const alert = await this.alertService.ack(id, actorIdOf(user), tenantOf(user));
     return toAlertResponse(alert);
   }
 
@@ -218,11 +229,100 @@ export class AgentConsoleController {
 
   @Get('conversations/:id/briefing')
   @RequireCapability(CAPABILITY.CONVERSATION_HANDLE)
-  @ApiOperation({ summary: 'AI briefing for a conversation (FR-045) — loaded separately' })
+  @ApiOperation({ summary: 'Latest stored briefing — read-only, no model call (REQ-260824 R3)' })
   async briefing(@CurrentUser() user: Principal, @Param('id', ParseIntPipe) id: number) {
-    const tenantId = tenantOf(user);
-    const { messages } = await this.agentService.listMessages(id, tenantId, { limit: 50 });
-    return { briefing: await this.agentService.briefing(tenantId, messages) };
+    const stored = await this.briefingService.latest(id, tenantOf(user));
+    if (!stored) return { briefing: null };
+    const name = await this.agentService.agentName(Number(stored.requestedBy));
+    return toBriefingResponse(stored, name);
+  }
+
+  @Post('conversations/:id/briefing')
+  @RequireCapability(CAPABILITY.CONVERSATION_HANDLE)
+  @ApiOperation({ summary: 'Generate and store a briefing on operator request (REQ-260824 R3)' })
+  async generateBriefing(@CurrentUser() user: Principal, @Param('id', ParseIntPipe) id: number) {
+    const saved = await this.briefingService.generate(id, tenantOf(user), actorIdOf(user));
+    const name = await this.agentService.agentName(Number(saved.requestedBy));
+    return toBriefingResponse(saved, name);
+  }
+
+  @Post('briefings/:id/translate')
+  @RequireCapability(CAPABILITY.CONVERSATION_HANDLE)
+  @ApiOperation({ summary: 'Translate a stored briefing into a system language (REQ-260824 R3)' })
+  async translateBriefing(
+    @CurrentUser() user: Principal,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: TranslateBriefingRequest,
+  ) {
+    const saved = await this.briefingService.translate(id, tenantOf(user), body.lang);
+    const name = await this.agentService.agentName(Number(saved.requestedBy));
+    return toBriefingResponse(saved, name);
+  }
+
+  @Get('conversations/:id/comments')
+  @RequireCapability(CAPABILITY.CONVERSATION_HANDLE)
+  @ApiOperation({ summary: 'Internal notes: this thread + its session (REQ-260824 R4)' })
+  async comments(@CurrentUser() user: Principal, @Param('id', ParseIntPipe) id: number) {
+    const { comments, authorNames } = await this.commentService.listFor(id, tenantOf(user));
+    return comments.map((c) => toCommentResponse(c, authorNames.get(String(c.authorId)) ?? null));
+  }
+
+  @Post('conversations/:id/comments')
+  @RequireCapability(CAPABILITY.CONVERSATION_HANDLE)
+  @ApiOperation({ summary: 'Add an internal note to the thread or its session (REQ-260824 R4)' })
+  async createComment(
+    @CurrentUser() user: Principal,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: CreateCommentRequest,
+  ) {
+    const authorId = actorIdOf(user);
+    const saved = await this.commentService.create(
+      id,
+      tenantOf(user),
+      authorId,
+      body.scope,
+      body.body,
+    );
+    // Body length only — the note may name a customer; the audit trail is not
+    // a PII store (same rule as agent messages).
+    await this.agentService.auditAgentAction(
+      authorId,
+      tenantOf(user),
+      'agent.comment_created',
+      `conversation:${id}`,
+      { commentId: saved.id, scope: saved.scope, length: saved.body.length },
+    );
+    const name = await this.agentService.agentName(authorId);
+    return toCommentResponse(saved, name);
+  }
+
+  @Patch('comments/:id')
+  @RequireCapability(CAPABILITY.CONVERSATION_HANDLE)
+  @ApiOperation({ summary: 'Edit an own internal note (REQ-260824 R4)' })
+  async updateComment(
+    @CurrentUser() user: Principal,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: UpdateCommentRequest,
+  ) {
+    const userId = actorIdOf(user);
+    const saved = await this.commentService.update(id, tenantOf(user), userId, body.body);
+    const name = await this.agentService.agentName(userId);
+    return toCommentResponse(saved, name);
+  }
+
+  @Delete('comments/:id')
+  @RequireCapability(CAPABILITY.CONVERSATION_HANDLE)
+  @ApiOperation({ summary: 'Delete an internal note — author or master (REQ-260824 R4)' })
+  async deleteComment(@CurrentUser() user: Principal, @Param('id', ParseIntPipe) id: number) {
+    const isMaster = user.actorType === 'user' && user.rank === USER_RANK.MASTER;
+    await this.commentService.remove(id, tenantOf(user), actorIdOf(user), isMaster);
+    await this.agentService.auditAgentAction(
+      actorIdOf(user),
+      tenantOf(user),
+      'agent.comment_deleted',
+      `comment:${id}`,
+    );
+    return { id };
   }
 
   @Post('conversations/:id/link-customer')

@@ -237,5 +237,47 @@
     "typeNotAllowed": "{{name}}은(는) 허용되지 않는 파일 형식입니다",
     "tooMany": "메시지당 최대 {{max}}개까지 첨부할 수 있습니다",
     "imageLabel": "이미지"
+  },
+  "status": {
+    "ai_active": "AI 응답중",
+    "waiting": "상담 대기",
+    "agent": "상담원 응대",
+    "ended": "종료"
+  },
+  "briefing": {
+    "none": "생성된 브리핑이 없습니다 — 필요할 때 생성하세요.",
+    "generate": "브리핑 생성",
+    "generating": "생성 중…",
+    "regenerate": "재생성",
+    "generatedAt": "생성 {{time}}",
+    "targetLanguage": "번역 언어",
+    "translate": "번역",
+    "translating": "번역 중…",
+    "generateError": "브리핑을 생성하지 못했습니다.",
+    "translateError": "브리핑을 번역하지 못했습니다."
+  },
+  "comments": {
+    "title": "코멘트",
+    "loading": "코멘트 불러오는 중…",
+    "empty": "코멘트가 없습니다.",
+    "unknownAuthor": "알 수 없음",
+    "edit": "코멘트 수정",
+    "delete": "코멘트 삭제",
+    "confirmDelete": "삭제할까요?",
+    "cancel": "취소",
+    "save": "저장",
+    "saved": "코멘트를 저장했습니다.",
+    "saveError": "코멘트를 저장하지 못했습니다.",
+    "deleted": "코멘트를 삭제했습니다.",
+    "deleteError": "코멘트를 삭제하지 못했습니다.",
+    "submit": "등록",
+    "scope": {
+      "conversation": "대화방",
+      "session": "세션"
+    },
+    "placeholder": {
+      "conversation": "이 대화방에 대한 메모 (내부 전용)…",
+      "session": "이 고객 세션 전체에 따라다니는 메모 (내부 전용)…"
+    }
   }
 }

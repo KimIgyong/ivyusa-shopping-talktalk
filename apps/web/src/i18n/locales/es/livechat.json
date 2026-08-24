@@ -237,5 +237,47 @@
     "typeNotAllowed": "{{name}} no es un tipo de archivo permitido",
     "tooMany": "Puedes adjuntar hasta {{max}} archivos por mensaje",
     "imageLabel": "Imagen"
+  },
+  "status": {
+    "ai_active": "IA respondiendo",
+    "waiting": "En espera",
+    "agent": "Con agente",
+    "ended": "Finalizada"
+  },
+  "briefing": {
+    "none": "Aún no hay resumen — genéralo cuando lo necesites.",
+    "generate": "Generar resumen",
+    "generating": "Generando…",
+    "regenerate": "Regenerar",
+    "generatedAt": "Generado {{time}}",
+    "targetLanguage": "Idioma de traducción",
+    "translate": "Traducir",
+    "translating": "Traduciendo…",
+    "generateError": "No se pudo generar el resumen.",
+    "translateError": "No se pudo traducir el resumen."
+  },
+  "comments": {
+    "title": "Comentarios",
+    "loading": "Cargando comentarios…",
+    "empty": "Sin comentarios.",
+    "unknownAuthor": "Desconocido",
+    "edit": "Editar comentario",
+    "delete": "Eliminar comentario",
+    "confirmDelete": "¿Eliminar?",
+    "cancel": "Cancelar",
+    "save": "Guardar",
+    "saved": "Comentario guardado.",
+    "saveError": "No se pudo guardar el comentario.",
+    "deleted": "Comentario eliminado.",
+    "deleteError": "No se pudo eliminar el comentario.",
+    "submit": "Añadir",
+    "scope": {
+      "conversation": "Conversación",
+      "session": "Sesión"
+    },
+    "placeholder": {
+      "conversation": "Nota sobre esta conversación (solo interno)…",
+      "session": "Nota que sigue a la sesión de este cliente (solo interno)…"
+    }
   }
 }

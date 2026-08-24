@@ -1,6 +1,7 @@
 import {
   IsArray,
   IsEmail,
+  IsIn,
   IsInt,
   IsOptional,
   IsString,
@@ -57,6 +58,21 @@ export class AgentMessageRequest {
   @IsString() body: string;
   /** Attachment uuids from the console upload endpoint, in display order. */
   @IsOptional() @IsArray() @IsString({ each: true }) attachment_ids?: string[];
+}
+
+/** Internal operator note on a thread or its session (REQ-260824 R4). */
+export class CreateCommentRequest {
+  @IsIn(['conversation', 'session']) scope: 'conversation' | 'session';
+  @IsString() @MinLength(1) @MaxLength(2000) body: string;
+}
+
+export class UpdateCommentRequest {
+  @IsString() @MinLength(1) @MaxLength(2000) body: string;
+}
+
+/** Translate a stored briefing into one of the system languages (REQ-260824 R3). */
+export class TranslateBriefingRequest {
+  @IsString() @MaxLength(8) lang: string;
 }
 
 export class LinkCustomerRequest {

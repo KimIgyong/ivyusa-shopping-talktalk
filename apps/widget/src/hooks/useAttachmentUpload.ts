@@ -10,7 +10,7 @@ export const MAX_PER_MESSAGE = 5;
 // heic/heif are what an iPhone actually produces; the server converts them to
 // JPEG on the way in (PLN-260817), so nothing here has to decode anything.
 const IMAGE_EXT = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'heif', 'avif'];
-const FILE_EXT = ['pdf', 'txt', 'csv', 'docx', 'xlsx'];
+const FILE_EXT = ['pdf', 'txt', 'csv', 'doc', 'docx', 'xls', 'xlsx'];
 
 export interface PendingUpload {
   /** Local id while in flight; replaced by the server's uuid once stored. */
