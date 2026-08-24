@@ -1,0 +1,48 @@
+{
+  "title": "管理者アカウント",
+  "subtitle": "プラットフォーム管理者アカウントの招待・管理",
+  "superOnly": "管理者アカウントの管理はスーパー管理者のみ可能です。",
+  "invite": "招待",
+  "inviteTitle": "管理者を招待",
+  "email": "メールアドレス",
+  "level": "レベル",
+  "levels": {
+    "super_admin": "スーパー管理者",
+    "admin": "管理者"
+  },
+  "levelHint": {
+    "super_admin": "管理者アカウント管理を含むプラットフォーム全権限。",
+    "admin": "管理者アカウント管理を除く運用権限。"
+  },
+  "sendEmail": "仮パスワードをメールで送信（管理者ログインリンク付き）",
+  "cancel": "キャンセル",
+  "close": "閉じる",
+  "empty": "管理者アカウントがありません。",
+  "status": "状態",
+  "statuses": {
+    "active": "有効",
+    "suspended": "無効"
+  },
+  "mustChangePw": "パスワード変更待ち",
+  "createdAt": "作成日",
+  "tempPw": "仮パスワード",
+  "tempPwTitle": "仮パスワード発行",
+  "tempPwBody": "{{email}} に新しい仮パスワードを発行しますか？現在のパスワードは無効になり、ログインロックがあれば解除されます。",
+  "tempPwConfirm": "発行",
+  "credentialTitle": "仮パスワードを発行しました",
+  "credentialOnce": "この画面を閉じると二度と表示されません — 閉じる前にコピーしてください。",
+  "emailSentYes": "仮パスワードをメールで送信しました。",
+  "emailSentNo": "メール送信に失敗しました — 手動で渡してください。",
+  "loginHint": "ログイン: /admin/login · 初回ログイン時に新しいパスワードの設定が必要です。",
+  "deactivate": "無効化",
+  "activate": "有効化",
+  "deactivateTitle": "管理者を無効化",
+  "activateTitle": "管理者を有効化",
+  "deactivateBody": "{{email}} を無効化しますか？以後ログインできなくなります。",
+  "activateBody": "{{email}} を有効化しますか？再びログインできます。",
+  "invited": "管理者を招待しました。",
+  "inviteError": "管理者を招待できませんでした。",
+  "tempPwError": "仮パスワードを発行できませんでした。",
+  "statusChanged": "管理者の状態を更新しました。",
+  "statusError": "状態を更新できませんでした。"
+}

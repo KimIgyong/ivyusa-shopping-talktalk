@@ -114,6 +114,22 @@ export class AuthService {
       });
       throw new BusinessException(ERROR_CODE.INVALID_CREDENTIALS, HttpStatus.UNAUTHORIZED);
     }
+    // Deactivated admin (REQ-260824-Admin-Account-Invite): same response as a
+    // bad password — the account's existence is nobody's business — but the
+    // server records what actually happened. No failure counter: the password
+    // was right, and counting it could lock a legitimately re-enabled account.
+    if (admin.status !== 'active') {
+      this.logger.warn(`admin login refused: suspended (admin:${admin.id})`);
+      await this.auditSafe({
+        tenantId: null,
+        actorType: 'admin',
+        actorId: admin.id,
+        action: 'auth.login_failed',
+        target: maskPii(email),
+        metadata: { reason: 'suspended' },
+      });
+      throw new BusinessException(ERROR_CODE.INVALID_CREDENTIALS, HttpStatus.UNAUTHORIZED);
+    }
     await this.loginLimiter.recordSuccess('admin', email);
     // MFA step-up (PLN-MFA M1): password OK but the login is NOT complete —
     // no tokens, no principal, no auth.login audit until /auth/mfa/verify.

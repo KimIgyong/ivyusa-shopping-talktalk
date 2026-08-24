@@ -1,0 +1,48 @@
+{
+  "title": "Operadores admin",
+  "subtitle": "Invita y gestiona las cuentas de administrador de la plataforma",
+  "superOnly": "Solo un superadministrador puede gestionar cuentas de administrador.",
+  "invite": "Invitar",
+  "inviteTitle": "Invitar administrador",
+  "email": "Correo",
+  "level": "Nivel",
+  "levels": {
+    "super_admin": "Superadmin",
+    "admin": "Admin"
+  },
+  "levelHint": {
+    "super_admin": "Control total de la plataforma, incluida la gestión de cuentas admin.",
+    "admin": "Operación de la plataforma sin gestión de cuentas admin."
+  },
+  "sendEmail": "Enviar la contraseña temporal por correo (con el enlace de acceso admin)",
+  "cancel": "Cancelar",
+  "close": "Cerrar",
+  "empty": "No hay cuentas de administrador.",
+  "status": "Estado",
+  "statuses": {
+    "active": "Activa",
+    "suspended": "Desactivada"
+  },
+  "mustChangePw": "Cambio de contraseña pendiente",
+  "createdAt": "Creada",
+  "tempPw": "Contraseña temporal",
+  "tempPwTitle": "Emitir contraseña temporal",
+  "tempPwBody": "¿Emitir una nueva contraseña temporal para {{email}}? La actual deja de funcionar y se libera cualquier bloqueo de acceso.",
+  "tempPwConfirm": "Emitir",
+  "credentialTitle": "Contraseña temporal emitida",
+  "credentialOnce": "Se muestra solo una vez — cópiala antes de cerrar.",
+  "emailSentYes": "La contraseña temporal se envió por correo.",
+  "emailSentNo": "Falló el envío del correo — entrégala manualmente.",
+  "loginHint": "Acceso: /admin/login · al primer inicio se pedirá una nueva contraseña.",
+  "deactivate": "Desactivar",
+  "activate": "Activar",
+  "deactivateTitle": "Desactivar administrador",
+  "activateTitle": "Activar administrador",
+  "deactivateBody": "¿Desactivar {{email}}? Ya no podrá iniciar sesión.",
+  "activateBody": "¿Activar {{email}}? Podrá iniciar sesión de nuevo.",
+  "invited": "Administrador invitado.",
+  "inviteError": "No se pudo invitar al administrador.",
+  "tempPwError": "No se pudo emitir la contraseña temporal.",
+  "statusChanged": "Estado del administrador actualizado.",
+  "statusError": "No se pudo actualizar el estado."
+}

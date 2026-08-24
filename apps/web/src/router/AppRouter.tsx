@@ -38,6 +38,7 @@ const MyPage = lazy(() => import('@/domain/my-page/MyPage').then((m) => ({ defau
 const AdminOverviewPage = lazy(() => import('@/domain/admin/AdminOverviewPage').then((m) => ({ default: m.AdminOverviewPage })));
 const TenantsPage = lazy(() => import('@/domain/admin/TenantsPage').then((m) => ({ default: m.TenantsPage })));
 const TenantUsersPage = lazy(() => import('@/domain/admin/TenantUsersPage').then((m) => ({ default: m.TenantUsersPage })));
+const AdminUsersPage = lazy(() => import('@/domain/admin/AdminUsersPage').then((m) => ({ default: m.AdminUsersPage })));
 const AiEnginesPage = lazy(() => import('@/domain/admin/AiEnginesPage').then((m) => ({ default: m.AiEnginesPage })));
 const AuditPage = lazy(() => import('@/domain/admin/AuditPage').then((m) => ({ default: m.AuditPage })));
 
@@ -108,6 +109,7 @@ const router = createBrowserRouter([
       { path: 'menu', element: <MenuPage /> },
       { path: 'tenants', element: <TenantsPage /> },
       { path: 'tenants/:tenantUuid/users', element: <TenantUsersPage /> },
+      { path: 'admins', element: <AdminUsersPage /> },
       { path: 'ai-engines', element: <AiEnginesPage /> },
       { path: 'audit', element: <AuditPage /> },
       { path: 'my-page', element: <MyPage /> },

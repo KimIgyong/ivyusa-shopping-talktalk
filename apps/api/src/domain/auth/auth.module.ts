@@ -8,6 +8,8 @@ import { JobLabel } from '../user/entity/job-label.entity';
 import { UserJobLabel } from '../user/entity/user-job-label.entity';
 import { Tenant } from '../tenant/entity/tenant.entity';
 import { AuthService } from './auth.service';
+import { AdminUserService } from './admin-user.service';
+import { AdminUserController } from './admin-user.controller';
 import { AmaSsoService } from './ama-sso.service';
 import { MfaService } from './mfa.service';
 import { LoginRateLimitService } from './login-rate-limit.service';
@@ -28,8 +30,15 @@ import { AuditModule } from '../audit/audit.module';
     ]),
     AuditModule,
   ],
-  controllers: [AuthController],
-  providers: [AuthService, AmaSsoService, MfaService, LoginRateLimitService, PasswordRecoveryService],
+  controllers: [AuthController, AdminUserController],
+  providers: [
+    AuthService,
+    AdminUserService,
+    AmaSsoService,
+    MfaService,
+    LoginRateLimitService,
+    PasswordRecoveryService,
+  ],
   exports: [MfaService, LoginRateLimitService],
 })
 export class AuthModule {}

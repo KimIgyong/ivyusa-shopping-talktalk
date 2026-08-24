@@ -9,12 +9,13 @@
  */
 export function buildTempPasswordMail(
   baseUrl: string | undefined,
-  tenantSlug: string,
+  /** Absolute path of the login page: `/user/{slug}` for tenants, `/admin/login` for platform admins. */
+  loginPath: string,
   email: string,
   tempPassword: string,
 ): { to: string; subject: string; text: string } {
   const base = (baseUrl ?? '').replace(/\/+$/, '');
-  const loginLine = `${base}/user/${tenantSlug}`;
+  const loginLine = `${base}${loginPath}`;
   return {
     to: email,
     subject: '[ShopTalk] Temporary password / 임시비밀번호 안내',

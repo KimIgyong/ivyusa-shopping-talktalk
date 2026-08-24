@@ -127,6 +127,17 @@ describe('AuthService (SEC-M1/SEC-M2)', () => {
     await expect(svc.refresh(tokens.refreshToken)).rejects.toThrow();
   });
 
+  it('refuses a suspended admin at login, with the invalid-credentials response', async () => {
+    // REQ-260824-Admin-Account-Invite: deactivation must actually deactivate.
+    // Same E1002 as a wrong password — the response never confirms the account.
+    admin.status = 'suspended';
+    await expect(svc.loginAdmin(admin.email, PASSWORD, '203.0.113.7')).rejects.toMatchObject({
+      errorCode: 'E1002',
+    });
+    admin.status = 'active';
+    await expect(svc.loginAdmin(admin.email, PASSWORD, '203.0.113.7')).resolves.toBeDefined();
+  });
+
   it('changePassword stamps password_changed_at, clears the flag, and returns fresh tokens', async () => {
     user.mustChangePassword = 1;
     // The controller passes req.user — the decoded JWT payload, which carries

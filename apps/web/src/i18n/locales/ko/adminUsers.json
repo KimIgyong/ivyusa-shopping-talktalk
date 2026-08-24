@@ -1,0 +1,48 @@
+{
+  "title": "어드민 관리자",
+  "subtitle": "플랫폼 어드민 계정을 초대하고 관리합니다",
+  "superOnly": "어드민 계정 관리는 슈퍼관리자만 할 수 있습니다.",
+  "invite": "초대",
+  "inviteTitle": "어드민 초대",
+  "email": "이메일",
+  "level": "레벨",
+  "levels": {
+    "super_admin": "슈퍼관리자",
+    "admin": "관리자"
+  },
+  "levelHint": {
+    "super_admin": "어드민 계정 관리를 포함한 플랫폼 전체 권한입니다.",
+    "admin": "어드민 계정 관리를 제외한 플랫폼 운영 권한입니다."
+  },
+  "sendEmail": "임시비밀번호를 이메일로 발송 (어드민 로그인 링크 포함)",
+  "cancel": "취소",
+  "close": "닫기",
+  "empty": "어드민 계정이 없습니다.",
+  "status": "상태",
+  "statuses": {
+    "active": "활성",
+    "suspended": "비활성"
+  },
+  "mustChangePw": "비밀번호 변경 대기",
+  "createdAt": "생성일",
+  "tempPw": "임시비밀번호",
+  "tempPwTitle": "임시비밀번호 발급",
+  "tempPwBody": "{{email}}에게 새 임시비밀번호를 발급할까요? 기존 비밀번호는 즉시 무효화되고, 로그인 잠금이 있다면 해제됩니다.",
+  "tempPwConfirm": "발급",
+  "credentialTitle": "임시비밀번호 발급됨",
+  "credentialOnce": "이 창을 닫으면 다시 볼 수 없습니다 — 닫기 전에 복사하세요.",
+  "emailSentYes": "임시비밀번호를 이메일로 발송했습니다.",
+  "emailSentNo": "이메일 발송에 실패했습니다 — 수동으로 전달하세요.",
+  "loginHint": "로그인: /admin/login · 첫 로그인 시 새 비밀번호 설정이 필요합니다.",
+  "deactivate": "비활성화",
+  "activate": "활성화",
+  "deactivateTitle": "어드민 비활성화",
+  "activateTitle": "어드민 활성화",
+  "deactivateBody": "{{email}} 계정을 비활성화할까요? 더 이상 로그인할 수 없습니다.",
+  "activateBody": "{{email}} 계정을 활성화할까요? 다시 로그인할 수 있습니다.",
+  "invited": "어드민을 초대했습니다.",
+  "inviteError": "어드민을 초대하지 못했습니다.",
+  "tempPwError": "임시비밀번호를 발급하지 못했습니다.",
+  "statusChanged": "어드민 상태를 변경했습니다.",
+  "statusError": "어드민 상태를 변경하지 못했습니다."
+}
