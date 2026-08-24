@@ -21,6 +21,7 @@ import { BCRYPT_ROUNDS } from '../../global/constant/security.constant';
 import { generateTempPassword, validatePassword } from '../../global/util/password-policy.util';
 import { AuditService } from '../audit/audit.service';
 import { maskPii } from '../../global/util/pii.util';
+import { LoginRateLimitService } from '../auth/login-rate-limit.service';
 const INVITE_TTL_MS = 72 * 60 * 60 * 1000;
 
 /**
@@ -37,6 +38,7 @@ export class UserService {
     @InjectRepository(UserJobLabel) private readonly userLabelRepo: Repository<UserJobLabel>,
     @InjectRepository(Invitation) private readonly invitationRepo: Repository<Invitation>,
     private readonly audit: AuditService,
+    private readonly loginLimiter: LoginRateLimitService,
   ) {}
 
   // ---- Users ----
@@ -133,6 +135,7 @@ export class UserService {
     user.passwordHash = await bcrypt.hash(tempPassword, BCRYPT_ROUNDS);
     user.mustChangePassword = 1;
     await this.userRepo.save(user);
+    await this.loginLimiter.clearAccountLock('user', user.email);
     await this.audit.write({
       tenantId,
       actorType,

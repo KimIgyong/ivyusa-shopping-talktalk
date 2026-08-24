@@ -43,7 +43,9 @@ describe('UserService.listUsers — job-label codes join (bigint id string vs nu
     // UserJobLabel.jobLabelId is transformed to a NUMBER.
     const userLabelRepo = repo({ find: jest.fn(async () => [{ userId: 2, jobLabelId: 1 }]) });
 
-    const svc = new UserService(userRepo, labelRepo, userLabelRepo, repo(), repo());
+    const svc = new UserService(userRepo, labelRepo, userLabelRepo, repo(), repo(), {
+      clearAccountLock: jest.fn(),
+    } as never);
     const res = await svc.listUsers(1, 1, 20);
 
     expect(res.items).toHaveLength(1);
@@ -53,7 +55,9 @@ describe('UserService.listUsers — job-label codes join (bigint id string vs nu
   it('returns empty labelCodes when the user has no assignments', async () => {
     const userRepo = repo({ findAndCount: jest.fn(async () => [[user], 1]) });
     const userLabelRepo = repo({ find: jest.fn(async () => []) });
-    const svc = new UserService(userRepo, repo(), userLabelRepo, repo(), repo());
+    const svc = new UserService(userRepo, repo(), userLabelRepo, repo(), repo(), {
+      clearAccountLock: jest.fn(),
+    } as never);
     const res = await svc.listUsers(1, 1, 20);
     expect(res.items[0].labelCodes).toEqual([]);
   });

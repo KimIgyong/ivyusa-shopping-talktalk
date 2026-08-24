@@ -29,6 +29,6 @@ import { AuditModule } from '../audit/audit.module';
   ],
   controllers: [AuthController],
   providers: [AuthService, AmaSsoService, MfaService, LoginRateLimitService],
-  exports: [MfaService],
+  exports: [MfaService, LoginRateLimitService],
 })
 export class AuthModule {}

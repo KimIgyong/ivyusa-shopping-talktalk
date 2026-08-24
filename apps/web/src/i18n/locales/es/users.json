@@ -18,6 +18,7 @@
   "tempPwTitle": "Contraseña temporal",
   "tempPwFor": "Contraseña temporal para",
   "tempPwDesc": "Compártela con el usuario por un canal seguro. Deberá cambiarla en el primer inicio de sesión. Se muestra una sola vez.",
+  "tempPwLockReset": "Se ha eliminado el bloqueo de inicio de sesión de la cuenta.",
   "tempPwIssued": "Contraseña temporal emitida.",
   "copy": "Copiar",
   "copied": "Copiado",
