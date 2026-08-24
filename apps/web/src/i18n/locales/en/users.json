@@ -18,6 +18,7 @@
   "tempPwTitle": "Temporary password",
   "tempPwFor": "Temporary password for",
   "tempPwDesc": "Share this with the user through a secure channel. They must change it on first login. It is shown only once.",
+  "tempPwLockReset": "The account login lock has been cleared.",
   "tempPwIssued": "Temporary password issued.",
   "copy": "Copy",
   "copied": "Copied",

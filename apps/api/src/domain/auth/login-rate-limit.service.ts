@@ -4,9 +4,9 @@ import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
 
 /** Sliding window (seconds) that failed-login counters live for. */
-const WINDOW_SEC = 15 * 60;
+const WINDOW_SEC = 10 * 60;
 /** Failed attempts per account (email) before lockout — the primary defense. */
-const MAX_PER_ACCOUNT = 5;
+const MAX_PER_ACCOUNT = 10;
 /** Failed attempts per source IP before lockout — supplementary (IP may be shared/NAT). */
 const MAX_PER_IP = 20;
 
@@ -46,6 +46,11 @@ export class LoginRateLimitService {
 
   /** Clear the account counter after a successful login (IP counter is left intact). */
   async recordSuccess(scope: string, email: string): Promise<void> {
+    await this.clearAccountLock(scope, email);
+  }
+
+  /** Clear only a verified account's failure counter; never bypass the IP safeguard. */
+  async clearAccountLock(scope: string, email: string): Promise<void> {
     await this.redis.del(this.accountKey(scope, email));
   }
 

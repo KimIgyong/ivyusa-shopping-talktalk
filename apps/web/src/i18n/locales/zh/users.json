@@ -18,6 +18,7 @@
   "tempPwTitle": "临时密码",
   "tempPwFor": "临时密码的用户",
   "tempPwDesc": "请通过安全渠道告知该用户。用户首次登录时必须修改密码。此密码仅显示一次。",
+  "tempPwLockReset": "账户登录锁定已解除。",
   "tempPwIssued": "已发放临时密码。",
   "copy": "复制",
   "copied": "已复制",
