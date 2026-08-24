@@ -43,6 +43,24 @@ interface BackendEngine {
   createdAt?: string;
 }
 
+/** Platform-admin account row (REQ-260824-Admin-Account-Invite). */
+export interface AdminAccount {
+  id: string;
+  email: string;
+  level: 'super_admin' | 'admin';
+  status: string;
+  mustChangePassword: boolean;
+  createdAt?: string;
+}
+
+/** One-time credential result — the plaintext is shown once, never again. */
+export interface AdminCredential {
+  adminId: string;
+  email: string;
+  tempPassword: string;
+  emailSent?: boolean;
+}
+
 /** How a tenant's provisioning of one menu is pinned against its plan. */
 export type MenuProvisionMode = 'plan' | 'on' | 'off';
 
@@ -110,6 +128,14 @@ export const adminService = {
     apiPost<{ reset: boolean }>(`/tenants/${tenantUuid}/users/${userId}/mfa-reset`, {}),
   setTenantUserStatus: (tenantUuid: string, userId: string, status: string) =>
     apiPatch<TenantUser>(`/tenants/${tenantUuid}/users/${userId}/status`, { status }),
+  // ---- Platform-admin accounts (REQ-260824) — super_admin only server-side ----
+  admins: () => apiGet<AdminAccount[]>('/admin-users'),
+  inviteAdmin: (email: string, level: 'super_admin' | 'admin', sendEmail: boolean) =>
+    apiPost<AdminCredential>('/admin-users/invite', { email, level, send_email: sendEmail }),
+  issueAdminTempPassword: (adminId: string, sendEmail: boolean) =>
+    apiPost<AdminCredential>(`/admin-users/${adminId}/temp-password`, { send_email: sendEmail }),
+  setAdminStatus: (adminId: string, status: 'active' | 'suspended') =>
+    apiPatch<AdminAccount>(`/admin-users/${adminId}/status`, { status }),
   // Adapt backend {status, hasKey,...} → frontend {enabled,...}.
   engines: async (): Promise<AiEngine[]> => {
     const list = await apiGet<BackendEngine[]>('/ai-engines');

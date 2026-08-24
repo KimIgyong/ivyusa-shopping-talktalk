@@ -22,7 +22,7 @@ export function Sidebar() {
 
   const { canSeeMenu } = useMenuAccess();
   const items: NavItem[] = isAdmin
-    ? ADMIN_NAV
+    ? ADMIN_NAV.filter((i) => !i.superAdminOnly || principal?.level === 'super_admin')
     : TENANT_NAV.filter((i) => canSeeMenu(i.code, i.capability));
 
   const logout = () => {

@@ -8,6 +8,52 @@ import { toast } from '@/store/toast-store';
 const TENANTS_KEY = ['admin', 'tenants'];
 const ENGINES_KEY = ['admin', 'engines'];
 const AUDIT_KEY = ['admin', 'audit'];
+const ADMINS_KEY = ['admin', 'admins'];
+
+// ---- Platform-admin accounts (REQ-260824) ----
+
+export function useAdminAccounts() {
+  return useQuery({ queryKey: ADMINS_KEY, queryFn: () => adminService.admins() });
+}
+
+export function useInviteAdmin() {
+  const { t } = useTranslation('adminUsers');
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (v: { email: string; level: 'super_admin' | 'admin'; sendEmail: boolean }) =>
+      adminService.inviteAdmin(v.email, v.level, v.sendEmail),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ADMINS_KEY });
+      toast.success(t('invited'));
+    },
+    onError: (err: Error) => toast.error(err.message || t('inviteError'), { sticky: true }),
+  });
+}
+
+export function useIssueAdminTempPassword() {
+  const { t } = useTranslation('adminUsers');
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (v: { adminId: string; sendEmail: boolean }) =>
+      adminService.issueAdminTempPassword(v.adminId, v.sendEmail),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ADMINS_KEY }),
+    onError: (err: Error) => toast.error(err.message || t('tempPwError'), { sticky: true }),
+  });
+}
+
+export function useSetAdminStatus() {
+  const { t } = useTranslation('adminUsers');
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (v: { adminId: string; status: 'active' | 'suspended' }) =>
+      adminService.setAdminStatus(v.adminId, v.status),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ADMINS_KEY });
+      toast.success(t('statusChanged'));
+    },
+    onError: (err: Error) => toast.error(err.message || t('statusError'), { sticky: true }),
+  });
+}
 
 export function useTenants(params: { page: number; pageSize: number }) {
   return useQuery({

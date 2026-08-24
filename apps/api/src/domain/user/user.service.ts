@@ -162,7 +162,7 @@ export class UserService {
       emailSent = await this.mailer.send(
         buildTempPasswordMail(
           this.config.get<string>('APP_PUBLIC_URL'),
-          tenant.slug,
+          `/user/${tenant.slug}`,
           user.email,
           tempPassword,
         ),

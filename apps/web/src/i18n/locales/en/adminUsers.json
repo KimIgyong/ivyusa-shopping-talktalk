@@ -1,0 +1,48 @@
+{
+  "title": "Admin operators",
+  "subtitle": "Invite and manage platform admin accounts",
+  "superOnly": "Only a super admin can manage admin accounts.",
+  "invite": "Invite",
+  "inviteTitle": "Invite an admin",
+  "email": "Email",
+  "level": "Level",
+  "levels": {
+    "super_admin": "Super admin",
+    "admin": "Admin"
+  },
+  "levelHint": {
+    "super_admin": "Full platform control, including admin account management.",
+    "admin": "Platform operations without admin account management."
+  },
+  "sendEmail": "Email the temporary password (with the admin login link)",
+  "cancel": "Cancel",
+  "close": "Close",
+  "empty": "No admin accounts.",
+  "status": "Status",
+  "statuses": {
+    "active": "Active",
+    "suspended": "Deactivated"
+  },
+  "mustChangePw": "PW change pending",
+  "createdAt": "Created",
+  "tempPw": "Temp password",
+  "tempPwTitle": "Issue a temporary password",
+  "tempPwBody": "Issue a new temporary password for {{email}}? The current password stops working and a login lock, if any, is cleared.",
+  "tempPwConfirm": "Issue",
+  "credentialTitle": "Temporary password issued",
+  "credentialOnce": "This is shown only once — copy it before closing.",
+  "emailSentYes": "The temporary password was emailed.",
+  "emailSentNo": "Email delivery failed — hand it over manually.",
+  "loginHint": "Sign-in: /admin/login · a new password is required at first sign-in.",
+  "deactivate": "Deactivate",
+  "activate": "Activate",
+  "deactivateTitle": "Deactivate admin",
+  "activateTitle": "Activate admin",
+  "deactivateBody": "Deactivate {{email}}? They can no longer sign in.",
+  "activateBody": "Activate {{email}}? They can sign in again.",
+  "invited": "Admin invited.",
+  "inviteError": "Could not invite the admin.",
+  "tempPwError": "Could not issue the temporary password.",
+  "statusChanged": "Admin status updated.",
+  "statusError": "Could not update the admin status."
+}

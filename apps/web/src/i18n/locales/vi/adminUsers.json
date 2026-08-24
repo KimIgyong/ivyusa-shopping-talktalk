@@ -1,0 +1,48 @@
+{
+  "title": "Quản trị viên",
+  "subtitle": "Mời và quản lý tài khoản quản trị nền tảng",
+  "superOnly": "Chỉ super admin mới quản lý được tài khoản quản trị.",
+  "invite": "Mời",
+  "inviteTitle": "Mời quản trị viên",
+  "email": "Email",
+  "level": "Cấp",
+  "levels": {
+    "super_admin": "Super admin",
+    "admin": "Admin"
+  },
+  "levelHint": {
+    "super_admin": "Toàn quyền nền tảng, bao gồm quản lý tài khoản quản trị.",
+    "admin": "Vận hành nền tảng, không gồm quản lý tài khoản quản trị."
+  },
+  "sendEmail": "Gửi mật khẩu tạm qua email (kèm liên kết đăng nhập admin)",
+  "cancel": "Hủy",
+  "close": "Đóng",
+  "empty": "Chưa có tài khoản quản trị.",
+  "status": "Trạng thái",
+  "statuses": {
+    "active": "Hoạt động",
+    "suspended": "Vô hiệu"
+  },
+  "mustChangePw": "Chờ đổi mật khẩu",
+  "createdAt": "Ngày tạo",
+  "tempPw": "Mật khẩu tạm",
+  "tempPwTitle": "Cấp mật khẩu tạm",
+  "tempPwBody": "Cấp mật khẩu tạm mới cho {{email}}? Mật khẩu hiện tại sẽ hết hiệu lực và khóa đăng nhập (nếu có) được gỡ.",
+  "tempPwConfirm": "Cấp",
+  "credentialTitle": "Đã cấp mật khẩu tạm",
+  "credentialOnce": "Chỉ hiển thị một lần — hãy sao chép trước khi đóng.",
+  "emailSentYes": "Đã gửi mật khẩu tạm qua email.",
+  "emailSentNo": "Gửi email thất bại — hãy chuyển thủ công.",
+  "loginHint": "Đăng nhập: /admin/login · lần đầu đăng nhập sẽ phải đặt mật khẩu mới.",
+  "deactivate": "Vô hiệu hóa",
+  "activate": "Kích hoạt",
+  "deactivateTitle": "Vô hiệu hóa quản trị viên",
+  "activateTitle": "Kích hoạt quản trị viên",
+  "deactivateBody": "Vô hiệu hóa {{email}}? Tài khoản sẽ không thể đăng nhập.",
+  "activateBody": "Kích hoạt {{email}}? Tài khoản có thể đăng nhập lại.",
+  "invited": "Đã mời quản trị viên.",
+  "inviteError": "Không thể mời quản trị viên.",
+  "tempPwError": "Không thể cấp mật khẩu tạm.",
+  "statusChanged": "Đã cập nhật trạng thái.",
+  "statusError": "Không thể cập nhật trạng thái."
+}

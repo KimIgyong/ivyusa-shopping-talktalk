@@ -7,7 +7,8 @@ export interface Principal {
   id: string;
   email: string;
   tenantId?: string;
-  level?: number;
+  /** Platform-admin level — the backend sends the string, not a number. */
+  level?: 'super_admin' | 'admin';
   rank?: Rank;
   labels?: string[];
 }

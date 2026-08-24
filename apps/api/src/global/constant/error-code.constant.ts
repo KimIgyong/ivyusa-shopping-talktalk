@@ -27,6 +27,11 @@ export const ERROR_CODE = {
   USER_NOT_FOUND: { code: 'E2001', message: 'User not found' },
   EMAIL_TAKEN: { code: 'E2002', message: 'Email already in use' },
   INVITATION_INVALID: { code: 'E2003', message: 'Invitation invalid or expired' },
+  /** Platform lock-out guard (PLN-260824-Admin-Account-Invite). */
+  LAST_SUPER_ADMIN: {
+    code: 'E2004',
+    message: 'The last active super admin cannot be deactivated',
+  },
 
   // E3xxx — chat / conversation
   SESSION_NOT_FOUND: { code: 'E3001', message: 'Session not found' },

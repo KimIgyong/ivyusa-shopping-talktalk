@@ -37,6 +37,8 @@ export interface NavItem {
   code?: MenuCode;
   /** Legacy local gate; used only when the server's menu list is unavailable. */
   capability?: Capability;
+  /** Admin nav only: shown to super_admin, hidden from admin-level operators. */
+  superAdminOnly?: boolean;
 }
 
 export const TENANT_NAV: NavItem[] = [
@@ -66,6 +68,8 @@ export const TENANT_NAV: NavItem[] = [
 export const ADMIN_NAV: NavItem[] = [
   { to: '/admin', labelKey: 'overview', icon: ShieldCheck },
   { to: '/admin/tenants', labelKey: 'tenants', icon: Building2 },
+  // Platform-admin accounts (REQ-260824) — matches the server's super-only gate.
+  { to: '/admin/admins', labelKey: 'admins', icon: UserCog, superAdminOnly: true },
   { to: '/admin/ai-engines', labelKey: 'aiEngines', icon: Cpu },
   { to: '/admin/audit', labelKey: 'audit', icon: ScrollText },
 ];

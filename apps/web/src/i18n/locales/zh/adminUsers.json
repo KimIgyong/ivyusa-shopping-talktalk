@@ -1,0 +1,48 @@
+{
+  "title": "管理员账号",
+  "subtitle": "邀请并管理平台管理员账号",
+  "superOnly": "只有超级管理员才能管理管理员账号。",
+  "invite": "邀请",
+  "inviteTitle": "邀请管理员",
+  "email": "邮箱",
+  "level": "级别",
+  "levels": {
+    "super_admin": "超级管理员",
+    "admin": "管理员"
+  },
+  "levelHint": {
+    "super_admin": "拥有包含管理员账号管理在内的全部平台权限。",
+    "admin": "拥有平台运营权限，但不含管理员账号管理。"
+  },
+  "sendEmail": "通过邮件发送临时密码（含管理员登录链接）",
+  "cancel": "取消",
+  "close": "关闭",
+  "empty": "暂无管理员账号。",
+  "status": "状态",
+  "statuses": {
+    "active": "启用",
+    "suspended": "停用"
+  },
+  "mustChangePw": "待修改密码",
+  "createdAt": "创建日期",
+  "tempPw": "临时密码",
+  "tempPwTitle": "签发临时密码",
+  "tempPwBody": "为 {{email}} 签发新的临时密码？当前密码将立即失效，登录锁定（如有）将被解除。",
+  "tempPwConfirm": "签发",
+  "credentialTitle": "临时密码已签发",
+  "credentialOnce": "仅显示一次 — 关闭前请复制。",
+  "emailSentYes": "临时密码已通过邮件发送。",
+  "emailSentNo": "邮件发送失败 — 请手动转交。",
+  "loginHint": "登录：/admin/login · 首次登录需设置新密码。",
+  "deactivate": "停用",
+  "activate": "启用",
+  "deactivateTitle": "停用管理员",
+  "activateTitle": "启用管理员",
+  "deactivateBody": "停用 {{email}}？该账号将无法登录。",
+  "activateBody": "启用 {{email}}？该账号可重新登录。",
+  "invited": "已邀请管理员。",
+  "inviteError": "无法邀请管理员。",
+  "tempPwError": "无法签发临时密码。",
+  "statusChanged": "已更新管理员状态。",
+  "statusError": "无法更新管理员状态。"
+}
