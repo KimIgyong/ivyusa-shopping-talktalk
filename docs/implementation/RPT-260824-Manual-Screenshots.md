@@ -44,5 +44,8 @@ TCR §1 T1~T7 전부 통과(이미지 30·figure 60·깨진 참조 0·빌드 그
 
 ## 5. 배포 상태
 
-- 브랜치 `feature/manual-screenshots` → PR (머지 커밋에 기록). 마이그레이션 없음.
-- 배포: web 이미지 재빌드만 필요. 배포 후 TCR §2 확인.
+- **PR #347** 머지(main `e4549a8`) → ✅ **스테이징 배포·검증 완료 2026-08-24**
+  (서버 pull + `deploy-staging.sh`, 마이그레이션 없음).
+- TCR §2 통과: 이미지 표본 8/8 → 200(`image/jpeg`), quick-setup.ko figure 10/
+  user-manual.vi figure 5 서빙 확인, **브라우저 실측** — ko(그림·캡션·테두리 정위치
+  렌더)·vi 페이지 렌더 정상, API health ok·SPA 회귀 없음.
