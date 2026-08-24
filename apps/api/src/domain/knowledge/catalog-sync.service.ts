@@ -4,6 +4,8 @@ import { Repository } from 'typeorm';
 import { DOC_GROUP, KbDocument } from './entity/kb-document.entity';
 import { ProductCache, PRODUCT_STATUS } from '../product/entity/product-cache.entity';
 import { KbRevisionService } from './kb-revision.service';
+import { KbCategoryService } from './kb-category.service';
+import { CATEGORY_ORIGIN } from './entity/kb-category.entity';
 import { REVISION_KIND } from './entity/kb-document-revision.entity';
 
 /** `source` value marking a document this converter owns (PLN-260807 P1). */
@@ -84,6 +86,7 @@ export class CatalogSyncService {
     @InjectRepository(KbDocument) private readonly docRepo: Repository<KbDocument>,
     @InjectRepository(ProductCache) private readonly productRepo: Repository<ProductCache>,
     private readonly revisions: KbRevisionService,
+    private readonly categories: KbCategoryService,
   ) {}
 
   /** Dry run — reports what `sync` would do and writes nothing. */
@@ -137,10 +140,17 @@ export class CatalogSyncService {
     const counts = this.emptyCounts(products.length, families.length, held.length);
     const touchedIds: number[] = [];
 
+    // Categories this run put on a document. Registering them keeps the
+    // console's category list describing reality — and marks them 'catalog',
+    // which is what makes them read-only there: `isUnchanged` compares the
+    // stored category, so a rename would be undone on the next run.
+    const producedCategories = new Set<string>();
+
     let processed = 0;
     for (const family of families) {
       onWrite?.(processed++, families.length);
       const doc = this.buildDoc(family);
+      if (doc.category) producedCategories.add(doc.category);
       const found = byKey.get(family.representative.handle);
 
       if (!found) {
@@ -195,6 +205,10 @@ export class CatalogSyncService {
       await this.revisions.record(tenantId, saved, before, REVISION_KIND.UPDATE, actorUserId);
       touchedIds.push(Number(saved.id));
       counts.updated += 1;
+    }
+
+    for (const name of producedCategories) {
+      await this.categories.ensure(tenantId, name, CATEGORY_ORIGIN.CATALOG);
     }
 
     this.logger.log(

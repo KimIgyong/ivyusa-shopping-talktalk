@@ -1,5 +1,15 @@
 import { DOC_GROUP } from '../../entity/kb-document.entity';
-import { IsIn, IsInt, IsObject, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
+import {
+  IsArray,
+  IsBoolean,
+  IsIn,
+  IsInt,
+  IsObject,
+  IsOptional,
+  IsString,
+  MaxLength,
+  MinLength,
+} from 'class-validator';
 
 /** Knowledge source ingestion modes (FR-064). */
 export const KNOWLEDGE_SOURCE_TYPES = ['board', 'repository', 'gdrive', 'notion'] as const;
@@ -110,6 +120,52 @@ export class CreatePostRequest {
 export class SaveUsageGuideRequest {
   @IsString() @MaxLength(255) title: string;
   @IsString() @MinLength(20) @MaxLength(20000) content: string;
+}
+
+/** PUT/POST /knowledge/usage-types — 테넌트별 사용법 유형 (PLN-260824 A축). */
+export class SaveUsageTypeRequest {
+  @IsString() @MinLength(1) @MaxLength(128) label: string;
+
+  /** 한 줄에 하나. 비우면 매칭 없음 — 본문을 먼저 쓰고 키워드는 나중에 손볼 수 있다. */
+  @IsOptional() @IsArray() @IsString({ each: true }) @MaxLength(64, { each: true })
+  keywords?: string[];
+
+  @IsOptional() @IsBoolean() active?: boolean;
+}
+
+/** POST /knowledge/usage-types/preview — 저장 전 매칭 개수 확인 (PLN D2). */
+export class PreviewUsageTypeRequest {
+  @IsArray() @IsString({ each: true }) @MaxLength(64, { each: true }) keywords: string[];
+
+  /** 수정 중인 유형. 자기 자신은 경쟁에서 빼고, 위 순서의 유형만 가져간 것으로 계산. */
+  @IsOptional() @IsInt() exclude_id?: number;
+}
+
+/** PUT /knowledge/usage-types/reorder — 매칭 순서(첫 매치 우선이라 순서가 의미). */
+export class ReorderRequest {
+  @IsArray() @IsInt({ each: true }) ids: number[];
+}
+
+/** POST /knowledge/categories — 카테고리 생성 (PLN-260824 B축). */
+export class CreateCategoryRequest {
+  @IsString() @MinLength(1) @MaxLength(64) name: string;
+  @IsOptional() @IsString() @MaxLength(128) label?: string;
+}
+
+/** PUT /knowledge/categories/:id/rename */
+export class RenameCategoryRequest {
+  @IsString() @MinLength(1) @MaxLength(64) name: string;
+}
+
+/** POST /knowledge/categories/merge — 문서를 옮기고 빈 카테고리를 지운다. */
+export class MergeCategoriesRequest {
+  @IsArray() @IsInt({ each: true }) from_ids: number[];
+  @IsInt() into_id: number;
+}
+
+/** PUT /knowledge/categories/:id/hidden */
+export class SetCategoryHiddenRequest {
+  @IsBoolean() hidden: boolean;
 }
 
 /** POST /knowledge/gap-tasks/:id/accept — 승인 전 인라인 편집(P5). */

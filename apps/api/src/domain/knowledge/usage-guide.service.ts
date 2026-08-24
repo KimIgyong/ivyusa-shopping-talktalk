@@ -5,7 +5,8 @@ import { DOC_GROUP, KbDocument } from './entity/kb-document.entity';
 import { ProductCache, PRODUCT_STATUS } from '../product/entity/product-cache.entity';
 import { KbRevisionService } from './kb-revision.service';
 import { REVISION_KIND } from './entity/kb-document-revision.entity';
-import { USAGE_TYPES, classifyUsageType, usageGuideKey } from './usage-guide.types';
+import { classifyUsageType, parseKeywords, usageGuideKey } from './usage-guide.types';
+import { UsageTypeService } from './usage-type.service';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
 
@@ -13,7 +14,12 @@ import { ERROR_CODE } from '../../global/constant/error-code.constant';
 export const USAGE_GUIDE_CATEGORY = 'How to Use';
 
 export interface UsageGuideSummary {
+  /** Row id of the type, so the console can edit or reorder it. */
+  id: string;
   key: string;
+  label: string;
+  /** Turned-off types still list, so an existing guide stays reachable. */
+  active: boolean;
   /** Active catalogue products this guide would serve. */
   productCount: number;
   documentId: string | null;
@@ -40,6 +46,7 @@ export class UsageGuideService {
     @InjectRepository(KbDocument) private readonly docRepo: Repository<KbDocument>,
     @InjectRepository(ProductCache) private readonly productRepo: Repository<ProductCache>,
     private readonly revisions: KbRevisionService,
+    private readonly types: UsageTypeService,
   ) {}
 
   /**
@@ -48,13 +55,18 @@ export class UsageGuideService {
    * nobody fills.
    */
   async list(tenantId: number): Promise<UsageGuideSummary[]> {
+    const rows = await this.types.list(tenantId);
+    const matchers = rows
+      .filter((r) => r.active === 1)
+      .map((r) => ({ key: r.key, keywords: parseKeywords(r.keywords) }));
+
     const products = await this.productRepo.find({
       where: { tenantId, status: PRODUCT_STATUS.ACTIVE },
       select: ['handle', 'title', 'category', 'tags'],
     });
     const counts = new Map<string, number>();
     for (const p of products) {
-      const key = classifyUsageType(p);
+      const key = classifyUsageType(p, matchers);
       if (key) counts.set(key, (counts.get(key) ?? 0) + 1);
     }
 
@@ -63,10 +75,14 @@ export class UsageGuideService {
     });
     const byKey = new Map(docs.filter((d) => d.externalKey).map((d) => [d.externalKey!, d]));
 
-    return USAGE_TYPES.map(({ key }) => {
+    return rows.map((row) => {
+      const key = row.key;
       const doc = byKey.get(usageGuideKey(key));
       return {
+        id: String(row.id),
         key,
+        label: row.label,
+        active: row.active === 1,
         productCount: counts.get(key) ?? 0,
         documentId: doc ? String(doc.id) : null,
         title: doc?.title ?? null,
@@ -85,7 +101,11 @@ export class UsageGuideService {
     input: { title: string; content: string },
     actorUserId: number,
   ): Promise<KbDocument> {
-    if (!USAGE_TYPES.some((t) => t.key === typeKey)) {
+    const known = await this.types.list(tenantId);
+    if (!known.some((t) => t.key === typeKey)) {
+      // A guide may only be written for a type this tenant actually has —
+      // otherwise a stale console tab could file one under another shop's
+      // vocabulary, where nothing would ever cite it.
       throw new BusinessException(ERROR_CODE.VALIDATION_FAILED, HttpStatus.BAD_REQUEST);
     }
     const externalKey = usageGuideKey(typeKey);

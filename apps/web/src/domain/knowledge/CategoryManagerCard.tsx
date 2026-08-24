@@ -1,0 +1,276 @@
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { Card } from '@/components/Card';
+import { Button } from '@/components/Button';
+import { Badge } from '@/components/Badge';
+import { Modal } from '@/components/Modal';
+import { FormRow, Input, Select } from '@/components/Field';
+import { Lock } from 'lucide-react';
+import {
+  useCategoryRows,
+  useCreateCategory,
+  useMergeCategories,
+  useRemoveCategory,
+  useRenameCategory,
+  useSetCategoryHidden,
+} from './knowledge.hooks';
+import type { KbCategoryRow } from './knowledge.service';
+
+/**
+ * Category management (PLN-260824 B축).
+ *
+ * Categories were always free text, so a tenant could already create them; what
+ * was missing was every way to fix one afterwards. The list also carried
+ * another shop's policy tags as suggestions — of the nineteen hardcoded ones,
+ * one tenant used eighteen and another used one.
+ *
+ * Catalogue-derived rows are shown but locked. Product sync compares a
+ * document's stored category to decide the document is unchanged, so a rename
+ * there is undone at the next sync; refusing the edit is more honest than
+ * explaining the bounce-back afterwards (D8).
+ */
+export function CategoryManagerCard() {
+  const { t } = useTranslation('knowledge');
+  const { t: tc } = useTranslation('common');
+  const rows = useCategoryRows();
+  const createCategory = useCreateCategory();
+  const renameCategory = useRenameCategory();
+  const mergeCategories = useMergeCategories();
+  const setHidden = useSetCategoryHidden();
+  const removeCategory = useRemoveCategory();
+
+  const [adding, setAdding] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [renaming, setRenaming] = useState<KbCategoryRow | null>(null);
+  const [renameTo, setRenameTo] = useState('');
+  const [merging, setMerging] = useState(false);
+  const [mergeFrom, setMergeFrom] = useState<string[]>([]);
+  const [mergeInto, setMergeInto] = useState('');
+
+  const all = rows.data ?? [];
+  const owned = all.filter((c) => c.origin !== 'catalog');
+  const derived = all.filter((c) => c.origin === 'catalog');
+  // A row id like `unregistered:faq` describes a string documents carry that no
+  // row owns yet — it can be read but not acted on until it is registered.
+  const editable = owned.filter((c) => !c.id.startsWith('unregistered:'));
+
+  const row = (c: KbCategoryRow, locked: boolean) => (
+    <li key={c.id} className="flex items-center gap-2 border-b border-gray-100 py-2 last:border-0">
+      <span className="min-w-0 flex-1 truncate">
+        {locked ? <Lock className="mr-1 inline h-3 w-3 text-gray-400" /> : null}
+        <span className={c.hidden ? 'text-gray-400 line-through' : ''}>{c.label ?? c.name}</span>
+        {c.label ? <span className="ml-1 text-xs text-gray-400">({c.name})</span> : null}
+      </span>
+      <Badge tone={c.documentCount ? 'gray' : 'warning'}>
+        {t('categoryDocs', { count: c.documentCount })}
+      </Badge>
+      {!locked && !c.id.startsWith('unregistered:') ? (
+        <>
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => {
+              setRenaming(c);
+              setRenameTo(c.name);
+            }}
+          >
+            {t('categoryRename')}
+          </Button>
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => setHidden.mutate({ id: c.id, hidden: !c.hidden })}
+          >
+            {c.hidden ? t('categoryShow') : t('categoryHide')}
+          </Button>
+          <Button
+            size="sm"
+            variant="secondary"
+            disabled={c.documentCount > 0 || removeCategory.isPending}
+            title={c.documentCount > 0 ? t('categoryDeleteBlocked') : undefined}
+            onClick={() => removeCategory.mutate(c.id)}
+          >
+            {tc('delete')}
+          </Button>
+        </>
+      ) : null}
+    </li>
+  );
+
+  return (
+    <Card
+      title={t('categories')}
+      action={
+        <div className="flex gap-2">
+          <Button size="sm" variant="secondary" onClick={() => setMerging(true)}>
+            {t('categoryMerge')}
+          </Button>
+          <Button size="sm" onClick={() => setAdding(true)}>
+            {t('categoryAdd')}
+          </Button>
+        </div>
+      }
+    >
+      {rows.isLoading ? <p className="text-sm text-gray-500">{tc('loading')}</p> : null}
+      {rows.error ? (
+        <p className="text-sm text-red-600">{(rows.error as Error).message}</p>
+      ) : null}
+
+      {owned.length ? (
+        <>
+          <h4 className="mb-1 text-xs font-semibold uppercase text-gray-500">
+            {t('categoryMine')}
+          </h4>
+          <ul className="mb-4 text-sm">{owned.map((c) => row(c, false))}</ul>
+        </>
+      ) : null}
+
+      {derived.length ? (
+        <>
+          <h4 className="mb-1 text-xs font-semibold uppercase text-gray-500">
+            {t('categoryFromCatalog')}
+          </h4>
+          <ul className="text-sm">{derived.map((c) => row(c, true))}</ul>
+          <p className="mt-2 text-xs text-gray-500">{t('categoryFromCatalogHint')}</p>
+        </>
+      ) : null}
+
+      {!rows.isLoading && !all.length ? (
+        <p className="text-sm text-gray-500">{t('categoryEmpty')}</p>
+      ) : null}
+
+      <Modal
+        open={adding}
+        onClose={() => setAdding(false)}
+        title={t('categoryAdd')}
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setAdding(false)}>
+              {tc('cancel')}
+            </Button>
+            <Button
+              disabled={!newName.trim() || createCategory.isPending}
+              onClick={() =>
+                createCategory.mutate(
+                  { name: newName.trim() },
+                  {
+                    onSuccess: () => {
+                      setNewName('');
+                      setAdding(false);
+                    },
+                  },
+                )
+              }
+            >
+              {tc('save')}
+            </Button>
+          </>
+        }
+      >
+        <FormRow label={t('categoryName')}>
+          <Input value={newName} onChange={(e) => setNewName(e.target.value)} maxLength={64} />
+        </FormRow>
+      </Modal>
+
+      <Modal
+        open={!!renaming}
+        onClose={() => setRenaming(null)}
+        title={t('categoryRename')}
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setRenaming(null)}>
+              {tc('cancel')}
+            </Button>
+            <Button
+              disabled={!renameTo.trim() || renameCategory.isPending}
+              onClick={() =>
+                renaming &&
+                renameCategory.mutate(
+                  { id: renaming.id, name: renameTo.trim() },
+                  { onSuccess: () => setRenaming(null) },
+                )
+              }
+            >
+              {tc('save')}
+            </Button>
+          </>
+        }
+      >
+        <FormRow label={t('categoryName')}>
+          <Input value={renameTo} onChange={(e) => setRenameTo(e.target.value)} maxLength={64} />
+        </FormRow>
+        {/* Say how many documents move: the rename is not just a label edit. */}
+        <p className="text-xs text-gray-500">
+          {t('categoryRenameHint', { count: renaming?.documentCount ?? 0 })}
+        </p>
+      </Modal>
+
+      <Modal
+        open={merging}
+        onClose={() => setMerging(false)}
+        title={t('categoryMerge')}
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setMerging(false)}>
+              {tc('cancel')}
+            </Button>
+            <Button
+              disabled={!mergeFrom.length || !mergeInto || mergeCategories.isPending}
+              onClick={() =>
+                mergeCategories.mutate(
+                  { fromIds: mergeFrom, intoId: mergeInto },
+                  {
+                    onSuccess: () => {
+                      setMergeFrom([]);
+                      setMergeInto('');
+                      setMerging(false);
+                    },
+                  },
+                )
+              }
+            >
+              {t('categoryMerge')}
+            </Button>
+          </>
+        }
+      >
+        <FormRow label={t('categoryMergeFrom')}>
+          <ul className="max-h-52 overflow-y-auto text-sm">
+            {editable.map((c) => (
+              <li key={c.id} className="py-1">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={mergeFrom.includes(c.id)}
+                    onChange={(e) =>
+                      setMergeFrom((prev) =>
+                        e.target.checked ? [...prev, c.id] : prev.filter((id) => id !== c.id),
+                      )
+                    }
+                  />
+                  <span>{c.label ?? c.name}</span>
+                  <span className="text-xs text-gray-500">
+                    {t('categoryDocs', { count: c.documentCount })}
+                  </span>
+                </label>
+              </li>
+            ))}
+          </ul>
+        </FormRow>
+        <FormRow label={t('categoryMergeInto')}>
+          <Select value={mergeInto} onChange={(e) => setMergeInto(e.target.value)}>
+            <option value="">—</option>
+            {editable
+              .filter((c) => !mergeFrom.includes(c.id))
+              .map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.label ?? c.name}
+                </option>
+              ))}
+          </Select>
+        </FormRow>
+        <p className="text-xs text-gray-500">{t('categoryMergeHint')}</p>
+      </Modal>
+    </Card>
+  );
+}

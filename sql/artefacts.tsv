@@ -69,6 +69,8 @@ migration_kb_provenance.sql	column	kb_documents	review_interval_days
 migration_kb_provenance.sql	column	kb_documents	reviewed_at
 migration_kb_provenance.sql	column	kb_documents	reviewed_by
 migration_kb_provenance.sql	column	kb_documents	superseded_by
+migration_knowledge_taxonomy.sql	table	usage_types	-
+migration_knowledge_taxonomy.sql	table	kb_categories	-
 migration_menu_access.sql	table	tenant_menus	-
 migration_menu_access.sql	table	tenant_role_menus	-
 migration_menu_access.sql	table	tenant_user_menus	-

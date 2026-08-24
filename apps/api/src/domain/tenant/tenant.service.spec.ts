@@ -39,6 +39,8 @@ describe('TenantService.updatePrivacyNotice', () => {
       { count: jest.fn(async () => 1), save: jest.fn(), create: jest.fn() } as never,
       // JobLabel repo — count>0 so any seedDefaultJobLabels call no-ops.
       { count: jest.fn(async () => 1), save: jest.fn(), create: jest.fn() } as never,
+      // UsageType repo — same, for seedDefaultUsageTypes.
+      { count: jest.fn(async () => 1), save: jest.fn(), create: jest.fn() } as never,
       {} as IntegrationService,
       { write: auditWrite } as unknown as AuditService,
     );

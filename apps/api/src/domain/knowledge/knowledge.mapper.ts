@@ -1,4 +1,7 @@
 import { KnowledgeSource } from './entity/knowledge-source.entity';
+import { UsageType } from './entity/usage-type.entity';
+import { KbCategory } from './entity/kb-category.entity';
+import { parseKeywords } from './usage-guide.types';
 import { KbDocument } from './entity/kb-document.entity';
 import { KbBoardPost } from './entity/kb-board-post.entity';
 import { isStale } from './kb-conflict.service';
@@ -131,5 +134,36 @@ export class KnowledgeMapper {
 
   static toRevisionList(rows: KbDocumentRevision[]) {
     return rows.map((r) => this.toRevision(r));
+  }
+
+  /** usage_types row → console shape (PLN-260824 A축). */
+  static toUsageType(t: UsageType) {
+    return {
+      id: String(t.id),
+      key: t.key,
+      label: t.label,
+      // Split back into lines: the console edits these as a list, and the
+      // stored newline form is a storage detail.
+      keywords: parseKeywords(t.keywords),
+      sortOrder: t.sortOrder,
+      active: t.active === 1,
+      updatedAt: t.updatedAt,
+    };
+  }
+
+  static toUsageTypeList(rows: UsageType[]) {
+    return rows.map((t) => this.toUsageType(t));
+  }
+
+  /** kb_categories row → console shape (PLN-260824 B축). */
+  static toCategory(c: KbCategory) {
+    return {
+      id: String(c.id),
+      name: c.name,
+      label: c.label,
+      origin: c.origin,
+      sortOrder: c.sortOrder,
+      hidden: c.hidden === 1,
+    };
   }
 }

@@ -19,6 +19,8 @@ const NOTIFICATION_CATEGORY_KEYS: string[] = Object.values(NOTIFICATION_CATEGORY
 import { IntegrationCredential } from './entity/integration-credential.entity';
 import { User } from '../user/entity/user.entity';
 import { JobLabel } from '../user/entity/job-label.entity';
+import { UsageType } from '../knowledge/entity/usage-type.entity';
+import { DEFAULT_USAGE_TYPES } from '../knowledge/usage-guide.types';
 import { IntegrationStatusEntity } from '../integration/entity/integration-status.entity';
 import { ContentFilterRule } from '../moderation/entity/content-filter-rule.entity';
 import { DEFAULT_MODERATION_RULES } from '../moderation/moderation.defaults';
@@ -73,6 +75,10 @@ export class TenantService {
     private readonly cfrRepo: Repository<ContentFilterRule>,
     @InjectRepository(JobLabel)
     private readonly jobLabelRepo: Repository<JobLabel>,
+    // Repository only — seeding a starter taxonomy needs no KnowledgeModule
+    // import, and importing it here would close a cycle.
+    @InjectRepository(UsageType)
+    private readonly usageTypeRepo: Repository<UsageType>,
     private readonly integrationService: IntegrationService,
     private readonly audit: AuditService,
     private readonly widgetLogo: WidgetLogoService,
@@ -164,6 +170,7 @@ export class TenantService {
     const saved = await this.tenantRepo.save(tenant);
     await this.seedDefaultModeration(saved.id);
     await this.seedDefaultJobLabels(saved.id);
+    await this.seedDefaultUsageTypes(saved.id);
     return saved;
   }
 
@@ -172,6 +179,41 @@ export class TenantService {
    * user-edit label picker isn't empty on a fresh tenant. Idempotent — skips a tenant
    * that already has any (never clobbers renamed/deleted labels).
    */
+  /**
+   * Give a new tenant a neutral set of usage-guide types (PLN-260824 D4).
+   *
+   * What made this necessary: the previous default was ten K-beauty types
+   * compiled into the code, so an apparel shop opened the screen to
+   * "Press-on nails — 0 products" ten times over and had nowhere to put
+   * laundry care. Measured on staging, that list matched 65% of one catalogue
+   * and 0% of the other two.
+   *
+   * The replacements carry no keywords on purpose. A type that matches nothing
+   * reads "0 products", which is the prompt to write terms that fit this
+   * catalogue; inventing terms for a catalogue nobody has seen would produce
+   * confident nonsense instead.
+   *
+   * Idempotent, like the other seeds — only runs when the tenant has none.
+   */
+  private async seedDefaultUsageTypes(tenantId: number): Promise<void> {
+    const existing = await this.usageTypeRepo.count({ where: { tenantId } });
+    if (existing > 0) return;
+    let order = 10;
+    const rows = DEFAULT_USAGE_TYPES.map((t) => {
+      const row = this.usageTypeRepo.create({
+        tenantId,
+        key: t.key,
+        label: t.label,
+        keywords: null,
+        sortOrder: order,
+        active: 1,
+      });
+      order += 10;
+      return row;
+    });
+    await this.usageTypeRepo.save(rows);
+  }
+
   private async seedDefaultJobLabels(tenantId: number): Promise<void> {
     const existing = await this.jobLabelRepo.count({ where: { tenantId } });
     if (existing > 0) return;
@@ -222,6 +264,7 @@ export class TenantService {
     );
     await this.seedDefaultModeration(saved.id);
     await this.seedDefaultJobLabels(saved.id);
+    await this.seedDefaultUsageTypes(saved.id);
     return saved;
   }
 

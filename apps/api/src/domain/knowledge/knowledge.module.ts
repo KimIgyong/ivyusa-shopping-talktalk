@@ -22,6 +22,10 @@ import { GdriveAdapter } from './adapters/gdrive.adapter';
 import { GdriveClient } from './gdrive.client';
 import { GdriveCredentialService } from './gdrive-credential.service';
 import { NotionAdapter } from './adapters/notion.adapter';
+import { UsageType } from './entity/usage-type.entity';
+import { KbCategory } from './entity/kb-category.entity';
+import { UsageTypeService } from './usage-type.service';
+import { KbCategoryService } from './kb-category.service';
 import { NotionClient } from './notion.client';
 import { NotionCredentialService } from './notion-credential.service';
 import { IntegrationCredential } from '../tenant/entity/integration-credential.entity';
@@ -45,6 +49,8 @@ import { ModerationModule } from '../moderation/moderation.module';
       KbConflict,
       KbDocumentRevision,
       KbAnswerProposal,
+      UsageType,
+      KbCategory,
       // Repository only — the CSV import's optional Price/Image bridge writes
       // into the display catalog (PLN-260807 F1). No ProductModule import.
       ProductCache,
@@ -79,6 +85,8 @@ import { ModerationModule } from '../moderation/moderation.module';
     GdriveClient,
     GdriveCredentialService,
     NotionAdapter,
+    UsageTypeService,
+    KbCategoryService,
     NotionClient,
     NotionCredentialService,
   ],
