@@ -339,7 +339,7 @@
     "aiAgentError": "无法更换AI客服。",
     "assignedTo": "负责人",
     "assign": "指定客服",
-    "assignTitle": "指定人工客服",
+    "assignTitle": "指派此会话",
     "assignTo": "客服",
     "assignPlaceholder": "请选择客服…",
     "assigned": "会话已指派。",
@@ -349,6 +349,9 @@
     "issueType": "工单类型",
     "fileIssueHint": "登记不会通知客户。",
     "issueFiled": "已登记为工单 #{{no}}。",
-    "issueError": "无法登记工单。"
+    "issueError": "无法登记工单。",
+    "assignButton": "指派",
+    "assignTypeAi": "AI客服",
+    "assignTypeAgent": "人工客服"
   }
 }

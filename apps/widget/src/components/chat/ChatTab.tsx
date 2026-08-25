@@ -384,11 +384,15 @@ export function ChatTab() {
           }}
         />
 
-        <ScenarioMenu
-          buttons={scenarioButtons}
-          onScenario={handleScenario}
-          onSubAction={handleSubAction}
-        />
+        {/* 0 buttons = a real answer (all scoped away / disabled, REQ-260825
+            R1) — render nothing rather than an empty grid box. */}
+        {scenarioButtons.length > 0 && (
+          <ScenarioMenu
+            buttons={scenarioButtons}
+            onScenario={handleScenario}
+            onSubAction={handleSubAction}
+          />
+        )}
 
         {messages.map((m, i) => (
           <div key={m.id} className="space-y-2">

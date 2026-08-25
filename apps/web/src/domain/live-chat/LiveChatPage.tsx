@@ -152,6 +152,9 @@ export function LiveChatPage() {
 
   // Detail-header controls (REQ-260825 R8).
   const [assignOpen, setAssignOpen] = useState(false);
+  // Unified assign modal (REQ-260825 R2): AI agent for everyone, human agent
+  // only for manager+ (the server enforces CONVERSATION_ASSIGN anyway).
+  const [assignType, setAssignType] = useState<'ai' | 'agent'>('ai');
   const [assignTarget, setAssignTarget] = useState('');
   const [issueOpen, setIssueOpen] = useState(false);
   const [issueType, setIssueType] = useState('other');
@@ -358,18 +361,19 @@ export function LiveChatPage() {
               </button>
             )}
           </div>
-          <div className="flex gap-1 border-b border-gray-100 px-2 pt-2">
-            {(['all', 'queue', 'ended', 'groups'] as const).map((key) => (
+          {/* Two filter rows (REQ-260825 R4/R5): status tabs get their own
+              line so they can never be squeezed by the selects again. */}
+          <div className="flex gap-1 border-b border-gray-100 px-2 pt-2 pb-2">
+            {(['all', 'queue', 'ended'] as const).map((key) => (
               <button
                 key={key}
                 type="button"
                 onClick={() => {
                   setScope(key);
-                  if (key === 'groups') exitSelectMode();
-                  else setSelectedGroup(null);
+                  setSelectedGroup(null);
                 }}
                 className={cn(
-                  'rounded-full border px-2.5 py-1 text-xs',
+                  'shrink-0 rounded-full border px-2.5 py-1 text-xs',
                   scope === key
                     ? 'border-primary-400 bg-primary-500/10 text-primary-700'
                     : 'border-gray-200 text-gray-500 hover:bg-gray-50',
@@ -378,6 +382,23 @@ export function LiveChatPage() {
                 {t(`scope.${key}`)}
               </button>
             ))}
+          </div>
+          <div className="flex flex-wrap items-center gap-1 border-b border-gray-100 px-2 py-2">
+            <button
+              type="button"
+              onClick={() => {
+                setScope('groups');
+                exitSelectMode();
+              }}
+              className={cn(
+                'shrink-0 rounded-full border px-2.5 py-1 text-xs',
+                scope === 'groups'
+                  ? 'border-primary-400 bg-primary-500/10 text-primary-700'
+                  : 'border-gray-200 text-gray-500 hover:bg-gray-50',
+              )}
+            >
+              {t('scope.groups')}
+            </button>
             <select
               value={channel}
               onChange={(e) => setChannel(e.target.value)}
@@ -610,8 +631,9 @@ export function LiveChatPage() {
           )}
           {!selectedGroup && selected && (
             <>
-              <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
-                <div className="flex min-w-0 items-center gap-2">
+              {/* Two header rows (REQ-260825 R3): info on top, actions below. */}
+              <div className="space-y-2 border-b border-gray-100 px-4 py-3">
+                <div className="flex min-w-0 flex-wrap items-center gap-2">
                   {/* Same editor as the list row, so the name can be set from
                       wherever the agent happens to be (PLN-260812 D-2). */}
                   <SessionAlias
@@ -635,45 +657,28 @@ export function LiveChatPage() {
                     agentOwns={convo?.status === 'agent'}
                     awaitingApproval={!!convo?.pendingDraft}
                   />
-                  {/* AI-agent re-pin (REQ-260825 R8-①): applies from the next turn. */}
-                  {(aiRoster?.length ?? 0) > 0 && (
-                    <select
-                      value={convo?.aiAgentId ?? ''}
-                      onChange={(e) => {
-                        if (e.target.value) setAiAgent.mutate(Number(e.target.value));
-                      }}
-                      disabled={setAiAgent.isPending}
-                      aria-label={t('agentControls.aiAgent')}
-                      title={t('agentControls.aiAgentHint')}
-                      className="shrink-0 rounded-full border border-gray-200 bg-white px-2 py-1 text-xs text-gray-600 outline-none focus:border-primary-400"
-                    >
-                      {(aiRoster ?? []).map((a) => (
-                        <option key={a.id} value={String(a.id)}>
-                          AI: {a.displayName || a.name}
-                        </option>
-                      ))}
-                    </select>
+                  {/* Current owners as badges; changing them lives in [지정]. */}
+                  {convo?.aiAgentName && (
+                    <Badge tone="info">AI: {convo.aiAgentName}</Badge>
                   )}
                   {convo?.assignedTo && (
-                    <span className="shrink-0 text-xs text-gray-500" title={t('agentControls.assignedTo')}>
+                    <Badge tone="primary">
                       {t('agentControls.assignedTo')}: {convo.assignedTo}
-                    </span>
+                    </Badge>
                   )}
                 </div>
-                <div className="flex gap-2">
-                  {/* Manager+ only — the server enforces CONVERSATION_ASSIGN. */}
-                  {canAssign && (
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      onClick={() => {
-                        setAssignTarget('');
-                        setAssignOpen(true);
-                      }}
-                    >
-                      <User className="h-4 w-4" /> {t('agentControls.assign')}
-                    </Button>
-                  )}
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => {
+                      setAssignType('ai');
+                      setAssignTarget(convo?.aiAgentId ?? '');
+                      setAssignOpen(true);
+                    }}
+                  >
+                    <User className="h-4 w-4" /> {t('agentControls.assignButton')}
+                  </Button>
                   <Button
                     size="sm"
                     variant="secondary"
@@ -1165,7 +1170,8 @@ export function LiveChatPage() {
         onClose={() => setCapture(null)}
       />
 
-      {/* Assign to a human agent (REQ-260825 R8-②, manager+). */}
+      {/* Unified assign (REQ-260825 R2): AI agent for every handler, human
+          agent for manager+ — one entry point instead of two scattered ones. */}
       <Modal
         open={assignOpen}
         onClose={() => setAssignOpen(false)}
@@ -1178,32 +1184,86 @@ export function LiveChatPage() {
             </Button>
             <Button
               size="sm"
-              disabled={!assignTarget || assignConv.isPending}
-              onClick={() =>
-                assignConv.mutate(Number(assignTarget), { onSuccess: () => setAssignOpen(false) })
-              }
+              disabled={!assignTarget || assignConv.isPending || setAiAgent.isPending}
+              onClick={() => {
+                if (assignType === 'ai') {
+                  setAiAgent.mutate(Number(assignTarget), {
+                    onSuccess: () => setAssignOpen(false),
+                  });
+                } else {
+                  assignConv.mutate(Number(assignTarget), {
+                    onSuccess: () => setAssignOpen(false),
+                  });
+                }
+              }}
             >
-              {t('agentControls.assign')}
+              {t('agentControls.assignButton')}
             </Button>
           </>
         }
       >
-        <FormRow label={t('agentControls.assignTo')}>
-          <select
-            value={assignTarget}
-            onChange={(e) => setAssignTarget(e.target.value)}
-            className="w-full rounded-lg border border-gray-300 bg-white px-2 py-2 text-sm outline-none focus:border-primary-500"
-          >
-            <option value="">{t('agentControls.assignPlaceholder')}</option>
-            {(tenantUsers ?? [])
-              .filter((u) => u.status === 'active')
-              .map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.name || u.email}
-                </option>
-              ))}
-          </select>
-        </FormRow>
+        <div className="space-y-3">
+          <div className="flex gap-4">
+            <label className="flex items-center gap-2 text-sm text-gray-700">
+              <input
+                type="radio"
+                checked={assignType === 'ai'}
+                onChange={() => {
+                  setAssignType('ai');
+                  setAssignTarget(convo?.aiAgentId ?? '');
+                }}
+              />
+              {t('agentControls.assignTypeAi')}
+            </label>
+            {canAssign && (
+              <label className="flex items-center gap-2 text-sm text-gray-700">
+                <input
+                  type="radio"
+                  checked={assignType === 'agent'}
+                  onChange={() => {
+                    setAssignType('agent');
+                    setAssignTarget('');
+                  }}
+                />
+                {t('agentControls.assignTypeAgent')}
+              </label>
+            )}
+          </div>
+          {assignType === 'ai' ? (
+            <>
+              <select
+                value={assignTarget}
+                onChange={(e) => setAssignTarget(e.target.value)}
+                className="w-full rounded-lg border border-gray-300 bg-white px-2 py-2 text-sm outline-none focus:border-primary-500"
+                aria-label={t('agentControls.aiAgent')}
+              >
+                <option value="">{t('agentControls.assignPlaceholder')}</option>
+                {(aiRoster ?? []).map((a) => (
+                  <option key={a.id} value={String(a.id)}>
+                    {a.displayName || a.name}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-gray-400">{t('agentControls.aiAgentHint')}</p>
+            </>
+          ) : (
+            <select
+              value={assignTarget}
+              onChange={(e) => setAssignTarget(e.target.value)}
+              className="w-full rounded-lg border border-gray-300 bg-white px-2 py-2 text-sm outline-none focus:border-primary-500"
+              aria-label={t('agentControls.assignTo')}
+            >
+              <option value="">{t('agentControls.assignPlaceholder')}</option>
+              {(tenantUsers ?? [])
+                .filter((u) => u.status === 'active')
+                .map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.name || u.email}
+                  </option>
+                ))}
+            </select>
+          )}
+        </div>
       </Modal>
 
       {/* File as an issue (REQ-260825 R8-③) — silent toward the customer. */}

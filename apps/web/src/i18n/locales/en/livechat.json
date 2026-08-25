@@ -339,7 +339,7 @@
     "aiAgentError": "Could not change the AI agent.",
     "assignedTo": "Agent",
     "assign": "Assign agent",
-    "assignTitle": "Assign to an agent",
+    "assignTitle": "Assign this conversation",
     "assignTo": "Agent",
     "assignPlaceholder": "Choose an agent…",
     "assigned": "Conversation assigned.",
@@ -349,6 +349,9 @@
     "issueType": "Issue type",
     "fileIssueHint": "Filing does not notify the customer.",
     "issueFiled": "Filed as issue #{{no}}.",
-    "issueError": "Could not file the issue."
+    "issueError": "Could not file the issue.",
+    "assignButton": "Assign",
+    "assignTypeAi": "AI agent",
+    "assignTypeAgent": "Human agent"
   }
 }
