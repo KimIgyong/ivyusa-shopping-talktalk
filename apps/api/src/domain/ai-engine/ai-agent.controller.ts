@@ -46,8 +46,10 @@ export class AiAgentController {
   ) {
     const row = await this.agents.update(this.tenantId(user), id, {
       name: body.name,
+      displayName: body.display_name,
       persona: body.persona,
       rules: body.rules,
+      greeting: body.greeting,
       active: body.active,
     });
     return AiAgentMapper.toResponse(row);

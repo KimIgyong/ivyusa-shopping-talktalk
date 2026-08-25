@@ -8,6 +8,12 @@ export interface ScenarioButton {
   label: string;
   action: string; // delivery_status|cancel_refund|product_help|contact_support|affiliate|my_orders|message
   enabled: boolean;
+  /**
+   * AI agents this button shows for (REQ-260825 R5). Empty/absent = every
+   * agent (the pre-R5 behaviour). Visibility only — the button's behaviour
+   * never differs per agent.
+   */
+  agentIds?: number[];
 }
 
 /** Where the widget should take the shopper after a scripted reply (FR-003). */

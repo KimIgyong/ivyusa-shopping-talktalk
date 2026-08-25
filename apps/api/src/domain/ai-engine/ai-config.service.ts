@@ -249,14 +249,33 @@ export class AiConfigService {
   }
 
 
-  /** Widget (public) — enabled scenario buttons for the session's tenant. */
+  /**
+   * Widget (public) — enabled scenario buttons for the session's tenant,
+   * narrowed to the session's AI agent (REQ-260825 R5): a button with an
+   * `agentIds` list shows only for those agents; an empty list means every
+   * agent. A NULL pin resolves to the tenant's default agent for matching.
+   */
   async getScenarioForSession(sessionToken: string): Promise<ScenarioConfigResponse> {
     const session = await this.sessionRepo.findOne({ where: { sessionToken } });
     if (!session) throw new BusinessException(ERROR_CODE.SESSION_NOT_FOUND, HttpStatus.NOT_FOUND);
     const tenantId = session.tenantId ?? (await this.firstTenantId());
     const row = tenantId ? await this.configRepo.findOne({ where: { tenantId } }) : null;
     const buttons = row?.scenarioButtons ?? DEFAULT_SCENARIO_BUTTONS;
-    return { scenarioButtons: buttons.filter((b) => b.enabled) };
+    const scoped = buttons.filter((b) => b.enabled);
+    const hasScoping = scoped.some((b) => (b.agentIds ?? []).length > 0);
+    if (!hasScoping) return { scenarioButtons: scoped };
+    let effectiveAgentId = session.aiAgentId != null ? Number(session.aiAgentId) : null;
+    if (effectiveAgentId == null && tenantId) {
+      const def = await this.agentRepo.findOne({ where: { tenantId, isDefault: 1 } });
+      effectiveAgentId = def ? Number(def.id) : null;
+    }
+    return {
+      scenarioButtons: scoped.filter((b) => {
+        const ids = b.agentIds ?? [];
+        if (!ids.length) return true;
+        return effectiveAgentId != null && ids.map(Number).includes(effectiveAgentId);
+      }),
+    };
   }
 
   private async firstTenantId(): Promise<number | null> {
@@ -311,11 +330,21 @@ export class AiConfigService {
   private sanitize(buttons: ScenarioButton[]): ScenarioButton[] {
     return buttons
       .filter((b) => b && typeof b.label === 'string' && b.label.trim().length > 0)
-      .map((b, i) => ({
-        id: b.id?.trim() || `btn_${i}`,
-        label: b.label.trim().slice(0, 60),
-        action: b.action?.trim() || 'message',
-        enabled: b.enabled !== false,
-      }));
+      .map((b, i) => {
+        // Agent scoping (REQ-260825 R5): numeric ids only, deduped; an empty
+        // list is stored as ABSENT so unscoped buttons stay byte-identical to
+        // their pre-R5 shape. (This rebuild is exactly why the field must be
+        // handled here — anything not listed is silently dropped on save.)
+        const agentIds = [
+          ...new Set((b.agentIds ?? []).map(Number).filter((n) => Number.isFinite(n) && n > 0)),
+        ];
+        return {
+          id: b.id?.trim() || `btn_${i}`,
+          label: b.label.trim().slice(0, 60),
+          action: b.action?.trim() || 'message',
+          enabled: b.enabled !== false,
+          ...(agentIds.length ? { agentIds } : {}),
+        };
+      });
   }
 }

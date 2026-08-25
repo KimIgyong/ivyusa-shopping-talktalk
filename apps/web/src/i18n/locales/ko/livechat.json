@@ -329,5 +329,26 @@
     "confirmDissolve": "해제할까요?",
     "dissolveHint": "해제해도 그룹만 사라질 뿐 대화와 메시지는 그대로 남습니다.",
     "save": "저장"
+  },
+  "agentControls": {
+    "filterLabel": "AI 에이전트 필터",
+    "filterAll": "전체 에이전트",
+    "aiAgent": "AI 에이전트",
+    "aiAgentHint": "다음 응답부터 적용됩니다",
+    "aiAgentSaved": "AI 에이전트를 {{name}}(으)로 변경했습니다. 다음 응답부터 적용됩니다.",
+    "aiAgentError": "AI 에이전트를 변경하지 못했습니다.",
+    "assignedTo": "담당",
+    "assign": "상담원 지정",
+    "assignTitle": "상담원 지정",
+    "assignTo": "상담원",
+    "assignPlaceholder": "상담원을 선택하세요…",
+    "assigned": "대화를 지정했습니다.",
+    "assignError": "대화를 지정하지 못했습니다.",
+    "fileIssue": "이슈로 등록",
+    "fileIssueTitle": "이슈로 등록",
+    "issueType": "이슈 유형",
+    "fileIssueHint": "등록해도 고객에게 알리지 않습니다.",
+    "issueFiled": "이슈 #{{no}}(으)로 등록했습니다.",
+    "issueError": "이슈를 등록하지 못했습니다."
   }
 }

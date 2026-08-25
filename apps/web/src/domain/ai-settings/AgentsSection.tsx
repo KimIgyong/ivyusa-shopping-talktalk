@@ -9,6 +9,8 @@ import { FormRow, Input } from '@/components/Field';
 import { cn } from '@/lib/cn';
 import { toast } from '@/store/toast-store';
 import { useShopifySettings } from '../settings/settings.hooks';
+import { LanguageTabs } from './LanguageTabs';
+import type { ScenarioLang } from './ai-settings.service';
 import {
   useAiAgents,
   useCreateAiAgent,
@@ -137,6 +139,10 @@ function AgentModal({
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
   const [active, setActive] = useState(true);
+  // Widget-facing identity (REQ-260825 R3/R4): blank = tenant-level fallback.
+  const [displayName, setDisplayName] = useState('');
+  const [greeting, setGreeting] = useState<Record<string, string>>({});
+  const [greetLang, setGreetLang] = useState<ScenarioLang>('KO');
   // Seed once per open — key the modal content on the agent id via `open` effect-free reset.
   const [seededFor, setSeededFor] = useState<string | null>(null);
   const seedKey = agent ? String(agent.id) : 'new';
@@ -145,6 +151,8 @@ function AgentModal({
     setName(agent?.name ?? '');
     setCode(agent?.code ?? '');
     setActive(agent?.active ?? true);
+    setDisplayName(agent?.displayName ?? '');
+    setGreeting(agent?.greeting ?? {});
   }
   if (!open && seededFor !== null) setSeededFor(null);
 
@@ -153,7 +161,16 @@ function AgentModal({
 
   const save = () => {
     if (agent) {
-      update.mutate({ id: agent.id, name: name.trim(), active }, { onSuccess: onClose });
+      update.mutate(
+        {
+          id: agent.id,
+          name: name.trim(),
+          active,
+          display_name: displayName.trim(),
+          greeting,
+        },
+        { onSuccess: onClose },
+      );
     } else {
       create.mutate(
         { code: code.trim().toLowerCase(), name: name.trim() },
@@ -249,6 +266,36 @@ function AgentModal({
               <span className="text-xs text-gray-400">{t('agents.defaultAlwaysActive')}</span>
             )}
           </label>
+        )}
+        {agent && (
+          <>
+            {/* Widget identity (REQ-260825 R4): what the SHOPPER sees. */}
+            <FormRow label={t('agents.displayName')}>
+              <Input
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                placeholder={t('agents.displayNamePlaceholder')}
+                maxLength={100}
+              />
+            </FormRow>
+            <p className="-mt-3 text-xs text-gray-400">{t('agents.displayNameHint')}</p>
+            {/* Per-agent first message (REQ-260825 R3), per language. */}
+            <div className="space-y-2">
+              <span className="text-xs font-medium text-gray-500">{t('agents.greeting')}</span>
+              <LanguageTabs value={greetLang} onChange={setGreetLang} filled={greeting} />
+              <textarea
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-primary-500"
+                rows={3}
+                maxLength={500}
+                value={greeting[greetLang] ?? ''}
+                onChange={(e) =>
+                  setGreeting((prev) => ({ ...prev, [greetLang]: e.target.value }))
+                }
+                placeholder={t('agents.greetingPlaceholder')}
+              />
+              <p className="text-xs text-gray-400">{t('agents.greetingHint')}</p>
+            </div>
+          </>
         )}
         {(agent || code.trim()) && (
           <div className="space-y-1">

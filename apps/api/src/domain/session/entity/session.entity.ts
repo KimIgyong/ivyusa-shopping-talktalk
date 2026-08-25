@@ -4,6 +4,8 @@ import { bigintTransformer } from '../../../global/util/transformers';
 /** sessions — widget visitor sessions (FR-001). */
 @Entity('sessions')
 @Unique('uk_sessions_token', ['sessionToken'])
+// AI-agent list filter (REQ-260825 R7) — mirrors sql/260825-agent-console.sql.
+@Index('idx_sessions_tenant_agent', ['tenantId', 'aiAgentId'])
 export class Session {
   @PrimaryGeneratedColumn({ type: 'bigint' })
   id: number;

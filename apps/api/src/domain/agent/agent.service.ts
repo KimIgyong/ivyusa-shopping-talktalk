@@ -12,6 +12,7 @@ import {
 import type { LocalizedText } from '@ivy/types';
 import { Conversation } from '../chat/entity/conversation.entity';
 import { Message } from '../chat/entity/message.entity';
+import { AiAgent } from '../ai-engine/entity/ai-agent.entity';
 import { AnswerReuseService } from '../answer-reuse/answer-reuse.service';
 import { IssueService } from '../issue/issue.service';
 import { User } from '../user/entity/user.entity';
@@ -164,6 +165,9 @@ export class AgentService {
     private readonly draftRepo?: Repository<ReplyDraft>,
     /** Files the agent uploaded before sending (PLN-260814 S4). */
     private readonly attachments?: AttachmentService,
+    /** AI-agent names for the queue rows/filter (REQ-260825 R6/R7). */
+    @InjectRepository(AiAgent)
+    private readonly aiAgentRepo?: Repository<AiAgent>,
   ) {}
 
   /**
@@ -275,6 +279,7 @@ export class AgentService {
     q?: string,
     scope: 'all' | 'queue' | 'ended' = 'all',
     channel?: string,
+    aiAgentId?: number,
   ): Promise<{
     items: Array<{
       conversation: Conversation;
@@ -286,6 +291,9 @@ export class AgentService {
       autoReplyMode: string;
       /** That choice resolved against the channel default. */
       autoReplyEffective: boolean;
+      /** Effective AI agent of the session (NULL pin = tenant default). */
+      aiAgentId: number | null;
+      aiAgentName: string | null;
     }>;
     total: number;
   }> {
@@ -315,6 +323,19 @@ export class AgentService {
       } else {
         qb.andWhere('c.channel = :channel', { channel: channelFilter });
       }
+    }
+
+    // AI-agent filter (REQ-260825 R7). Filtering by the DEFAULT agent must also
+    // catch NULL pins — a session with no pin belongs to the default agent.
+    if (aiAgentId != null) {
+      const display = await this.aiAgentDisplay(tenantId);
+      const isDefaultFilter = display.defaultId != null && display.defaultId === Number(aiAgentId);
+      qb.andWhere(
+        isDefaultFilter
+          ? 'c.session_id IN (SELECT s.id FROM sessions s WHERE s.tenant_id = :tenantId AND (s.ai_agent_id = :aiAgentId OR s.ai_agent_id IS NULL))'
+          : 'c.session_id IN (SELECT s.id FROM sessions s WHERE s.tenant_id = :tenantId AND s.ai_agent_id = :aiAgentId)',
+        { aiAgentId: Number(aiAgentId) },
+      );
     }
 
     if (q?.trim()) {
@@ -349,8 +370,13 @@ export class AgentService {
     // One query for the whole page, same reason (PLN-260812).
     const stateBySession = await this.sessionStates(conversations.map((c) => c.sessionId));
     const channelDefaults = await this.channelDefaults(conversations.map((c) => c.id));
+    // One small lookup per page: id→label + the default (REQ-260825 R6).
+    const agentDisplay = await this.aiAgentDisplay(tenantId);
     const items = conversations.map((conversation) => {
       const state = stateBySession.get(String(conversation.sessionId));
+      const pinned = state?.aiAgentId ?? null;
+      const effectiveAgentId =
+        pinned != null && agentDisplay.byId.has(pinned) ? pinned : agentDisplay.defaultId;
       return {
         conversation,
         lastMessage: lastByConv.get(String(conversation.id)) ?? null,
@@ -361,6 +387,11 @@ export class AgentService {
           channelDefaults.get(String(conversation.id)) ?? null,
           state?.autoReplyMode,
         ),
+        aiAgentId: effectiveAgentId,
+        aiAgentName:
+          effectiveAgentId != null
+            ? agentDisplay.byId.get(effectiveAgentId) ?? agentDisplay.defaultLabel
+            : agentDisplay.defaultLabel,
       };
     });
     return { items, total };
@@ -471,32 +502,138 @@ export class AgentService {
   async sessionStateFor(
     conversationId: number,
     sessionId: number,
-  ): Promise<{ alias: string | null; autoReplyMode: string; autoReplyEffective: boolean }> {
+    tenantId?: number,
+  ): Promise<{
+    alias: string | null;
+    autoReplyMode: string;
+    autoReplyEffective: boolean;
+    aiAgentId: number | null;
+    aiAgentName: string | null;
+  }> {
     const state = (await this.sessionStates([sessionId])).get(String(sessionId));
     const mode = state?.autoReplyMode ?? AUTO_REPLY_MODE.INHERIT;
     const defaults = await this.channelDefaults([conversationId]);
+    // Same effective-agent resolution as the queue rows (REQ-260825 R8).
+    const display =
+      tenantId != null
+        ? await this.aiAgentDisplay(tenantId)
+        : { byId: new Map<number, string>(), defaultId: null, defaultLabel: null };
+    const pinned = state?.aiAgentId ?? null;
+    const effectiveAgentId =
+      pinned != null && display.byId.has(pinned) ? pinned : display.defaultId;
     return {
       alias: state?.alias ?? null,
       autoReplyMode: mode,
       autoReplyEffective: resolveAutoReply(defaults.get(String(conversationId)) ?? null, mode),
+      aiAgentId: effectiveAgentId,
+      aiAgentName:
+        effectiveAgentId != null
+          ? display.byId.get(effectiveAgentId) ?? display.defaultLabel
+          : display.defaultLabel,
     };
   }
 
-  /** session id → alias + auto-reply mode, for a whole page in one query. */
+  /** session id → alias + auto-reply mode (+ AI agent pin), one query per page. */
   private async sessionStates(
     sessionIds: number[],
-  ): Promise<Map<string, { alias: string | null; autoReplyMode: string }>> {
+  ): Promise<Map<string, { alias: string | null; autoReplyMode: string; aiAgentId: number | null }>> {
     if (sessionIds.length === 0) return new Map();
     const rows = await this.sessionRepo.find({
       where: { id: In(sessionIds) },
-      select: { id: true, alias: true, autoReplyMode: true },
+      select: { id: true, alias: true, autoReplyMode: true, aiAgentId: true },
     });
     return new Map(
       rows.map((s) => [
         String(s.id),
-        { alias: s.alias ?? null, autoReplyMode: s.autoReplyMode || AUTO_REPLY_MODE.INHERIT },
+        {
+          alias: s.alias ?? null,
+          autoReplyMode: s.autoReplyMode || AUTO_REPLY_MODE.INHERIT,
+          aiAgentId: s.aiAgentId != null ? Number(s.aiAgentId) : null,
+        },
       ]),
     );
+  }
+
+  /**
+   * Active AI agents, slim (REQ-260825 R7): the live-chat filter and the
+   * detail's agent picker are staff screens, and the full /ai-agents CRUD is
+   * manager-gated — this read is all a handler needs.
+   */
+  async listAiAgents(
+    tenantId: number,
+  ): Promise<Array<{ id: number; name: string; displayName: string | null; isDefault: boolean }>> {
+    if (!this.aiAgentRepo) return [];
+    const rows = await this.aiAgentRepo.find({
+      where: { tenantId, active: 1 },
+      order: { isDefault: 'DESC', id: 'ASC' },
+    });
+    return rows.map((a) => ({
+      id: Number(a.id),
+      name: a.name,
+      displayName: a.displayName ?? null,
+      isDefault: a.isDefault === 1,
+    }));
+  }
+
+  /**
+   * Display info for queue rows: id→label plus the tenant default (a NULL pin
+   * means the default agent; a deleted/inactive pin degrades to it as well —
+   * mirroring persona resolution).
+   */
+  private async aiAgentDisplay(tenantId: number): Promise<{
+    byId: Map<number, string>;
+    defaultId: number | null;
+    defaultLabel: string | null;
+  }> {
+    if (!this.aiAgentRepo) return { byId: new Map(), defaultId: null, defaultLabel: null };
+    const rows = await this.aiAgentRepo.find({ where: { tenantId } });
+    const byId = new Map(rows.map((a) => [Number(a.id), a.displayName?.trim() || a.name]));
+    const def = rows.find((a) => a.isDefault === 1);
+    return {
+      byId,
+      defaultId: def ? Number(def.id) : null,
+      defaultLabel: def ? def.displayName?.trim() || def.name : null,
+    };
+  }
+
+  /**
+   * Re-pin a session to another AI agent (REQ-260825 R8-①). Applies from the
+   * next customer turn — persona resolution reads sessions.ai_agent_id per
+   * turn, so only the token→session cache needs busting (the persona cache is
+   * keyed per agent already).
+   */
+  async setSessionAiAgent(
+    conversationId: number,
+    tenantId: number,
+    actorUserId: number,
+    aiAgentId: number,
+  ): Promise<{ sessionId: string; aiAgentId: number; aiAgentName: string }> {
+    const conversation = await this.requireConversation(conversationId, tenantId);
+    const agent = this.aiAgentRepo
+      ? await this.aiAgentRepo.findOne({ where: { id: aiAgentId, tenantId, active: 1 } })
+      : null;
+    if (!agent) {
+      this.logger.warn(`session ai-agent refused: tenant=${tenantId} agent=${aiAgentId}`);
+      throw new BusinessException(ERROR_CODE.AI_AGENT_NOT_FOUND, HttpStatus.NOT_FOUND);
+    }
+    await this.sessionRepo.update({ id: conversation.sessionId }, { aiAgentId: Number(agent.id) });
+    const session = await this.sessionRepo.findOne({
+      where: { id: conversation.sessionId },
+      select: { id: true, sessionToken: true },
+    });
+    if (session?.sessionToken) await this.redis.del(sessionCacheKey(session.sessionToken));
+    await this.auditAgentAction(
+      actorUserId,
+      tenantId,
+      'agent.session.ai_agent',
+      `session:${conversation.sessionId}`,
+      { conversationId: String(conversationId), aiAgentId: Number(agent.id) },
+    );
+    return {
+      sessionId: String(conversation.sessionId),
+      aiAgentId: Number(agent.id),
+      aiAgentName: agent.displayName?.trim() || agent.name,
+    };
   }
 
   /**
@@ -635,6 +772,76 @@ export class AgentService {
   // The auto-generated briefing moved to BriefingService (REQ-260824 R3):
   // generation is operator-requested and persisted, never a side effect of
   // opening a conversation.
+
+  /**
+   * Assign the conversation to a specific human agent (REQ-260825 R8-②) —
+   * the conversation-level counterpart of IssueService.assign. Rank gating is
+   * the controller's CONVERSATION_ASSIGN capability (manager+); staff keep the
+   * self-serve accept path only.
+   */
+  async assignConversation(
+    conversationId: number,
+    tenantId: number,
+    assignedBy: number,
+    targetUserId: number,
+  ): Promise<Conversation> {
+    const conversation = await this.requireConversation(conversationId, tenantId);
+    const target = await this.userRepo.findOne({ where: { id: targetUserId, tenantId } });
+    if (!target || target.status === 'suspended') {
+      this.logger.warn(`assign refused: user=${targetUserId} tenant=${tenantId} missing/suspended`);
+      throw new BusinessException(ERROR_CODE.USER_NOT_FOUND, HttpStatus.NOT_FOUND);
+    }
+    // Same hand-over dance as an issue transfer: the previous holder's active
+    // assignment is marked transferred, never deleted (it is the audit trail).
+    await this.assignmentRepo.update(
+      { tenantId, conversationId, status: 'active' },
+      { status: 'transferred', releasedAt: new Date() },
+    );
+    await this.assignmentRepo.save(
+      this.assignmentRepo.create({
+        tenantId,
+        conversationId,
+        agentId: targetUserId,
+        assignedBy,
+        type: 'manual',
+        status: 'active',
+      }),
+    );
+    conversation.agentId = targetUserId;
+    conversation.status = CONVERSATION_STATUS.AGENT;
+    await this.convRepo.save(conversation);
+    // Open issue (if any) follows the conversation's new owner — best-effort.
+    await this.issueService?.onAgentAccept(conversationId, tenantId, targetUserId);
+    await this.auditAgentAction(
+      assignedBy,
+      tenantId,
+      'agent.conversation_assigned',
+      `conversation:${conversationId}`,
+      { targetUserId },
+    );
+    return conversation;
+  }
+
+  /** File this conversation as an issue, on operator request (REQ-260825 R8-③). */
+  async fileIssue(
+    conversationId: number,
+    tenantId: number,
+    actorId: number,
+    type: string,
+  ): Promise<{ issueId: number; issueNo: number }> {
+    const conversation = await this.requireConversation(conversationId, tenantId);
+    if (!this.issueService) {
+      throw new BusinessException(ERROR_CODE.ISSUE_WORKFLOW_NOT_ENABLED, HttpStatus.CONFLICT);
+    }
+    const issue = await this.issueService.createManual(
+      tenantId,
+      conversationId,
+      Number(conversation.sessionId),
+      type,
+      actorId,
+    );
+    return { issueId: Number(issue.id), issueNo: issue.issueNo };
+  }
 
   /** Agent accepts/takes over a conversation. */
   async accept(conversationId: number, agentId: number, tenantId: number): Promise<Conversation> {

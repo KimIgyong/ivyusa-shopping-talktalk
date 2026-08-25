@@ -5,6 +5,8 @@ class ScenarioButtonDto {
   @IsString() label: string;
   @IsString() action: string;
   @IsBoolean() enabled: boolean;
+  /** AI agents this button shows for (REQ-260825 R5); empty/absent = all. */
+  @IsOptional() @IsArray() @IsInt({ each: true }) agentIds?: number[];
 }
 
 /** /ai-setting preview sandbox session (PLN-AiSetting-Preview W1). */

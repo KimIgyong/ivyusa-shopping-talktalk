@@ -422,10 +422,27 @@ export class SessionService {
     return (await this.privacyNotice(tenantId)).consentNoticeVersion;
   }
 
-  /** Privacy-notice info (URL + effective version) served with /session/ensure. */
-  async privacyNotice(tenantId: number | null): Promise<PrivacyNoticeInfo> {
+  /**
+   * Privacy-notice info (URL + effective version) served with /session/ensure.
+   * When the session is pinned to an AI agent (or the tenant has a default
+   * agent), that agent's display name / greeting override the tenant's widget
+   * copy (REQ-260825 R3/R4) — the widget itself stays agent-unaware.
+   */
+  async privacyNotice(
+    tenantId: number | null,
+    aiAgentId?: number | null,
+  ): Promise<PrivacyNoticeInfo> {
     const tenant =
       tenantId != null ? await this.tenantRepo.findOne({ where: { id: tenantId } }) : null;
+    // NULL pin means "the tenant's default agent", so its overrides apply too.
+    const agent =
+      tenantId != null && this.aiAgentRepo
+        ? aiAgentId != null
+          ? await this.aiAgentRepo.findOne({ where: { id: aiAgentId, tenantId } })
+          : await this.aiAgentRepo.findOne({ where: { tenantId, isDefault: 1 } })
+        : null;
+    const agentGreeting =
+      agent?.greeting && Object.keys(agent.greeting).length ? agent.greeting : null;
     return {
       privacyPolicyUrl: tenant?.privacyPolicyUrl ?? null,
       consentNoticeVersion: tenant?.consentNoticeVersion ?? CONSENT_NOTICE_VERSION,
@@ -445,10 +462,14 @@ export class SessionService {
       // palette, so "no theme" needs no payload and paints no variables.
       widgetTheme: normalizeWidgetTheme(tenant?.widgetTheme),
       widgetCopy: {
-        // Resolved here so the widget never needs the tenant entity: configured
-        // name ?? tenant name (kills the hardcoded-brand greeting for tenant 2).
-        displayName: tenant?.widgetCopy?.displayName?.trim() || tenant?.name || null,
-        firstVisit: tenant?.widgetCopy?.firstVisit ?? {},
+        // Resolved here so the widget never needs the tenant entity: agent
+        // display name ?? configured name ?? tenant name.
+        displayName:
+          agent?.displayName?.trim() ||
+          tenant?.widgetCopy?.displayName?.trim() ||
+          tenant?.name ||
+          null,
+        firstVisit: agentGreeting ?? tenant?.widgetCopy?.firstVisit ?? {},
         loginGreeting: tenant?.widgetCopy?.loginGreeting ?? {},
       },
     };

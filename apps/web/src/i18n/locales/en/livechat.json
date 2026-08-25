@@ -329,5 +329,26 @@
     "confirmDissolve": "Dissolve?",
     "dissolveHint": "Dissolving removes only the group. Conversations and messages stay.",
     "save": "Save"
+  },
+  "agentControls": {
+    "filterLabel": "AI agent filter",
+    "filterAll": "All agents",
+    "aiAgent": "AI agent",
+    "aiAgentHint": "Applies from the next reply",
+    "aiAgentSaved": "AI agent changed to {{name}}. Applies from the next reply.",
+    "aiAgentError": "Could not change the AI agent.",
+    "assignedTo": "Agent",
+    "assign": "Assign agent",
+    "assignTitle": "Assign to an agent",
+    "assignTo": "Agent",
+    "assignPlaceholder": "Choose an agent…",
+    "assigned": "Conversation assigned.",
+    "assignError": "Could not assign the conversation.",
+    "fileIssue": "File issue",
+    "fileIssueTitle": "File as an issue",
+    "issueType": "Issue type",
+    "fileIssueHint": "Filing does not notify the customer.",
+    "issueFiled": "Filed as issue #{{no}}.",
+    "issueError": "Could not file the issue."
   }
 }

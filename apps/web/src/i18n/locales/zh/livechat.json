@@ -329,5 +329,26 @@
     "confirmDissolve": "确认解散？",
     "dissolveHint": "解散仅删除分组，对话和消息全部保留。",
     "save": "保存"
+  },
+  "agentControls": {
+    "filterLabel": "按AI客服筛选",
+    "filterAll": "全部客服",
+    "aiAgent": "AI客服",
+    "aiAgentHint": "自下一条回复起生效",
+    "aiAgentSaved": "AI客服已更换为 {{name}}，自下一条回复起生效。",
+    "aiAgentError": "无法更换AI客服。",
+    "assignedTo": "负责人",
+    "assign": "指定客服",
+    "assignTitle": "指定人工客服",
+    "assignTo": "客服",
+    "assignPlaceholder": "请选择客服…",
+    "assigned": "会话已指派。",
+    "assignError": "无法指派会话。",
+    "fileIssue": "登记为工单",
+    "fileIssueTitle": "登记为工单",
+    "issueType": "工单类型",
+    "fileIssueHint": "登记不会通知客户。",
+    "issueFiled": "已登记为工单 #{{no}}。",
+    "issueError": "无法登记工单。"
   }
 }

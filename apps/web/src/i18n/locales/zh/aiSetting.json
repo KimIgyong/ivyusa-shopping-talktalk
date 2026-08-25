@@ -291,6 +291,21 @@
     "snippetCopyFailed": "复制失败 — 请手动选择并复制。",
     "snippetHint": "粘贴到由该客服应答的页面。已安装的页面只需在 IVY_WIDGET_CONFIG 中加入 agent 一行。",
     "shared": "所有客服共用",
-    "studioAgent": "客服：{{name}}"
+    "studioAgent": "客服：{{name}}",
+    "displayName": "小部件显示名",
+    "displayNamePlaceholder": "例：Livy",
+    "displayNameHint": "在小部件中向顾客展示。留空=店铺显示名。",
+    "greeting": "首条回复消息",
+    "greetingPlaceholder": "你好！我是 Livy，有什么可以帮你？",
+    "greetingHint": "分配到此客服的会话的第一条气泡。留空的语言使用店铺通用首条消息。"
+  },
+  "agentScope": {
+    "button": "客服",
+    "title": "使用此按钮的客服",
+    "subtitle": "按按钮指定客服",
+    "hint": "选择显示“{{label}}”按钮的AI客服。",
+    "all": "全部客服（共用）",
+    "selected": "仅所选客服",
+    "saveHint": "保存场景按钮后生效。"
   }
 }

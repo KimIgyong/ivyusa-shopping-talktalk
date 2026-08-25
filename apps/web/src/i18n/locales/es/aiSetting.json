@@ -291,6 +291,21 @@
     "snippetCopyFailed": "No se pudo copiar — selecciónalo y cópialo manualmente.",
     "snippetHint": "Pégalo en la página que debe atender este agente. ¿Ya instalado? Añade solo la línea agent a IVY_WIDGET_CONFIG.",
     "shared": "común a todos los agentes",
-    "studioAgent": "Agente: {{name}}"
+    "studioAgent": "Agente: {{name}}",
+    "displayName": "Nombre en el widget",
+    "displayNamePlaceholder": "p. ej. Livy",
+    "displayNameHint": "Se muestra a los compradores en el widget. Vacío = nombre de la tienda.",
+    "greeting": "Primer mensaje",
+    "greetingPlaceholder": "¡Hola! Soy Livy, ¿en qué te ayudo?",
+    "greetingHint": "Primera burbuja de las sesiones con este agente. Idioma vacío = mensaje común de la tienda."
+  },
+  "agentScope": {
+    "button": "Agentes",
+    "title": "Agentes para este botón",
+    "subtitle": "alcance por botón",
+    "hint": "Elige qué agentes IA muestran \"{{label}}\".",
+    "all": "Todos los agentes (común)",
+    "selected": "Solo agentes seleccionados",
+    "saveHint": "Se aplica al guardar los botones de escenario."
   }
 }

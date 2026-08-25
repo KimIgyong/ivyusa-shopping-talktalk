@@ -291,6 +291,21 @@
     "snippetCopyFailed": "Không sao chép được — hãy chọn và sao chép thủ công.",
     "snippetHint": "Dán vào trang mà nhân viên này phụ trách. Đã cài rồi? Chỉ cần thêm dòng agent vào IVY_WIDGET_CONFIG.",
     "shared": "chung cho mọi nhân viên",
-    "studioAgent": "Nhân viên: {{name}}"
+    "studioAgent": "Nhân viên: {{name}}",
+    "displayName": "Tên hiển thị trên widget",
+    "displayNamePlaceholder": "VD: Livy",
+    "displayNameHint": "Hiển thị cho khách trong widget. Bỏ trống = tên cửa hàng.",
+    "greeting": "Tin nhắn phản hồi đầu tiên",
+    "greetingPlaceholder": "Xin chào! Mình là Livy, mình giúp gì được?",
+    "greetingHint": "Bong bóng đầu tiên của phiên gắn agent này. Ngôn ngữ bỏ trống = tin nhắn chung của cửa hàng."
+  },
+  "agentScope": {
+    "button": "Agent",
+    "title": "Agent dùng nút này",
+    "subtitle": "phạm vi theo từng nút",
+    "hint": "Chọn AI agent hiển thị nút \"{{label}}\".",
+    "all": "Tất cả agent (dùng chung)",
+    "selected": "Chỉ agent đã chọn",
+    "saveHint": "Áp dụng khi lưu các nút kịch bản."
   }
 }

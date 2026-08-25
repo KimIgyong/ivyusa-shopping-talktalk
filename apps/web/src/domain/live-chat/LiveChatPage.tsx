@@ -14,6 +14,7 @@ import {
   BookOpen,
   Bot,
   Paperclip,
+  ClipboardPlus,
   X,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -36,6 +37,13 @@ import {
   useProposeAnswer,
   useCustomerActions,
 } from './live-chat.hooks';
+import {
+  useAiAgentRoster,
+  useSetSessionAiAgent,
+  useAssignConversation,
+  useFileIssue,
+} from './live-chat.hooks';
+import { useUsers } from '@/domain/users/users.hooks';
 import { BriefingCard } from './BriefingCard';
 import { CommentCard } from './CommentCard';
 import { GroupCreateModal } from './GroupCreateModal';
@@ -138,6 +146,16 @@ export function LiveChatPage() {
   // agent can watch, say, only KakaoTalk without losing the queue/ended split.
   const [channel, setChannel] = useState<string>('all');
 
+  // AI-agent filter + roster (REQ-260825 R6/R7).
+  const [agentFilter, setAgentFilter] = useState('all');
+  const { data: aiRoster } = useAiAgentRoster();
+
+  // Detail-header controls (REQ-260825 R8).
+  const [assignOpen, setAssignOpen] = useState(false);
+  const [assignTarget, setAssignTarget] = useState('');
+  const [issueOpen, setIssueOpen] = useState(false);
+  const [issueType, setIssueType] = useState('other');
+
   // Queue search box (customer name/email) — debounced into the list query.
   const [listQuery, setListQuery] = useState('');
   const [listSearch, setListSearch] = useState('');
@@ -156,6 +174,7 @@ export function LiveChatPage() {
     listSearch,
     scope === 'groups' ? 'all' : scope,
     channel,
+    agentFilter,
   );
   const { data: groups, isLoading: groupsLoading } = useGroups(scope === 'groups');
   const { data: convo, isLoading: convoLoading, isFetching: convoFetching, refetch: refetchConvo } =
@@ -171,6 +190,11 @@ export function LiveChatPage() {
   // rule — knowledge_source.manage is granted to master/director — so the
   // button never appears where the API would answer 403.
   const principal = useAuthStore((s) => s.principal);
+  const setAiAgent = useSetSessionAiAgent(selected);
+  const assignConv = useAssignConversation(selected);
+  const fileIssueMut = useFileIssue(selected);
+  const { data: tenantUsers } = useUsers();
+  const canAssign = ['master', 'director', 'manager'].includes(principal?.rank ?? '');
   const canManageKnowledge =
     principal?.actorType === 'user' &&
     (principal.rank === 'master' || principal.rank === 'director');
@@ -366,6 +390,20 @@ export function LiveChatPage() {
                 </option>
               ))}
             </select>
+            {/* AI-agent filter (REQ-260825 R7). */}
+            <select
+              value={agentFilter}
+              onChange={(e) => setAgentFilter(e.target.value)}
+              aria-label={t('agentControls.filterLabel')}
+              className="rounded-full border border-gray-200 bg-white px-2 py-1 text-xs text-gray-600 outline-none focus:border-primary-400"
+            >
+              <option value="all">{t('agentControls.filterAll')}</option>
+              {(aiRoster ?? []).map((a) => (
+                <option key={a.id} value={String(a.id)}>
+                  {a.displayName || a.name}
+                </option>
+              ))}
+            </select>
           </div>
           <div className="border-b border-gray-100 p-2">
             <div className="relative">
@@ -483,19 +521,25 @@ export function LiveChatPage() {
                     />
                   )}
                   <div className="min-w-0 flex-1">
-                  {/* Two lines instead of one (REQ-260824 R1): the name gets
-                      the full row width, and session label + channel + status
-                      stop competing with it for space. */}
-                  <SessionAlias
-                    conversationId={s.id}
-                    alias={s.alias}
-                    fallback={
-                      s.customerName ||
-                      s.customerEmail ||
-                      t('sessionLabel', { id: s.id.slice(0, 6) })
-                    }
-                    compact
-                  />
+                  {/* Line 1 (REQ-260824 R1 + REQ-260825 R6): name left, the
+                      session's AI agent right-aligned. */}
+                  <div className="flex items-center justify-between gap-2">
+                    <SessionAlias
+                      conversationId={s.id}
+                      alias={s.alias}
+                      fallback={
+                        s.customerName ||
+                        s.customerEmail ||
+                        t('sessionLabel', { id: s.id.slice(0, 6) })
+                      }
+                      compact
+                    />
+                    {s.aiAgentName && (
+                      <span className="shrink-0 rounded-full bg-primary-500/10 px-1.5 py-0.5 text-[10px] font-medium text-primary-600">
+                        {s.aiAgentName}
+                      </span>
+                    )}
+                  </div>
                   <div className="mt-0.5 flex items-center justify-between gap-2">
                     <span className="shrink-0 text-[11px] text-gray-400">
                       {t('sessionLabel', { id: s.id.slice(0, 6) })}
@@ -591,8 +635,55 @@ export function LiveChatPage() {
                     agentOwns={convo?.status === 'agent'}
                     awaitingApproval={!!convo?.pendingDraft}
                   />
+                  {/* AI-agent re-pin (REQ-260825 R8-①): applies from the next turn. */}
+                  {(aiRoster?.length ?? 0) > 0 && (
+                    <select
+                      value={convo?.aiAgentId ?? ''}
+                      onChange={(e) => {
+                        if (e.target.value) setAiAgent.mutate(Number(e.target.value));
+                      }}
+                      disabled={setAiAgent.isPending}
+                      aria-label={t('agentControls.aiAgent')}
+                      title={t('agentControls.aiAgentHint')}
+                      className="shrink-0 rounded-full border border-gray-200 bg-white px-2 py-1 text-xs text-gray-600 outline-none focus:border-primary-400"
+                    >
+                      {(aiRoster ?? []).map((a) => (
+                        <option key={a.id} value={String(a.id)}>
+                          AI: {a.displayName || a.name}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                  {convo?.assignedTo && (
+                    <span className="shrink-0 text-xs text-gray-500" title={t('agentControls.assignedTo')}>
+                      {t('agentControls.assignedTo')}: {convo.assignedTo}
+                    </span>
+                  )}
                 </div>
                 <div className="flex gap-2">
+                  {/* Manager+ only — the server enforces CONVERSATION_ASSIGN. */}
+                  {canAssign && (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => {
+                        setAssignTarget('');
+                        setAssignOpen(true);
+                      }}
+                    >
+                      <User className="h-4 w-4" /> {t('agentControls.assign')}
+                    </Button>
+                  )}
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => {
+                      setIssueType('other');
+                      setIssueOpen(true);
+                    }}
+                  >
+                    <ClipboardPlus className="h-4 w-4" /> {t('agentControls.fileIssue')}
+                  </Button>
                   <Button
                     size="sm"
                     variant="secondary"
@@ -1073,6 +1164,86 @@ export function LiveChatPage() {
         conversationId={selected}
         onClose={() => setCapture(null)}
       />
+
+      {/* Assign to a human agent (REQ-260825 R8-②, manager+). */}
+      <Modal
+        open={assignOpen}
+        onClose={() => setAssignOpen(false)}
+        title={t('agentControls.assignTitle')}
+        size="sm"
+        footer={
+          <>
+            <Button variant="secondary" size="sm" onClick={() => setAssignOpen(false)}>
+              {tc('cancel')}
+            </Button>
+            <Button
+              size="sm"
+              disabled={!assignTarget || assignConv.isPending}
+              onClick={() =>
+                assignConv.mutate(Number(assignTarget), { onSuccess: () => setAssignOpen(false) })
+              }
+            >
+              {t('agentControls.assign')}
+            </Button>
+          </>
+        }
+      >
+        <FormRow label={t('agentControls.assignTo')}>
+          <select
+            value={assignTarget}
+            onChange={(e) => setAssignTarget(e.target.value)}
+            className="w-full rounded-lg border border-gray-300 bg-white px-2 py-2 text-sm outline-none focus:border-primary-500"
+          >
+            <option value="">{t('agentControls.assignPlaceholder')}</option>
+            {(tenantUsers ?? [])
+              .filter((u) => u.status === 'active')
+              .map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.name || u.email}
+                </option>
+              ))}
+          </select>
+        </FormRow>
+      </Modal>
+
+      {/* File as an issue (REQ-260825 R8-③) — silent toward the customer. */}
+      <Modal
+        open={issueOpen}
+        onClose={() => setIssueOpen(false)}
+        title={t('agentControls.fileIssueTitle')}
+        size="sm"
+        footer={
+          <>
+            <Button variant="secondary" size="sm" onClick={() => setIssueOpen(false)}>
+              {tc('cancel')}
+            </Button>
+            <Button
+              size="sm"
+              disabled={fileIssueMut.isPending}
+              onClick={() =>
+                fileIssueMut.mutate(issueType, { onSuccess: () => setIssueOpen(false) })
+              }
+            >
+              {t('agentControls.fileIssue')}
+            </Button>
+          </>
+        }
+      >
+        <FormRow label={t('agentControls.issueType')}>
+          <select
+            value={issueType}
+            onChange={(e) => setIssueType(e.target.value)}
+            className="w-full rounded-lg border border-gray-300 bg-white px-2 py-2 text-sm outline-none focus:border-primary-500"
+          >
+            {['order_status', 'delivery', 'cancel', 'refund', 'partnership', 'other'].map((ty) => (
+              <option key={ty} value={ty}>
+                {t(`issue.type.${ty}`)}
+              </option>
+            ))}
+          </select>
+        </FormRow>
+        <p className="mt-2 text-xs text-gray-400">{t('agentControls.fileIssueHint')}</p>
+      </Modal>
 
       {/* Timeline/project grouping of the checked sessions (REQ-260824). */}
       <GroupCreateModal

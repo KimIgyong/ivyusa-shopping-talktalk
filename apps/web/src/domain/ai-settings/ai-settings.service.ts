@@ -55,6 +55,8 @@ export interface ScenarioButton {
   label: string;
   action: string;
   enabled: boolean;
+  /** AI agents this button shows for (REQ-260825 R5); empty/absent = all agents. */
+  agentIds?: number[];
 }
 
 /** Session language the console edits copy for — one source of truth with the API. */

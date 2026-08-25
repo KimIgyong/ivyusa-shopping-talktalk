@@ -30,10 +30,14 @@ export function toSessionResponse(
   contact: { name: string | null; email: string | null } = { name: null, email: null },
   alias: string | null = null,
   autoReply: { mode: string; effective: boolean } = { mode: 'inherit', effective: true },
+  aiAgent: { id: number | null; name: string | null } = { id: null, name: null },
 ) {
   return {
     id: c.id,
     status: c.status,
+    /** Effective AI agent of the session (REQ-260825 R6) — NULL pin = default. */
+    aiAgentId: aiAgent.id != null ? String(aiAgent.id) : null,
+    aiAgentName: aiAgent.name,
     // The session this row belongs to. The row id is a CONVERSATION id (the
     // console calls it a session), so the real session id has to travel too —
     // the alias hangs off the session, not the conversation (PLN-260812).

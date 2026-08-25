@@ -291,6 +291,21 @@
     "snippetCopyFailed": "Could not copy — select and copy manually.",
     "snippetHint": "Paste on the page that should talk as this agent. Already installed? Just add the agent line to IVY_WIDGET_CONFIG.",
     "shared": "shared across all agents",
-    "studioAgent": "Agent: {{name}}"
+    "studioAgent": "Agent: {{name}}",
+    "displayName": "Widget display name",
+    "displayNamePlaceholder": "e.g. Livy",
+    "displayNameHint": "Shown to shoppers in the widget header. Blank = store display name.",
+    "greeting": "First response message",
+    "greetingPlaceholder": "Hi! I'm Livy — how can I help?",
+    "greetingHint": "First bubble for sessions on this agent. Blank language = store-wide first message."
+  },
+  "agentScope": {
+    "button": "Agents",
+    "title": "Agents for this button",
+    "subtitle": "per-button agent scope",
+    "hint": "Choose which AI agents show \"{{label}}\".",
+    "all": "All agents (shared)",
+    "selected": "Selected agents only",
+    "saveHint": "Takes effect when you save the scenario buttons."
   }
 }

@@ -329,5 +329,26 @@
     "confirmDissolve": "¿Disolver?",
     "dissolveHint": "Disolver elimina solo el grupo. Las conversaciones y mensajes permanecen.",
     "save": "Guardar"
+  },
+  "agentControls": {
+    "filterLabel": "Filtro de agente IA",
+    "filterAll": "Todos los agentes",
+    "aiAgent": "Agente IA",
+    "aiAgentHint": "Se aplica desde la próxima respuesta",
+    "aiAgentSaved": "Agente IA cambiado a {{name}}. Se aplica desde la próxima respuesta.",
+    "aiAgentError": "No se pudo cambiar el agente IA.",
+    "assignedTo": "Asignado",
+    "assign": "Asignar agente",
+    "assignTitle": "Asignar a un agente",
+    "assignTo": "Agente",
+    "assignPlaceholder": "Elige un agente…",
+    "assigned": "Conversación asignada.",
+    "assignError": "No se pudo asignar la conversación.",
+    "fileIssue": "Registrar incidencia",
+    "fileIssueTitle": "Registrar como incidencia",
+    "issueType": "Tipo de incidencia",
+    "fileIssueHint": "El registro no notifica al cliente.",
+    "issueFiled": "Registrada como incidencia #{{no}}.",
+    "issueError": "No se pudo registrar la incidencia."
   }
 }
