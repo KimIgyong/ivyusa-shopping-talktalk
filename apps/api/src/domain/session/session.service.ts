@@ -101,7 +101,25 @@ export class SessionService {
   ): Promise<Session> {
     if (token) {
       const existing = await this.sessionRepo.findOne({ where: { sessionToken: token } });
-      if (existing) return existing;
+      if (existing) {
+        // Re-pin when the PAGE declares a different agent (FIX-260825): the
+        // widget persists its session token, so a visitor walking from the
+        // main page (default pin) to /partner (hotel-partner embed) reused the
+        // old pin forever — the /partner counter answered as the default
+        // agent, and agent-scoped scenario buttons looked unfiltered. Only an
+        // explicit, RESOLVABLE code moves the pin; absent/unknown codes keep
+        // the session exactly as it was (pages without an agent param must
+        // never reset an existing pin to default).
+        if (agentCode && existing.tenantId != null) {
+          const resolved = await this.resolveAiAgentId(existing.tenantId, agentCode);
+          if (resolved != null && Number(existing.aiAgentId ?? -1) !== Number(resolved)) {
+            existing.aiAgentId = resolved;
+            await this.sessionRepo.update({ id: existing.id }, { aiAgentId: resolved });
+            await this.redis.del(sessionCacheKey(existing.sessionToken));
+          }
+        }
+        return existing;
+      }
     }
     const tenant = await this.resolveTenant(shopDomain);
     this.assertEmbedOriginAllowed(tenant, parentOrigin);
