@@ -402,10 +402,14 @@ export class RagService {
     // asked to answer — chat passes the previous turns so a follow-up that only
     // makes sense in context ("and for my young son?") still retrieves the topic
     // it refers to. The model still sees just `query` (FIX-260806 A2).
-    // Resolved once and used for both what is retrieved and who says it — a
-    // session pinned to a deactivated agent must not keep that agent's private
-    // knowledge while speaking in the default persona's voice.
-    const scopeAgentId = await this.aiConfig.effectiveAgentId(tenantId, aiAgentId);
+    // `aiAgentId` is applied as given, never resolved here. Null means "no
+    // scope" — the console's operator view, which has to see everything it
+    // manages. A widget turn is a different thing: an unpinned session answers
+    // AS the default agent, so `chat.service` resolves it before calling and
+    // hands the id down. Resolving in here made both callers mean the same
+    // thing, and the operator view silently lost every scoped category
+    // (found in the staging smoke, T9).
+    const scopeAgentId = aiAgentId ?? null;
     const { chunks, vectorProvider } = await this.retrieveHybrid(
       tenantId,
       retrievalQuery?.trim() || query,

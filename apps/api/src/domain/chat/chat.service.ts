@@ -769,7 +769,10 @@ export class ChatService {
           // so searching on it alone scored off-topic and escalated a question the
           // knowledge base could answer.
           await this.retrievalQueryFor(conversation.id, userTurn.id, egressText),
-          session.aiAgentId ?? null,
+          // Resolved, not raw: an unpinned session answers as the tenant's
+          // default agent, and RAG applies what it is given rather than
+          // guessing what null meant.
+          effectiveAgentId,
         );
 
     // Mandatory moderation gate (FR-069).
