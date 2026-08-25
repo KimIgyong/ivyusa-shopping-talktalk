@@ -1,0 +1,302 @@
+import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { In, Repository } from 'typeorm';
+import { SENDER_TYPE } from '@ivy/types';
+import { Session } from '../session/entity/session.entity';
+import { Conversation } from '../chat/entity/conversation.entity';
+import { Message } from '../chat/entity/message.entity';
+import { Assignment } from '../agent/entity/assignment.entity';
+import { CjmEvent } from '../cjm/entity/cjm-event.entity';
+import { AuditLog } from '../audit/entity/audit-log.entity';
+import { ChatGroupMember } from '../agent/entity/chat-group-member.entity';
+
+/** Why a conversation counted as resolved — printed in the report, not just used. */
+export const RESOLUTION_REASON = {
+  AGENT_CLOSED: 'agent_closed',
+  CSAT_ANSWERED: 'csat_answered',
+  /** Asked "anything else?" after 30 min of silence, then closed (PLN D3). */
+  PROMPTED_CLOSED: 'prompted_closed',
+} as const;
+
+/** Why it did not — kept apart so the count cannot quietly inflate resolution. */
+export const UNRESOLVED_REASON = {
+  /** Prompted and closed, but the customer spoke last: a question left hanging. */
+  CUSTOMER_LAST: 'customer_last',
+  /** Too old to talk to; closed without asking anything. */
+  ABANDONED: 'abandoned',
+  /** Still open. */
+  OPEN: 'open',
+} as const;
+
+export interface JourneyMetrics {
+  sessionCount: number;
+  firstContactAt: string | null;
+  channels: Array<{ channel: string; sessions: number }>;
+  primaryChannel: string | null;
+  conversations: number;
+  messages: number;
+  customerMessages: number;
+  agentMessages: number;
+  /** Speaker changes per conversation, averaged. Where delay shows up. */
+  avgLoops: number;
+  handoffs: number;
+  resolved: number;
+  resolvedBy: Record<string, number>;
+  unresolved: number;
+  unresolvedBy: Record<string, number>;
+  /** Median, not mean: one abandoned thread reopened weeks later drags a mean. */
+  medianResolutionMinutes: number | null;
+  csatAverage: number | null;
+  csatResponses: number;
+  stages: Array<{ stage: string; events: number }>;
+  latestStage: string | null;
+  languages: Array<{ language: string; sessions: number }>;
+}
+
+export interface JourneyWindow {
+  from: string | null;
+  to: string | null;
+}
+
+/**
+ * Everything the report counts (PLN-260825 §2).
+ *
+ * Deliberately free of the model. A language model asked to count produces
+ * confident wrong numbers, and a report is the format that makes them look like
+ * evidence — so the figures are computed here and the narrative is written
+ * *from* them.
+ */
+@Injectable()
+export class JourneyMetricsService {
+  constructor(
+    @InjectRepository(ChatGroupMember) private readonly memberRepo: Repository<ChatGroupMember>,
+    @InjectRepository(Session) private readonly sessionRepo: Repository<Session>,
+    @InjectRepository(Conversation) private readonly convRepo: Repository<Conversation>,
+    @InjectRepository(Message) private readonly msgRepo: Repository<Message>,
+    @InjectRepository(Assignment) private readonly assignmentRepo: Repository<Assignment>,
+    @InjectRepository(CjmEvent) private readonly cjmRepo: Repository<CjmEvent>,
+    @InjectRepository(AuditLog) private readonly auditRepo: Repository<AuditLog>,
+  ) {}
+
+  /** The sessions a report will read — snapshotted by the caller. */
+  async sessionIdsFor(tenantId: number, groupId: number, window: JourneyWindow): Promise<number[]> {
+    const members = await this.memberRepo.find({ where: { tenantId, groupId } });
+    const ids = members.map((m) => Number(m.sessionId));
+    if (!ids.length) return [];
+    const sessions = await this.sessionRepo.find({ where: { tenantId, id: In(ids) } });
+    return sessions.filter((s) => inWindow(s.createdAt, window)).map((s) => Number(s.id));
+  }
+
+  async compute(tenantId: number, sessionIds: number[]): Promise<JourneyMetrics> {
+    if (!sessionIds.length) return emptyMetrics();
+
+    const sessions = await this.sessionRepo.find({ where: { tenantId, id: In(sessionIds) } });
+    const conversations = await this.convRepo.find({
+      where: { tenantId, sessionId: In(sessionIds) },
+    });
+    const convIds = conversations.map((c) => Number(c.id));
+    const messages = convIds.length
+      ? await this.msgRepo.find({
+          where: { conversationId: In(convIds) },
+          order: { id: 'ASC' },
+        })
+      : [];
+
+    const byConv = new Map<number, Message[]>();
+    for (const m of messages) {
+      const key = Number(m.conversationId);
+      const list = byConv.get(key) ?? [];
+      list.push(m);
+      byConv.set(key, list);
+    }
+
+    // Which conversations were prompted-then-closed. `close()` clears
+    // `idle_prompt_at`, so a finished row cannot say whether it was asked —
+    // the audit trail is the only place that still knows.
+    const prompted = await this.promptedConversationIds(tenantId, convIds);
+
+    const resolvedBy: Record<string, number> = {};
+    const unresolvedBy: Record<string, number> = {};
+    const durations: number[] = [];
+
+    for (const conv of conversations) {
+      const id = Number(conv.id);
+      const list = byConv.get(id) ?? [];
+      const outcome = classifyOutcome(conv, list, prompted.has(id));
+      if (outcome.resolved) {
+        resolvedBy[outcome.reason] = (resolvedBy[outcome.reason] ?? 0) + 1;
+        const started = list[0]?.createdAt ?? conv.createdAt;
+        // No `ended_at` means the close never wrote one; timing it from the
+        // last message would invent a duration, so the conversation counts as
+        // resolved but contributes nothing to the median.
+        const ended = conv.endedAt;
+        if (ended) durations.push((ended.getTime() - started.getTime()) / 60_000);
+      } else {
+        unresolvedBy[outcome.reason] = (unresolvedBy[outcome.reason] ?? 0) + 1;
+      }
+    }
+
+    const channels = countBy(sessions, (s) => s.channel ?? 'widget');
+    const languages = countBy(sessions, (s) => s.language ?? 'EN');
+    const cjm = sessionIds.length
+      ? await this.cjmRepo.find({ where: { tenantId, sessionId: In(sessionIds) }, order: { id: 'ASC' } })
+      : [];
+    const handoffs = convIds.length
+      ? await this.assignmentRepo.count({ where: { tenantId, conversationId: In(convIds) } })
+      : 0;
+
+    const customerMessages = messages.filter((m) => m.senderType === SENDER_TYPE.USER).length;
+    const agentMessages = messages.filter(
+      (m) => m.senderType === SENDER_TYPE.AGENT || m.senderType === SENDER_TYPE.AI,
+    ).length;
+
+    const csatRated = conversations.filter((c) => c.csatRating != null);
+
+    return {
+      sessionCount: sessions.length,
+      firstContactAt: earliest(sessions.map((s) => s.createdAt)),
+      channels,
+      primaryChannel: channels[0]?.channel ?? null,
+      conversations: conversations.length,
+      messages: messages.length,
+      customerMessages,
+      agentMessages,
+      avgLoops: average(conversations.map((c) => loopsIn(byConv.get(Number(c.id)) ?? []))),
+      handoffs,
+      resolved: sum(Object.values(resolvedBy)),
+      resolvedBy,
+      unresolved: sum(Object.values(unresolvedBy)),
+      unresolvedBy,
+      medianResolutionMinutes: median(durations),
+      csatAverage: csatRated.length
+        ? round(sum(csatRated.map((c) => Number(c.csatRating))) / csatRated.length, 2)
+        : null,
+      csatResponses: csatRated.length,
+      stages: countBy(cjm, (e) => e.stage).map((c) => ({ stage: c.channel, events: c.sessions })),
+      latestStage: cjm.length ? cjm[cjm.length - 1].stage : null,
+      languages: languages.map((c) => ({ language: c.channel, sessions: c.sessions })),
+    };
+  }
+
+  /** Conversations the idle sweeper asked "anything else?" before closing. */
+  private async promptedConversationIds(tenantId: number, convIds: number[]): Promise<Set<number>> {
+    if (!convIds.length) return new Set();
+    const rows = await this.auditRepo.find({
+      where: { tenantId, action: 'chat.idle_prompted' },
+    });
+    const wanted = new Set(convIds.map(String));
+    const out = new Set<number>();
+    for (const r of rows) {
+      const id = (r.target ?? '').replace('conversation:', '');
+      if (wanted.has(id)) out.add(Number(id));
+    }
+    return out;
+  }
+}
+
+/**
+ * Resolved or not, and why.
+ *
+ * The prompted-then-closed case covers two different things: a customer who got
+ * their answer and went quiet, and one who did not and left. Both receive the
+ * same message and end in the same state. What separates them is who spoke last
+ * before the silence — count them together and abandoned threads land in the
+ * resolved column, where their share grows as service gets worse.
+ */
+export function classifyOutcome(
+  conv: Pick<Conversation, 'status' | 'csatRating' | 'endedAt'>,
+  messages: Array<Pick<Message, 'senderType'>>,
+  wasPrompted: boolean,
+): { resolved: boolean; reason: string } {
+  if (conv.csatRating != null) {
+    return { resolved: true, reason: RESOLUTION_REASON.CSAT_ANSWERED };
+  }
+  if (conv.status !== 'ended') {
+    return { resolved: false, reason: UNRESOLVED_REASON.OPEN };
+  }
+  if (!wasPrompted) {
+    // Ended without ever being asked: either an agent closed it deliberately,
+    // or it was too old to talk to. The sweeper's silent close leaves no
+    // prompt, so an agent close is the only other way to reach this state.
+    return conv.endedAt
+      ? { resolved: true, reason: RESOLUTION_REASON.AGENT_CLOSED }
+      : { resolved: false, reason: UNRESOLVED_REASON.ABANDONED };
+  }
+  const lastHuman = [...messages]
+    .reverse()
+    .find((m) => m.senderType !== SENDER_TYPE.SYSTEM);
+  if (lastHuman?.senderType === SENDER_TYPE.USER) {
+    return { resolved: false, reason: UNRESOLVED_REASON.CUSTOMER_LAST };
+  }
+  return { resolved: true, reason: RESOLUTION_REASON.PROMPTED_CLOSED };
+}
+
+/** Speaker changes: a question answered in one turn loops once. */
+export function loopsIn(messages: Array<Pick<Message, 'senderType'>>): number {
+  let loops = 0;
+  let prev: string | null = null;
+  for (const m of messages) {
+    if (m.senderType === SENDER_TYPE.SYSTEM) continue;
+    if (prev && m.senderType !== prev) loops += 1;
+    prev = m.senderType;
+  }
+  return loops;
+}
+
+export function median(values: number[]): number | null {
+  if (!values.length) return null;
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  const value = sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+  return round(value, 1);
+}
+
+function inWindow(at: Date, w: JourneyWindow): boolean {
+  const day = at.toISOString().slice(0, 10);
+  if (w.from && day < w.from) return false;
+  if (w.to && day > w.to) return false;
+  return true;
+}
+
+function countBy<T>(rows: T[], key: (row: T) => string): Array<{ channel: string; sessions: number }> {
+  const counts = new Map<string, number>();
+  for (const r of rows) {
+    const k = key(r);
+    counts.set(k, (counts.get(k) ?? 0) + 1);
+  }
+  return [...counts.entries()]
+    .map(([channel, sessions]) => ({ channel, sessions }))
+    .sort((a, b) => b.sessions - a.sessions);
+}
+
+const sum = (values: number[]): number => values.reduce((a, b) => a + b, 0);
+const average = (values: number[]): number =>
+  values.length ? round(sum(values) / values.length, 1) : 0;
+const round = (v: number, digits: number): number => Number(v.toFixed(digits));
+const earliest = (dates: Date[]): string | null =>
+  dates.length ? new Date(Math.min(...dates.map((d) => d.getTime()))).toISOString() : null;
+
+function emptyMetrics(): JourneyMetrics {
+  return {
+    sessionCount: 0,
+    firstContactAt: null,
+    channels: [],
+    primaryChannel: null,
+    conversations: 0,
+    messages: 0,
+    customerMessages: 0,
+    agentMessages: 0,
+    avgLoops: 0,
+    handoffs: 0,
+    resolved: 0,
+    resolvedBy: {},
+    unresolved: 0,
+    unresolvedBy: {},
+    medianResolutionMinutes: null,
+    csatAverage: null,
+    csatResponses: 0,
+    stages: [],
+    latestStage: null,
+    languages: [],
+  };
+}

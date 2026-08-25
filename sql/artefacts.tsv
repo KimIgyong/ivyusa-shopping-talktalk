@@ -60,6 +60,8 @@ migration_golden_regression.sql	table	golden_runs	-
 migration_golden_regression.sql	table	golden_run_items	-
 migration_handoff_routing.sql	column	tenant_ai_config	handoff_config
 migration_handoff_routing.sql	column	agent_alerts	target_user_id
+migration_journey_reports.sql	table	journey_reports	-
+migration_journey_reports.sql	table	journey_report_criteria	-
 migration_kb_answer_proposals.sql	table	kb_answer_proposals	-
 migration_kb_conflict_failures.sql	column	kb_conflicts	failure_reason
 migration_kb_doc_group.sql	column	kb_documents	doc_group
