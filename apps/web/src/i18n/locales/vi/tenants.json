@@ -38,6 +38,25 @@
       "off": "Không cung cấp"
     },
     "saved": "Đã lưu menu được cung cấp",
-    "saveError": "Không lưu được menu được cung cấp"
+    "saveError": "Không lưu được menu được cung cấp",
+    "issueAddonOff": "Menu hiển thị nhưng add-on quy trình sự cố đang là {{mode}} — bảng sẽ từ chối. Đặt native trong Gói / Add-on."
+  },
+  "managePlan": "Gói / Add-on",
+  "planAddonTitle": "Gói & add-on — {{name}}",
+  "planSaved": "Đã cập nhật gói.",
+  "workflowSaved": "Đã cập nhật add-on quy trình sự cố.",
+  "workflowAddon": "Add-on quy trình sự cố",
+  "planOverridesKept": "Các ngoại lệ theo menu của tenant này vẫn được giữ.",
+  "issueAddonBadge": "sự cố: {{mode}}",
+  "planPreview": {
+    "starter": "Preset: bảng điều khiển, chat trực tiếp, lịch sử, kiến thức, khách hàng, đơn hàng, đội ngũ, cài đặt, quyền riêng tư.",
+    "growth": "Preset: bộ starter cộng nhật ký, thống kê, cài đặt AI, sản phẩm, chiến dịch, đánh giá.",
+    "enterprise": "Preset: toàn bộ menu console.",
+    "custom": "Không có preset — cung cấp mọi menu trừ khi có ngoại lệ."
+  },
+  "workflowMode": {
+    "base": "tắt (chỉ danh sách chat)",
+    "bridge": "chuyển giao helpdesk bên ngoài",
+    "native": "bật bảng sự cố & kanban"
   }
 }

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LayoutList, UserCog } from 'lucide-react';
+import { CreditCard, LayoutList, UserCog } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { PageHeader } from '@/components/PageHeader';
 import { Button } from '@/components/Button';
@@ -13,10 +13,14 @@ import { Modal } from '@/components/Modal';
 import { FormRow, Input, Select } from '@/components/Field';
 import { useTenants, useCreateTenant, useSetTenantStatus } from './admin.hooks';
 import { TenantMenusModal } from './TenantMenusModal';
+import { TenantPlanModal, TENANT_PLANS } from './TenantPlanModal';
 import type { Tenant } from './admin.service';
+import { tenantLoginPath } from '@/lib/tenant-path';
 
 const PAGE_SIZE = 20;
-const PLANS = ['starter', 'growth', 'enterprise'];
+// Creation offers the preset plans; `custom` (= no preset) is reachable via the
+// plan/add-on editor, matching how legacy tenants carry it.
+const PLANS = TENANT_PLANS.filter((p) => p !== 'custom');
 
 export function TenantsPage() {
   const { t } = useTranslation('tenants');
@@ -27,9 +31,11 @@ export function TenantsPage() {
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
   const [shopDomain, setShopDomain] = useState('');
-  const [plan, setPlan] = useState(PLANS[0]);
+  const [plan, setPlan] = useState<string>(PLANS[0]);
   // Tenant whose provided-menu modal is open (PLN-260812 S2).
   const [menusFor, setMenusFor] = useState<Tenant | null>(null);
+  // Tenant whose plan/add-on editor is open (PLN-260825 S3).
+  const [planFor, setPlanFor] = useState<Tenant | null>(null);
 
   const { data, isLoading, error } = useTenants({ page, pageSize: PAGE_SIZE });
   const createTenant = useCreateTenant();
@@ -60,13 +66,24 @@ export function TenantsPage() {
       key: 'slug',
       header: t('slug'),
       // The tenant login page path — what shop staff type after the host name.
-      render: (r) => (r.slug ? <code className="text-xs text-gray-600">/{r.slug}</code> : '—'),
+      render: (r) =>
+        r.slug ? <code className="text-xs text-gray-600">{tenantLoginPath(r.slug)}</code> : '—',
     },
     { key: 'shopDomain', header: t('shopDomain'), render: (r) => r.shopDomain ?? '—' },
     {
       key: 'plan',
       header: t('plan'),
-      render: (r) => (r.plan ? <Badge tone="primary">{r.plan}</Badge> : '—'),
+      render: (r) => (
+        <div className="flex flex-wrap items-center gap-1">
+          {r.plan ? <Badge tone="primary">{r.plan}</Badge> : '—'}
+          {/* Add-on entitlement at a glance — 'base' is the quiet default. */}
+          {r.workflowMode && r.workflowMode !== 'base' && (
+            <Badge tone={r.workflowMode === 'native' ? 'success' : 'info'}>
+              {t('issueAddonBadge', { mode: r.workflowMode })}
+            </Badge>
+          )}
+        </div>
+      ),
     },
     { key: 'status', header: t('status'), render: (r) => <StatusBadge status={r.status} /> },
     { key: 'userCount', header: t('users'), render: (r) => r.userCount ?? '—' },
@@ -76,6 +93,10 @@ export function TenantsPage() {
       header: '',
       render: (r) => (
         <div className="flex justify-end gap-2">
+          <Button variant="secondary" size="sm" onClick={() => setPlanFor(r)}>
+            <CreditCard className="mr-1 h-3.5 w-3.5" />
+            {t('managePlan')}
+          </Button>
           <Button variant="secondary" size="sm" onClick={() => setMenusFor(r)}>
             <LayoutList className="mr-1 h-3.5 w-3.5" />
             {t('manageMenus')}
@@ -134,11 +155,15 @@ export function TenantsPage() {
         onPageChange={setPage}
       />
 
+      {planFor && (
+        <TenantPlanModal tenant={planFor} open onClose={() => setPlanFor(null)} />
+      )}
       {menusFor && (
         <TenantMenusModal
           open
           tenantUuid={menusFor.uuid}
           tenantName={menusFor.name}
+          workflowMode={menusFor.workflowMode}
           onClose={() => setMenusFor(null)}
         />
       )}

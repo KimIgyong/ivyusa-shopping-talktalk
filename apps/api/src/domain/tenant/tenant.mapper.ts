@@ -39,6 +39,7 @@ export class TenantMapper {
       name: t.name,
       status: t.status,
       plan: t.plan,
+      workflowMode: t.workflowMode,
       ...(userCount !== undefined ? { userCount } : {}),
       createdAt: t.createdAt,
       updatedAt: t.updatedAt,

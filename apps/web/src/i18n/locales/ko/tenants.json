@@ -38,6 +38,25 @@
       "off": "차단"
     },
     "saved": "제공 메뉴를 저장했습니다",
-    "saveError": "제공 메뉴를 저장하지 못했습니다"
+    "saveError": "제공 메뉴를 저장하지 못했습니다",
+    "issueAddonOff": "메뉴는 노출되지만 이슈 워크플로우 애드온이 {{mode}}라 기능이 동작하지 않습니다. 요금제/애드온에서 native로 설정하세요."
+  },
+  "managePlan": "요금제/애드온",
+  "planAddonTitle": "요금제·애드온 — {{name}}",
+  "planSaved": "요금제가 변경되었습니다.",
+  "workflowSaved": "이슈 워크플로우 애드온이 변경되었습니다.",
+  "workflowAddon": "이슈 워크플로우 애드온",
+  "planOverridesKept": "이 테넌트의 메뉴별 오버라이드는 유지됩니다.",
+  "issueAddonBadge": "이슈: {{mode}}",
+  "planPreview": {
+    "starter": "프리셋: 대시보드·라이브챗·이력·지식·고객·주문·팀·설정·개인정보.",
+    "growth": "프리셋: starter 구성 + 업무일지·통계·AI설정·상품·캠페인·리뷰.",
+    "enterprise": "프리셋: 콘솔 전체 메뉴.",
+    "custom": "프리셋 없음 — 오버라이드가 없으면 전체 메뉴 제공."
+  },
+  "workflowMode": {
+    "base": "미사용(채팅 목록만)",
+    "bridge": "외부 헬프데스크 연계",
+    "native": "이슈보드·칸반 활성"
   }
 }

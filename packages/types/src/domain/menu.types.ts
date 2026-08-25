@@ -93,6 +93,30 @@ export function isMenuCode(value: string): value is MenuCode {
 }
 
 /**
+ * Tenant plans the platform admin can assign (REQ-260825). `custom` means
+ * "no preset" — it is deliberately absent from PLAN_MENUS, so it falls into
+ * the provision-everything branch (ivyusa's historical value).
+ */
+export const TENANT_PLAN = {
+  STARTER: 'starter',
+  GROWTH: 'growth',
+  ENTERPRISE: 'enterprise',
+  CUSTOM: 'custom',
+} as const;
+export type TenantPlan = (typeof TENANT_PLAN)[keyof typeof TENANT_PLAN];
+export const TENANT_PLAN_VALUES: readonly TenantPlan[] = Object.values(TENANT_PLAN);
+
+/**
+ * Issue-workflow entitlement per tenant (REQ-260807 §11.1, server-judged):
+ * menu provisioning only controls navigation — THIS decides whether the issue
+ * board actually works ('native'), hands off externally ('bridge'), or stays
+ * a plain chat list ('base').
+ */
+export const WORKFLOW_MODE = { BASE: 'base', BRIDGE: 'bridge', NATIVE: 'native' } as const;
+export type WorkflowMode = (typeof WORKFLOW_MODE)[keyof typeof WORKFLOW_MODE];
+export const WORKFLOW_MODE_VALUES: readonly WorkflowMode[] = Object.values(WORKFLOW_MODE);
+
+/**
  * Plan presets — which menus a plan includes before any per-tenant override.
  *
  * A plan the map does not know (including `null`, which most existing tenants
