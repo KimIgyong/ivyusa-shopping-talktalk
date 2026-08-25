@@ -145,7 +145,12 @@
     "slaTitle": "Mục tiêu SLA của bảng yêu cầu",
     "slaNormal": "Thông thường (giờ)",
     "slaUrgent": "Khẩn (giờ)",
-    "slaHint": "Quyết định nhãn cảnh báo/quá hạn trên bảng. Từ 1–168 giờ; mặc định 24 giờ / 4 giờ."
+    "slaHint": "Quyết định nhãn cảnh báo/quá hạn trên bảng. Từ 1–168 giờ; mặc định 24 giờ / 4 giờ.",
+    "denyMode": {
+      "silent": "Không trả lời",
+      "answer_then_handoff": "Trả lời rồi chuyển"
+    },
+    "denyModeHint": "\"Không trả lời\" chuyển cho nhân viên mà không phản hồi. \"Trả lời rồi chuyển\" trả lời từ cơ sở tri thức trước rồi vẫn chuyển — nhân viên đều được gọi trong cả hai trường hợp."
   },
   "coach": {
     "title": "Huấn luyện trợ lý",

@@ -35,6 +35,7 @@ import { AttachmentService } from '../attachment/attachment.service';
 import { MessageAttachment } from '../attachment/entity/message-attachment.entity';
 import { scrubPii } from '../../global/util/pii-scrub.util';
 import { detectLanguage } from '../../global/util/detect-language.util';
+import { DENY_MODE } from '../ai-engine/entity/tenant-ai-config.entity';
 
 const ESCALATION_CONFIDENCE = 0.45;
 
@@ -617,7 +618,16 @@ export class ChatService {
     // how confident the AI would be — the LLM is not even asked. A queued thread
     // stays silent (agents are already paged; see the blocked/low-conf branches).
     const deny = await this.handoffRouter.denyMatch(tenantId, egressText);
-    if (deny) {
+    // A rule set to answer first keeps every guarantee it had — the agent is
+    // still paged, the issue still stamped — and stops the customer waiting in
+    // silence for something the knowledge base already holds (REQ-260826).
+    //
+    // Not in draft mode: an approval-mode answer is a proposal nobody has
+    // delivered, so "answer first" has nothing to show and the immediate
+    // handoff stays right.
+    const denyAnswersFirst =
+      !!deny && deny.mode === DENY_MODE.ANSWER_THEN_HANDOFF && !opts.draft && !queued;
+    if (deny && !denyAnswersFirst) {
       if (queued) {
         return { conversationId: String(conversation.id), reply: null, escalate: false, needsAuth: false };
       }
@@ -633,6 +643,10 @@ export class ChatService {
         needsContactEmail: handoff.needsContactEmail,
       };
     }
+    // Carried into the branches below so a deny topic that ends up blocked or
+    // unconfident still reaches the right desk: without it the issue would lose
+    // the accounting/refund stamp precisely when a person is needed most.
+    const denyStamp = deny ? { issueType: deny.type, issueLabel: deny.label } : undefined;
 
     // The shopper asked for a person (PLN-260813 P1). Placed before retrieval:
     // an answer we are not going to send is a model call we do not need to
@@ -678,7 +692,14 @@ export class ChatService {
         text: drafted,
       });
       if (checked.decision === MODERATION_DECISION.BLOCKED) {
-        const handoff = await this.handoff(conversation.id, session, tenantId, 'moderation_blocked', text);
+        const handoff = await this.handoff(
+          conversation.id,
+          session,
+          tenantId,
+          'moderation_blocked',
+          text,
+          denyStamp,
+        );
         return {
           conversationId: String(conversation.id),
           reply: { senderType: 'system', body: handoff.body },
@@ -798,7 +819,14 @@ export class ChatService {
       if (queued) {
         return { conversationId: String(conversation.id), reply: null, escalate: false, needsAuth: false };
       }
-      const handoff = await this.handoff(conversation.id, session, tenantId, 'moderation_blocked', text);
+      const handoff = await this.handoff(
+        conversation.id,
+        session,
+        tenantId,
+        'moderation_blocked',
+        text,
+        denyStamp,
+      );
       return {
         conversationId: String(conversation.id),
         reply: { senderType: 'system', body: handoff.body },
@@ -814,7 +842,14 @@ export class ChatService {
       if (queued) {
         return { conversationId: String(conversation.id), reply: null, escalate: false, needsAuth: false };
       }
-      const handoff = await this.handoff(conversation.id, session, tenantId, 'low_confidence', text);
+      const handoff = await this.handoff(
+        conversation.id,
+        session,
+        tenantId,
+        'low_confidence',
+        text,
+        denyStamp,
+      );
       return {
         conversationId: String(conversation.id),
         reply: { senderType: 'system', body: handoff.body },
@@ -866,6 +901,13 @@ export class ChatService {
       });
     }
 
+    // Answer delivered; now the handoff the deny rule always required. Ordering
+    // matters: the AI turn is persisted first, so the customer reads the answer
+    // and then the notice rather than being told to wait and answered after.
+    const denyHandoff = denyAnswersFirst
+      ? await this.handoff(conversation.id, session, tenantId, 'policy', text, denyStamp)
+      : null;
+
     return {
       conversationId: String(conversation.id),
       // confidence rides along for the admin preview diagnostics; widget ignores it.
@@ -877,8 +919,9 @@ export class ChatService {
         // Lets the /ai-setting preview hand this exact turn to the coaching tab.
         messageId: String(aiTurn.id),
       },
-      escalate: false,
+      escalate: !!denyHandoff,
       needsAuth: false,
+      ...(denyHandoff ? { needsContactEmail: denyHandoff.needsContactEmail } : {}),
     };
   }
 

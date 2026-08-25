@@ -46,7 +46,9 @@ export function HandoffSection() {
   const [notice, setNotice] = useState<Partial<Record<ScenarioLang, string>>>({});
   const [lang, setLang] = useState<ScenarioLang>('KO');
   // Policy deny-list rows (P2) — keywords edited as a comma-joined string.
-  const [denyRows, setDenyRows] = useState<Array<{ keywords: string; type: string; label: string }>>(
+  const [denyRows, setDenyRows] = useState<
+    Array<{ keywords: string; type: string; label: string; mode: string }>
+  >(
     [],
   );
   // Issue-board SLA targets (B2) — string state, validated on save (1..168h).
@@ -77,6 +79,9 @@ export function HandoffSection() {
         keywords: (r.keywords ?? []).join(', '),
         type: r.type ?? 'other',
         label: r.label ?? 'consult',
+        // A rule saved before this field existed means silent — the behaviour
+        // its author picked, and the only safe reading of an absent value.
+        mode: r.mode ?? 'silent',
       })),
     );
     if (h.sla?.normalHours != null) setSlaNormal(String(h.sla.normalHours));
@@ -119,6 +124,7 @@ export function HandoffSection() {
           .filter(Boolean),
         type: r.type,
         label: r.label,
+        mode: r.mode,
       }))
       .filter((r) => r.keywords.length > 0);
     if (denyRules.length) handoff.denyRules = denyRules;
@@ -309,6 +315,7 @@ export function HandoffSection() {
           <div className="border-t border-gray-100 pt-4">
             <Label>{t('handoff.denyTitle')}</Label>
             <p className="mb-2 mt-0.5 text-[11px] text-gray-400">{t('handoff.denyHint')}</p>
+            <p className="mb-2 text-[11px] text-gray-400">{t('handoff.denyModeHint')}</p>
             <div className="space-y-2">
               {denyRows.map((row, i) => (
                 <div key={i} className="flex flex-wrap items-center gap-2">
@@ -351,6 +358,22 @@ export function HandoffSection() {
                       </option>
                     ))}
                   </Select>
+                  {/* Whether the customer hears anything while the agent is
+                      paged (REQ-260826). The handoff happens either way. */}
+                  <Select
+                    value={row.mode}
+                    onChange={(e) =>
+                      setDenyRows((rows) =>
+                        rows.map((r, j) => (j === i ? { ...r, mode: e.target.value } : r)),
+                      )
+                    }
+                  >
+                    {['silent', 'answer_then_handoff'].map((v) => (
+                      <option key={v} value={v}>
+                        {t(`handoff.denyMode.${v}`)}
+                      </option>
+                    ))}
+                  </Select>
                   <button
                     type="button"
                     className="text-xs font-medium text-red-500 hover:underline"
@@ -366,7 +389,7 @@ export function HandoffSection() {
               variant="secondary"
               className="mt-2"
               onClick={() =>
-                setDenyRows((rows) => [...rows, { keywords: '', type: 'other', label: 'consult' }])
+                setDenyRows((rows) => [...rows, { keywords: '', type: 'other', label: 'consult', mode: 'silent' }])
               }
             >
               {t('handoff.denyAdd')}
