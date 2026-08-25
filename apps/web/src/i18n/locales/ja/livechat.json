@@ -329,5 +329,26 @@
     "confirmDissolve": "解除しますか？",
     "dissolveHint": "解除してもグループが消えるだけで、会話とメッセージは残ります。",
     "save": "保存"
+  },
+  "agentControls": {
+    "filterLabel": "AIエージェントで絞り込み",
+    "filterAll": "全エージェント",
+    "aiAgent": "AIエージェント",
+    "aiAgentHint": "次の応答から適用されます",
+    "aiAgentSaved": "AIエージェントを{{name}}に変更しました。次の応答から適用されます。",
+    "aiAgentError": "AIエージェントを変更できませんでした。",
+    "assignedTo": "担当",
+    "assign": "担当者指定",
+    "assignTitle": "担当者を指定",
+    "assignTo": "担当者",
+    "assignPlaceholder": "担当者を選択…",
+    "assigned": "会話を割り当てました。",
+    "assignError": "会話を割り当てられませんでした。",
+    "fileIssue": "イシュー登録",
+    "fileIssueTitle": "イシューとして登録",
+    "issueType": "イシュー種別",
+    "fileIssueHint": "登録しても顧客には通知されません。",
+    "issueFiled": "イシュー #{{no}} として登録しました。",
+    "issueError": "イシューを登録できませんでした。"
   }
 }

@@ -6,8 +6,12 @@ export interface AiAgentRow {
   /** Routing key used in embed snippets / channel bindings; locked after create. */
   code: string;
   name: string;
+  /** Shopper-facing name (REQ-260825 R4); null = tenant display name. */
+  displayName: string | null;
   persona: string | null;
   rules: string[];
+  /** Per-agent first message, lang→text (REQ-260825 R3); {} = tenant copy. */
+  greeting: Record<string, string>;
   active: boolean;
   isDefault: boolean;
   updatedAt: string;
@@ -19,8 +23,15 @@ export const aiAgentsService = {
     return d.items ?? [];
   },
   create: (body: { code: string; name: string }) => apiPost<AiAgentRow>('/ai-agents', body),
-  update: (id: number, body: { name?: string; active?: boolean }) =>
-    apiPatch<AiAgentRow>(`/ai-agents/${id}`, body),
+  update: (
+    id: number,
+    body: {
+      name?: string;
+      active?: boolean;
+      display_name?: string;
+      greeting?: Record<string, string>;
+    },
+  ) => apiPatch<AiAgentRow>(`/ai-agents/${id}`, body),
   remove: (id: number) => apiDelete<{ deleted: true }>(`/ai-agents/${id}`),
   setDefault: (id: number) => apiPost<AiAgentRow>(`/ai-agents/${id}/default`),
 };

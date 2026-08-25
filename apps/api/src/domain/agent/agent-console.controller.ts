@@ -44,6 +44,9 @@ import {
   ApproveDraftRequest,
   SetAutoReplyRequest,
   SetSessionAliasRequest,
+  SetSessionAiAgentRequest,
+  AssignConversationRequest,
+  FileIssueRequest,
   TranslateBriefingRequest,
   UpdateCommentRequest,
   UpsertProfileRequest,
@@ -285,6 +288,8 @@ export class AgentConsoleController {
     // and a console that silently truncates the queue is worse than a long one.
     const { page, size } = normalizePage(query.page, query.size ?? '50');
     const scope = query.status === 'queue' || query.status === 'ended' ? query.status : 'all';
+    const agentFilter =
+      query.ai_agent_id && query.ai_agent_id !== 'all' ? Number(query.ai_agent_id) : undefined;
     const { items, total } = await this.agentService.listSessions(
       tenantOf(user),
       page,
@@ -292,16 +297,77 @@ export class AgentConsoleController {
       query.q,
       scope,
       query.channel,
+      Number.isFinite(agentFilter) ? agentFilter : undefined,
     );
     return new Paginated(
-      items.map(({ conversation, lastMessage, contact, alias, autoReplyMode, autoReplyEffective }) =>
-        toSessionResponse(conversation, lastMessage, contact, alias, {
-          mode: autoReplyMode,
-          effective: autoReplyEffective,
-        }),
+      items.map(
+        ({
+          conversation,
+          lastMessage,
+          contact,
+          alias,
+          autoReplyMode,
+          autoReplyEffective,
+          aiAgentId,
+          aiAgentName,
+        }) =>
+          toSessionResponse(
+            conversation,
+            lastMessage,
+            contact,
+            alias,
+            { mode: autoReplyMode, effective: autoReplyEffective },
+            { id: aiAgentId, name: aiAgentName },
+          ),
       ),
       buildPagination(page, size, total),
     );
+  }
+
+  @Get('ai-agents')
+  @RequireCapability(CAPABILITY.CONVERSATION_HANDLE)
+  @ApiOperation({ summary: 'Active AI agents, slim — filter/picker source (REQ-260825)' })
+  async aiAgents(@CurrentUser() user: Principal) {
+    return this.agentService.listAiAgents(tenantOf(user));
+  }
+
+  @Patch('conversations/:id/ai-agent')
+  @RequireCapability(CAPABILITY.CONVERSATION_HANDLE)
+  @ApiOperation({ summary: "Re-pin the session's AI agent (applies from the next turn)" })
+  async setAiAgent(
+    @CurrentUser() user: Principal,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: SetSessionAiAgentRequest,
+  ) {
+    return this.agentService.setSessionAiAgent(id, tenantOf(user), actorIdOf(user), body.ai_agent_id);
+  }
+
+  @Post('conversations/:id/assign')
+  @RequireCapability(CAPABILITY.CONVERSATION_ASSIGN)
+  @ApiOperation({ summary: 'Assign the conversation to a human agent (manager+)' })
+  async assignConversation(
+    @CurrentUser() user: Principal,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: AssignConversationRequest,
+  ) {
+    const conversation = await this.agentService.assignConversation(
+      id,
+      tenantOf(user),
+      actorIdOf(user),
+      body.user_id,
+    );
+    return { id: conversation.id, status: conversation.status, agentId: conversation.agentId };
+  }
+
+  @Post('conversations/:id/issue')
+  @RequireCapability(CAPABILITY.CONVERSATION_HANDLE)
+  @ApiOperation({ summary: 'File this conversation as an issue (native workflow only)' })
+  async fileIssue(
+    @CurrentUser() user: Principal,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: FileIssueRequest,
+  ) {
+    return this.agentService.fileIssue(id, tenantOf(user), actorIdOf(user), body.type);
   }
 
   @Patch('conversations/:id/alias')
@@ -380,7 +446,7 @@ export class AgentConsoleController {
     const attachments = await this.attachments.findByMessageIds(messages.map((m) => Number(m.id)));
     const customer = await this.agentService.customerContext(id, tenantId);
     const conversation = await this.agentService.findConversation(id, tenantId);
-    const sessionState = await this.agentService.sessionStateFor(id, conversation.sessionId);
+    const sessionState = await this.agentService.sessionStateFor(id, conversation.sessionId, tenantId);
     const draft = await this.agentService.pendingDraft(id, tenantId);
     return {
       conversationId: id,
@@ -400,6 +466,11 @@ export class AgentConsoleController {
       // and the composer needs the channel to know whether a reply is possible.
       channel: conversation.channel || 'widget',
       status: conversation.status,
+      // Current human owner, for the detail header (REQ-260825 R8-②).
+      assignedTo:
+        conversation.agentId != null
+          ? await this.agentService.agentName(Number(conversation.agentId))
+          : null,
       messages: messages.map((m) =>
         toMessageResponse(
           m,

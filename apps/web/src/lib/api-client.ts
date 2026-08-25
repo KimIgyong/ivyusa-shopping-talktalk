@@ -45,6 +45,39 @@ http.interceptors.request.use((config) => {
   return config;
 });
 
+/**
+ * Single-flight silent refresh (REQ-260825 R1). Parallel 401s share one
+ * /auth/refresh call; the token is rotated in the store and the winners retry.
+ * Raw axios on purpose — this call must never re-enter these interceptors.
+ * The refresh token itself stays memory-only (FE-H1), so a page reload still
+ * runs on the access token's remaining lifetime alone.
+ */
+let refreshInFlight: Promise<string | null> | null = null;
+
+function refreshAccessToken(): Promise<string | null> {
+  if (!refreshInFlight) {
+    refreshInFlight = (async () => {
+      const refreshToken = useAuthStore.getState().refreshToken;
+      if (!refreshToken) return null;
+      try {
+        const res = await axios.post<ApiEnvelope<{ accessToken: string; refreshToken: string }>>(
+          `${apiBaseUrl()}/auth/refresh`,
+          { refresh_token: refreshToken },
+        );
+        const data = res.data?.success ? res.data.data : null;
+        if (!data?.accessToken || !data.refreshToken) return null;
+        useAuthStore.getState().setTokens(data.accessToken, data.refreshToken);
+        return data.accessToken;
+      } catch {
+        return null;
+      }
+    })().finally(() => {
+      refreshInFlight = null;
+    });
+  }
+  return refreshInFlight;
+}
+
 http.interceptors.response.use(
   (response) => {
     const body = response.data as (ApiEnvelope<unknown> & { pagination?: PaginationMeta }) | undefined;
@@ -61,7 +94,7 @@ http.interceptors.response.use(
     }
     return response;
   },
-  (error: AxiosError<ApiEnvelope<unknown>>) => {
+  async (error: AxiosError<ApiEnvelope<unknown>>) => {
     // A 401 from a PUBLIC auth attempt (login, SSO, MFA verify, password
     // recovery) is that form's own feedback — bouncing to a login page would
     // eat the error and, for a first-time visitor (no stored tenantSlug),
@@ -70,6 +103,19 @@ http.interceptors.response.use(
     const isPublicAuthAttempt =
       /\/auth\/(user\/login|admin\/login|sso\/ama|mfa\/verify|password\/)/.test(requestUrl);
     if (error.response?.status === 401 && !isPublicAuthAttempt) {
+      // Silent refresh first (REQ-260825 R1): one retry per request. A second
+      // 401 on the retried request (or no/expired refresh token) falls through
+      // to the logout redirect, which is exactly the pre-R1 behaviour.
+      const original = error.config as (typeof error.config & { _retried?: boolean }) | undefined;
+      if (original && !original._retried) {
+        const fresh = await refreshAccessToken();
+        if (fresh) {
+          original._retried = true;
+          original.headers = original.headers ?? {};
+          original.headers.Authorization = `Bearer ${fresh}`;
+          return http.request(original);
+        }
+      }
       const store = useAuthStore.getState();
       // Route back to the matching login page: /admin/* → admin login, tenant
       // users → their /<slug> page, otherwise the public landing page. When the

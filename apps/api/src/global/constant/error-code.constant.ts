@@ -180,6 +180,12 @@ export const ERROR_CODE = {
     code: 'E5058',
     message: 'Recipient is not a member of this group or cannot receive messages',
   },
+  // E5059 — manual issue filing (PLN-260825).
+  /** The tenant did not subscribe to the native issue-workflow add-on. */
+  ISSUE_WORKFLOW_NOT_ENABLED: {
+    code: 'E5059',
+    message: 'The issue workflow add-on is not enabled for this store',
+  },
 
   // E9xxx — system
   INTERNAL_ERROR: { code: 'E9001', message: 'Internal server error' },

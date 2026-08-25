@@ -1,4 +1,4 @@
-import { IsArray, IsBoolean, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsArray, IsBoolean, IsObject, IsOptional, IsString, MaxLength } from 'class-validator';
 
 /** Request DTOs — snake_case (amoeba_code_convention). */
 export class CreateAiAgentRequest {
@@ -15,9 +15,15 @@ export class CreateAiAgentRequest {
 export class UpdateAiAgentRequest {
   @IsOptional() @IsString() @MaxLength(100) name?: string;
 
+  /** Shopper-facing name (REQ-260825 R4); blank clears back to the tenant name. */
+  @IsOptional() @IsString() @MaxLength(100) display_name?: string;
+
   @IsOptional() @IsString() @MaxLength(4000) persona?: string;
 
   @IsOptional() @IsArray() @IsString({ each: true }) rules?: string[];
+
+  /** Per-agent first message, lang→text (REQ-260825 R3); server sanitizes keys. */
+  @IsOptional() @IsObject() greeting?: Record<string, string>;
 
   @IsOptional() @IsBoolean() active?: boolean;
 }

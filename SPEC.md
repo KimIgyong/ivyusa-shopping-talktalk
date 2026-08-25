@@ -264,7 +264,7 @@ own JWT; MFA step-up exempt, must-change-password kept. Errors E5032–E5034. Co
 guide `docs/guide/AMA-SSO-INTEGRATION.md`.
 
 ### 8.2 Token Policy
-Access 15 min (`JWT_ACCESS_TTL`) · Refresh 7 days (`JWT_REFRESH_TTL`). Passwords bcrypt
+Access 1 h (`JWT_ACCESS_TTL`, silent refresh in the console) · Refresh 7 days (`JWT_REFRESH_TTL`). Passwords bcrypt
 (seed/invited accounts `must_change_password=1`).
 
 ### 8.3 Permission System (RBAC)

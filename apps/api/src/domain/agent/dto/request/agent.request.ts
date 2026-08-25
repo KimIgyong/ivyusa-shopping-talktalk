@@ -20,6 +20,23 @@ export class ListSessionsQuery {
   @IsOptional() @IsString() status?: string;
   /** Origin channel filter: 'all' (default) | widget | telegram | zalo | email … */
   @IsOptional() @IsString() channel?: string;
+  /** AI-agent filter (REQ-260825 R7): agent id; omitted/'all' = every agent. */
+  @IsOptional() @IsString() ai_agent_id?: string;
+}
+
+/** Re-pin the session to another AI agent — applies from the next turn. */
+export class SetSessionAiAgentRequest {
+  @IsInt() @Min(1) ai_agent_id: number;
+}
+
+/** Hand the conversation to a specific human agent (REQ-260825 R8-②). */
+export class AssignConversationRequest {
+  @IsInt() @Min(1) user_id: number;
+}
+
+/** File the conversation as an issue (REQ-260825 R8-③); unknown types → 'other'. */
+export class FileIssueRequest {
+  @IsString() @MaxLength(32) type: string;
 }
 
 /** Transcript paging for the console (PLN-260807): recent tail, then older blocks. */

@@ -33,9 +33,24 @@ export class AiAgent {
   @Column({ type: 'varchar', length: 100 })
   name: string;
 
+  /**
+   * Shopper-facing name (REQ-260825 R4): overrides the tenant's widget
+   * displayName for sessions pinned to this agent. NULL = tenant name.
+   * `name` above stays the console label.
+   */
+  @Column({ name: 'display_name', type: 'varchar', length: 100, nullable: true })
+  displayName: string | null;
+
   /** NULL falls back to DEFAULT_PERSONA — same semantics as tenant_ai_config. */
   @Column({ type: 'text', nullable: true })
   persona: string | null;
+
+  /**
+   * Per-agent first/welcome message (REQ-260825 R3): lang→text map like the
+   * tenant's widget_copy.firstVisit. NULL/empty = tenant first-visit copy.
+   */
+  @Column({ type: 'json', nullable: true })
+  greeting: Record<string, string> | null;
 
   @Column({ type: 'json', nullable: true })
   rules: string[] | null;

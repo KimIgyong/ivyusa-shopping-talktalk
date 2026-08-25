@@ -3,7 +3,14 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { In, MoreThan, Repository } from 'typeorm';
 import { SENDER_TYPE, USER_RANK } from '@ivy/types';
 import type { IssueCardContext } from './issue.mapper';
-import { Issue, ISSUE_REJECT_REASON, ISSUE_STATUS, ISSUE_TIER } from './entity/issue.entity';
+import {
+  Issue,
+  ISSUE_REJECT_REASON,
+  ISSUE_STATUS,
+  ISSUE_TIER,
+  ISSUE_TYPES,
+  type IssueType,
+} from './entity/issue.entity';
 import { IssueEvent, ISSUE_EVENT_TYPE } from './entity/issue-event.entity';
 import { Tenant } from '../tenant/entity/tenant.entity';
 import { Message } from '../chat/entity/message.entity';
@@ -167,6 +174,49 @@ export class IssueService implements OnModuleInit {
     this.logger.log(
       `issue #${issue.issueNo} opened (tenant=${tenantId} conversation=${conversationId}, ${payload.reason ?? 'escalation'})`,
     );
+  }
+
+  /**
+   * Operator-initiated issue (REQ-260825 R8-③). Unlike the escalation path,
+   * this is SILENT toward the customer — filing a thread as an issue is an
+   * internal act, not a state the shopper was promised an update about. A
+   * conversation that already has an issue just returns it (uk_issue_conv).
+   */
+  async createManual(
+    tenantId: number,
+    conversationId: number,
+    sessionId: number,
+    type: string,
+    actorId: number,
+  ): Promise<Issue> {
+    if (!(await this.isNative(tenantId))) {
+      this.logger.warn(`manual issue refused: tenant=${tenantId} not native`);
+      throw new BusinessException(ERROR_CODE.ISSUE_WORKFLOW_NOT_ENABLED, HttpStatus.CONFLICT);
+    }
+    const existing = await this.issueRepo.findOne({ where: { conversationId, tenantId } });
+    if (existing) return existing;
+    const safeType: IssueType = (ISSUE_TYPES as readonly string[]).includes(type)
+      ? (type as IssueType)
+      : 'other';
+    const issue = await this.insertWithSequence({
+      tenantId,
+      conversationId,
+      sessionId,
+      customerId: null,
+      type: safeType,
+      assigneeLabel: DEFAULT_LABEL_BY_TYPE[safeType] ?? 'consult',
+      status: ISSUE_STATUS.RECEIVED,
+    });
+    await this.record(issue, ISSUE_EVENT_TYPE.CREATED, {
+      actorType: 'agent',
+      actorId,
+      toStatus: ISSUE_STATUS.RECEIVED,
+      note: 'manual',
+    });
+    this.logger.log(
+      `issue #${issue.issueNo} filed manually (tenant=${tenantId} conversation=${conversationId})`,
+    );
+    return issue;
   }
 
   /**

@@ -15,6 +15,9 @@ export interface AgentSession {
   /** Shown when the shopper left an address but no name (off-hours capture). */
   customerEmail?: string | null;
   status?: string;
+  /** Effective AI agent of the session (REQ-260825 R6); NULL pin = default. */
+  aiAgentId?: string | null;
+  aiAgentName?: string | null;
   /** Origin surface: widget | telegram | viber | zalo | line | kakao | sms | email … */
   channel?: string | null;
   escalated?: boolean;
@@ -91,7 +94,10 @@ export interface ConversationDetail {
   status?: string;
   /** Origin surface — the composer is disabled on receive-only channels. */
   channel?: string | null;
+  /** Current human owner's name (REQ-260825 R8-②); null = unassigned. */
   assignedTo?: string | null;
+  aiAgentId?: string | null;
+  aiAgentName?: string | null;
   messages: ChatMessage[];
   /** Older messages exist before the first one returned (PLN-260807). */
   hasMore?: boolean;
@@ -169,13 +175,35 @@ export interface AgentAlert {
   createdAt?: string;
 }
 
+/** Slim AI-agent row for the filter/picker (staff-readable, REQ-260825 R7). */
+export interface AiAgentOption {
+  id: number;
+  name: string;
+  displayName: string | null;
+  isDefault: boolean;
+}
+
 export const liveChatService = {
-  sessions: (q?: string, status?: string, channel?: string) =>
+  sessions: (q?: string, status?: string, channel?: string, aiAgentId?: string) =>
     apiGet<AgentSession[]>('/agent/sessions', {
       ...(q?.trim() ? { q: q.trim() } : {}),
       ...(status && status !== 'all' ? { status } : {}),
       ...(channel && channel !== 'all' ? { channel } : {}),
+      ...(aiAgentId && aiAgentId !== 'all' ? { ai_agent_id: aiAgentId } : {}),
     }),
+  aiAgents: () => apiGet<AiAgentOption[]>('/agent/ai-agents'),
+  setAiAgent: (id: string, aiAgentId: number) =>
+    apiPatch<{ sessionId: string; aiAgentId: number; aiAgentName: string }>(
+      `/agent/conversations/${id}/ai-agent`,
+      { ai_agent_id: aiAgentId },
+    ),
+  assignConversation: (id: string, userId: number) =>
+    apiPost<{ id: string; status: string; agentId: number }>(
+      `/agent/conversations/${id}/assign`,
+      { user_id: userId },
+    ),
+  fileIssue: (id: string, type: string) =>
+    apiPost<{ issueId: number; issueNo: number }>(`/agent/conversations/${id}/issue`, { type }),
   setAlias: (id: string, alias: string | null) =>
     apiPatch<{ sessionId: string; alias: string | null }>(`/agent/conversations/${id}/alias`, {
       alias,

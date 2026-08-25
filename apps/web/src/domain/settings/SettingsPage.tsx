@@ -247,6 +247,23 @@ export function InstallGuideCard() {
     `</script>\n` +
     `<script src="${WIDGET_URL}/embed.js" defer></script>`;
 
+  // Odoo (REQ-260825 R2): the mall's real login page is /web/login?redirect=…,
+  // not the Shopify-style /account/login default — and /web/login must join the
+  // hide list or the widget mounts on the login page and burns the one-shot
+  // reopen flag (same failure mode as the tenant login page, PR #321).
+  const odooSnippet =
+    `<!-- ShopTalk widget (Odoo) -->\n` +
+    `<script>\n` +
+    `  window.IVY_WIDGET_CONFIG = {\n` +
+    `    shop: ${JSON.stringify(shop)},\n` +
+    `    widgetUrl: ${JSON.stringify(WIDGET_URL)},\n` +
+    `    loginPath: "/web/login",\n` +
+    `    loginReturnParam: "redirect",\n` +
+    `    hideOnPaths: ["/web/login", "/web/signup", "/web/reset_password"]\n` +
+    `  };\n` +
+    `</script>\n` +
+    `<script src="${WIDGET_URL}/embed.js" defer></script>`;
+
   const scriptTagSnippet =
     `POST https://${shop}/admin/api/2024-10/script_tags.json\n` +
     `{\n` +
@@ -377,7 +394,7 @@ export function InstallGuideCard() {
 
       {platform === 'cafe24' && simpleGuide('cafe24', cafe24Snippet)}
       {platform === 'woocommerce' && simpleGuide('woocommerce', wooSnippet)}
-      {platform === 'odoo' && simpleGuide('odoo', htmlSnippet)}
+      {platform === 'odoo' && simpleGuide('odoo', odooSnippet)}
     </Card>
   );
 }

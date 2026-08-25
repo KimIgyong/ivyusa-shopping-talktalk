@@ -9,6 +9,7 @@ import { AgentProfile } from './entity/agent-profile.entity';
 import { Assignment } from './entity/assignment.entity';
 import { AgentDailyStat } from './entity/agent-daily-stat.entity';
 import { AgentAlert } from './entity/agent-alert.entity';
+import { AiAgent } from '../ai-engine/entity/ai-agent.entity';
 import { ChatComment } from './entity/chat-comment.entity';
 import { ChatGroup } from './entity/chat-group.entity';
 import { ChatGroupMember } from './entity/chat-group-member.entity';
@@ -42,6 +43,8 @@ import { AttachmentModule } from '../attachment/attachment.module';
       Assignment,
       AgentDailyStat,
       AgentAlert,
+      // Read-only: AI-agent names for queue rows/filter (REQ-260825 R6/R7).
+      AiAgent,
       // Internal notes + stored briefings (REQ-260824 R3/R4).
       ChatComment,
       ConversationBriefing,

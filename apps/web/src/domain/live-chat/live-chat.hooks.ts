@@ -85,16 +85,74 @@ export function useDraftActions(id: string | null) {
   return { approve, discard };
 }
 
-export const useSessions = (q = '', status = 'all', channel = 'all') => {
+export const useSessions = (q = '', status = 'all', channel = 'all', aiAgentId = 'all') => {
   const tenantKey = useTenantKey();
   return useQuery({
-    queryKey: ['agent', tenantKey, 'sessions', q, status, channel],
-    queryFn: () => liveChatService.sessions(q, status, channel),
+    queryKey: ['agent', tenantKey, 'sessions', q, status, channel, aiAgentId],
+    queryFn: () => liveChatService.sessions(q, status, channel, aiAgentId),
     // 5s (was 15s): a new escalation should surface within a beat, not a
     // quarter-minute — the endpoint is a few ms (PLN-260804).
     refetchInterval: 5000,
   });
 };
+
+/** Slim AI-agent roster for the filter/picker (REQ-260825 R7) — staff-readable. */
+export const useAiAgentRoster = () => {
+  const tenantKey = useTenantKey();
+  return useQuery({
+    queryKey: ['agent', tenantKey, 'ai-agents'],
+    queryFn: () => liveChatService.aiAgents(),
+    staleTime: 60_000,
+  });
+};
+
+/** Re-pin the conversation's session to another AI agent (REQ-260825 R8-①). */
+export function useSetSessionAiAgent(id: string | null) {
+  const { t } = useTranslation('livechat');
+  const qc = useQueryClient();
+  const tenantKey = useTenantKey();
+  return useMutation({
+    mutationFn: (aiAgentId: number) => liveChatService.setAiAgent(id as string, aiAgentId),
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ['agent', tenantKey, 'conversation', id] });
+      qc.invalidateQueries({ queryKey: ['agent', tenantKey, 'sessions'] });
+      toast.success(t('agentControls.aiAgentSaved', { name: data.aiAgentName }));
+    },
+    onError: (e: Error) => toast.error(e.message || t('agentControls.aiAgentError'), { sticky: true }),
+  });
+}
+
+/** Hand the conversation to a specific human agent (manager+, REQ-260825 R8-②). */
+export function useAssignConversation(id: string | null) {
+  const { t } = useTranslation('livechat');
+  const qc = useQueryClient();
+  const tenantKey = useTenantKey();
+  return useMutation({
+    mutationFn: (userId: number) => liveChatService.assignConversation(id as string, userId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['agent', tenantKey, 'conversation', id] });
+      qc.invalidateQueries({ queryKey: ['agent', tenantKey, 'sessions'] });
+      qc.invalidateQueries({ queryKey: ['issue', tenantKey, id] });
+      toast.success(t('agentControls.assigned'));
+    },
+    onError: (e: Error) => toast.error(e.message || t('agentControls.assignError'), { sticky: true }),
+  });
+}
+
+/** File the conversation as an issue (REQ-260825 R8-③). */
+export function useFileIssue(id: string | null) {
+  const { t } = useTranslation('livechat');
+  const qc = useQueryClient();
+  const tenantKey = useTenantKey();
+  return useMutation({
+    mutationFn: (type: string) => liveChatService.fileIssue(id as string, type),
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ['issue', tenantKey, id] });
+      toast.success(t('agentControls.issueFiled', { no: data.issueNo }));
+    },
+    onError: (e: Error) => toast.error(e.message || t('agentControls.issueError'), { sticky: true }),
+  });
+}
 
 export const useConversation = (id: string | null) => {
   const tenantKey = useTenantKey();

@@ -12,9 +12,30 @@ const PERSONA_MAX_CHARS = 4000;
 
 export interface AiAgentInput {
   name?: string;
+  /** Shopper-facing name; blank clears (falls back to the tenant name). */
+  displayName?: string | null;
   persona?: string | null;
   rules?: string[] | null;
+  /** Per-agent first message, lang→text; empty map clears (tenant fallback). */
+  greeting?: Record<string, string> | null;
   active?: boolean;
+}
+
+/** Widget-copy language keys — mirrors tenants.widget_copy (uppercase codes). */
+const GREETING_LANGS = new Set(['EN', 'ES', 'KO', 'VI', 'JA', 'ZH']);
+const GREETING_MAX_CHARS = 500;
+
+/** Keep only known languages with non-blank text; nothing left → NULL. */
+function sanitizeGreeting(input: Record<string, string> | null | undefined): Record<string, string> | null {
+  if (!input) return null;
+  const out: Record<string, string> = {};
+  for (const [key, value] of Object.entries(input)) {
+    const lang = key.toUpperCase();
+    if (!GREETING_LANGS.has(lang) || typeof value !== 'string') continue;
+    const text = value.trim().slice(0, GREETING_MAX_CHARS);
+    if (text) out[lang] = text;
+  }
+  return Object.keys(out).length ? out : null;
 }
 
 /**
@@ -99,8 +120,13 @@ export class AiAgentService {
   async update(tenantId: number, id: number, input: AiAgentInput): Promise<AiAgent> {
     const row = await this.require(tenantId, id);
     if (input.name !== undefined) row.name = input.name.trim().slice(0, 100);
+    if (input.displayName !== undefined) {
+      const trimmed = (input.displayName ?? '').trim().slice(0, 100);
+      row.displayName = trimmed || null;
+    }
     if (input.persona !== undefined) row.persona = this.clampPersona(input.persona);
     if (input.rules !== undefined) row.rules = input.rules;
+    if (input.greeting !== undefined) row.greeting = sanitizeGreeting(input.greeting);
     if (input.active !== undefined) {
       if (!input.active && row.isDefault === 1) {
         this.logger.warn(`refused to deactivate default ai agent: tenant=${tenantId} id=${id}`);

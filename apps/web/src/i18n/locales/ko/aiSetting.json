@@ -291,6 +291,21 @@
     "snippetCopyFailed": "복사에 실패했습니다 — 직접 선택해 복사해 주세요.",
     "snippetHint": "이 에이전트가 응대할 페이지에 붙여넣으세요. 이미 설치된 페이지라면 IVY_WIDGET_CONFIG에 agent 줄만 추가하면 됩니다.",
     "shared": "모든 에이전트 공통",
-    "studioAgent": "에이전트: {{name}}"
+    "studioAgent": "에이전트: {{name}}",
+    "displayName": "위젯 표시명",
+    "displayNamePlaceholder": "예: Livy",
+    "displayNameHint": "위젯 헤더에 고객에게 표시됩니다. 비우면 상점 표시명을 사용합니다.",
+    "greeting": "첫 응답 메시지",
+    "greetingPlaceholder": "안녕하세요! Livy예요. 무엇을 도와드릴까요?",
+    "greetingHint": "이 에이전트가 배정된 세션의 첫 말풍선입니다. 비운 언어는 상점 공통 첫 메시지를 사용합니다."
+  },
+  "agentScope": {
+    "button": "에이전트",
+    "title": "이 버튼을 사용할 에이전트",
+    "subtitle": "버튼별 에이전트 지정",
+    "hint": "\"{{label}}\" 버튼을 노출할 AI 에이전트를 선택하세요.",
+    "all": "모든 에이전트 공통",
+    "selected": "선택한 에이전트만",
+    "saveHint": "시나리오 버튼을 저장할 때 적용됩니다."
   }
 }

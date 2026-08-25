@@ -252,9 +252,12 @@ function ScenarioButtonsSection() {
   const { t: tc } = useTranslation('common');
   const { data: config, isLoading, error } = useAiConfig();
   const updateConfig = useUpdateAiConfig();
+  const { data: agents } = useAiAgents();
   const [buttons, setButtons] = useState<ScenarioButton[]>([]);
   const [overrides, setOverrides] = useState<Record<string, ScenarioOverride>>({});
   const [editing, setEditing] = useState<string | null>(null);
+  // Which button's agent-scope modal is open (REQ-260825 R5); index into `buttons`.
+  const [scopeFor, setScopeFor] = useState<number | null>(null);
   const [note, setNote] = useState('');
 
   useEffect(() => {
@@ -298,7 +301,7 @@ function ScenarioButtonsSection() {
 
   return (
     <Card
-      title={`${t('scenarioButtons')} · ${t('agents.shared')}`}
+      title={`${t('scenarioButtons')} · ${t('agentScope.subtitle')}`}
       action={
         <Button size="sm" variant="secondary" onClick={add} disabled={isLoading || !!error}>
           <Plus className="h-4 w-4" /> {t('addButton')}
@@ -367,6 +370,16 @@ function ScenarioButtonsSection() {
                 >
                   <ArrowDown className="h-4 w-4" />
                 </Button>
+                {/* Agent scope, LEFT of delete (REQ-260825 R5): which agents show this button. */}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setScopeFor(i)}
+                  title={t('agentScope.title')}
+                >
+                  {t('agentScope.button')}
+                  {(btn.agentIds?.length ?? 0) > 0 ? ` (${btn.agentIds!.length})` : ''}
+                </Button>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -387,6 +400,67 @@ function ScenarioButtonsSection() {
               )}
             </div>
           ))}
+          {/* Agent-scope modal (REQ-260825 R5): visibility only — behaviour never differs. */}
+          <Modal
+            open={scopeFor != null}
+            onClose={() => setScopeFor(null)}
+            title={t('agentScope.title')}
+            size="sm"
+            footer={<Button size="sm" onClick={() => setScopeFor(null)}>{tc('confirm')}</Button>}
+          >
+            {scopeFor != null && buttons[scopeFor] && (
+              <div className="space-y-3">
+                <p className="text-xs text-gray-500">
+                  {t('agentScope.hint', { label: buttons[scopeFor].label || t('label') })}
+                </p>
+                <label className="flex items-center gap-2 text-sm text-gray-700">
+                  <input
+                    type="radio"
+                    checked={(buttons[scopeFor].agentIds?.length ?? 0) === 0}
+                    onChange={() => patch(scopeFor, { agentIds: [] })}
+                  />
+                  {t('agentScope.all')}
+                </label>
+                <label className="flex items-center gap-2 text-sm text-gray-700">
+                  <input
+                    type="radio"
+                    checked={(buttons[scopeFor].agentIds?.length ?? 0) > 0}
+                    onChange={() => {
+                      const first = (agents ?? [])[0];
+                      if (first) patch(scopeFor, { agentIds: [first.id] });
+                    }}
+                  />
+                  {t('agentScope.selected')}
+                </label>
+                <div className="ml-6 space-y-1">
+                  {(agents ?? []).map((a) => {
+                    const ids = buttons[scopeFor].agentIds ?? [];
+                    const checked = ids.includes(a.id);
+                    return (
+                      <label key={a.id} className="flex items-center gap-2 text-sm text-gray-600">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={(e) =>
+                            patch(scopeFor, {
+                              agentIds: e.target.checked
+                                ? [...ids, a.id]
+                                : ids.filter((v) => v !== a.id),
+                            })
+                          }
+                        />
+                        {a.name}
+                        {a.isDefault && (
+                          <span className="text-xs text-gray-400">{t('agents.default')}</span>
+                        )}
+                      </label>
+                    );
+                  })}
+                </div>
+                <p className="text-[11px] text-gray-400">{t('agentScope.saveHint')}</p>
+              </div>
+            )}
+          </Modal>
           <ChangeNoteRow
             value={note}
             onChange={setNote}

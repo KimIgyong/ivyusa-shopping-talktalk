@@ -36,8 +36,16 @@ export function useUpdateAiAgent() {
   const { t } = useTranslation('aiSetting');
   const invalidate = useAgentInvalidate();
   return useMutation({
-    mutationFn: ({ id, ...body }: { id: number; name?: string; active?: boolean }) =>
-      aiAgentsService.update(id, body),
+    mutationFn: ({
+      id,
+      ...body
+    }: {
+      id: number;
+      name?: string;
+      active?: boolean;
+      display_name?: string;
+      greeting?: Record<string, string>;
+    }) => aiAgentsService.update(id, body),
     onSuccess: () => {
       invalidate();
       toast.success(t('agents.saved'));

@@ -107,7 +107,7 @@ Copy the `.example` to the real filename on the server and fill in secrets — t
 | `RABBITMQ_URL` | amqp://…:5682 | amqp://…@rabbitmq:5672 | amqp://…@rabbitmq:5672 | |
 | `RABBITMQ_USER` / `RABBITMQ_PASSWORD` | — | secret | secret | staging/prod compose |
 | `JWT_ACCESS_SECRET` / `JWT_REFRESH_SECRET` | dev | **secret** | **secret** | rotate per env |
-| `JWT_ACCESS_TTL` / `JWT_REFRESH_TTL` | 900 / 604800 | same | same | 15m / 7d |
+| `JWT_ACCESS_TTL` / `JWT_REFRESH_TTL` | 3600 / 604800 | same | same | same |
 | `CRED_ENC_KEY` | dev key | **secret** | **secret** | AES-256-GCM 32-byte base64 (POL-018) |
 | `AI_DEFAULT_PROVIDER` | stub | stub | anthropic | gateway default adapter |
 | `ANTHROPIC_API_KEY` | — | optional | **required** | real provider key |

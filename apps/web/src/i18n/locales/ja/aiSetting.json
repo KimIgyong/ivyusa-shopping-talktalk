@@ -291,6 +291,21 @@
     "snippetCopyFailed": "コピーできませんでした — 手動で選択してコピーしてください。",
     "snippetHint": "このエージェントが応対するページに貼り付けてください。設置済みなら IVY_WIDGET_CONFIG に agent 行を足すだけです。",
     "shared": "全エージェント共通",
-    "studioAgent": "エージェント: {{name}}"
+    "studioAgent": "エージェント: {{name}}",
+    "displayName": "ウィジェット表示名",
+    "displayNamePlaceholder": "例: Livy",
+    "displayNameHint": "ウィジェットで顧客に表示されます。空欄=ストア表示名。",
+    "greeting": "最初の応答メッセージ",
+    "greetingPlaceholder": "こんにちは！Livyです。ご用件をどうぞ。",
+    "greetingHint": "このエージェント担当セッションの最初の吹き出しです。空欄の言語はストア共通メッセージを使用します。"
+  },
+  "agentScope": {
+    "button": "エージェント",
+    "title": "このボタンを使うエージェント",
+    "subtitle": "ボタン別エージェント指定",
+    "hint": "「{{label}}」を表示するAIエージェントを選択してください。",
+    "all": "全エージェント共通",
+    "selected": "選択したエージェントのみ",
+    "saveHint": "シナリオボタンの保存時に適用されます。"
   }
 }

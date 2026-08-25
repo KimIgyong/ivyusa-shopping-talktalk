@@ -32,6 +32,8 @@ interface AuthState {
     mfaEnforceFrom?: string | null;
     mfaEnforced?: boolean;
   }) => void;
+  /** Token rotation from /auth/refresh — everything else stays as-is. */
+  setTokens: (accessToken: string, refreshToken: string) => void;
   setPrincipal: (principal: Principal) => void;
   setTenant: (slug: string, name?: string | null) => void;
   clearMustChange: () => void;
@@ -69,6 +71,7 @@ export const useAuthStore = create<AuthState>()(
           mfaEnforceFrom: mfaEnforceFrom ?? null,
           mfaEnforced: mfaEnforced ?? false,
         }),
+      setTokens: (accessToken, refreshToken) => set({ accessToken, refreshToken }),
       setPrincipal: (principal) => set({ principal }),
       setTenant: (tenantSlug, tenantName) => set({ tenantSlug, tenantName: tenantName ?? null }),
       clearMustChange: () => set({ mustChangePassword: false }),
