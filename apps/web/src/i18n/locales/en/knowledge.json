@@ -291,5 +291,7 @@
   "categoryShown": "Category shown",
   "categoryRemoved": "Category deleted",
   "usageTypeActive": "In use (off keeps the guide, stops the matching)",
-  "usageTypeTakenHint": "{{count}} products match, but \"{{type}}\" is above this type and takes them. Move this type up, or narrow the keywords."
+  "usageTypeTakenHint": "{{count}} products match, but \"{{type}}\" is above this type and takes them. Move this type up, or narrow the keywords.",
+  "statusPendingHint": "Already used in answers by keyword search; waiting only for the semantic index.",
+  "statusLegend": "“Pending” documents are already searchable by keyword — only semantic search waits for the index."
 }
