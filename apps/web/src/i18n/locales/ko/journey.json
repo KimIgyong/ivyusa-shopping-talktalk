@@ -1,0 +1,28 @@
+{
+  "title": "고객여정분석",
+  "generate": "리포트 생성",
+  "past": "지난 리포트",
+  "empty": "아직 리포트가 없습니다.",
+  "queued": "접수했습니다 — 작성되면 여기에 나타납니다.",
+  "asyncNote": "그룹이 크면 수십 초 걸립니다. 이 화면을 떠나셔도 됩니다.",
+  "period": {
+    "whole": "전체",
+    "range": "기간 지정"
+  },
+  "status": {
+    "pending": "작성 중",
+    "ready": "완료",
+    "failed": "실패"
+  },
+  "kind": {
+    "comparison": "심화분석"
+  },
+  "conditions": "기간 {{period}} · 세션 {{sessions}} · 기준 v{{version}} · {{model}}",
+  "compare": {
+    "action": "심화분석 ({{count}}/2)",
+    "versionsDiffer": "두 리포트의 작성 기준이 다릅니다(v{{a}}, v{{b}}). 차이의 일부는 고객이 아니라 기준에서 옵니다."
+  },
+  "criteria": {
+    "saved": "v{{version}}으로 저장했습니다"
+  }
+}

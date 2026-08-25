@@ -1,0 +1,28 @@
+{
+  "title": "Informe de recorrido del cliente",
+  "generate": "Generar informe",
+  "past": "Informes anteriores",
+  "empty": "Aún no hay informes.",
+  "queued": "En cola: aparecerá aquí cuando esté escrito.",
+  "asyncNote": "En un grupo grande tarda decenas de segundos. Puedes salir de esta pantalla.",
+  "period": {
+    "whole": "Todo el tiempo",
+    "range": "Rango de fechas"
+  },
+  "status": {
+    "pending": "Escribiendo",
+    "ready": "Listo",
+    "failed": "Falló"
+  },
+  "kind": {
+    "comparison": "Comparación"
+  },
+  "conditions": "Periodo {{period}} · {{sessions}} sesiones · criterios v{{version}} · {{model}}",
+  "compare": {
+    "action": "Comparar ({{count}}/2)",
+    "versionsDiffer": "Se escribieron con criterios distintos (v{{a}} y v{{b}}). Parte de la diferencia viene de las reglas, no del cliente."
+  },
+  "criteria": {
+    "saved": "Guardado como v{{version}}"
+  }
+}

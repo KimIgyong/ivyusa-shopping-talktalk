@@ -1,0 +1,28 @@
+{
+  "title": "Báo cáo hành trình khách hàng",
+  "generate": "Tạo báo cáo",
+  "past": "Báo cáo trước",
+  "empty": "Chưa có báo cáo nào.",
+  "queued": "Đã tiếp nhận — sẽ hiện ở đây khi viết xong.",
+  "asyncNote": "Nhóm lớn mất vài chục giây. Bạn có thể rời màn hình này.",
+  "period": {
+    "whole": "Toàn bộ",
+    "range": "Khoảng thời gian"
+  },
+  "status": {
+    "pending": "Đang viết",
+    "ready": "Xong",
+    "failed": "Thất bại"
+  },
+  "kind": {
+    "comparison": "So sánh"
+  },
+  "conditions": "Kỳ {{period}} · {{sessions}} phiên · tiêu chí v{{version}} · {{model}}",
+  "compare": {
+    "action": "So sánh ({{count}}/2)",
+    "versionsDiffer": "Hai báo cáo dùng tiêu chí khác nhau (v{{a}} và v{{b}}). Một phần khác biệt đến từ quy tắc, không phải từ khách hàng."
+  },
+  "criteria": {
+    "saved": "Đã lưu thành v{{version}}"
+  }
+}

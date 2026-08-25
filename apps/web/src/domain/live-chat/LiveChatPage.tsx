@@ -45,6 +45,7 @@ import {
 } from './live-chat.hooks';
 import { useUsers } from '@/domain/users/users.hooks';
 import { BriefingCard } from './BriefingCard';
+import { JourneyPanel } from '../journey/JourneyPanel';
 import { CommentCard } from './CommentCard';
 import { GroupCreateModal } from './GroupCreateModal';
 import { GroupRoom } from './GroupRoom';
@@ -963,8 +964,16 @@ export function LiveChatPage() {
 
         {/* Context + briefing */}
         <div className="col-span-3 space-y-4 overflow-y-auto">
-          {/* On-demand briefing + translation (REQ-260824 R3). */}
-          <BriefingCard conversationId={selected} />
+          {/* A group asks a different question than a thread does: not "what is
+              this conversation about" but "what does this relationship look
+              like". So the briefing gives way to the journey report here, and
+              only here (PLN-260825). */}
+          {selectedGroup ? (
+            <JourneyPanel groupId={selectedGroup} />
+          ) : (
+            /* On-demand briefing + translation (REQ-260824 R3). */
+            <BriefingCard conversationId={selected} />
+          )}
 
           {/* Internal notes on the thread / its session (REQ-260824 R4). */}
           <CommentCard conversationId={selected} />

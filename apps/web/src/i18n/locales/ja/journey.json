@@ -1,0 +1,28 @@
+{
+  "title": "カスタマージャーニー分析",
+  "generate": "レポート作成",
+  "past": "過去のレポート",
+  "empty": "まだレポートがありません。",
+  "queued": "受け付けました — 作成され次第ここに表示されます。",
+  "asyncNote": "グループが大きいと数十秒かかります。この画面を離れても大丈夫です。",
+  "period": {
+    "whole": "全期間",
+    "range": "期間指定"
+  },
+  "status": {
+    "pending": "作成中",
+    "ready": "完了",
+    "failed": "失敗"
+  },
+  "kind": {
+    "comparison": "比較分析"
+  },
+  "conditions": "期間 {{period}} · セッション {{sessions}} · 基準 v{{version}} · {{model}}",
+  "compare": {
+    "action": "比較分析 ({{count}}/2)",
+    "versionsDiffer": "2つのレポートは異なる基準（v{{a}}・v{{b}}）で書かれています。差の一部は顧客ではなく基準に由来します。"
+  },
+  "criteria": {
+    "saved": "v{{version}} として保存しました"
+  }
+}
