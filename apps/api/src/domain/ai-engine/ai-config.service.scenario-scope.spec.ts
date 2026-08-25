@@ -43,6 +43,13 @@ describe('AiConfigService — scenario agent scope', () => {
     ...(agentIds ? { agentIds } : {}),
   });
 
+  it('refuses an absent/blank token — never an arbitrary-session answer (FIX-260825)', async () => {
+    const h = build({ buttons: [] });
+
+    await expect(h.svc.getScenarioForSession(undefined as unknown as string)).rejects.toThrow();
+    await expect(h.svc.getScenarioForSession('  ')).rejects.toThrow();
+  });
+
   it('unscoped buttons show for every agent (pre-R5 behaviour)', async () => {
     const h = build({ buttons: [btn('a'), btn('b')], sessionAgentId: 7 });
 
