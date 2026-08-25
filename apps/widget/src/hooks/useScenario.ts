@@ -5,18 +5,23 @@ import type { ScenarioButton } from '../lib/types';
 
 /**
  * Resolves the scenario menu buttons. Reads the admin-managed config from the
- * backend (labels come from config). On error/empty, falls back to the
- * hardcoded default set so the widget always shows a menu.
+ * backend (labels come from config). The hardcoded fallback applies ONLY when
+ * the fetch failed or hasn't answered — a successful EMPTY list is a real
+ * answer (every button disabled, or scoped to other AI agents, REQ-260825 R1)
+ * and must render as no menu, not as the full default set. The old
+ * `length === 0 → fallback` branch inverted agent scoping exactly there.
  */
 export function useScenario(sessionToken: string | null): ScenarioButton[] {
   const { t } = useTranslation();
 
-  const { data } = useQuery({
+  const { data, isError } = useQuery({
     queryKey: ['scenario', sessionToken],
     queryFn: () => getScenario(sessionToken!),
     enabled: !!sessionToken,
     retry: false,
-    staleTime: 5 * 60 * 1000,
+    // 60s (was 5min): an operator scoping buttons expects the open widget to
+    // follow within a beat, not a coffee break.
+    staleTime: 60 * 1000,
   });
 
   const fallback: ScenarioButton[] = [
@@ -28,7 +33,7 @@ export function useScenario(sessionToken: string | null): ScenarioButton[] {
     { id: 'my_orders', label: t('chat.scenarios.myOrders'), action: 'my_orders', enabled: true },
   ];
 
-  const buttons = data?.scenarioButtons;
-  if (!buttons || buttons.length === 0) return fallback;
-  return buttons;
+  // No data yet (loading) or a failed fetch → the widget still shows a menu.
+  if (isError || !data) return fallback;
+  return data.scenarioButtons ?? [];
 }

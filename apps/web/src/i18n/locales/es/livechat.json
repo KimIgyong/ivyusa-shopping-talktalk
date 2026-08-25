@@ -339,7 +339,7 @@
     "aiAgentError": "No se pudo cambiar el agente IA.",
     "assignedTo": "Asignado",
     "assign": "Asignar agente",
-    "assignTitle": "Asignar a un agente",
+    "assignTitle": "Asignar esta conversación",
     "assignTo": "Agente",
     "assignPlaceholder": "Elige un agente…",
     "assigned": "Conversación asignada.",
@@ -349,6 +349,9 @@
     "issueType": "Tipo de incidencia",
     "fileIssueHint": "El registro no notifica al cliente.",
     "issueFiled": "Registrada como incidencia #{{no}}.",
-    "issueError": "No se pudo registrar la incidencia."
+    "issueError": "No se pudo registrar la incidencia.",
+    "assignButton": "Asignar",
+    "assignTypeAi": "Agente IA",
+    "assignTypeAgent": "Agente humano"
   }
 }

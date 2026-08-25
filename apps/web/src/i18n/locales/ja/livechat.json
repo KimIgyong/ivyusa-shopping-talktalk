@@ -339,7 +339,7 @@
     "aiAgentError": "AIエージェントを変更できませんでした。",
     "assignedTo": "担当",
     "assign": "担当者指定",
-    "assignTitle": "担当者を指定",
+    "assignTitle": "会話の指定",
     "assignTo": "担当者",
     "assignPlaceholder": "担当者を選択…",
     "assigned": "会話を割り当てました。",
@@ -349,6 +349,9 @@
     "issueType": "イシュー種別",
     "fileIssueHint": "登録しても顧客には通知されません。",
     "issueFiled": "イシュー #{{no}} として登録しました。",
-    "issueError": "イシューを登録できませんでした。"
+    "issueError": "イシューを登録できませんでした。",
+    "assignButton": "指定",
+    "assignTypeAi": "AIエージェント",
+    "assignTypeAgent": "担当者"
   }
 }

@@ -339,7 +339,7 @@
     "aiAgentError": "Không thể đổi AI agent.",
     "assignedTo": "Phụ trách",
     "assign": "Chỉ định nhân viên",
-    "assignTitle": "Chỉ định nhân viên",
+    "assignTitle": "Chỉ định hội thoại",
     "assignTo": "Nhân viên",
     "assignPlaceholder": "Chọn nhân viên…",
     "assigned": "Đã chỉ định hội thoại.",
@@ -349,6 +349,9 @@
     "issueType": "Loại vấn đề",
     "fileIssueHint": "Việc đăng ký không thông báo cho khách hàng.",
     "issueFiled": "Đã đăng ký vấn đề #{{no}}.",
-    "issueError": "Không thể đăng ký vấn đề."
+    "issueError": "Không thể đăng ký vấn đề.",
+    "assignButton": "Chỉ định",
+    "assignTypeAi": "AI agent",
+    "assignTypeAgent": "Nhân viên"
   }
 }
