@@ -352,6 +352,31 @@
     "issueError": "Could not file the issue.",
     "assignButton": "Assign",
     "assignTypeAi": "AI agent",
-    "assignTypeAgent": "Human agent"
+    "assignTypeAgent": "Human agent",
+    "issueAppended": "Added as a memo to issue #{{no}}.",
+    "issueTargetLabel": "Target message",
+    "issueMemo": "Memo (optional)",
+    "issueMemoPlaceholder": "Context for the issue board, e.g. third time asking",
+    "issueAppendHint": "If this conversation already has an issue, this is added to it as a memo."
+  },
+  "pin": {
+    "pin": "Pin",
+    "unpin": "Unpin",
+    "saved": "Conversation pinned.",
+    "cleared": "Pin removed.",
+    "saveError": "Could not update the pin.",
+    "limitReached": "Pin limit reached (3 per store). Unpin one first."
+  },
+  "msgActions": {
+    "translate": "Translate",
+    "translateTitle": "Translate to",
+    "translating": "Translating…",
+    "translatedTo": "Translated to {{lang}}",
+    "hideTranslation": "Hide translation",
+    "translateError": "Translation failed.",
+    "knowledge": "Look up in knowledge",
+    "reply": "Quote reply",
+    "quoteRemove": "Remove quote",
+    "fileIssue": "File this message as an issue"
   }
 }

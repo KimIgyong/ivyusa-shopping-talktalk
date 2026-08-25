@@ -352,6 +352,31 @@
     "issueError": "No se pudo registrar la incidencia.",
     "assignButton": "Asignar",
     "assignTypeAi": "Agente IA",
-    "assignTypeAgent": "Agente humano"
+    "assignTypeAgent": "Agente humano",
+    "issueAppended": "Añadido como nota a la incidencia #{{no}}.",
+    "issueTargetLabel": "Mensaje objetivo",
+    "issueMemo": "Nota (opcional)",
+    "issueMemoPlaceholder": "Contexto para el tablero, p. ej., tercera consulta igual",
+    "issueAppendHint": "Si esta conversación ya tiene una incidencia, se añadirá como nota."
+  },
+  "pin": {
+    "pin": "Fijar",
+    "unpin": "Desfijar",
+    "saved": "Conversación fijada.",
+    "cleared": "Fijado eliminado.",
+    "saveError": "No se pudo actualizar el fijado.",
+    "limitReached": "Límite de fijados alcanzado (3 por tienda). Desfija uno primero."
+  },
+  "msgActions": {
+    "translate": "Traducir",
+    "translateTitle": "Traducir a",
+    "translating": "Traduciendo…",
+    "translatedTo": "Traducido a {{lang}}",
+    "hideTranslation": "Ocultar traducción",
+    "translateError": "La traducción falló.",
+    "knowledge": "Buscar en conocimiento",
+    "reply": "Responder citando",
+    "quoteRemove": "Quitar cita",
+    "fileIssue": "Registrar este mensaje como incidencia"
   }
 }

@@ -184,7 +184,9 @@ export function IssuePanel({ conversationId }: { conversationId: string }) {
               <span className="whitespace-nowrap text-gray-400">
                 {e.createdAt ? new Date(e.createdAt).toLocaleString() : ''}
               </span>
-              <span>
+              {/* pre-line: message-filing notes carry an excerpt + memo on
+                  separate lines (PLN-260826 R5). */}
+              <span className="whitespace-pre-line">
                 {t(`issue.event.${e.type}`, { defaultValue: e.type })}
                 {e.fromStatus && e.toStatus ? ` (${e.fromStatus}→${e.toStatus})` : ''}
                 {e.note ? ` — ${e.note}` : ''}

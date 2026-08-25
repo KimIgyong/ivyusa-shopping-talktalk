@@ -139,18 +139,58 @@ export function useAssignConversation(id: string | null) {
   });
 }
 
-/** File the conversation as an issue (REQ-260825 R8-③). */
+/** File the conversation as an issue (REQ-260825 R8-③). With a messageId the
+ * filing targets that customer message (PLN-260826 R5) — a second filing lands
+ * as a memo on the conversation's existing issue instead of failing. */
 export function useFileIssue(id: string | null) {
   const { t } = useTranslation('livechat');
   const qc = useQueryClient();
   const tenantKey = useTenantKey();
   return useMutation({
-    mutationFn: (type: string) => liveChatService.fileIssue(id as string, type),
+    mutationFn: (v: { type: string; messageId?: string; memo?: string }) =>
+      liveChatService.fileIssue(id as string, v.type, { messageId: v.messageId, memo: v.memo }),
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ['issue', tenantKey, id] });
-      toast.success(t('agentControls.issueFiled', { no: data.issueNo }));
+      toast.success(
+        data.appended
+          ? t('agentControls.issueAppended', { no: data.issueNo })
+          : t('agentControls.issueFiled', { no: data.issueNo }),
+      );
     },
     onError: (e: Error) => toast.error(e.message || t('agentControls.issueError'), { sticky: true }),
+  });
+}
+
+/** Pin/unpin a conversation in the queue — team-shared, max 3 (PLN-260826 R1). */
+export function useSetPin() {
+  const { t } = useTranslation('livechat');
+  const qc = useQueryClient();
+  const tenantKey = useTenantKey();
+  return useMutation({
+    mutationFn: (v: { id: string; pinned: boolean }) => liveChatService.setPin(v.id, v.pinned),
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ['agent', tenantKey, 'sessions'] });
+      toast.success(data.pinned ? t('pin.saved') : t('pin.cleared'));
+    },
+    onError: (e: Error & { code?: string }) =>
+      toast.error(
+        e.code === 'E5060' ? t('pin.limitReached') : e.message || t('pin.saveError'),
+        { sticky: true },
+      ),
+  });
+}
+
+/**
+ * Translate one customer message for the console (PLN-260826 R2). A mutation —
+ * the agent decides when to spend the LLM call; results land in component
+ * state per message+lang, and the server caches so repeats are free.
+ */
+export function useTranslateMessage() {
+  const { t } = useTranslation('livechat');
+  return useMutation({
+    mutationFn: (v: { messageId: string; lang: string }) =>
+      liveChatService.translateMessage(v.messageId, v.lang),
+    onError: (e: Error) => toast.error(e.message || t('msgActions.translateError'), { sticky: true }),
   });
 }
 

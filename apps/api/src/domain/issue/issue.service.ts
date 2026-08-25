@@ -188,13 +188,28 @@ export class IssueService implements OnModuleInit {
     sessionId: number,
     type: string,
     actorId: number,
-  ): Promise<Issue> {
+    /** Message-level filing (PLN-260826): excerpt+memo ride the event note. */
+    opts?: { note?: string | null },
+  ): Promise<{ issue: Issue; appended: boolean }> {
     if (!(await this.isNative(tenantId))) {
       this.logger.warn(`manual issue refused: tenant=${tenantId} not native`);
       throw new BusinessException(ERROR_CODE.ISSUE_WORKFLOW_NOT_ENABLED, HttpStatus.CONFLICT);
     }
+    const note = opts?.note?.trim().slice(0, 500) || null;
     const existing = await this.issueRepo.findOne({ where: { conversationId, tenantId } });
-    if (existing) return existing;
+    if (existing) {
+      // One issue per conversation (uk_issue_conv) is a model invariant —
+      // filing another message ACCUMULATES on the existing issue as a memo
+      // instead of failing or forking a second ticket.
+      if (note) {
+        await this.record(existing, ISSUE_EVENT_TYPE.MEMO, {
+          actorType: 'agent',
+          actorId,
+          note,
+        });
+      }
+      return { issue: existing, appended: true };
+    }
     const safeType: IssueType = (ISSUE_TYPES as readonly string[]).includes(type)
       ? (type as IssueType)
       : 'other';
@@ -211,12 +226,12 @@ export class IssueService implements OnModuleInit {
       actorType: 'agent',
       actorId,
       toStatus: ISSUE_STATUS.RECEIVED,
-      note: 'manual',
+      note: note ?? 'manual',
     });
     this.logger.log(
       `issue #${issue.issueNo} filed manually (tenant=${tenantId} conversation=${conversationId})`,
     );
-    return issue;
+    return { issue, appended: false };
   }
 
   /**

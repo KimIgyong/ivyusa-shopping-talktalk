@@ -15,6 +15,9 @@ import {
   Bot,
   Paperclip,
   ClipboardPlus,
+  Languages,
+  Pin,
+  Reply,
   X,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -42,6 +45,8 @@ import {
   useSetSessionAiAgent,
   useAssignConversation,
   useFileIssue,
+  useSetPin,
+  useTranslateMessage,
 } from './live-chat.hooks';
 import { useUsers } from '@/domain/users/users.hooks';
 import { BriefingCard } from './BriefingCard';
@@ -58,6 +63,9 @@ import { useAuthStore } from '@/store/auth-store';
 import { liveChatService } from './live-chat.service';
 import type { AgentSession, ChatMessage, CustomerContext } from './live-chat.service';
 import { cn } from '@/lib/cn';
+// Source deep-import, not '@ivy/types': the package's CJS runtime exports are
+// invisible to the browser build (see BriefingCard).
+import { LANGUAGES } from '../../../../../packages/types/src/common/language';
 
 /** HH:mm for a message bubble; empty when the row carries no timestamp. */
 function clockTime(value: string | undefined | null): string {
@@ -159,6 +167,22 @@ export function LiveChatPage() {
   const [assignTarget, setAssignTarget] = useState('');
   const [issueOpen, setIssueOpen] = useState(false);
   const [issueType, setIssueType] = useState('other');
+  // Message-level issue filing (PLN-260826 R5): the targeted message, or null
+  // for the header's whole-conversation path. The memo rides the issue note.
+  const [issueTarget, setIssueTarget] = useState<{ messageId: string; excerpt: string } | null>(
+    null,
+  );
+  const [issueMemo, setIssueMemo] = useState('');
+  // Quote-reply chip (R4): the composer stays a one-line input, so the quote
+  // lives here and "> excerpt" is assembled only at send time.
+  const [quote, setQuote] = useState<{ messageId: string; excerpt: string } | null>(null);
+  // Inline message translations (R2): message id → lang → text. Component
+  // state on purpose — chat is flowing data, the server caches the LLM side.
+  const [translations, setTranslations] = useState<Record<string, Record<string, string>>>({});
+  const [trOpenFor, setTrOpenFor] = useState<string | null>(null);
+  const translateMsg = useTranslateMessage();
+  const setPin = useSetPin();
+  const kbInputRef = useRef<HTMLTextAreaElement>(null);
 
   // Queue search box (customer name/email) — debounced into the list query.
   const [listQuery, setListQuery] = useState('');
@@ -189,6 +213,33 @@ export function LiveChatPage() {
     convo?.channel ?? sessions?.find((s) => s.id === selected)?.channel ?? 'widget'
   ).toLowerCase();
   const receiveOnly = RECEIVE_ONLY_CHANNELS.has(activeChannel);
+  // Message actions only while the AI is NOT auto-answering (PLN-260826 D2).
+  // `approve` counts as "not auto": the agent sends the final reply there.
+  const msgActionsVisible =
+    !!convo &&
+    !(
+      convo.status === 'ai_active' &&
+      convo.autoReplyEffective &&
+      convo.autoReplyMode !== 'approve'
+    );
+  // Pin state of the open thread comes from its queue row — the detail DTO
+  // does not carry it, and the list is always loaded alongside.
+  const selectedPinned = sessions?.find((s) => s.id === selected)?.pinned ?? false;
+
+  const onTranslate = (messageId: string, lang: string) => {
+    setTrOpenFor(null);
+    if (translations[messageId]?.[lang]) return; // already inline
+    translateMsg.mutate(
+      { messageId, lang },
+      {
+        onSuccess: (data) =>
+          setTranslations((prev) => ({
+            ...prev,
+            [messageId]: { ...(prev[messageId] ?? {}), [data.lang]: data.text },
+          })),
+      },
+    );
+  };
   // KB writes belong to knowledge owners; an agent handling the chat does not
   // automatically get to publish knowledge (PLN-260807 D3). Mirrors the server
   // rule — knowledge_source.manage is granted to master/director — so the
@@ -213,6 +264,12 @@ export function LiveChatPage() {
   useEffect(() => {
     setOlder([]);
     setOlderHasMore(true);
+    // Per-thread scratch (PLN-260826) must not leak into the next thread.
+    setQuote(null);
+    setTranslations({});
+    setTrOpenFor(null);
+    setIssueTarget(null);
+    setIssueMemo('');
   }, [selected]);
 
   const messages = [...older, ...(convo?.messages ?? [])];
@@ -305,7 +362,10 @@ export function LiveChatPage() {
   };
 
   const onSend = async () => {
-    const body = draft.trim();
+    const text = draft.trim();
+    // Quote-reply (PLN-260826 R4): schema-free "> excerpt" prefix, so every
+    // channel (widget, messengers) renders it the same way.
+    const body = text && quote ? `> ${quote.excerpt}\n\n${text}` : text;
     const attachmentIds = uploads.ready.map((a) => a.id);
     // Ref, not `send.isPending`: two handler calls in the same tick both read the
     // render's stale value and both get through. This flips synchronously.
@@ -319,10 +379,11 @@ export function LiveChatPage() {
       await send.mutateAsync({ body, attachmentIds });
       // Cleared only once the send succeeded: on failure the files are still
       // uploaded and still attachable, so the agent retries instead of
-      // hunting for them again.
+      // hunting for them again. Same for the quote chip.
       uploads.clear();
+      setQuote(null);
     } catch (e) {
-      setDraft(body);
+      setDraft(text);
       const err = e as Error & { status?: number };
       if (err.status === 422) {
         toast.warning(t('messageBlocked'));
@@ -526,7 +587,7 @@ export function LiveChatPage() {
                     }
                   }}
                   className={cn(
-                    'flex w-full cursor-pointer items-start gap-2 px-4 py-3 text-left hover:bg-gray-50',
+                    'group flex w-full cursor-pointer items-start gap-2 px-4 py-3 text-left hover:bg-gray-50',
                     selected === s.id && !selectMode && 'bg-primary-500/5',
                     selectMode && s.sessionId && checked.has(s.sessionId) && 'bg-primary-500/5',
                   )}
@@ -567,6 +628,29 @@ export function LiveChatPage() {
                       {t('sessionLabel', { id: s.id.slice(0, 6) })}
                     </span>
                     <div className="flex shrink-0 items-center gap-1">
+                      {/* Team pin (PLN-260826 R1): filled and always visible
+                          when pinned; appears on hover to pin. Server keeps
+                          pinned rows on top and enforces the 3-per-store cap. */}
+                      {!selectMode && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setPin.mutate({ id: s.id, pinned: !s.pinned });
+                          }}
+                          disabled={setPin.isPending}
+                          aria-label={s.pinned ? t('pin.unpin') : t('pin.pin')}
+                          title={s.pinned ? t('pin.unpin') : t('pin.pin')}
+                          className={cn(
+                            'rounded p-0.5',
+                            s.pinned
+                              ? 'text-primary-600'
+                              : 'text-gray-300 opacity-0 hover:text-gray-500 focus:opacity-100 group-hover:opacity-100',
+                          )}
+                        >
+                          <Pin className={cn('h-3.5 w-3.5', s.pinned && 'fill-current')} />
+                        </button>
+                      )}
                       {/* Silent thread, at a glance: the AI is not answering
                           this one and no agent has taken it either. */}
                       {s.autoReplyEffective === false && s.status !== 'agent' && (
@@ -672,6 +756,18 @@ export function LiveChatPage() {
                   <Button
                     size="sm"
                     variant="secondary"
+                    onClick={() => setPin.mutate({ id: selected, pinned: !selectedPinned })}
+                    disabled={setPin.isPending}
+                    title={selectedPinned ? t('pin.unpin') : t('pin.pin')}
+                  >
+                    <Pin
+                      className={cn('h-4 w-4', selectedPinned && 'fill-current text-primary-600')}
+                    />
+                    {selectedPinned ? t('pin.unpin') : t('pin.pin')}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
                     onClick={() => {
                       setAssignType('ai');
                       setAssignTarget(convo?.aiAgentId ?? '');
@@ -685,6 +781,8 @@ export function LiveChatPage() {
                     variant="secondary"
                     onClick={() => {
                       setIssueType('other');
+                      setIssueTarget(null);
+                      setIssueMemo('');
                       setIssueOpen(true);
                     }}
                   >
@@ -773,7 +871,7 @@ export function LiveChatPage() {
                       )}
                       <div
                         className={cn(
-                          'flex items-end gap-1.5',
+                          'group flex items-end gap-1.5',
                           outbound ? 'justify-end' : 'justify-start',
                         )}
                       >
@@ -828,12 +926,140 @@ export function LiveChatPage() {
                           </button>
                         )}
                       </div>
+                        {/* Hover actions on customer turns (PLN-260826 R2~R5),
+                            hidden while the AI is auto-answering (D2). */}
+                        {m.senderType === 'user' && msgActionsVisible && (
+                          <div className="relative flex shrink-0 items-center gap-0.5 self-center opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
+                            <button
+                              type="button"
+                              onClick={() => setTrOpenFor(trOpenFor === m.id ? null : m.id)}
+                              aria-label={t('msgActions.translate')}
+                              title={t('msgActions.translate')}
+                              className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                            >
+                              <Languages className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setKbQuestion(m.body);
+                                kbInputRef.current?.scrollIntoView({
+                                  behavior: 'smooth',
+                                  block: 'center',
+                                });
+                                kbInputRef.current?.focus({ preventScroll: true });
+                              }}
+                              aria-label={t('msgActions.knowledge')}
+                              title={t('msgActions.knowledge')}
+                              className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                            >
+                              <BookOpen className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setQuote({ messageId: m.id, excerpt: m.body.replace(/\s+/g, ' ').trim().slice(0, 80) })}
+                              aria-label={t('msgActions.reply')}
+                              title={t('msgActions.reply')}
+                              className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                            >
+                              <Reply className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIssueTarget({
+                                  messageId: m.id,
+                                  excerpt: m.body.replace(/\s+/g, ' ').trim().slice(0, 120),
+                                });
+                                setIssueType('other');
+                                setIssueMemo('');
+                                setIssueOpen(true);
+                              }}
+                              aria-label={t('msgActions.fileIssue')}
+                              title={t('msgActions.fileIssue')}
+                              className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                            >
+                              <ClipboardPlus className="h-3.5 w-3.5" />
+                            </button>
+                            {/* One-click language popover (AmoebaTalk mirror). */}
+                            {trOpenFor === m.id && (
+                              <div className="absolute bottom-full left-0 z-10 mb-1 w-40 rounded-lg border border-gray-200 bg-white p-1 shadow-lg">
+                                <p className="px-2 py-1 text-[10px] font-medium text-gray-400">
+                                  {t('msgActions.translateTitle')}
+                                </p>
+                                {LANGUAGES.map((l) => (
+                                  <button
+                                    key={l.code}
+                                    type="button"
+                                    onClick={() => onTranslate(m.id, l.code)}
+                                    className={cn(
+                                      'block w-full rounded px-2 py-1 text-left text-xs hover:bg-gray-50',
+                                      l.code === (i18n.language || 'en').slice(0, 2)
+                                        ? 'font-semibold text-primary-600'
+                                        : 'text-gray-700',
+                                    )}
+                                  >
+                                    {l.nativeLabel}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
                         {!outbound && (
                           <span className="shrink-0 text-[11px] text-gray-400">
                             {clockTime(m.createdAt)}
                           </span>
                         )}
                       </div>
+                      {/* Inline translations, stacked per language (R2). The
+                          original stays — this is a console-only sub-bubble. */}
+                      {m.senderType === 'user' &&
+                        (translations[m.id] ||
+                          (translateMsg.isPending &&
+                            translateMsg.variables?.messageId === m.id)) && (
+                          <div className="mt-1 space-y-1">
+                            {Object.entries(translations[m.id] ?? {}).map(([lg, text]) => (
+                              <div
+                                key={lg}
+                                className="max-w-[75%] rounded-lg bg-primary-500/5 px-3 py-2 text-sm text-gray-700"
+                              >
+                                <div className="mb-0.5 flex items-center justify-between gap-2 text-[10px] text-gray-400">
+                                  <span>
+                                    {t('msgActions.translatedTo', {
+                                      lang: LANGUAGES.find((l) => l.code === lg)?.nativeLabel ?? lg,
+                                    })}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setTranslations((prev) => {
+                                        const forMsg = { ...(prev[m.id] ?? {}) };
+                                        delete forMsg[lg];
+                                        const next = { ...prev };
+                                        if (Object.keys(forMsg).length) next[m.id] = forMsg;
+                                        else delete next[m.id];
+                                        return next;
+                                      })
+                                    }
+                                    aria-label={t('msgActions.hideTranslation')}
+                                    className="text-gray-400 hover:text-gray-600"
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </button>
+                                </div>
+                                <div className="whitespace-pre-wrap">{text}</div>
+                              </div>
+                            ))}
+                            {translateMsg.isPending &&
+                              translateMsg.variables?.messageId === m.id && (
+                                <div className="flex max-w-[75%] items-center gap-2 rounded-lg bg-primary-500/5 px-3 py-2 text-xs text-gray-400">
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                  {t('msgActions.translating')}
+                                </div>
+                              )}
+                          </div>
+                        )}
                     </div>
                   );
                 })}
@@ -907,6 +1133,22 @@ export function LiveChatPage() {
                 </div>
               )}
 
+              {/* Quote-reply chip (PLN-260826 R4): shows what the reply will
+                  quote; the "> excerpt" prefix is assembled at send time. */}
+              {quote && (
+                <div className="flex items-center gap-2 border-t border-gray-100 px-3 pt-2 text-xs text-gray-600">
+                  <Reply className="h-3.5 w-3.5 shrink-0 text-gray-400" />
+                  <span className="min-w-0 flex-1 truncate">&ldquo;{quote.excerpt}&rdquo;</span>
+                  <button
+                    type="button"
+                    onClick={() => setQuote(null)}
+                    aria-label={t('msgActions.quoteRemove')}
+                    className="shrink-0 text-gray-400 hover:text-gray-600"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              )}
               <div className="flex items-center gap-2 border-t border-gray-100 p-3">
                 <input
                   ref={fileInputRef}
@@ -987,6 +1229,7 @@ export function LiveChatPage() {
               <BookOpen className="h-4 w-4 text-primary-500" /> {t('kbLookup')}
             </div>
             <textarea
+              ref={kbInputRef}
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-primary-500"
               rows={2}
               value={kbQuestion}
@@ -1290,7 +1533,20 @@ export function LiveChatPage() {
               size="sm"
               disabled={fileIssueMut.isPending}
               onClick={() =>
-                fileIssueMut.mutate(issueType, { onSuccess: () => setIssueOpen(false) })
+                fileIssueMut.mutate(
+                  {
+                    type: issueType,
+                    messageId: issueTarget?.messageId,
+                    memo: issueMemo,
+                  },
+                  {
+                    onSuccess: () => {
+                      setIssueOpen(false);
+                      setIssueTarget(null);
+                      setIssueMemo('');
+                    },
+                  },
+                )
               }
             >
               {t('agentControls.fileIssue')}
@@ -1298,6 +1554,16 @@ export function LiveChatPage() {
           </>
         }
       >
+        {/* Targeted message (PLN-260826 R5) — read-only; the server re-reads
+            the body itself, this is only what the agent is looking at. */}
+        {issueTarget && (
+          <div className="mb-3 rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-600">
+            <span className="mb-0.5 block font-medium text-gray-400">
+              {t('agentControls.issueTargetLabel')}
+            </span>
+            &ldquo;{issueTarget.excerpt}&rdquo;
+          </div>
+        )}
         <FormRow label={t('agentControls.issueType')}>
           <select
             value={issueType}
@@ -1311,7 +1577,20 @@ export function LiveChatPage() {
             ))}
           </select>
         </FormRow>
-        <p className="mt-2 text-xs text-gray-400">{t('agentControls.fileIssueHint')}</p>
+        <FormRow label={t('agentControls.issueMemo')}>
+          <textarea
+            value={issueMemo}
+            onChange={(e) => setIssueMemo(e.target.value)}
+            maxLength={300}
+            rows={3}
+            placeholder={t('agentControls.issueMemoPlaceholder')}
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-primary-500"
+          />
+        </FormRow>
+        <p className="mt-2 text-xs text-gray-400">
+          {t('agentControls.fileIssueHint')}
+          {issueTarget ? ` ${t('agentControls.issueAppendHint')}` : ''}
+        </p>
       </Modal>
 
       {/* Timeline/project grouping of the checked sessions (REQ-260824). */}

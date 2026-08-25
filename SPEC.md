@@ -195,6 +195,8 @@ user_job_labels, roles_permissions, integration_credentials, audit_logs) + boots
 agent/moderation (agent_profiles, assignments, content_filter_rules, moderation_logs,
 agent_daily_stats, chat_comments, conversation_briefings, chat_groups, chat_group_members
 — REQ-260824) + AI (ai_engines, tenant_ai_settings) + mobile push (device_tokens).
+`conversations` also carries team-pin columns `pinned_at`/`pinned_by` (+
+`idx_conv_tenant_pinned`) — queue pinning, max 3 per tenant (PLN-260826, E5060).
 
 ### 6.4 Entity Authoring Rules
 Nullable columns specify explicit `type` in `@Column`; `BIGINT` via `bigintTransformer`,

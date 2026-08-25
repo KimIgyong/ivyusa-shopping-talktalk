@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AI_FUNCTION, isSupportedLanguage } from '@ivy/types';
 import { ConversationBriefing } from './entity/conversation-briefing.entity';
+import { PROMPT_LANGUAGE_NAMES } from './prompt-language';
 import { AgentService } from './agent.service';
 import { AiGatewayService } from '../../infrastructure/external/ai/ai-gateway.service';
 import { BusinessException } from '../../global/exception/business.exception';
@@ -10,20 +11,6 @@ import { ERROR_CODE } from '../../global/constant/error-code.constant';
 
 /** Messages the briefing summarises — the tail is what an agent needs oriented. */
 const BRIEFING_WINDOW = 50;
-
-/**
- * Target-language names for the translation prompt. Prompt-side detail only —
- * the language SET itself still lives in @ivy/types (codes are validated
- * against it); an unknown-but-supported code would fall back to itself.
- */
-const PROMPT_LANGUAGE_NAMES: Record<string, string> = {
-  en: 'English',
-  es: 'Spanish',
-  ko: 'Korean',
-  vi: 'Vietnamese',
-  ja: 'Japanese',
-  zh: 'Simplified Chinese',
-};
 
 /**
  * Operator-requested AI briefings (REQ-260824 R3). Generation happens only on

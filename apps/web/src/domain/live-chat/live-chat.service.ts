@@ -20,6 +20,9 @@ export interface AgentSession {
   aiAgentName?: string | null;
   /** Origin surface: widget | telegram | viber | zalo | line | kakao | sms | email … */
   channel?: string | null;
+  /** Team pin (PLN-260826) — pinned rows arrive first from the server. */
+  pinned?: boolean;
+  pinnedAt?: string | null;
   escalated?: boolean;
   lastMessagePreview?: string | null;
   lastMessageAt?: string | null;
@@ -202,8 +205,27 @@ export const liveChatService = {
       `/agent/conversations/${id}/assign`,
       { user_id: userId },
     ),
-  fileIssue: (id: string, type: string) =>
-    apiPost<{ issueId: number; issueNo: number }>(`/agent/conversations/${id}/issue`, { type }),
+  fileIssue: (id: string, type: string, opts?: { messageId?: string; memo?: string }) =>
+    apiPost<{ issueId: number; issueNo: number; appended: boolean }>(
+      `/agent/conversations/${id}/issue`,
+      {
+        type,
+        ...(opts?.messageId ? { message_id: Number(opts.messageId) } : {}),
+        ...(opts?.memo?.trim() ? { memo: opts.memo.trim() } : {}),
+      },
+    ),
+  /** Pin/unpin in the queue — team-shared, max 3; 4th → E5060 (PLN-260826). */
+  setPin: (id: string, pinned: boolean) =>
+    apiPatch<{ id: number; pinned: boolean; pinnedAt: string | null }>(
+      `/agent/conversations/${id}/pin`,
+      { pinned },
+    ),
+  /** Console-only message translation; server caches per message+lang. */
+  translateMessage: (messageId: string, lang: string) =>
+    apiPost<{ messageId: number; lang: string; text: string }>(
+      `/agent/messages/${messageId}/translate`,
+      { lang },
+    ),
   setAlias: (id: string, alias: string | null) =>
     apiPatch<{ sessionId: string; alias: string | null }>(`/agent/conversations/${id}/alias`, {
       alias,

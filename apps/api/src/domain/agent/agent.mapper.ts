@@ -52,6 +52,9 @@ export function toSessionResponse(
     // The console badges it so an agent knows what they are replying into —
     // an SMS thread cannot be answered at all (PLN-260810 PR-M4).
     channel: c.channel || 'widget',
+    /** Team pin (PLN-260826) — pinned rows sort first in the queue. */
+    pinned: c.pinnedAt != null,
+    pinnedAt: c.pinnedAt ?? null,
     escalated: c.escalated === 1,
     customerName: contact.name,
     // Fallback identity for a shopper who only ever left an address.

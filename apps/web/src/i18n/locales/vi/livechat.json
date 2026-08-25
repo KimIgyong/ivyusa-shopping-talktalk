@@ -352,6 +352,31 @@
     "issueError": "Không thể đăng ký vấn đề.",
     "assignButton": "Chỉ định",
     "assignTypeAi": "AI agent",
-    "assignTypeAgent": "Nhân viên"
+    "assignTypeAgent": "Nhân viên",
+    "issueAppended": "Đã thêm ghi chú vào sự cố #{{no}}.",
+    "issueTargetLabel": "Tin nhắn được chọn",
+    "issueMemo": "Ghi chú (tùy chọn)",
+    "issueMemoPlaceholder": "Bối cảnh cho bảng sự cố, ví dụ: hỏi lần thứ ba",
+    "issueAppendHint": "Nếu cuộc trò chuyện đã có sự cố, nội dung này sẽ được thêm làm ghi chú."
+  },
+  "pin": {
+    "pin": "Ghim",
+    "unpin": "Bỏ ghim",
+    "saved": "Đã ghim cuộc trò chuyện.",
+    "cleared": "Đã bỏ ghim.",
+    "saveError": "Không thể cập nhật ghim.",
+    "limitReached": "Đã đạt giới hạn ghim (3 mỗi cửa hàng). Hãy bỏ ghim một mục trước."
+  },
+  "msgActions": {
+    "translate": "Dịch",
+    "translateTitle": "Dịch sang",
+    "translating": "Đang dịch…",
+    "translatedTo": "Đã dịch sang {{lang}}",
+    "hideTranslation": "Ẩn bản dịch",
+    "translateError": "Dịch thất bại.",
+    "knowledge": "Tra cứu kiến thức",
+    "reply": "Trả lời trích dẫn",
+    "quoteRemove": "Xóa trích dẫn",
+    "fileIssue": "Ghi nhận tin nhắn này thành sự cố"
   }
 }
