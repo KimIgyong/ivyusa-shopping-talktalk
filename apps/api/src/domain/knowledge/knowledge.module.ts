@@ -17,13 +17,13 @@ import { AnswerProposalService } from './answer-proposal.service';
 import { KbAnswerProposal } from './entity/kb-answer-proposal.entity';
 import { UsageGuideService } from './usage-guide.service';
 import { SourceSyncService } from './source-sync.service';
-import { BoardAdapter } from './adapters/board.adapter';
 import { GdriveAdapter } from './adapters/gdrive.adapter';
 import { GdriveClient } from './gdrive.client';
 import { GdriveCredentialService } from './gdrive-credential.service';
 import { NotionAdapter } from './adapters/notion.adapter';
 import { UsageType } from './entity/usage-type.entity';
 import { KbCategory } from './entity/kb-category.entity';
+import { AiAgent } from '../ai-engine/entity/ai-agent.entity';
 import { UsageTypeService } from './usage-type.service';
 import { KbCategoryService } from './kb-category.service';
 import { NotionClient } from './notion.client';
@@ -60,6 +60,9 @@ import { ModerationModule } from '../moderation/moderation.module';
       // Repository only — the Drive service-account key and the Notion token
       // live with the other provider secrets; no TenantModule import.
       IntegrationCredential,
+      // Repository only — category scope validates the agent ids it is handed
+      // against this tenant's agents; no AiEngineModule import.
+      AiAgent,
     ]),
     // RagService answers the console's knowledge questions; Chat does not depend
     // on Knowledge, so this stays acyclic.
@@ -80,7 +83,6 @@ import { ModerationModule } from '../moderation/moderation.module';
     AnswerProposalService,
     UsageGuideService,
     SourceSyncService,
-    BoardAdapter,
     GdriveAdapter,
     GdriveClient,
     GdriveCredentialService,

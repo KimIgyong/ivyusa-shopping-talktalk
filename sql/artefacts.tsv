@@ -33,6 +33,7 @@ migration_agent_coaching.sql	table	agent_coaching_messages	-
 migration_agent_coaching.sql	table	agent_coaching_proposals	-
 migration_ai_config_revisions.sql	table	tenant_ai_config_revisions	-
 migration_ai_usage_daily.sql	table	ai_usage_daily	-
+migration_answer_reuse_agent.sql	column	answer_reuse	ai_agent_id
 migration_audit_context.sql	column	audit_logs	ip
 migration_audit_context.sql	column	audit_logs	request_id
 migration_audit_context.sql	column	audit_logs	result
@@ -63,6 +64,7 @@ migration_handoff_routing.sql	column	agent_alerts	target_user_id
 migration_journey_reports.sql	table	journey_reports	-
 migration_journey_reports.sql	table	journey_report_criteria	-
 migration_kb_answer_proposals.sql	table	kb_answer_proposals	-
+migration_kb_category_agent_scope.sql	column	kb_categories	agent_ids
 migration_kb_conflict_failures.sql	column	kb_conflicts	failure_reason
 migration_kb_doc_group.sql	column	kb_documents	doc_group
 migration_kb_doc_group.sql	index	kb_documents	idx_kb_group

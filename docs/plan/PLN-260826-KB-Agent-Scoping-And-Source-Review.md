@@ -101,6 +101,14 @@ row.ai_agent_id === effectiveAgentId
 | `knowledge/adapters/board.adapter.ts`(+spec), `dto/.../create-post.request.ts` | 삭제 |
 | `knowledge/knowledge.controller.ts` | `POST sources/:id/posts`, `GET sources/:id/posts` 삭제 |
 | `knowledge/KnowledgePage.tsx` | 드롭다운에서 `board` 제거 + Sources 설명 문구 교체 |
+| `database/seed.runner.ts` | 시드 문서를 `sourceId: null`로 저장 · board 소스 생성 중단 |
+
+**시드가 board 소스에 문서를 묶고 있었습니다**(배포 검증 중 확인, 2026-08-26). tenant 1의 배송·
+반품·보증·CS 정책 12건이 소스 1번에 붙어 있습니다. 손으로 쓴 지식에 통로를 붙일 이유가 없는데,
+붙어 있으면 **소스 하나를 지정 해제하는 것만으로 테넌트의 기본 정책이 통째로 검색에서
+빠집니다**(PR #387 이후 실제 동작). 시드는 앞으로 `source_id = NULL`로 씁니다. **기존 행은
+백필하지 않습니다** — 지금 값도 유효하고(그 소스가 지정 상태인 한 동작 동일), 되돌릴 수 없는
+UPDATE를 사실 정리 목적만으로 돌릴 이유가 없습니다.
 
 기존 board 소스 5건은 **지우지 않습니다.** `repository`와 똑같이 "미지원" 배지가 붙고 동기화
 버튼이 잠깁니다 — 이미 있는 처리라 새로 만들 것이 없습니다. `kb_board_posts` 테이블도
@@ -270,6 +278,8 @@ SQL 선적용 → 코드 배포. `npm run migrations:manifest` 갱신 필수.
 | T8 | 동기화 재실행 후 범위 확인 | 유지(§4 함정) |
 | T9 | 콘솔 QA 패널에서 에이전트 선택 | 위젯 결과와 일치 |
 | T10 | board 소스 행 | 미지원 배지 · 동기화 잠김 · 드롭다운에 없음 |
+| T10b | board 소스에 묶인 시드 문서 12건 | **여전히 인용됨**(유형 제거는 행 삭제가 아님) |
+| T10c | 새 테넌트 시드 | 문서 `source_id` NULL · board 소스 생성 안 됨 |
 | T11 | 샘플 CSV 내려받아 그대로 업로드 | 오류 0건 |
 | T12 | 6개 언어 문구 | `i18n:check` 통과 · 배지/모달 줄바꿈 육안 |
 

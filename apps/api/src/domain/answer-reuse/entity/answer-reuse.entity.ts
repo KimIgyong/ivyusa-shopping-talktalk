@@ -26,6 +26,17 @@ export class AnswerReuse {
   @Column({ type: 'varchar', length: 5 })
   lang: string;
 
+  /**
+   * The AI agent this answer was produced for (REQ-260826 R2/D4).
+   *
+   * Reuse is looked up before RAG, so without this an answer written for one
+   * persona replays to every other and per-agent knowledge scope means nothing.
+   * NULL is a row written before this column existed — see the service for the
+   * rule that keeps those usable for tenants that scope nothing.
+   */
+  @Column({ name: 'ai_agent_id', type: 'bigint', nullable: true, transformer: bigintTransformer })
+  aiAgentId: number | null;
+
   @Column({ name: 'question_text', type: 'varchar', length: 500 })
   questionText: string;
 

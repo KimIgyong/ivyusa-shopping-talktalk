@@ -15,7 +15,11 @@ describe('KbCategoryService', () => {
       ...over,
     }) as KbCategory;
 
-  const build = (rows: KbCategory[] = [], counts: Record<string, number> = {}) => {
+  const build = (
+    rows: KbCategory[] = [],
+    counts: Record<string, number> = {},
+    agents: Array<{ id: number }> = [],
+  ) => {
     const saved: any[] = [];
     const updates: any[] = [];
     const deletes: any[] = [];
@@ -54,7 +58,13 @@ describe('KbCategoryService', () => {
     };
     const dataSource = { transaction: async (fn: any) => fn(manager) };
     return {
-      svc: new KbCategoryService(repo as never, docRepo as never, dataSource as never),
+      svc: new KbCategoryService(
+        repo as never,
+        docRepo as never,
+        // Agent rows exist only so scope ids can be checked against them.
+        { find: jest.fn(async () => agents) } as never,
+        dataSource as never,
+      ),
       saved,
       updates,
       deletes,
@@ -83,6 +93,80 @@ describe('KbCategoryService', () => {
         id: 'unregistered:orphan',
         documentCount: 4,
       });
+    });
+  });
+
+  describe('setAgents (REQ-260826 R2)', () => {
+    it('stores the agents a category is narrowed to', async () => {
+      const { svc, saved } = build([row({ id: 1, name: 'policy_payment' })], {}, [
+        { id: 3 },
+        { id: 5 },
+      ]);
+
+      await svc.setAgents(1, 1, [3]);
+
+      expect(saved[0].agentIds).toEqual([3]);
+    });
+
+    it('treats an empty list as "every agent", not as "nobody"', async () => {
+      // A category no agent can read would be indistinguishable from a deleted
+      // one while still counting documents in the console.
+      const { svc, saved } = build([row({ id: 1, agentIds: [3] } as never)], {}, [{ id: 3 }]);
+
+      await svc.setAgents(1, 1, []);
+
+      expect(saved[0].agentIds).toBeNull();
+    });
+
+    it('refuses ids that are not this tenant’s agents', async () => {
+      // Storing one would read as a narrowing nobody can satisfy: the category
+      // goes dark while the console still shows it scoped.
+      const { svc } = build([row({ id: 1 })], {}, [{ id: 3 }]);
+
+      await expect(svc.setAgents(1, 1, [999])).rejects.toThrow();
+    });
+
+    it('drops unknown ids but keeps the valid ones', async () => {
+      const { svc, saved } = build([row({ id: 1 })], {}, [{ id: 3 }]);
+
+      await svc.setAgents(1, 1, [3, 999]);
+
+      expect(saved[0].agentIds).toEqual([3]);
+    });
+
+    it('refuses to narrow a catalogue category', async () => {
+      // Product knowledge is common to every persona by decision; accepting the
+      // save would leave an operator believing they had restricted it.
+      const { svc } = build([row({ id: 1, origin: CATEGORY_ORIGIN.CATALOG })], {}, [{ id: 3 }]);
+
+      await expect(svc.setAgents(1, 1, [3])).rejects.toThrow();
+    });
+  });
+
+  describe('list reports scope', () => {
+    it('reports a catalogue category as unscoped whatever the column holds', async () => {
+      // origin flips when a hand-made category takes catalogue documents, and a
+      // stale narrowing left behind would contradict what retrieval does.
+      const { svc } = build(
+        [row({ id: 1, origin: CATEGORY_ORIGIN.CATALOG, agentIds: [3] } as never)],
+        { faq: 2 },
+      );
+
+      const [cat] = await svc.list(1);
+
+      expect(cat.agentIds).toEqual([]);
+    });
+  });
+
+  describe('ensure', () => {
+    it('never touches the scope of an existing category', async () => {
+      // Sync ensures every category on every run: writing a default here would
+      // quietly release the operator's scope at the next sync.
+      const { svc, saved } = build([row({ id: 1, name: 'faq', agentIds: [3] } as never)]);
+
+      await svc.ensure(1, 'faq', CATEGORY_ORIGIN.MANUAL);
+
+      expect(saved).toHaveLength(0);
     });
   });
 

@@ -9,11 +9,9 @@ import { ModerationService } from '../moderation/moderation.service';
 import { QdrantService } from '../../infrastructure/external/vector/qdrant.service';
 import { KnowledgeSource } from './entity/knowledge-source.entity';
 import { DOC_GROUP, KbDocument } from './entity/kb-document.entity';
-import { KbBoardPost } from './entity/kb-board-post.entity';
 import { KbFile } from './entity/kb-file.entity';
 import {
   CreateDocumentRequest,
-  CreatePostRequest,
   CreateSourceRequest,
   ListDocumentsQuery,
   UpdateDocumentRequest,
@@ -49,7 +47,6 @@ export class KnowledgeService {
   constructor(
     @InjectRepository(KnowledgeSource) private readonly sourceRepo: Repository<KnowledgeSource>,
     @InjectRepository(KbDocument) private readonly docRepo: Repository<KbDocument>,
-    @InjectRepository(KbBoardPost) private readonly postRepo: Repository<KbBoardPost>,
     @InjectRepository(KbFile) private readonly fileRepo: Repository<KbFile>,
     private readonly ai: AiGatewayService,
     private readonly qdrant: QdrantService,
@@ -82,13 +79,20 @@ export class KnowledgeService {
     // is exactly the "registers fine, does nothing" behaviour this whole line
     // of work set out to remove.
     const adapter = this.sourceSync.adapterFor(body.type);
-    if (adapter) {
-      const reason = adapter.validateConfig(body.config_json ?? null);
-      if (reason) {
-        throw new BusinessException(ERROR_CODE.VALIDATION_FAILED, HttpStatus.BAD_REQUEST, {
-          config_json: [reason],
-        });
-      }
+    // A type with no adapter can never ingest, so creating the row only buys a
+    // source that reports "unsupported" forever. Five of those exist on staging
+    // (REQ-260826 R5) — refuse at the door rather than adding a sixth. Rows
+    // created before their type was retired keep working as they are.
+    if (!adapter) {
+      throw new BusinessException(ERROR_CODE.VALIDATION_FAILED, HttpStatus.BAD_REQUEST, {
+        type: [`unsupported source type: ${body.type}`],
+      });
+    }
+    const reason = adapter.validateConfig(body.config_json ?? null);
+    if (reason) {
+      throw new BusinessException(ERROR_CODE.VALIDATION_FAILED, HttpStatus.BAD_REQUEST, {
+        config_json: [reason],
+      });
     }
     // Credentialled source types declare what they need; asking the adapter
     // keeps this from growing a branch per provider (REQ-260821 G5).
@@ -228,11 +232,17 @@ export class KnowledgeService {
    * still runs — a blocked answer is reported as blocked rather than shown,
    * because "this answer would be blocked" is itself the diagnostic.
    */
+  /**
+   * `aiAgentId` answers as that agent would — same knowledge scope a shopper
+   * pinned to it would get. Omitted, the operator sees everything they manage,
+   * which is the point of the console: you cannot fix what is hidden from you.
+   */
   async ask(
     tenantId: number,
     question: string,
     language = 'EN',
     preferGroup?: string,
+    aiAgentId?: number | null,
   ): Promise<{
     answer: string;
     confidence: number;
@@ -257,6 +267,8 @@ export class KnowledgeService {
       language.toUpperCase(),
       undefined,
       preferGroup,
+      undefined,
+      aiAgentId ?? null,
     );
     const moderated = await this.moderation.moderate({
       tenantId,
@@ -642,33 +654,6 @@ export class KnowledgeService {
     return { scanned: docs.length, embedded, failed };
   }
 
-  // ---- Board posts ----
-
-  async createPost(
-    tenantId: number,
-    sourceId: number,
-    authorUserId: number,
-    body: CreatePostRequest,
-  ): Promise<KbBoardPost> {
-    await this.findSource(tenantId, sourceId);
-    const post = this.postRepo.create({
-      tenantId,
-      sourceId,
-      title: body.title,
-      body: body.body ?? null,
-      authorUserId,
-    });
-    const saved = await this.postRepo.save(post);
-    // Writing a post is now the same act as publishing knowledge. Best-effort:
-    // a sync failure must not lose the post the author just wrote.
-    try {
-      await this.syncSource(tenantId, sourceId, authorUserId);
-    } catch (e) {
-      this.logger.warn(`board post ${saved.id} saved but sync failed: ${(e as Error).message}`);
-    }
-    return saved;
-  }
-
   /**
    * Pull a source into the knowledge base and embed what changed.
    *
@@ -718,11 +703,6 @@ export class KnowledgeService {
       });
       throw e;
     }
-  }
-
-  async listPosts(tenantId: number, sourceId: number): Promise<KbBoardPost[]> {
-    await this.findSource(tenantId, sourceId);
-    return this.postRepo.find({ where: { tenantId, sourceId }, order: { id: 'DESC' } });
   }
 
   // ---- Helpers ----

@@ -740,10 +740,18 @@ export class ChatService {
     // BEFORE rag.answer but upstream of the moderation gate below, so a replay
     // is still moderated (FR-069 non-bypassable). Never for order questions:
     // those answers are personal and the reuse store refuses them anyway.
+    // Resolved through RAG so replay, retrieval and persona all agree on which
+    // agent is speaking (a deactivated pin degrades to the tenant default).
+    const effectiveAgentId = await this.rag.effectiveAgentId(tenantId, session.aiAgentId ?? null);
     const reused =
       intent.needsOrderData || !this.answerReuse
         ? null
-        : await this.answerReuse.lookup(tenantId, session.language, egressText);
+        : await this.answerReuse.lookup(
+            tenantId,
+            session.language,
+            egressText,
+            effectiveAgentId,
+          );
     const answer = reused
       ? {
           text: reused.text,
@@ -851,6 +859,7 @@ export class ChatService {
         citations: answer.citations,
         sourceMessageId: aiTurn.id,
         needsOrderData: intent.needsOrderData ?? false,
+        aiAgentId: effectiveAgentId,
       });
     }
 

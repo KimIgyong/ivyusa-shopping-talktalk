@@ -17,6 +17,12 @@ import { FormRow, Input, Select } from '@/components/Field';
 import { ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { KnowledgeQaPanel } from './KnowledgeQaPanel';
+import {
+  AddDocumentHelp,
+  CatalogSyncHelp,
+  ProcessGuide,
+  ProductCsvHelp,
+} from './KnowledgeGuides';
 import { SourceCredentialCard } from './SourceCredentialCard';
 import { UsageTypeEditor } from './UsageTypeEditor';
 import { CategoryManagerCard } from './CategoryManagerCard';
@@ -65,11 +71,17 @@ const PAGE_SIZE = 20;
  * `repository` (GitHub) is deliberately absent: it was dropped from the roadmap
  * on 2026-08-24, and an option that can be picked but never ingests is worse
  * than no option — staging already holds a source an operator created that way.
- * The value stays in the API enum because rows created before this still carry
- * it, and the list renders `r.type` as stored rather than from this map.
+ *
+ * `board` is gone for a different reason (REQ-260826 R5). It was the internal
+ * board, and it was this list's default: pick it, and you got a source no
+ * console screen could ever write a post into. Five such sources exist on
+ * staging and `kb_board_posts` has never held a row. Writing a post to turn it
+ * into a document was a longer route to what "Add KB-Document" does directly.
+ *
+ * Both values stay in the API enum because rows created before this still carry
+ * them, and the list renders `r.type` as stored rather than from this map.
  */
 const SOURCE_TYPE = {
-  BOARD: 'board',
   GDRIVE: 'gdrive',
   NOTION: 'notion',
 } as const;
@@ -225,7 +237,7 @@ export function KnowledgePage() {
 
   const [sourceOpen, setSourceOpen] = useState(false);
   const [sourceName, setSourceName] = useState('');
-  const [sourceType, setSourceType] = useState<SourceType>(SOURCE_TYPE.BOARD);
+  const [sourceType, setSourceType] = useState<SourceType>(SOURCE_TYPE.GDRIVE);
   const [folderId, setFolderId] = useState('');
   /** A Notion page/database id, or the share URL it was copied from. */
   const [notionTarget, setNotionTarget] = useState('');
@@ -300,7 +312,7 @@ export function KnowledgePage() {
   const closeSource = () => {
     setSourceOpen(false);
     setSourceName('');
-    setSourceType(SOURCE_TYPE.BOARD);
+    setSourceType(SOURCE_TYPE.GDRIVE);
     setFolderId('');
     setNotionTarget('');
   };
@@ -532,6 +544,8 @@ export function KnowledgePage() {
     <div>
       <PageHeader title={t('title')} subtitle={t('subtitle')} />
 
+      <ProcessGuide />
+
       {/* Knowledge-gap proposal inbox (P5) — renders nothing when empty. */}
       <GapTasksSection />
 
@@ -541,6 +555,9 @@ export function KnowledgePage() {
           title={t('sources')}
           action={<Button onClick={() => setSourceOpen(true)}>{t('addSource')}</Button>}
         >
+          {/* What a source is for, said where the button is: an operator kept
+              creating sources expecting them to hold knowledge on their own. */}
+          <p className="mb-2 text-xs text-gray-500">{t('sourcesHint')}</p>
           <Table<KnowledgeSource>
             columns={sourceColumns}
             data={sources.data}
@@ -795,13 +812,16 @@ export function KnowledgePage() {
         <Card
           title={t('documents')}
           action={
-            <div className="flex gap-2">
+            <div className="flex items-center gap-2">
+              <CatalogSyncHelp />
               <Button variant="secondary" onClick={() => setCatalogOpen(true)}>
                 {t('syncCatalog')}
               </Button>
+              <ProductCsvHelp />
               <Button variant="secondary" onClick={() => setImportOpen(true)}>
                 {t('importProducts')}
               </Button>
+              <AddDocumentHelp />
               <Button onClick={() => setDocOpen(true)}>{t('addDocument')}</Button>
             </div>
           }

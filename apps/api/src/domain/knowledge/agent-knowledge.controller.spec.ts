@@ -28,7 +28,7 @@ describe('AgentKnowledgeController', () => {
       ctrl.ask(agent, { question: 'free shipping?', language: 'KO' } as never),
     ).resolves.toEqual(answer);
 
-    expect(knowledgeService.ask).toHaveBeenCalledWith(1, 'free shipping?', 'KO', undefined);
+    expect(knowledgeService.ask).toHaveBeenCalledWith(1, 'free shipping?', 'KO', undefined, null);
   });
 
   it('defaults the language rather than guessing', async () => {
@@ -36,14 +36,14 @@ describe('AgentKnowledgeController', () => {
 
     await ctrl.ask(agent, { question: 'free shipping?' } as never);
 
-    expect(knowledgeService.ask).toHaveBeenCalledWith(1, 'free shipping?', 'EN', undefined);
+    expect(knowledgeService.ask).toHaveBeenCalledWith(1, 'free shipping?', 'EN', undefined, null);
   });
 
   it('trims the question and refuses an empty one', async () => {
     const { ctrl, knowledgeService } = build();
 
     await ctrl.ask(agent, { question: '  free shipping?  ' } as never);
-    expect(knowledgeService.ask).toHaveBeenCalledWith(1, 'free shipping?', 'EN', undefined);
+    expect(knowledgeService.ask).toHaveBeenCalledWith(1, 'free shipping?', 'EN', undefined, null);
 
     await expect(ctrl.ask(agent, { question: '   ' } as never)).rejects.toThrow();
     expect(knowledgeService.ask).toHaveBeenCalledTimes(1);

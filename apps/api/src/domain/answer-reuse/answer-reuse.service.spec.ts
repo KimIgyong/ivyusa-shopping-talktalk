@@ -3,6 +3,7 @@ import { AnswerReuseService } from './answer-reuse.service';
 import { AnswerReuse } from './entity/answer-reuse.entity';
 import { AiGatewayService } from '../../infrastructure/external/ai/ai-gateway.service';
 import { ReuseQdrantService } from '../../infrastructure/external/vector/reuse-qdrant.service';
+import { KbCategory } from '../knowledge/entity/kb-category.entity';
 
 /**
  * Answer reuse (PLN-260808 Track C). The service must be fail-open (any miss/
@@ -23,6 +24,7 @@ describe('AnswerReuseService', () => {
     searchHits?: Array<{ id: number; score: number }>;
     row?: Partial<AnswerReuse> | null;
     count?: number;
+    categories?: Array<Partial<KbCategory>>;
   }) {
     const repo = {
       findOne: jest.fn(async () => (opts.row === undefined ? null : opts.row)),
@@ -52,7 +54,19 @@ describe('AnswerReuseService', () => {
       setActive: jest.fn(async () => undefined),
       delete: jest.fn(async () => undefined),
     } as unknown as ReuseQdrantService;
-    return { svc: new AnswerReuseService(repo, ai, vector), repo, ai, vector };
+    // Category rows drive one rule only: whether a row with no agent recorded
+    // may still be replayed. Default = this tenant scopes nothing, which is the
+    // state every tenant is in before someone opens the category screen.
+    const categoryRepo = {
+      find: jest.fn(async () => opts.categories ?? []),
+    } as unknown as Repository<KbCategory>;
+    return {
+      svc: new AnswerReuseService(repo, categoryRepo, ai, vector),
+      repo,
+      ai,
+      vector,
+      categoryRepo,
+    };
   }
 
   const activeRow = (over: Partial<AnswerReuse> = {}): Partial<AnswerReuse> => ({

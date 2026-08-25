@@ -981,12 +981,28 @@ export class AgentService {
         order: { id: 'DESC' },
       });
       if (!question) return;
+      // The persona the shopper was talking to, so a human reply written in one
+      // agent's context is not replayed as another's (REQ-260826 D4).
+      //
+      // An unpinned session resolves to the tenant's default agent, the same way
+      // the answering path resolves it — leaving it null would mean human
+      // replies, the highest-trust entries in the store, stop being replayable
+      // the day a tenant scopes its first category.
+      const conv = await this.convRepo.findOne({ where: { id: conversationId, tenantId } });
+      const session = conv
+        ? await this.sessionRepo.findOne({ where: { id: conv.sessionId, tenantId } })
+        : null;
+      const pinned = session?.aiAgentId != null ? Number(session.aiAgentId) : null;
+      const fallback = pinned == null && this.aiAgentRepo
+        ? await this.aiAgentRepo.findOne({ where: { tenantId, isDefault: 1 } })
+        : null;
       await this.answerReuse.recordAgentAnswer({
         tenantId,
         lang: question.lang ?? 'EN',
         question: question.body,
         answerText: reply.body,
         sourceMessageId: reply.id,
+        aiAgentId: pinned ?? (fallback ? Number(fallback.id) : null),
       });
     } catch (e) {
       this.logger.debug(`reuse agent-ingest skipped: ${(e as Error).message}`);

@@ -156,12 +156,25 @@ export class RagService {
     return normalizeStorefrontUrl(tenant?.storefrontUrl);
   }
 
+  /**
+   * `aiAgentId` narrows the result to what that agent may cite. Omitting it
+   * retrieves everything the tenant has — which is what the console and agent
+   * coaching want: a person managing the knowledge base has to see all of it.
+   */
   async retrieve(
     tenantId: number,
     query: string,
     limit = RagService.TOP_K,
+    aiAgentId?: number | null,
   ): Promise<RetrievedChunk[]> {
-    return (await this.retrieveHybrid(tenantId, query, limit)).chunks;
+    const scopeAgentId =
+      aiAgentId == null ? null : await this.aiConfig.effectiveAgentId(tenantId, aiAgentId);
+    return (await this.retrieveHybrid(tenantId, query, limit, undefined, scopeAgentId)).chunks;
+  }
+
+  /** Who is answering, after inactive/unknown pins degrade to the default. */
+  effectiveAgentId(tenantId: number, aiAgentId?: number | null): Promise<number | null> {
+    return this.aiConfig.effectiveAgentId(tenantId, aiAgentId);
   }
 
   private async retrieveHybrid(
@@ -169,9 +182,10 @@ export class RagService {
     query: string,
     limit = 4,
     preferGroup?: string,
+    aiAgentId?: number | null,
   ): Promise<{ chunks: RetrievedChunk[]; vectorProvider: string | null }> {
     const [ftDocs, vec] = await Promise.all([
-      this.retrieveFulltext(tenantId, query, RagService.LEG_LIMIT),
+      this.retrieveFulltext(tenantId, query, RagService.LEG_LIMIT, aiAgentId),
       this.retrieveVector(tenantId, query, RagService.LEG_LIMIT),
     ]);
     // Uncalibrated (stub) vector scores may RANK docs but never ADMIT them:
@@ -203,7 +217,9 @@ export class RagService {
     const ftById = new Map(ftDocs.map((d) => [Number(d.id), d]));
     const missingIds = [...fused.keys()].filter((id) => !ftById.has(id));
     if (missingIds.length) {
-      const rows = await this.baseQuery(tenantId)
+      // The vector leg searches Qdrant, which knows nothing about categories or
+      // agents; re-hydrating through baseQuery is what applies the scope to it.
+      const rows = await this.baseQuery(tenantId, aiAgentId)
         .andWhere({ id: In(missingIds) })
         .getMany();
       rows.forEach((d) => ftById.set(Number(d.id), d));
@@ -241,6 +257,7 @@ export class RagService {
     tenantId: number,
     query: string,
     limit: number,
+    aiAgentId?: number | null,
   ): Promise<KbDocument[]> {
     const terms = query
       .toLowerCase()
@@ -250,14 +267,14 @@ export class RagService {
       .slice(0, 8);
 
     if (!terms.length) {
-      return this.baseQuery(tenantId)
+      return this.baseQuery(tenantId, aiAgentId)
         .orderBy("CASE WHEN kb.source = 'knowledge_store' THEN 0 ELSE 1 END", 'ASC')
         .addOrderBy('kb.updatedAt', 'DESC')
         .take(limit)
         .getMany();
     }
     try {
-      return await this.baseQuery(tenantId)
+      return await this.baseQuery(tenantId, aiAgentId)
         .addSelect('MATCH(kb.title, kb.content) AGAINST (:ftq IN NATURAL LANGUAGE MODE)', 'relevance')
         .andWhere('MATCH(kb.title, kb.content) AGAINST (:ftq IN NATURAL LANGUAGE MODE)')
         .setParameter('ftq', terms.join(' '))
@@ -267,7 +284,7 @@ export class RagService {
         .getMany();
     } catch {
       // FULLTEXT index not present yet (pre-migration DB) — legacy LIKE scan.
-      return this.retrieveLike(tenantId, terms, limit);
+      return this.retrieveLike(tenantId, terms, limit, aiAgentId);
     }
   }
 
@@ -298,8 +315,8 @@ export class RagService {
    * vector leg re-hydrates its hits from it — so a rule added here cannot be
    * bypassed by whichever leg happened to find the document.
    */
-  private baseQuery(tenantId: number) {
-    return (
+  private baseQuery(tenantId: number, aiAgentId?: number | null) {
+    const qb = (
       this.kbRepo
         .createQueryBuilder('kb')
         .where('kb.active = 1')
@@ -316,11 +333,38 @@ export class RagService {
              (SELECT s.id FROM knowledge_sources s WHERE s.designated = 0))`,
         )
     );
+    // Per-agent knowledge scope (REQ-260826 R2). Phrased as "not in the
+    // categories this agent is excluded from" rather than "in the ones it is
+    // allowed", so a tenant that has never scoped anything matches an empty set
+    // and its answers are byte-identical to before. Documents with no category,
+    // and categories nobody has narrowed, are never touched.
+    //
+    // `origin <> 'catalog'` is enforced here as well as on save: origin is a
+    // property of what documents a category holds, so a hand-made category that
+    // later takes catalogue documents flips to catalog while still carrying the
+    // old narrowing (PR #342 met the same flip from the other side).
+    if (aiAgentId != null) {
+      qb.andWhere(
+        `(kb.category IS NULL OR kb.category NOT IN
+           (SELECT c.name FROM kb_categories c
+             WHERE c.tenant_id = :scopeTenantId
+               AND c.origin <> 'catalog'
+               AND JSON_LENGTH(c.agent_ids) > 0
+               AND NOT JSON_CONTAINS(c.agent_ids, CAST(:scopeAgentId AS JSON))))`,
+        { scopeTenantId: tenantId, scopeAgentId: aiAgentId },
+      );
+    }
+    return qb;
   }
 
   /** Legacy keyword scan — only used when the FULLTEXT index is unavailable. */
-  private async retrieveLike(tenantId: number, terms: string[], limit: number): Promise<KbDocument[]> {
-    const qb = this.baseQuery(tenantId).andWhere(
+  private async retrieveLike(
+    tenantId: number,
+    terms: string[],
+    limit: number,
+    aiAgentId?: number | null,
+  ): Promise<KbDocument[]> {
+    const qb = this.baseQuery(tenantId, aiAgentId).andWhere(
       new Brackets((b) => {
         terms.forEach((term, i) => {
           b.orWhere(`LOWER(kb.title) LIKE :t${i}`, { [`t${i}`]: `%${term}%` });
@@ -358,11 +402,18 @@ export class RagService {
     // asked to answer — chat passes the previous turns so a follow-up that only
     // makes sense in context ("and for my young son?") still retrieves the topic
     // it refers to. The model still sees just `query` (FIX-260806 A2).
+    // Resolved once and used for both what is retrieved and who says it — a
+    // session pinned to a deactivated agent must not keep that agent's private
+    // knowledge while speaking in the default persona's voice.
+    const scopeAgentId = await this.aiConfig.effectiveAgentId(tenantId, aiAgentId);
     const { chunks, vectorProvider } = await this.retrieveHybrid(
       tenantId,
       retrievalQuery?.trim() || query,
       RagService.TOP_K,
       preferGroup,
+      // The agent was already being passed for its persona; it decides what may
+      // be retrieved as well (REQ-260826 R2).
+      scopeAgentId,
     );
     // Numbered so the model can name the items it actually used (see CITED_LINE).
     const context = chunks

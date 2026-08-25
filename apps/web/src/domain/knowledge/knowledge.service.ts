@@ -191,6 +191,8 @@ export interface KbCategoryRow {
   origin: string;
   hidden: boolean;
   documentCount: number;
+  /** Agents allowed to cite documents here; empty = every agent (REQ-260826). */
+  agentIds: number[];
 }
 
 /** Live state of the async conversion (PLN-260807 P1 / RPT-260808 D3). */
@@ -387,6 +389,8 @@ export const knowledgeService = {
       from_ids: fromIds.map(Number),
       into_id: Number(intoId),
     }),
+  setCategoryAgents: (id: string, agentIds: number[]) =>
+    apiPut<KbCategoryRow>(`/knowledge/categories/${id}/agents`, { agent_ids: agentIds }),
   setCategoryHidden: (id: string, hidden: boolean) =>
     apiPut<KbCategoryRow>(`/knowledge/categories/${id}/hidden`, { hidden }),
   removeCategory: (id: string) =>
@@ -396,8 +400,14 @@ export const knowledgeService = {
       `/knowledge/usage-guides/${key}`,
       body,
     ),
-  ask: (question: string, language: string) =>
-    apiPost<KnowledgeAnswer>('/knowledge/ask', { question, language }),
+  ask: (question: string, language: string, aiAgentId?: number | null) =>
+    apiPost<KnowledgeAnswer>('/knowledge/ask', {
+      question,
+      language,
+      // Omitted = answer from everything the tenant has, which is what an
+      // operator managing the knowledge base needs to see.
+      ...(aiAgentId ? { ai_agent_id: aiAgentId } : {}),
+    }),
   conflicts: (params: { status?: string; page: number; size: number }) =>
     apiGetList<KnowledgeConflict>('/knowledge/conflicts', params),
   scanConflicts: () => apiPost<ScanResult>('/knowledge/conflicts/scan', {}),

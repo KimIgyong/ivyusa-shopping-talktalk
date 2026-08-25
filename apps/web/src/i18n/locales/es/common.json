@@ -35,5 +35,6 @@
   "pagination": {
     "range": "{{from}}–{{to}} de {{total}}",
     "pageOf": "{{page}} / {{totalPages}}"
-  }
+  },
+  "help": "Ayuda"
 }

@@ -3,13 +3,12 @@ import { SourceSyncService } from './source-sync.service';
 import { KbDocument } from './entity/kb-document.entity';
 import { KnowledgeSource } from './entity/knowledge-source.entity';
 import { KbRevisionService } from './kb-revision.service';
-import { BoardAdapter } from './adapters/board.adapter';
 import { GdriveAdapter } from './adapters/gdrive.adapter';
 import { NotionAdapter } from './adapters/notion.adapter';
 import { SourceItem } from './source-adapter.interface';
 
 const source = (over: Partial<KnowledgeSource> = {}) =>
-  ({ id: 5, tenantId: 1, type: 'board', name: 'IVY Help Center', ...over }) as KnowledgeSource;
+  ({ id: 5, tenantId: 1, type: 'gdrive', name: 'IVY Help Center', ...over }) as KnowledgeSource;
 
 const item = (over: Partial<SourceItem> = {}): SourceItem => ({
   externalKey: 'post:1',
@@ -47,19 +46,15 @@ describe('SourceSyncService.sync', () => {
       }),
     } as unknown as KbRevisionService;
 
-    const board = {
-      type: 'board',
-      validateConfig: () => null,
-      fetchAll: jest.fn(async () => opts.items ?? [item()]),
-    } as unknown as BoardAdapter;
-
-    // A stand-in for any adapter behind someone else's API: an empty listing
-    // is not proof the source is empty.
+    // Every adapter now sits behind someone else's API, so an empty listing is
+    // never proof the source is empty — the reconcile tests below make an item
+    // disappear by listing a different one, which is how a file actually goes
+    // missing from a Drive folder.
     const gdrive = {
       type: 'gdrive',
       trustEmptyListing: false,
       validateConfig: () => null,
-      fetchAll: jest.fn(async () => opts.items ?? []),
+      fetchAll: jest.fn(async () => opts.items ?? [item()]),
     } as unknown as GdriveAdapter;
 
     // Notion answers with { items, dropped } rather than a bare array — the
@@ -71,7 +66,7 @@ describe('SourceSyncService.sync', () => {
       fetchAll: jest.fn(async () => ({ items: opts.items ?? [], dropped: opts.dropped ?? 0 })),
     } as unknown as NotionAdapter;
 
-    return new SourceSyncService(docRepo, sourceRepo, revisions, board, gdrive, notion);
+    return new SourceSyncService(docRepo, sourceRepo, revisions, gdrive, notion);
   };
 
   it('creates a document for a new source item', async () => {
@@ -163,21 +158,33 @@ describe('SourceSyncService.sync', () => {
     // Hiding is reversible and is what retrieval honours; a hard delete would
     // destroy the revision history's subject (D7).
     const svc = build({
-      items: [],
+      items: [item({ externalKey: 'post:2', title: 'Still here' })],
       existing: [
         { id: 10, tenantId: 1, sourceId: 5, externalKey: 'post:1', title: 'Gone', active: 1 },
       ],
     });
     const { result } = await svc.sync(1, source(), 7);
-    expect(result).toMatchObject({ fetched: 0, hidden: 1 });
-    expect(saved[0]).toMatchObject({ id: 10, active: 0 });
+    expect(result).toMatchObject({ fetched: 1, hidden: 1 });
+    expect(saved.find((d) => d.id === 10)).toMatchObject({ id: 10, active: 0 });
   });
 
   it('does not re-hide something already hidden', async () => {
     const svc = build({
-      items: [],
+      items: [item({ externalKey: 'post:2' })],
       existing: [
         { id: 10, tenantId: 1, sourceId: 5, externalKey: 'post:1', title: 'Gone', active: 0 },
+        {
+          id: 11,
+          tenantId: 1,
+          sourceId: 5,
+          externalKey: 'post:2',
+          title: 'Return policy',
+          content: 'Returns accepted within 30 days.',
+          category: 'IVY Help Center',
+          sourceUrl: null,
+          active: 1,
+          status: 'embedded',
+        },
       ],
     });
     expect((await svc.sync(1, source(), 7)).result.hidden).toBe(0);
@@ -220,7 +227,9 @@ describe('SourceSyncService.sync', () => {
   });
 
   it('reports which source types can actually ingest', async () => {
-    expect(build().supportedTypes()).toEqual(['board', 'gdrive', 'notion']);
+    // `board` left this list on 2026-08-26 (REQ-260826 R5) and `repository`
+    // never joined it; rows of either type report unsupported and stay put.
+    expect(build().supportedTypes()).toEqual(['gdrive', 'notion']);
   });
 
   it('never embeds inline — it hands ids back for batching', async () => {
@@ -234,7 +243,11 @@ describe('SourceSyncService.sync', () => {
 describe('SourceSyncService — empty-listing guard for external sources', () => {
   const gdriveSource = { id: 9, tenantId: 1, type: 'gdrive', name: '정책 문서' } as KnowledgeSource;
 
-  const buildFor = (existing: Partial<KbDocument>[], items: SourceItem[] = []) => {
+  const buildFor = (
+    existing: Partial<KbDocument>[],
+    items: SourceItem[] = [],
+    opts: { trustEmptyListing?: boolean } = {},
+  ) => {
     const saved: KbDocument[] = [];
     const docRepo = {
       find: jest.fn(async () => existing as KbDocument[]),
@@ -246,10 +259,9 @@ describe('SourceSyncService — empty-listing guard for external sources', () =>
     } as unknown as Repository<KbDocument>;
     const sourceRepo = { save: jest.fn(async (s: KnowledgeSource) => s) } as unknown as Repository<KnowledgeSource>;
     const revisions = { record: jest.fn(async () => null) } as unknown as KbRevisionService;
-    const board = { type: 'board', validateConfig: () => null, fetchAll: jest.fn(async () => []) } as unknown as BoardAdapter;
     const gdrive = {
       type: 'gdrive',
-      trustEmptyListing: false,
+      trustEmptyListing: opts.trustEmptyListing ?? false,
       validateConfig: () => null,
       fetchAll: jest.fn(async () => items),
     } as unknown as GdriveAdapter;
@@ -259,7 +271,7 @@ describe('SourceSyncService — empty-listing guard for external sources', () =>
       validateConfig: () => null,
       fetchAll: jest.fn(async () => ({ items })),
     } as unknown as NotionAdapter;
-    return { svc: new SourceSyncService(docRepo, sourceRepo, revisions, board, gdrive, notion), saved };
+    return { svc: new SourceSyncService(docRepo, sourceRepo, revisions, gdrive, notion), saved };
   };
 
   const live = (id: number) =>
@@ -303,12 +315,15 @@ describe('SourceSyncService — empty-listing guard for external sources', () =>
     expect(result.guardedEmpty).toBeUndefined();
   });
 
-  it('leaves an internal source free to report emptiness', async () => {
-    // An empty board really has no posts; the guard is only for sources behind
-    // someone else's API.
-    const { svc, saved } = buildFor([{ ...live(1), externalKey: 'post:1' }]);
-    const boardSource = { id: 9, tenantId: 1, type: 'board', name: 'Help' } as KnowledgeSource;
-    const { result } = await svc.sync(1, boardSource, 7);
+  it('leaves an adapter that vouches for its own emptiness free to hide', async () => {
+    // The guard reads the adapter's own claim rather than the source type. No
+    // shipped adapter makes that claim today — every one of them is behind
+    // someone else's API — but the flag is what the code branches on, so both
+    // sides of it stay described.
+    const { svc, saved } = buildFor([{ ...live(1), externalKey: 'file:1' }], [], {
+      trustEmptyListing: true,
+    });
+    const { result } = await svc.sync(1, { id: 9, tenantId: 1, type: 'gdrive', name: 'Help' } as KnowledgeSource, 7);
     expect(result.guardedEmpty).toBeUndefined();
     expect(result.hidden).toBe(1);
     expect(saved[0]).toMatchObject({ active: 0 });
@@ -332,7 +347,6 @@ describe('SourceSyncService — adapters that hold work back', () => {
       docRepo,
       sourceRepo,
       revisions,
-      stub('board') as unknown as BoardAdapter,
       stub('gdrive') as unknown as GdriveAdapter,
       stub('notion'),
     );

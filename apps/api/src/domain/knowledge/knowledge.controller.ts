@@ -35,7 +35,6 @@ import {
   AskKnowledgeRequest,
   CreateCategoryRequest,
   CreateDocumentRequest,
-  CreatePostRequest,
   CreateSourceRequest,
   ListConflictsQuery,
   ListDocumentsQuery,
@@ -49,6 +48,7 @@ import {
   SaveNotionCredentialRequest,
   SaveUsageGuideRequest,
   SaveUsageTypeRequest,
+  SetCategoryAgentsRequest,
   SetCategoryHiddenRequest,
   TestGdriveRequest,
   TestNotionRequest,
@@ -173,26 +173,6 @@ export class KnowledgeController {
     return { deleted: true };
   }
 
-  // ---- Board posts ----
-
-  @Post('sources/:id/posts')
-  @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
-  @ApiOperation({ summary: 'Create a board-mode knowledge post' })
-  async createPost(
-    @CurrentUser() user: Principal,
-    @Param('id', ParseIntPipe) id: number,
-    @Body() body: CreatePostRequest,
-  ) {
-    const principal = this.tenantUser(user);
-    const post = await this.knowledgeService.createPost(
-      principal.tenantId,
-      id,
-      principal.userId,
-      body,
-    );
-    return KnowledgeMapper.toPost(post);
-  }
-
   // ---- Google Drive credential (PLN-260815 G1) ----
 
   @Get('gdrive/credential')
@@ -278,14 +258,6 @@ export class KnowledgeController {
     return this.knowledgeService.syncSource(actor.tenantId, id, actor.userId);
   }
 
-  @Get('sources/:id/posts')
-  @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
-  @ApiOperation({ summary: 'List board-mode knowledge posts for a source' })
-  async listPosts(@CurrentUser() user: Principal, @Param('id', ParseIntPipe) id: number) {
-    const posts = await this.knowledgeService.listPosts(this.tenantUser(user).tenantId, id);
-    return KnowledgeMapper.toPostList(posts);
-  }
-
   // ---- Documents ----
 
   @Get('documents')
@@ -319,6 +291,7 @@ export class KnowledgeController {
       body.question,
       body.language ?? 'EN',
       body.group,
+      body.ai_agent_id ?? null,
     );
   }
 
@@ -569,6 +542,22 @@ export class KnowledgeController {
       this.tenantUser(user).tenantId,
       Number(id),
       body.hidden,
+    );
+    return KnowledgeMapper.toCategory(row);
+  }
+
+  @Put('categories/:id/agents')
+  @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
+  @ApiOperation({ summary: 'Narrow a category to specific AI agents (empty = every agent)' })
+  async setCategoryAgents(
+    @CurrentUser() user: Principal,
+    @Param('id') id: string,
+    @Body() body: SetCategoryAgentsRequest,
+  ) {
+    const row = await this.kbCategories.setAgents(
+      this.tenantUser(user).tenantId,
+      Number(id),
+      body.agent_ids ?? [],
     );
     return KnowledgeMapper.toCategory(row);
   }
