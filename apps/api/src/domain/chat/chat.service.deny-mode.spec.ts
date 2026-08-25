@@ -198,17 +198,33 @@ describe('ChatService — deny-list mode', () => {
     );
   });
 
-  it('hands off a deny topic from a guest instead of asking them to sign in', async () => {
+  it('answers a guest from knowledge instead of demanding a sign-in first', async () => {
+    // The classifier marks "환불계좌 바꾸고 싶어" as needing order data, so a
+    // guest asking it hit the sign-in gate and left with neither the policy nor
+    // a person. Nothing is guessed here — a guest has no order context, so the
+    // answer is grounded in the knowledge base alone and the agent still gets
+    // the thread.
     const b = build({ mode: 'answer_then_handoff', needsOrderData: true });
 
     const res = await ask(b);
 
     expect(res.needsAuth).toBe(false);
+    expect(res.reply?.senderType).toBe('ai');
     expect(res.escalate).toBe(true);
     expect(b.busPublish).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({ reason: 'policy' }),
     );
+  });
+
+  it('still asks a guest to sign in when no deny rule is answering first', async () => {
+    const b = build({ mode: 'silent', needsOrderData: true });
+
+    const res = await ask(b);
+
+    // Silent rules hand off before this gate is reached at all.
+    expect(res.reply?.senderType).toBe('system');
+    expect(res.escalate).toBe(true);
   });
 
   it('falls back to a plain handoff when moderation blocks the answer', async () => {
