@@ -7,6 +7,8 @@ import { bigintTransformer } from '../../../global/util/transformers';
 // Queue driving query: tenant + status IN(...) ORDER BY id DESC — this composite
 // makes it an index range scan with no filesort (PLN-260804).
 @Index('idx_conv_tenant_status_id', ['tenantId', 'status', 'id'])
+// Queue pinning (PLN-260826) — mirrors sql/260826-conversation-pin.sql.
+@Index('idx_conv_tenant_pinned', ['tenantId', 'pinnedAt'])
 @Entity('conversations')
 export class Conversation {
   @PrimaryGeneratedColumn({ type: 'bigint' })
@@ -56,6 +58,16 @@ export class Conversation {
 
   @Column({ name: 'csat_rated_at', type: 'datetime', nullable: true })
   csatRatedAt: Date | null;
+
+  /**
+   * Team-shared queue pin (PLN-260826): non-null floats the row to the top of
+   * the live-chat list, max 3 active pins per tenant (service-enforced).
+   */
+  @Column({ name: 'pinned_at', type: 'datetime', nullable: true })
+  pinnedAt: Date | null;
+
+  @Column({ name: 'pinned_by', type: 'bigint', nullable: true, transformer: bigintTransformer })
+  pinnedBy: number | null;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

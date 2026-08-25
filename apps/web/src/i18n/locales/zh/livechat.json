@@ -352,6 +352,31 @@
     "issueError": "无法登记工单。",
     "assignButton": "指派",
     "assignTypeAi": "AI客服",
-    "assignTypeAgent": "人工客服"
+    "assignTypeAgent": "人工客服",
+    "issueAppended": "已作为备注添加到工单 #{{no}}。",
+    "issueTargetLabel": "目标消息",
+    "issueMemo": "备注（可选）",
+    "issueMemoPlaceholder": "供工单看板参考的备注，例如：第三次相同咨询",
+    "issueAppendHint": "若该会话已有工单，将作为备注追加。"
+  },
+  "pin": {
+    "pin": "置顶",
+    "unpin": "取消置顶",
+    "saved": "会话已置顶。",
+    "cleared": "已取消置顶。",
+    "saveError": "无法更新置顶状态。",
+    "limitReached": "置顶已达上限（每店铺3个）。请先取消一个置顶。"
+  },
+  "msgActions": {
+    "translate": "翻译",
+    "translateTitle": "翻译为",
+    "translating": "翻译中…",
+    "translatedTo": "已翻译为{{lang}}",
+    "hideTranslation": "关闭翻译",
+    "translateError": "翻译失败。",
+    "knowledge": "查询知识库",
+    "reply": "引用回复",
+    "quoteRemove": "移除引用",
+    "fileIssue": "将此消息登记为工单"
   }
 }

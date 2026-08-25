@@ -42,7 +42,7 @@ describe('AgentService — AI agent & assignment (REQ-260825)', () => {
     const audit = { write: jest.fn(async () => undefined) };
     const issueService = {
       onAgentAccept: jest.fn(async () => undefined),
-      createManual: jest.fn(async () => ({ id: 30, issueNo: 12 })),
+      createManual: jest.fn(async () => ({ issue: { id: 30, issueNo: 12 }, appended: false })),
     };
 
     const svc = new AgentService(
@@ -120,7 +120,9 @@ describe('AgentService — AI agent & assignment (REQ-260825)', () => {
 
     const result = await h.svc.fileIssue(5, 1, 7, 'delivery');
 
-    expect(h.issueService.createManual).toHaveBeenCalledWith(1, 5, 90, 'delivery', 7);
-    expect(result).toEqual({ issueId: 30, issueNo: 12 });
+    expect(h.issueService.createManual).toHaveBeenCalledWith(1, 5, 90, 'delivery', 7, {
+      note: null,
+    });
+    expect(result).toEqual({ issueId: 30, issueNo: 12, appended: false });
   });
 });

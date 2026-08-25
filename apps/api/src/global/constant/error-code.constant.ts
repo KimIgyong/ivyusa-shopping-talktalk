@@ -187,6 +187,10 @@ export const ERROR_CODE = {
     message: 'The issue workflow add-on is not enabled for this store',
   },
 
+  // E5060 — queue pinning (PLN-260826).
+  /** Three team pins per tenant — unpin one before pinning another. */
+  PIN_LIMIT_REACHED: { code: 'E5060', message: 'Pin limit reached (3 per store)' },
+
   // E9xxx — system
   INTERNAL_ERROR: { code: 'E9001', message: 'Internal server error' },
   EXTERNAL_SERVICE_ERROR: { code: 'E9002', message: 'External service error' },

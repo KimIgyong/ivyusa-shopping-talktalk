@@ -352,6 +352,31 @@
     "issueError": "이슈를 등록하지 못했습니다.",
     "assignButton": "지정",
     "assignTypeAi": "AI 에이전트",
-    "assignTypeAgent": "상담원"
+    "assignTypeAgent": "상담원",
+    "issueAppended": "이슈 #{{no}}에 메모로 추가했습니다.",
+    "issueTargetLabel": "대상 메시지",
+    "issueMemo": "메모 (선택)",
+    "issueMemoPlaceholder": "이슈 보드에서 볼 맥락 메모 — 예: 3회째 동일 문의",
+    "issueAppendHint": "이 대화에 이미 이슈가 있으면 메모로 추가됩니다."
+  },
+  "pin": {
+    "pin": "핀 고정",
+    "unpin": "핀 해제",
+    "saved": "대화를 상단에 고정했습니다.",
+    "cleared": "핀을 해제했습니다.",
+    "saveError": "핀 상태를 변경하지 못했습니다.",
+    "limitReached": "핀은 스토어당 3개까지입니다. 기존 핀을 해제해 주세요."
+  },
+  "msgActions": {
+    "translate": "번역",
+    "translateTitle": "번역할 언어",
+    "translating": "번역 중…",
+    "translatedTo": "{{lang}} 번역",
+    "hideTranslation": "번역 닫기",
+    "translateError": "번역에 실패했습니다.",
+    "knowledge": "지식 조회",
+    "reply": "답글 달기",
+    "quoteRemove": "인용 제거",
+    "fileIssue": "이 메시지를 이슈로 등록"
   }
 }

@@ -352,6 +352,31 @@
     "issueError": "イシューを登録できませんでした。",
     "assignButton": "指定",
     "assignTypeAi": "AIエージェント",
-    "assignTypeAgent": "担当者"
+    "assignTypeAgent": "担当者",
+    "issueAppended": "課題 #{{no}} にメモとして追加しました。",
+    "issueTargetLabel": "対象メッセージ",
+    "issueMemo": "メモ（任意）",
+    "issueMemoPlaceholder": "課題ボード用のメモ — 例: 3回目の同じ問い合わせ",
+    "issueAppendHint": "この会話に既に課題がある場合はメモとして追加されます。"
+  },
+  "pin": {
+    "pin": "ピン留め",
+    "unpin": "ピン解除",
+    "saved": "会話を上部に固定しました。",
+    "cleared": "ピンを解除しました。",
+    "saveError": "ピンの変更に失敗しました。",
+    "limitReached": "ピンはストアごとに3件までです。既存のピンを解除してください。"
+  },
+  "msgActions": {
+    "translate": "翻訳",
+    "translateTitle": "翻訳先の言語",
+    "translating": "翻訳中…",
+    "translatedTo": "{{lang}}に翻訳",
+    "hideTranslation": "翻訳を閉じる",
+    "translateError": "翻訳に失敗しました。",
+    "knowledge": "ナレッジ検索",
+    "reply": "引用して返信",
+    "quoteRemove": "引用を削除",
+    "fileIssue": "このメッセージを課題として登録"
   }
 }

@@ -1,12 +1,13 @@
 import { HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { FindOptionsWhere, In, LessThan, Repository } from 'typeorm';
+import { FindOptionsWhere, In, IsNull, LessThan, Not, Repository } from 'typeorm';
 import {
   AI_FUNCTION,
   CONSENT_STATE,
   CONVERSATION_STATUS,
   MODERATION_DECISION,
   SENDER_TYPE,
+  isSupportedLanguage,
   localized,
 } from '@ivy/types';
 import type { LocalizedText } from '@ivy/types';
@@ -32,6 +33,7 @@ import { TenantAiConfig } from '../ai-engine/entity/tenant-ai-config.entity';
 import { EventBusService, EVENTS, MailerService } from '../../infrastructure/infrastructure.module';
 import { RedisService } from '../../infrastructure/cache/redis.service';
 import { SessionService, sessionCacheKey } from '../session/session.service';
+import { PROMPT_LANGUAGE_NAMES } from './prompt-language';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
 import { UpsertProfileRequest } from './dto/request/agent.request';
@@ -358,7 +360,12 @@ export class AgentService {
     // it an index lookup per candidate row, and the whole messages table never
     // has to be aggregated to sort a page of conversations.
     const [conversations, total] = await qb
-      .orderBy('(SELECT MAX(m.id) FROM messages m WHERE m.conversation_id = c.id)', 'DESC')
+      // Pinned rows first (team pins, PLN-260826). With no pins in the tenant,
+      // ISNULL ties every row and the ordering below is untouched. This must
+      // live in SQL — a client-side re-sort would break across pages.
+      .orderBy('ISNULL(c.pinned_at)', 'ASC')
+      .addOrderBy('c.pinned_at', 'DESC')
+      .addOrderBy('(SELECT MAX(m.id) FROM messages m WHERE m.conversation_id = c.id)', 'DESC')
       .addOrderBy('c.id', 'DESC')
       .skip((page - 1) * size)
       .take(size)
@@ -822,25 +829,140 @@ export class AgentService {
     return conversation;
   }
 
-  /** File this conversation as an issue, on operator request (REQ-260825 R8-③). */
+  /**
+   * File this conversation as an issue, on operator request (REQ-260825 R8-③).
+   *
+   * With `messageId` (PLN-260826 R5) the filing targets one customer message:
+   * the server fetches the body itself (the client cannot forge an excerpt)
+   * and the excerpt + operator memo travel in the issue-event note. A second
+   * filing on the same conversation appends a MEMO event to the existing
+   * issue instead of failing — one issue per conversation is an invariant.
+   */
   async fileIssue(
     conversationId: number,
     tenantId: number,
     actorId: number,
     type: string,
-  ): Promise<{ issueId: number; issueNo: number }> {
+    opts?: { messageId?: number; memo?: string },
+  ): Promise<{ issueId: number; issueNo: number; appended: boolean }> {
     const conversation = await this.requireConversation(conversationId, tenantId);
     if (!this.issueService) {
       throw new BusinessException(ERROR_CODE.ISSUE_WORKFLOW_NOT_ENABLED, HttpStatus.CONFLICT);
     }
-    const issue = await this.issueService.createManual(
+    let note: string | null = null;
+    if (opts?.messageId != null) {
+      const message = await this.msgRepo.findOne({
+        where: { id: opts.messageId, conversationId, tenantId },
+      });
+      if (!message) {
+        this.logger.warn(
+          `issue message refused: msg=${opts.messageId} conv=${conversationId} tenant=${tenantId}`,
+        );
+        throw new BusinessException(ERROR_CODE.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND);
+      }
+      const excerpt = message.body.replace(/\s+/g, ' ').trim().slice(0, 120);
+      const memo = opts.memo?.trim().slice(0, 300);
+      note = `[고객] "${excerpt}"` + (memo ? `\n${memo}` : '');
+    } else if (opts?.memo?.trim()) {
+      note = opts.memo.trim().slice(0, 300);
+    }
+    const { issue, appended } = await this.issueService.createManual(
       tenantId,
       conversationId,
       Number(conversation.sessionId),
       type,
       actorId,
+      { note },
     );
-    return { issueId: Number(issue.id), issueNo: issue.issueNo };
+    return { issueId: Number(issue.id), issueNo: issue.issueNo, appended };
+  }
+
+  /**
+   * Pin or unpin a conversation in the queue (PLN-260826 R1). Pins are shared
+   * by the whole team — at most three active per tenant, and the fourth is
+   * refused rather than silently evicting a colleague's pin.
+   */
+  async setConversationPin(
+    conversationId: number,
+    tenantId: number,
+    actorId: number,
+    pinned: boolean,
+  ): Promise<{ id: number; pinned: boolean; pinnedAt: Date | null }> {
+    const conversation = await this.requireConversation(conversationId, tenantId);
+    if (pinned) {
+      if (!conversation.pinnedAt) {
+        const active = await this.convRepo.count({
+          where: { tenantId, pinnedAt: Not(IsNull()) },
+        });
+        if (active >= 3) {
+          this.logger.warn(`pin refused: tenant=${tenantId} already has ${active} pins`);
+          throw new BusinessException(ERROR_CODE.PIN_LIMIT_REACHED, HttpStatus.CONFLICT);
+        }
+        conversation.pinnedAt = new Date();
+        conversation.pinnedBy = actorId;
+        await this.convRepo.save(conversation);
+      }
+    } else if (conversation.pinnedAt) {
+      conversation.pinnedAt = null;
+      conversation.pinnedBy = null;
+      await this.convRepo.save(conversation);
+    }
+    await this.auditAgentAction(
+      actorId,
+      tenantId,
+      'agent.conversation.pin',
+      `conversation:${conversationId}`,
+      { pinned },
+    );
+    return { id: Number(conversation.id), pinned: !!conversation.pinnedAt, pinnedAt: conversation.pinnedAt };
+  }
+
+  /**
+   * Translate one customer message for the console (PLN-260826 R2). On-demand
+   * LLM call behind a shared Redis cache — several agents clicking the same
+   * bubble cost one completion, not one each. Nothing is stored on the row:
+   * chat is flowing data, and the cache TTL matches how long a conversation
+   * stays worked on.
+   */
+  async translateMessage(
+    messageId: number,
+    tenantId: number,
+    lang: string,
+  ): Promise<{ messageId: number; lang: string; text: string }> {
+    const normalized = lang.toLowerCase();
+    if (!isSupportedLanguage(normalized)) {
+      throw new BusinessException(ERROR_CODE.VALIDATION_FAILED, HttpStatus.BAD_REQUEST);
+    }
+    const message = await this.msgRepo.findOne({
+      where: { id: messageId, tenantId },
+    });
+    if (!message) {
+      this.logger.warn(`message translate refused: msg=${messageId} tenant=${tenantId}`);
+      throw new BusinessException(ERROR_CODE.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND);
+    }
+    const cacheKey = `msgtr:${messageId}:${normalized}`;
+    if (this.redis.available()) {
+      const cached = await this.redis.get(cacheKey);
+      if (cached) return { messageId, lang: normalized, text: cached };
+    }
+    const target = PROMPT_LANGUAGE_NAMES[normalized] ?? normalized;
+    let text: string;
+    try {
+      const res = await this.aiGateway.complete({
+        tenantId,
+        function: AI_FUNCTION.ASSIST,
+        feature: 'agent_translate',
+        system: `Translate the customer message into ${target}. Output only the translation — no commentary, no quotes.`,
+        messages: [{ role: 'user', content: message.body }],
+      });
+      text = (res.text ?? '').trim();
+    } catch (e) {
+      this.logger.warn(`message translation failed: ${(e as Error).message}`);
+      throw new BusinessException(ERROR_CODE.BRIEFING_FAILED, HttpStatus.BAD_GATEWAY);
+    }
+    if (!text) throw new BusinessException(ERROR_CODE.BRIEFING_FAILED, HttpStatus.BAD_GATEWAY);
+    if (this.redis.available()) await this.redis.set(cacheKey, text, 24 * 3600);
+    return { messageId, lang: normalized, text };
   }
 
   /** Agent accepts/takes over a conversation. */

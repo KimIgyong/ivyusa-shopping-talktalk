@@ -1,6 +1,7 @@
 import {
   ArrayMinSize,
   IsArray,
+  IsBoolean,
   IsEmail,
   IsIn,
   IsInt,
@@ -34,9 +35,23 @@ export class AssignConversationRequest {
   @IsInt() @Min(1) user_id: number;
 }
 
-/** File the conversation as an issue (REQ-260825 R8-③); unknown types → 'other'. */
+/** File the conversation as an issue (REQ-260825 R8-③); unknown types → 'other'.
+ * With `message_id` (PLN-260826 R5) the filing targets that customer message —
+ * its excerpt plus the optional memo land in the issue timeline. */
 export class FileIssueRequest {
   @IsString() @MaxLength(32) type: string;
+  @IsOptional() @IsInt() @Min(1) message_id?: number;
+  @IsOptional() @IsString() @MaxLength(300) memo?: string;
+}
+
+/** Pin or unpin the conversation in the queue — team-shared, max 3 (PLN-260826). */
+export class SetConversationPinRequest {
+  @IsBoolean() pinned: boolean;
+}
+
+/** Translate one message into a system language for the console (PLN-260826). */
+export class TranslateMessageRequest {
+  @IsString() @MaxLength(8) lang: string;
 }
 
 /** Transcript paging for the console (PLN-260807): recent tail, then older blocks. */

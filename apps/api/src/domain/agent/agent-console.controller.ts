@@ -47,7 +47,9 @@ import {
   SetSessionAiAgentRequest,
   AssignConversationRequest,
   FileIssueRequest,
+  SetConversationPinRequest,
   TranslateBriefingRequest,
+  TranslateMessageRequest,
   UpdateCommentRequest,
   UpsertProfileRequest,
 } from './dto/request/agent.request';
@@ -367,7 +369,32 @@ export class AgentConsoleController {
     @Param('id', ParseIntPipe) id: number,
     @Body() body: FileIssueRequest,
   ) {
-    return this.agentService.fileIssue(id, tenantOf(user), actorIdOf(user), body.type);
+    return this.agentService.fileIssue(id, tenantOf(user), actorIdOf(user), body.type, {
+      messageId: body.message_id,
+      memo: body.memo,
+    });
+  }
+
+  @Patch('conversations/:id/pin')
+  @RequireCapability(CAPABILITY.CONVERSATION_HANDLE)
+  @ApiOperation({ summary: 'Pin/unpin this conversation in the queue (team pins, max 3)' })
+  async setConversationPin(
+    @CurrentUser() user: Principal,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: SetConversationPinRequest,
+  ) {
+    return this.agentService.setConversationPin(id, tenantOf(user), actorIdOf(user), body.pinned);
+  }
+
+  @Post('messages/:id/translate')
+  @RequireCapability(CAPABILITY.CONVERSATION_HANDLE)
+  @ApiOperation({ summary: 'Translate one message into a system language (console-only)' })
+  async translateMessage(
+    @CurrentUser() user: Principal,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: TranslateMessageRequest,
+  ) {
+    return this.agentService.translateMessage(id, tenantOf(user), body.lang);
   }
 
   @Patch('conversations/:id/alias')
