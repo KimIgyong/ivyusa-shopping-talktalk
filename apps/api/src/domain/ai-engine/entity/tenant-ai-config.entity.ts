@@ -72,10 +72,38 @@ export interface HandoffConfig {
     type?: string;
     /** JobLabel to route/stamp (consult|accounting|operations). */
     label?: string;
+    /**
+     * What the customer hears while the agent is being paged (REQ-260826).
+     *
+     * The rule always reaches a human either way — this decides only whether
+     * they are told anything meanwhile. Absent means SILENT, so a tenant that
+     * set up a deny-list before this existed keeps exactly the behaviour it
+     * chose.
+     */
+    mode?: DenyMode;
   }>;
   /** SLA targets for the issue board (백로그 B2, 결정 5); defaults 24h/4h. */
   sla?: { normalHours?: number; urgentHours?: number };
 }
+
+/**
+ * What a matched deny rule says to the customer (REQ-260826).
+ *
+ * The deny-list conflated two things: "a human must handle this" and "say
+ * nothing meanwhile". Only the first is its purpose — on staging a shopper
+ * waited two minutes for an agent to retype an answer six knowledge documents
+ * already held, two of them promoted from that very conversation.
+ *
+ * Some topics genuinely want silence (legal threats, chargebacks), so the
+ * choice is per rule and the silent default is preserved.
+ */
+export const DENY_MODE = {
+  /** Hand off with no answer — the behaviour every existing rule has. */
+  SILENT: 'silent',
+  /** Answer from the knowledge base first, then hand off exactly as before. */
+  ANSWER_THEN_HANDOFF: 'answer_then_handoff',
+} as const;
+export type DenyMode = (typeof DENY_MODE)[keyof typeof DENY_MODE];
 
 export interface ScenarioOverride {
   reply?: LocalizedText;

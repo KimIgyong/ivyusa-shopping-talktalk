@@ -168,10 +168,14 @@ describe('HandoffRouterService.denyMatch', () => {
     await expect(svc.denyMatch(1, '이 제품 REFUND 가능한가요?')).resolves.toEqual({
       type: 'refund',
       label: 'accounting',
+      // A rule written before `mode` existed is silent — the behaviour its
+      // author chose (REQ-260826).
+      mode: 'silent',
     });
     await expect(svc.denyMatch(1, '제휴 문의드립니다')).resolves.toEqual({
       type: 'partnership',
       label: 'operations',
+      mode: 'silent',
     });
   });
 
@@ -179,5 +183,31 @@ describe('HandoffRouterService.denyMatch', () => {
     await expect(routerFor(null).denyMatch(1, '배송 언제 오나요')).resolves.toBeNull();
     const svc = routerFor({ denyRules: [{ keywords: ['', '  '], type: 'other' }] });
     await expect(svc.denyMatch(1, '아무 질문')).resolves.toBeNull();
+  });
+});
+
+describe('HandoffRouterService.denyMatch — per-rule mode (REQ-260826)', () => {
+  const build = (rules: unknown[]) =>
+    new HandoffRouterService({
+      getHandoffConfig: jest.fn(async () => ({ denyRules: rules })),
+    } as never);
+
+  it('reads a rule with no mode as silent, never as answering', async () => {
+    // Every deny rule in existence predates this field. Reading the absence as
+    // "answer first" would start auto-replying on topics a tenant deliberately
+    // routed to a person.
+    const svc = build([{ keywords: ['환불계좌'] }]);
+
+    await expect(svc.denyMatch(1, '환불계좌 바꾸고 싶어')).resolves.toMatchObject({
+      mode: 'silent',
+    });
+  });
+
+  it('carries answer_then_handoff through', async () => {
+    const svc = build([{ keywords: ['환불계좌'], mode: 'answer_then_handoff' }]);
+
+    await expect(svc.denyMatch(1, '환불계좌 바꾸고 싶어')).resolves.toMatchObject({
+      mode: 'answer_then_handoff',
+    });
   });
 });

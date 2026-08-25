@@ -2,7 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { localized } from '@ivy/types';
 import type { LocalizedText } from '@ivy/types';
 import { AiConfigService } from './ai-config.service';
-import type { HandoffConfig } from './entity/tenant-ai-config.entity';
+import { DENY_MODE } from './entity/tenant-ai-config.entity';
+import type { DenyMode, HandoffConfig } from './entity/tenant-ai-config.entity';
 
 /** What the chat pipeline should do with one escalation (PLN-AiSetting W3). */
 export interface HandoffRoute {
@@ -44,7 +45,7 @@ export class HandoffRouterService {
   async denyMatch(
     tenantId: number | null,
     text: string,
-  ): Promise<{ type?: string; label?: string } | null> {
+  ): Promise<{ type?: string; label?: string; mode: DenyMode } | null> {
     const config = await this.aiConfig.getHandoffConfig(tenantId);
     const rules = config?.denyRules ?? [];
     if (!rules.length) return null;
@@ -54,7 +55,9 @@ export class HandoffRouterService {
         const kw = (k ?? '').trim().toLowerCase();
         return kw.length > 0 && lower.includes(kw);
       });
-      if (hit) return { type: rule.type, label: rule.label };
+      // A rule written before `mode` existed reads as SILENT — the behaviour
+      // its author chose, and the only safe reading of an absent field here.
+      if (hit) return { type: rule.type, label: rule.label, mode: rule.mode ?? DENY_MODE.SILENT };
     }
     return null;
   }
