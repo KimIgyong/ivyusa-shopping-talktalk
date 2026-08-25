@@ -467,7 +467,19 @@ export function KnowledgePage() {
       // could not tell a knowledge-store entry from an imported Drive doc.
       render: (r) => <Badge tone="gray">{t(`source.${r.source}`, { defaultValue: r.source })}</Badge>,
     },
-    { key: 'status', header: t('status'), render: (r) => <StatusBadge status={r.status} /> },
+    {
+      key: 'status',
+      header: t('status'),
+      // `pending` reads as "not in use yet", and it is not: the keyword leg of
+      // retrieval has no status filter, so the document is already citable —
+      // only the semantic leg is waiting on an embedding. Saying nothing here
+      // let an operator believe a live document was still parked.
+      render: (r) => (
+        <span title={r.status === 'pending' ? t('statusPendingHint') : undefined}>
+          <StatusBadge status={r.status} />
+        </span>
+      ),
+    },
     {
       key: 'updatedAt',
       header: t('updated'),
@@ -849,6 +861,10 @@ export function KnowledgePage() {
                 emptyMessage={t('noDocuments')}
                 rowKey={(r) => r.id}
               />
+              {/* Stated under the table, not only in a tooltip: the operator
+                  decides what to fix from this list, and "pending" quietly
+                  meaning "already answering customers" changes that decision. */}
+              <p className="mt-2 text-xs text-gray-500">{t('statusLegend')}</p>
               <Pagination
                 page={page}
                 pageSize={PAGE_SIZE}

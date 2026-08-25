@@ -95,9 +95,9 @@ export function splitCitedMarker(raw: string): { text: string; cited: number[] |
  * Retrieval-Augmented answering (FN-016/017, POL-011/013,
  * PLAN-KB-VectorHybrid-Qdrant W4). Hybrid retrieval: MySQL FULLTEXT (exact
  * keyword leg) + Qdrant dense vectors (semantic leg, cross-lingual ko/en/es),
- * merged with Reciprocal Rank Fusion. Only designated + active KB documents
- * scoped to the tenant are retrieved (Knowledge Store wins; Google Drive
- * supplements). The vector leg degrades silently — Qdrant/embedder failures
+ * merged with Reciprocal Rank Fusion. Only active KB documents scoped to the
+ * tenant are retrieved, excluding those from a source the operator has
+ * un-designated (Knowledge Store wins; Google Drive supplements). The vector leg degrades silently — Qdrant/embedder failures
  * fall back to FULLTEXT-only, which is the pre-hybrid behavior.
  *
  * An answer may additionally be grounded in the signed-in customer's own order
@@ -291,11 +291,31 @@ export class RagService {
     }
   }
 
+  /**
+   * The one place that decides what an answer may be grounded in.
+   *
+   * Both legs pass through here — the keyword leg queries it directly and the
+   * vector leg re-hydrates its hits from it — so a rule added here cannot be
+   * bypassed by whichever leg happened to find the document.
+   */
   private baseQuery(tenantId: number) {
-    return this.kbRepo
-      .createQueryBuilder('kb')
-      .where('kb.active = 1')
-      .andWhere('(kb.tenantId = :tenantId OR kb.tenantId IS NULL)', { tenantId });
+    return (
+      this.kbRepo
+        .createQueryBuilder('kb')
+        .where('kb.active = 1')
+        .andWhere('(kb.tenantId = :tenantId OR kb.tenantId IS NULL)', { tenantId })
+        // Un-designating a source is how an operator says "stop answering from
+        // this". It never did: the flag lives on the source and retrieval only
+        // ever looked at the document, so documents already ingested kept being
+        // cited. Written as NOT IN the undesignated set rather than IN the
+        // designated one, so documents with no source — hand-written, catalogue,
+        // gap-promoted — are unaffected, and the subquery is empty in the normal
+        // case where nothing has been turned off.
+        .andWhere(
+          `(kb.sourceId IS NULL OR kb.sourceId NOT IN
+             (SELECT s.id FROM knowledge_sources s WHERE s.designated = 0))`,
+        )
+    );
   }
 
   /** Legacy keyword scan — only used when the FULLTEXT index is unavailable. */

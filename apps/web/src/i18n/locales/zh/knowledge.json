@@ -291,5 +291,7 @@
   "categoryShown": "已显示分类",
   "categoryRemoved": "已删除分类",
   "usageTypeActive": "使用中（关闭后保留指南，仅停止匹配）",
-  "usageTypeTakenHint": "有 {{count}} 件商品匹配，但上面的“{{type}}”把它们认领了。请把此类型上移，或收窄关键词。"
+  "usageTypeTakenHint": "有 {{count}} 件商品匹配，但上面的“{{type}}”把它们认领了。请把此类型上移，或收窄关键词。",
+  "statusPendingHint": "关键词检索已在回答中使用；仅等待语义索引。",
+  "statusLegend": "“待处理”的文档已可通过关键词检索使用 — 等待索引的只有语义检索。"
 }

@@ -291,5 +291,7 @@
   "categoryShown": "Categoría visible",
   "categoryRemoved": "Categoría eliminada",
   "usageTypeActive": "En uso (al desactivar se conserva la guía y solo deja de coincidir)",
-  "usageTypeTakenHint": "Coinciden {{count}} productos, pero \"{{type}}\" está por encima y se los queda. Sube este tipo o afina las palabras clave."
+  "usageTypeTakenHint": "Coinciden {{count}} productos, pero \"{{type}}\" está por encima y se los queda. Sube este tipo o afina las palabras clave.",
+  "statusPendingHint": "Ya se usa en respuestas por búsqueda de palabras clave; solo falta el índice semántico.",
+  "statusLegend": "Los documentos “pendientes” ya se buscan por palabras clave: solo la búsqueda semántica espera al índice."
 }

@@ -291,5 +291,7 @@
   "categoryShown": "카테고리를 표시합니다",
   "categoryRemoved": "카테고리를 삭제했습니다",
   "usageTypeActive": "사용 중 (끄면 매칭만 멈추고 작성한 가이드는 남습니다)",
-  "usageTypeTakenHint": "{{count}}개가 걸리지만 위에 있는 \"{{type}}\"이(가) 가져갑니다. 이 유형을 위로 올리거나 키워드를 좁히십시오."
+  "usageTypeTakenHint": "{{count}}개가 걸리지만 위에 있는 \"{{type}}\"이(가) 가져갑니다. 이 유형을 위로 올리거나 키워드를 좁히십시오.",
+  "statusPendingHint": "키워드 검색에는 이미 쓰이고 있습니다. 의미 검색 색인만 대기 중입니다.",
+  "statusLegend": "“대기”인 문서도 키워드 검색에는 이미 사용됩니다 — 색인을 기다리는 것은 의미 검색뿐입니다."
 }

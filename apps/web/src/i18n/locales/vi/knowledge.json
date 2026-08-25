@@ -291,5 +291,7 @@
   "categoryShown": "Đã hiện danh mục",
   "categoryRemoved": "Đã xóa danh mục",
   "usageTypeActive": "Đang dùng (tắt thì giữ hướng dẫn, chỉ ngừng khớp sản phẩm)",
-  "usageTypeTakenHint": "Có {{count}} sản phẩm khớp, nhưng \"{{type}}\" ở phía trên nhận chúng. Hãy đưa loại này lên trên hoặc thu hẹp từ khóa."
+  "usageTypeTakenHint": "Có {{count}} sản phẩm khớp, nhưng \"{{type}}\" ở phía trên nhận chúng. Hãy đưa loại này lên trên hoặc thu hẹp từ khóa.",
+  "statusPendingHint": "Đã được dùng trong câu trả lời qua tìm kiếm từ khóa; chỉ còn chờ chỉ mục ngữ nghĩa.",
+  "statusLegend": "Tài liệu “đang chờ” vẫn được tìm bằng từ khóa — chỉ tìm kiếm ngữ nghĩa là phải đợi chỉ mục."
 }
