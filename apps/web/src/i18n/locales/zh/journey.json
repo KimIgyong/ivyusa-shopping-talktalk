@@ -23,6 +23,25 @@
     "versionsDiffer": "两份报告依据的标准不同（v{{a}} 与 v{{b}}）。部分差异来自标准，而非客户。"
   },
   "criteria": {
-    "saved": "已保存为 v{{version}}"
+    "saved": "已保存为 v{{version}}",
+    "title": "旅程分析撰写标准",
+    "hint": "撰写报告的规则。保存会生成新版本，过往报告保留各自使用的版本。",
+    "topN": "高频问题数",
+    "sampleCap": "样本上限",
+    "sampleCapHint": "送入模型的发言条数。调高会增加每份报告的成本。",
+    "quoteMax": "引用长度",
+    "banned": "禁用表述",
+    "bannedHint": "每行一条。默认包含评分式表述 — 无人能推导的数字，是报告中最有说服力的错误。",
+    "newVersionNote": "保存后将成为 v{{next}}。既有报告不受影响。",
+    "history": "目前共 {{count}} 个版本",
+    "section": {
+      "summary": "① 摘要",
+      "contact": "② 接触历史",
+      "questions": "③ 他们在问什么",
+      "resolution": "④ 解决耗时",
+      "path": "⑤ 关系阶段（5A）",
+      "needs": "⑥ 需求层次（假设）",
+      "actions": "⑦ 下一步行动"
+    }
   }
 }

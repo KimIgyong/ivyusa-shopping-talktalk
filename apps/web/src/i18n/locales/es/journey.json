@@ -23,6 +23,25 @@
     "versionsDiffer": "Se escribieron con criterios distintos (v{{a}} y v{{b}}). Parte de la diferencia viene de las reglas, no del cliente."
   },
   "criteria": {
-    "saved": "Guardado como v{{version}}"
+    "saved": "Guardado como v{{version}}",
+    "title": "Criterios del informe",
+    "hint": "Cómo se escriben los informes. Guardar crea una versión nueva; los informes anteriores conservan la suya.",
+    "topN": "Preguntas top",
+    "sampleCap": "Límite de muestra",
+    "sampleCapHint": "Frases enviadas al modelo. Más alto cuesta más por informe.",
+    "quoteMax": "Longitud de cita",
+    "banned": "Frases prohibidas",
+    "bannedHint": "Una por línea. Incluye expresiones tipo puntuación: un número que nadie puede derivar es lo más convincente que un informe puede equivocar.",
+    "newVersionNote": "Al guardar se crea v{{next}}. Los informes existentes no cambian.",
+    "history": "{{count}} versiones hasta ahora",
+    "section": {
+      "summary": "① Resumen",
+      "contact": "② Historial de contacto",
+      "questions": "③ Qué preguntan",
+      "resolution": "④ Tiempo de resolución",
+      "path": "⑤ Recorrido (5A)",
+      "needs": "⑥ Necesidades (hipótesis)",
+      "actions": "⑦ Próximas acciones"
+    }
   }
 }
