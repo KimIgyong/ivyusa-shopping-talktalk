@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { NotificationChannelsCard } from './SettingsPage';
 import { MenuAccessSection } from './MenuAccessSection';
 import { IntegrationCredentialsCard } from './IntegrationCredentialsCard';
+import { JourneyCriteriaCard } from '../journey/JourneyCriteriaCard';
 import { useAuthStore } from '@/store/auth-store';
 
 /** Tenant settings — etc (PLN-260824 B). Composition only; every card moved here unchanged. */
@@ -18,6 +19,9 @@ export function SettingsEtcPage() {
           the API gates it on TENANT_SETTINGS_MANAGE, and rendering it for
           ranks that will only get a 403 is worse than not showing it. */}
       {isMaster && <MenuAccessSection />}
+      {/* How journey reports are written. Master-only for the same reason menu
+          access is: the API gates it on TENANT_SETTINGS_MANAGE. */}
+      {isMaster && <JourneyCriteriaCard />}
       <IntegrationCredentialsCard />
     </div>
   );

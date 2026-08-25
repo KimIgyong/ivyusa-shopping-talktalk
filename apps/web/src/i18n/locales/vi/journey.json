@@ -23,6 +23,25 @@
     "versionsDiffer": "Hai báo cáo dùng tiêu chí khác nhau (v{{a}} và v{{b}}). Một phần khác biệt đến từ quy tắc, không phải từ khách hàng."
   },
   "criteria": {
-    "saved": "Đã lưu thành v{{version}}"
+    "saved": "Đã lưu thành v{{version}}",
+    "title": "Tiêu chí báo cáo hành trình",
+    "hint": "Quy tắc viết báo cáo. Lưu sẽ tạo phiên bản mới; báo cáo cũ giữ phiên bản của nó.",
+    "topN": "Số câu hỏi hàng đầu",
+    "sampleCap": "Giới hạn mẫu",
+    "sampleCapHint": "Số phát ngôn gửi cho mô hình. Càng cao càng tốn chi phí mỗi báo cáo.",
+    "quoteMax": "Độ dài trích dẫn",
+    "banned": "Cụm từ bị cấm",
+    "bannedHint": "Mỗi dòng một cụm. Mặc định có các cụm dạng điểm số — con số không ai suy ra được là thứ sai thuyết phục nhất trong báo cáo.",
+    "newVersionNote": "Lưu sẽ tạo v{{next}}. Báo cáo hiện có không đổi.",
+    "history": "Đã có {{count}} phiên bản",
+    "section": {
+      "summary": "① Tóm tắt",
+      "contact": "② Lịch sử tiếp xúc",
+      "questions": "③ Họ hỏi gì",
+      "resolution": "④ Thời gian giải quyết",
+      "path": "⑤ Hành trình (5A)",
+      "needs": "⑥ Nhu cầu (giả thuyết)",
+      "actions": "⑦ Hành động tiếp theo"
+    }
   }
 }

@@ -23,6 +23,25 @@
     "versionsDiffer": "These were written under different criteria (v{{a}} and v{{b}}). Part of any difference comes from the rules, not the customer."
   },
   "criteria": {
-    "saved": "Saved as v{{version}}"
+    "saved": "Saved as v{{version}}",
+    "title": "Journey report criteria",
+    "hint": "How reports are written. Editing saves a new version; past reports keep the one they used.",
+    "topN": "Top questions",
+    "sampleCap": "Sample limit",
+    "sampleCapHint": "Utterances sent to the model. Higher costs more per report.",
+    "quoteMax": "Quote length",
+    "banned": "Banned phrases",
+    "bannedHint": "One per line. Seeded with score-like phrases: a number nobody can derive is the most convincing thing a report can get wrong.",
+    "newVersionNote": "Saving creates v{{next}}. Existing reports are unaffected.",
+    "history": "{{count}} versions so far",
+    "section": {
+      "summary": "① Summary",
+      "contact": "② Contact history",
+      "questions": "③ What they ask",
+      "resolution": "④ Resolution time",
+      "path": "⑤ Customer path (5A)",
+      "needs": "⑥ Needs (hypothesis)",
+      "actions": "⑦ Next actions"
+    }
   }
 }
