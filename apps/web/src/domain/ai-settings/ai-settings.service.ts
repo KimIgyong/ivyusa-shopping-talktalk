@@ -76,6 +76,17 @@ export interface ScenarioOverride {
 }
 
 /** Escalation routing (PLN-AiSetting W3). */
+/**
+ * What a matched deny rule says to the customer. Mirrors the API's DENY_MODE —
+ * a value outside these two is normalised to SILENT before it reaches a select,
+ * so a hand-edited config cannot show a blank control.
+ */
+export const DENY_MODE = {
+  SILENT: 'silent',
+  ANSWER_THEN_HANDOFF: 'answer_then_handoff',
+} as const;
+export type DenyMode = (typeof DENY_MODE)[keyof typeof DENY_MODE];
+
 export interface HandoffConfig {
   assigneeUserIds?: number[];
   businessHours?: {
@@ -92,8 +103,8 @@ export interface HandoffConfig {
     keywords: string[];
     type?: string;
     label?: string;
-    /** 'silent' (default) | 'answer_then_handoff' — REQ-260826. */
-    mode?: string;
+    /** Absent = SILENT, matching the API (REQ-260826). */
+    mode?: DenyMode;
   }>;
   /** Issue-board SLA targets (백로그 B2); defaults 24h/4h. */
   sla?: { normalHours?: number; urgentHours?: number };

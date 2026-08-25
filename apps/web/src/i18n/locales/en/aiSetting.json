@@ -150,7 +150,8 @@
       "silent": "No answer",
       "answer_then_handoff": "Answer, then hand off"
     },
-    "denyModeHint": "\"No answer\" hands the thread to a person without replying. \"Answer, then hand off\" replies from the knowledge base first and still hands it over — the agent is paged either way."
+    "denyModeHint": "\"No answer\" hands the thread to a person without replying. \"Answer, then hand off\" replies from the knowledge base first and still hands it over — the agent is paged either way.",
+    "denyModeLabel": "What the customer hears"
   },
   "coach": {
     "title": "Agent coaching",

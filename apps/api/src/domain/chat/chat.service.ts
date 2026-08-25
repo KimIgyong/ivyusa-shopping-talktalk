@@ -647,6 +647,25 @@ export class ChatService {
     // unconfident still reaches the right desk: without it the issue would lose
     // the accounting/refund stamp precisely when a person is needed most.
     const denyStamp = deny ? { issueType: deny.type, issueLabel: deny.label } : undefined;
+    /**
+     * The handoff the rule always required, run now instead of after an answer.
+     *
+     * Answering first only *defers* the handoff — it never cancels it. Some
+     * paths below never reach the knowledge base at all (a deny topic phrased
+     * as chit-chat, or an order question from a shopper who is not signed in),
+     * and without this they would return a friendly reply and no agent, which
+     * is precisely the guarantee the deny-list exists to make.
+     */
+    const denyHandoffNow = async () => {
+      const handoff = await this.handoff(conversation.id, session, tenantId, 'policy', text, denyStamp);
+      return {
+        conversationId: String(conversation.id),
+        reply: { senderType: 'system', body: handoff.body },
+        escalate: true,
+        needsAuth: false,
+        needsContactEmail: handoff.needsContactEmail,
+      };
+    };
 
     // The shopper asked for a person (PLN-260813 P1). Placed before retrieval:
     // an answer we are not going to send is a model call we do not need to
@@ -675,6 +694,8 @@ export class ChatService {
     // off-topic questions or noise (REQ-260813).
     const nonQuestion = this.nonQuestionKind(intent);
     if (nonQuestion) {
+      // A deny topic that reads as chit-chat is still a deny topic.
+      if (denyAnswersFirst) return denyHandoffNow();
       const streak = await this.nonQuestionStreak(conversation.id);
       const drafted = await this.rag.answerWithoutKnowledge(
         tenantId,
@@ -732,6 +753,9 @@ export class ChatService {
     }
 
     if (intent.needsOrderData && session.customerId == null) {
+      // Asking a guest to sign in is not an answer, so there is nothing to put
+      // before the handoff the rule requires.
+      if (denyAnswersFirst) return denyHandoffNow();
       const body = sysMsg('authRequired', session.language);
       await this.persist(tenantId, conversation.id, SENDER_TYPE.SYSTEM, body, session.language);
       return { conversationId: String(conversation.id), reply: { senderType: 'system', body }, escalate: false, needsAuth: true };

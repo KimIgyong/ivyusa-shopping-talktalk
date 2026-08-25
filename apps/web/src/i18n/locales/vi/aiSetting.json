@@ -150,7 +150,8 @@
       "silent": "Không trả lời",
       "answer_then_handoff": "Trả lời rồi chuyển"
     },
-    "denyModeHint": "\"Không trả lời\" chuyển cho nhân viên mà không phản hồi. \"Trả lời rồi chuyển\" trả lời từ cơ sở tri thức trước rồi vẫn chuyển — nhân viên đều được gọi trong cả hai trường hợp."
+    "denyModeHint": "\"Không trả lời\" chuyển cho nhân viên mà không phản hồi. \"Trả lời rồi chuyển\" trả lời từ cơ sở tri thức trước rồi vẫn chuyển — nhân viên đều được gọi trong cả hai trường hợp.",
+    "denyModeLabel": "Khách hàng nhận được gì"
   },
   "coach": {
     "title": "Huấn luyện trợ lý",

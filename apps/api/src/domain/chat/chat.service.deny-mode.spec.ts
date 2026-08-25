@@ -23,7 +23,15 @@ import { HandoffRouterService } from '../ai-engine/handoff-router.service';
  * documents already held.
  */
 describe('ChatService — deny-list mode', () => {
-  const build = (opts: { mode?: string; confidence?: number; blocked?: boolean } = {}) => {
+  const build = (
+    opts: {
+      mode?: string;
+      confidence?: number;
+      blocked?: boolean;
+      intent?: string;
+      needsOrderData?: boolean;
+    } = {},
+  ) => {
     const conversation = {
       id: 77,
       sessionId: 5,
@@ -87,10 +95,11 @@ describe('ChatService — deny-list mode', () => {
       { update: jest.fn() } as never,
       {
         classifyIntent: jest.fn(async () => ({
-          intent: 'cancel_refund',
-          needsOrderData: false,
+          intent: opts.intent ?? 'cancel_refund',
+          needsOrderData: opts.needsOrderData ?? false,
           confidence: 0.8,
         })),
+        answerWithoutKnowledge: jest.fn(async () => '안녕하세요!'),
         answer: jest.fn(async () => ({
           text: '환불계좌는 마이페이지에서 변경하실 수 있습니다.',
           confidence: opts.confidence ?? 0.9,
@@ -170,6 +179,35 @@ describe('ChatService — deny-list mode', () => {
     expect(b.busPublish).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({ issueType: 'refund', issueLabel: 'accounting' }),
+    );
+  });
+
+  it('hands off a deny topic that reads as chit-chat instead of chatting back', async () => {
+    // These paths never reach the knowledge base, so "answer first" has nothing
+    // to answer with. Returning the friendly reply and no agent would cancel
+    // the handoff rather than defer it — the one thing the rule guarantees.
+    const b = build({ mode: 'answer_then_handoff', intent: 'smalltalk' });
+
+    const res = await ask(b);
+
+    expect(res.reply?.senderType).toBe('system');
+    expect(res.escalate).toBe(true);
+    expect(b.busPublish).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ reason: 'policy', issueLabel: 'accounting' }),
+    );
+  });
+
+  it('hands off a deny topic from a guest instead of asking them to sign in', async () => {
+    const b = build({ mode: 'answer_then_handoff', needsOrderData: true });
+
+    const res = await ask(b);
+
+    expect(res.needsAuth).toBe(false);
+    expect(res.escalate).toBe(true);
+    expect(b.busPublish).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ reason: 'policy' }),
     );
   });
 
