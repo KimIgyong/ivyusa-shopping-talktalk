@@ -1,0 +1,120 @@
+import type { JourneyMetrics } from './journey-metrics.service';
+import type { JourneyReportCriteria } from './entity/journey-report-criteria.entity';
+
+export interface SampleUtterance {
+  at: string;
+  who: string;
+  text: string;
+}
+
+/**
+ * The instruction that keeps the model out of the arithmetic.
+ *
+ * Every figure in the report is already computed. Left free to derive its own,
+ * a model produces numbers that are plausible, wrong, and — because they sit in
+ * a report — read as evidence.
+ */
+const GROUND_RULES = [
+  'Every number you print must be copied from the METRICS block. Do not compute, estimate, or round any figure yourself.',
+  'If a figure you want is not in METRICS, say it was not measured rather than supplying one.',
+  'Quote only from the SAMPLES block, verbatim and in its original language.',
+  'Kotler 5A: Aware and Appeal are not observable from support conversations. State that instead of guessing them.',
+  'Maslow: never assert a level. Give a quoted utterance, the hypothesis it suggests, and what would disprove it.',
+];
+
+/** Sections in report order; the criteria supply the instruction for each. */
+export const SECTION_ORDER = [
+  'summary',
+  'contact',
+  'questions',
+  'resolution',
+  'path',
+  'needs',
+  'actions',
+] as const;
+
+export function buildJourneyPrompt(input: {
+  criteria: JourneyReportCriteria;
+  metrics: JourneyMetrics;
+  samples: SampleUtterance[];
+  language: string;
+  period: { from: string | null; to: string | null };
+}): { system: string; user: string } {
+  const { criteria, metrics, samples, language, period } = input;
+  const sections = SECTION_ORDER.filter((key) => criteria.sectionsJson[key]).map(
+    (key, i) => `${i + 1}. [${key}] ${criteria.sectionsJson[key]}`,
+  );
+  const banned = criteria.bannedJson?.length
+    ? `\nNever use these phrases: ${criteria.bannedJson.join(', ')}. A score nobody can derive reads as evidence.`
+    : '';
+
+  const system = [
+    'You write a customer journey report for a support team, in Markdown.',
+    `Write in the tenant's language: ${language}. Keep quoted utterances in their original language.`,
+    ...GROUND_RULES,
+    criteria.tone ? `Tone: ${criteria.tone}.` : '',
+    banned,
+  ]
+    .filter(Boolean)
+    .join('\n');
+
+  const user = [
+    `PERIOD: ${period.from ?? 'all'} ~ ${period.to ?? 'all'}`,
+    '',
+    'SECTIONS (write these, in this order):',
+    ...sections,
+    '',
+    'METRICS (the only source of figures):',
+    JSON.stringify(metrics, null, 2),
+    '',
+    `SAMPLES (${samples.length} utterances, the only source of quotes):`,
+    ...samples.map((s) => `- [${s.at}] ${s.who}: ${s.text}`),
+  ].join('\n');
+
+  return { system, user };
+}
+
+export function buildComparisonPrompt(input: {
+  criteria: JourneyReportCriteria;
+  older: { createdAt: string; criteriaVersion: number; metrics: JourneyMetrics; body: string };
+  newer: { createdAt: string; criteriaVersion: number; metrics: JourneyMetrics; body: string };
+  language: string;
+}): { system: string; user: string } {
+  const { criteria, older, newer, language } = input;
+  const versionsDiffer = older.criteriaVersion !== newer.criteriaVersion;
+
+  const system = [
+    'You compare two customer journey reports for the same group and write what changed, in Markdown.',
+    `Write in the tenant's language: ${language}.`,
+    ...GROUND_RULES,
+    versionsDiffer
+      ? // Said to the model, and printed for the reader: otherwise a change in
+        // our own rules is read as a change in the customer.
+        `The two reports were written under different criteria versions (v${older.criteriaVersion} and v${newer.criteriaVersion}). Open the report by saying so: part of any difference comes from the rules, not the customer.`
+      : '',
+  ]
+    .filter(Boolean)
+    .join('\n');
+
+  const user = [
+    'SECTIONS: what changed · what improved and the events that support it · what worsened and a hypothesis · how the 5A and Maslow hypotheses moved, including whether an earlier hypothesis was disproved · whether the previous next-actions were carried out and what came of them',
+    '',
+    `OLDER REPORT (${older.createdAt}, criteria v${older.criteriaVersion})`,
+    'METRICS:',
+    JSON.stringify(older.metrics, null, 2),
+    'BODY:',
+    older.body,
+    '',
+    `NEWER REPORT (${newer.createdAt}, criteria v${newer.criteriaVersion})`,
+    'METRICS:',
+    JSON.stringify(newer.metrics, null, 2),
+    'BODY:',
+    newer.body,
+    '',
+    criteria.tone ? `Tone: ${criteria.tone}.` : '',
+  ]
+    .filter(Boolean)
+    .join('\n');
+
+  return { system, user };
+}
