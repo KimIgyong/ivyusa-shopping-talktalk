@@ -3,7 +3,6 @@ import { UsageType } from './entity/usage-type.entity';
 import { KbCategory } from './entity/kb-category.entity';
 import { parseKeywords } from './usage-guide.types';
 import { KbDocument } from './entity/kb-document.entity';
-import { KbBoardPost } from './entity/kb-board-post.entity';
 import { isStale } from './kb-conflict.service';
 import { KbDocumentRevision } from './entity/kb-document-revision.entity';
 import { KnowledgeGapTask } from './entity/knowledge-gap-task.entity';
@@ -92,20 +91,6 @@ export class KnowledgeMapper {
     return docs.map((d) => this.toDocument(d));
   }
 
-  static toPost(p: KbBoardPost) {
-    return {
-      id: p.id,
-      sourceId: p.sourceId,
-      title: p.title,
-      body: p.body ?? null,
-      authorUserId: p.authorUserId ?? null,
-      createdAt: p.createdAt,
-    };
-  }
-
-  static toPostList(posts: KbBoardPost[]) {
-    return posts.map((p) => this.toPost(p));
-  }
 
   /** History row. `content` is omitted from lists — a page of them would drag
    * every past body along for a table that only shows who/when/what. */

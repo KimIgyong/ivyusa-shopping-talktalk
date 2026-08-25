@@ -6,8 +6,10 @@ import { Badge } from '@/components/Badge';
 import { Modal } from '@/components/Modal';
 import { FormRow, Input, Select } from '@/components/Field';
 import { Lock } from 'lucide-react';
+import { useAiAgents } from '../ai-settings/ai-agents.hooks';
 import {
   useCategoryRows,
+  useSetCategoryAgents,
   useCreateCategory,
   useMergeCategories,
   useRemoveCategory,
@@ -37,12 +39,18 @@ export function CategoryManagerCard() {
   const renameCategory = useRenameCategory();
   const mergeCategories = useMergeCategories();
   const setHidden = useSetCategoryHidden();
+  const setAgents = useSetCategoryAgents();
+  // Only agents that can actually answer are offered: scoping a category to a
+  // deactivated agent reads as a narrowing nobody satisfies.
+  const agents = (useAiAgents().data ?? []).filter((a) => a.active);
   const removeCategory = useRemoveCategory();
 
   const [adding, setAdding] = useState(false);
   const [newName, setNewName] = useState('');
   const [renaming, setRenaming] = useState<KbCategoryRow | null>(null);
   const [renameTo, setRenameTo] = useState('');
+  const [scoping, setScoping] = useState<KbCategoryRow | null>(null);
+  const [scopeIds, setScopeIds] = useState<number[]>([]);
   const [merging, setMerging] = useState(false);
   const [mergeFrom, setMergeFrom] = useState<string[]>([]);
   const [mergeInto, setMergeInto] = useState('');
@@ -64,6 +72,23 @@ export function CategoryManagerCard() {
       <Badge tone={c.documentCount ? 'gray' : 'warning'}>
         {t('categoryDocs', { count: c.documentCount })}
       </Badge>
+      {/* Agent scope (REQ-260826 R2). Hidden entirely when the tenant runs a
+          single agent: a choice with one option is noise, and most tenants
+          have exactly one. */}
+      {agents.length > 1 && !locked && !c.id.startsWith('unregistered:') ? (
+        <Button
+          size="sm"
+          variant="secondary"
+          onClick={() => {
+            setScoping(c);
+            setScopeIds(c.agentIds ?? []);
+          }}
+        >
+          {c.agentIds?.length
+            ? t('categoryAgentsSome', { count: c.agentIds.length, total: agents.length })
+            : t('categoryAgentsAll')}
+        </Button>
+      ) : null}
       {!locked && !c.id.startsWith('unregistered:') ? (
         <>
           <Button
@@ -270,6 +295,84 @@ export function CategoryManagerCard() {
           </Select>
         </FormRow>
         <p className="text-xs text-gray-500">{t('categoryMergeHint')}</p>
+      </Modal>
+
+      {/* Agent scope (REQ-260826 R2). Same radio + checkbox shape as the
+          scenario-button scope in /ai-setting — an operator who has met one has
+          met both, and the two mean the same thing: empty list = every agent. */}
+      <Modal
+        open={!!scoping}
+        onClose={() => setScoping(null)}
+        title={t('categoryAgentsTitle')}
+        size="sm"
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setScoping(null)}>
+              {tc('cancel')}
+            </Button>
+            <Button
+              disabled={setAgents.isPending}
+              onClick={() =>
+                scoping &&
+                setAgents.mutate(
+                  { id: scoping.id, agentIds: scopeIds },
+                  { onSuccess: () => setScoping(null) },
+                )
+              }
+            >
+              {tc('save')}
+            </Button>
+          </>
+        }
+      >
+        {scoping ? (
+          <div className="space-y-3">
+            <p className="text-xs text-gray-500">
+              {t('categoryAgentsHint', {
+                name: scoping.label ?? scoping.name,
+                count: scoping.documentCount,
+              })}
+            </p>
+            <label className="flex items-center gap-2 text-sm text-gray-700">
+              <input type="radio" checked={scopeIds.length === 0} onChange={() => setScopeIds([])} />
+              {t('categoryAgentsAllOption')}
+            </label>
+            <label className="flex items-center gap-2 text-sm text-gray-700">
+              <input
+                type="radio"
+                checked={scopeIds.length > 0}
+                onChange={() => {
+                  const first = agents[0];
+                  if (first) setScopeIds([first.id]);
+                }}
+              />
+              {t('categoryAgentsSomeOption')}
+            </label>
+            <div className="ml-6 space-y-1">
+              {agents.map((a) => (
+                <label key={a.id} className="flex items-center gap-2 text-sm text-gray-600">
+                  <input
+                    type="checkbox"
+                    checked={scopeIds.includes(a.id)}
+                    onChange={(e) =>
+                      setScopeIds((prev) =>
+                        e.target.checked ? [...prev, a.id] : prev.filter((v) => v !== a.id),
+                      )
+                    }
+                  />
+                  {a.name}
+                  {a.isDefault ? (
+                    <span className="text-xs text-gray-400">{t('categoryAgentsDefault')}</span>
+                  ) : null}
+                </label>
+              ))}
+            </div>
+            {/* Stated rather than left to be discovered: an agent added next
+                month sees none of the scoped categories until someone comes
+                back here. */}
+            <p className="text-[11px] text-warning">{t('categoryAgentsNewAgentWarning')}</p>
+          </div>
+        ) : null}
       </Modal>
     </Card>
   );

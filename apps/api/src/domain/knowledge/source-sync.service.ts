@@ -6,7 +6,6 @@ import { KnowledgeSource } from './entity/knowledge-source.entity';
 import { REVISION_KIND } from './entity/kb-document-revision.entity';
 import { KbRevisionService } from './kb-revision.service';
 import { SourceAdapter, SourceItem } from './source-adapter.interface';
-import { BoardAdapter } from './adapters/board.adapter';
 import { GdriveAdapter } from './adapters/gdrive.adapter';
 import { NotionAdapter } from './adapters/notion.adapter';
 import { BusinessException } from '../../global/exception/business.exception';
@@ -57,11 +56,16 @@ export class SourceSyncService {
     @InjectRepository(KbDocument) private readonly docRepo: Repository<KbDocument>,
     @InjectRepository(KnowledgeSource) private readonly sourceRepo: Repository<KnowledgeSource>,
     private readonly revisions: KbRevisionService,
-    board: BoardAdapter,
     gdrive: GdriveAdapter,
     notion: NotionAdapter,
   ) {
-    this.register(board);
+    // The internal board is not registered (REQ-260826 R5). It was a second way
+    // to write knowledge by hand with nothing the document editor lacks, and no
+    // console screen ever existed to write a post — so every board source was
+    // empty by construction. Existing rows stay and simply report unsupported,
+    // the same treatment `repository` gets; their documents are untouched,
+    // because retrieval excludes UNdesignated sources rather than admitting
+    // designated ones.
     this.register(gdrive);
     this.register(notion);
   }

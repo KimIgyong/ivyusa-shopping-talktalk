@@ -35,7 +35,6 @@ import {
   AskKnowledgeRequest,
   CreateCategoryRequest,
   CreateDocumentRequest,
-  CreatePostRequest,
   CreateSourceRequest,
   ListConflictsQuery,
   ListDocumentsQuery,
@@ -174,26 +173,6 @@ export class KnowledgeController {
     return { deleted: true };
   }
 
-  // ---- Board posts ----
-
-  @Post('sources/:id/posts')
-  @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
-  @ApiOperation({ summary: 'Create a board-mode knowledge post' })
-  async createPost(
-    @CurrentUser() user: Principal,
-    @Param('id', ParseIntPipe) id: number,
-    @Body() body: CreatePostRequest,
-  ) {
-    const principal = this.tenantUser(user);
-    const post = await this.knowledgeService.createPost(
-      principal.tenantId,
-      id,
-      principal.userId,
-      body,
-    );
-    return KnowledgeMapper.toPost(post);
-  }
-
   // ---- Google Drive credential (PLN-260815 G1) ----
 
   @Get('gdrive/credential')
@@ -277,14 +256,6 @@ export class KnowledgeController {
   async syncSource(@CurrentUser() user: Principal, @Param('id', ParseIntPipe) id: number) {
     const actor = this.tenantUser(user);
     return this.knowledgeService.syncSource(actor.tenantId, id, actor.userId);
-  }
-
-  @Get('sources/:id/posts')
-  @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
-  @ApiOperation({ summary: 'List board-mode knowledge posts for a source' })
-  async listPosts(@CurrentUser() user: Principal, @Param('id', ParseIntPipe) id: number) {
-    const posts = await this.knowledgeService.listPosts(this.tenantUser(user).tenantId, id);
-    return KnowledgeMapper.toPostList(posts);
   }
 
   // ---- Documents ----

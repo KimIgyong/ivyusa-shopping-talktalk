@@ -5,6 +5,7 @@ import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
 import { Badge } from '@/components/Badge';
 import { Select } from '@/components/Field';
+import { useAiAgents } from '../ai-settings/ai-agents.hooks';
 import { useAskKnowledge } from './knowledge.hooks';
 import type { KnowledgeAnswer } from './knowledge.service';
 // Runtime table from the registry source (see apps/web/src/i18n/i18n.ts for why).
@@ -21,6 +22,11 @@ export function KnowledgeQaPanel({ onEditSource }: { onEditSource: (documentId: 
   const { t } = useTranslation('knowledge');
   const ask = useAskKnowledge();
   const [language, setLanguage] = useState<string>('ko');
+  // 0 = every document the tenant has (the operator's view). Any other value
+  // answers with exactly what that agent may cite, which is how you check a
+  // category scope without opening the widget as five different personas.
+  const [agentId, setAgentId] = useState<number>(0);
+  const agents = (useAiAgents().data ?? []).filter((a) => a.active);
   const [question, setQuestion] = useState('');
   const [asked, setAsked] = useState('');
   const [result, setResult] = useState<KnowledgeAnswer | null>(null);
@@ -30,20 +36,32 @@ export function KnowledgeQaPanel({ onEditSource }: { onEditSource: (documentId: 
     const text = q.trim();
     if (!text || ask.isPending) return;
     setAsked(text);
-    ask.mutate({ question: text, language }, { onSuccess: setResult });
+    ask.mutate({ question: text, language, aiAgentId: agentId || null }, { onSuccess: setResult });
   };
 
   return (
     <Card
       title={t('qa.title')}
       action={
-        <Select value={language} onChange={(e) => setLanguage(e.target.value)}>
-          {LANGUAGES.map((l) => (
-            <option key={l.code} value={l.code}>
-              {l.nativeLabel}
-            </option>
-          ))}
-        </Select>
+        <div className="flex gap-2">
+          {agents.length > 1 ? (
+            <Select value={String(agentId)} onChange={(e) => setAgentId(Number(e.target.value))}>
+              <option value="0">{t('qa.agentAll')}</option>
+              {agents.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.name}
+                </option>
+              ))}
+            </Select>
+          ) : null}
+          <Select value={language} onChange={(e) => setLanguage(e.target.value)}>
+            {LANGUAGES.map((l) => (
+              <option key={l.code} value={l.code}>
+                {l.nativeLabel}
+              </option>
+            ))}
+          </Select>
+        </div>
       }
     >
       <p className="mb-2 text-xs text-gray-400">{t('qa.hint')}</p>

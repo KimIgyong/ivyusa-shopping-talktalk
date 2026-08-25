@@ -17,7 +17,6 @@ import { AnswerProposalService } from './answer-proposal.service';
 import { KbAnswerProposal } from './entity/kb-answer-proposal.entity';
 import { UsageGuideService } from './usage-guide.service';
 import { SourceSyncService } from './source-sync.service';
-import { BoardAdapter } from './adapters/board.adapter';
 import { GdriveAdapter } from './adapters/gdrive.adapter';
 import { GdriveClient } from './gdrive.client';
 import { GdriveCredentialService } from './gdrive-credential.service';
@@ -84,7 +83,6 @@ import { ModerationModule } from '../moderation/moderation.module';
     AnswerProposalService,
     UsageGuideService,
     SourceSyncService,
-    BoardAdapter,
     GdriveAdapter,
     GdriveClient,
     GdriveCredentialService,

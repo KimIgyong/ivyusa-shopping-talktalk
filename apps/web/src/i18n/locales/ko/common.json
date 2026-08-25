@@ -35,5 +35,6 @@
   "pagination": {
     "range": "{{total}}개 중 {{from}}–{{to}}",
     "pageOf": "{{page}} / {{totalPages}}"
-  }
+  },
+  "help": "도움말"
 }

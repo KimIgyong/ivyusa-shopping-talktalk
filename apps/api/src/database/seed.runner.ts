@@ -14,7 +14,6 @@ import { TenantAiConfig } from '../domain/ai-engine/entity/tenant-ai-config.enti
 import { AiAgent } from '../domain/ai-engine/entity/ai-agent.entity';
 import { DEFAULT_PERSONA, DEFAULT_SCENARIO_BUTTONS } from '../domain/ai-engine/ai-config.service';
 import { ContentFilterRule } from '../domain/moderation/entity/content-filter-rule.entity';
-import { KnowledgeSource } from '../domain/knowledge/entity/knowledge-source.entity';
 import { KbDocument } from '../domain/knowledge/entity/kb-document.entity';
 import { Customer } from '../domain/customer/entity/customer.entity';
 import { OrderCache } from '../domain/order/entity/order-cache.entity';
@@ -162,9 +161,12 @@ export async function runSeed(ds: DataSource, opts: SeedOptions = {}): Promise<v
     ]);
   }
 
-  const ksRepo = ds.getRepository(KnowledgeSource);
-  let ks = await ksRepo.findOne({ where: { tenantId: tenant.id, type: 'board' } });
-  if (!ks) ks = await ksRepo.save(ksRepo.create({ tenantId: tenant.id, type: 'board', name: 'IVY Help Center', status: 'active', designated: 1 }));
+  // Seeded knowledge is written by hand, so it carries no source: it never came
+  // through a pipe (REQ-260826 R5). It used to be filed under a board source,
+  // which meant un-designating that one source took a tenant's entire baseline
+  // policy out of retrieval — a lever nobody would expect to find there.
+  // Existing rows keep their source id; the value is harmless while the source
+  // stays designated, and an irreversible UPDATE to tidy a fact is not worth it.
   const kbRepo = ds.getRepository(KbDocument);
   if ((await kbRepo.count({ where: { tenantId: tenant.id } })) === 0) {
     const docs = [
@@ -175,7 +177,7 @@ export async function runSeed(ds: DataSource, opts: SeedOptions = {}): Promise<v
       ['product', 'Product Usage & Ingredients', 'Product usage instructions and full ingredient lists are available on each product detail page and in this help center.'],
     ];
     for (const [category, title, content] of docs) {
-      const doc = await kbRepo.save(kbRepo.create({ tenantId: tenant.id, sourceId: ks.id, source: 'knowledge_store', category, title, content, active: 1, status: 'embedded' }));
+      const doc = await kbRepo.save(kbRepo.create({ tenantId: tenant.id, source: 'knowledge_store', category, title, content, active: 1, status: 'embedded' }));
       doc.embeddingRef = `emb_${doc.id}`;
       await kbRepo.save(doc);
     }
@@ -198,7 +200,7 @@ export async function runSeed(ds: DataSource, opts: SeedOptions = {}): Promise<v
   ];
   for (const [category, title, content] of csPolicyDocs) {
     if (!(await kbRepo.findOne({ where: { tenantId: tenant.id, title } }))) {
-      const doc = await kbRepo.save(kbRepo.create({ tenantId: tenant.id, sourceId: ks.id, source: 'knowledge_store', category, title, content, active: 1, status: 'embedded' }));
+      const doc = await kbRepo.save(kbRepo.create({ tenantId: tenant.id, source: 'knowledge_store', category, title, content, active: 1, status: 'embedded' }));
       doc.embeddingRef = `emb_${doc.id}`;
       await kbRepo.save(doc);
     }

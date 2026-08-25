@@ -9,11 +9,9 @@ import { ModerationService } from '../moderation/moderation.service';
 import { QdrantService } from '../../infrastructure/external/vector/qdrant.service';
 import { KnowledgeSource } from './entity/knowledge-source.entity';
 import { DOC_GROUP, KbDocument } from './entity/kb-document.entity';
-import { KbBoardPost } from './entity/kb-board-post.entity';
 import { KbFile } from './entity/kb-file.entity';
 import {
   CreateDocumentRequest,
-  CreatePostRequest,
   CreateSourceRequest,
   ListDocumentsQuery,
   UpdateDocumentRequest,
@@ -49,7 +47,6 @@ export class KnowledgeService {
   constructor(
     @InjectRepository(KnowledgeSource) private readonly sourceRepo: Repository<KnowledgeSource>,
     @InjectRepository(KbDocument) private readonly docRepo: Repository<KbDocument>,
-    @InjectRepository(KbBoardPost) private readonly postRepo: Repository<KbBoardPost>,
     @InjectRepository(KbFile) private readonly fileRepo: Repository<KbFile>,
     private readonly ai: AiGatewayService,
     private readonly qdrant: QdrantService,
@@ -650,33 +647,6 @@ export class KnowledgeService {
     return { scanned: docs.length, embedded, failed };
   }
 
-  // ---- Board posts ----
-
-  async createPost(
-    tenantId: number,
-    sourceId: number,
-    authorUserId: number,
-    body: CreatePostRequest,
-  ): Promise<KbBoardPost> {
-    await this.findSource(tenantId, sourceId);
-    const post = this.postRepo.create({
-      tenantId,
-      sourceId,
-      title: body.title,
-      body: body.body ?? null,
-      authorUserId,
-    });
-    const saved = await this.postRepo.save(post);
-    // Writing a post is now the same act as publishing knowledge. Best-effort:
-    // a sync failure must not lose the post the author just wrote.
-    try {
-      await this.syncSource(tenantId, sourceId, authorUserId);
-    } catch (e) {
-      this.logger.warn(`board post ${saved.id} saved but sync failed: ${(e as Error).message}`);
-    }
-    return saved;
-  }
-
   /**
    * Pull a source into the knowledge base and embed what changed.
    *
@@ -726,11 +696,6 @@ export class KnowledgeService {
       });
       throw e;
     }
-  }
-
-  async listPosts(tenantId: number, sourceId: number): Promise<KbBoardPost[]> {
-    await this.findSource(tenantId, sourceId);
-    return this.postRepo.find({ where: { tenantId, sourceId }, order: { id: 'DESC' } });
   }
 
   // ---- Helpers ----

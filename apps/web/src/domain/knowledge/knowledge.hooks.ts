@@ -204,8 +204,8 @@ export function useCategories(group?: string) {
 /** Ask the KB a question. A mutation, not a query: it runs on demand only. */
 export function useAskKnowledge() {
   return useMutation({
-    mutationFn: (vars: { question: string; language: string }) =>
-      knowledgeService.ask(vars.question, vars.language),
+    mutationFn: (vars: { question: string; language: string; aiAgentId?: number | null }) =>
+      knowledgeService.ask(vars.question, vars.language, vars.aiAgentId),
     onError: (err: Error) => toast.error(err.message),
   });
 }
@@ -684,6 +684,20 @@ export function useMergeCategories() {
     onSuccess: (res) => {
       invalidate();
       toast.success(t('categoryMerged', { count: res.moved }));
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+}
+
+export function useSetCategoryAgents() {
+  const invalidate = useTaxonomyInvalidator('categories');
+  const { t } = useTranslation('knowledge');
+  return useMutation({
+    mutationFn: (v: { id: string; agentIds: number[] }) =>
+      knowledgeService.setCategoryAgents(v.id, v.agentIds),
+    onSuccess: () => {
+      invalidate();
+      toast.success(t('categoryAgentsSaved'));
     },
     onError: (err: Error) => toast.error(err.message),
   });
