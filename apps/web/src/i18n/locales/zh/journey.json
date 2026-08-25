@@ -1,0 +1,28 @@
+{
+  "title": "客户旅程分析",
+  "generate": "生成报告",
+  "past": "历史报告",
+  "empty": "还没有报告。",
+  "queued": "已受理 — 生成后会显示在这里。",
+  "asyncNote": "分组较大时需要数十秒。可以离开此页面。",
+  "period": {
+    "whole": "全部",
+    "range": "指定时间段"
+  },
+  "status": {
+    "pending": "生成中",
+    "ready": "已完成",
+    "failed": "失败"
+  },
+  "kind": {
+    "comparison": "对比分析"
+  },
+  "conditions": "期间 {{period}} · 会话 {{sessions}} · 标准 v{{version}} · {{model}}",
+  "compare": {
+    "action": "对比分析 ({{count}}/2)",
+    "versionsDiffer": "两份报告依据的标准不同（v{{a}} 与 v{{b}}）。部分差异来自标准，而非客户。"
+  },
+  "criteria": {
+    "saved": "已保存为 v{{version}}"
+  }
+}

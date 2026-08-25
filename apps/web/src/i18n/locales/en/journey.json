@@ -1,0 +1,28 @@
+{
+  "title": "Customer journey report",
+  "generate": "Generate report",
+  "past": "Past reports",
+  "empty": "No reports yet.",
+  "queued": "Queued — it will appear here when written.",
+  "asyncNote": "Takes tens of seconds on a large group. You can leave this screen.",
+  "period": {
+    "whole": "All time",
+    "range": "Date range"
+  },
+  "status": {
+    "pending": "Writing",
+    "ready": "Ready",
+    "failed": "Failed"
+  },
+  "kind": {
+    "comparison": "Comparison"
+  },
+  "conditions": "Period {{period}} · {{sessions}} sessions · criteria v{{version}} · {{model}}",
+  "compare": {
+    "action": "Compare ({{count}}/2)",
+    "versionsDiffer": "These were written under different criteria (v{{a}} and v{{b}}). Part of any difference comes from the rules, not the customer."
+  },
+  "criteria": {
+    "saved": "Saved as v{{version}}"
+  }
+}
