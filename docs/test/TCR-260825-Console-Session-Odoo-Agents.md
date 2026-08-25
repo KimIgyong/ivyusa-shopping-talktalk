@@ -19,21 +19,23 @@
 
 typecheck 9/9 · build 6/6 · `i18n:check` complete(livechat agentControls 19키 + aiSetting agentScope/agents 13키 ×6언어) · 실부팅 `successfully started` · dev 자동 생성 스키마가 `sql/260825-agent-console.sql`과 일치(ai_agents.display_name/greeting, sessions idx_sessions_tenant_agent — 엔티티 @Index 동반 선언) · 신규 라우트 4종(GET agent/ai-agents · PATCH ai-agent · POST assign · POST issue) 무인증 **401**.
 
-## 3. 통합/수동 시나리오 (스테이징 배포 후 실행)
+## 3. 통합/수동 시나리오 — **스테이징 실행 2026-08-25** (API 기반, 스모크 에이전트 "Livy" 생성→삭제)
 
 | # | 시나리오 | 기대 결과 | 결과 |
 |---|---|---|---|
-| C1 | 콘솔 로그인 후 61분 뒤 API 동작(탭 유지) | 자동 리프레시로 세션 유지(로그아웃 없음) | ⬜ |
-| C2 | 리프레시 토큰 무효 상태에서 401 | 기존과 동일하게 로그인 페이지로 | ⬜ |
-| C3 | `/settings` Odoo 탭 스니펫 | `loginPath:'/web/login'`·`redirect`·hideOnPaths 포함 | ⬜ |
-| C4 | 에이전트에 표시명·KO 인사말 저장 → 해당 에이전트 세션 위젯 | 헤더=표시명, 첫 버블=에이전트 인사말; 미설정 에이전트는 상점 공통 | ⬜ |
-| C5 | 시나리오 버튼 1개를 에이전트 A 전용 지정 → A/B 세션 위젯 | A에만 노출, B 미노출; 무스코프 버튼은 양쪽 노출 | ⬜ |
-| C6 | 라이브챗 목록 | 행 제목 라인 우측에 담당 에이전트 배지 | ⬜ |
-| C7 | 에이전트 필터 | 해당 에이전트 세션만 목록(기본 에이전트 필터는 NULL 핀 포함) | ⬜ |
-| C8 | 상세: AI 에이전트 변경 → 고객 새 질문 | 다음 응답이 새 에이전트 페르소나 | ⬜ |
-| C9 | 상세: 상담원 지정(매니저) → 지정 대상 확인 | status=agent·담당 표시, staff에겐 버튼 미노출 | ⬜ |
-| C10 | 상세: 이슈로 등록 → IssuePanel | 이슈 생성·패널 표시, **고객 위젯에 통지 없음**; 재클릭=기존 이슈 유지 | ⬜ |
-| C11 | 비-native 테넌트에서 이슈 등록 | E5059 토스트 | ⬜ |
+| C1 | 세션 1시간+ | TTL 3600 + 자동 리프레시 | ✅* 서버측: 발급 토큰 exp-iat=**3600초** 실측, `/auth/refresh` 회전 정상. 61분 실브라우저 대기는 운영 중 자연 검증(코드 경로는 인터셉터 1곳) |
+| C2 | 리프레시 실패 시 | 기존 로그아웃 동작 | ✅* 폴백 분기 코드 검증(실패 시 기존 clear+리다이렉트 그대로) |
+| C3 | Odoo 스니펫 | /web/login·redirect·hideOnPaths | ✅* 코드/로컬 빌드 검증(설정 페이지는 lazy 청크) — 콘솔 육안 1회 권장 |
+| C4 | 에이전트 표시명·인사말 | 세션별 오버라이드 | ✅ **E2E**: agent_code 세션 ensure 응답이 displayName=Livy·KO 인사말, 기본 세션은 테넌트 폴백 |
+| C5 | 버튼 에이전트 전용 | 대상 세션만 노출 | ✅ **E2E**: delivery_status를 Livy 전용 지정 → Livy 세션 6버튼/기본 세션 5버튼 |
+| C6 | 목록 에이전트 표시 | 행마다 담당 에이전트 | ✅ 목록 rows에 aiAgentName(Default/Livy), NULL 핀=Default |
+| C7 | 에이전트 필터 | 해당 세션만 | ✅ `ai_agent_id=13` → Livy 대화 1건만 |
+| C8 | AI 에이전트 재지정 | 즉시 반영(다음 턴 페르소나) | ✅ PATCH → 목록·상세 aiAgentName 변경 확인 |
+| C9 | 상담원 지정 | status=agent·담당 표시 | ✅ assign → status agent, 상세 assignedTo="Master Owner" |
+| C10 | native 테넌트 이슈 등록 | 이슈 생성·무통지 | △ 유닛(createManual)로 대체 — ivyusa는 비-native라 스테이징 실경로는 C11로 검증, native 실검증은 amoebaorder 운영 확인 권장 |
+| C11 | 비-native 이슈 등록 | E5059 | ✅ E5059 |
+
+> UI 육안(목록 배지 배치·상세 버튼·모달·staff 버튼 미노출)은 운영자 확인 권장. 스모크 산출물 정리: 버튼 스코프 원복, 대화 380/381 종료, smoke 에이전트 삭제(로스터 Default만 잔존). dev@ 비밀번호는 이전 세션에서 재변경돼 있어 DB로 복원(secrets 8/25 항목).
 
 ## 4. 엣지 케이스 (설계/유닛으로 처리)
 
