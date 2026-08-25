@@ -38,6 +38,25 @@
       "off": "Bloquear"
     },
     "saved": "Menús provistos guardados",
-    "saveError": "No se pudieron guardar los menús provistos"
+    "saveError": "No se pudieron guardar los menús provistos",
+    "issueAddonOff": "El menú se muestra, pero el add-on de flujo de incidencias está en {{mode}} — el tablero lo rechazará. Configúralo como native en Plan / Add-on."
+  },
+  "managePlan": "Plan / Add-on",
+  "planAddonTitle": "Plan y add-ons — {{name}}",
+  "planSaved": "Plan actualizado.",
+  "workflowSaved": "Add-on de flujo de incidencias actualizado.",
+  "workflowAddon": "Add-on de flujo de incidencias",
+  "planOverridesKept": "Las excepciones por menú de este tenant se mantienen.",
+  "issueAddonBadge": "incidencias: {{mode}}",
+  "planPreview": {
+    "starter": "Preset: panel, chat en vivo, historial, conocimiento, clientes, pedidos, equipo, ajustes, privacidad.",
+    "growth": "Preset: conjunto starter más registro, estadísticas, ajustes de IA, productos, campañas, reseñas.",
+    "enterprise": "Preset: todos los menús de la consola.",
+    "custom": "Sin preset — se proveen todos los menús salvo excepción."
+  },
+  "workflowMode": {
+    "base": "desactivado (solo lista de chats)",
+    "bridge": "derivación a helpdesk externo",
+    "native": "tablero de incidencias y kanban activos"
   }
 }

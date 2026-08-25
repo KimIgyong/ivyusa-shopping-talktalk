@@ -15,6 +15,8 @@ export interface Tenant {
   slug?: string;
   shopDomain?: string;
   plan?: string;
+  /** Issue-workflow add-on entitlement: base/bridge/native (REQ-260825). */
+  workflowMode?: string;
   status?: string;
   userCount?: number;
   createdAt?: string;
@@ -107,6 +109,10 @@ export const adminService = {
       plan: body.plan,
       ...(body.slug ? { slug: body.slug } : {}),
     }),
+  setTenantPlan: (uuid: string, plan: string) =>
+    apiPatch<Tenant>(`/tenants/${uuid}/plan`, { plan }),
+  setTenantWorkflowMode: (uuid: string, workflow_mode: string) =>
+    apiPatch<Tenant>(`/tenants/${uuid}/workflow-mode`, { workflow_mode }),
   setTenantStatus: (uuid: string, status: string) =>
     apiPatch<Tenant>(`/tenants/${uuid}/status`, { status }),
   // ---- Admin-scoped per-tenant user management (tenant addressed by UUID) ----

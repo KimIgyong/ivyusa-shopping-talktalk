@@ -601,6 +601,46 @@ export class TenantService {
     return this.tenantRepo.save(tenant);
   }
 
+  /**
+   * Plan change (REQ-260825). Menu presets are computed from `plan` on every
+   * read (resolveProvidedMenus), so saving the column IS the rollout — the
+   * per-menu overrides a tenant already has stay pinned on top of it.
+   */
+  async updatePlan(id: number, plan: string, actorId: number): Promise<Tenant> {
+    const tenant = await this.findById(id);
+    const from = tenant.plan;
+    tenant.plan = plan;
+    const saved = await this.tenantRepo.save(tenant);
+    await this.audit.write({
+      tenantId: id,
+      actorType: 'admin',
+      actorId,
+      action: 'tenant.plan_changed',
+      target: `tenant:${id} ${from ?? '-'} -> ${plan}`,
+    });
+    return saved;
+  }
+
+  /**
+   * Issue-workflow add-on entitlement (REQ-260825). This is the gate the
+   * /issues board judges server-side — menu provisioning only affects the
+   * sidebar. Mode is a gate, not data: existing tickets survive any switch.
+   */
+  async updateWorkflowMode(id: number, mode: string, actorId: number): Promise<Tenant> {
+    const tenant = await this.findById(id);
+    const from = tenant.workflowMode;
+    tenant.workflowMode = mode;
+    const saved = await this.tenantRepo.save(tenant);
+    await this.audit.write({
+      tenantId: id,
+      actorType: 'admin',
+      actorId,
+      action: 'tenant.workflow_mode_changed',
+      target: `tenant:${id} ${from} -> ${mode}`,
+    });
+    return saved;
+  }
+
   async listCredentials(tenantId: number): Promise<IntegrationCredential[]> {
     return this.credRepo.find({ where: { tenantId }, order: { provider: 'ASC' } });
   }

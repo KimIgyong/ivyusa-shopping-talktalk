@@ -38,6 +38,25 @@
       "off": "不提供"
     },
     "saved": "已保存提供的菜单",
-    "saveError": "无法保存提供的菜单"
+    "saveError": "无法保存提供的菜单",
+    "issueAddonOff": "菜单会显示，但问题工作流插件为 {{mode}}，功能不会生效。请在套餐/插件中设为 native。"
+  },
+  "managePlan": "套餐/插件",
+  "planAddonTitle": "套餐与插件 — {{name}}",
+  "planSaved": "套餐已更新。",
+  "workflowSaved": "问题工作流插件已更新。",
+  "workflowAddon": "问题工作流插件",
+  "planOverridesKept": "该租户的按菜单覆盖设置将保留。",
+  "issueAddonBadge": "问题: {{mode}}",
+  "planPreview": {
+    "starter": "预设：仪表盘、在线聊天、历史、知识、客户、订单、团队、设置、隐私。",
+    "growth": "预设：starter 组合外加工作日志、统计、AI 设置、商品、营销活动、评价。",
+    "enterprise": "预设：控制台全部菜单。",
+    "custom": "无预设 — 除非覆盖，否则提供全部菜单。"
+  },
+  "workflowMode": {
+    "base": "未启用（仅聊天列表）",
+    "bridge": "外部帮助台对接",
+    "native": "启用问题看板与 Kanban"
   }
 }

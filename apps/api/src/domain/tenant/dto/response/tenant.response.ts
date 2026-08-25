@@ -9,6 +9,8 @@ export interface TenantResponse {
   name: string | null;
   status: string;
   plan: string | null;
+  /** Issue-workflow add-on entitlement: base/bridge/native (REQ-260825). */
+  workflowMode: string;
   userCount?: number;
   createdAt: Date;
   updatedAt: Date;

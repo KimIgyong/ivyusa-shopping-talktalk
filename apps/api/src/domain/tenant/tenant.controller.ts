@@ -38,6 +38,8 @@ import {
   UpdateWidgetSettingsRequest,
   UpdateTenantStatusRequest,
   UpsertCredentialRequest,
+  UpdateTenantPlanRequest,
+  UpdateTenantWorkflowModeRequest,
 } from './dto/request/tenant.request';
 import { Paginated } from '../../global/interceptor/transform.interceptor';
 import { AdminOnly, RequireCapability, RequireRank } from '../../global/decorator/auth.decorator';
@@ -304,6 +306,48 @@ export class TenantController {
     const target = await this.tenantService.getByUuid(uuid);
     const tenant = await this.tenantService.updateStatus(Number(target.id), body.status);
     return TenantMapper.toTenant(tenant);
+  }
+
+  @Patch(':uuid/plan')
+  @AdminOnly()
+  @ApiOperation({ summary: 'Change a tenant plan — menu presets recompute instantly (REQ-260825)' })
+  async updatePlan(
+    @CurrentUser() admin: Principal,
+    @Param('uuid') uuid: string,
+    @Body() body: UpdateTenantPlanRequest,
+  ) {
+    const target = await this.tenantService.getByUuid(uuid);
+    const tenant = await this.tenantService.updatePlan(
+      Number(target.id),
+      body.plan,
+      this.adminActorId(admin),
+    );
+    return TenantMapper.toTenant(tenant);
+  }
+
+  @Patch(':uuid/workflow-mode')
+  @AdminOnly()
+  @ApiOperation({ summary: 'Set the issue-workflow add-on mode (base/bridge/native, REQ-260825)' })
+  async updateWorkflowMode(
+    @CurrentUser() admin: Principal,
+    @Param('uuid') uuid: string,
+    @Body() body: UpdateTenantWorkflowModeRequest,
+  ) {
+    const target = await this.tenantService.getByUuid(uuid);
+    const tenant = await this.tenantService.updateWorkflowMode(
+      Number(target.id),
+      body.workflow_mode,
+      this.adminActorId(admin),
+    );
+    return TenantMapper.toTenant(tenant);
+  }
+
+  /** Audit actor for admin-only routes — hard runtime guarantee it IS an admin. */
+  private adminActorId(principal: Principal): number {
+    if (principal.actorType !== 'admin') {
+      throw new BusinessException(ERROR_CODE.FORBIDDEN, HttpStatus.FORBIDDEN);
+    }
+    return principal.adminId;
   }
 
   @Get('me/credentials')

@@ -25,11 +25,14 @@ function isProvided(row: TenantMenuRow, mode: MenuProvisionMode): boolean {
 export function TenantMenusModal({
   tenantUuid,
   tenantName,
+  workflowMode,
   open,
   onClose,
 }: {
   tenantUuid: string;
   tenantName: string;
+  /** Issue-workflow add-on state — 'issues' provisioning warns unless 'native' (REQ-260825). */
+  workflowMode?: string;
   open: boolean;
   onClose: () => void;
 }) {
@@ -138,6 +141,14 @@ export function TenantMenusModal({
                           {provided ? t('menus.provided') : t('menus.notProvided')}
                         </span>
                         {mode !== 'plan' && <span className="ml-1 text-primary-600">*</span>}
+                        {/* Menu exposure ≠ entitlement: the /issues board is gated
+                            server-side by workflow_mode, so a provided menu with the
+                            add-on off is a dead door — say so where it is created. */}
+                        {row.code === 'issues' && provided && workflowMode !== 'native' && (
+                          <p className="mt-1 max-w-xs text-xs text-amber-600">
+                            {t('menus.issueAddonOff', { mode: workflowMode ?? 'base' })}
+                          </p>
+                        )}
                       </td>
                     </tr>
                   );

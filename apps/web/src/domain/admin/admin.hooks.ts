@@ -75,6 +75,33 @@ export function useCreateTenant() {
   });
 }
 
+export function useSetTenantPlan() {
+  const qc = useQueryClient();
+  const { t } = useTranslation('tenants');
+  return useMutation({
+    mutationFn: ({ id, plan }: { id: string; plan: string }) => adminService.setTenantPlan(id, plan),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: TENANTS_KEY });
+      toast.success(t('planSaved'));
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+}
+
+export function useSetTenantWorkflowMode() {
+  const qc = useQueryClient();
+  const { t } = useTranslation('tenants');
+  return useMutation({
+    mutationFn: ({ id, mode }: { id: string; mode: string }) =>
+      adminService.setTenantWorkflowMode(id, mode),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: TENANTS_KEY });
+      toast.success(t('workflowSaved'));
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+}
+
 export function useSetTenantStatus() {
   const qc = useQueryClient();
   return useMutation({

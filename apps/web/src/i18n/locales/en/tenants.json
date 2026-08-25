@@ -38,6 +38,25 @@
       "off": "Withhold"
     },
     "saved": "Provided menus saved",
-    "saveError": "Could not save the provided menus"
+    "saveError": "Could not save the provided menus",
+    "issueAddonOff": "Menu is shown, but the issue-workflow add-on is {{mode}} — the board will refuse. Set it to native in Plan / Add-on."
+  },
+  "managePlan": "Plan / Add-on",
+  "planAddonTitle": "Plan & add-ons — {{name}}",
+  "planSaved": "Plan updated.",
+  "workflowSaved": "Issue-workflow add-on updated.",
+  "workflowAddon": "Issue workflow add-on",
+  "planOverridesKept": "Per-menu overrides on this tenant stay pinned.",
+  "issueAddonBadge": "issues: {{mode}}",
+  "planPreview": {
+    "starter": "Preset: dashboard, live chat, history, knowledge, customers, orders, team, settings, privacy.",
+    "growth": "Preset: starter set plus work log, statistics, AI settings, products, campaigns, reviews.",
+    "enterprise": "Preset: every console menu.",
+    "custom": "No preset — every menu is provided unless overridden."
+  },
+  "workflowMode": {
+    "base": "off (chat list only)",
+    "bridge": "external helpdesk hand-off",
+    "native": "issue board & kanban enabled"
   }
 }

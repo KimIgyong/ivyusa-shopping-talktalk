@@ -14,6 +14,8 @@ import {
   ValidateIf,
 } from 'class-validator';
 import {
+  TENANT_PLAN_VALUES,
+  WORKFLOW_MODE_VALUES,
   WIDGET_LOGIN_MODE,
   WIDGET_TAB,
   WIDGET_TAB_POSITION,
@@ -61,6 +63,18 @@ export class CreateTenantRequest {
 export class UpdateTenantStatusRequest {
   @IsIn(['applied', 'active', 'suspended'])
   status: string;
+}
+
+/** Plan change by the platform admin (REQ-260825). Presets recompute instantly. */
+export class UpdateTenantPlanRequest {
+  @IsIn(TENANT_PLAN_VALUES as unknown as string[])
+  plan: string;
+}
+
+/** Issue-workflow add-on entitlement (REQ-260825 — menu exposure is separate). */
+export class UpdateTenantWorkflowModeRequest {
+  @IsIn(WORKFLOW_MODE_VALUES as unknown as string[])
+  workflow_mode: string;
 }
 
 export class UpsertCredentialRequest {
