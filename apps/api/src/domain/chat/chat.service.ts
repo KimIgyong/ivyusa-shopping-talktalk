@@ -752,15 +752,19 @@ export class ChatService {
       };
     }
 
-    if (intent.needsOrderData && session.customerId == null) {
-      // Asking a guest to sign in is not an answer, so there is nothing to put
-      // before the handoff the rule requires.
-      if (denyAnswersFirst) return denyHandoffNow();
+    if (intent.needsOrderData && session.customerId == null && !denyAnswersFirst) {
       const body = sysMsg('authRequired', session.language);
       await this.persist(tenantId, conversation.id, SENDER_TYPE.SYSTEM, body, session.language);
       return { conversationId: String(conversation.id), reply: { senderType: 'system', body }, escalate: false, needsAuth: true };
     }
 
+    // Answer-first deny rules skip that gate deliberately (REQ-260826). The
+    // classifier marks "환불계좌 바꾸고 싶어" as needing order data, so a guest
+    // asking it was told to sign in and handed off with no answer — while the
+    // knowledge base held the policy the agent then retyped by hand. Nothing is
+    // guessed: a guest has no order context, so the answer is grounded in the
+    // knowledge base alone, and the agent still gets the thread.
+    //
     // Order questions from a signed-in shopper are answered from their real
     // orders, not guessed from the knowledge base. Only reached once the gate
     // above proved the session is bound to a customer.
