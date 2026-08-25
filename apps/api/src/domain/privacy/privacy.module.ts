@@ -20,6 +20,7 @@ import { ProductSave } from '../save/entity/product-save.entity';
 import { Nudge } from '../nudge/entity/nudge.entity';
 import { DiaryNote } from '../diary/entity/diary-note.entity';
 import { DeviceToken } from '../push/entity/device-token.entity';
+import { AiUsageDaily } from '../ai-engine/entity/ai-usage-daily.entity';
 import { Campaign } from '../campaign/entity/campaign.entity';
 import { Tenant } from '../tenant/entity/tenant.entity';
 import { AuditModule } from '../audit/audit.module';
@@ -59,6 +60,7 @@ import { PrivacyController, ShopifyComplianceController } from './privacy.contro
       Nudge,
       DiaryNote,
       DeviceToken,
+      AiUsageDaily,
       Campaign,
       Tenant,
     ]),

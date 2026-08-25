@@ -9,6 +9,7 @@ import { Notification } from '../notification/entity/notification.entity';
 import { Session } from '../session/entity/session.entity';
 import { AuditService } from '../audit/audit.service';
 import { AttachmentService } from '../attachment/attachment.service';
+import { AiUsageDaily } from '../ai-engine/entity/ai-usage-daily.entity';
 
 export interface RetentionPurgeResult {
   retentionDays: number;
@@ -20,6 +21,9 @@ export interface RetentionPurgeResult {
   sessions: number;
   /** Attachment rows disposed of, files included (PLN-260814 SI-5). */
   attachments: number;
+  /** AI usage roll-ups dropped, on their own longer window (PLN-260824 D9). */
+  aiUsage: number;
+  aiUsageRetentionDays: number;
 }
 
 /** First scheduled run fires shortly after boot so frequent restarts can't starve disposal. */
@@ -44,6 +48,7 @@ export class RetentionService implements OnModuleInit, OnModuleDestroy {
     @InjectRepository(CjmEvent) private readonly cjmRepo: Repository<CjmEvent>,
     @InjectRepository(Notification) private readonly notificationRepo: Repository<Notification>,
     @InjectRepository(Session) private readonly sessionRepo: Repository<Session>,
+    @InjectRepository(AiUsageDaily) private readonly aiUsageRepo: Repository<AiUsageDaily>,
     private readonly config: ConfigService,
     private readonly audit: AuditService,
     private readonly attachments: AttachmentService,
@@ -70,7 +75,8 @@ export class RetentionService implements OnModuleInit, OnModuleDestroy {
     try {
       const result = await this.purgeExpired();
       this.logger.log(
-        `Retention purge: msgs=${result.messages} convs=${result.conversations} cjm=${result.cjmEvents} notifs=${result.notifications} sessions=${result.sessions}`,
+        `Retention purge: msgs=${result.messages} convs=${result.conversations} cjm=${result.cjmEvents} ` +
+          `notifs=${result.notifications} sessions=${result.sessions} aiUsage=${result.aiUsage}`,
       );
     } catch (err) {
       this.logger.error(`Scheduled retention purge failed: ${String(err)}`);
@@ -84,7 +90,23 @@ export class RetentionService implements OnModuleInit, OnModuleDestroy {
     return Number.isFinite(days) && days > 0 ? days : 365;
   }
 
-  /** Delete rows older than the retention window: messages → conversations → cjm → notifications → stale sessions. */
+  /**
+   * How long AI usage roll-ups are kept, in days.
+   *
+   * A separate window from the conversation one, and deliberately longer. The
+   * conversation window exists to dispose of personal data; these rows hold
+   * none — they are counters. Thirteen months is what makes "this month against
+   * the same month last year" answerable, and disposing of them on the
+   * conversation clock (a year by default) would quietly remove the comparison
+   * the window was chosen for.
+   */
+  private aiUsageRetentionDays(): number {
+    const raw = this.config.get<string | number>('AI_USAGE_RETENTION_DAYS', 400);
+    const days = Number(raw);
+    return Number.isFinite(days) && days > 0 ? days : 400;
+  }
+
+  /** Delete rows older than the retention window: messages → conversations → cjm → notifications → stale sessions → usage. */
   async purgeExpired(): Promise<RetentionPurgeResult> {
     const retentionDays = this.retentionDays();
     const cutoff = new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000);
@@ -102,6 +124,14 @@ export class RetentionService implements OnModuleInit, OnModuleDestroy {
 
     // Notifications carry order numbers / PII in title+body — same window (PRV-H3).
     const notif = await this.notificationRepo.delete({ createdAt: LessThan(cutoff) });
+
+    // AI usage on its own clock: keyed by `stat_date`, not a row timestamp, and
+    // held longer than conversations (see aiUsageRetentionDays).
+    const aiUsageRetentionDays = this.aiUsageRetentionDays();
+    const usageCutoff = new Date(Date.now() - aiUsageRetentionDays * 24 * 60 * 60 * 1000)
+      .toISOString()
+      .slice(0, 10);
+    const usage = await this.aiUsageRepo.delete({ statDate: LessThan(usageCutoff) });
 
     // Stale sessions: inactive past the window AND not referenced by a surviving
     // conversation (conversations newer than the cutoff keep their session).
@@ -121,6 +151,8 @@ export class RetentionService implements OnModuleInit, OnModuleDestroy {
       notifications: notif.affected ?? 0,
       sessions: sess.affected ?? 0,
       attachments,
+      aiUsage: usage.affected ?? 0,
+      aiUsageRetentionDays,
     };
 
     // Scheduler-driven purge — 'system' actor, not a phantom admin (Stage 4).
@@ -138,6 +170,8 @@ export class RetentionService implements OnModuleInit, OnModuleDestroy {
         notifications: result.notifications,
         sessions: result.sessions,
         attachments: result.attachments,
+        aiUsage: result.aiUsage,
+        aiUsageRetentionDays: result.aiUsageRetentionDays,
       },
     });
 
