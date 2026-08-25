@@ -31,7 +31,7 @@ export function HelpModal({
         type="button"
         aria-label={label ?? t('help')}
         title={label ?? t('help')}
-        className="rounded-full p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+        className="rounded-full p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 outline-none focus-visible:ring-1 focus-visible:ring-primary-500"
         onClick={() => setOpen(true)}
       >
         <HelpCircle className="h-4 w-4" />

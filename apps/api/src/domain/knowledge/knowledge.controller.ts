@@ -291,6 +291,7 @@ export class KnowledgeController {
       body.question,
       body.language ?? 'EN',
       body.group,
+      body.ai_agent_id ?? null,
     );
   }
 

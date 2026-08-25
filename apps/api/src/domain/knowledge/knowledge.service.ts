@@ -79,13 +79,20 @@ export class KnowledgeService {
     // is exactly the "registers fine, does nothing" behaviour this whole line
     // of work set out to remove.
     const adapter = this.sourceSync.adapterFor(body.type);
-    if (adapter) {
-      const reason = adapter.validateConfig(body.config_json ?? null);
-      if (reason) {
-        throw new BusinessException(ERROR_CODE.VALIDATION_FAILED, HttpStatus.BAD_REQUEST, {
-          config_json: [reason],
-        });
-      }
+    // A type with no adapter can never ingest, so creating the row only buys a
+    // source that reports "unsupported" forever. Five of those exist on staging
+    // (REQ-260826 R5) — refuse at the door rather than adding a sixth. Rows
+    // created before their type was retired keep working as they are.
+    if (!adapter) {
+      throw new BusinessException(ERROR_CODE.VALIDATION_FAILED, HttpStatus.BAD_REQUEST, {
+        type: [`unsupported source type: ${body.type}`],
+      });
+    }
+    const reason = adapter.validateConfig(body.config_json ?? null);
+    if (reason) {
+      throw new BusinessException(ERROR_CODE.VALIDATION_FAILED, HttpStatus.BAD_REQUEST, {
+        config_json: [reason],
+      });
     }
     // Credentialled source types declare what they need; asking the adapter
     // keeps this from growing a branch per provider (REQ-260821 G5).

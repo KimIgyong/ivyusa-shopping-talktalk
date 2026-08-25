@@ -72,10 +72,14 @@ export function CategoryManagerCard() {
       <Badge tone={c.documentCount ? 'gray' : 'warning'}>
         {t('categoryDocs', { count: c.documentCount })}
       </Badge>
-      {/* Agent scope (REQ-260826 R2). Hidden entirely when the tenant runs a
-          single agent: a choice with one option is noise, and most tenants
-          have exactly one. */}
-      {agents.length > 1 && !locked && !c.id.startsWith('unregistered:') ? (
+      {/* Agent scope (REQ-260826 R2). Hidden when the tenant runs a single
+          agent — a choice with one option is noise, and most tenants have
+          exactly one — but never hidden from a category that already carries a
+          scope, or deactivating agents would strand a narrowing nobody can
+          reach to undo. */}
+      {(agents.length > 1 || (c.agentIds?.length ?? 0) > 0) &&
+      !locked &&
+      !c.id.startsWith('unregistered:') ? (
         <Button
           size="sm"
           variant="secondary"

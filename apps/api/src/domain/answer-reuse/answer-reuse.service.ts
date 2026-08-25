@@ -31,7 +31,6 @@ const TENANT_CAP = 2000;
 const AGENT_REPLAY_CONFIDENCE = 0.95;
 const MIN_QUESTION_LEN = 5;
 const MIN_ANSWER_LEN = 20;
-const SCOPE_CACHE_MS = 60_000;
 
 /**
  * Answer reuse (요구 5·6, PLN-260808 Track C): store verified answers keyed by
@@ -44,7 +43,6 @@ const SCOPE_CACHE_MS = 60_000;
 @Injectable()
 export class AnswerReuseService {
   private readonly logger = new Logger(AnswerReuseService.name);
-  private readonly scopeCache = new Map<number, { value: boolean; until: number }>();
 
   constructor(
     @InjectRepository(AnswerReuse) private readonly repo: Repository<AnswerReuse>,
@@ -63,21 +61,14 @@ export class AnswerReuseService {
    * tenant actually scopes something leaves the second group untouched, and
    * costs the first group replays only until new rows accumulate.
    *
-   * Cached briefly: this runs on every shopper turn, and the answer changes
-   * about as often as someone opens the category screen.
+   * Deliberately uncached. A minute of staleness here is a minute of replaying
+   * one persona's answers to another after an operator has just said not to,
+   * and the query is one indexed read against a table that peaks in the dozens
+   * — next to the embedding call this lookup already makes, it is free.
    */
   private async tenantScopesKnowledge(tenantId: number): Promise<boolean> {
-    const cached = this.scopeCache.get(tenantId);
-    if (cached && cached.until > this.now()) return cached.value;
     const rows = await this.categoryRepo.find({ where: { tenantId } });
-    const value = rows.some((r) => (r.agentIds ?? []).length > 0);
-    this.scopeCache.set(tenantId, { value, until: this.now() + SCOPE_CACHE_MS });
-    return value;
-  }
-
-  /** Overridable for tests; Date.now() directly would make them time-dependent. */
-  protected now(): number {
-    return Date.now();
+    return rows.some((r) => (r.agentIds ?? []).length > 0);
   }
 
   private async replayableFor(
