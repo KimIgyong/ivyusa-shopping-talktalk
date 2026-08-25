@@ -228,11 +228,17 @@ export class KnowledgeService {
    * still runs — a blocked answer is reported as blocked rather than shown,
    * because "this answer would be blocked" is itself the diagnostic.
    */
+  /**
+   * `aiAgentId` answers as that agent would — same knowledge scope a shopper
+   * pinned to it would get. Omitted, the operator sees everything they manage,
+   * which is the point of the console: you cannot fix what is hidden from you.
+   */
   async ask(
     tenantId: number,
     question: string,
     language = 'EN',
     preferGroup?: string,
+    aiAgentId?: number | null,
   ): Promise<{
     answer: string;
     confidence: number;
@@ -257,6 +263,8 @@ export class KnowledgeService {
       language.toUpperCase(),
       undefined,
       preferGroup,
+      undefined,
+      aiAgentId ?? null,
     );
     const moderated = await this.moderation.moderate({
       tenantId,

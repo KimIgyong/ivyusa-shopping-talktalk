@@ -102,7 +102,13 @@ describe('ChatService consent gate', () => {
       tenantRepo,
       userRepo,
       { update: jest.fn() } as never, // Assignment repo (end-chat release; unused here)
-      { classifyIntent: ragClassify, answer: ragAnswer } as unknown as RagService,
+      {
+        classifyIntent: ragClassify,
+        answer: ragAnswer,
+        // No agents configured — the shape these fixtures describe. Scoping is
+        // exercised in rag-retrieval-scope.spec.ts, not smuggled in here.
+        effectiveAgentId: jest.fn(async () => null),
+      } as unknown as RagService,
       { moderate } as unknown as ModerationService,
       // orderService precedes sessionService: it supplies the signed-in shopper's own
       // order facts for RAG grounding. These suites are about the consent gate, so it

@@ -981,12 +981,21 @@ export class AgentService {
         order: { id: 'DESC' },
       });
       if (!question) return;
+      // The persona the shopper was talking to, so a human reply written in one
+      // agent's context is not replayed as another's (REQ-260826 D4). Unknown
+      // stays null, which the reuse rule treats as "only for tenants that scope
+      // nothing" rather than as a free pass.
+      const conv = await this.convRepo.findOne({ where: { id: conversationId, tenantId } });
+      const session = conv
+        ? await this.sessionRepo.findOne({ where: { id: conv.sessionId, tenantId } })
+        : null;
       await this.answerReuse.recordAgentAnswer({
         tenantId,
         lang: question.lang ?? 'EN',
         question: question.body,
         answerText: reply.body,
         sourceMessageId: reply.id,
+        aiAgentId: session?.aiAgentId != null ? Number(session.aiAgentId) : null,
       });
     } catch (e) {
       this.logger.debug(`reuse agent-ingest skipped: ${(e as Error).message}`);

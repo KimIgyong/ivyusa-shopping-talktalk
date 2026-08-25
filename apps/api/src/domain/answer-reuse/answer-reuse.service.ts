@@ -7,6 +7,7 @@ import { AnswerReuse, REUSE_SOURCE } from './entity/answer-reuse.entity';
 import { AiGatewayService } from '../../infrastructure/external/ai/ai-gateway.service';
 import { ReuseQdrantService } from '../../infrastructure/external/vector/reuse-qdrant.service';
 import { scrubPii } from '../../global/util/pii-scrub.util';
+import { KbCategory } from '../knowledge/entity/kb-category.entity';
 
 /** What the chat pipeline gets on a hit — shaped to slot in for RagAnswer. */
 export interface ReuseHit {
@@ -30,6 +31,7 @@ const TENANT_CAP = 2000;
 const AGENT_REPLAY_CONFIDENCE = 0.95;
 const MIN_QUESTION_LEN = 5;
 const MIN_ANSWER_LEN = 20;
+const SCOPE_CACHE_MS = 60_000;
 
 /**
  * Answer reuse (요구 5·6, PLN-260808 Track C): store verified answers keyed by
@@ -42,19 +44,63 @@ const MIN_ANSWER_LEN = 20;
 @Injectable()
 export class AnswerReuseService {
   private readonly logger = new Logger(AnswerReuseService.name);
+  private readonly scopeCache = new Map<number, { value: boolean; until: number }>();
 
   constructor(
     @InjectRepository(AnswerReuse) private readonly repo: Repository<AnswerReuse>,
+    @InjectRepository(KbCategory) private readonly categoryRepo: Repository<KbCategory>,
     private readonly ai: AiGatewayService,
     private readonly vector: ReuseQdrantService,
   ) {}
+
+  /**
+   * Does this tenant restrict any category to specific agents?
+   *
+   * The answer decides what happens to rows written before agents were
+   * recorded. Replaying them freely would leak one persona's answers from the
+   * day scoping is switched on; refusing them outright would silently disable
+   * reuse for every tenant that never scopes anything. Tying it to whether the
+   * tenant actually scopes something leaves the second group untouched, and
+   * costs the first group replays only until new rows accumulate.
+   *
+   * Cached briefly: this runs on every shopper turn, and the answer changes
+   * about as often as someone opens the category screen.
+   */
+  private async tenantScopesKnowledge(tenantId: number): Promise<boolean> {
+    const cached = this.scopeCache.get(tenantId);
+    if (cached && cached.until > this.now()) return cached.value;
+    const rows = await this.categoryRepo.find({ where: { tenantId } });
+    const value = rows.some((r) => (r.agentIds ?? []).length > 0);
+    this.scopeCache.set(tenantId, { value, until: this.now() + SCOPE_CACHE_MS });
+    return value;
+  }
+
+  /** Overridable for tests; Date.now() directly would make them time-dependent. */
+  protected now(): number {
+    return Date.now();
+  }
+
+  private async replayableFor(
+    row: AnswerReuse,
+    tenantId: number,
+    aiAgentId: number | null,
+  ): Promise<boolean> {
+    const rowAgent = row.aiAgentId != null ? Number(row.aiAgentId) : null;
+    if (rowAgent != null) return aiAgentId != null && rowAgent === aiAgentId;
+    return !(await this.tenantScopesKnowledge(tenantId));
+  }
 
   private enabled(): boolean {
     return process.env.ANSWER_REUSE_ENABLED !== '0' && this.vector.enabled;
   }
 
   /** Look up a reusable answer for a (scrubbed) question. Null = run the LLM. */
-  async lookup(tenantId: number, lang: string, question: string): Promise<ReuseHit | null> {
+  async lookup(
+    tenantId: number,
+    lang: string,
+    question: string,
+    aiAgentId: number | null = null,
+  ): Promise<ReuseHit | null> {
     if (!this.enabled()) return null;
     try {
       const embedded = await this.ai.embed([question], 'query');
@@ -66,6 +112,10 @@ export class AnswerReuseService {
       if (!top || top.score < THRESHOLD()) return null;
       const row = await this.repo.findOne({ where: { id: top.id, tenantId } });
       if (!row || row.active !== 1) return null;
+      // Per-agent knowledge scope reaches here too (REQ-260826 D4): this lookup
+      // runs BEFORE retrieval, so a scope applied only to RAG would be bypassed
+      // by every question that had been asked once already.
+      if (!(await this.replayableFor(row, tenantId, aiAgentId))) return null;
       // Stale entries retire at read time (knowledge moves on — REQ Track C).
       const ageMs = Date.now() - new Date(row.updatedAt).getTime();
       if (ageMs > TTL_DAYS() * 24 * 60 * 60_000) {
@@ -116,6 +166,7 @@ export class AnswerReuseService {
     citations: unknown[];
     sourceMessageId: number | null;
     needsOrderData: boolean;
+    aiAgentId?: number | null;
   }): Promise<void> {
     try {
       if (!this.enabled()) return;
@@ -143,6 +194,7 @@ export class AnswerReuseService {
     question: string;
     answerText: string;
     sourceMessageId: number | null;
+    aiAgentId?: number | null;
   }): Promise<void> {
     try {
       if (!this.enabled()) return;
@@ -252,6 +304,7 @@ export class AnswerReuseService {
     confidence: number | null;
     citations: unknown[];
     sourceMessageId: number | null;
+    aiAgentId?: number | null;
   }): Promise<void> {
     // Both sides stored scrubbed only — the question may arrive scrubbed already
     // (chat egress) but the agent path passes the original; scrub is idempotent.
@@ -269,7 +322,10 @@ export class AnswerReuseService {
     const vector = embedded.vectors[0];
 
     // Near-duplicate already stored → keep the original (first answer wins;
-    // the console is the editing surface), no second row.
+    // the console is the editing surface), no second row. Dedupe stays blind to
+    // the agent: a second agent asking the same question simply keeps using the
+    // LLM rather than getting a row of its own. Costlier, never wrong — the
+    // alternative is a near-duplicate row per persona.
     const dupes = await this.vector.search(input.tenantId, input.lang, vector, 1);
     if (dupes[0] && dupes[0].score >= DEDUPE_THRESHOLD) return;
 
@@ -283,6 +339,7 @@ export class AnswerReuseService {
       this.repo.create({
         tenantId: input.tenantId,
         lang: input.lang,
+        aiAgentId: input.aiAgentId ?? null,
         questionText: question,
         answerText: answer,
         source: input.source,

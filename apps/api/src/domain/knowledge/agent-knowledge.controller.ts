@@ -52,7 +52,13 @@ export class AgentKnowledgeController {
       throw new BusinessException(ERROR_CODE.VALIDATION_FAILED, HttpStatus.BAD_REQUEST);
     }
     this.logger.log(`agent knowledge lookup by user ${user.userId}`);
-    return this.knowledgeService.ask(user.tenantId, question, body.language ?? 'EN', body.group);
+    return this.knowledgeService.ask(
+      user.tenantId,
+      question,
+      body.language ?? 'EN',
+      body.group,
+      body.ai_agent_id ?? null,
+    );
   }
 
   @Post('proposals')

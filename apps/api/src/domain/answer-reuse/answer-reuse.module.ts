@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AnswerReuse } from './entity/answer-reuse.entity';
+import { KbCategory } from '../knowledge/entity/kb-category.entity';
 import { AnswerReuseService } from './answer-reuse.service';
 import { AnswerReuseController } from './answer-reuse.controller';
 
@@ -11,7 +12,11 @@ import { AnswerReuseController } from './answer-reuse.controller';
  * ReuseQdrant arrive via the global infrastructure/vector modules.
  */
 @Module({
-  imports: [TypeOrmModule.forFeature([AnswerReuse])],
+  imports: [
+    // KbCategory is repository-only: replay has to know whether the tenant
+    // scopes any category before it may reuse a row that predates agents.
+    TypeOrmModule.forFeature([AnswerReuse, KbCategory]),
+  ],
   controllers: [AnswerReuseController],
   providers: [AnswerReuseService],
   exports: [AnswerReuseService],

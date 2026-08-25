@@ -164,6 +164,7 @@ export class KnowledgeMapper {
       origin: c.origin,
       sortOrder: c.sortOrder,
       hidden: c.hidden === 1,
+      agentIds: c.agentIds ?? [],
     };
   }
 }

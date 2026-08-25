@@ -66,7 +66,11 @@ describe('RagService.answer with order context', () => {
     // Vector leg off — the documented silent degrade to FULLTEXT-only. This suite is
     // about the order-context block, not retrieval.
     const qdrant = { enabled: false, search: jest.fn() };
-    const aiConfig = { getPersonaRules: jest.fn().mockResolvedValue({ persona: 'P', rules: [] }) };
+    const aiConfig = {
+      getPersonaRules: jest.fn().mockResolvedValue({ persona: 'P', rules: [] }),
+      // These fixtures predate multi-agent: no agents, so nothing to scope by.
+      effectiveAgentId: jest.fn().mockResolvedValue(null),
+    };
     const tenantRepo = { findOne: jest.fn(async () => ({ id: 1, storefrontUrl: null })) };
     const svc = new RagService(
       kbRepo as never,

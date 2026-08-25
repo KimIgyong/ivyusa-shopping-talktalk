@@ -49,6 +49,7 @@ import {
   SaveNotionCredentialRequest,
   SaveUsageGuideRequest,
   SaveUsageTypeRequest,
+  SetCategoryAgentsRequest,
   SetCategoryHiddenRequest,
   TestGdriveRequest,
   TestNotionRequest,
@@ -569,6 +570,22 @@ export class KnowledgeController {
       this.tenantUser(user).tenantId,
       Number(id),
       body.hidden,
+    );
+    return KnowledgeMapper.toCategory(row);
+  }
+
+  @Put('categories/:id/agents')
+  @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
+  @ApiOperation({ summary: 'Narrow a category to specific AI agents (empty = every agent)' })
+  async setCategoryAgents(
+    @CurrentUser() user: Principal,
+    @Param('id') id: string,
+    @Body() body: SetCategoryAgentsRequest,
+  ) {
+    const row = await this.kbCategories.setAgents(
+      this.tenantUser(user).tenantId,
+      Number(id),
+      body.agent_ids ?? [],
     );
     return KnowledgeMapper.toCategory(row);
   }

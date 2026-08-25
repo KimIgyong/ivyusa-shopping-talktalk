@@ -107,6 +107,8 @@ export class AskKnowledgeRequest {
   @IsOptional() @IsString() language?: string; // en/es/ko
   /** Bias retrieval toward one group; omit for no preference. */
   @IsOptional() @IsString() group?: string;
+  /** Answer as this AI agent would (its knowledge scope); omit to see everything. */
+  @IsOptional() @IsInt() ai_agent_id?: number;
 }
 
 // ---- Board posts ----
@@ -166,6 +168,11 @@ export class MergeCategoriesRequest {
 /** PUT /knowledge/categories/:id/hidden */
 export class SetCategoryHiddenRequest {
   @IsBoolean() hidden: boolean;
+}
+
+/** PUT /knowledge/categories/:id/agents — empty list restores "every agent". */
+export class SetCategoryAgentsRequest {
+  @IsArray() @IsInt({ each: true }) agent_ids: number[];
 }
 
 /** POST /knowledge/gap-tasks/:id/accept — 승인 전 인라인 편집(P5). */

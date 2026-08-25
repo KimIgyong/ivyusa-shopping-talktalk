@@ -224,6 +224,25 @@ export class AiConfigService {
    * created in between has no agent rows yet, and shoppers must not meet a
    * blank persona because of that.
    */
+  /**
+   * The agent that is actually speaking: an unknown or deactivated pin degrades
+   * to the tenant default, exactly as the persona does above.
+   *
+   * Retrieval scope and answer reuse both ask this rather than reading
+   * `session.ai_agent_id` themselves — if they disagreed with the persona, a
+   * session could be given one agent's voice and another agent's knowledge.
+   * Null means the tenant has no agents at all, which is how tenants created
+   * before multi-agent look; nothing to scope by, so nothing is scoped.
+   */
+  async effectiveAgentId(tenantId: number, aiAgentId?: number | null): Promise<number | null> {
+    if (aiAgentId != null) {
+      const row = await this.agentRepo.findOne({ where: { id: aiAgentId, tenantId, active: 1 } });
+      if (row) return Number(row.id);
+    }
+    const def = await this.agentRepo.findOne({ where: { tenantId, isDefault: 1 } });
+    return def ? Number(def.id) : null;
+  }
+
   private async resolvePersonaRules(
     tenantId: number,
     aiAgentId: number | null,

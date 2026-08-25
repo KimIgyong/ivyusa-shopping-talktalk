@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { CATEGORY_ORIGIN, CategoryOrigin, KbCategory } from './entity/kb-category.entity';
 import { KbDocument } from './entity/kb-document.entity';
+import { AiAgent } from '../ai-engine/entity/ai-agent.entity';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
 
@@ -14,6 +15,8 @@ export interface KbCategorySummary {
   hidden: boolean;
   /** Documents currently filed under this exact string. */
   documentCount: number;
+  /** Empty = every agent may cite it (REQ-260826 R2). */
+  agentIds: number[];
 }
 
 /**
@@ -33,6 +36,7 @@ export class KbCategoryService {
   constructor(
     @InjectRepository(KbCategory) private readonly repo: Repository<KbCategory>,
     @InjectRepository(KbDocument) private readonly docRepo: Repository<KbDocument>,
+    @InjectRepository(AiAgent) private readonly agentRepo: Repository<AiAgent>,
     private readonly dataSource: DataSource,
   ) {}
 
@@ -56,6 +60,10 @@ export class KbCategoryService {
       origin: r.origin,
       hidden: r.hidden === 1,
       documentCount: counts.get(r.name) ?? 0,
+      // Catalogue categories are common to every agent by decision (REQ D3), so
+      // report them as unscoped whatever the column happens to hold — a row
+      // that changed origin after being scoped must not keep a stale narrowing.
+      agentIds: r.origin === CATEGORY_ORIGIN.CATALOG ? [] : (r.agentIds ?? []),
     }));
 
     // A string that documents carry but no row describes — drift, or a category
@@ -71,6 +79,8 @@ export class KbCategoryService {
         origin: CATEGORY_ORIGIN.MANUAL,
         hidden: false,
         documentCount: count,
+        // Nothing owns this string yet, so there is nothing to scope it with.
+        agentIds: [],
       });
     }
     return summaries;
@@ -196,6 +206,41 @@ export class KbCategoryService {
         `(${moved} document(s), tenant ${tenantId})`,
     );
     return { moved };
+  }
+
+  /**
+   * Narrow a category to specific AI agents (REQ-260826 R2).
+   *
+   * An empty list restores the default — every agent — rather than meaning
+   * "nobody": that is the convention scenario buttons already established, and
+   * a category no agent can read would be indistinguishable from a deleted one
+   * while still counting documents in the console.
+   *
+   * Catalogue categories refuse the narrowing instead of accepting it silently:
+   * product knowledge is common to every persona by decision, and an operator
+   * who thought they had restricted it would be wrong with no way to notice.
+   */
+  async setAgents(tenantId: number, id: number, agentIds: number[]): Promise<KbCategory> {
+    const row = await this.find(tenantId, id);
+    if (row.origin === CATEGORY_ORIGIN.CATALOG) {
+      throw new BusinessException(ERROR_CODE.VALIDATION_FAILED, HttpStatus.CONFLICT);
+    }
+    const wanted = [...new Set(agentIds.map(Number).filter(Number.isFinite))];
+    if (!wanted.length) {
+      row.agentIds = null;
+      return this.repo.save(row);
+    }
+    // Ids are validated against this tenant's agents, not merely stored: an id
+    // from another tenant would read as a narrowing nobody can satisfy, and the
+    // category would go dark with the console still showing it scoped.
+    const owned = await this.agentRepo.find({ where: { tenantId } });
+    const ownedIds = new Set(owned.map((a) => Number(a.id)));
+    const valid = wanted.filter((v) => ownedIds.has(v));
+    if (!valid.length) {
+      throw new BusinessException(ERROR_CODE.VALIDATION_FAILED, HttpStatus.BAD_REQUEST);
+    }
+    row.agentIds = valid;
+    return this.repo.save(row);
   }
 
   async setHidden(tenantId: number, id: number, hidden: boolean): Promise<KbCategory> {

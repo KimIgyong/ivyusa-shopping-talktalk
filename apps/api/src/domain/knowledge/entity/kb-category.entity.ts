@@ -72,6 +72,25 @@ export class KbCategory {
   @Column({ type: 'tinyint', width: 1, default: 0 })
   hidden: number;
 
+  /**
+   * Which AI agents may cite documents filed here (REQ-260826 R2).
+   *
+   * NULL or `[]` means every agent — the same convention scenario buttons use,
+   * so an operator who has met one has met both. A non-empty array names the
+   * only agents that may, which is why an agent created later sees none of the
+   * scoped categories until someone adds it: an answer reaching the wrong
+   * persona is the failure this exists to prevent, and an agent that cannot
+   * answer escalates visibly instead.
+   *
+   * Ignored for `origin='catalog'` — product knowledge is common to everyone.
+   *
+   * ⚠️ `ensure()` must never write this field. Sync ensures every category on
+   * every run, so writing a default there would quietly release the operator's
+   * scope at the next sync — the shape of the rename catalogue sync undid (D8).
+   */
+  @Column({ name: 'agent_ids', type: 'json', nullable: true })
+  agentIds: number[] | null;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 

@@ -81,7 +81,11 @@ describe('ChatService — attachment-only turns', () => {
       { findOne: jest.fn(async () => ({ id: 1 }) as Tenant) } as unknown as Repository<Tenant>,
       { find: jest.fn(async () => []) } as unknown as Repository<User>,
       { update: jest.fn() } as never,
-      { classifyIntent, answer: ragAnswer } as unknown as RagService,
+      {
+        classifyIntent,
+        answer: ragAnswer,
+        effectiveAgentId: jest.fn(async () => null),
+      } as unknown as RagService,
       { moderate } as unknown as ModerationService,
       { recentForCustomer: jest.fn(async () => []) } as never,
       {
