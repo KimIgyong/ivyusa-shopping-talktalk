@@ -10,6 +10,7 @@ import { Paginated } from '../../global/interceptor/transform.interceptor';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
 import { SubscribeRequest } from './dto/request/restock.request';
+import { SessionToken } from '../../global/decorator/session-token.decorator';
 
 /** Back-in-stock notifications (FR-042) — widget subscribe + tenant admin list. */
 @ApiTags('Restock')
@@ -28,7 +29,7 @@ export class RestockController {
   @Get('restock')
   @Public()
   @ApiOperation({ summary: "List the customer's restock subscriptions (requires auth)" })
-  async list(@Query('session_token') token: string) {
+  async list(@SessionToken() token: string) {
     const subs = await this.restockService.listForSession(token);
     return subs.map((s) => ({
       id: s.id,

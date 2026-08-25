@@ -256,6 +256,12 @@ export class AiConfigService {
    * agent. A NULL pin resolves to the tenant's default agent for matching.
    */
   async getScenarioForSession(sessionToken: string): Promise<ScenarioConfigResponse> {
+    // Belt to the controller's SessionToken guard: an empty/undefined token
+    // must never reach findOne — TypeORM drops an undefined predicate and
+    // returns an arbitrary session (cross-tenant config leak, FIX-260825).
+    if (!sessionToken?.trim()) {
+      throw new BusinessException(ERROR_CODE.SESSION_NOT_FOUND, HttpStatus.NOT_FOUND);
+    }
     const session = await this.sessionRepo.findOne({ where: { sessionToken } });
     if (!session) throw new BusinessException(ERROR_CODE.SESSION_NOT_FOUND, HttpStatus.NOT_FOUND);
     const tenantId = session.tenantId ?? (await this.firstTenantId());

@@ -14,6 +14,7 @@ import { CurrentUser } from '../../global/decorator/current-user.decorator';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
 import { HttpStatus } from '@nestjs/common';
+import { SessionToken } from '../../global/decorator/session-token.decorator';
 
 /** AI behavior config (FR-047 / FN-040): persona, response rules, scenario buttons. */
 @ApiTags('AI Config')
@@ -85,7 +86,11 @@ export class AiConfigController {
   @Get('scenario')
   @Public()
   @ApiOperation({ summary: 'Widget: enabled scenario buttons for the session tenant' })
-  scenario(@Query('session_token') sessionToken: string) {
+  // SessionToken, not @Query: an absent token used to fall through to
+  // findOne({ sessionToken: undefined }) — TypeORM drops the predicate and
+  // returns an ARBITRARY session, so the widget rendered another tenant's
+  // unscoped buttons (FIX-260825-Scenario-Token-Guard).
+  scenario(@SessionToken() sessionToken: string) {
     return this.aiConfig.getScenarioForSession(sessionToken);
   }
 
