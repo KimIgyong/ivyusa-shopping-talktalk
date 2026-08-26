@@ -1,0 +1,866 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>커머스 연동 자격증명 · ShopTalk</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap">
+<style>
+  :root {
+    --ground: #f4f6f9;
+    --surface: #ffffff;
+    --surface-2: #eef1f6;
+    --ink: #1a1d24;
+    --muted: #5b6270;
+    --faint: #868d9c;
+    --accent: #4f46e5;
+    --accent-soft: #ecebfd;
+    --hairline: #e2e5ec;
+    --hairline-strong: #cfd4de;
+    --req: #b4531a;
+    --req-bg: #fbeee3;
+    --secret: #7a3ea8;
+    --secret-bg: #f3eafa;
+    --ok: #1f7a4d;
+    --ok-bg: #e6f4ec;
+    --code-bg: #f2f4f8;
+    --on-accent: #ffffff;
+    --shadow: 0 1px 2px rgba(20,24,36,.04), 0 8px 24px -16px rgba(20,24,36,.25);
+    --sh-shopify: #5e8e3e;
+    --sh-cafe24: #2f5bd0;
+    --sh-woo: #7f54b3;
+    --sh-odoo: #9c5c86;
+    --sh-haravan: #1a9a53;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #101218;
+      --surface: #181b22;
+      --surface-2: #1f232c;
+      --ink: #e7e9ef;
+      --muted: #9aa2b1;
+      --faint: #767e8d;
+      --accent: #8b83ff;
+      --accent-soft: #221f3a;
+      --hairline: #272b34;
+      --hairline-strong: #333844;
+      --req: #e59a68;
+      --req-bg: #33220f;
+      --secret: #c79df0;
+      --secret-bg: #2a1c37;
+      --ok: #5cc58c;
+      --ok-bg: #10281c;
+      --code-bg: #1e222b;
+      --on-accent: #14161d;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 30px -18px rgba(0,0,0,.7);
+      --sh-shopify: #8ac06a;
+      --sh-cafe24: #7d97f0;
+      --sh-woo: #b48fde;
+      --sh-odoo: #d09cbd;
+      --sh-haravan: #55c98a;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #101218;
+    --surface: #181b22;
+    --surface-2: #1f232c;
+    --ink: #e7e9ef;
+    --muted: #9aa2b1;
+    --faint: #767e8d;
+    --accent: #8b83ff;
+    --accent-soft: #221f3a;
+    --hairline: #272b34;
+    --hairline-strong: #333844;
+    --req: #e59a68;
+    --req-bg: #33220f;
+    --secret: #c79df0;
+    --secret-bg: #2a1c37;
+    --ok: #5cc58c;
+    --ok-bg: #10281c;
+    --code-bg: #1e222b;
+    --on-accent: #14161d;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 30px -18px rgba(0,0,0,.7);
+    --sh-shopify: #8ac06a;
+    --sh-cafe24: #7d97f0;
+    --sh-woo: #b48fde;
+    --sh-odoo: #d09cbd;
+    --sh-haravan: #55c98a;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: "IBM Plex Sans KR", system-ui, sans-serif;
+    font-size: 16px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap {
+    max-width: 1140px;
+    margin: 0 auto;
+    padding: 0 clamp(18px, 4vw, 40px);
+    display: grid;
+    grid-template-columns: 216px minmax(0, 1fr);
+    gap: clamp(28px, 5vw, 64px);
+    align-items: start;
+  }
+  @media (max-width: 880px) { .wrap { grid-template-columns: 1fr; } }
+
+  /* ---- masthead ---- */
+  header.masthead {
+    grid-column: 1 / -1;
+    padding: clamp(40px, 7vw, 76px) 0 34px;
+    border-bottom: 1px solid var(--hairline);
+  }
+  .eyebrow {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12px;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .eyebrow::before {
+    content: "";
+    width: 22px; height: 1px; background: var(--accent);
+  }
+  h1 {
+    font-family: "Archivo", "IBM Plex Sans KR", sans-serif;
+    font-weight: 700;
+    font-size: clamp(30px, 5.4vw, 48px);
+    line-height: 1.08;
+    letter-spacing: -.02em;
+    text-wrap: balance;
+    margin: 0 0 18px;
+    max-width: 20ch;
+  }
+  .lede {
+    font-size: clamp(16px, 1.7vw, 18px);
+    color: var(--muted);
+    max-width: 62ch;
+    margin: 0 0 6px;
+  }
+  .lede code { color: var(--ink); }
+  .meta {
+    margin-top: 20px;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12.5px;
+    color: var(--faint);
+    display: flex; flex-wrap: wrap; gap: 6px 18px;
+  }
+
+  /* ---- side nav ---- */
+  nav.jump {
+    position: sticky;
+    top: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding-top: 8px;
+  }
+  @media (max-width: 880px) {
+    nav.jump {
+      position: static;
+      flex-direction: row;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 8px;
+      padding: 14px 0;
+    }
+  }
+  nav.jump .nav-label {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--faint);
+    padding: 0 12px 8px;
+  }
+  @media (max-width: 880px) { nav.jump .nav-label { display: none; } }
+  nav.jump a {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    color: var(--muted);
+    font-size: 14.5px;
+    font-weight: 500;
+    padding: 8px 12px;
+    border-radius: 8px;
+    transition: background .15s, color .15s;
+  }
+  nav.jump a:hover { background: var(--surface-2); color: var(--ink); }
+  nav.jump a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  nav.jump a .dot {
+    width: 9px; height: 9px; border-radius: 50%;
+    background: var(--pdot, var(--accent));
+    flex: none;
+  }
+  nav.jump a .num {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12px; color: var(--faint);
+    margin-left: auto;
+  }
+
+  main { padding-bottom: 80px; min-width: 0; }
+
+  /* ---- common callout ---- */
+  .callout {
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    border-left: 3px solid var(--accent);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin: 32px 0 8px;
+    box-shadow: var(--shadow);
+  }
+  .callout h2 {
+    font-family: "Archivo", "IBM Plex Sans KR", sans-serif;
+    font-size: 15px; font-weight: 600; margin: 0 0 12px;
+    letter-spacing: -.01em;
+  }
+  .callout ul { margin: 0; padding-left: 18px; display: grid; gap: 7px; }
+  .callout li { font-size: 14.5px; color: var(--muted); }
+  .callout li b { color: var(--ink); font-weight: 600; }
+
+  /* ---- platform section ---- */
+  section.platform {
+    scroll-margin-top: 20px;
+    margin-top: 40px;
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  section.platform.star { border-color: color-mix(in srgb, var(--accent) 40%, var(--hairline)); }
+  .p-head {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 22px clamp(20px, 3vw, 30px);
+    border-bottom: 1px solid var(--hairline);
+    flex-wrap: wrap;
+  }
+  .p-badge {
+    width: 40px; height: 40px; border-radius: 11px; flex: none;
+    display: grid; place-items: center;
+    background: color-mix(in srgb, var(--pcolor) 15%, var(--surface));
+    color: var(--pcolor);
+    font-family: "Archivo", sans-serif; font-weight: 700; font-size: 18px;
+    border: 1px solid color-mix(in srgb, var(--pcolor) 30%, transparent);
+  }
+  .p-title { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .p-title h2 {
+    font-family: "Archivo", "IBM Plex Sans KR", sans-serif;
+    font-size: 21px; font-weight: 700; margin: 0; letter-spacing: -.01em;
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  }
+  .p-num { font-family: "IBM Plex Mono", monospace; font-size: 13px; color: var(--faint); font-weight: 500; }
+  .p-title p { margin: 0; font-size: 13.5px; color: var(--muted); }
+  .auth-chip {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px; letter-spacing: .02em;
+    padding: 4px 9px; border-radius: 6px;
+    background: var(--surface-2); color: var(--muted);
+    border: 1px solid var(--hairline);
+    white-space: nowrap;
+  }
+  .star-tag {
+    margin-left: auto;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--accent);
+    background: var(--accent-soft);
+    padding: 5px 10px; border-radius: 999px;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  @media (max-width: 520px) { .star-tag { margin-left: 0; } }
+
+  .p-body { padding: clamp(20px, 3vw, 30px); }
+  .sub-label {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11.5px; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--faint);
+    margin: 0 0 14px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .sub-label::after { content: ""; flex: 1; height: 1px; background: var(--hairline); }
+  .sub-label.mt { margin-top: 30px; }
+
+  /* ---- field table ---- */
+  .fields { display: grid; gap: 8px; }
+  .field {
+    display: grid;
+    grid-template-columns: minmax(120px, 200px) 1fr auto;
+    gap: 8px 16px;
+    align-items: baseline;
+    padding: 11px 14px;
+    background: var(--surface-2);
+    border-radius: 10px;
+  }
+  @media (max-width: 560px) {
+    .field { grid-template-columns: 1fr auto; }
+    .field .f-desc { grid-column: 1 / -1; }
+  }
+  .field .f-label {
+    font-weight: 600; font-size: 14.5px;
+    display: flex; flex-direction: column; gap: 2px;
+  }
+  .field .f-key {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11.5px; color: var(--faint); font-weight: 400;
+  }
+  .field .f-desc { font-size: 13.5px; color: var(--muted); align-self: center; }
+  .tags { display: flex; gap: 6px; align-self: center; flex: none; }
+  .tag {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 10.5px; font-weight: 500;
+    padding: 3px 7px; border-radius: 5px; white-space: nowrap;
+  }
+  .tag.req { background: var(--req-bg); color: var(--req); }
+  .tag.opt { background: var(--surface); color: var(--faint); border: 1px solid var(--hairline); }
+  .tag.secret { background: var(--secret-bg); color: var(--secret); }
+
+  /* ---- steps ---- */
+  ol.steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; counter-reset: s; }
+  ol.steps > li {
+    position: relative;
+    padding-left: 40px;
+    font-size: 14.5px;
+    color: var(--ink);
+    counter-increment: s;
+  }
+  ol.steps > li::before {
+    content: counter(s);
+    position: absolute; left: 0; top: -1px;
+    width: 26px; height: 26px; border-radius: 8px;
+    display: grid; place-items: center;
+    background: color-mix(in srgb, var(--pcolor) 14%, var(--surface));
+    color: var(--pcolor);
+    font-family: "IBM Plex Mono", monospace; font-size: 13px; font-weight: 600;
+    border: 1px solid color-mix(in srgb, var(--pcolor) 26%, transparent);
+  }
+  ol.steps > li b { font-weight: 600; }
+  ol.steps > li .note {
+    display: block; margin-top: 4px;
+    font-size: 13px; color: var(--muted);
+  }
+  code, .mono {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .88em;
+    background: var(--code-bg);
+    padding: 1.5px 6px;
+    border-radius: 5px;
+    color: var(--ink);
+    word-break: break-word;
+  }
+  a.inline { color: var(--accent); text-decoration: none; border-bottom: 1px solid color-mix(in srgb, var(--accent) 35%, transparent); }
+  a.inline:hover { border-bottom-color: var(--accent); }
+
+  .warn {
+    margin-top: 16px;
+    display: flex; gap: 10px;
+    padding: 12px 15px;
+    background: var(--req-bg);
+    border-radius: 9px;
+    font-size: 13.5px; color: var(--ink);
+  }
+  .warn .i { color: var(--req); font-weight: 700; flex: none; }
+  .tip {
+    margin-top: 16px;
+    display: flex; gap: 10px;
+    padding: 12px 15px;
+    background: var(--accent-soft);
+    border-radius: 9px;
+    font-size: 13.5px; color: var(--ink);
+  }
+  .tip .i { color: var(--accent); font-weight: 700; flex: none; }
+  .ok-inline { color: var(--ok); font-family: "IBM Plex Mono", monospace; font-size: .9em; }
+
+  /* ---- screen mockups (schematic illustrations) ---- */
+  figure.shot { margin: 22px 0 0; }
+  .win {
+    border: 1px solid var(--hairline-strong);
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--surface);
+    box-shadow: 0 6px 18px -14px rgba(20,24,36,.4);
+  }
+  .win-bar {
+    display: flex; align-items: center; gap: 7px;
+    padding: 9px 12px;
+    background: var(--surface-2);
+    border-bottom: 1px solid var(--hairline);
+  }
+  .win-bar i { width: 9px; height: 9px; border-radius: 50%; background: var(--hairline-strong); flex: none; }
+  .win-url {
+    margin-left: 8px;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11.5px; color: var(--faint);
+    background: var(--surface); border: 1px solid var(--hairline);
+    padding: 3px 10px; border-radius: 6px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .win-body { display: flex; min-height: 150px; }
+  .win-nav {
+    flex: none; width: 148px;
+    border-right: 1px solid var(--hairline);
+    padding: 12px 8px; display: flex; flex-direction: column; gap: 3px;
+    background: color-mix(in srgb, var(--surface-2) 55%, var(--surface));
+  }
+  @media (max-width: 560px) { .win-nav { width: 108px; } }
+  .win-nav .ni {
+    font-size: 12px; color: var(--muted);
+    padding: 6px 9px; border-radius: 7px; white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis;
+  }
+  .win-nav .ni.on {
+    background: color-mix(in srgb, var(--pcolor) 16%, var(--surface));
+    color: var(--pcolor); font-weight: 600;
+  }
+  .win-main { flex: 1; padding: 16px 18px; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+  .crumb {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px; color: var(--faint);
+    display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  }
+  .crumb b { color: var(--pcolor); font-weight: 600; }
+  .m-title { font-size: 14px; font-weight: 700; color: var(--ink); }
+  .ui-field {
+    border: 1px solid var(--hairline); border-radius: 8px;
+    padding: 9px 12px; background: var(--surface);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .ui-field .lab {
+    font-size: 11px; color: var(--faint); flex: none; width: 92px;
+    font-family: "IBM Plex Mono", monospace;
+  }
+  @media (max-width: 560px) { .ui-field .lab { width: 66px; } }
+  .ui-field .val { font-family: "IBM Plex Mono", monospace; font-size: 12.5px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ui-field .val.mut { color: var(--faint); }
+  .ui-check { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--ink); }
+  .ui-check .box { width: 15px; height: 15px; border-radius: 4px; flex: none; display: grid; place-items: center; font-size: 10px; color: var(--on-accent); background: var(--pcolor); }
+  .ui-btn {
+    align-self: flex-start;
+    font-size: 12.5px; font-weight: 600; color: var(--on-accent);
+    background: var(--pcolor); padding: 7px 14px; border-radius: 7px;
+    display: inline-flex; align-items: center; gap: 7px;
+  }
+  .ui-btn.ghost { background: transparent; color: var(--pcolor); border: 1px solid color-mix(in srgb, var(--pcolor) 45%, transparent); }
+  .target {
+    position: relative;
+    outline: 2px dashed var(--pcolor); outline-offset: 3px; border-radius: 8px;
+  }
+  .pin {
+    position: absolute; top: -11px; right: -11px;
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--pcolor); color: var(--on-accent);
+    font-family: "IBM Plex Mono", monospace; font-size: 12px; font-weight: 700;
+    display: grid; place-items: center;
+    box-shadow: 0 2px 6px rgba(0,0,0,.25);
+  }
+  figcaption {
+    margin-top: 10px; font-size: 12px; color: var(--faint);
+    display: flex; align-items: center; gap: 7px;
+  }
+  figcaption::before { content: "도식"; font-family: "IBM Plex Mono", monospace; font-size: 10px; letter-spacing: .08em; color: var(--pcolor); background: color-mix(in srgb, var(--pcolor) 14%, var(--surface)); padding: 2px 6px; border-radius: 4px; flex: none; }
+
+  /* ---- troubleshooting ---- */
+  .trouble { margin-top: 52px; }
+  .trouble h2 {
+    font-family: "Archivo", "IBM Plex Sans KR", sans-serif;
+    font-size: 22px; font-weight: 700; letter-spacing: -.01em; margin: 0 0 6px;
+  }
+  .trouble > p { color: var(--muted); font-size: 14.5px; margin: 0 0 20px; }
+  .table-scroll { overflow-x: auto; border: 1px solid var(--hairline); border-radius: 12px; }
+  table {
+    width: 100%; border-collapse: collapse; background: var(--surface);
+    font-size: 14px; min-width: 520px;
+  }
+  th, td { text-align: left; padding: 13px 16px; border-bottom: 1px solid var(--hairline); vertical-align: top; }
+  thead th {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--faint); font-weight: 500;
+    background: var(--surface-2);
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  td:first-child { font-family: "IBM Plex Mono", monospace; color: var(--req); font-size: 13px; white-space: nowrap; }
+  td b { font-weight: 600; }
+
+  footer {
+    grid-column: 1 / -1;
+    margin-top: 60px; padding: 26px 0 40px;
+    border-top: 1px solid var(--hairline);
+    font-size: 13px; color: var(--faint);
+    display: flex; flex-wrap: wrap; gap: 6px 20px; justify-content: space-between;
+  }
+  footer .mono { background: none; padding: 0; }
+
+  /* ---- manual topbar (standalone) ---- */
+  .topbar { grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-top: 22px; flex-wrap: wrap; }
+  .backlink { font-family: "IBM Plex Mono", monospace; font-size: 12.5px; color: var(--muted); text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+  .backlink:hover { color: var(--ink); }
+  .langbar { display: flex; gap: 3px; border: 1px solid var(--hairline); border-radius: 999px; padding: 3px; background: var(--surface); }
+  .langbar a { font-size: 13px; font-weight: 600; color: var(--muted); text-decoration: none; padding: 5px 13px; border-radius: 999px; }
+  .langbar a[aria-current="true"] { background: var(--accent); color: var(--on-accent); }
+  .langbar a:hover:not([aria-current="true"]) { color: var(--ink); }
+  .langbar a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <a class="backlink" href="index.html">← 매뉴얼</a>
+    <div class="langbar" role="group" aria-label="Language"><a href="platform-integration.ko.html" aria-current="true">한국어</a><a href="platform-integration.en.html">EN</a><a href="platform-integration.vi.html">VI</a></div>
+  </div>
+<header class="masthead">
+    <p class="eyebrow">ShopTalk · 설정 → 플랫폼</p>
+    <h1>커머스 플랫폼 연동, 어떤 값을 어디서 찾나</h1>
+    <p class="lede">
+      <code>/settings/platforms</code> 에서 각 쇼핑몰을 연결할 때 넣는 사용자명·데이터베이스명·
+      API 키 같은 값을, <b>플랫폼 관리자 화면 어디에서 발급·확인</b>하는지 정리한 실무 가이드입니다.
+      값을 준비해 카드에 입력 → 저장 → <b>연결 테스트</b>로 검증하세요.
+    </p>
+    <div class="meta">
+      <span>5개 플랫폼 · Shopify / Cafe24 / WooCommerce / Odoo / Haravan</span>
+      <span>필드는 콘솔 라벨과 1:1 대응</span>
+    </div>
+  </header>
+
+  <nav class="jump" aria-label="플랫폼 바로가기">
+    <span class="nav-label">플랫폼</span>
+    <a href="#shopify" style="--pdot:var(--sh-shopify)"><span class="dot"></span>Shopify<span class="num">01</span></a>
+    <a href="#cafe24" style="--pdot:var(--sh-cafe24)"><span class="dot"></span>Cafe24<span class="num">02</span></a>
+    <a href="#woocommerce" style="--pdot:var(--sh-woo)"><span class="dot"></span>WooCommerce<span class="num">03</span></a>
+    <a href="#odoo" style="--pdot:var(--sh-odoo)"><span class="dot"></span>Odoo<span class="num">04</span></a>
+    <a href="#haravan" style="--pdot:var(--sh-haravan)"><span class="dot"></span>Haravan<span class="num">05</span></a>
+    <a href="#trouble"><span class="dot" style="background:var(--faint)"></span>문제 해결</a>
+  </nav>
+
+  <main>
+    <div class="callout">
+      <h2>모든 플랫폼 공통</h2>
+      <ul>
+        <li><b>시크릿 값</b>(토큰·시크릿·API 키)은 저장 후 다시 표시되지 않습니다 — 교체할 때만 새 값을 입력하세요.</li>
+        <li><b>URL은 반드시 <code>https://</code></b> 공개 도메인이어야 합니다. 내부·사설 주소(로컬호스트·사내 IP)는 보안상 차단됩니다.</li>
+        <li>필요한 최소 권한은 <b>주문·고객·상품 읽기</b>입니다. 쓰기 권한은 필요 없습니다.</li>
+        <li>연결 테스트가 실패하면 카드에 사유가 표시됩니다 — <code>401</code>=토큰 무효·만료, <code>404</code>=주소 오류.</li>
+        <li>각 단계의 <b>화면 도식</b>은 발급 위치를 나타낸 <b>일러스트</b>이며 실제 벤더 화면과 세부 명칭·배치가 다를 수 있습니다.</li>
+      </ul>
+    </div>
+
+    <!-- 01 SHOPIFY -->
+    <section class="platform" id="shopify" style="--pcolor:var(--sh-shopify)">
+      <div class="p-head">
+        <div class="p-badge">S</div>
+        <div class="p-title">
+          <h2><span class="p-num">01</span>Shopify</h2>
+          <p>"Shopify 연동" 카드에서 쇼핑몰 주소와 Admin API 토큰을 입력합니다.</p>
+        </div>
+        <span class="auth-chip">Admin API · 커스텀 앱 토큰</span>
+      </div>
+      <div class="p-body">
+        <p class="sub-label">ShopTalk가 요구하는 값</p>
+        <div class="fields">
+          <div class="field"><span class="f-label">쇼핑몰 주소<span class="f-key">shop_domain</span></span><span class="f-desc"><code>your-store.myshopify.com</code></span><span class="tags"><span class="tag req">필수</span></span></div>
+          <div class="field"><span class="f-label">Admin API 액세스 토큰<span class="f-key">access_token</span></span><span class="f-desc"><code>shpat_…</code></span><span class="tags"><span class="tag req">필수</span><span class="tag secret">시크릿</span></span></div>
+          <div class="field"><span class="f-label">API 키 / 시크릿<span class="f-key">api_key · api_secret</span></span><span class="f-desc">공개 앱(OAuth)용 — 커스텀 앱은 비워둠</span><span class="tags"><span class="tag opt">선택</span></span></div>
+        </div>
+
+        <p class="sub-label mt">Shopify 관리자에서 발급</p>
+        <ol class="steps">
+          <li><b>Settings(설정) → Apps and sales channels(앱 및 판매 채널)</b> 로 이동합니다.</li>
+          <li><b>Develop apps(앱 개발) → Create an app(앱 만들기)</b> 으로 앱을 만들고 이름을 입력합니다.</li>
+          <li><b>Configuration → Admin API integration</b> 에서 읽기 스코프를 허용합니다.<span class="note"><code>read_orders</code> · <code>read_customers</code> · <code>read_fulfillments</code> · <code>read_products</code></span></li>
+          <li><b>API credentials(자격 증명) → Install app(앱 설치)</b> 를 클릭합니다.</li>
+          <li>설치 직후 표시되는 <b>Admin API access token</b>(<code>shpat_…</code>)을 복사합니다.<span class="note">이 토큰은 한 번만 표시됩니다 — 즉시 ShopTalk에 저장하세요.</span></li>
+          <li><b>쇼핑몰 주소</b>는 관리자 URL의 <code>xxxx.myshopify.com</code> 부분입니다(브랜드 도메인이 아님).</li>
+        </ol>
+        <figure class="shot">
+          <div class="win">
+            <div class="win-bar"><i></i><i></i><i></i><span class="win-url">admin.shopify.com › apps › develop</span></div>
+            <div class="win-body">
+              <div class="win-nav">
+                <span class="ni">General</span>
+                <span class="ni on">Apps and sales channels</span>
+                <span class="ni">Domains</span>
+                <span class="ni">Checkout</span>
+              </div>
+              <div class="win-main">
+                <div class="crumb">Develop apps <span>›</span> <b>API credentials</b></div>
+                <div class="ui-field target"><span class="lab">Admin API</span><span class="val">access token · shpat_••••••••</span><span class="pin">5</span></div>
+                <div class="ui-field"><span class="lab">Scopes</span><span class="val mut">read_orders · read_customers · read_products</span></div>
+                <span class="ui-btn ghost">Reveal token once</span>
+              </div>
+            </div>
+          </div>
+          <figcaption>Admin API access token 발급 화면 — 설치 직후 토큰이 한 번만 표시됩니다. 실제 UI와 다를 수 있습니다.</figcaption>
+        </figure>
+        <div class="tip"><span class="i">↔</span><span>이미 ShopTalk 공개 앱의 "연결" 버튼으로 설치했다면 토큰은 자동 저장됩니다. 위 수동 입력은 커스텀 앱을 직접 쓰는 경우입니다.</span></div>
+      </div>
+    </section>
+
+    <!-- 02 CAFE24 -->
+    <section class="platform" id="cafe24" style="--pcolor:var(--sh-cafe24)">
+      <div class="p-head">
+        <div class="p-badge">C</div>
+        <div class="p-title">
+          <h2><span class="p-num">02</span>Cafe24</h2>
+          <p>Admin API v2 OAuth 액세스 토큰으로 카페24 상점을 연결합니다.</p>
+        </div>
+        <span class="auth-chip">Admin API v2 · Bearer(OAuth)</span>
+      </div>
+      <div class="p-body">
+        <p class="sub-label">ShopTalk가 요구하는 값</p>
+        <div class="fields">
+          <div class="field"><span class="f-label">몰 ID<span class="f-key">mall_id</span></span><span class="f-desc">상점 아이디 (예: <code>yourmall</code>)</span><span class="tags"><span class="tag req">필수</span></span></div>
+          <div class="field"><span class="f-label">액세스 토큰<span class="f-key">access_token</span></span><span class="f-desc">Admin API OAuth 토큰</span><span class="tags"><span class="tag req">필수</span><span class="tag secret">시크릿</span></span></div>
+          <div class="field"><span class="f-label">클라이언트 ID / 시크릿<span class="f-key">client_id · client_secret</span></span><span class="f-desc">개발자센터 앱 값 (토큰 자동갱신 시)</span><span class="tags"><span class="tag opt">선택</span></span></div>
+        </div>
+
+        <p class="sub-label mt">Cafe24 개발자센터에서 확인</p>
+        <ol class="steps">
+          <li><b>몰 ID</b> — 관리자 접속 주소 <code>yourmall.cafe24.com</code> 의 <code>yourmall</code> 부분, 또는 관리자 상단의 상점 아이디입니다.</li>
+          <li><b>클라이언트 ID / 시크릿</b> — <a class="inline" href="https://developers.cafe24.com">developers.cafe24.com</a> 로그인 → <b>앱 만들기</b> → 앱의 <b>App 정보</b>에서 확인합니다.<span class="note">앱 권한(Scope)에 <code>mall.read_order</code> · <code>mall.read_customer</code> · <code>mall.read_product</code> 등 읽기 권한을 추가하세요.</span></li>
+          <li><b>액세스 토큰</b> — OAuth 절차(Authorization Code → Access Token)로 발급되는 Admin API 토큰을 붙여넣습니다.<span class="note">유효기간 2시간, 리프레시 토큰 14일 — 만료 시 재발급이 필요합니다.</span></li>
+        </ol>
+        <figure class="shot">
+          <div class="win">
+            <div class="win-bar"><i></i><i></i><i></i><span class="win-url">developers.cafe24.com › apps</span></div>
+            <div class="win-body">
+              <div class="win-nav">
+                <span class="ni on">App 정보</span>
+                <span class="ni">권한 설정</span>
+                <span class="ni">OAuth</span>
+                <span class="ni">배포</span>
+              </div>
+              <div class="win-main">
+                <div class="crumb">내 앱 <span>›</span> <b>App 정보</b></div>
+                <div class="ui-field target"><span class="lab">Client ID</span><span class="val">a1B2c3D4e5F6••••</span><span class="pin">2</span></div>
+                <div class="ui-field"><span class="lab">Client Secret</span><span class="val mut">••••••••••••</span></div>
+                <div class="ui-check"><span class="box">✓</span> mall.read_order · read_customer · read_product</div>
+              </div>
+            </div>
+          </div>
+          <figcaption>개발자센터 App 정보 — Client ID/Secret과 읽기 권한(Scope). 액세스 토큰은 OAuth 절차로 별도 발급. 실제 UI와 다를 수 있습니다.</figcaption>
+        </figure>
+        <div class="tip"><span class="i">↔</span><span>설정 상단의 <b>Cafe24 OAuth "연결" 버튼</b>을 쓰면 몰 대표 운영자 계정으로 클릭 한 번에 연결·토큰 자동관리가 됩니다. 수동 토큰 입력이 번거로우면 권장합니다.</span></div>
+      </div>
+    </section>
+
+    <!-- 03 WOOCOMMERCE -->
+    <section class="platform" id="woocommerce" style="--pcolor:var(--sh-woo)">
+      <div class="p-head">
+        <div class="p-badge">W</div>
+        <div class="p-title">
+          <h2><span class="p-num">03</span>WooCommerce</h2>
+          <p>REST API v3 consumer key/secret(Basic 인증)으로 연결합니다.</p>
+        </div>
+        <span class="auth-chip">REST v3 · Basic auth</span>
+      </div>
+      <div class="p-body">
+        <p class="sub-label">ShopTalk가 요구하는 값</p>
+        <div class="fields">
+          <div class="field"><span class="f-label">스토어 URL<span class="f-key">store_url</span></span><span class="f-desc"><code>https://store.example.com</code></span><span class="tags"><span class="tag req">필수</span></span></div>
+          <div class="field"><span class="f-label">Consumer key<span class="f-key">consumer_key</span></span><span class="f-desc"><code>ck_…</code></span><span class="tags"><span class="tag req">필수</span><span class="tag secret">시크릿</span></span></div>
+          <div class="field"><span class="f-label">Consumer secret<span class="f-key">consumer_secret</span></span><span class="f-desc"><code>cs_…</code></span><span class="tags"><span class="tag req">필수</span><span class="tag secret">시크릿</span></span></div>
+        </div>
+
+        <p class="sub-label mt">WordPress · WooCommerce 관리자에서 발급</p>
+        <ol class="steps">
+          <li><b>WooCommerce → 설정(Settings) → 고급(Advanced) → REST API</b> 로 이동합니다.</li>
+          <li><b>키 추가(Add key)</b> 를 클릭합니다.</li>
+          <li>설명 입력, <b>사용자(User)</b> 선택, <b>권한(Permissions)</b> 은 <b>읽기(Read)</b> 로 지정합니다.</li>
+          <li><b>API 키 생성(Generate API key)</b> → <b>Consumer key</b>(<code>ck_…</code>)와 <b>Consumer secret</b>(<code>cs_…</code>)이 표시됩니다.<span class="note">이 화면을 벗어나면 다시 볼 수 없습니다 — 즉시 복사하세요.</span></li>
+          <li><b>스토어 URL</b> 은 쇼핑몰 최상위 주소입니다. <code>/wp-admin</code> · <code>/wp-json</code> 을 붙이지 마세요.</li>
+        </ol>
+        <figure class="shot">
+          <div class="win">
+            <div class="win-bar"><i></i><i></i><i></i><span class="win-url">store.example.com › wp-admin › wc-settings</span></div>
+            <div class="win-body">
+              <div class="win-nav">
+                <span class="ni">General</span>
+                <span class="ni">Payments</span>
+                <span class="ni on">Advanced</span>
+                <span class="ni">Emails</span>
+              </div>
+              <div class="win-main">
+                <div class="crumb">Advanced <span>›</span> <b>REST API</b> <span>›</span> Add key</div>
+                <div class="ui-field"><span class="lab">Description</span><span class="val mut">ShopTalk</span></div>
+                <div class="ui-field"><span class="lab">Permissions</span><span class="val">Read</span></div>
+                <div class="ui-field target"><span class="lab">Consumer key</span><span class="val">ck_9f3a•••• / cs_7d21••••</span><span class="pin">4</span></div>
+                <span class="ui-btn">Generate API key</span>
+              </div>
+            </div>
+          </div>
+          <figcaption>REST API 키 생성 — Permissions는 Read, 생성된 ck_/cs_는 화면을 벗어나면 다시 볼 수 없습니다. 실제 UI와 다를 수 있습니다.</figcaption>
+        </figure>
+        <div class="warn"><span class="i">!</span><span>연결 테스트는 <code>…/wp-json/wc/v3/system_status</code> 를 호출합니다. <code>404</code>=REST API 비활성·URL 오류(퍼머링크 확인), <code>401</code>=키·시크릿 불일치.</span></div>
+      </div>
+    </section>
+
+    <!-- 04 ODOO -->
+    <section class="platform star" id="odoo" style="--pcolor:var(--sh-odoo)">
+      <div class="p-head">
+        <div class="p-badge">O</div>
+        <div class="p-title">
+          <h2><span class="p-num">04</span>Odoo</h2>
+          <p>URL · DB · 사용자 · API 키로 외부 API(JSON-RPC)에 인증합니다.</p>
+        </div>
+        <span class="star-tag">★ 요청 핵심</span>
+      </div>
+      <div class="p-body">
+        <p class="sub-label">ShopTalk가 요구하는 값</p>
+        <div class="fields">
+          <div class="field"><span class="f-label">서버 URL<span class="f-key">url</span></span><span class="f-desc"><code>https://my-odoo.example.com</code></span><span class="tags"><span class="tag req">필수</span></span></div>
+          <div class="field"><span class="f-label">데이터베이스<span class="f-key">db</span></span><span class="f-desc">데이터베이스 이름</span><span class="tags"><span class="tag req">필수</span></span></div>
+          <div class="field"><span class="f-label">사용자명<span class="f-key">username</span></span><span class="f-desc">로그인 이메일/아이디</span><span class="tags"><span class="tag req">필수</span></span></div>
+          <div class="field"><span class="f-label">API 키<span class="f-key">api_key</span></span><span class="f-desc">개인 API 키 (비밀번호 대체)</span><span class="tags"><span class="tag req">필수</span><span class="tag secret">시크릿</span></span></div>
+        </div>
+        <p style="font-size:13.5px;color:var(--muted);margin:16px 0 0">
+          ShopTalk는 이 4개 값으로 <code>{url}/jsonrpc</code> 에 <code>common.authenticate(db, username, api_key)</code> 를 호출해 검증합니다.
+        </p>
+
+        <p class="sub-label mt">① 서버 URL</p>
+        <ol class="steps">
+          <li>Odoo에 접속하는 브라우저 주소의 <b>호스트 부분</b>입니다.<span class="note"><b>Odoo Online(SaaS)</b>: <code>https://회사이름.odoo.com</code> · <b>자체 호스팅/Odoo.sh</b>: 실제 도메인. 경로(<code>/web</code> 등)는 붙이지 마세요.</span></li>
+        </ol>
+
+        <p class="sub-label mt">② 데이터베이스 이름 &nbsp;— 어디서 확인?</p>
+        <ol class="steps">
+          <li><b>Odoo Online(SaaS)</b> — DB 이름 = 서브도메인. <code>회사이름.odoo.com</code> 이면 DB는 <b><code>회사이름</code></b> 입니다.</li>
+          <li><b>자체 호스팅</b> — 로그인 화면의 데이터베이스 선택 드롭다운에 표시되는 이름입니다.<span class="note">드롭다운이 없으면(단일 DB): <code>…/web/database/manager</code> 목록의 이름, 또는 서버 실행 옵션 <code>-d &lt;db&gt;</code> / <code>db_name</code> 설정값.</span></li>
+          <li>회사명·표시이름이 아니라 <b>실제 DB 식별자</b>를 대소문자·하이픈까지 정확히 넣어야 합니다.</li>
+        </ol>
+        <figure class="shot">
+          <div class="win">
+            <div class="win-bar"><i></i><i></i><i></i><span class="win-url">mycompany.odoo.com › web › login</span></div>
+            <div class="win-body">
+              <div class="win-main">
+                <div class="m-title">로그인 — 데이터베이스 선택</div>
+                <div class="ui-field"><span class="lab">Email</span><span class="val mut">bot@mycompany.com</span></div>
+                <div class="ui-field target"><span class="lab">Database</span><span class="val">mycompany</span><span class="pin">DB</span></div>
+                <div class="crumb">SaaS면 <code>mycompany</code>.odoo.com 의 <b>mycompany</b> = DB 이름</div>
+              </div>
+            </div>
+          </div>
+          <figcaption>데이터베이스 이름이 노출되는 위치 — 로그인 DB 선택 또는 SaaS 서브도메인. 실제 UI와 다를 수 있습니다.</figcaption>
+        </figure>
+
+        <p class="sub-label mt">③ 사용자명</p>
+        <ol class="steps">
+          <li>Odoo <b>로그인 아이디</b>(대부분 이메일). API는 이 사용자의 권한으로 동작하므로 주문·연락처·상품 조회 권한이 있는 <b>전용 통합 계정</b>을 권장합니다.</li>
+        </ol>
+
+        <p class="sub-label mt">④ API 키 &nbsp;— Odoo 어디에서 발급?</p>
+        <ol class="steps">
+          <li>우측 상단 <b>아바타 → 내 프로필(My Profile / Preferences)</b> 를 엽니다.</li>
+          <li><b>계정 보안(Account Security)</b> 탭으로 이동합니다.<span class="note">항목이 안 보이면 <b>설정 → 개발자 모드 활성화</b>(Activate the developer mode)를 먼저 켜세요.</span></li>
+          <li><b>API 키(Developer API Keys) → 새 API 키(New API Key)</b> → 용도 이름 입력 → 비밀번호 확인 → 생성된 키를 즉시 복사합니다.<span class="note">이 키는 생성 직후 한 번만 표시됩니다. 외부 API 호출 시 <b>비밀번호 대신</b> 사용되니, 계정 비밀번호를 직접 넣지 말고 반드시 API 키를 사용하세요.</span></li>
+        </ol>
+        <figure class="shot">
+          <div class="win">
+            <div class="win-bar"><i></i><i></i><i></i><span class="win-url">mycompany.odoo.com › my › security</span></div>
+            <div class="win-body">
+              <div class="win-nav">
+                <span class="ni">Preferences</span>
+                <span class="ni on">Account Security</span>
+                <span class="ni">Notifications</span>
+              </div>
+              <div class="win-main">
+                <div class="crumb">아바타 <span>›</span> My Profile <span>›</span> <b>Account Security</b></div>
+                <div class="m-title">Developer API Keys</div>
+                <div class="ui-field target"><span class="lab">New key</span><span class="val">a0f9c1e7d4•••• (한 번만 표시)</span><span class="pin">3</span></div>
+                <span class="ui-btn">New API Key</span>
+                <div class="crumb">항목이 없으면 <b>설정 → 개발자 모드</b>를 먼저 켜세요</div>
+              </div>
+            </div>
+          </div>
+          <figcaption>API 키 발급 — 계정 보안 탭의 New API Key. 생성 직후 한 번만 표시되며 비밀번호를 대체합니다. 실제 UI와 다를 수 있습니다.</figcaption>
+        </figure>
+        <div class="warn"><span class="i">!</span><span>테스트 성공 시 <span class="ok-inline">Connected (uid N)</span> 이 표시됩니다. 실패 시 <code>authentication failed — check db / user / API key</code> 는 대개 <b>DB 이름 오타</b>가 원인입니다.</span></div>
+      </div>
+    </section>
+
+    <!-- 05 HARAVAN -->
+    <section class="platform" id="haravan" style="--pcolor:var(--sh-haravan)">
+      <div class="p-head">
+        <div class="p-badge">H</div>
+        <div class="p-title">
+          <h2><span class="p-num">05</span>Haravan</h2>
+          <p>Admin API 액세스 토큰(Shopify 호환)으로 연결합니다.</p>
+        </div>
+        <span class="auth-chip">Admin API · Bearer</span>
+      </div>
+      <div class="p-body">
+        <p class="sub-label">ShopTalk가 요구하는 값</p>
+        <div class="fields">
+          <div class="field"><span class="f-label">쇼핑몰 주소<span class="f-key">shop_domain</span></span><span class="f-desc"><code>your-store.myharavan.com</code></span><span class="tags"><span class="tag req">필수</span></span></div>
+          <div class="field"><span class="f-label">액세스 토큰<span class="f-key">access_token</span></span><span class="f-desc">Admin API 액세스 토큰</span><span class="tags"><span class="tag req">필수</span><span class="tag secret">시크릿</span></span></div>
+        </div>
+
+        <p class="sub-label mt">Haravan 관리자에서 발급</p>
+        <ol class="steps">
+          <li><b>쇼핑몰 주소</b> — Haravan 관리자 접속 주소 <code>your-store.myharavan.com</code> 입니다.</li>
+          <li><b>액세스 토큰</b> — 관리자 <b>앱/개발(Apps)</b> 영역에서 <b>비공개 앱(Private App)</b> 또는 Admin API 연동을 만들고 발급되는 토큰을 사용합니다.<span class="note">주문·고객·상품 읽기 권한을 부여하세요. Haravan Admin API는 Shopify 호환이라 ShopTalk는 <code>…/admin/shop.json</code> 을 Bearer 토큰으로 검증합니다.</span></li>
+          <li>발급된 토큰을 <b>액세스 토큰</b> 칸에 붙여넣고 저장 → 연결 테스트합니다. <code>401</code>=토큰 무효·만료.</li>
+        </ol>
+        <figure class="shot">
+          <div class="win">
+            <div class="win-bar"><i></i><i></i><i></i><span class="win-url">your-store.myharavan.com › admin › apps</span></div>
+            <div class="win-body">
+              <div class="win-nav">
+                <span class="ni on">Apps</span>
+                <span class="ni">Private app</span>
+                <span class="ni">Settings</span>
+              </div>
+              <div class="win-main">
+                <div class="crumb">Apps <span>›</span> <b>Private app / Admin API</b></div>
+                <div class="ui-field target"><span class="lab">Access token</span><span class="val">a1b2c3•••• (Shopify 호환)</span><span class="pin">2</span></div>
+                <div class="ui-field"><span class="lab">Scopes</span><span class="val mut">read_orders · read_customers · read_products</span></div>
+              </div>
+            </div>
+          </div>
+          <figcaption>비공개 앱의 Admin API 액세스 토큰 — Haravan은 Shopify 호환 구조입니다. 실제 UI와 다를 수 있습니다.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <!-- TROUBLE -->
+    <div class="trouble" id="trouble">
+      <h2>문제 해결 빠른 표</h2>
+      <p>연결 테스트가 실패하면 카드에 나오는 사유를 아래와 대조하세요.</p>
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>증상</th><th>원인 후보</th><th>조치</th></tr></thead>
+          <tbody>
+            <tr><td>401</td><td>토큰·키 무효 또는 만료</td><td>재발급 후 재입력 (<b>Cafe24는 2시간 만료</b>)</td></tr>
+            <tr><td>404</td><td>URL 오류 · REST API 비활성</td><td>스토어 URL·퍼머링크 설정 확인</td></tr>
+            <tr><td>Blocked: non-public</td><td>사설·내부 URL</td><td>공개 <code>https</code> 도메인 사용</td></tr>
+            <tr><td>Odoo auth failed</td><td>DB 이름 오타</td><td>데이터베이스 이름 재확인 (Odoo ②)</td></tr>
+            <tr><td>invalid characters</td><td>토큰에 공백·개행 포함</td><td>앞뒤 공백 없이 정확히 복사</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <span>ShopTalk 커머스 연동 자격증명 가이드</span>
+    <span class="mono">GUIDE-260826 · 2026-08-26</span>
+  </footer>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,866 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Thông tin xác thực kết nối · ShopTalk</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap">
+<style>
+  :root {
+    --ground: #f4f6f9;
+    --surface: #ffffff;
+    --surface-2: #eef1f6;
+    --ink: #1a1d24;
+    --muted: #5b6270;
+    --faint: #868d9c;
+    --accent: #4f46e5;
+    --accent-soft: #ecebfd;
+    --hairline: #e2e5ec;
+    --hairline-strong: #cfd4de;
+    --req: #b4531a;
+    --req-bg: #fbeee3;
+    --secret: #7a3ea8;
+    --secret-bg: #f3eafa;
+    --ok: #1f7a4d;
+    --ok-bg: #e6f4ec;
+    --code-bg: #f2f4f8;
+    --on-accent: #ffffff;
+    --shadow: 0 1px 2px rgba(20,24,36,.04), 0 8px 24px -16px rgba(20,24,36,.25);
+    --sh-shopify: #5e8e3e;
+    --sh-cafe24: #2f5bd0;
+    --sh-woo: #7f54b3;
+    --sh-odoo: #9c5c86;
+    --sh-haravan: #1a9a53;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #101218;
+      --surface: #181b22;
+      --surface-2: #1f232c;
+      --ink: #e7e9ef;
+      --muted: #9aa2b1;
+      --faint: #767e8d;
+      --accent: #8b83ff;
+      --accent-soft: #221f3a;
+      --hairline: #272b34;
+      --hairline-strong: #333844;
+      --req: #e59a68;
+      --req-bg: #33220f;
+      --secret: #c79df0;
+      --secret-bg: #2a1c37;
+      --ok: #5cc58c;
+      --ok-bg: #10281c;
+      --code-bg: #1e222b;
+      --on-accent: #14161d;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 30px -18px rgba(0,0,0,.7);
+      --sh-shopify: #8ac06a;
+      --sh-cafe24: #7d97f0;
+      --sh-woo: #b48fde;
+      --sh-odoo: #d09cbd;
+      --sh-haravan: #55c98a;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #101218;
+    --surface: #181b22;
+    --surface-2: #1f232c;
+    --ink: #e7e9ef;
+    --muted: #9aa2b1;
+    --faint: #767e8d;
+    --accent: #8b83ff;
+    --accent-soft: #221f3a;
+    --hairline: #272b34;
+    --hairline-strong: #333844;
+    --req: #e59a68;
+    --req-bg: #33220f;
+    --secret: #c79df0;
+    --secret-bg: #2a1c37;
+    --ok: #5cc58c;
+    --ok-bg: #10281c;
+    --code-bg: #1e222b;
+    --on-accent: #14161d;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 30px -18px rgba(0,0,0,.7);
+    --sh-shopify: #8ac06a;
+    --sh-cafe24: #7d97f0;
+    --sh-woo: #b48fde;
+    --sh-odoo: #d09cbd;
+    --sh-haravan: #55c98a;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: "IBM Plex Sans KR", system-ui, sans-serif;
+    font-size: 16px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap {
+    max-width: 1140px;
+    margin: 0 auto;
+    padding: 0 clamp(18px, 4vw, 40px);
+    display: grid;
+    grid-template-columns: 216px minmax(0, 1fr);
+    gap: clamp(28px, 5vw, 64px);
+    align-items: start;
+  }
+  @media (max-width: 880px) { .wrap { grid-template-columns: 1fr; } }
+
+  /* ---- masthead ---- */
+  header.masthead {
+    grid-column: 1 / -1;
+    padding: clamp(40px, 7vw, 76px) 0 34px;
+    border-bottom: 1px solid var(--hairline);
+  }
+  .eyebrow {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12px;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .eyebrow::before {
+    content: "";
+    width: 22px; height: 1px; background: var(--accent);
+  }
+  h1 {
+    font-family: "Archivo", "IBM Plex Sans KR", sans-serif;
+    font-weight: 700;
+    font-size: clamp(30px, 5.4vw, 48px);
+    line-height: 1.08;
+    letter-spacing: -.02em;
+    text-wrap: balance;
+    margin: 0 0 18px;
+    max-width: 20ch;
+  }
+  .lede {
+    font-size: clamp(16px, 1.7vw, 18px);
+    color: var(--muted);
+    max-width: 62ch;
+    margin: 0 0 6px;
+  }
+  .lede code { color: var(--ink); }
+  .meta {
+    margin-top: 20px;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12.5px;
+    color: var(--faint);
+    display: flex; flex-wrap: wrap; gap: 6px 18px;
+  }
+
+  /* ---- side nav ---- */
+  nav.jump {
+    position: sticky;
+    top: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding-top: 8px;
+  }
+  @media (max-width: 880px) {
+    nav.jump {
+      position: static;
+      flex-direction: row;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 8px;
+      padding: 14px 0;
+    }
+  }
+  nav.jump .nav-label {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--faint);
+    padding: 0 12px 8px;
+  }
+  @media (max-width: 880px) { nav.jump .nav-label { display: none; } }
+  nav.jump a {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    color: var(--muted);
+    font-size: 14.5px;
+    font-weight: 500;
+    padding: 8px 12px;
+    border-radius: 8px;
+    transition: background .15s, color .15s;
+  }
+  nav.jump a:hover { background: var(--surface-2); color: var(--ink); }
+  nav.jump a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  nav.jump a .dot {
+    width: 9px; height: 9px; border-radius: 50%;
+    background: var(--pdot, var(--accent));
+    flex: none;
+  }
+  nav.jump a .num {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12px; color: var(--faint);
+    margin-left: auto;
+  }
+
+  main { padding-bottom: 80px; min-width: 0; }
+
+  /* ---- common callout ---- */
+  .callout {
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    border-left: 3px solid var(--accent);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin: 32px 0 8px;
+    box-shadow: var(--shadow);
+  }
+  .callout h2 {
+    font-family: "Archivo", "IBM Plex Sans KR", sans-serif;
+    font-size: 15px; font-weight: 600; margin: 0 0 12px;
+    letter-spacing: -.01em;
+  }
+  .callout ul { margin: 0; padding-left: 18px; display: grid; gap: 7px; }
+  .callout li { font-size: 14.5px; color: var(--muted); }
+  .callout li b { color: var(--ink); font-weight: 600; }
+
+  /* ---- platform section ---- */
+  section.platform {
+    scroll-margin-top: 20px;
+    margin-top: 40px;
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  section.platform.star { border-color: color-mix(in srgb, var(--accent) 40%, var(--hairline)); }
+  .p-head {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 22px clamp(20px, 3vw, 30px);
+    border-bottom: 1px solid var(--hairline);
+    flex-wrap: wrap;
+  }
+  .p-badge {
+    width: 40px; height: 40px; border-radius: 11px; flex: none;
+    display: grid; place-items: center;
+    background: color-mix(in srgb, var(--pcolor) 15%, var(--surface));
+    color: var(--pcolor);
+    font-family: "Archivo", sans-serif; font-weight: 700; font-size: 18px;
+    border: 1px solid color-mix(in srgb, var(--pcolor) 30%, transparent);
+  }
+  .p-title { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .p-title h2 {
+    font-family: "Archivo", "IBM Plex Sans KR", sans-serif;
+    font-size: 21px; font-weight: 700; margin: 0; letter-spacing: -.01em;
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  }
+  .p-num { font-family: "IBM Plex Mono", monospace; font-size: 13px; color: var(--faint); font-weight: 500; }
+  .p-title p { margin: 0; font-size: 13.5px; color: var(--muted); }
+  .auth-chip {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px; letter-spacing: .02em;
+    padding: 4px 9px; border-radius: 6px;
+    background: var(--surface-2); color: var(--muted);
+    border: 1px solid var(--hairline);
+    white-space: nowrap;
+  }
+  .star-tag {
+    margin-left: auto;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--accent);
+    background: var(--accent-soft);
+    padding: 5px 10px; border-radius: 999px;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  @media (max-width: 520px) { .star-tag { margin-left: 0; } }
+
+  .p-body { padding: clamp(20px, 3vw, 30px); }
+  .sub-label {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11.5px; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--faint);
+    margin: 0 0 14px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .sub-label::after { content: ""; flex: 1; height: 1px; background: var(--hairline); }
+  .sub-label.mt { margin-top: 30px; }
+
+  /* ---- field table ---- */
+  .fields { display: grid; gap: 8px; }
+  .field {
+    display: grid;
+    grid-template-columns: minmax(120px, 200px) 1fr auto;
+    gap: 8px 16px;
+    align-items: baseline;
+    padding: 11px 14px;
+    background: var(--surface-2);
+    border-radius: 10px;
+  }
+  @media (max-width: 560px) {
+    .field { grid-template-columns: 1fr auto; }
+    .field .f-desc { grid-column: 1 / -1; }
+  }
+  .field .f-label {
+    font-weight: 600; font-size: 14.5px;
+    display: flex; flex-direction: column; gap: 2px;
+  }
+  .field .f-key {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11.5px; color: var(--faint); font-weight: 400;
+  }
+  .field .f-desc { font-size: 13.5px; color: var(--muted); align-self: center; }
+  .tags { display: flex; gap: 6px; align-self: center; flex: none; }
+  .tag {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 10.5px; font-weight: 500;
+    padding: 3px 7px; border-radius: 5px; white-space: nowrap;
+  }
+  .tag.req { background: var(--req-bg); color: var(--req); }
+  .tag.opt { background: var(--surface); color: var(--faint); border: 1px solid var(--hairline); }
+  .tag.secret { background: var(--secret-bg); color: var(--secret); }
+
+  /* ---- steps ---- */
+  ol.steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; counter-reset: s; }
+  ol.steps > li {
+    position: relative;
+    padding-left: 40px;
+    font-size: 14.5px;
+    color: var(--ink);
+    counter-increment: s;
+  }
+  ol.steps > li::before {
+    content: counter(s);
+    position: absolute; left: 0; top: -1px;
+    width: 26px; height: 26px; border-radius: 8px;
+    display: grid; place-items: center;
+    background: color-mix(in srgb, var(--pcolor) 14%, var(--surface));
+    color: var(--pcolor);
+    font-family: "IBM Plex Mono", monospace; font-size: 13px; font-weight: 600;
+    border: 1px solid color-mix(in srgb, var(--pcolor) 26%, transparent);
+  }
+  ol.steps > li b { font-weight: 600; }
+  ol.steps > li .note {
+    display: block; margin-top: 4px;
+    font-size: 13px; color: var(--muted);
+  }
+  code, .mono {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .88em;
+    background: var(--code-bg);
+    padding: 1.5px 6px;
+    border-radius: 5px;
+    color: var(--ink);
+    word-break: break-word;
+  }
+  a.inline { color: var(--accent); text-decoration: none; border-bottom: 1px solid color-mix(in srgb, var(--accent) 35%, transparent); }
+  a.inline:hover { border-bottom-color: var(--accent); }
+
+  .warn {
+    margin-top: 16px;
+    display: flex; gap: 10px;
+    padding: 12px 15px;
+    background: var(--req-bg);
+    border-radius: 9px;
+    font-size: 13.5px; color: var(--ink);
+  }
+  .warn .i { color: var(--req); font-weight: 700; flex: none; }
+  .tip {
+    margin-top: 16px;
+    display: flex; gap: 10px;
+    padding: 12px 15px;
+    background: var(--accent-soft);
+    border-radius: 9px;
+    font-size: 13.5px; color: var(--ink);
+  }
+  .tip .i { color: var(--accent); font-weight: 700; flex: none; }
+  .ok-inline { color: var(--ok); font-family: "IBM Plex Mono", monospace; font-size: .9em; }
+
+  /* ---- screen mockups (schematic illustrations) ---- */
+  figure.shot { margin: 22px 0 0; }
+  .win {
+    border: 1px solid var(--hairline-strong);
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--surface);
+    box-shadow: 0 6px 18px -14px rgba(20,24,36,.4);
+  }
+  .win-bar {
+    display: flex; align-items: center; gap: 7px;
+    padding: 9px 12px;
+    background: var(--surface-2);
+    border-bottom: 1px solid var(--hairline);
+  }
+  .win-bar i { width: 9px; height: 9px; border-radius: 50%; background: var(--hairline-strong); flex: none; }
+  .win-url {
+    margin-left: 8px;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11.5px; color: var(--faint);
+    background: var(--surface); border: 1px solid var(--hairline);
+    padding: 3px 10px; border-radius: 6px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .win-body { display: flex; min-height: 150px; }
+  .win-nav {
+    flex: none; width: 148px;
+    border-right: 1px solid var(--hairline);
+    padding: 12px 8px; display: flex; flex-direction: column; gap: 3px;
+    background: color-mix(in srgb, var(--surface-2) 55%, var(--surface));
+  }
+  @media (max-width: 560px) { .win-nav { width: 108px; } }
+  .win-nav .ni {
+    font-size: 12px; color: var(--muted);
+    padding: 6px 9px; border-radius: 7px; white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis;
+  }
+  .win-nav .ni.on {
+    background: color-mix(in srgb, var(--pcolor) 16%, var(--surface));
+    color: var(--pcolor); font-weight: 600;
+  }
+  .win-main { flex: 1; padding: 16px 18px; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+  .crumb {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px; color: var(--faint);
+    display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  }
+  .crumb b { color: var(--pcolor); font-weight: 600; }
+  .m-title { font-size: 14px; font-weight: 700; color: var(--ink); }
+  .ui-field {
+    border: 1px solid var(--hairline); border-radius: 8px;
+    padding: 9px 12px; background: var(--surface);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .ui-field .lab {
+    font-size: 11px; color: var(--faint); flex: none; width: 92px;
+    font-family: "IBM Plex Mono", monospace;
+  }
+  @media (max-width: 560px) { .ui-field .lab { width: 66px; } }
+  .ui-field .val { font-family: "IBM Plex Mono", monospace; font-size: 12.5px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ui-field .val.mut { color: var(--faint); }
+  .ui-check { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--ink); }
+  .ui-check .box { width: 15px; height: 15px; border-radius: 4px; flex: none; display: grid; place-items: center; font-size: 10px; color: var(--on-accent); background: var(--pcolor); }
+  .ui-btn {
+    align-self: flex-start;
+    font-size: 12.5px; font-weight: 600; color: var(--on-accent);
+    background: var(--pcolor); padding: 7px 14px; border-radius: 7px;
+    display: inline-flex; align-items: center; gap: 7px;
+  }
+  .ui-btn.ghost { background: transparent; color: var(--pcolor); border: 1px solid color-mix(in srgb, var(--pcolor) 45%, transparent); }
+  .target {
+    position: relative;
+    outline: 2px dashed var(--pcolor); outline-offset: 3px; border-radius: 8px;
+  }
+  .pin {
+    position: absolute; top: -11px; right: -11px;
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--pcolor); color: var(--on-accent);
+    font-family: "IBM Plex Mono", monospace; font-size: 12px; font-weight: 700;
+    display: grid; place-items: center;
+    box-shadow: 0 2px 6px rgba(0,0,0,.25);
+  }
+  figcaption {
+    margin-top: 10px; font-size: 12px; color: var(--faint);
+    display: flex; align-items: center; gap: 7px;
+  }
+  figcaption::before { content: "도식"; font-family: "IBM Plex Mono", monospace; font-size: 10px; letter-spacing: .08em; color: var(--pcolor); background: color-mix(in srgb, var(--pcolor) 14%, var(--surface)); padding: 2px 6px; border-radius: 4px; flex: none; }
+
+  /* ---- troubleshooting ---- */
+  .trouble { margin-top: 52px; }
+  .trouble h2 {
+    font-family: "Archivo", "IBM Plex Sans KR", sans-serif;
+    font-size: 22px; font-weight: 700; letter-spacing: -.01em; margin: 0 0 6px;
+  }
+  .trouble > p { color: var(--muted); font-size: 14.5px; margin: 0 0 20px; }
+  .table-scroll { overflow-x: auto; border: 1px solid var(--hairline); border-radius: 12px; }
+  table {
+    width: 100%; border-collapse: collapse; background: var(--surface);
+    font-size: 14px; min-width: 520px;
+  }
+  th, td { text-align: left; padding: 13px 16px; border-bottom: 1px solid var(--hairline); vertical-align: top; }
+  thead th {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--faint); font-weight: 500;
+    background: var(--surface-2);
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  td:first-child { font-family: "IBM Plex Mono", monospace; color: var(--req); font-size: 13px; white-space: nowrap; }
+  td b { font-weight: 600; }
+
+  footer {
+    grid-column: 1 / -1;
+    margin-top: 60px; padding: 26px 0 40px;
+    border-top: 1px solid var(--hairline);
+    font-size: 13px; color: var(--faint);
+    display: flex; flex-wrap: wrap; gap: 6px 20px; justify-content: space-between;
+  }
+  footer .mono { background: none; padding: 0; }
+
+  /* ---- manual topbar (standalone) ---- */
+  .topbar { grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-top: 22px; flex-wrap: wrap; }
+  .backlink { font-family: "IBM Plex Mono", monospace; font-size: 12.5px; color: var(--muted); text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+  .backlink:hover { color: var(--ink); }
+  .langbar { display: flex; gap: 3px; border: 1px solid var(--hairline); border-radius: 999px; padding: 3px; background: var(--surface); }
+  .langbar a { font-size: 13px; font-weight: 600; color: var(--muted); text-decoration: none; padding: 5px 13px; border-radius: 999px; }
+  .langbar a[aria-current="true"] { background: var(--accent); color: var(--on-accent); }
+  .langbar a:hover:not([aria-current="true"]) { color: var(--ink); }
+  .langbar a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <a class="backlink" href="index.html">← Sổ tay</a>
+    <div class="langbar" role="group" aria-label="Language"><a href="platform-integration.ko.html">한국어</a><a href="platform-integration.en.html">EN</a><a href="platform-integration.vi.html" aria-current="true">VI</a></div>
+  </div>
+<header class="masthead">
+    <p class="eyebrow">ShopTalk · Cài đặt → Nền tảng</p>
+    <h1>Kết nối nền tảng thương mại: nhập giá trị nào, tìm ở đâu</h1>
+    <p class="lede">
+      Hướng dẫn thực tế về các giá trị bạn nhập ở <code>/settings/platforms</code> để kết nối
+      từng cửa hàng — tên đăng nhập, tên cơ sở dữ liệu, API key… — và <b>phát hành hoặc tìm mỗi
+      giá trị ở đâu trong trang quản trị của nền tảng</b>. Chuẩn bị giá trị, dán vào thẻ, lưu, rồi
+      kiểm tra bằng <b>Kiểm tra kết nối</b>.
+    </p>
+    <div class="meta">
+      <span>5 nền tảng · Shopify / Cafe24 / WooCommerce / Odoo / Haravan</span>
+      <span>Các trường tương ứng 1:1 với nhãn trong bảng điều khiển</span>
+    </div>
+  </header>
+
+  <nav class="jump" aria-label="Chuyển tới nền tảng">
+    <span class="nav-label">Nền tảng</span>
+    <a href="#shopify" style="--pdot:var(--sh-shopify)"><span class="dot"></span>Shopify<span class="num">01</span></a>
+    <a href="#cafe24" style="--pdot:var(--sh-cafe24)"><span class="dot"></span>Cafe24<span class="num">02</span></a>
+    <a href="#woocommerce" style="--pdot:var(--sh-woo)"><span class="dot"></span>WooCommerce<span class="num">03</span></a>
+    <a href="#odoo" style="--pdot:var(--sh-odoo)"><span class="dot"></span>Odoo<span class="num">04</span></a>
+    <a href="#haravan" style="--pdot:var(--sh-haravan)"><span class="dot"></span>Haravan<span class="num">05</span></a>
+    <a href="#trouble"><span class="dot" style="background:var(--faint)"></span>Khắc phục sự cố</a>
+  </nav>
+
+  <main>
+    <div class="callout">
+      <h2>Chung cho mọi nền tảng</h2>
+      <ul>
+        <li><b>Giá trị bí mật</b> (token, secret, API key) không hiển thị lại sau khi lưu — chỉ nhập lại khi xoay vòng.</li>
+        <li><b>URL phải là <code>https://</code></b> miền công khai. Địa chỉ nội bộ/riêng tư (localhost, IP nội bộ) bị chặn vì lý do bảo mật.</li>
+        <li>Quyền tối thiểu cần có là <b>đọc đơn hàng, khách hàng và sản phẩm</b>. Không cần quyền ghi.</li>
+        <li>Khi kiểm tra kết nối thất bại, thẻ hiển thị lý do — <code>401</code> = token sai/hết hạn, <code>404</code> = sai địa chỉ.</li>
+        <li>Các <b>hình minh họa màn hình</b> bên dưới là <b>hình minh họa</b> vị trí phát hành mỗi giá trị; màn hình thật của nhà cung cấp có thể khác về từ ngữ và bố cục.</li>
+      </ul>
+    </div>
+
+    <!-- 01 SHOPIFY -->
+    <section class="platform" id="shopify" style="--pcolor:var(--sh-shopify)">
+      <div class="p-head">
+        <div class="p-badge">S</div>
+        <div class="p-title">
+          <h2><span class="p-num">01</span>Shopify</h2>
+          <p>Nhập địa chỉ cửa hàng và token Admin API trong thẻ "Shopify".</p>
+        </div>
+        <span class="auth-chip">Admin API · token app tùy chỉnh</span>
+      </div>
+      <div class="p-body">
+        <p class="sub-label">ShopTalk yêu cầu gì</p>
+        <div class="fields">
+          <div class="field"><span class="f-label">Địa chỉ cửa hàng<span class="f-key">shop_domain</span></span><span class="f-desc"><code>your-store.myshopify.com</code></span><span class="tags"><span class="tag req">bắt buộc</span></span></div>
+          <div class="field"><span class="f-label">Admin API access token<span class="f-key">access_token</span></span><span class="f-desc"><code>shpat_…</code></span><span class="tags"><span class="tag req">bắt buộc</span><span class="tag secret">bí mật</span></span></div>
+          <div class="field"><span class="f-label">API key / secret<span class="f-key">api_key · api_secret</span></span><span class="f-desc">Dành cho app công khai (OAuth) — app tùy chỉnh để trống</span><span class="tags"><span class="tag opt">tùy chọn</span></span></div>
+        </div>
+
+        <p class="sub-label mt">Phát hành trong trang quản trị Shopify</p>
+        <ol class="steps">
+          <li>Vào <b>Settings → Apps and sales channels</b>.</li>
+          <li><b>Develop apps → Create an app</b>, rồi đặt tên app.</li>
+          <li>Ở <b>Configuration → Admin API integration</b>, cấp các scope đọc.<span class="note"><code>read_orders</code> · <code>read_customers</code> · <code>read_fulfillments</code> · <code>read_products</code></span></li>
+          <li>Nhấn <b>API credentials → Install app</b>.</li>
+          <li>Sao chép <b>Admin API access token</b> (<code>shpat_…</code>) hiển thị ngay sau khi cài.<span class="note">Token chỉ hiển thị một lần — lưu vào ShopTalk ngay.</span></li>
+          <li><b>Địa chỉ cửa hàng</b> là phần <code>xxxx.myshopify.com</code> trong URL quản trị (không phải tên miền thương hiệu).</li>
+        </ol>
+        <figure class="shot">
+          <div class="win">
+            <div class="win-bar"><i></i><i></i><i></i><span class="win-url">admin.shopify.com › apps › develop</span></div>
+            <div class="win-body">
+              <div class="win-nav">
+                <span class="ni">General</span>
+                <span class="ni on">Apps and sales channels</span>
+                <span class="ni">Domains</span>
+                <span class="ni">Checkout</span>
+              </div>
+              <div class="win-main">
+                <div class="crumb">Develop apps <span>›</span> <b>API credentials</b></div>
+                <div class="ui-field target"><span class="lab">Admin API</span><span class="val">access token · shpat_••••••••</span><span class="pin">5</span></div>
+                <div class="ui-field"><span class="lab">Scopes</span><span class="val mut">read_orders · read_customers · read_products</span></div>
+                <span class="ui-btn ghost">Reveal token once</span>
+              </div>
+            </div>
+          </div>
+          <figcaption>Màn hình Admin API access token — chỉ hiển thị một lần, ngay sau khi cài. UI thật có thể khác.</figcaption>
+        </figure>
+        <div class="tip"><span class="i">↔</span><span>Nếu đã cài qua nút "Connect" của app công khai ShopTalk, token được lưu tự động. Nhập thủ công ở trên là dành cho app tùy chỉnh do bạn tự vận hành.</span></div>
+      </div>
+    </section>
+
+    <!-- 02 CAFE24 -->
+    <section class="platform" id="cafe24" style="--pcolor:var(--sh-cafe24)">
+      <div class="p-head">
+        <div class="p-badge">C</div>
+        <div class="p-title">
+          <h2><span class="p-num">02</span>Cafe24</h2>
+          <p>Kết nối cửa hàng Cafe24 bằng access token Admin API v2 OAuth.</p>
+        </div>
+        <span class="auth-chip">Admin API v2 · Bearer (OAuth)</span>
+      </div>
+      <div class="p-body">
+        <p class="sub-label">ShopTalk yêu cầu gì</p>
+        <div class="fields">
+          <div class="field"><span class="f-label">Mall ID<span class="f-key">mall_id</span></span><span class="f-desc">ID cửa hàng (vd: <code>yourmall</code>)</span><span class="tags"><span class="tag req">bắt buộc</span></span></div>
+          <div class="field"><span class="f-label">Access token<span class="f-key">access_token</span></span><span class="f-desc">Token Admin API OAuth</span><span class="tags"><span class="tag req">bắt buộc</span><span class="tag secret">bí mật</span></span></div>
+          <div class="field"><span class="f-label">Client ID / Secret<span class="f-key">client_id · client_secret</span></span><span class="f-desc">Giá trị app ở developer center (khi tự làm mới token)</span><span class="tags"><span class="tag opt">tùy chọn</span></span></div>
+        </div>
+
+        <p class="sub-label mt">Tìm trong Cafe24 Developer Center</p>
+        <ol class="steps">
+          <li><b>Mall ID</b> — phần <code>yourmall</code> của URL quản trị <code>yourmall.cafe24.com</code>, hoặc ID cửa hàng hiển thị ở đầu trang quản trị.</li>
+          <li><b>Client ID / Secret</b> — đăng nhập <a class="inline" href="https://developers.cafe24.com">developers.cafe24.com</a> → <b>Tạo app</b> → tìm ở mục <b>App info</b> của app.<span class="note">Thêm scope đọc cho app — <code>mall.read_order</code> · <code>mall.read_customer</code> · <code>mall.read_product</code>.</span></li>
+          <li><b>Access token</b> — dán token Admin API phát hành qua luồng OAuth (Authorization Code → Access Token).<span class="note">Hiệu lực 2 giờ; refresh token 14 ngày — phát hành lại khi hết hạn.</span></li>
+        </ol>
+        <figure class="shot">
+          <div class="win">
+            <div class="win-bar"><i></i><i></i><i></i><span class="win-url">developers.cafe24.com › apps</span></div>
+            <div class="win-body">
+              <div class="win-nav">
+                <span class="ni on">App info</span>
+                <span class="ni">Permissions</span>
+                <span class="ni">OAuth</span>
+                <span class="ni">Deploy</span>
+              </div>
+              <div class="win-main">
+                <div class="crumb">App của tôi <span>›</span> <b>App info</b></div>
+                <div class="ui-field target"><span class="lab">Client ID</span><span class="val">a1B2c3D4e5F6••••</span><span class="pin">2</span></div>
+                <div class="ui-field"><span class="lab">Client Secret</span><span class="val mut">••••••••••••</span></div>
+                <div class="ui-check"><span class="box">✓</span> mall.read_order · read_customer · read_product</div>
+              </div>
+            </div>
+          </div>
+          <figcaption>App info ở developer center — Client ID/Secret và scope đọc. Access token phát hành riêng qua OAuth. UI thật có thể khác.</figcaption>
+        </figure>
+        <div class="tip"><span class="i">↔</span><span>Nút <b>"Connect" OAuth của Cafe24</b> ở đầu phần Cài đặt kết nối chỉ với một cú nhấp bằng tài khoản chủ cửa hàng và tự quản lý token. Nên dùng nếu nhập token thủ công phiền phức.</span></div>
+      </div>
+    </section>
+
+    <!-- 03 WOOCOMMERCE -->
+    <section class="platform" id="woocommerce" style="--pcolor:var(--sh-woo)">
+      <div class="p-head">
+        <div class="p-badge">W</div>
+        <div class="p-title">
+          <h2><span class="p-num">03</span>WooCommerce</h2>
+          <p>Kết nối bằng consumer key/secret REST API v3 (Basic auth).</p>
+        </div>
+        <span class="auth-chip">REST v3 · Basic auth</span>
+      </div>
+      <div class="p-body">
+        <p class="sub-label">ShopTalk yêu cầu gì</p>
+        <div class="fields">
+          <div class="field"><span class="f-label">Store URL<span class="f-key">store_url</span></span><span class="f-desc"><code>https://store.example.com</code></span><span class="tags"><span class="tag req">bắt buộc</span></span></div>
+          <div class="field"><span class="f-label">Consumer key<span class="f-key">consumer_key</span></span><span class="f-desc"><code>ck_…</code></span><span class="tags"><span class="tag req">bắt buộc</span><span class="tag secret">bí mật</span></span></div>
+          <div class="field"><span class="f-label">Consumer secret<span class="f-key">consumer_secret</span></span><span class="f-desc"><code>cs_…</code></span><span class="tags"><span class="tag req">bắt buộc</span><span class="tag secret">bí mật</span></span></div>
+        </div>
+
+        <p class="sub-label mt">Phát hành trong trang quản trị WordPress · WooCommerce</p>
+        <ol class="steps">
+          <li>Vào <b>WooCommerce → Settings → Advanced → REST API</b>.</li>
+          <li>Nhấn <b>Add key</b>.</li>
+          <li>Nhập mô tả, chọn <b>User</b>, đặt <b>Permissions</b> thành <b>Read</b>.</li>
+          <li><b>Generate API key</b> → <b>Consumer key</b> (<code>ck_…</code>) và <b>Consumer secret</b> (<code>cs_…</code>) xuất hiện.<span class="note">Không xem lại được sau khi rời màn hình — sao chép ngay.</span></li>
+          <li><b>Store URL</b> là địa chỉ gốc của trang. Đừng thêm <code>/wp-admin</code> hay <code>/wp-json</code>.</li>
+        </ol>
+        <figure class="shot">
+          <div class="win">
+            <div class="win-bar"><i></i><i></i><i></i><span class="win-url">store.example.com › wp-admin › wc-settings</span></div>
+            <div class="win-body">
+              <div class="win-nav">
+                <span class="ni">General</span>
+                <span class="ni">Payments</span>
+                <span class="ni on">Advanced</span>
+                <span class="ni">Emails</span>
+              </div>
+              <div class="win-main">
+                <div class="crumb">Advanced <span>›</span> <b>REST API</b> <span>›</span> Add key</div>
+                <div class="ui-field"><span class="lab">Description</span><span class="val mut">ShopTalk</span></div>
+                <div class="ui-field"><span class="lab">Permissions</span><span class="val">Read</span></div>
+                <div class="ui-field target"><span class="lab">Consumer key</span><span class="val">ck_9f3a•••• / cs_7d21••••</span><span class="pin">4</span></div>
+                <span class="ui-btn">Generate API key</span>
+              </div>
+            </div>
+          </div>
+          <figcaption>Tạo key REST API — Permissions = Read; ck_/cs_ đã tạo không xem lại được sau khi rời. UI thật có thể khác.</figcaption>
+        </figure>
+        <div class="warn"><span class="i">!</span><span>Kiểm tra kết nối gọi <code>…/wp-json/wc/v3/system_status</code>. <code>404</code> = REST API tắt hoặc sai URL (kiểm tra permalink), <code>401</code> = sai key/secret.</span></div>
+      </div>
+    </section>
+
+    <!-- 04 ODOO -->
+    <section class="platform star" id="odoo" style="--pcolor:var(--sh-odoo)">
+      <div class="p-head">
+        <div class="p-badge">O</div>
+        <div class="p-title">
+          <h2><span class="p-num">04</span>Odoo</h2>
+          <p>Xác thực với API ngoài (JSON-RPC) bằng URL · DB · người dùng · API key.</p>
+        </div>
+        <span class="star-tag">★ trọng tâm</span>
+      </div>
+      <div class="p-body">
+        <p class="sub-label">ShopTalk yêu cầu gì</p>
+        <div class="fields">
+          <div class="field"><span class="f-label">Server URL<span class="f-key">url</span></span><span class="f-desc"><code>https://my-odoo.example.com</code></span><span class="tags"><span class="tag req">bắt buộc</span></span></div>
+          <div class="field"><span class="f-label">Database<span class="f-key">db</span></span><span class="f-desc">Tên cơ sở dữ liệu</span><span class="tags"><span class="tag req">bắt buộc</span></span></div>
+          <div class="field"><span class="f-label">Username<span class="f-key">username</span></span><span class="f-desc">Email / ID đăng nhập</span><span class="tags"><span class="tag req">bắt buộc</span></span></div>
+          <div class="field"><span class="f-label">API key<span class="f-key">api_key</span></span><span class="f-desc">API key cá nhân (thay cho mật khẩu)</span><span class="tags"><span class="tag req">bắt buộc</span><span class="tag secret">bí mật</span></span></div>
+        </div>
+        <p style="font-size:13.5px;color:var(--muted);margin:16px 0 0">
+          ShopTalk xác minh bốn giá trị này bằng cách gọi <code>common.authenticate(db, username, api_key)</code> tại <code>{url}/jsonrpc</code>.
+        </p>
+
+        <p class="sub-label mt">① Server URL</p>
+        <ol class="steps">
+          <li><b>Phần host</b> của địa chỉ bạn mở Odoo.<span class="note"><b>Odoo Online (SaaS)</b>: <code>https://mycompany.odoo.com</code> · <b>Tự lưu trữ / Odoo.sh</b>: tên miền thật của bạn. Đừng thêm đường dẫn như <code>/web</code>.</span></li>
+        </ol>
+
+        <p class="sub-label mt">② Tên cơ sở dữ liệu &nbsp;— tìm ở đâu</p>
+        <ol class="steps">
+          <li><b>Odoo Online (SaaS)</b> — tên DB = subdomain. Với <code>mycompany.odoo.com</code> thì DB là <b><code>mycompany</code></b>.</li>
+          <li><b>Tự lưu trữ</b> — tên hiển thị trong dropdown cơ sở dữ liệu ở màn hình đăng nhập.<span class="note">Nếu không có dropdown (một DB): tên liệt kê ở <code>…/web/database/manager</code>, hoặc thiết lập <code>-d &lt;db&gt;</code> / <code>db_name</code> của server.</span></li>
+          <li>Nhập <b>đúng định danh DB</b> (kể cả chữ hoa/thường và dấu gạch nối), không phải tên công ty hay tên hiển thị.</li>
+        </ol>
+        <figure class="shot">
+          <div class="win">
+            <div class="win-bar"><i></i><i></i><i></i><span class="win-url">mycompany.odoo.com › web › login</span></div>
+            <div class="win-body">
+              <div class="win-main">
+                <div class="m-title">Đăng nhập — chọn cơ sở dữ liệu</div>
+                <div class="ui-field"><span class="lab">Email</span><span class="val mut">bot@mycompany.com</span></div>
+                <div class="ui-field target"><span class="lab">Database</span><span class="val">mycompany</span><span class="pin">DB</span></div>
+                <div class="crumb">Trên SaaS, <b>mycompany</b> trong <code>mycompany</code>.odoo.com = tên DB</div>
+              </div>
+            </div>
+          </div>
+          <figcaption>Nơi tên cơ sở dữ liệu xuất hiện — bộ chọn DB khi đăng nhập hoặc subdomain SaaS. UI thật có thể khác.</figcaption>
+        </figure>
+
+        <p class="sub-label mt">③ Username</p>
+        <ol class="steps">
+          <li><b>ID đăng nhập</b> Odoo (thường là email). API hoạt động với quyền của người dùng này, nên dùng <b>tài khoản tích hợp riêng</b> có quyền đọc đơn hàng, liên hệ và sản phẩm.</li>
+        </ol>
+
+        <p class="sub-label mt">④ API key &nbsp;— phát hành ở đâu trong Odoo</p>
+        <ol class="steps">
+          <li>Mở <b>avatar → My Profile / Preferences</b> ở góc trên bên phải.</li>
+          <li>Vào tab <b>Account Security</b>.<span class="note">Nếu không có, trước tiên bật <b>Settings → Activate the developer mode</b>.</span></li>
+          <li><b>Developer API Keys → New API Key</b> → đặt tên mục đích → xác nhận mật khẩu → sao chép key ngay.<span class="note">Key chỉ hiển thị một lần. Nó thay cho mật khẩu khi gọi API ngoài, nên hãy dùng API key — không dùng mật khẩu tài khoản.</span></li>
+        </ol>
+        <figure class="shot">
+          <div class="win">
+            <div class="win-bar"><i></i><i></i><i></i><span class="win-url">mycompany.odoo.com › my › security</span></div>
+            <div class="win-body">
+              <div class="win-nav">
+                <span class="ni">Preferences</span>
+                <span class="ni on">Account Security</span>
+                <span class="ni">Notifications</span>
+              </div>
+              <div class="win-main">
+                <div class="crumb">Avatar <span>›</span> My Profile <span>›</span> <b>Account Security</b></div>
+                <div class="m-title">Developer API Keys</div>
+                <div class="ui-field target"><span class="lab">New key</span><span class="val">a0f9c1e7d4•••• (hiển thị một lần)</span><span class="pin">3</span></div>
+                <span class="ui-btn">New API Key</span>
+                <div class="crumb">Nếu thiếu, bật <b>Settings → Developer mode</b> trước</div>
+              </div>
+            </div>
+          </div>
+          <figcaption>Phát hành API key — New API Key ở tab Account Security. Hiển thị một lần; thay cho mật khẩu. UI thật có thể khác.</figcaption>
+        </figure>
+        <div class="warn"><span class="i">!</span><span>Thành công thì thẻ hiển thị <span class="ok-inline">Connected (uid N)</span>. Lỗi <code>authentication failed — check db / user / API key</code> thường do <b>gõ sai tên DB</b>.</span></div>
+      </div>
+    </section>
+
+    <!-- 05 HARAVAN -->
+    <section class="platform" id="haravan" style="--pcolor:var(--sh-haravan)">
+      <div class="p-head">
+        <div class="p-badge">H</div>
+        <div class="p-title">
+          <h2><span class="p-num">05</span>Haravan</h2>
+          <p>Kết nối bằng Admin API access token (tương thích Shopify).</p>
+        </div>
+        <span class="auth-chip">Admin API · Bearer</span>
+      </div>
+      <div class="p-body">
+        <p class="sub-label">ShopTalk yêu cầu gì</p>
+        <div class="fields">
+          <div class="field"><span class="f-label">Địa chỉ cửa hàng<span class="f-key">shop_domain</span></span><span class="f-desc"><code>your-store.myharavan.com</code></span><span class="tags"><span class="tag req">bắt buộc</span></span></div>
+          <div class="field"><span class="f-label">Access token<span class="f-key">access_token</span></span><span class="f-desc">Admin API access token</span><span class="tags"><span class="tag req">bắt buộc</span><span class="tag secret">bí mật</span></span></div>
+        </div>
+
+        <p class="sub-label mt">Phát hành trong trang quản trị Haravan</p>
+        <ol class="steps">
+          <li><b>Địa chỉ cửa hàng</b> — địa chỉ quản trị Haravan <code>your-store.myharavan.com</code>.</li>
+          <li><b>Access token</b> — tạo <b>Private App</b> hoặc tích hợp Admin API trong mục <b>Apps</b> của trang quản trị và dùng token nó phát hành.<span class="note">Cấp quyền đọc đơn hàng, khách hàng và sản phẩm. Admin API của Haravan tương thích Shopify, nên ShopTalk xác minh với <code>…/admin/shop.json</code> bằng Bearer token.</span></li>
+          <li>Dán token vào ô <b>Access token</b>, lưu và kiểm tra. <code>401</code> = token sai/hết hạn.</li>
+        </ol>
+        <figure class="shot">
+          <div class="win">
+            <div class="win-bar"><i></i><i></i><i></i><span class="win-url">your-store.myharavan.com › admin › apps</span></div>
+            <div class="win-body">
+              <div class="win-nav">
+                <span class="ni on">Apps</span>
+                <span class="ni">Private app</span>
+                <span class="ni">Settings</span>
+              </div>
+              <div class="win-main">
+                <div class="crumb">Apps <span>›</span> <b>Private app / Admin API</b></div>
+                <div class="ui-field target"><span class="lab">Access token</span><span class="val">a1b2c3•••• (tương thích Shopify)</span><span class="pin">2</span></div>
+                <div class="ui-field"><span class="lab">Scopes</span><span class="val mut">read_orders · read_customers · read_products</span></div>
+              </div>
+            </div>
+          </div>
+          <figcaption>Admin API access token của private app — Haravan tương thích Shopify. UI thật có thể khác.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <!-- TROUBLE -->
+    <div class="trouble" id="trouble">
+      <h2>Khắc phục sự cố nhanh</h2>
+      <p>Khi kiểm tra kết nối thất bại, đối chiếu lý do trên thẻ với bảng dưới.</p>
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>Triệu chứng</th><th>Nguyên nhân</th><th>Cách xử lý</th></tr></thead>
+          <tbody>
+            <tr><td>401</td><td>Token/key sai hoặc hết hạn</td><td>Phát hành lại và nhập lại (<b>Cafe24 hết hạn sau 2 giờ</b>)</td></tr>
+            <tr><td>404</td><td>Sai URL · REST API tắt</td><td>Kiểm tra store URL và thiết lập permalink</td></tr>
+            <tr><td>Blocked: non-public</td><td>URL riêng tư/nội bộ</td><td>Dùng miền <code>https</code> công khai</td></tr>
+            <tr><td>Odoo auth failed</td><td>Gõ sai tên DB</td><td>Kiểm tra lại tên cơ sở dữ liệu (Odoo ②)</td></tr>
+            <tr><td>invalid characters</td><td>Có khoảng trắng/xuống dòng trong token</td><td>Sao chép chính xác, không có khoảng trắng thừa</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <span>ShopTalk · Thông tin xác thực kết nối thương mại</span>
+    <span class="mono">GUIDE-260826 · 2026-08-26</span>
+  </footer>
+</div>
+</body>
+</html>

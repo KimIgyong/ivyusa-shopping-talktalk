@@ -604,5 +604,6 @@
     "usingAppSecret": "Secreto de la app",
     "replaceWarning": "Al guardar, el secreto se reemplaza de inmediato. Cambia también el sistema emisor o sus webhooks empezarán a fallar.",
     "widgetPointer": "Para el widget, ve a Ajustes del widget → Inserción y SDK."
-  }
+  },
+  "integrationGuide": "Guía de integración"
 }

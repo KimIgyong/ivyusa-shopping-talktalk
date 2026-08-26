@@ -604,5 +604,6 @@
     "usingAppSecret": "アプリ共通",
     "replaceWarning": "保存するとシークレットは直ちに置き換わります。送信側も同時に変更しないと、その時点からWebhookが失敗します。",
     "widgetPointer": "ウィジェット自体はウィジェット設定 → 埋め込み・SDK をご覧ください。"
-  }
+  },
+  "integrationGuide": "連携ガイド"
 }

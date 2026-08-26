@@ -604,5 +604,6 @@
     "usingAppSecret": "Khóa chung",
     "replaceWarning": "Lưu sẽ thay khóa ngay lập tức. Hãy cập nhật hệ thống gửi trong cùng lần thay đổi, nếu không webhook sẽ bắt đầu lỗi.",
     "widgetPointer": "Với widget, xem Cài đặt widget → Nhúng & SDK."
-  }
+  },
+  "integrationGuide": "Hướng dẫn kết nối"
 }
