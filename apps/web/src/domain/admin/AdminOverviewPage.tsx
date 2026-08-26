@@ -44,9 +44,9 @@ export function AdminOverviewPage() {
         ) : (
           <ul className="divide-y divide-gray-100">
             {integrations.map((i) => (
-              <li key={i.provider} className="flex items-center justify-between py-3">
+              <li key={i.name} className="flex items-center justify-between py-3">
                 <div>
-                  <p className="text-sm font-medium text-gray-800">{i.provider}</p>
+                  <p className="text-sm font-medium text-gray-800">{i.name}</p>
                   {i.detail && <p className="text-xs text-gray-400">{i.detail}</p>}
                 </div>
                 <StatusBadge status={i.status} />

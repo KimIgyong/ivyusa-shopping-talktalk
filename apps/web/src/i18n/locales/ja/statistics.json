@@ -26,5 +26,32 @@
   "trendAria": "{{count}}日間の質問件数",
   "empty": "この期間に記録された質問はありません。",
   "attentionHint": "印の付いた行は引き継ぎ率が高いか確信度が低い項目です。ナレッジベースで優先的に改善すべきトピックです。",
-  "snapshotNote": "数値は日次スナップショットから算出しているため、会話ログの削除後も参照できます。"
+  "snapshotNote": "数値は日次スナップショットから算出しているため、会話ログの削除後も参照できます。",
+  "section": {
+    "questions": "質問分析",
+    "csat": "満足度"
+  },
+  "csat": {
+    "avgTitle": "平均評価",
+    "ratedTitle": "回答数",
+    "responseRateTitle": "回答率",
+    "responseRateHint": "終了チャット{{ended}}件中",
+    "distributionTitle": "分布",
+    "byAgentTitle": "担当者別",
+    "bySessionTitle": "セッション別",
+    "agent": "担当者",
+    "unassigned": "未割当",
+    "rated": "回答数",
+    "avg": "平均",
+    "endedAt": "終了日",
+    "session": "セッション",
+    "sessionLabel": "チャット {{id}}",
+    "channel": "チャネル",
+    "rating": "評価",
+    "ratingFilter": "評価フィルター",
+    "ratingAll": "評価: すべて",
+    "agentFilter": "担当者フィルター",
+    "agentAll": "担当者: すべて",
+    "empty": "この期間の評価はありません。"
+  }
 }

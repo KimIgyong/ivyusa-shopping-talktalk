@@ -1,4 +1,4 @@
-import { apiGet } from '@/lib/api-client';
+import { apiGet, apiGetList } from '@/lib/api-client';
 
 /** The four lenses a question can be counted through (PLN D2). */
 export const DIMENSIONS = ['intent', 'category', 'document', 'keyword', 'cluster'] as const;
@@ -30,6 +30,46 @@ export interface QuestionStatsParams {
   limit?: number;
 }
 
+// ---- CSAT (PLN-260826-Dashboard-Integration-CSAT-Stats) ----
+
+export interface CsatSummary {
+  from: string;
+  to: string;
+  ended: number;
+  rated: number;
+  avg: number | null;
+  distribution: Record<'1' | '2' | '3' | '4' | '5', number>;
+}
+
+export interface CsatAgentRow {
+  agentId: number | null;
+  agentName: string | null;
+  rated: number;
+  avg: number;
+}
+
+export interface CsatConversationRow {
+  id: number;
+  sessionId: string;
+  alias: string | null;
+  customerName: string | null;
+  agentId: number | null;
+  agentName: string | null;
+  channel: string;
+  rating: number | null;
+  ratedAt: string | null;
+  endedAt: string | null;
+}
+
+export interface CsatListParams {
+  from: string;
+  to: string;
+  rating?: string;
+  agentId?: string;
+  page: number;
+  size: number;
+}
+
 export const statisticsService = {
   questions: (params: QuestionStatsParams) =>
     apiGet<QuestionStats>('/analytics/questions', {
@@ -37,5 +77,18 @@ export const statisticsService = {
       from: params.from,
       to: params.to,
       limit: params.limit,
+    }),
+  csatSummary: (from: string, to: string) =>
+    apiGet<CsatSummary>('/agent/csat/summary', { from, to }),
+  csatAgents: (from: string, to: string) =>
+    apiGet<CsatAgentRow[]>('/agent/csat/agents', { from, to }),
+  csatConversations: (params: CsatListParams) =>
+    apiGetList<CsatConversationRow>('/agent/csat/conversations', {
+      from: params.from,
+      to: params.to,
+      page: params.page,
+      size: params.size,
+      ...(params.rating ? { rating: params.rating } : {}),
+      ...(params.agentId ? { agent_id: params.agentId } : {}),
     }),
 };

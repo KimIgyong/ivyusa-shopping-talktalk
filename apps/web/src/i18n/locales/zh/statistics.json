@@ -26,5 +26,32 @@
   "trendAria": "{{count}} 天内的提问量",
   "empty": "此时间范围内没有记录到问题。",
   "attentionHint": "标记的行转人工率较高或置信度较低——这些是应优先补充到知识库的主题。",
-  "snapshotNote": "数据来自每日快照，因此在会话日志清理后仍可查看。"
+  "snapshotNote": "数据来自每日快照，因此在会话日志清理后仍可查看。",
+  "section": {
+    "questions": "问题分析",
+    "csat": "满意度"
+  },
+  "csat": {
+    "avgTitle": "平均评分",
+    "ratedTitle": "回复数",
+    "responseRateTitle": "回复率",
+    "responseRateHint": "共{{ended}}个已结束会话",
+    "distributionTitle": "分布",
+    "byAgentTitle": "按客服",
+    "bySessionTitle": "按会话",
+    "agent": "客服",
+    "unassigned": "未分配",
+    "rated": "回复数",
+    "avg": "平均",
+    "endedAt": "结束日期",
+    "session": "会话",
+    "sessionLabel": "会话 {{id}}",
+    "channel": "渠道",
+    "rating": "评分",
+    "ratingFilter": "评分筛选",
+    "ratingAll": "评分：全部",
+    "agentFilter": "客服筛选",
+    "agentAll": "客服：全部",
+    "empty": "该时间段内没有评价。"
+  }
 }

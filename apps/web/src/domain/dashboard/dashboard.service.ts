@@ -11,10 +11,13 @@ export interface DashboardData {
   popularQuestions: string[];
 }
 
+// Mirrors the API's integration_status row — the field is `name`, and reading
+// a `provider` that never existed is what left the dashboard labels blank.
 export interface IntegrationStatus {
-  provider: string;
+  name: string; // shopify/fulfillment/klaviyo/odoo/google_drive/…
   status: string; // connected / error / disconnected
-  detail?: string;
+  lastSyncAt?: string | null;
+  detail?: string | null;
 }
 
 export interface RecentOrder {

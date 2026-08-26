@@ -26,5 +26,32 @@
   "trendAria": "Lượng câu hỏi trong {{count}} ngày",
   "empty": "Không có câu hỏi nào được ghi nhận trong khoảng này.",
   "attentionHint": "Các dòng được đánh dấu có tỷ lệ chuyển tiếp cao hoặc độ tin cậy thấp — đây là những chủ đề nên bổ sung vào kho tri thức trước.",
-  "snapshotNote": "Số liệu lấy từ ảnh chụp hằng ngày nên vẫn xem được sau khi nhật ký hội thoại bị xóa."
+  "snapshotNote": "Số liệu lấy từ ảnh chụp hằng ngày nên vẫn xem được sau khi nhật ký hội thoại bị xóa.",
+  "section": {
+    "questions": "Phân tích câu hỏi",
+    "csat": "Mức độ hài lòng"
+  },
+  "csat": {
+    "avgTitle": "Điểm trung bình",
+    "ratedTitle": "Số phản hồi",
+    "responseRateTitle": "Tỷ lệ phản hồi",
+    "responseRateHint": "trên {{ended}} cuộc đã kết thúc",
+    "distributionTitle": "Phân bố",
+    "byAgentTitle": "Theo nhân viên",
+    "bySessionTitle": "Theo phiên",
+    "agent": "Nhân viên",
+    "unassigned": "Chưa phân công",
+    "rated": "Số phản hồi",
+    "avg": "Trung bình",
+    "endedAt": "Kết thúc",
+    "session": "Phiên",
+    "sessionLabel": "Cuộc {{id}}",
+    "channel": "Kênh",
+    "rating": "Điểm",
+    "ratingFilter": "Lọc điểm",
+    "ratingAll": "Điểm: tất cả",
+    "agentFilter": "Lọc nhân viên",
+    "agentAll": "Nhân viên: tất cả",
+    "empty": "Không có đánh giá trong khoảng này."
+  }
 }

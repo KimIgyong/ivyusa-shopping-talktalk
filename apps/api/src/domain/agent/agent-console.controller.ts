@@ -41,6 +41,7 @@ import {
   ConversationQuery,
   ListSessionsQuery,
   ListStatsQuery,
+  CsatQuery,
   ApproveDraftRequest,
   SetAutoReplyRequest,
   SetSessionAliasRequest,
@@ -782,5 +783,37 @@ export class AgentConsoleController {
     const { page, size } = normalizePage(query.page, query.size);
     const { items, total } = await this.agentService.listStats(tenantOf(user), page, size);
     return new Paginated(items.map(toStatResponse), buildPagination(page, size, total));
+  }
+
+  // ---- CSAT statistics (PLN-260826) — same read grant as the stats above.
+
+  @Get('csat/summary')
+  @RequireCapability(CAPABILITY.ANALYTICS_READ)
+  @ApiOperation({ summary: 'CSAT summary for a window: avg, counts, distribution' })
+  async csatSummary(@CurrentUser() user: Principal, @Query() query: CsatQuery) {
+    return this.agentService.csatSummary(tenantOf(user), query.from, query.to);
+  }
+
+  @Get('csat/agents')
+  @RequireCapability(CAPABILITY.ANALYTICS_READ)
+  @ApiOperation({ summary: 'CSAT per attributed agent for a window' })
+  async csatAgents(@CurrentUser() user: Principal, @Query() query: CsatQuery) {
+    return this.agentService.csatByAgent(tenantOf(user), query.from, query.to);
+  }
+
+  @Get('csat/conversations')
+  @RequireCapability(CAPABILITY.ANALYTICS_READ)
+  @ApiOperation({ summary: 'Rated conversations in a window (paginated)' })
+  async csatConversations(@CurrentUser() user: Principal, @Query() query: CsatQuery) {
+    const { page, size } = normalizePage(query.page, query.size);
+    const { items, total } = await this.agentService.csatConversations(tenantOf(user), {
+      from: query.from,
+      to: query.to,
+      rating: query.rating != null ? Number(query.rating) : undefined,
+      agentId: query.agent_id != null ? Number(query.agent_id) : undefined,
+      page,
+      size,
+    });
+    return new Paginated(items, buildPagination(page, size, total));
   }
 }

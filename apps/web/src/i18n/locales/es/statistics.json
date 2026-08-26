@@ -26,5 +26,32 @@
   "trendAria": "Volumen de preguntas durante {{count}} días",
   "empty": "No hay preguntas registradas en este rango.",
   "attentionHint": "Las filas marcadas tienen una alta tasa de derivación o baja confianza: son los temas que conviene mejorar primero en la base de conocimiento.",
-  "snapshotNote": "Las cifras provienen de instantáneas diarias, por lo que siguen disponibles tras la depuración de los registros de conversación."
+  "snapshotNote": "Las cifras provienen de instantáneas diarias, por lo que siguen disponibles tras la depuración de los registros de conversación.",
+  "section": {
+    "questions": "Análisis de preguntas",
+    "csat": "Satisfacción"
+  },
+  "csat": {
+    "avgTitle": "Puntuación media",
+    "ratedTitle": "Respuestas",
+    "responseRateTitle": "Tasa de respuesta",
+    "responseRateHint": "de {{ended}} chats finalizados",
+    "distributionTitle": "Distribución",
+    "byAgentTitle": "Por agente",
+    "bySessionTitle": "Por sesión",
+    "agent": "Agente",
+    "unassigned": "Sin asignar",
+    "rated": "Respuestas",
+    "avg": "Media",
+    "endedAt": "Finalizado",
+    "session": "Sesión",
+    "sessionLabel": "Chat {{id}}",
+    "channel": "Canal",
+    "rating": "Puntuación",
+    "ratingFilter": "Filtro de puntuación",
+    "ratingAll": "Puntuación: todas",
+    "agentFilter": "Filtro de agente",
+    "agentAll": "Agente: todos",
+    "empty": "Sin valoraciones en este periodo."
+  }
 }
