@@ -271,6 +271,16 @@ export class KnowledgeController {
     return new Paginated(KnowledgeMapper.toDocumentList(items), buildPagination(page, size, total));
   }
 
+  // Declared BEFORE `documents/:id` on purpose: a later literal segment would
+  // be swallowed by the :id route (same shadowing that once made
+  // `categories` return document counts).
+  @Get('documents/facets')
+  @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
+  @ApiOperation({ summary: 'Distinct source/status values for the list filter selects' })
+  async documentFacets(@CurrentUser() user: Principal) {
+    return this.knowledgeService.listDocumentFacets(this.tenantUser(user).tenantId);
+  }
+
   // `categories/counts`, not `categories`: this is a report about documents,
   // while `GET categories` is the category list itself. Declared first, the
   // bare path silently shadowed that list — the console asked for categories

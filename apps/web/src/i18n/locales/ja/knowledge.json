@@ -343,5 +343,19 @@
     "addDocWords": "社内用語ではなく顧客の言葉で書きます。検索は顧客の質問と本文を突き合わせます。",
     "addDocCategory": "カテゴリは分類であり、範囲を絞ればどのエージェントが引用するかも決めます。",
     "addDocPending": "新しい文書はすぐキーワード検索に使われ、意味検索は索引作成後に始まります。"
+  },
+  "sortBy": "{{column}}で並べ替え",
+  "moreActions": "その他の操作",
+  "filter": {
+    "activeLabel": "表示フィルター",
+    "activeAll": "表示: すべて",
+    "sourceLabel": "出典フィルター",
+    "sourceAll": "出典: すべて",
+    "statusLabel": "状態フィルター",
+    "statusAll": "状態: すべて"
+  },
+  "docStatus": {
+    "embedded": "索引済み",
+    "pending": "待機中"
   }
 }

@@ -55,6 +55,18 @@ export class ListDocumentsQuery {
   @IsOptional() @IsString() category?: string;
   /** counsel | product — omit for all groups. */
   @IsOptional() @IsString() group?: string;
+  // List filters/sort (PLN-260826-KB-Documents-List-UI). All server-side —
+  // the list is server-paginated, so client-side sorting would only ever
+  // order the current page.
+  /** '1' | '0' — visibility filter; omit for both. */
+  @IsOptional() @IsIn(['1', '0']) active?: string;
+  /** Origin system (knowledge_store/google_drive/…); values come from facets. */
+  @IsOptional() @IsString() source?: string;
+  /** embedded | pending. */
+  @IsOptional() @IsString() status?: string;
+  /** Sort axis — anything else falls back to the default id DESC. */
+  @IsOptional() @IsIn(['title', 'updated']) sort?: string;
+  @IsOptional() @IsIn(['asc', 'desc']) order?: string;
   @IsOptional() @IsString() page?: string;
   @IsOptional() @IsString() size?: string;
 }

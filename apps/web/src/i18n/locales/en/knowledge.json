@@ -343,5 +343,19 @@
     "addDocWords": "Use the words customers use, not internal terms — retrieval matches their question against your text.",
     "addDocCategory": "The category files it, and decides which agents may cite it if you narrow it.",
     "addDocPending": "A new document is searchable by keyword immediately; semantic search starts once it is indexed."
+  },
+  "sortBy": "Sort by {{column}}",
+  "moreActions": "More actions",
+  "filter": {
+    "activeLabel": "Visibility filter",
+    "activeAll": "Visibility: all",
+    "sourceLabel": "Source filter",
+    "sourceAll": "Source: all",
+    "statusLabel": "Status filter",
+    "statusAll": "Status: all"
+  },
+  "docStatus": {
+    "embedded": "Embedded",
+    "pending": "Pending"
   }
 }

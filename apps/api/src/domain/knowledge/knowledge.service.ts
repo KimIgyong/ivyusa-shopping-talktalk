@@ -158,6 +158,21 @@ export class KnowledgeService {
     if (query.source_id !== undefined) where.sourceId = Number(query.source_id);
     if (query.category !== undefined) where.category = query.category;
     if (query.group !== undefined) where.docGroup = query.group;
+    // Filters (PLN-260826-KB-Documents-List-UI). Values are equality-matched —
+    // an unknown source/status just returns an empty page, never an error.
+    if (query.active !== undefined) where.active = Number(query.active);
+    if (query.source !== undefined) where.source = query.source;
+    if (query.status !== undefined) where.status = query.status;
+    // Sort axis is a whitelist mapped here — user input never reaches ORDER BY
+    // directly. Unset (or anything else, which the DTO already rejects) keeps
+    // the original id DESC, so existing callers see identical ordering.
+    const dir: 'ASC' | 'DESC' = query.order === 'asc' ? 'ASC' : 'DESC';
+    const order: Record<string, 'ASC' | 'DESC'> =
+      query.sort === 'title'
+        ? { title: dir, id: 'DESC' }
+        : query.sort === 'updated'
+          ? { updatedAt: dir, id: 'DESC' }
+          : { id: 'DESC' };
     const [items, total] = await this.docRepo.findAndCount({
       // PERF-9: the list never renders the LONGTEXT body — skip it so a page
       // of documents doesn't drag megabytes of content off disk. Detail/edit
@@ -181,11 +196,38 @@ export class KnowledgeService {
         'supersededBy',
       ],
       where,
-      order: { id: 'DESC' },
+      order,
       skip: (page - 1) * size,
       take: size,
     });
     return { items, total, page, size };
+  }
+
+  /**
+   * Distinct source/status values actually present for this tenant — the
+   * console's filter selects are built from these instead of a hardcoded
+   * list, so a new origin system shows up the day its first document does
+   * (invisible-fallback prevention).
+   */
+  async listDocumentFacets(tenantId: number): Promise<{ sources: string[]; statuses: string[] }> {
+    const [sources, statuses] = await Promise.all([
+      this.docRepo
+        .createQueryBuilder('kb')
+        .select('DISTINCT kb.source', 'v')
+        .where('kb.tenant_id = :tenantId', { tenantId })
+        .orderBy('v', 'ASC')
+        .getRawMany<{ v: string }>(),
+      this.docRepo
+        .createQueryBuilder('kb')
+        .select('DISTINCT kb.status', 'v')
+        .where('kb.tenant_id = :tenantId', { tenantId })
+        .orderBy('v', 'ASC')
+        .getRawMany<{ v: string }>(),
+    ]);
+    return {
+      sources: sources.map((r) => r.v).filter(Boolean),
+      statuses: statuses.map((r) => r.v).filter(Boolean),
+    };
   }
 
   /** Full document including LONGTEXT content (list omits it — PERF-9). */

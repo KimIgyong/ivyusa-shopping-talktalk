@@ -14,7 +14,7 @@ import type { UsageGuide, UsageType } from './knowledge.service';
 import { Progress } from '@/components/Progress';
 import { Pagination } from '@/components/Pagination';
 import { FormRow, Input, Select } from '@/components/Field';
-import { ExternalLink } from 'lucide-react';
+import { ArrowDown, ArrowUp, ExternalLink, MoreHorizontal } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { KnowledgeQaPanel } from './KnowledgeQaPanel';
 import {
@@ -45,6 +45,7 @@ import {
   useDeleteNotionCredential,
   useTestNotion,
   useDocuments,
+  useDocumentFacets,
   useDocument,
   useCreateDocument,
   useImportProducts,
@@ -117,12 +118,59 @@ export function KnowledgePage() {
   // '' = all groups. Switching groups clears the category, which belongs to the
   // group that was selected.
   const [group, setGroup] = useState('');
+  // List filters + sort (PLN-260826-KB-Documents-List-UI). '' = no filter.
+  // All applied server-side — the list is server-paginated, so sorting the
+  // current page client-side would silently lie across pages.
+  const [docActive, setDocActive] = useState('');
+  const [docSource, setDocSource] = useState('');
+  const [docStatus, setDocStatus] = useState('');
+  const [docSort, setDocSort] = useState<'title' | 'updated' | null>(null);
+  const [docOrder, setDocOrder] = useState<'asc' | 'desc'>('asc');
+  const facets = useDocumentFacets();
+  const setDocFilter = (setter: (v: string) => void) => (v: string) => {
+    setter(v);
+    setPage(1);
+  };
+  // Header click: none → asc → desc → none; picking one axis clears the other.
+  const cycleSort = (axis: 'title' | 'updated') => {
+    if (docSort !== axis) {
+      setDocSort(axis);
+      setDocOrder('asc');
+    } else if (docOrder === 'asc') {
+      setDocOrder('desc');
+    } else {
+      setDocSort(null);
+      setDocOrder('asc');
+    }
+    setPage(1);
+  };
   const documents = useDocuments({
     page,
     size: PAGE_SIZE,
     category: category || undefined,
     group: group || undefined,
+    active: docActive || undefined,
+    source: docSource || undefined,
+    status: docStatus || undefined,
+    sort: docSort ?? undefined,
+    order: docSort ? docOrder : undefined,
   });
+  // Which row's more-menu (⋯) is open, with the anchor rect: the panel is
+  // position:fixed so the table's overflow container cannot clip it.
+  const [moreFor, setMoreFor] = useState<{ id: string; top: number; right: number } | null>(null);
+  useEffect(() => {
+    if (!moreFor) return;
+    const close = () => setMoreFor(null);
+    window.addEventListener('scroll', close, true);
+    window.addEventListener('resize', close);
+    // Click-away; the panel itself stops propagation.
+    document.addEventListener('click', close);
+    return () => {
+      window.removeEventListener('scroll', close, true);
+      window.removeEventListener('resize', close);
+      document.removeEventListener('click', close);
+    };
+  }, [moreFor]);
   const createDocument = useCreateDocument();
   const updateDocument = useUpdateDocument();
   const deleteDocument = useDeleteDocument();
@@ -437,10 +485,38 @@ export function KnowledgePage() {
     },
   ];
 
+  /** Clickable sort header: none → asc → desc → none (single axis). */
+  const sortHeader = (axis: 'title' | 'updated', label: string) => (
+    <button
+      type="button"
+      onClick={() => cycleSort(axis)}
+      className="flex items-center gap-1 font-medium text-gray-600 hover:text-gray-800"
+      aria-label={t('sortBy', { column: label })}
+    >
+      {label}
+      {docSort === axis &&
+        (docOrder === 'asc' ? (
+          <ArrowUp className="h-3.5 w-3.5" />
+        ) : (
+          <ArrowDown className="h-3.5 w-3.5" />
+        ))}
+    </button>
+  );
+
+  // Title-first layout (PLN-260826-KB-Documents-List-UI): the list's job is
+  // finding and opening documents, so the title gets the remaining ~80% and
+  // everything secondary (visibility/source/status/delete) moves into ⋯.
   const docColumns: Column<KnowledgeDocument>[] = [
     {
+      key: 'category',
+      header: t('category'),
+      className: 'w-32 whitespace-nowrap',
+      render: (r) => (r.category ? <Badge tone="info">{r.category}</Badge> : '—'),
+    },
+    {
       key: 'title',
-      header: t('title_column'),
+      header: sortHeader('title', t('title_column')),
+      className: 'w-full',
       render: (r) => (
         <button
           type="button"
@@ -452,49 +528,9 @@ export function KnowledgePage() {
       ),
     },
     {
-      key: 'category',
-      header: t('category'),
-      render: (r) => (r.category ? <Badge tone="info">{r.category}</Badge> : '—'),
-    },
-    {
-      key: 'active',
-      header: t('active'),
-      render: (r) => (
-        <Button
-          variant="ghost"
-          size="sm"
-          disabled={updateDocument.isPending}
-          onClick={() => toggleActive(r)}
-        >
-          <Badge tone={r.active === 1 ? 'success' : 'warning'}>
-            {r.active === 1 ? t('visible') : t('hidden')}
-          </Badge>
-        </Button>
-      ),
-    },
-    {
-      key: 'source',
-      header: t('sourceColumn'),
-      // The field was always in the payload but never rendered, so an admin
-      // could not tell a knowledge-store entry from an imported Drive doc.
-      render: (r) => <Badge tone="gray">{t(`source.${r.source}`, { defaultValue: r.source })}</Badge>,
-    },
-    {
-      key: 'status',
-      header: t('status'),
-      // `pending` reads as "not in use yet", and it is not: the keyword leg of
-      // retrieval has no status filter, so the document is already citable —
-      // only the semantic leg is waiting on an embedding. Saying nothing here
-      // let an operator believe a live document was still parked.
-      render: (r) => (
-        <span title={r.status === 'pending' ? t('statusPendingHint') : undefined}>
-          <StatusBadge status={r.status} />
-        </span>
-      ),
-    },
-    {
       key: 'updatedAt',
-      header: t('updated'),
+      header: sortHeader('updated', t('updated')),
+      className: 'whitespace-nowrap',
       render: (r) => (
         <span className="flex items-center gap-1">
           {r.updatedAt ? new Date(r.updatedAt).toLocaleDateString() : '—'}
@@ -503,37 +539,27 @@ export function KnowledgePage() {
       ),
     },
     {
-      key: 'link',
+      key: 'more',
       header: '',
-      // Shortcut straight to the shop page. Only documents that carry a URL
-      // show one — policy documents currently have none.
-      render: (r) =>
-        r.sourceUrl ? (
-          <a
-            href={r.sourceUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            title={t('openProductPage')}
-            className="text-gray-400 hover:text-primary-600"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <ExternalLink className="h-4 w-4" />
-          </a>
-        ) : null,
-    },
-    {
-      key: 'actions',
-      header: '',
-      className: 'text-right',
+      className: 'w-10 text-right',
       render: (r) => (
-        <Button
-          variant="danger"
-          size="sm"
-          disabled={deleteDocument.isPending}
-          onClick={() => removeDoc(r.id)}
+        <button
+          type="button"
+          aria-label={t('moreActions')}
+          title={t('moreActions')}
+          onClick={(e) => {
+            e.stopPropagation();
+            const rect = e.currentTarget.getBoundingClientRect();
+            setMoreFor((prev) =>
+              prev?.id === r.id
+                ? null
+                : { id: r.id, top: rect.bottom + 4, right: window.innerWidth - rect.right },
+            );
+          }}
+          className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
         >
-          {tc('delete')}
-        </Button>
+          <MoreHorizontal className="h-4 w-4" />
+        </button>
       ),
     },
   ];
@@ -873,6 +899,48 @@ export function KnowledgePage() {
             </nav>
 
             <div className="min-w-0 flex-1">
+              {/* Server-side filters (PLN-260826): visibility / source / status.
+                  Source & status options come from tenant facets, never a
+                  hardcoded list — a new origin appears the day its first
+                  document does. */}
+              <div className="mb-2 flex flex-wrap items-center gap-2">
+                <select
+                  value={docActive}
+                  onChange={(e) => setDocFilter(setDocActive)(e.target.value)}
+                  aria-label={t('filter.activeLabel')}
+                  className="rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs text-gray-600 outline-none focus:border-primary-400"
+                >
+                  <option value="">{t('filter.activeAll')}</option>
+                  <option value="1">{t('visible')}</option>
+                  <option value="0">{t('hidden')}</option>
+                </select>
+                <select
+                  value={docSource}
+                  onChange={(e) => setDocFilter(setDocSource)(e.target.value)}
+                  aria-label={t('filter.sourceLabel')}
+                  className="rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs text-gray-600 outline-none focus:border-primary-400"
+                >
+                  <option value="">{t('filter.sourceAll')}</option>
+                  {(facets.data?.sources ?? []).map((v) => (
+                    <option key={v} value={v}>
+                      {t(`source.${v}`, { defaultValue: v })}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  value={docStatus}
+                  onChange={(e) => setDocFilter(setDocStatus)(e.target.value)}
+                  aria-label={t('filter.statusLabel')}
+                  className="rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs text-gray-600 outline-none focus:border-primary-400"
+                >
+                  <option value="">{t('filter.statusAll')}</option>
+                  {(facets.data?.statuses ?? []).map((v) => (
+                    <option key={v} value={v}>
+                      {t(`docStatus.${v}`, { defaultValue: v })}
+                    </option>
+                  ))}
+                </select>
+              </div>
               <Table<KnowledgeDocument>
                 columns={docColumns}
                 data={docList?.items}
@@ -894,6 +962,73 @@ export function KnowledgePage() {
             </div>
           </div>
         </Card>
+
+        {/* Row more-menu (⋯): fixed so the table's scroll container cannot
+            clip it. Holds everything the old columns held — visibility toggle,
+            source, status, product link, delete (PLN-260826). */}
+        {moreFor &&
+          (() => {
+            const doc = docList?.items.find((d) => d.id === moreFor.id);
+            if (!doc) return null;
+            return (
+              <div
+                role="menu"
+                onClick={(e) => e.stopPropagation()}
+                style={{ position: 'fixed', top: moreFor.top, right: moreFor.right, zIndex: 40 }}
+                className="w-56 rounded-lg border border-gray-200 bg-white p-2 shadow-lg"
+              >
+                <button
+                  type="button"
+                  disabled={updateDocument.isPending}
+                  onClick={() => {
+                    toggleActive(doc);
+                    setMoreFor(null);
+                  }}
+                  className="flex w-full items-center justify-between rounded px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-50"
+                >
+                  <span>{t('active')}</span>
+                  <Badge tone={doc.active === 1 ? 'success' : 'warning'}>
+                    {doc.active === 1 ? t('visible') : t('hidden')}
+                  </Badge>
+                </button>
+                <div className="flex items-center justify-between px-2 py-1.5 text-sm text-gray-500">
+                  <span>{t('sourceColumn')}</span>
+                  <Badge tone="gray">{t(`source.${doc.source}`, { defaultValue: doc.source })}</Badge>
+                </div>
+                <div
+                  className="flex items-center justify-between px-2 py-1.5 text-sm text-gray-500"
+                  title={doc.status === 'pending' ? t('statusPendingHint') : undefined}
+                >
+                  <span>{t('status')}</span>
+                  <StatusBadge status={doc.status} />
+                </div>
+                {doc.sourceUrl && (
+                  <a
+                    href={doc.sourceUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => setMoreFor(null)}
+                    className="flex w-full items-center justify-between rounded px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-50"
+                  >
+                    <span>{t('openProductPage')}</span>
+                    <ExternalLink className="h-4 w-4 text-gray-400" />
+                  </a>
+                )}
+                <div className="my-1 border-t border-gray-100" />
+                <button
+                  type="button"
+                  disabled={deleteDocument.isPending}
+                  onClick={() => {
+                    setMoreFor(null);
+                    removeDoc(doc.id);
+                  }}
+                  className="w-full rounded px-2 py-1.5 text-left text-sm text-red-600 hover:bg-red-50"
+                >
+                  {tc('delete')}
+                </button>
+              </div>
+            );
+          })()}
         </div>
 
         <div className="space-y-4 xl:sticky xl:top-6 xl:self-start">
