@@ -1,4 +1,5 @@
-import { BtbzRelayAdapter, extractCookieToken } from './btbz-relay.adapter';
+import { Logger } from '@nestjs/common';
+import { subChannelFrom, BtbzRelayAdapter, extractCookieToken } from './btbz-relay.adapter';
 import { MessengerChannel } from '../entity/messenger-channel.entity';
 import { ChannelThread } from '../entity/channel-thread.entity';
 import { RedisService } from '../../../infrastructure/cache/redis.service';
@@ -560,5 +561,51 @@ describe('BtbzRelayAdapter — signed provider mode', () => {
 
     expect(calls.some((c) => c.url.includes('/api/provider/'))).toBe(false);
     expect(calls.some((c) => c.url.includes('/api/inbox/conversations'))).toBe(true);
+  });
+});
+
+describe('subChannelFrom — the relay names more messengers than we mapped (REQ-260826)', () => {
+  it('names every channel type the relay actually sends', () => {
+    // Measured against the live relay on 2026-08-26: eight types across a
+    // 165-conversation sample, of which we translated two.
+    expect(subChannelFrom('relay_kakao_pc')).toBe('kakao');
+    expect(subChannelFrom('relay_sms')).toBe('sms');
+    expect(subChannelFrom('relay_zalo')).toBe('zalo');
+    expect(subChannelFrom('relay_line')).toBe('line');
+    expect(subChannelFrom('relay_wechat')).toBe('wechat');
+    expect(subChannelFrom('relay_viber')).toBe('viber');
+    expect(subChannelFrom('relay_telegram')).toBe('telegram');
+    expect(subChannelFrom('relay_whatsapp')).toBe('whatsapp');
+  });
+
+  it('reads the provider API’s longer origins too', () => {
+    expect(subChannelFrom('line_android_notification')).toBe('line');
+    expect(subChannelFrom('SMS')).toBe('sms');
+  });
+
+  it('matches whole segments, never substrings', () => {
+    // `includes('kakao')` would claim KakaoStory as KakaoTalk — the same trap
+    // that made `fulfil` match `Unfulfilled`.
+    expect(subChannelFrom('relay_kakaostory')).toBe('relay');
+    expect(subChannelFrom('relay_linewalk')).toBe('relay');
+  });
+
+  it('keeps an unknown type visible as relay rather than borrowing a badge', () => {
+    expect(subChannelFrom('relay_something_new')).toBe('relay');
+    expect(subChannelFrom(null)).toBe('relay');
+    expect(subChannelFrom('')).toBe('relay');
+  });
+
+  it('warns once per unmapped value, not once per message', () => {
+    // A messenger the relay adds is otherwise invisible: nothing fails, the
+    // badge just goes quiet.
+    const warn = jest.fn();
+    const logger = { warn } as unknown as Logger;
+
+    subChannelFrom('relay_brandnew', logger);
+    subChannelFrom('relay_brandnew', logger);
+
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn.mock.calls[0][0]).toContain('relay_brandnew');
   });
 });

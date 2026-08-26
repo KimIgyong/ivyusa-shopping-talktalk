@@ -35,23 +35,59 @@ const MAX_PROVIDER_PAGES = 20;
 /** Channel-level provider cursor survives restarts; re-ingest is dedup-safe anyway. */
 const PROVIDER_CURSOR_TTL_SEC = 30 * 24 * 3600;
 
-/** relay_channel.channel_type → the short name the console badges. */
-const SUB_CHANNEL: Record<string, string> = {
-  relay_kakao_pc: 'kakao',
-  relay_sms: 'sms',
-};
+/**
+ * Messengers the console can name — badge colour, label and filter entry all
+ * exist for each (REQ-260826).
+ *
+ * The relay answers with `relay_kakao_pc`, `relay_zalo`, `relay_wechat`… so the
+ * prefix is stripped and the remainder checked against this set. Checked, not
+ * trusted: passing an unlisted value straight through would print the raw
+ * `relay_kakaostory` in a chip that has no colour or translation for it.
+ */
+const RELAY_SUB_CHANNELS = new Set([
+  'kakao',
+  'sms',
+  'line',
+  'zalo',
+  'wechat',
+  'viber',
+  'telegram',
+  'whatsapp',
+]);
+
+/** Which unknown values have already been logged — one warning each, not one per message. */
+const unknownReported = new Set<string>();
 
 /**
- * Provider-API `origin` → console badge. Origins are open-ended
- * ('relay_kakao_pc', 'line_android_notification', 'sms'…), so substring
- * matching beats a closed map: an unknown origin stays visible as 'relay'
- * instead of silently borrowing another channel's badge.
+ * `relay_kakao_pc` / `line_android_notification` / `sms` → the console badge.
+ *
+ * Two entries used to be mapped and everything else became 'relay': measured on
+ * 2026-08-26 that was 29% of the relay's traffic — zalo, line, wechat, viber,
+ * telegram and whatsapp rooms all arriving as "some relay" while their
+ * counterpart names read "Rakuten Viber" and "WeChat 사용자".
+ *
+ * Unknown values still fall back to 'relay' — that part was right, since
+ * borrowing another channel's badge is worse than being vague — but they now
+ * say so in the log. Before this, a messenger the relay added was invisible:
+ * nothing failed, the badge just went quiet.
  */
-function subChannelFromOrigin(origin: string | null | undefined): string {
-  const o = (origin ?? '').toLowerCase();
-  if (o.includes('kakao')) return 'kakao';
-  if (o.includes('sms')) return 'sms';
-  if (o.includes('line')) return 'line';
+export function subChannelFrom(raw: string | null | undefined, logger?: Logger): string {
+  const value = (raw ?? '').toLowerCase().trim();
+  if (!value) return 'relay';
+  // Matched segment by segment, never by substring: `relay_kakao_pc` → kakao and
+  // `line_android_notification` → line, while `relay_kakaostory` matches nothing
+  // and stays 'relay'. A plain `includes('kakao')` would have claimed KakaoStory
+  // as KakaoTalk — the same trap that made `fulfil` match `Unfulfilled`.
+  for (const part of value.split(/[_\-.]/)) {
+    if (RELAY_SUB_CHANNELS.has(part)) return part;
+  }
+  if (logger && !unknownReported.has(value)) {
+    unknownReported.add(value);
+    logger.warn(
+      `btbz relay: unmapped channel_type '${value}' — shown as 'relay'. ` +
+        `Add it to RELAY_SUB_CHANNELS (and the console badge) to name it.`,
+    );
+  }
   return 'relay';
 }
 
@@ -256,7 +292,7 @@ export class BtbzRelayAdapter implements MessengerAdapter {
           externalUserName: msg.sender_name ?? conv.counterpart_display ?? null,
           text,
           languageHint: null,
-          subChannel: SUB_CHANNEL[conv.channel_type ?? ''] ?? 'relay',
+          subChannel: subChannelFrom(conv.channel_type, this.logger),
           // SMS is receive-only: the relay rejects a reply with 400, so the
           // thread is marked here and the outbox never attempts a send.
           replyEnabled: truthy(conv.reply_enabled),
@@ -330,7 +366,7 @@ export class BtbzRelayAdapter implements MessengerAdapter {
           externalUserName: msg.senderName ?? conv?.counterpartDisplay ?? null,
           text,
           languageHint: null,
-          subChannel: subChannelFromOrigin(msg.origin ?? conv?.origin),
+          subChannel: subChannelFrom(msg.origin ?? conv?.origin, this.logger),
           replyEnabled: conv?.replyEnabled ?? true,
           occurredAt: parseDate(msg.occurredAt),
           attachments: attachments.length ? attachments : undefined,
