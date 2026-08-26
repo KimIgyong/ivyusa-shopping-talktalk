@@ -166,6 +166,22 @@ export function useSaveIntegration(provider: string) {
   });
 }
 
+export function useSyncOdooProducts() {
+  const qc = useQueryClient();
+  const tenantKey = useTenantKey();
+  return useMutation({
+    mutationFn: () => settingsService.syncOdooProducts(),
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: ['integration', 'odoo', tenantKey] });
+      if (res.ok) toast.success(res.detail);
+      else toast.error(res.detail);
+    },
+    onError: (e: Error) => {
+      toast.error(e.message || 'Odoo product sync failed.');
+    },
+  });
+}
+
 export function useTestIntegration(provider: string) {
   const qc = useQueryClient();
   const tenantKey = useTenantKey();

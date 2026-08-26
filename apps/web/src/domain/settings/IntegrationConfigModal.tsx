@@ -5,7 +5,12 @@ import { Badge } from '@/components/Badge';
 import { Button } from '@/components/Button';
 import { Modal } from '@/components/Modal';
 import { FormRow, Input } from '@/components/Field';
-import { useIntegration, useSaveIntegration, useTestIntegration } from './settings.hooks';
+import {
+  useIntegration,
+  useSaveIntegration,
+  useSyncOdooProducts,
+  useTestIntegration,
+} from './settings.hooks';
 
 function fmtDate(value?: string | null): string {
   if (!value) return '—';
@@ -33,6 +38,8 @@ export function IntegrationConfigModal({
   const { data, isLoading } = useIntegration(provider);
   const save = useSaveIntegration(provider);
   const test = useTestIntegration(provider);
+  // Odoo is the only generic provider with a catalogue pull so far (REQ-260826).
+  const syncOdooProducts = useSyncOdooProducts();
   const specs = INTEGRATION_FIELDS[provider];
 
   const [values, setValues] = useState<Record<string, string>>({});
@@ -114,7 +121,7 @@ export function IntegrationConfigModal({
         </FormRow>
       ))}
 
-      <div className="mt-4 flex items-center gap-3">
+      <div className="mt-4 flex flex-wrap items-center gap-3">
         <Button
           variant="secondary"
           onClick={() => test.mutate()}
@@ -122,7 +129,21 @@ export function IntegrationConfigModal({
         >
           {test.isPending ? t('integrations.testing') : t('integrations.testConnection')}
         </Button>
+        {provider === 'odoo' && (
+          <Button
+            variant="secondary"
+            onClick={() => syncOdooProducts.mutate()}
+            disabled={syncOdooProducts.isPending || !configured}
+          >
+            {syncOdooProducts.isPending
+              ? t('integrations.syncing')
+              : t('integrations.odoo.syncProducts')}
+          </Button>
+        )}
       </div>
+      {provider === 'odoo' && (
+        <p className="mt-2 text-xs text-gray-400">{t('integrations.odoo.syncProductsHint')}</p>
+      )}
 
       <div className="mt-4 space-y-1 border-t border-gray-100 pt-4 text-sm">
         <div className="flex items-center gap-2">

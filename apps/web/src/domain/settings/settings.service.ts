@@ -191,6 +191,10 @@ export const settingsService = {
     apiPut<IntegrationSettings>(`/tenants/me/integrations/${provider}`, { config }),
   testIntegration: (provider: string) =>
     apiPost<IntegrationTestResult>(`/tenants/me/integrations/${provider}/test`),
+  // Odoo catalogue → products_cache (REQ-260826, products-only). Same result
+  // shape as the Cafe24 product sync.
+  syncOdooProducts: () =>
+    apiPost<Cafe24ProductSyncResult>('/tenants/me/odoo/products/sync'),
   // Cafe24 OAuth (PLN-260807 P-A1): begin the flow (returns the authorize URL the
   // browser navigates to) and run an on-demand order sync.
   aiEngines: () => apiGet<TenantAiEngineList>('/tenants/me/ai-engines'),

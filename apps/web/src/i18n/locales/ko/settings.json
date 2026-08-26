@@ -174,7 +174,9 @@
     },
     "odoo": {
       "title": "Odoo",
-      "subtitle": "외부 API(URL·DB·사용자·API 키)로 Odoo를 연결합니다."
+      "subtitle": "외부 API(URL·DB·사용자·API 키)로 Odoo를 연결합니다.",
+      "syncProducts": "상품 가져오기",
+      "syncProductsHint": "Odoo 카탈로그를 ShopTalk으로 가져옵니다. 가져온 뒤 지식 메뉴에서 지식으로 등록하면 위젯 상품 답변에 사용됩니다."
     },
     "haravan": {
       "title": "Haravan",
@@ -191,7 +193,8 @@
     "gorgias": {
       "title": "Gorgias",
       "subtitle": "헬프데스크 — 에스컬레이션된 상담을 Gorgias 티켓으로 전달할 수 있습니다."
-    }
+    },
+    "syncing": "동기화 중…"
   },
   "install": {
     "subtitle": "채팅 위젯을 쇼핑몰에 설치합니다. 플랫폼을 선택하세요.",

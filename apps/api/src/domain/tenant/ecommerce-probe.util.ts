@@ -12,7 +12,7 @@ const TIMEOUT_MS = 6000;
 const ASCII = /^[\x21-\x7e]+$/;
 
 /** Raised when a tenant-supplied URL fails the SSRF allowlist (SEC-M3). */
-class SsrfBlockedError extends Error {}
+export class SsrfBlockedError extends Error {}
 
 /**
  * Reject a tenant-supplied URL that could reach internal infrastructure (SEC-M3).
@@ -20,7 +20,7 @@ class SsrfBlockedError extends Error {}
  * link-local / CGNAT / cloud-metadata address. Applied to the free-form Woo/Odoo
  * URLs before any fetch (Cafe24/Haravan are pinned to their vendor domains).
  */
-async function assertPublicUrl(rawUrl: string): Promise<void> {
+export async function assertPublicUrl(rawUrl: string): Promise<void> {
   let parsed: URL;
   try {
     parsed = new URL(rawUrl);
