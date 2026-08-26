@@ -195,6 +195,8 @@ export const settingsService = {
   // shape as the Cafe24 product sync.
   syncOdooProducts: () =>
     apiPost<Cafe24ProductSyncResult>('/tenants/me/odoo/products/sync'),
+  // Odoo confirmed orders (+ buyers) → orders_cache (REQ-260826, W3).
+  syncOdooOrders: () => apiPost<Cafe24SyncResult>('/tenants/me/odoo/sync'),
   // Cafe24 OAuth (PLN-260807 P-A1): begin the flow (returns the authorize URL the
   // browser navigates to) and run an on-demand order sync.
   aiEngines: () => apiGet<TenantAiEngineList>('/tenants/me/ai-engines'),

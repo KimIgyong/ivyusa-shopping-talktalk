@@ -176,7 +176,8 @@
       "title": "Odoo",
       "subtitle": "通过外部 API（URL、数据库、用户、API 密钥）连接 Odoo。",
       "syncProducts": "导入商品",
-      "syncProductsHint": "将 Odoo 目录导入 ShopTalk。导入后在知识菜单中登记为知识，即可用于挂件的商品回答。"
+      "syncProductsHint": "将 Odoo 目录导入 ShopTalk。导入后在知识菜单中登记为知识，即可用于挂件的商品回答。",
+      "syncOrders": "同步订单"
     },
     "haravan": {
       "title": "Haravan",

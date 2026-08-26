@@ -22,6 +22,34 @@ export interface OdooProduct {
   description_sale?: string | false;
 }
 
+/** A sale.order row (W0-confirmed fields). */
+export interface OdooOrder {
+  id: number;
+  name?: string;
+  state?: string;
+  amount_total?: number;
+  currency_id?: [number, string] | false;
+  date_order?: string | false;
+  partner_id?: [number, string] | false;
+}
+
+/** A sale.order.line row (order_id links it back to its order). */
+export interface OdooOrderLine {
+  id: number;
+  order_id?: [number, string] | false;
+  product_id?: [number, string] | false;
+  name?: string;
+  product_uom_qty?: number;
+  price_unit?: number;
+}
+
+/** A res.partner row read for the buyer of an order. */
+export interface OdooPartner {
+  id: number;
+  name?: string;
+  email?: string | false;
+}
+
 const TIMEOUT_MS = 15000;
 
 /**
@@ -132,6 +160,47 @@ export class OdooClient {
       limit: opts.limit,
       order: 'id asc',
     })) as OdooProduct[];
+    return Array.isArray(rows) ? rows : [];
+  }
+
+  /**
+   * One page of real orders — confirmed (`sale`/`done`) and cancelled, but never
+   * quotations (`draft`/`sent`), which are not orders a shopper placed.
+   */
+  async pullOrders(
+    config: OdooConfig,
+    uid: number,
+    opts: { offset: number; limit: number },
+  ): Promise<OdooOrder[]> {
+    const domain = [['state', 'in', ['sale', 'done', 'cancel']]];
+    const fields = ['id', 'name', 'state', 'amount_total', 'currency_id', 'date_order', 'partner_id'];
+    const rows = (await this.execKw(config, uid, 'sale.order', 'search_read', [domain, fields], {
+      offset: opts.offset,
+      limit: opts.limit,
+      order: 'id asc',
+    })) as OdooOrder[];
+    return Array.isArray(rows) ? rows : [];
+  }
+
+  /** All line items for the given order ids, in one call. */
+  async pullOrderLines(config: OdooConfig, uid: number, orderIds: number[]): Promise<OdooOrderLine[]> {
+    if (orderIds.length === 0) return [];
+    const domain = [['order_id', 'in', orderIds]];
+    const fields = ['id', 'order_id', 'product_id', 'name', 'product_uom_qty', 'price_unit'];
+    const rows = (await this.execKw(config, uid, 'sale.order.line', 'search_read', [domain, fields], {
+      // display_type lines (sections/notes) have no product — skip them downstream.
+      limit: 5000,
+    })) as OdooOrderLine[];
+    return Array.isArray(rows) ? rows : [];
+  }
+
+  /** Buyer records for the given partner ids, in one call (id → {name, email}). */
+  async pullPartners(config: OdooConfig, uid: number, partnerIds: number[]): Promise<OdooPartner[]> {
+    if (partnerIds.length === 0) return [];
+    const rows = (await this.execKw(config, uid, 'res.partner', 'read', [
+      partnerIds,
+      ['id', 'name', 'email'],
+    ])) as OdooPartner[];
     return Array.isArray(rows) ? rows : [];
   }
 }
