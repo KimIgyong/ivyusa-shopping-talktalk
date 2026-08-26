@@ -176,7 +176,8 @@
       "title": "Odoo",
       "subtitle": "外部API（URL・データベース・ユーザー・APIキー）でOdooと連携します。",
       "syncProducts": "商品を取り込む",
-      "syncProductsHint": "Odoo カタログを ShopTalk に取り込みます。取り込み後、ナレッジメニューでナレッジ登録するとウィジェットの商品回答に使えます。"
+      "syncProductsHint": "Odoo カタログを ShopTalk に取り込みます。取り込み後、ナレッジメニューでナレッジ登録するとウィジェットの商品回答に使えます。",
+      "syncOrders": "注文を同期"
     },
     "haravan": {
       "title": "Haravan",

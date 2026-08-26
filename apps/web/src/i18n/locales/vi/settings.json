@@ -176,7 +176,8 @@
       "title": "Odoo",
       "subtitle": "Kết nối Odoo qua API bên ngoài (URL, cơ sở dữ liệu, người dùng, khóa API).",
       "syncProducts": "Nhập sản phẩm",
-      "syncProductsHint": "Kéo danh mục Odoo vào ShopTalk. Sau khi nhập, đăng ký làm tri thức trong menu Tri thức để trả lời sản phẩm trên widget."
+      "syncProductsHint": "Kéo danh mục Odoo vào ShopTalk. Sau khi nhập, đăng ký làm tri thức trong menu Tri thức để trả lời sản phẩm trên widget.",
+      "syncOrders": "Đồng bộ đơn hàng"
     },
     "haravan": {
       "title": "Haravan",

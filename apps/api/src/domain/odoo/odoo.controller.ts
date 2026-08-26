@@ -2,6 +2,7 @@ import { Controller, HttpStatus, Post } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CAPABILITY, Principal } from '@ivy/types';
 import { OdooProductSyncService } from './odoo-product-sync.service';
+import { OdooSyncService } from './odoo-sync.service';
 import { RequireCapability, RequireMenu } from '../../global/decorator/auth.decorator';
 import { CurrentUser } from '../../global/decorator/current-user.decorator';
 import { BusinessException } from '../../global/exception/business.exception';
@@ -12,7 +13,10 @@ import { ERROR_CODE } from '../../global/constant/error-code.constant';
 @Controller('tenants/me/odoo')
 @RequireMenu('settings')
 export class OdooController {
-  constructor(private readonly productSyncService: OdooProductSyncService) {}
+  constructor(
+    private readonly productSyncService: OdooProductSyncService,
+    private readonly syncService: OdooSyncService,
+  ) {}
 
   private tenantId(user: Principal): number {
     if (user.actorType !== 'user') {
@@ -31,5 +35,12 @@ export class OdooController {
   @ApiOperation({ summary: 'Pull the Odoo catalogue into products_cache' })
   async syncProducts(@CurrentUser() user: Principal) {
     return this.productSyncService.syncProducts(this.tenantId(user));
+  }
+
+  @Post('sync')
+  @RequireCapability(CAPABILITY.INTEGRATION_CREDENTIALS_MANAGE)
+  @ApiOperation({ summary: 'Sync confirmed orders (+ buyers) from Odoo into the cache' })
+  async sync(@CurrentUser() user: Principal) {
+    return this.syncService.syncOrders(this.tenantId(user));
   }
 }

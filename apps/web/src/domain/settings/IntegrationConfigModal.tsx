@@ -8,6 +8,7 @@ import { FormRow, Input } from '@/components/Field';
 import {
   useIntegration,
   useSaveIntegration,
+  useSyncOdooOrders,
   useSyncOdooProducts,
   useTestIntegration,
 } from './settings.hooks';
@@ -40,6 +41,7 @@ export function IntegrationConfigModal({
   const test = useTestIntegration(provider);
   // Odoo is the only generic provider with a catalogue pull so far (REQ-260826).
   const syncOdooProducts = useSyncOdooProducts();
+  const syncOdooOrders = useSyncOdooOrders();
   const specs = INTEGRATION_FIELDS[provider];
 
   const [values, setValues] = useState<Record<string, string>>({});
@@ -130,15 +132,26 @@ export function IntegrationConfigModal({
           {test.isPending ? t('integrations.testing') : t('integrations.testConnection')}
         </Button>
         {provider === 'odoo' && (
-          <Button
-            variant="secondary"
-            onClick={() => syncOdooProducts.mutate()}
-            disabled={syncOdooProducts.isPending || !configured}
-          >
-            {syncOdooProducts.isPending
-              ? t('integrations.syncing')
-              : t('integrations.odoo.syncProducts')}
-          </Button>
+          <>
+            <Button
+              variant="secondary"
+              onClick={() => syncOdooProducts.mutate()}
+              disabled={syncOdooProducts.isPending || !configured}
+            >
+              {syncOdooProducts.isPending
+                ? t('integrations.syncing')
+                : t('integrations.odoo.syncProducts')}
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => syncOdooOrders.mutate()}
+              disabled={syncOdooOrders.isPending || !configured}
+            >
+              {syncOdooOrders.isPending
+                ? t('integrations.syncing')
+                : t('integrations.odoo.syncOrders')}
+            </Button>
+          </>
         )}
       </div>
       {provider === 'odoo' && (

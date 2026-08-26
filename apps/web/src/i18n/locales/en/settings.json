@@ -176,7 +176,8 @@
       "title": "Odoo",
       "subtitle": "Connect Odoo via the external API (URL, database, user, API key).",
       "syncProducts": "Import products",
-      "syncProductsHint": "Pulls the Odoo catalogue into ShopTalk. After importing, register it as knowledge in the Knowledge menu to power widget product answers."
+      "syncProductsHint": "Pulls the Odoo catalogue into ShopTalk. After importing, register it as knowledge in the Knowledge menu to power widget product answers.",
+      "syncOrders": "Sync orders"
     },
     "haravan": {
       "title": "Haravan",

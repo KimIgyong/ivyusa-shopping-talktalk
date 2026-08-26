@@ -176,7 +176,8 @@
       "title": "Odoo",
       "subtitle": "외부 API(URL·DB·사용자·API 키)로 Odoo를 연결합니다.",
       "syncProducts": "상품 가져오기",
-      "syncProductsHint": "Odoo 카탈로그를 ShopTalk으로 가져옵니다. 가져온 뒤 지식 메뉴에서 지식으로 등록하면 위젯 상품 답변에 사용됩니다."
+      "syncProductsHint": "Odoo 카탈로그를 ShopTalk으로 가져옵니다. 가져온 뒤 지식 메뉴에서 지식으로 등록하면 위젯 상품 답변에 사용됩니다.",
+      "syncOrders": "주문 동기화"
     },
     "haravan": {
       "title": "Haravan",
