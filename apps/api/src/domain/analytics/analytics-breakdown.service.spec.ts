@@ -1,4 +1,4 @@
-import { inZone, median } from './analytics-breakdown.service';
+import { AnalyticsBreakdownService, inZone, median } from './analytics-breakdown.service';
 
 /**
  * The two calculations in these lenses that can be wrong without looking wrong.
@@ -47,5 +47,63 @@ describe('hour-of-day in the tenant timezone', () => {
     const at = new Date('2026-08-26T15:00:00Z');
 
     expect(inZone(at, 'Asia/Seoul').hour).toBe(0);
+  });
+});
+
+
+/**
+ * The 500 the unit tests could not see.
+ *
+ * `agents()` selected `c.session_id` — the column, not the property — so
+ * TypeORM returned entities whose `sessionId` was undefined, `Number(undefined)`
+ * bound as NaN, and MySQL answered "Unknown column 'NaN' in 'where clause'".
+ * Every double in this suite returns whatever shape the test writes, so only
+ * the real database could produce it; the guard below is what makes the failure
+ * impossible to reach again.
+ */
+describe('session lookup for the agent lens', () => {
+  const build = (captured: unknown[]) => {
+    const qb: Record<string, unknown> = {};
+    for (const m of ['select', 'where', 'andWhere']) {
+      qb[m] = (_a: unknown, params?: Record<string, unknown>) => {
+        if (params) captured.push(params);
+        return qb;
+      };
+    }
+    qb.getMany = async () => [];
+    return new AnalyticsBreakdownService(
+      {} as never,
+      {} as never,
+      { createQueryBuilder: () => qb } as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+    );
+  };
+
+  it('never binds a NaN id', async () => {
+    const captured: unknown[] = [];
+    const svc = build(captured);
+
+    await (
+      svc as unknown as { sessionsOf: (c: unknown[]) => Promise<unknown> }
+    ).sessionsOf([{ sessionId: 5 }, { sessionId: undefined }, { sessionId: null }]);
+
+    const ids = (captured[0] as { ids: number[] })?.ids ?? [];
+    expect(ids).toEqual([5]);
+    expect(ids.every(Number.isFinite)).toBe(true);
+  });
+
+  it('does not query at all when nothing has a session', async () => {
+    const captured: unknown[] = [];
+    const svc = build(captured);
+
+    const rows = await (
+      svc as unknown as { sessionsOf: (c: unknown[]) => Promise<unknown[]> }
+    ).sessionsOf([{ sessionId: undefined }]);
+
+    expect(rows).toEqual([]);
+    expect(captured).toHaveLength(0);
   });
 });

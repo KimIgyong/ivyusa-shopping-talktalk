@@ -139,17 +139,15 @@ export class AnalyticsBreakdownService {
     window: Window,
   ): Promise<{ ai: AgentRow[]; human: AgentRow[] }> {
     const convs = await this.scoped(tenantId, window)
-      .select(['c.id', 'c.session_id', 'c.agent_id', 'c.status', 'c.csat_rating', 'c.ended_at'])
+      // Property paths, not column names: `c.session_id` selects the column but
+      // leaves the entity's `sessionId` undefined, and the id then binds as NaN.
+      .select(['c.id', 'c.sessionId', 'c.agentId', 'c.status', 'c.csatRating', 'c.endedAt'])
       .getMany();
     if (!convs.length) return { ai: [], human: [] };
 
     const ids = convs.map((c) => Number(c.id));
     const [sessions, replies, aiReplies, lastSenders, prompted, aiAgents, users] = await Promise.all([
-      this.sessionRepo
-        .createQueryBuilder('s')
-        .select(['s.id', 's.ai_agent_id'])
-        .where('s.id IN (:...ids)', { ids: convs.map((c) => Number(c.sessionId)) })
-        .getMany(),
+      this.sessionsOf(convs),
       this.agentReplyCounts(ids),
       this.senderCountsByConversation(ids, SENDER_TYPE.AI),
       this.lastNonSystemSenders(ids),
@@ -235,7 +233,7 @@ export class AnalyticsBreakdownService {
 
   async resolution(tenantId: number, window: Window): Promise<ResolutionBreakdown> {
     const convs = await this.scoped(tenantId, window)
-      .select(['c.id', 'c.status', 'c.csat_rating', 'c.ended_at'])
+      .select(['c.id', 'c.status', 'c.csatRating', 'c.endedAt'])
       .getMany();
     if (!convs.length) return { ended: 0, resolved: 0, resolutionRate: 0, byReason: [] };
 
@@ -313,6 +311,27 @@ export class AnalyticsBreakdownService {
       grid,
       total,
     };
+  }
+
+  /**
+   * The sessions behind these conversations.
+   *
+   * Ids are filtered to finite numbers before the IN clause: one undefined
+   * would bind as NaN, and MySQL reads that as a column name rather than a
+   * value — a 500 with a message about an unknown column 'NaN', which says
+   * nothing about the conversation that caused it.
+   */
+  private async sessionsOf(convs: Conversation[]): Promise<Session[]> {
+    // `> 0`, not merely finite: `Number(null)` is 0, which is a valid-looking id
+    // that belongs to no session and would quietly join every conversation
+    // missing one into a single bucket.
+    const ids = [...new Set(convs.map((c) => Number(c.sessionId)).filter((id) => id > 0))];
+    if (!ids.length) return [];
+    return this.sessionRepo
+      .createQueryBuilder('s')
+      .select(['s.id', 's.aiAgentId'])
+      .where('s.id IN (:...ids)', { ids })
+      .getMany();
   }
 
   /** conversation id → total and customer-only message counts. */
