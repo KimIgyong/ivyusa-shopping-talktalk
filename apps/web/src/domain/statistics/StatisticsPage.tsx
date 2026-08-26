@@ -12,10 +12,26 @@ import { useQuestionStats } from './statistics.hooks';
 import { DIMENSION_TABS } from './statistics.service';
 import type { Dimension, StatRow } from './statistics.service';
 import { TrendChart } from './TrendChart';
+import {
+  AgentSection,
+  ChannelSection,
+  HourSection,
+  ResolutionSection,
+} from './BreakdownSections';
 import { CsatSection } from './CsatSection';
 
 /** Below this confidence an answer is treated as shaky (matches RAG_MIN_SIMILARITY). */
 const LOW_CONFIDENCE = 0.45;
+/**
+ * Tab order: what was asked first (questions), then where it came from, who
+ * answered, how it ended, and when it happens.
+ */
+const SECTIONS = ['questions', 'channels', 'agents', 'resolution', 'csat', 'hours'] as const;
+type Section = (typeof SECTIONS)[number];
+
+/** Tabs computed from conversations/messages, which the retention purge removes. */
+const LOG_BACKED_SECTIONS: readonly Section[] = ['channels', 'agents', 'resolution', 'hours'];
+
 /** Days behind yesterday before the page says so. 1 = simply "no questions yesterday". */
 const STALE_WARN_DAYS = 2;
 /** Escalation rate above which a topic is worth a knowledge fix. */
@@ -40,7 +56,7 @@ export function StatisticsPage() {
   const [dimension, setDimension] = useState<Dimension>('intent');
   // Two sections share the window below: question analytics and CSAT
   // (PLN-260826-Dashboard-Integration-CSAT-Stats).
-  const [section, setSection] = useState<'questions' | 'csat'>('questions');
+  const [section, setSection] = useState<Section>('questions');
   const [from, setFrom] = useState(isoDaysAgo(30));
   const [to, setTo] = useState(isoDaysAgo(0));
 
@@ -108,7 +124,7 @@ export function StatisticsPage() {
       <PageHeader title={t('title')} subtitle={t('subtitle')} />
 
       <div className="mb-4 flex flex-wrap gap-1 border-b border-gray-200">
-        {(['questions', 'csat'] as const).map((key) => (
+        {SECTIONS.map((key) => (
           <button
             key={key}
             type="button"
@@ -148,6 +164,16 @@ export function StatisticsPage() {
       </Card>
 
       {section === 'csat' && <CsatSection from={from} to={to} />}
+      {/* These four read the conversation log itself, so they end where it
+          does. Claimed in the plan and easy to leave unsaid — an empty range
+          past the window would otherwise read as "nothing happened". */}
+      {LOG_BACKED_SECTIONS.includes(section) && (
+        <p className="mb-3 text-xs text-gray-400">{t('retentionNote')}</p>
+      )}
+      {section === 'channels' && <ChannelSection from={from} to={to} />}
+      {section === 'agents' && <AgentSection from={from} to={to} />}
+      {section === 'resolution' && <ResolutionSection from={from} to={to} />}
+      {section === 'hours' && <HourSection from={from} to={to} />}
 
       {section === 'questions' && (
       <>

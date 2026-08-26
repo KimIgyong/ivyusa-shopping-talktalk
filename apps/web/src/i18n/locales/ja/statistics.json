@@ -29,7 +29,11 @@
   "snapshotNote": "数値は日次スナップショットから算出しているため、会話ログの削除後も参照できます。",
   "section": {
     "questions": "質問分析",
-    "csat": "満足度"
+    "csat": "満足度",
+    "channels": "チャネル",
+    "agents": "担当",
+    "resolution": "結果",
+    "hours": "時間帯"
   },
   "csat": {
     "avgTitle": "平均評価",
@@ -55,5 +59,61 @@
     "empty": "この期間の評価はありません。"
   },
   "staleWarning": "{{date}} 以降の質問集計がありません（{{days}}日）。表はその時点までの集計です。",
-  "neverAggregated": "まだ質問のスナップショットが作成されていません。"
+  "neverAggregated": "まだ質問のスナップショットが作成されていません。",
+  "channel": {
+    "title": "会話の流入経路",
+    "name": "チャネル",
+    "conversations": "会話数",
+    "inbound": "お客様のメッセージ",
+    "median": "会話あたりメッセージ",
+    "avgShort": "平均 {{value}}",
+    "escalation": "担当者へ引き継ぎ",
+    "empty": "この期間に会話がありません。",
+    "hint": "まず中央値を見ます — 数百ターンのグループ部屋ひとつが、平均をどの会話とも似ない値に引っ張ります。"
+  },
+  "agents": {
+    "aiTitle": "AIエージェント",
+    "humanTitle": "担当者",
+    "name": "名前",
+    "conversations": "会話数",
+    "replies": "送信した返信",
+    "resolved": "解決",
+    "csat": "満足度",
+    "thinSample": "評価 {{count}}件",
+    "empty": "この期間に会話がありません。",
+    "emptyHuman": "この期間に担当者へ渡った会話はありません。",
+    "aiHint": "エージェント未固定のセッションは、実際に応答したテナント既定エージェントに集計されます。",
+    "humanHint": "保存済みのスコアではなく、担当した会話から計算しています。"
+  },
+  "resolution": {
+    "title": "会話の終わり方",
+    "empty": "この期間に会話がありません。",
+    "headline": "終了した会話の {{rate}} が解決しました（{{ended}}件中 {{resolved}}件）。",
+    "hint": "カスタマージャーニーレポートと同じ定義です。お客様が最後に話した会話は解決に数えません — 質問が残ったままだからです。",
+    "reason": {
+      "csat_answered": "お客様が評価",
+      "agent_closed": "担当者が終了",
+      "prompted_closed": "確認して終了",
+      "open": "進行中",
+      "abandoned": "終了処理なし",
+      "customer_last": "お客様が最後の発話"
+    }
+  },
+  "hours": {
+    "title": "お客様が書き込む時間",
+    "empty": "この期間にお客様のメッセージがありません。",
+    "zoneTenant": "{{zone}} 基準です（このテナントのタイムゾーン）。",
+    "zoneDefault": "{{zone}} 基準です — このテナントにタイムゾーンが設定されていないため、現地のピークとは異なる場合があります。",
+    "total": "お客様のメッセージ {{count}}件",
+    "day": {
+      "sun": "日",
+      "mon": "月",
+      "tue": "火",
+      "wed": "水",
+      "thu": "木",
+      "fri": "金",
+      "sat": "土"
+    }
+  },
+  "retentionNote": "会話ログから直接集計するため、ログの保存期間より前は表示できません。"
 }

@@ -11,10 +11,13 @@ import { User } from '../user/entity/user.entity';
 import { KbDocument } from '../knowledge/entity/kb-document.entity';
 import { AuditModule } from '../audit/audit.module';
 import { AuditLog } from '../audit/entity/audit-log.entity';
+import { AiAgent } from '../ai-engine/entity/ai-agent.entity';
+import { Tenant } from '../tenant/entity/tenant.entity';
 import { QuestionStatDaily } from './entity/question-stat-daily.entity';
 import { QuestionCluster } from './entity/question-cluster.entity';
 import { AnalyticsService } from './analytics.service';
 import { QuestionStatsService } from './question-stats.service';
+import { AnalyticsBreakdownService } from './analytics-breakdown.service';
 import { AnalyticsController } from './analytics.controller';
 
 @Module({
@@ -31,6 +34,8 @@ import { AnalyticsController } from './analytics.controller';
       KbDocument,
       QuestionStatDaily,
       AuditLog,
+      AiAgent,
+      Tenant,
       QuestionCluster,
     ]),
     // Reading a transcript is a PII access and is audited like the agent
@@ -38,7 +43,7 @@ import { AnalyticsController } from './analytics.controller';
     AuditModule,
   ],
   controllers: [AnalyticsController],
-  providers: [AnalyticsService, QuestionStatsService],
-  exports: [AnalyticsService, QuestionStatsService],
+  providers: [AnalyticsService, QuestionStatsService, AnalyticsBreakdownService],
+  exports: [AnalyticsService, QuestionStatsService, AnalyticsBreakdownService],
 })
 export class AnalyticsModule {}

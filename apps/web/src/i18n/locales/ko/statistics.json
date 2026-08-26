@@ -29,7 +29,11 @@
   "snapshotNote": "수치는 일별 스냅샷 기준이므로 대화 로그가 삭제된 이후에도 유지됩니다.",
   "section": {
     "questions": "질문 분석",
-    "csat": "만족도"
+    "csat": "만족도",
+    "channels": "채널",
+    "agents": "상담원",
+    "resolution": "처리",
+    "hours": "시간대"
   },
   "csat": {
     "avgTitle": "평균 평점",
@@ -55,5 +59,61 @@
     "empty": "이 기간에 평가가 없습니다."
   },
   "staleWarning": "{{date}} 이후 질문 집계가 없습니다({{days}}일). 표는 그때까지 집계된 값입니다.",
-  "neverAggregated": "아직 집계된 질문 스냅샷이 없습니다."
+  "neverAggregated": "아직 집계된 질문 스냅샷이 없습니다.",
+  "channel": {
+    "title": "대화가 들어오는 경로",
+    "name": "채널",
+    "conversations": "대화 수",
+    "inbound": "고객 메시지",
+    "median": "대화당 메시지",
+    "avgShort": "평균 {{value}}",
+    "escalation": "상담원 인계",
+    "empty": "이 기간에 대화가 없습니다.",
+    "hint": "중앙값을 먼저 봅니다 — 수백 턴짜리 그룹채팅 하나가 평균을 어떤 대화와도 닮지 않은 값으로 끌고 갑니다."
+  },
+  "agents": {
+    "aiTitle": "AI 에이전트",
+    "humanTitle": "사람 상담원",
+    "name": "이름",
+    "conversations": "대화 수",
+    "replies": "보낸 답변",
+    "resolved": "해결",
+    "csat": "만족도",
+    "thinSample": "평가 {{count}}건",
+    "empty": "이 기간에 대화가 없습니다.",
+    "emptyHuman": "이 기간에 사람에게 넘어간 대화가 없습니다.",
+    "aiHint": "에이전트가 고정되지 않은 세션은 실제로 답한 테넌트 기본 에이전트에 집계됩니다.",
+    "humanHint": "저장된 점수가 아니라 각 상담원에게 배정된 대화에서 계산합니다."
+  },
+  "resolution": {
+    "title": "대화가 끝난 방식",
+    "empty": "이 기간에 대화가 없습니다.",
+    "headline": "종료된 대화의 {{rate}}가 해결됐습니다 ({{ended}}건 중 {{resolved}}건).",
+    "hint": "고객여정 리포트와 같은 정의입니다. 고객이 마지막으로 말한 대화는 해결로 세지 않습니다 — 질문이 남아 있던 것입니다.",
+    "reason": {
+      "csat_answered": "고객이 평가함",
+      "agent_closed": "상담원이 종료",
+      "prompted_closed": "확인 후 종료",
+      "open": "진행 중",
+      "abandoned": "종료 처리 없이 끝남",
+      "customer_last": "고객이 마지막 발화"
+    }
+  },
+  "hours": {
+    "title": "고객이 문의하는 시간",
+    "empty": "이 기간에 고객 메시지가 없습니다.",
+    "zoneTenant": "{{zone}} 기준입니다(이 테넌트의 시간대).",
+    "zoneDefault": "{{zone}} 기준입니다 — 이 테넌트에 시간대가 설정되어 있지 않아 현지 피크와 다를 수 있습니다.",
+    "total": "고객 메시지 {{count}}건",
+    "day": {
+      "sun": "일",
+      "mon": "월",
+      "tue": "화",
+      "wed": "수",
+      "thu": "목",
+      "fri": "금",
+      "sat": "토"
+    }
+  },
+  "retentionNote": "대화 로그에서 직접 계산합니다 — 보존기간을 넘는 과거는 조회되지 않습니다."
 }

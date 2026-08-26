@@ -29,7 +29,11 @@
   "snapshotNote": "Las cifras provienen de instantáneas diarias, por lo que siguen disponibles tras la depuración de los registros de conversación.",
   "section": {
     "questions": "Análisis de preguntas",
-    "csat": "Satisfacción"
+    "csat": "Satisfacción",
+    "channels": "Canales",
+    "agents": "Agentes",
+    "resolution": "Resultados",
+    "hours": "Horas"
   },
   "csat": {
     "avgTitle": "Puntuación media",
@@ -55,5 +59,61 @@
     "empty": "Sin valoraciones en este periodo."
   },
   "staleWarning": "Sin datos de preguntas desde {{date}} ({{days}} días). La tabla muestra lo agregado hasta entonces.",
-  "neverAggregated": "Todavía no se ha escrito ninguna instantánea de preguntas."
+  "neverAggregated": "Todavía no se ha escrito ninguna instantánea de preguntas.",
+  "channel": {
+    "title": "De dónde vienen las conversaciones",
+    "name": "Canal",
+    "conversations": "Conversaciones",
+    "inbound": "Mensajes del cliente",
+    "median": "Mensajes por conversación",
+    "avgShort": "media {{value}}",
+    "escalation": "Derivadas a una persona",
+    "empty": "Sin conversaciones en este rango.",
+    "hint": "Primero la mediana: una sala de grupo con cientos de turnos aleja la media de todas las conversaciones que describe."
+  },
+  "agents": {
+    "aiTitle": "Agentes de IA",
+    "humanTitle": "Personas",
+    "name": "Nombre",
+    "conversations": "Conversaciones",
+    "replies": "Respuestas enviadas",
+    "resolved": "Resueltas",
+    "csat": "Satisfacción",
+    "thinSample": "{{count}} valoraciones",
+    "empty": "Sin conversaciones en este rango.",
+    "emptyHuman": "Ninguna conversación llegó a una persona en este rango.",
+    "aiHint": "Las sesiones sin agente fijado se cuentan en el agente predeterminado, que es quien respondió.",
+    "humanHint": "Se calcula desde las conversaciones asignadas, no desde una puntuación almacenada."
+  },
+  "resolution": {
+    "title": "Cómo terminaron las conversaciones",
+    "empty": "Sin conversaciones en este rango.",
+    "headline": "{{rate}} de las conversaciones cerradas se resolvieron ({{resolved}} de {{ended}}).",
+    "hint": "La misma definición del informe de recorrido del cliente. Si el cliente habló último, no cuenta como resuelta: la pregunta seguía abierta.",
+    "reason": {
+      "csat_answered": "El cliente la valoró",
+      "agent_closed": "Cerrada por un agente",
+      "prompted_closed": "Preguntamos y se cerró",
+      "open": "Abierta",
+      "abandoned": "Terminó sin cierre",
+      "customer_last": "Habló último el cliente"
+    }
+  },
+  "hours": {
+    "title": "Cuándo escriben los clientes",
+    "empty": "Sin mensajes de clientes en este rango.",
+    "zoneTenant": "Horas en {{zone}} (zona horaria de este inquilino).",
+    "zoneDefault": "Horas en {{zone}}: este inquilino no tiene zona horaria configurada, así que el pico puede no ser el local.",
+    "total": "{{count}} mensajes de clientes",
+    "day": {
+      "sun": "Dom",
+      "mon": "Lun",
+      "tue": "Mar",
+      "wed": "Mié",
+      "thu": "Jue",
+      "fri": "Vie",
+      "sat": "Sáb"
+    }
+  },
+  "retentionNote": "Se calcula desde el registro de conversaciones, así que solo llega hasta donde se conserva el registro."
 }
