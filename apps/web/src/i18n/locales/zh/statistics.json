@@ -29,7 +29,11 @@
   "snapshotNote": "数据来自每日快照，因此在会话日志清理后仍可查看。",
   "section": {
     "questions": "问题分析",
-    "csat": "满意度"
+    "csat": "满意度",
+    "channels": "渠道",
+    "agents": "客服",
+    "resolution": "处理结果",
+    "hours": "时段"
   },
   "csat": {
     "avgTitle": "平均评分",
@@ -55,5 +59,60 @@
     "empty": "该时间段内没有评价。"
   },
   "staleWarning": "自 {{date}} 起没有问题统计数据（{{days}} 天）。表格显示的是截至当时的汇总。",
-  "neverAggregated": "尚未生成问题统计快照。"
+  "neverAggregated": "尚未生成问题统计快照。",
+  "channel": {
+    "title": "会话来自哪里",
+    "name": "渠道",
+    "conversations": "会话数",
+    "inbound": "客户消息",
+    "median": "每次会话消息数",
+    "avgShort": "均值 {{value}}",
+    "escalation": "转接人工",
+    "empty": "该时间段内没有会话。",
+    "hint": "先看中位数：一个数百轮的群聊会把均值拉到与任何一次会话都不相符的位置。"
+  },
+  "agents": {
+    "aiTitle": "AI 客服体",
+    "humanTitle": "人工客服",
+    "name": "名称",
+    "conversations": "会话数",
+    "replies": "已发送回复",
+    "resolved": "已解决",
+    "csat": "满意度",
+    "thinSample": "{{count}} 条评价",
+    "empty": "该时间段内没有会话。",
+    "emptyHuman": "该时间段内没有会话转到人工。",
+    "aiHint": "未绑定客服体的会话计入实际作答的租户默认客服体。",
+    "humanHint": "根据分配到的会话计算，而非读取已存储的分数。"
+  },
+  "resolution": {
+    "title": "会话如何结束",
+    "empty": "该时间段内没有会话。",
+    "headline": "已结束会话中 {{rate}} 得到解决（{{ended}} 中的 {{resolved}}）。",
+    "hint": "与客户旅程报告使用同一定义。客户最后发言的会话不计为已解决——问题仍然悬着。",
+    "reason": {
+      "csat_answered": "客户已评价",
+      "agent_closed": "客服关闭",
+      "prompted_closed": "询问后关闭",
+      "open": "进行中",
+      "abandoned": "结束但未关闭",
+      "customer_last": "客户最后发言"
+    }
+  },
+  "hours": {
+    "title": "客户何时来咨询",
+    "empty": "该时间段内没有客户消息。",
+    "zoneTenant": "时间以 {{zone}} 显示（该租户的时区）。",
+    "zoneDefault": "时间以 {{zone}} 显示——该租户未设置时区，高峰可能不是本地时间。",
+    "total": "客户消息 {{count}} 条",
+    "day": {
+      "sun": "日",
+      "mon": "一",
+      "tue": "二",
+      "wed": "三",
+      "thu": "四",
+      "fri": "五",
+      "sat": "六"
+    }
+  }
 }

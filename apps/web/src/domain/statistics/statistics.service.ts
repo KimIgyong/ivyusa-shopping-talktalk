@@ -27,6 +27,43 @@ export interface QuestionStats {
   staleDays: number;
 }
 
+
+export interface ChannelRow {
+  channel: string;
+  conversations: number;
+  messages: number;
+  inbound: number;
+  avgMessages: number;
+  medianMessages: number;
+  escalated: number;
+  escalationRate: number;
+}
+
+export interface AgentRow {
+  id: number | null;
+  name: string;
+  conversations: number;
+  replies: number;
+  resolved: number;
+  resolutionRate: number;
+  csatRated: number;
+  csatAvg: number | null;
+}
+
+export interface ResolutionBreakdown {
+  ended: number;
+  resolved: number;
+  resolutionRate: number;
+  byReason: Array<{ reason: string; resolved: boolean; count: number }>;
+}
+
+export interface HourGrid {
+  timezone: string;
+  timezoneSource: 'tenant' | 'default';
+  grid: number[][];
+  total: number;
+}
+
 export interface QuestionStatsParams {
   dimension: Dimension;
   from: string;
@@ -75,6 +112,14 @@ export interface CsatListParams {
 }
 
 export const statisticsService = {
+  channels: (from: string, to: string) =>
+    apiGet<ChannelRow[]>('/analytics/channels', { from, to }),
+  agents: (from: string, to: string) =>
+    apiGet<{ ai: AgentRow[]; human: AgentRow[] }>('/analytics/agents', { from, to }),
+  resolution: (from: string, to: string) =>
+    apiGet<ResolutionBreakdown>('/analytics/resolution', { from, to }),
+  hours: (from: string, to: string) => apiGet<HourGrid>('/analytics/hours', { from, to }),
+
   questions: (params: QuestionStatsParams) =>
     apiGet<QuestionStats>('/analytics/questions', {
       dimension: params.dimension,

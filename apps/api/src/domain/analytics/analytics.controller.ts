@@ -4,6 +4,7 @@ import { CAPABILITY, Principal, USER_RANK } from '@ivy/types';
 import { normalizePage, buildPagination } from '@ivy/common';
 import { AnalyticsService } from './analytics.service';
 import { QuestionStatsService } from './question-stats.service';
+import { AnalyticsBreakdownService } from './analytics-breakdown.service';
 import { AuditService } from '../audit/audit.service';
 import { RequireCapability, RequireMenu } from '../../global/decorator/auth.decorator';
 import { CurrentUser } from '../../global/decorator/current-user.decorator';
@@ -50,6 +51,7 @@ export class AnalyticsController {
     private readonly analyticsService: AnalyticsService,
     private readonly auditService: AuditService,
     private readonly questionStatsService: QuestionStatsService,
+    private readonly breakdown: AnalyticsBreakdownService,
   ) {}
 
   @Get('dashboard')
@@ -99,6 +101,38 @@ export class AnalyticsController {
     return this.analyticsService.questionStats(tenantScope(user), { dimension, from, to, limit });
   }
 
+  @Get('channels')
+  @RequireCapability(CAPABILITY.ANALYTICS_READ)
+  @RequireMenu('statistics')
+  @ApiOperation({ summary: 'Per-channel inflow: conversations, messages, escalation (AN-260826)' })
+  async channels(@CurrentUser() user: Principal, @Query() query: QuestionStatsQuery) {
+    return this.breakdown.channels(this.tenantOf(user), this.windowOf(query));
+  }
+
+  @Get('agents')
+  @RequireCapability(CAPABILITY.ANALYTICS_READ)
+  @RequireMenu('statistics')
+  @ApiOperation({ summary: 'Per-agent statistics — AI agents and people, kept apart' })
+  async agents(@CurrentUser() user: Principal, @Query() query: QuestionStatsQuery) {
+    return this.breakdown.agents(this.tenantOf(user), this.windowOf(query));
+  }
+
+  @Get('resolution')
+  @RequireCapability(CAPABILITY.ANALYTICS_READ)
+  @RequireMenu('statistics')
+  @ApiOperation({ summary: 'How conversations ended, by the shared resolution definition' })
+  async resolution(@CurrentUser() user: Principal, @Query() query: QuestionStatsQuery) {
+    return this.breakdown.resolution(this.tenantOf(user), this.windowOf(query));
+  }
+
+  @Get('hours')
+  @RequireCapability(CAPABILITY.ANALYTICS_READ)
+  @RequireMenu('statistics')
+  @ApiOperation({ summary: 'When customers write, in the tenant timezone' })
+  async hours(@CurrentUser() user: Principal, @Query() query: QuestionStatsQuery) {
+    return this.breakdown.hours(this.tenantOf(user), this.windowOf(query));
+  }
+
   @Post('questions/aggregate')
   // A write, so it is not gated by the read capability the rest of this
   // controller uses. Normal operation is the scheduler; this is for backfill
@@ -140,5 +174,23 @@ export class AnalyticsController {
       metadata: { messageCount: (detail.messages as unknown[]).length },
     });
     return detail;
+  }
+
+  /**
+   * These lenses are tenant views only. `tenantScope` yields null for a system
+   * admin, and a null tenant here would aggregate every tenant into one table —
+   * a cross-tenant leak wearing a chart.
+   */
+  private tenantOf(user: Principal): number {
+    const tenantId = tenantScope(user);
+    if (tenantId == null) throw new BusinessException(ERROR_CODE.FORBIDDEN, HttpStatus.FORBIDDEN);
+    return tenantId;
+  }
+
+  /** Same default window as the question lens: the last 30 days. */
+  private windowOf(query: QuestionStatsQuery): { from: Date; to: Date } {
+    const to = parseTo(query.to) ?? new Date();
+    const from = parseFrom(query.from) ?? new Date(to.getTime() - 30 * 86_400_000);
+    return { from, to };
   }
 }

@@ -1,0 +1,407 @@
+import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { SENDER_TYPE } from '@ivy/types';
+import { Conversation } from '../chat/entity/conversation.entity';
+import { Message } from '../chat/entity/message.entity';
+import { Session } from '../session/entity/session.entity';
+import { Tenant } from '../tenant/entity/tenant.entity';
+import { User } from '../user/entity/user.entity';
+import { AiAgent } from '../ai-engine/entity/ai-agent.entity';
+import { AuditLog } from '../audit/entity/audit-log.entity';
+import { classifyOutcome } from '../../global/util/resolution.util';
+
+export interface Window {
+  from: Date;
+  to: Date;
+}
+
+export interface ChannelRow {
+  channel: string;
+  conversations: number;
+  messages: number;
+  /** Customer turns only — "inflow", separate from what we sent back. */
+  inbound: number;
+  /** Mean and median together: one KakaoTalk group room drags the mean into fiction. */
+  avgMessages: number;
+  medianMessages: number;
+  escalated: number;
+  escalationRate: number;
+}
+
+export interface AgentRow {
+  id: number | null;
+  name: string;
+  conversations: number;
+  /** Replies this agent actually sent — an assignment with no answer is not work done. */
+  replies: number;
+  resolved: number;
+  resolutionRate: number;
+  csatRated: number;
+  csatAvg: number | null;
+}
+
+export interface ResolutionBreakdown {
+  ended: number;
+  resolved: number;
+  resolutionRate: number;
+  byReason: Array<{ reason: string; resolved: boolean; count: number }>;
+}
+
+export interface HourGrid {
+  /** IANA zone the grid is drawn in — a peak is meaningless without it. */
+  timezone: string;
+  /** Whether that zone came from the tenant or is the UTC fallback. */
+  timezoneSource: 'tenant' | 'default';
+  /** [weekday 0=Sun][hour 0-23] = customer messages. */
+  grid: number[][];
+  total: number;
+}
+
+/**
+ * The channel / agent / resolution / hour lenses (AN-260826 P1).
+ *
+ * Read from `conversations` and `messages` directly rather than from a new
+ * daily snapshot: a snapshot is a second copy that can disagree with the first,
+ * and it needs a backfill path forever after. The cost is that these views
+ * cannot see past the conversation-log retention window, which the screen says
+ * out loud rather than pretending otherwise.
+ */
+@Injectable()
+export class AnalyticsBreakdownService {
+  constructor(
+    @InjectRepository(Conversation) private readonly convRepo: Repository<Conversation>,
+    @InjectRepository(Message) private readonly msgRepo: Repository<Message>,
+    @InjectRepository(Session) private readonly sessionRepo: Repository<Session>,
+    @InjectRepository(Tenant) private readonly tenantRepo: Repository<Tenant>,
+    @InjectRepository(User) private readonly userRepo: Repository<User>,
+    @InjectRepository(AiAgent) private readonly aiAgentRepo: Repository<AiAgent>,
+    @InjectRepository(AuditLog) private readonly auditRepo: Repository<AuditLog>,
+  ) {}
+
+  /** Conversations in range, sandbox threads excluded (same rule as the dashboard). */
+  private scoped(tenantId: number, window: Window) {
+    return this.convRepo
+      .createQueryBuilder('c')
+      .where('c.tenant_id = :tenantId', { tenantId })
+      .andWhere('c.created_at >= :from AND c.created_at < :to', window)
+      .andWhere(
+        "NOT EXISTS (SELECT 1 FROM sessions ps WHERE ps.id = c.session_id AND ps.channel = 'preview')",
+      );
+  }
+
+  async channels(tenantId: number, window: Window): Promise<ChannelRow[]> {
+    const convs = await this.scoped(tenantId, window)
+      .select(['c.id', 'c.channel', 'c.escalated'])
+      .getMany();
+    if (!convs.length) return [];
+
+    const counts = await this.messageCounts(convs.map((c) => Number(c.id)));
+    const byChannel = new Map<string, { convs: Conversation[]; sizes: number[] }>();
+    for (const c of convs) {
+      const key = c.channel || 'widget';
+      const entry = byChannel.get(key) ?? { convs: [], sizes: [] };
+      entry.convs.push(c);
+      entry.sizes.push(counts.get(Number(c.id))?.total ?? 0);
+      byChannel.set(key, entry);
+    }
+
+    return [...byChannel.entries()]
+      .map(([channel, { convs: list, sizes }]) => {
+        const messages = sizes.reduce((a, b) => a + b, 0);
+        const inbound = list.reduce(
+          (sum, c) => sum + (counts.get(Number(c.id))?.inbound ?? 0),
+          0,
+        );
+        const escalated = list.filter((c) => c.escalated === 1).length;
+        return {
+          channel,
+          conversations: list.length,
+          messages,
+          inbound,
+          avgMessages: list.length ? Math.round((messages / list.length) * 10) / 10 : 0,
+          medianMessages: median(sizes),
+          escalated,
+          escalationRate: list.length ? escalated / list.length : 0,
+        };
+      })
+      .sort((a, b) => b.conversations - a.conversations);
+  }
+
+  /**
+   * Two tables, not one: an AI agent and a person are not comparable rows.
+   * The AI answers every turn it is given; a person is handed the ones it could
+   * not, so putting them in one ranking would read as the AI outperforming the
+   * team on exactly the conversations the AI failed at.
+   */
+  async agents(
+    tenantId: number,
+    window: Window,
+  ): Promise<{ ai: AgentRow[]; human: AgentRow[] }> {
+    const convs = await this.scoped(tenantId, window)
+      .select(['c.id', 'c.session_id', 'c.agent_id', 'c.status', 'c.csat_rating', 'c.ended_at'])
+      .getMany();
+    if (!convs.length) return { ai: [], human: [] };
+
+    const ids = convs.map((c) => Number(c.id));
+    const [sessions, replies, lastSenders, prompted, aiAgents, users] = await Promise.all([
+      this.sessionRepo
+        .createQueryBuilder('s')
+        .select(['s.id', 's.ai_agent_id'])
+        .where('s.id IN (:...ids)', { ids: convs.map((c) => Number(c.sessionId)) })
+        .getMany(),
+      this.agentReplyCounts(ids),
+      this.lastNonSystemSenders(ids),
+      this.promptedConversationIds(tenantId, ids),
+      this.aiAgentRepo.find({ where: { tenantId } }),
+      this.userRepo.find({ where: { tenantId } }),
+    ]);
+
+    const agentOfSession = new Map(
+      sessions.map((s) => [Number(s.id), s.aiAgentId == null ? null : Number(s.aiAgentId)]),
+    );
+    const defaultAgent = aiAgents.find((a) => a.isDefault === 1) ?? null;
+    const aiName = new Map(aiAgents.map((a) => [Number(a.id), a.name]));
+    const userName = new Map(users.map((u) => [Number(u.id), u.name ?? u.email ?? `#${u.id}`]));
+
+    const aiBuckets = new Map<number | null, Conversation[]>();
+    const humanBuckets = new Map<number, Conversation[]>();
+    for (const c of convs) {
+      // An unpinned session is answered by the tenant's default agent, so it is
+      // counted there — leaving it as "(none)" would hide most tenants' traffic
+      // behind a row that names nobody.
+      const pinned = agentOfSession.get(Number(c.sessionId)) ?? null;
+      const aiId = pinned ?? (defaultAgent ? Number(defaultAgent.id) : null);
+      aiBuckets.set(aiId, [...(aiBuckets.get(aiId) ?? []), c]);
+      if (c.agentId != null) {
+        const hid = Number(c.agentId);
+        humanBuckets.set(hid, [...(humanBuckets.get(hid) ?? []), c]);
+      }
+    }
+
+    const rowFor = (
+      id: number | null,
+      name: string,
+      list: Conversation[],
+      replyCount: number,
+    ): AgentRow => {
+      let resolved = 0;
+      let csatRated = 0;
+      let csatSum = 0;
+      for (const c of list) {
+        const outcome = classifyOutcome(
+          { status: c.status, csatRating: c.csatRating, endedAt: c.endedAt },
+          lastSenders.get(Number(c.id)) ?? null,
+          prompted.has(Number(c.id)),
+        );
+        if (outcome.resolved) resolved += 1;
+        if (c.csatRating != null) {
+          csatRated += 1;
+          csatSum += Number(c.csatRating);
+        }
+      }
+      return {
+        id,
+        name,
+        conversations: list.length,
+        replies: replyCount,
+        resolved,
+        resolutionRate: list.length ? resolved / list.length : 0,
+        csatRated,
+        // Averaged only over answers actually given; the console shows the count
+        // beside it so three ratings cannot masquerade as a score.
+        csatAvg: csatRated ? Math.round((csatSum / csatRated) * 100) / 100 : null,
+      };
+    };
+
+    const ai = [...aiBuckets.entries()]
+      .map(([id, list]) =>
+        rowFor(id, id == null ? 'default' : (aiName.get(id) ?? `#${id}`), list, 0),
+      )
+      .sort((a, b) => b.conversations - a.conversations);
+    const human = [...humanBuckets.entries()]
+      .map(([id, list]) => rowFor(id, userName.get(id) ?? `#${id}`, list, replies.get(id) ?? 0))
+      .sort((a, b) => b.conversations - a.conversations);
+    return { ai, human };
+  }
+
+  async resolution(tenantId: number, window: Window): Promise<ResolutionBreakdown> {
+    const convs = await this.scoped(tenantId, window)
+      .select(['c.id', 'c.status', 'c.csat_rating', 'c.ended_at'])
+      .getMany();
+    if (!convs.length) return { ended: 0, resolved: 0, resolutionRate: 0, byReason: [] };
+
+    const ids = convs.map((c) => Number(c.id));
+    const [lastSenders, prompted] = await Promise.all([
+      this.lastNonSystemSenders(ids),
+      this.promptedConversationIds(tenantId, ids),
+    ]);
+
+    const tally = new Map<string, { resolved: boolean; count: number }>();
+    let ended = 0;
+    let resolved = 0;
+    for (const c of convs) {
+      const outcome = classifyOutcome(
+        { status: c.status, csatRating: c.csatRating, endedAt: c.endedAt },
+        lastSenders.get(Number(c.id)) ?? null,
+        prompted.has(Number(c.id)),
+      );
+      const entry = tally.get(outcome.reason) ?? { resolved: outcome.resolved, count: 0 };
+      entry.count += 1;
+      tally.set(outcome.reason, entry);
+      if (c.status === 'ended') {
+        ended += 1;
+        if (outcome.resolved) resolved += 1;
+      }
+    }
+    return {
+      ended,
+      resolved,
+      resolutionRate: ended ? resolved / ended : 0,
+      byReason: [...tally.entries()]
+        .map(([reason, v]) => ({ reason, resolved: v.resolved, count: v.count }))
+        .sort((a, b) => b.count - a.count),
+    };
+  }
+
+  /**
+   * When customers write, in the tenant's own clock.
+   *
+   * Drawn in UTC a Korean shop's 3pm rush appears at 6am, which is not a small
+   * error — it is the opposite of the answer the chart is asked for. Nine of
+   * eleven tenants have no timezone set, so the fallback is named on the axis
+   * rather than guessed from the language.
+   */
+  async hours(tenantId: number, window: Window): Promise<HourGrid> {
+    const tenant = await this.tenantRepo.findOne({ where: { id: tenantId } });
+    const zone = tenant?.timezone?.trim() || 'UTC';
+    const rows = await this.msgRepo
+      .createQueryBuilder('m')
+      .select('m.created_at', 'createdAt')
+      .where('m.tenant_id = :tenantId', { tenantId })
+      .andWhere('m.sender_type = :user', { user: SENDER_TYPE.USER })
+      .andWhere('m.created_at >= :from AND m.created_at < :to', window)
+      .getRawMany<{ createdAt: Date | string }>();
+
+    const grid: number[][] = Array.from({ length: 7 }, () => Array<number>(24).fill(0));
+    let total = 0;
+    for (const r of rows) {
+      const at = r.createdAt instanceof Date ? r.createdAt : new Date(String(r.createdAt));
+      if (Number.isNaN(at.getTime())) continue;
+      const { weekday, hour } = inZone(at, zone);
+      grid[weekday][hour] += 1;
+      total += 1;
+    }
+    return {
+      timezone: zone,
+      timezoneSource: tenant?.timezone?.trim() ? 'tenant' : 'default',
+      grid,
+      total,
+    };
+  }
+
+  /** conversation id → total and customer-only message counts. */
+  private async messageCounts(
+    convIds: number[],
+  ): Promise<Map<number, { total: number; inbound: number }>> {
+    if (!convIds.length) return new Map();
+    const rows = await this.msgRepo
+      .createQueryBuilder('m')
+      .select('m.conversation_id', 'conversationId')
+      .addSelect('COUNT(*)', 'total')
+      .addSelect('SUM(m.sender_type = :user)', 'inbound')
+      .setParameter('user', SENDER_TYPE.USER)
+      .where('m.conversation_id IN (:...ids)', { ids: convIds })
+      .groupBy('m.conversation_id')
+      .getRawMany<{ conversationId: string; total: string; inbound: string | null }>();
+    return new Map(
+      rows.map((r) => [
+        Number(r.conversationId),
+        { total: Number(r.total), inbound: Number(r.inbound ?? 0) },
+      ]),
+    );
+  }
+
+  /** agent user id → replies sent, across the conversations in range. */
+  private async agentReplyCounts(convIds: number[]): Promise<Map<number, number>> {
+    if (!convIds.length) return new Map();
+    const rows = await this.msgRepo
+      .createQueryBuilder('m')
+      .select('m.sender_id', 'senderId')
+      .addSelect('COUNT(*)', 'sent')
+      .where('m.conversation_id IN (:...ids)', { ids: convIds })
+      .andWhere('m.sender_type = :agent', { agent: SENDER_TYPE.AGENT })
+      .andWhere('m.sender_id IS NOT NULL')
+      .groupBy('m.sender_id')
+      .getRawMany<{ senderId: string; sent: string }>();
+    return new Map(rows.map((r) => [Number(r.senderId), Number(r.sent)]));
+  }
+
+  private async lastNonSystemSenders(convIds: number[]): Promise<Map<number, string>> {
+    if (!convIds.length) return new Map();
+    const rows = await this.msgRepo
+      .createQueryBuilder('m')
+      .select('m.conversation_id', 'conversationId')
+      .addSelect('m.sender_type', 'senderType')
+      .where('m.conversation_id IN (:...ids)', { ids: convIds })
+      .andWhere('m.sender_type != :system', { system: SENDER_TYPE.SYSTEM })
+      .andWhere(
+        'm.id = (SELECT MAX(m2.id) FROM messages m2 WHERE m2.conversation_id = m.conversation_id ' +
+          'AND m2.sender_type != :system)',
+      )
+      .getRawMany<{ conversationId: string; senderType: string }>();
+    return new Map(rows.map((r) => [Number(r.conversationId), r.senderType]));
+  }
+
+  /** `close()` clears idle_prompt_at, so the audit trail is the only record. */
+  private async promptedConversationIds(
+    tenantId: number,
+    convIds: number[],
+  ): Promise<Set<number>> {
+    if (!convIds.length) return new Set();
+    const rows = await this.auditRepo
+      .createQueryBuilder('a')
+      .select('a.target', 'target')
+      .where('a.action = :action', { action: 'chat.idle_prompted' })
+      .andWhere('a.tenant_id = :tenantId', { tenantId })
+      .getRawMany<{ target: string | null }>();
+    const wanted = new Set(convIds.map(String));
+    const out = new Set<number>();
+    for (const r of rows) {
+      const id = (r.target ?? '').replace('conversation:', '');
+      if (wanted.has(id)) out.add(Number(id));
+    }
+    return out;
+  }
+}
+
+/** Middle value — the typical conversation, unmoved by one 900-message group room. */
+export function median(values: number[]): number {
+  if (!values.length) return 0;
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 ? sorted[mid] : Math.round((sorted[mid - 1] + sorted[mid]) / 2);
+}
+
+/**
+ * Weekday and hour of an instant in an IANA zone.
+ *
+ * `Intl` rather than SQL `CONVERT_TZ`: the named-zone tables are loaded on this
+ * MySQL but that is a property of one server's setup, not of the schema, and a
+ * chart silently returning NULL hours on a database without them is the kind of
+ * failure nobody attributes to a missing time zone table.
+ */
+export function inZone(at: Date, timeZone: string): { weekday: number; hour: number } {
+  const fmt = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    weekday: 'short',
+    hour: 'numeric',
+    hour12: false,
+  });
+  const parts = fmt.formatToParts(at);
+  const weekdayName = parts.find((p) => p.type === 'weekday')?.value ?? 'Sun';
+  const hour = Number(parts.find((p) => p.type === 'hour')?.value ?? '0');
+  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const weekday = Math.max(0, days.indexOf(weekdayName));
+  return { weekday, hour: hour === 24 ? 0 : hour };
+}

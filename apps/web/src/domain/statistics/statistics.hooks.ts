@@ -40,3 +40,40 @@ export const useCsatConversations = (params: CsatListParams) => {
     placeholderData: keepPreviousData,
   });
 };
+
+/** The four AN-260826 P1 lenses. One shape each; the window is shared with the rest. */
+export const useChannelStats = (from: string, to: string) => {
+  const tenantKey = useTenantKey();
+  return useQuery({
+    queryKey: ['stats-channels', tenantKey, from, to],
+    queryFn: () => statisticsService.channels(from, to),
+    placeholderData: keepPreviousData,
+  });
+};
+
+export const useAgentStats = (from: string, to: string) => {
+  const tenantKey = useTenantKey();
+  return useQuery({
+    queryKey: ['stats-agents', tenantKey, from, to],
+    queryFn: () => statisticsService.agents(from, to),
+    placeholderData: keepPreviousData,
+  });
+};
+
+export const useResolutionStats = (from: string, to: string) => {
+  const tenantKey = useTenantKey();
+  return useQuery({
+    queryKey: ['stats-resolution', tenantKey, from, to],
+    queryFn: () => statisticsService.resolution(from, to),
+    placeholderData: keepPreviousData,
+  });
+};
+
+export const useHourStats = (from: string, to: string) => {
+  const tenantKey = useTenantKey();
+  return useQuery({
+    queryKey: ['stats-hours', tenantKey, from, to],
+    queryFn: () => statisticsService.hours(from, to),
+    placeholderData: keepPreviousData,
+  });
+};
