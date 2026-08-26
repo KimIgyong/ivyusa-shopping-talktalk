@@ -114,5 +114,6 @@
       "fri": "Vie",
       "sat": "Sáb"
     }
-  }
+  },
+  "retentionNote": "Se calcula desde el registro de conversaciones, así que solo llega hasta donde se conserva el registro."
 }

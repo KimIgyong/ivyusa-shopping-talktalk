@@ -144,13 +144,14 @@ export class AnalyticsBreakdownService {
     if (!convs.length) return { ai: [], human: [] };
 
     const ids = convs.map((c) => Number(c.id));
-    const [sessions, replies, lastSenders, prompted, aiAgents, users] = await Promise.all([
+    const [sessions, replies, aiReplies, lastSenders, prompted, aiAgents, users] = await Promise.all([
       this.sessionRepo
         .createQueryBuilder('s')
         .select(['s.id', 's.ai_agent_id'])
         .where('s.id IN (:...ids)', { ids: convs.map((c) => Number(c.sessionId)) })
         .getMany(),
       this.agentReplyCounts(ids),
+      this.senderCountsByConversation(ids, SENDER_TYPE.AI),
       this.lastNonSystemSenders(ids),
       this.promptedConversationIds(tenantId, ids),
       this.aiAgentRepo.find({ where: { tenantId } }),
@@ -216,7 +217,14 @@ export class AnalyticsBreakdownService {
 
     const ai = [...aiBuckets.entries()]
       .map(([id, list]) =>
-        rowFor(id, id == null ? 'default' : (aiName.get(id) ?? `#${id}`), list, 0),
+        rowFor(
+          id,
+          id == null ? 'default' : (aiName.get(id) ?? `#${id}`),
+          list,
+          // Answers this agent actually sent. Reporting 0 because the column is
+          // hidden would put a wrong number in the API for whoever reads it next.
+          list.reduce((sum, c) => sum + (aiReplies.get(Number(c.id)) ?? 0), 0),
+        ),
       )
       .sort((a, b) => b.conversations - a.conversations);
     const human = [...humanBuckets.entries()]
@@ -281,6 +289,13 @@ export class AnalyticsBreakdownService {
       .where('m.tenant_id = :tenantId', { tenantId })
       .andWhere('m.sender_type = :user', { user: SENDER_TYPE.USER })
       .andWhere('m.created_at >= :from AND m.created_at < :to', window)
+      // Same sandbox rule as every other count here. Operators test the widget
+      // during their own working hours, so preview traffic would pile onto the
+      // exact hours the chart is asked about and look like customer demand.
+      .andWhere(
+        'NOT EXISTS (SELECT 1 FROM conversations pc JOIN sessions ps ON ps.id = pc.session_id ' +
+          "WHERE pc.id = m.conversation_id AND ps.channel = 'preview')",
+      )
       .getRawMany<{ createdAt: Date | string }>();
 
     const grid: number[][] = Array.from({ length: 7 }, () => Array<number>(24).fill(0));
@@ -322,6 +337,23 @@ export class AnalyticsBreakdownService {
     );
   }
 
+  /** conversation id → messages sent by one kind of sender. */
+  private async senderCountsByConversation(
+    convIds: number[],
+    senderType: string,
+  ): Promise<Map<number, number>> {
+    if (!convIds.length) return new Map();
+    const rows = await this.msgRepo
+      .createQueryBuilder('m')
+      .select('m.conversation_id', 'conversationId')
+      .addSelect('COUNT(*)', 'sent')
+      .where('m.conversation_id IN (:...ids)', { ids: convIds })
+      .andWhere('m.sender_type = :senderType', { senderType })
+      .groupBy('m.conversation_id')
+      .getRawMany<{ conversationId: string; sent: string }>();
+    return new Map(rows.map((r) => [Number(r.conversationId), Number(r.sent)]));
+  }
+
   /** agent user id → replies sent, across the conversations in range. */
   private async agentReplyCounts(convIds: number[]): Promise<Map<number, number>> {
     if (!convIds.length) return new Map();
@@ -359,23 +391,33 @@ export class AnalyticsBreakdownService {
     convIds: number[],
   ): Promise<Set<number>> {
     if (!convIds.length) return new Set();
+    // Bounded by the conversations actually being counted: the audit log is the
+    // busiest table here and every prompt this tenant has ever sent would
+    // otherwise be read to answer a 30-day question.
+    const targets = convIds.map((id) => `conversation:${id}`);
     const rows = await this.auditRepo
       .createQueryBuilder('a')
       .select('a.target', 'target')
       .where('a.action = :action', { action: 'chat.idle_prompted' })
       .andWhere('a.tenant_id = :tenantId', { tenantId })
+      .andWhere('a.target IN (:...targets)', { targets })
       .getRawMany<{ target: string | null }>();
-    const wanted = new Set(convIds.map(String));
     const out = new Set<number>();
     for (const r of rows) {
-      const id = (r.target ?? '').replace('conversation:', '');
-      if (wanted.has(id)) out.add(Number(id));
+      const id = Number((r.target ?? '').replace('conversation:', ''));
+      if (Number.isFinite(id)) out.add(id);
     }
     return out;
   }
 }
 
-/** Middle value — the typical conversation, unmoved by one 900-message group room. */
+/**
+ * Middle value — the typical conversation, unmoved by one 900-message group room.
+ *
+ * Rounded on an even count deliberately: this is presented as "the size of a
+ * typical conversation", and half a message is not a thing. The mean beside it
+ * carries the decimal.
+ */
 export function median(values: number[]): number {
   if (!values.length) return 0;
   const sorted = [...values].sort((a, b) => a - b);

@@ -166,15 +166,20 @@ export function AgentSection({ from, to }: RangeProps) {
 /** How conversations ended — one definition, shared with the journey report. */
 export function ResolutionSection({ from, to }: RangeProps) {
   const { t } = useTranslation('statistics');
-  const { data, isLoading } = useResolutionStats(from, to);
+  const { data, isLoading, error } = useResolutionStats(from, to);
   const total = (data?.byReason ?? []).reduce((sum, r) => sum + r.count, 0);
 
   return (
     <Card title={t('resolution.title')}>
       <p className="mb-3 text-xs text-gray-500">{t('resolution.hint')}</p>
       {isLoading && <p className="text-sm text-gray-400">…</p>}
-      {!isLoading && !total && <p className="text-sm text-gray-400">{t('resolution.empty')}</p>}
-      {!isLoading && !!total && (
+      {/* A failed request must not read as "no conversations" — that is a
+          number, and it would be a wrong one. */}
+      {!isLoading && error && <p className="text-sm text-error">{(error as Error).message}</p>}
+      {!isLoading && !error && !total && (
+        <p className="text-sm text-gray-400">{t('resolution.empty')}</p>
+      )}
+      {!isLoading && !error && !!total && (
         <>
           <p className="mb-3 text-sm text-gray-700">
             {t('resolution.headline', {
@@ -212,7 +217,7 @@ const DAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const;
 /** When customers write, in the tenant's own clock. */
 export function HourSection({ from, to }: RangeProps) {
   const { t } = useTranslation('statistics');
-  const { data, isLoading } = useHourStats(from, to);
+  const { data, isLoading, error } = useHourStats(from, to);
   const grid = data?.grid ?? [];
   const peak = Math.max(1, ...grid.flat());
 
@@ -226,8 +231,11 @@ export function HourSection({ from, to }: RangeProps) {
         })}
       </p>
       {isLoading && <p className="text-sm text-gray-400">…</p>}
-      {!isLoading && !data?.total && <p className="text-sm text-gray-400">{t('hours.empty')}</p>}
-      {!isLoading && !!data?.total && (
+      {!isLoading && error && <p className="text-sm text-error">{(error as Error).message}</p>}
+      {!isLoading && !error && !data?.total && (
+        <p className="text-sm text-gray-400">{t('hours.empty')}</p>
+      )}
+      {!isLoading && !error && !!data?.total && (
         <div className="overflow-x-auto">
           <table className="text-[10px]">
             <thead>

@@ -114,5 +114,6 @@
       "fri": "T6",
       "sat": "T7"
     }
-  }
+  },
+  "retentionNote": "Tính trực tiếp từ nhật ký hội thoại, nên chỉ truy được đến giới hạn lưu trữ của nhật ký."
 }

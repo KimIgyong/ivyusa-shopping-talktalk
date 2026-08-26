@@ -29,6 +29,9 @@ const LOW_CONFIDENCE = 0.45;
 const SECTIONS = ['questions', 'channels', 'agents', 'resolution', 'csat', 'hours'] as const;
 type Section = (typeof SECTIONS)[number];
 
+/** Tabs computed from conversations/messages, which the retention purge removes. */
+const LOG_BACKED_SECTIONS: readonly Section[] = ['channels', 'agents', 'resolution', 'hours'];
+
 /** Days behind yesterday before the page says so. 1 = simply "no questions yesterday". */
 const STALE_WARN_DAYS = 2;
 /** Escalation rate above which a topic is worth a knowledge fix. */
@@ -161,6 +164,12 @@ export function StatisticsPage() {
       </Card>
 
       {section === 'csat' && <CsatSection from={from} to={to} />}
+      {/* These four read the conversation log itself, so they end where it
+          does. Claimed in the plan and easy to leave unsaid — an empty range
+          past the window would otherwise read as "nothing happened". */}
+      {LOG_BACKED_SECTIONS.includes(section) && (
+        <p className="mb-3 text-xs text-gray-400">{t('retentionNote')}</p>
+      )}
       {section === 'channels' && <ChannelSection from={from} to={to} />}
       {section === 'agents' && <AgentSection from={from} to={to} />}
       {section === 'resolution' && <ResolutionSection from={from} to={to} />}

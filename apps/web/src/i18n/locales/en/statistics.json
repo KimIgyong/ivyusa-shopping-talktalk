@@ -114,5 +114,6 @@
       "fri": "Fri",
       "sat": "Sat"
     }
-  }
+  },
+  "retentionNote": "Computed from the conversation log, so this view reaches back only as far as the log is kept."
 }
