@@ -58,6 +58,10 @@ export function DashboardPage() {
         <KpiCard
           label={t('aiResolutionRate')}
           value={isLoading ? '…' : pct(data?.aiResolutionRate)}
+          // The definition is on the card because it changed: it used to count
+          // any ended, un-escalated conversation — including one the customer
+          // walked away from — and it now matches the journey report exactly.
+          hint={t('aiResolutionRateHint')}
           icon={Bot}
           to="/history"
         />

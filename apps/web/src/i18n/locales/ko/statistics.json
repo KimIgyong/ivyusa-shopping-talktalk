@@ -53,5 +53,7 @@
     "agentFilter": "상담원 필터",
     "agentAll": "상담원: 전체",
     "empty": "이 기간에 평가가 없습니다."
-  }
+  },
+  "staleWarning": "{{date}} 이후 질문 집계가 없습니다({{days}}일). 표는 그때까지 집계된 값입니다.",
+  "neverAggregated": "아직 집계된 질문 스냅샷이 없습니다."
 }

@@ -9,24 +9,16 @@ import { Assignment } from '../agent/entity/assignment.entity';
 import { CjmEvent } from '../cjm/entity/cjm-event.entity';
 import { AuditLog } from '../audit/entity/audit-log.entity';
 import { ChatGroupMember } from '../agent/entity/chat-group-member.entity';
+import {
+  RESOLUTION_REASON,
+  UNRESOLVED_REASON,
+  classifyOutcome,
+  lastNonSystemSender,
+} from '../../global/util/resolution.util';
 
-/** Why a conversation counted as resolved — printed in the report, not just used. */
-export const RESOLUTION_REASON = {
-  AGENT_CLOSED: 'agent_closed',
-  CSAT_ANSWERED: 'csat_answered',
-  /** Asked "anything else?" after 30 min of silence, then closed (PLN D3). */
-  PROMPTED_CLOSED: 'prompted_closed',
-} as const;
+// Re-exported so the report's own module and its spec keep one import path.
+export { RESOLUTION_REASON, UNRESOLVED_REASON, classifyOutcome };
 
-/** Why it did not — kept apart so the count cannot quietly inflate resolution. */
-export const UNRESOLVED_REASON = {
-  /** Prompted and closed, but the customer spoke last: a question left hanging. */
-  CUSTOMER_LAST: 'customer_last',
-  /** Too old to talk to; closed without asking anything. */
-  ABANDONED: 'abandoned',
-  /** Still open. */
-  OPEN: 'open',
-} as const;
 
 export interface JourneyMetrics {
   sessionCount: number;
@@ -122,7 +114,7 @@ export class JourneyMetricsService {
     for (const conv of conversations) {
       const id = Number(conv.id);
       const list = byConv.get(id) ?? [];
-      const outcome = classifyOutcome(conv, list, prompted.has(id));
+      const outcome = classifyOutcome(conv, lastNonSystemSender(list), prompted.has(id));
       if (outcome.resolved) {
         resolvedBy[outcome.reason] = (resolvedBy[outcome.reason] ?? 0) + 1;
         const started = list[0]?.createdAt ?? conv.createdAt;
@@ -194,42 +186,6 @@ export class JourneyMetricsService {
   }
 }
 
-/**
- * Resolved or not, and why.
- *
- * The prompted-then-closed case covers two different things: a customer who got
- * their answer and went quiet, and one who did not and left. Both receive the
- * same message and end in the same state. What separates them is who spoke last
- * before the silence — count them together and abandoned threads land in the
- * resolved column, where their share grows as service gets worse.
- */
-export function classifyOutcome(
-  conv: Pick<Conversation, 'status' | 'csatRating' | 'endedAt'>,
-  messages: Array<Pick<Message, 'senderType'>>,
-  wasPrompted: boolean,
-): { resolved: boolean; reason: string } {
-  if (conv.csatRating != null) {
-    return { resolved: true, reason: RESOLUTION_REASON.CSAT_ANSWERED };
-  }
-  if (conv.status !== 'ended') {
-    return { resolved: false, reason: UNRESOLVED_REASON.OPEN };
-  }
-  if (!wasPrompted) {
-    // Ended without ever being asked: either an agent closed it deliberately,
-    // or it was too old to talk to. The sweeper's silent close leaves no
-    // prompt, so an agent close is the only other way to reach this state.
-    return conv.endedAt
-      ? { resolved: true, reason: RESOLUTION_REASON.AGENT_CLOSED }
-      : { resolved: false, reason: UNRESOLVED_REASON.ABANDONED };
-  }
-  const lastHuman = [...messages]
-    .reverse()
-    .find((m) => m.senderType !== SENDER_TYPE.SYSTEM);
-  if (lastHuman?.senderType === SENDER_TYPE.USER) {
-    return { resolved: false, reason: UNRESOLVED_REASON.CUSTOMER_LAST };
-  }
-  return { resolved: true, reason: RESOLUTION_REASON.PROMPTED_CLOSED };
-}
 
 /** Speaker changes: a question answered in one turn loops once. */
 export function loopsIn(messages: Array<Pick<Message, 'senderType'>>): number {

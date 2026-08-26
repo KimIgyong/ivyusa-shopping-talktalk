@@ -53,5 +53,7 @@
     "agentFilter": "客服筛选",
     "agentAll": "客服：全部",
     "empty": "该时间段内没有评价。"
-  }
+  },
+  "staleWarning": "自 {{date}} 起没有问题统计数据（{{days}} 天）。表格显示的是截至当时的汇总。",
+  "neverAggregated": "尚未生成问题统计快照。"
 }

@@ -16,6 +16,8 @@ import { CsatSection } from './CsatSection';
 
 /** Below this confidence an answer is treated as shaky (matches RAG_MIN_SIMILARITY). */
 const LOW_CONFIDENCE = 0.45;
+/** Days behind yesterday before the page says so. 1 = simply "no questions yesterday". */
+const STALE_WARN_DAYS = 2;
 /** Escalation rate above which a topic is worth a knowledge fix. */
 const HIGH_ESCALATION = 0.25;
 
@@ -121,6 +123,18 @@ export function StatisticsPage() {
           </button>
         ))}
       </div>
+
+      {/* How old the numbers are. Without it the page looks identical whether
+          the snapshot ran this morning or a week ago — which is how a stalled
+          job hides. A day with no questions writes no rows, so this says the
+          date and lets the reader judge rather than crying failure. */}
+      {section === 'questions' && data && data.staleDays >= STALE_WARN_DAYS && (
+        <p className="mb-3 rounded-lg border border-warning/30 bg-warning/5 px-3 py-2 text-xs text-warning">
+          {data.lastAggregated
+            ? t('staleWarning', { date: data.lastAggregated, days: data.staleDays })
+            : t('neverAggregated')}
+        </p>
+      )}
 
       <Card className="mb-4">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">

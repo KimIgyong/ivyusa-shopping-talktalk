@@ -1,3 +1,4 @@
+import { lastNonSystemSender } from '../../global/util/resolution.util';
 import {
   classifyOutcome,
   loopsIn,
@@ -13,14 +14,14 @@ const conv = (over: Record<string, unknown> = {}) =>
 describe('classifyOutcome', () => {
   it('counts a CSAT answer as resolved, whatever else happened', () => {
     // The customer told us it was over. Nothing else needs inferring.
-    expect(classifyOutcome(conv({ csatRating: 4 }), [], false)).toEqual({
+    expect(classifyOutcome(conv({ csatRating: 4 }), null, false)).toEqual({
       resolved: true,
       reason: RESOLUTION_REASON.CSAT_ANSWERED,
     });
   });
 
   it('counts an agent close as resolved', () => {
-    expect(classifyOutcome(conv(), [msg('agent')], false)).toEqual({
+    expect(classifyOutcome(conv(), 'agent', false)).toEqual({
       resolved: true,
       reason: RESOLUTION_REASON.AGENT_CLOSED,
     });
@@ -28,9 +29,8 @@ describe('classifyOutcome', () => {
 
   it('counts prompted-then-closed as resolved when we spoke last', () => {
     // The answer was given and the customer simply stopped.
-    const messages = [msg('user'), msg('agent'), msg('system')];
-
-    expect(classifyOutcome(conv(), messages, true)).toEqual({
+    // The system notice is skipped, so the last human turn is ours.
+    expect(classifyOutcome(conv(), lastNonSystemSender([msg('user'), msg('agent'), msg('system')]), true)).toEqual({
       resolved: true,
       reason: RESOLUTION_REASON.PROMPTED_CLOSED,
     });
@@ -40,9 +40,7 @@ describe('classifyOutcome', () => {
     // Same message, same end state, opposite meaning: a question left hanging.
     // Counted together, abandoned threads land in the resolved column and their
     // share grows as service gets worse.
-    const messages = [msg('agent'), msg('user'), msg('system')];
-
-    expect(classifyOutcome(conv(), messages, true)).toEqual({
+    expect(classifyOutcome(conv(), lastNonSystemSender([msg('agent'), msg('user'), msg('system')]), true)).toEqual({
       resolved: false,
       reason: UNRESOLVED_REASON.CUSTOMER_LAST,
     });
@@ -53,7 +51,7 @@ describe('classifyOutcome', () => {
     // prompted conversation would look answered by us.
     const messages = [msg('agent'), msg('user'), msg('system'), msg('system')];
 
-    expect(classifyOutcome(conv(), messages, true).resolved).toBe(false);
+    expect(classifyOutcome(conv(), lastNonSystemSender(messages), true).resolved).toBe(false);
   });
 
   it('treats a still-open conversation as unresolved, not as fast', () => {

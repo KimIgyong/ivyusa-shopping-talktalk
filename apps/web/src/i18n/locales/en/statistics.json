@@ -53,5 +53,7 @@
     "agentFilter": "Agent filter",
     "agentAll": "Agent: all",
     "empty": "No ratings in this window."
-  }
+  },
+  "staleWarning": "No question data since {{date}} ({{days}} days). The table shows what was aggregated up to then.",
+  "neverAggregated": "No question snapshot has been written yet."
 }

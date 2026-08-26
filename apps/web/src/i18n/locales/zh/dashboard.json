@@ -4,6 +4,7 @@
   "activeChats": "进行中的会话",
   "todayNotifications": "今日通知",
   "aiResolutionRate": "AI 解决率",
+  "aiResolutionRateHint": "已结束的会话中客户问题未被搁置的比例",
   "unresolvedTopN": "未解决（前 N 项）",
   "totalConversations": "会话总数",
   "totalOrders": "订单总数",

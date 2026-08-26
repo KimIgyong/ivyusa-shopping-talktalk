@@ -4,6 +4,7 @@
   "activeChats": "対応中のチャット",
   "todayNotifications": "本日の通知",
   "aiResolutionRate": "AI解決率",
+  "aiResolutionRateHint": "終了した会話のうち、お客様の質問が宙に浮いていない割合",
   "unresolvedTopN": "未解決（上位N件）",
   "totalConversations": "会話総数",
   "totalOrders": "注文総数",

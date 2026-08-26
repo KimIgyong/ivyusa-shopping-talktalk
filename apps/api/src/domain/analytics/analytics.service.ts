@@ -14,6 +14,8 @@ import { QuestionStatDaily, STAT_DIMENSION } from './entity/question-stat-daily.
 import { RedisService } from '../../infrastructure/cache/redis.service';
 import { maskPii } from '../../global/util/pii.util';
 import { toDateKey } from '../../global/util/date-range.util';
+import { classifyOutcome } from '../../global/util/resolution.util';
+import { AuditLog } from '../audit/entity/audit-log.entity';
 
 export interface DashboardKpis {
   activeChats: number;
@@ -83,6 +85,9 @@ export class AnalyticsService {
     @InjectRepository(Customer) private readonly customerRepo: Repository<Customer>,
     @InjectRepository(User) private readonly userRepo: Repository<User>,
     @InjectRepository(QuestionStatDaily) private readonly statRepo: Repository<QuestionStatDaily>,
+    // Repository only — the idle sweeper's prompt is recorded here and nowhere
+    // else, and the resolution definition needs it (see resolutionCounts).
+    @InjectRepository(AuditLog) private readonly auditRepo: Repository<AuditLog>,
     private readonly redis: RedisService,
   ) {}
 
@@ -131,31 +136,28 @@ export class AnalyticsService {
     const [
       activeChats,
       todayNotifications,
-      totalEnded,
-      resolvedEnded,
+      resolution,
       popularRows,
       unresolvedTopN,
       totalConversations,
       totalOrders,
     ] = await Promise.all([
-      this.convRepo.count({
-        where: {
-          ...tenantWhere,
-          status: In([
+      this.realConversations(tenantId)
+        .andWhere('c.status IN (:...open)', {
+          open: [
             CONVERSATION_STATUS.AI_ACTIVE,
             CONVERSATION_STATUS.AGENT,
             CONVERSATION_STATUS.WAITING,
-          ]),
-        },
-      }),
+          ],
+        })
+        .getCount(),
       notifQb.getCount(),
-      this.convRepo.count({ where: { ...tenantWhere, status: CONVERSATION_STATUS.ENDED } }),
-      this.convRepo.count({
-        where: { ...tenantWhere, status: CONVERSATION_STATUS.ENDED, escalated: 0 },
-      }),
+      this.resolutionCounts(tenantId),
       popularQb.getRawMany<{ label: string | null; asked: string }>(),
-      this.convRepo.count({ where: { ...tenantWhere, status: CONVERSATION_STATUS.WAITING } }),
-      this.convRepo.count({ where: tenantWhere }),
+      this.realConversations(tenantId)
+        .andWhere('c.status = :waiting', { waiting: CONVERSATION_STATUS.WAITING })
+        .getCount(),
+      this.realConversations(tenantId).getCount(),
       this.orderRepo.count({ where: tenantWhere }),
     ]);
 
@@ -166,7 +168,8 @@ export class AnalyticsService {
     const kpis: DashboardKpis = {
       activeChats,
       todayNotifications,
-      aiResolutionRate: totalEnded > 0 ? Math.round((resolvedEnded / totalEnded) * 100) : 0,
+      aiResolutionRate:
+        resolution.ended > 0 ? Math.round((resolution.resolved / resolution.ended) * 100) : 0,
       popularQuestions,
       unresolvedTopN,
       totalConversations,
@@ -174,6 +177,121 @@ export class AnalyticsService {
     };
     await this.redis.set(cacheKey, JSON.stringify(kpis), DASHBOARD_CACHE_TTL_SEC);
     return kpis;
+  }
+
+  /**
+   * Conversations a tenant actually had — sandbox threads excluded.
+   *
+   * `/ai-setting` preview threads are operator experiments. Conversation search
+   * has always excluded them ("they would inflate every count on this screen");
+   * the dashboard, in the same service, counted them. On staging that is 26% of
+   * go2joy's conversations, so one card in four was measuring us testing
+   * ourselves.
+   */
+  private realConversations(tenantId: number | null) {
+    const qb = this.convRepo.createQueryBuilder('c');
+    if (tenantId != null) qb.where('c.tenant_id = :tenantId', { tenantId });
+    return qb.andWhere(
+      "NOT EXISTS (SELECT 1 FROM sessions ps WHERE ps.id = c.session_id AND ps.channel = 'preview')",
+    );
+  }
+
+  /**
+   * Ended conversations and how many of them were resolved, by the one shared
+   * definition (`classifyOutcome`).
+   *
+   * This used to be "ended and not escalated", which scores a customer who gave
+   * up as a success and disagreed with the journey report about the same
+   * conversations. Both now answer from `resolution.util`.
+   *
+   * Two supporting facts are read in bulk rather than per conversation: who
+   * spoke last (system notices skipped) and whether the idle sweeper asked
+   * "anything else?" — `close()` clears `idle_prompt_at`, so the audit trail is
+   * the only place that still knows.
+   */
+  private async resolutionCounts(
+    tenantId: number | null,
+  ): Promise<{ ended: number; resolved: number }> {
+    const ended = await this.realConversations(tenantId)
+      .andWhere('c.status = :ended', { ended: CONVERSATION_STATUS.ENDED })
+      .select(['c.id', 'c.status', 'c.csat_rating', 'c.ended_at'])
+      .getMany();
+    if (!ended.length) return { ended: 0, resolved: 0 };
+
+    const ids = ended.map((c) => Number(c.id));
+    const lastSenders = await this.lastNonSystemSenders(ids);
+    const prompted = await this.promptedConversationIds(tenantId, ids);
+
+    let resolved = 0;
+    for (const conv of ended) {
+      const outcome = classifyOutcome(
+        { status: conv.status, csatRating: conv.csatRating, endedAt: conv.endedAt },
+        lastSenders.get(Number(conv.id)) ?? null,
+        prompted.has(Number(conv.id)),
+      );
+      if (outcome.resolved) resolved += 1;
+    }
+    return { ended: ended.length, resolved };
+  }
+
+  /** conversation id → last sender that was not a system notice. */
+  private async lastNonSystemSenders(convIds: number[]): Promise<Map<number, string>> {
+    if (!convIds.length) return new Map();
+    const rows = await this.msgRepo
+      .createQueryBuilder('m')
+      .select('m.conversation_id', 'conversationId')
+      .addSelect('m.sender_type', 'senderType')
+      .where('m.conversation_id IN (:...ids)', { ids: convIds })
+      .andWhere('m.sender_type != :system', { system: SENDER_TYPE.SYSTEM })
+      .andWhere(
+        'm.id = (SELECT MAX(m2.id) FROM messages m2 WHERE m2.conversation_id = m.conversation_id ' +
+          "AND m2.sender_type != :system)",
+      )
+      .getRawMany<{ conversationId: string; senderType: string }>();
+    return new Map(rows.map((r) => [Number(r.conversationId), r.senderType]));
+  }
+
+  /** Conversations the idle sweeper asked "anything else?" before closing. */
+  private async promptedConversationIds(
+    tenantId: number | null,
+    convIds: number[],
+  ): Promise<Set<number>> {
+    if (!convIds.length) return new Set();
+    const qb = this.auditRepo
+      .createQueryBuilder('a')
+      .select('a.target', 'target')
+      .where('a.action = :action', { action: 'chat.idle_prompted' });
+    if (tenantId != null) qb.andWhere('a.tenant_id = :tenantId', { tenantId });
+    const rows = await qb.getRawMany<{ target: string | null }>();
+    const wanted = new Set(convIds.map(String));
+    const out = new Set<number>();
+    for (const r of rows) {
+      const id = (r.target ?? '').replace('conversation:', '');
+      if (wanted.has(id)) out.add(Number(id));
+    }
+    return out;
+  }
+
+  /**
+   * The most recent day the snapshot holds, and how far behind yesterday it is.
+   *
+   * A day with no customer questions writes no rows, so "behind" here means
+   * "no data since", not "the job is broken" — the screen says the date and
+   * lets the reader judge.
+   */
+  private async snapshotFreshness(
+    tenantId: number | null,
+  ): Promise<{ lastAggregated: string | null; staleDays: number }> {
+    const qb = this.statRepo.createQueryBuilder('s').select('MAX(s.stat_date)', 'last');
+    if (tenantId != null) qb.where('s.tenant_id = :tenantId', { tenantId });
+    const row = await qb.getRawOne<{ last: string | Date | null }>();
+    if (!row?.last) return { lastAggregated: null, staleDays: 0 };
+    const last = row.last instanceof Date ? toDateKey(row.last) : String(row.last).slice(0, 10);
+    const yesterday = toDateKey(new Date(Date.now() - 86_400_000));
+    const diff = Math.round(
+      (Date.parse(`${yesterday}T00:00:00Z`) - Date.parse(`${last}T00:00:00Z`)) / 86_400_000,
+    );
+    return { lastAggregated: last, staleDays: diff > 0 ? diff : 0 };
   }
 
   /** Conversation history search — tenant-scoped, message counts batched (PERF-7). */
@@ -318,6 +436,10 @@ export class AnalyticsService {
     }>;
     trend: Array<{ date: string; asked: number }>;
     total: number;
+    /** Latest day the snapshot job has written, over all dimensions. */
+    lastAggregated: string | null;
+    /** Whole days between `lastAggregated` and yesterday — 0 when current. */
+    staleDays: number;
   }> {
     const base = () => {
       const qb = this.statRepo
@@ -373,12 +495,20 @@ export class AnalyticsService {
       };
     });
 
+    // How fresh the numbers are. The job aggregates *yesterday*, so being one
+    // day behind today is current, not late. Without this the screen looks
+    // identical whether the snapshot ran this morning or a week ago — which is
+    // exactly how a stalled job would hide.
+    const { lastAggregated, staleDays } = await this.snapshotFreshness(tenantId);
+
     return {
       top,
       trend: trendRows.map((r) => ({
         date: r.date instanceof Date ? toDateKey(r.date) : String(r.date),
         asked: Number(r.asked),
       })),
+      lastAggregated,
+      staleDays,
       // Total questions in range for this lens. A question counted under two
       // keywords appears twice here by design — it is the lens total, not a
       // conversation count.

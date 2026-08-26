@@ -21,6 +21,10 @@ export interface QuestionStats {
   top: StatRow[];
   trend: Array<{ date: string; asked: number }>;
   total: number;
+  /** Latest day the snapshot job has written; null when it has never run. */
+  lastAggregated: string | null;
+  /** Whole days behind yesterday — 0 when current (the job aggregates yesterday). */
+  staleDays: number;
 }
 
 export interface QuestionStatsParams {

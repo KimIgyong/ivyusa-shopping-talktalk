@@ -53,5 +53,7 @@
     "agentFilter": "Lọc nhân viên",
     "agentAll": "Nhân viên: tất cả",
     "empty": "Không có đánh giá trong khoảng này."
-  }
+  },
+  "staleWarning": "Không có dữ liệu câu hỏi kể từ {{date}} ({{days}} ngày). Bảng hiển thị số liệu tổng hợp đến thời điểm đó.",
+  "neverAggregated": "Chưa có bản tổng hợp câu hỏi nào được ghi."
 }
