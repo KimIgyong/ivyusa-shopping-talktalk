@@ -10,6 +10,7 @@ import { Customer } from '../customer/entity/customer.entity';
 import { User } from '../user/entity/user.entity';
 import { KbDocument } from '../knowledge/entity/kb-document.entity';
 import { AuditModule } from '../audit/audit.module';
+import { AuditLog } from '../audit/entity/audit-log.entity';
 import { QuestionStatDaily } from './entity/question-stat-daily.entity';
 import { QuestionCluster } from './entity/question-cluster.entity';
 import { AnalyticsService } from './analytics.service';
@@ -29,6 +30,7 @@ import { AnalyticsController } from './analytics.controller';
       User,
       KbDocument,
       QuestionStatDaily,
+      AuditLog,
       QuestionCluster,
     ]),
     // Reading a transcript is a PII access and is audited like the agent

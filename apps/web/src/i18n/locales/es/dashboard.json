@@ -4,6 +4,7 @@
   "activeChats": "Chats activos",
   "todayNotifications": "Notificaciones de hoy",
   "aiResolutionRate": "Tasa de resolución por IA",
+  "aiResolutionRateHint": "Conversaciones cerradas que el cliente no dejó sin respuesta",
   "unresolvedTopN": "Sin resolver (top N)",
   "totalConversations": "Conversaciones totales",
   "totalOrders": "Pedidos totales",

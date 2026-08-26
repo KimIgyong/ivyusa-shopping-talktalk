@@ -4,6 +4,7 @@
   "activeChats": "Cuộc trò chuyện đang diễn ra",
   "todayNotifications": "Thông báo hôm nay",
   "aiResolutionRate": "Tỷ lệ AI giải quyết",
+  "aiResolutionRateHint": "Cuộc trò chuyện đã kết thúc mà khách hàng không bị bỏ lửng",
   "unresolvedTopN": "Chưa giải quyết (top N)",
   "totalConversations": "Tổng số hội thoại",
   "totalOrders": "Tổng số đơn hàng",

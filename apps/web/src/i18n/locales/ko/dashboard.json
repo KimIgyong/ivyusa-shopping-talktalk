@@ -4,6 +4,7 @@
   "activeChats": "진행 중인 상담",
   "todayNotifications": "오늘의 알림",
   "aiResolutionRate": "AI 해결률",
+  "aiResolutionRateHint": "종료된 대화 중 고객의 질문이 미해결로 남지 않은 비율",
   "unresolvedTopN": "미해결 (상위 N)",
   "totalConversations": "전체 대화 수",
   "totalOrders": "전체 주문 수",

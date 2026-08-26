@@ -4,6 +4,7 @@
   "activeChats": "Active chats",
   "todayNotifications": "Today's notifications",
   "aiResolutionRate": "AI resolution rate",
+  "aiResolutionRateHint": "Ended conversations the customer did not leave hanging",
   "unresolvedTopN": "Unresolved (top N)",
   "totalConversations": "Total conversations",
   "totalOrders": "Total orders",
