@@ -174,7 +174,9 @@
     },
     "odoo": {
       "title": "Odoo",
-      "subtitle": "Conecta Odoo mediante la API externa (URL, base de datos, usuario, API key)."
+      "subtitle": "Conecta Odoo mediante la API externa (URL, base de datos, usuario, API key).",
+      "syncProducts": "Importar productos",
+      "syncProductsHint": "Trae el catálogo de Odoo a ShopTalk. Tras importar, regístralo como conocimiento en el menú Conocimiento para las respuestas de producto del widget."
     },
     "haravan": {
       "title": "Haravan",
@@ -191,7 +193,8 @@
     "gorgias": {
       "title": "Gorgias",
       "subtitle": "Helpdesk — los chats escalados pueden transferirse como tickets de Gorgias."
-    }
+    },
+    "syncing": "Sincronizando…"
   },
   "install": {
     "subtitle": "Añade el widget de chat a tu tienda. Elige tu plataforma.",

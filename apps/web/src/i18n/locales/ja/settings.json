@@ -174,7 +174,9 @@
     },
     "odoo": {
       "title": "Odoo",
-      "subtitle": "外部API（URL・データベース・ユーザー・APIキー）でOdooと連携します。"
+      "subtitle": "外部API（URL・データベース・ユーザー・APIキー）でOdooと連携します。",
+      "syncProducts": "商品を取り込む",
+      "syncProductsHint": "Odoo カタログを ShopTalk に取り込みます。取り込み後、ナレッジメニューでナレッジ登録するとウィジェットの商品回答に使えます。"
     },
     "haravan": {
       "title": "Haravan",
@@ -191,7 +193,8 @@
     "gorgias": {
       "title": "Gorgias",
       "subtitle": "ヘルプデスク — エスカレーションされたチャットをGorgiasのチケットとして引き継げます。"
-    }
+    },
+    "syncing": "同期中…"
   },
   "install": {
     "subtitle": "ストアフロントにチャットウィジェットを追加します。プラットフォームを選択してください。",

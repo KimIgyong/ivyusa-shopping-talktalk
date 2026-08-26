@@ -174,7 +174,9 @@
     },
     "odoo": {
       "title": "Odoo",
-      "subtitle": "Kết nối Odoo qua API bên ngoài (URL, cơ sở dữ liệu, người dùng, khóa API)."
+      "subtitle": "Kết nối Odoo qua API bên ngoài (URL, cơ sở dữ liệu, người dùng, khóa API).",
+      "syncProducts": "Nhập sản phẩm",
+      "syncProductsHint": "Kéo danh mục Odoo vào ShopTalk. Sau khi nhập, đăng ký làm tri thức trong menu Tri thức để trả lời sản phẩm trên widget."
     },
     "haravan": {
       "title": "Haravan",
@@ -191,7 +193,8 @@
     "gorgias": {
       "title": "Gorgias",
       "subtitle": "Helpdesk — các cuộc trò chuyện được chuyển tiếp có thể chuyển thành ticket Gorgias."
-    }
+    },
+    "syncing": "Đang đồng bộ…"
   },
   "install": {
     "subtitle": "Thêm widget trò chuyện vào cửa hàng của bạn. Hãy chọn nền tảng.",
