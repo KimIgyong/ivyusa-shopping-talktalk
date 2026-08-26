@@ -604,5 +604,6 @@
     "usingAppSecret": "应用级密钥",
     "replaceWarning": "保存后密钥立即被替换。请同时更新发送方，否则其 webhook 会从此失败。",
     "widgetPointer": "挂件本身请见挂件设置 → 嵌入与 SDK。"
-  }
+  },
+  "integrationGuide": "连接指南"
 }

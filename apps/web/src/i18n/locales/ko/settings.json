@@ -604,5 +604,6 @@
     "usingAppSecret": "앱 공통 시크릿",
     "replaceWarning": "저장하면 시크릿이 즉시 교체됩니다. 보내는 쪽을 같이 바꾸지 않으면 그 시점부터 웹훅이 실패합니다.",
     "widgetPointer": "위젯 자체는 위젯 설정 → 임베드·SDK를 참고하십시오."
-  }
+  },
+  "integrationGuide": "연동 가이드"
 }

@@ -604,5 +604,6 @@
     "usingAppSecret": "App-level secret",
     "replaceWarning": "Saving replaces the secret immediately. Update the sending system in the same change, or its webhooks start failing.",
     "widgetPointer": "For the widget itself, see Widget settings → Embed & SDK."
-  }
+  },
+  "integrationGuide": "Integration guide"
 }
