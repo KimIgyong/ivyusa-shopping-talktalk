@@ -343,5 +343,19 @@
     "addDocWords": "Usa las palabras del cliente, no términos internos: la búsqueda compara su pregunta con tu texto.",
     "addDocCategory": "La categoría lo archiva y, si la restringes, decide qué agentes pueden citarlo.",
     "addDocPending": "Un documento nuevo se busca por palabra clave de inmediato; la búsqueda semántica empieza tras indexarlo."
+  },
+  "sortBy": "Ordenar por {{column}}",
+  "moreActions": "Más acciones",
+  "filter": {
+    "activeLabel": "Filtro de visibilidad",
+    "activeAll": "Visibilidad: todas",
+    "sourceLabel": "Filtro de origen",
+    "sourceAll": "Origen: todos",
+    "statusLabel": "Filtro de estado",
+    "statusAll": "Estado: todos"
+  },
+  "docStatus": {
+    "embedded": "Indexado",
+    "pending": "Pendiente"
   }
 }

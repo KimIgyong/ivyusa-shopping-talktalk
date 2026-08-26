@@ -343,5 +343,19 @@
     "addDocWords": "내부 용어가 아니라 고객이 쓰는 말로 씁니다 — 검색은 고객의 질문을 이 본문과 맞춰봅니다.",
     "addDocCategory": "카테고리는 분류이자, 범위를 좁히면 어느 에이전트가 인용할지를 정합니다.",
     "addDocPending": "새 문서는 키워드 검색에 바로 쓰이고, 의미 검색은 색인 후부터 쓰입니다."
+  },
+  "sortBy": "{{column}} 정렬",
+  "moreActions": "더보기",
+  "filter": {
+    "activeLabel": "노출 필터",
+    "activeAll": "노출: 전체",
+    "sourceLabel": "출처 필터",
+    "sourceAll": "출처: 전체",
+    "statusLabel": "상태 필터",
+    "statusAll": "상태: 전체"
+  },
+  "docStatus": {
+    "embedded": "색인완료",
+    "pending": "대기"
   }
 }

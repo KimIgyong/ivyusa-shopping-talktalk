@@ -343,5 +343,19 @@
     "addDocWords": "Dùng từ ngữ của khách, không dùng thuật ngữ nội bộ — tìm kiếm khớp câu hỏi của họ với nội dung của bạn.",
     "addDocCategory": "Danh mục vừa để phân loại, vừa quyết định trợ lý nào được trích dẫn nếu bạn thu hẹp nó.",
     "addDocPending": "Tài liệu mới tìm được ngay bằng từ khóa; tìm kiếm ngữ nghĩa bắt đầu sau khi lập chỉ mục."
+  },
+  "sortBy": "Sắp xếp theo {{column}}",
+  "moreActions": "Thao tác khác",
+  "filter": {
+    "activeLabel": "Lọc hiển thị",
+    "activeAll": "Hiển thị: tất cả",
+    "sourceLabel": "Lọc nguồn",
+    "sourceAll": "Nguồn: tất cả",
+    "statusLabel": "Lọc trạng thái",
+    "statusAll": "Trạng thái: tất cả"
+  },
+  "docStatus": {
+    "embedded": "Đã lập chỉ mục",
+    "pending": "Đang chờ"
   }
 }

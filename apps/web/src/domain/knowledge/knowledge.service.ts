@@ -292,6 +292,19 @@ export interface DocumentListParams {
   size: number;
   category?: string;
   group?: string;
+  // Server-side filters/sort (PLN-260826-KB-Documents-List-UI).
+  /** '1' visible only | '0' hidden only. */
+  active?: string;
+  source?: string;
+  status?: string;
+  sort?: 'title' | 'updated';
+  order?: 'asc' | 'desc';
+}
+
+/** Distinct values present for this tenant — filter select options. */
+export interface DocumentFacets {
+  sources: string[];
+  statuses: string[];
 }
 
 export const knowledgeService = {
@@ -319,7 +332,13 @@ export const knowledgeService = {
       size: params.size,
       ...(params.category ? { category: params.category } : {}),
       ...(params.group ? { group: params.group } : {}),
+      ...(params.active ? { active: params.active } : {}),
+      ...(params.source ? { source: params.source } : {}),
+      ...(params.status ? { status: params.status } : {}),
+      ...(params.sort ? { sort: params.sort, order: params.order ?? 'asc' } : {}),
     }),
+  documentFacets: (): Promise<DocumentFacets> =>
+    apiGet<DocumentFacets>('/knowledge/documents/facets'),
   document: (id: string) => apiGet<KnowledgeDocumentDetail>(`/knowledge/documents/${id}`),
   createDocument: (body: {
     title: string;

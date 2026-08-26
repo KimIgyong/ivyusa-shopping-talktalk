@@ -182,6 +182,16 @@ export function useDocuments(params: DocumentListParams) {
   });
 }
 
+/** Filter-select options — distinct source/status values for this tenant. */
+export function useDocumentFacets() {
+  const tenantKey = useTenantKey();
+  return useQuery({
+    queryKey: ['knowledge', tenantKey, 'document-facets'],
+    queryFn: () => knowledgeService.documentFacets(),
+    staleTime: 5 * 60_000,
+  });
+}
+
 export function useDocument(id: string | null) {
   const tenantKey = useTenantKey();
   return useQuery({

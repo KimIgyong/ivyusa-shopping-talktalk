@@ -343,5 +343,19 @@
     "addDocWords": "用客户的说法，而不是内部术语——检索是拿他们的问题与你的正文比对。",
     "addDocCategory": "分类用于归档，收窄后也决定哪些客服体可以引用。",
     "addDocPending": "新文档立即可被关键词检索；语义检索在建立索引后开始。"
+  },
+  "sortBy": "按{{column}}排序",
+  "moreActions": "更多操作",
+  "filter": {
+    "activeLabel": "展示筛选",
+    "activeAll": "展示：全部",
+    "sourceLabel": "来源筛选",
+    "sourceAll": "来源：全部",
+    "statusLabel": "状态筛选",
+    "statusAll": "状态：全部"
+  },
+  "docStatus": {
+    "embedded": "已索引",
+    "pending": "待处理"
   }
 }
