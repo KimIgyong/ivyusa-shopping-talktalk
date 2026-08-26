@@ -26,5 +26,32 @@
   "trendAria": "Question volume over {{count}} days",
   "empty": "No questions recorded in this range.",
   "attentionHint": "Flagged rows have a high handoff rate or low confidence — these are the topics worth improving in the knowledge base first.",
-  "snapshotNote": "Figures come from daily snapshots, so they remain available after conversation logs are purged."
+  "snapshotNote": "Figures come from daily snapshots, so they remain available after conversation logs are purged.",
+  "section": {
+    "questions": "Question analytics",
+    "csat": "Satisfaction"
+  },
+  "csat": {
+    "avgTitle": "Average rating",
+    "ratedTitle": "Responses",
+    "responseRateTitle": "Response rate",
+    "responseRateHint": "of {{ended}} ended chats",
+    "distributionTitle": "Distribution",
+    "byAgentTitle": "By agent",
+    "bySessionTitle": "By session",
+    "agent": "Agent",
+    "unassigned": "Unassigned",
+    "rated": "Responses",
+    "avg": "Average",
+    "endedAt": "Ended",
+    "session": "Session",
+    "sessionLabel": "Chat {{id}}",
+    "channel": "Channel",
+    "rating": "Rating",
+    "ratingFilter": "Rating filter",
+    "ratingAll": "Rating: all",
+    "agentFilter": "Agent filter",
+    "agentAll": "Agent: all",
+    "empty": "No ratings in this window."
+  }
 }

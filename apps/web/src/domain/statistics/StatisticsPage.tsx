@@ -12,6 +12,7 @@ import { useQuestionStats } from './statistics.hooks';
 import { DIMENSION_TABS } from './statistics.service';
 import type { Dimension, StatRow } from './statistics.service';
 import { TrendChart } from './TrendChart';
+import { CsatSection } from './CsatSection';
 
 /** Below this confidence an answer is treated as shaky (matches RAG_MIN_SIMILARITY). */
 const LOW_CONFIDENCE = 0.45;
@@ -35,6 +36,9 @@ export function StatisticsPage() {
   const navigate = useNavigate();
 
   const [dimension, setDimension] = useState<Dimension>('intent');
+  // Two sections share the window below: question analytics and CSAT
+  // (PLN-260826-Dashboard-Integration-CSAT-Stats).
+  const [section, setSection] = useState<'questions' | 'csat'>('questions');
   const [from, setFrom] = useState(isoDaysAgo(30));
   const [to, setTo] = useState(isoDaysAgo(0));
 
@@ -101,6 +105,23 @@ export function StatisticsPage() {
     <div>
       <PageHeader title={t('title')} subtitle={t('subtitle')} />
 
+      <div className="mb-4 flex flex-wrap gap-1 border-b border-gray-200">
+        {(['questions', 'csat'] as const).map((key) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => setSection(key)}
+            className={`-mb-px border-b-2 px-3 py-2 text-sm ${
+              section === key
+                ? 'border-primary-600 font-medium text-primary-700'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            {t(`section.${key}`)}
+          </button>
+        ))}
+      </div>
+
       <Card className="mb-4">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <FormRow label={t('from')}>
@@ -112,6 +133,10 @@ export function StatisticsPage() {
         </div>
       </Card>
 
+      {section === 'csat' && <CsatSection from={from} to={to} />}
+
+      {section === 'questions' && (
+      <>
       <div className="mb-4 flex flex-wrap gap-1 border-b border-gray-200">
         {DIMENSION_TABS.map((d) => (
           <button
@@ -148,6 +173,8 @@ export function StatisticsPage() {
         {t('attentionHint')}
       </p>
       <p className="mt-1 text-xs text-gray-400">{t('snapshotNote')}</p>
+      </>
+      )}
     </div>
   );
 }

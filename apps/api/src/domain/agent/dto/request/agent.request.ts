@@ -7,6 +7,7 @@ import {
   IsInt,
   IsOptional,
   IsString,
+  Matches,
   MaxLength,
   Min,
   MinLength,
@@ -62,6 +63,17 @@ export class ConversationQuery {
 }
 
 export class ListStatsQuery {
+  @IsOptional() @IsString() page?: string;
+  @IsOptional() @IsString() size?: string;
+}
+
+/** CSAT statistics window + filters (PLN-260826). Dates are YYYY-MM-DD on the
+ * ended_at axis; omitted range = the last 30 days. */
+export class CsatQuery {
+  @IsOptional() @Matches(/^\d{4}-\d{2}-\d{2}$/) from?: string;
+  @IsOptional() @Matches(/^\d{4}-\d{2}-\d{2}$/) to?: string;
+  @IsOptional() @IsIn(['1', '2', '3', '4', '5']) rating?: string;
+  @IsOptional() @IsString() agent_id?: string;
   @IsOptional() @IsString() page?: string;
   @IsOptional() @IsString() size?: string;
 }

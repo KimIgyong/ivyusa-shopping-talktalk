@@ -106,9 +106,22 @@ export function DashboardPage() {
           )}
           <ul className="space-y-3">
             {integrations?.map((it) => (
-              <li key={it.provider} className="flex items-center justify-between text-sm">
-                <span className="font-medium text-gray-700">{it.provider}</span>
-                <StatusBadge status={it.status} />
+              <li key={it.name} className="text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="font-medium text-gray-700">
+                    {t(`integration.${it.name}`, { defaultValue: it.name })}
+                  </span>
+                  <StatusBadge status={it.status} />
+                </div>
+                {/* What the state means and when it was last true — an
+                    "error" badge alone gave nothing to act on. */}
+                {(it.detail || it.lastSyncAt) && (
+                  <p className="mt-0.5 truncate text-xs text-gray-400" title={it.detail ?? undefined}>
+                    {it.detail}
+                    {it.detail && it.lastSyncAt ? ' · ' : ''}
+                    {it.lastSyncAt ? new Date(it.lastSyncAt).toLocaleString() : ''}
+                  </p>
+                )}
               </li>
             ))}
           </ul>

@@ -26,5 +26,32 @@
   "trendAria": "{{count}}일간 질문 추이",
   "empty": "해당 기간에 기록된 질문이 없습니다.",
   "attentionHint": "표시된 항목은 이관율이 높거나 신뢰도가 낮습니다 — 지식 보강을 먼저 해야 할 주제입니다.",
-  "snapshotNote": "수치는 일별 스냅샷 기준이므로 대화 로그가 삭제된 이후에도 유지됩니다."
+  "snapshotNote": "수치는 일별 스냅샷 기준이므로 대화 로그가 삭제된 이후에도 유지됩니다.",
+  "section": {
+    "questions": "질문 분석",
+    "csat": "만족도"
+  },
+  "csat": {
+    "avgTitle": "평균 평점",
+    "ratedTitle": "응답 수",
+    "responseRateTitle": "응답률",
+    "responseRateHint": "종료 상담 {{ended}}건 기준",
+    "distributionTitle": "분포",
+    "byAgentTitle": "상담원별",
+    "bySessionTitle": "세션별",
+    "agent": "상담원",
+    "unassigned": "미배정",
+    "rated": "응답 수",
+    "avg": "평균",
+    "endedAt": "종료일",
+    "session": "세션",
+    "sessionLabel": "대화 {{id}}",
+    "channel": "채널",
+    "rating": "평점",
+    "ratingFilter": "평점 필터",
+    "ratingAll": "평점: 전체",
+    "agentFilter": "상담원 필터",
+    "agentAll": "상담원: 전체",
+    "empty": "이 기간에 평가가 없습니다."
+  }
 }

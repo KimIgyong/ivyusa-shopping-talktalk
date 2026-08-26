@@ -17,5 +17,16 @@
   "orderNumber": "Đơn hàng",
   "status": "Trạng thái",
   "amount": "Số tiền",
-  "date": "Ngày"
+  "date": "Ngày",
+  "integration": {
+    "shopify": "Shopify",
+    "fulfillment": "Fulfillment",
+    "klaviyo": "Klaviyo",
+    "odoo": "Odoo",
+    "google_drive": "Google Drive",
+    "haravan": "Haravan",
+    "yotpo": "Yotpo",
+    "cafe24": "Cafe24",
+    "notion": "Notion"
+  }
 }

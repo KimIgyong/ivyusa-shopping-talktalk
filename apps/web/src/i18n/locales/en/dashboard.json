@@ -17,5 +17,16 @@
   "orderNumber": "Order",
   "status": "Status",
   "amount": "Amount",
-  "date": "Date"
+  "date": "Date",
+  "integration": {
+    "shopify": "Shopify",
+    "fulfillment": "Fulfillment",
+    "klaviyo": "Klaviyo",
+    "odoo": "Odoo",
+    "google_drive": "Google Drive",
+    "haravan": "Haravan",
+    "yotpo": "Yotpo",
+    "cafe24": "Cafe24",
+    "notion": "Notion"
+  }
 }

@@ -1413,4 +1413,164 @@ export class AgentService {
     });
     return { items, total };
   }
+
+  // ---- CSAT statistics (PLN-260826-Dashboard-Integration-CSAT-Stats) ----
+
+  /**
+   * Which human answers for a conversation's rating: the assigned owner, or
+   * failing that whoever sent the last agent message. Must stay in lockstep
+   * with recordCsatForAgent in chat.service — the stats read what it wrote.
+   */
+  private static readonly CSAT_AGENT_EXPR =
+    "COALESCE(c.agent_id, (SELECT m.sender_id FROM messages m WHERE m.conversation_id = c.id AND m.sender_type = 'agent' ORDER BY m.id DESC LIMIT 1))";
+
+  /** Default window: the last 30 days, ended_at axis (same axis stats use). */
+  private csatRange(from?: string, to?: string): { from: string; to: string } {
+    const day = (d: Date) => d.toISOString().slice(0, 10);
+    const end = to ?? day(new Date());
+    const start = from ?? day(new Date(Date.now() - 29 * 24 * 3600 * 1000));
+    return { from: start, to: end };
+  }
+
+  async csatSummary(
+    tenantId: number,
+    from?: string,
+    to?: string,
+  ): Promise<{
+    from: string;
+    to: string;
+    ended: number;
+    rated: number;
+    avg: number | null;
+    distribution: Record<'1' | '2' | '3' | '4' | '5', number>;
+  }> {
+    const range = this.csatRange(from, to);
+    const qb = this.convRepo
+      .createQueryBuilder('c')
+      .select('COUNT(*)', 'ended')
+      .addSelect('COUNT(c.csat_rating)', 'rated')
+      .addSelect('AVG(c.csat_rating)', 'avg')
+      .where('c.tenant_id = :tenantId', { tenantId })
+      .andWhere('c.status = :status', { status: CONVERSATION_STATUS.ENDED })
+      .andWhere('DATE(c.ended_at) BETWEEN :from AND :to', range);
+    for (const n of [1, 2, 3, 4, 5]) {
+      qb.addSelect(`SUM(c.csat_rating = ${n})`, `r${n}`);
+    }
+    const row = await qb.getRawOne<Record<string, string | null>>();
+    return {
+      ...range,
+      ended: Number(row?.ended ?? 0),
+      rated: Number(row?.rated ?? 0),
+      avg: row?.avg != null ? Number(row.avg) : null,
+      distribution: {
+        '1': Number(row?.r1 ?? 0),
+        '2': Number(row?.r2 ?? 0),
+        '3': Number(row?.r3 ?? 0),
+        '4': Number(row?.r4 ?? 0),
+        '5': Number(row?.r5 ?? 0),
+      },
+    };
+  }
+
+  async csatByAgent(
+    tenantId: number,
+    from?: string,
+    to?: string,
+  ): Promise<Array<{ agentId: number | null; agentName: string | null; rated: number; avg: number }>> {
+    const range = this.csatRange(from, to);
+    const rows = await this.convRepo
+      .createQueryBuilder('c')
+      .select(AgentService.CSAT_AGENT_EXPR, 'agentId')
+      .addSelect('COUNT(*)', 'rated')
+      .addSelect('AVG(c.csat_rating)', 'avg')
+      .where('c.tenant_id = :tenantId', { tenantId })
+      .andWhere('c.csat_rating IS NOT NULL')
+      .andWhere('DATE(c.ended_at) BETWEEN :from AND :to', range)
+      .groupBy('agentId')
+      .orderBy('rated', 'DESC')
+      .getRawMany<{ agentId: string | null; rated: string; avg: string }>();
+    const ids = rows.map((r) => r.agentId).filter((v): v is string => v != null);
+    const users = ids.length
+      ? await this.userRepo.find({
+          where: { id: In(ids.map(Number)), tenantId },
+          select: { id: true, name: true, email: true },
+        })
+      : [];
+    const nameById = new Map(users.map((u) => [String(u.id), u.name || u.email]));
+    return rows.map((r) => ({
+      agentId: r.agentId != null ? Number(r.agentId) : null,
+      agentName: r.agentId != null ? (nameById.get(String(r.agentId)) ?? null) : null,
+      rated: Number(r.rated),
+      avg: Number(r.avg),
+    }));
+  }
+
+  async csatConversations(
+    tenantId: number,
+    opts: { from?: string; to?: string; rating?: number; agentId?: number; page: number; size: number },
+  ): Promise<{
+    items: Array<{
+      id: number;
+      sessionId: string;
+      alias: string | null;
+      customerName: string | null;
+      agentId: number | null;
+      agentName: string | null;
+      channel: string;
+      rating: number | null;
+      ratedAt: Date | null;
+      endedAt: Date | null;
+    }>;
+    total: number;
+  }> {
+    const range = this.csatRange(opts.from, opts.to);
+    const qb = this.convRepo
+      .createQueryBuilder('c')
+      .addSelect(AgentService.CSAT_AGENT_EXPR, 'attributedAgentId')
+      .where('c.tenant_id = :tenantId', { tenantId })
+      .andWhere('c.csat_rating IS NOT NULL')
+      .andWhere('DATE(c.ended_at) BETWEEN :from AND :to', range);
+    if (opts.rating != null) qb.andWhere('c.csat_rating = :rating', { rating: opts.rating });
+    if (opts.agentId != null) {
+      qb.andWhere(`${AgentService.CSAT_AGENT_EXPR} = :agentId`, { agentId: opts.agentId });
+    }
+    const total = await qb.getCount();
+    const { entities, raw } = await qb
+      .orderBy('c.csat_rated_at', 'DESC')
+      .addOrderBy('c.id', 'DESC')
+      .skip((opts.page - 1) * opts.size)
+      .take(opts.size)
+      .getRawAndEntities<{ attributedAgentId: string | null }>();
+
+    const states = await this.sessionStates(entities.map((c) => c.sessionId));
+    const contacts = await this.contactsByConversation(entities);
+    const agentIds = raw
+      .map((r) => r.attributedAgentId)
+      .filter((v): v is string => v != null);
+    const users = agentIds.length
+      ? await this.userRepo.find({
+          where: { id: In([...new Set(agentIds.map(Number))]), tenantId },
+          select: { id: true, name: true, email: true },
+        })
+      : [];
+    const nameById = new Map(users.map((u) => [String(u.id), u.name || u.email]));
+    return {
+      total,
+      items: entities.map((c, i) => {
+        const attributed = raw[i]?.attributedAgentId ?? null;
+        return {
+          id: Number(c.id),
+          sessionId: String(c.sessionId),
+          alias: states.get(String(c.sessionId))?.alias ?? null,
+          customerName: contacts.get(String(c.id))?.name ?? null,
+          agentId: attributed != null ? Number(attributed) : null,
+          agentName: attributed != null ? (nameById.get(String(attributed)) ?? null) : null,
+          channel: c.channel || 'widget',
+          rating: c.csatRating,
+          ratedAt: c.csatRatedAt,
+          endedAt: c.endedAt,
+        };
+      }),
+    };
+  }
 }
