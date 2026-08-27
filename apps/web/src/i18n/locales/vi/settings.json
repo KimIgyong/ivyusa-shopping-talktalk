@@ -195,7 +195,10 @@
       "title": "Gorgias",
       "subtitle": "Helpdesk — các cuộc trò chuyện được chuyển tiếp có thể chuyển thành ticket Gorgias."
     },
-    "syncing": "Đang đồng bộ…"
+    "syncing": "Đang đồng bộ…",
+    "syncProducts": "Nhập sản phẩm",
+    "syncOrders": "Đồng bộ đơn hàng",
+    "syncHint": "Nhập danh mục/đơn hàng vào ShopTalk. Sau khi nhập sản phẩm, đăng ký làm tri thức trong menu Tri thức để trả lời sản phẩm trên widget."
   },
   "install": {
     "subtitle": "Thêm widget trò chuyện vào cửa hàng của bạn. Hãy chọn nền tảng.",

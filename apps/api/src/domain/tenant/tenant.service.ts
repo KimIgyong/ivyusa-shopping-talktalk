@@ -159,6 +159,16 @@ export class TenantService {
     return creds.map((c) => c.tenantId).filter((id): id is number => id != null);
   }
 
+  async listHaravanTenantIds(): Promise<number[]> {
+    const creds = await this.credRepo.find({ where: { provider: 'haravan' } });
+    return creds.map((c) => c.tenantId).filter((id): id is number => id != null);
+  }
+
+  async listWoocommerceTenantIds(): Promise<number[]> {
+    const creds = await this.credRepo.find({ where: { provider: 'woocommerce' } });
+    return creds.map((c) => c.tenantId).filter((id): id is number => id != null);
+  }
+
   async create(shopDomain: string, name: string, plan: string, slug?: string): Promise<Tenant> {
     const existing = await this.tenantRepo.findOne({ where: { shopDomain } });
     if (existing) {

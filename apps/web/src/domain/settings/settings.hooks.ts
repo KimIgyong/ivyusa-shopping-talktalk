@@ -166,35 +166,31 @@ export function useSaveIntegration(provider: string) {
   });
 }
 
-export function useSyncOdooOrders() {
+export function useSyncEcommerceProducts(provider: string) {
   const qc = useQueryClient();
   const tenantKey = useTenantKey();
   return useMutation({
-    mutationFn: () => settingsService.syncOdooOrders(),
+    mutationFn: () => settingsService.syncEcommerceProducts(provider),
     onSuccess: (res) => {
-      qc.invalidateQueries({ queryKey: ['integration', 'odoo', tenantKey] });
+      qc.invalidateQueries({ queryKey: ['integration', provider, tenantKey] });
       if (res.ok) toast.success(res.detail);
       else toast.error(res.detail);
     },
-    onError: (e: Error) => {
-      toast.error(e.message || 'Odoo order sync failed.');
-    },
+    onError: (e: Error) => toast.error(e.message || 'Product sync failed.'),
   });
 }
 
-export function useSyncOdooProducts() {
+export function useSyncEcommerceOrders(provider: string) {
   const qc = useQueryClient();
   const tenantKey = useTenantKey();
   return useMutation({
-    mutationFn: () => settingsService.syncOdooProducts(),
+    mutationFn: () => settingsService.syncEcommerceOrders(provider),
     onSuccess: (res) => {
-      qc.invalidateQueries({ queryKey: ['integration', 'odoo', tenantKey] });
+      qc.invalidateQueries({ queryKey: ['integration', provider, tenantKey] });
       if (res.ok) toast.success(res.detail);
       else toast.error(res.detail);
     },
-    onError: (e: Error) => {
-      toast.error(e.message || 'Odoo product sync failed.');
-    },
+    onError: (e: Error) => toast.error(e.message || 'Order sync failed.'),
   });
 }
 

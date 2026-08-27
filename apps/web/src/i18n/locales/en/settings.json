@@ -195,7 +195,10 @@
       "title": "Gorgias",
       "subtitle": "Helpdesk — escalated chats can be handed off as Gorgias tickets."
     },
-    "syncing": "Syncing…"
+    "syncing": "Syncing…",
+    "syncProducts": "Import products",
+    "syncOrders": "Sync orders",
+    "syncHint": "Import the catalogue/orders into ShopTalk. After importing products, register them as knowledge in the Knowledge menu to power widget product answers."
   },
   "install": {
     "subtitle": "Add the chat widget to your storefront. Pick your platform.",
