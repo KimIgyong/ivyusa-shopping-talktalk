@@ -83,7 +83,8 @@
     "empty": "Sin conversaciones en este rango.",
     "emptyHuman": "Ninguna conversación llegó a una persona en este rango.",
     "aiHint": "Las sesiones sin agente fijado se cuentan en el agente predeterminado, que es quien respondió.",
-    "humanHint": "Se calcula desde las conversaciones asignadas, no desde una puntuación almacenada."
+    "humanHint": "Se calcula desde las conversaciones asignadas, no desde una puntuación almacenada.",
+    "deleted": "Agente eliminado (#{{id}})"
   },
   "resolution": {
     "title": "Cómo terminaron las conversaciones",

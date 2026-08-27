@@ -11,6 +11,11 @@ import { AiAgent } from '../ai-engine/entity/ai-agent.entity';
 import { AuditLog } from '../audit/entity/audit-log.entity';
 import { classifyOutcome } from '../../global/util/resolution.util';
 
+/** Shown for sessions with no agent pinned — the tenant default answered them. */
+export const DEFAULT_AGENT_LABEL = 'default';
+/** Prefix for an agent that no longer exists; the console translates it. */
+export const DELETED_AGENT_LABEL = 'deleted:';
+
 export interface Window {
   from: Date;
   to: Date;
@@ -161,6 +166,11 @@ export class AnalyticsBreakdownService {
     );
     const defaultAgent = aiAgents.find((a) => a.isDefault === 1) ?? null;
     const aiName = new Map(aiAgents.map((a) => [Number(a.id), a.name]));
+    // An agent can be deleted while the sessions it answered remain. Printing
+    // the bare id ("#15") reads as a name nobody recognises; saying it is gone
+    // is the fact, and the conversations still have to be counted somewhere.
+    const nameOf = (id: number | null): string =>
+      id == null ? DEFAULT_AGENT_LABEL : (aiName.get(id) ?? `${DELETED_AGENT_LABEL}#${id}`);
     const userName = new Map(users.map((u) => [Number(u.id), u.name ?? u.email ?? `#${u.id}`]));
 
     const aiBuckets = new Map<number | null, Conversation[]>();
@@ -217,7 +227,7 @@ export class AnalyticsBreakdownService {
       .map(([id, list]) =>
         rowFor(
           id,
-          id == null ? 'default' : (aiName.get(id) ?? `#${id}`),
+          nameOf(id),
           list,
           // Answers this agent actually sent. Reporting 0 because the column is
           // hidden would put a wrong number in the API for whoever reads it next.

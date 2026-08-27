@@ -83,7 +83,8 @@
     "empty": "No conversations in this range.",
     "emptyHuman": "No conversation reached a person in this range.",
     "aiHint": "Sessions with no agent pinned are counted under the tenant default, which is the agent that answered them.",
-    "humanHint": "Counted from conversations assigned to each person, not from a stored score."
+    "humanHint": "Counted from conversations assigned to each person, not from a stored score.",
+    "deleted": "Deleted agent (#{{id}})"
   },
   "resolution": {
     "title": "How conversations ended",

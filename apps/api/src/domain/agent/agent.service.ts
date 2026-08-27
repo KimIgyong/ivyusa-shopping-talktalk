@@ -48,6 +48,16 @@ import {
   resolveAutoReply,
 } from '../messenger/auto-reply.util';
 
+/**
+ * Sandbox threads are not customer conversations (AN-260826 D-2/D-6).
+ *
+ * The dashboard was counting them and the conversation list was not; satisfaction
+ * inherited the same gap. No preview thread has ended on staging yet, so nothing
+ * printed a wrong number — the rule is here before one does.
+ */
+const CSAT_NOT_PREVIEW =
+  "NOT EXISTS (SELECT 1 FROM sessions ps WHERE ps.id = c.session_id AND ps.channel = 'preview')";
+
 /** Transcript page size for the console (PLN-260807 D2). */
 const MESSAGE_PAGE_SIZE = 30;
 /** Operator alias length — matches sessions.alias (PLN-260812). */
@@ -1432,6 +1442,21 @@ export class AgentService {
     return { from: start, to: end };
   }
 
+  /**
+   * The same window as half-open instants, so the index can be used.
+   *
+   * `DATE(c.ended_at) BETWEEN …` wraps the column in a function, which rules out
+   * any index on it and scans the table. Harmless at 426 rows; a full scan of
+   * every conversation a busy tenant has ever had at the size this is meant for.
+   * The upper bound moves to the next midnight and becomes exclusive, which
+   * covers the same day without naming 23:59:59.
+   */
+  private csatBounds(range: { from: string; to: string }): { start: string; end: string } {
+    const next = new Date(`${range.to}T00:00:00.000Z`);
+    next.setUTCDate(next.getUTCDate() + 1);
+    return { start: `${range.from} 00:00:00`, end: `${next.toISOString().slice(0, 10)} 00:00:00` };
+  }
+
   async csatSummary(
     tenantId: number,
     from?: string,
@@ -1452,7 +1477,8 @@ export class AgentService {
       .addSelect('AVG(c.csat_rating)', 'avg')
       .where('c.tenant_id = :tenantId', { tenantId })
       .andWhere('c.status = :status', { status: CONVERSATION_STATUS.ENDED })
-      .andWhere('DATE(c.ended_at) BETWEEN :from AND :to', range);
+      .andWhere('c.ended_at >= :start AND c.ended_at < :end', this.csatBounds(range))
+      .andWhere(CSAT_NOT_PREVIEW);
     for (const n of [1, 2, 3, 4, 5]) {
       qb.addSelect(`SUM(c.csat_rating = ${n})`, `r${n}`);
     }
@@ -1485,7 +1511,8 @@ export class AgentService {
       .addSelect('AVG(c.csat_rating)', 'avg')
       .where('c.tenant_id = :tenantId', { tenantId })
       .andWhere('c.csat_rating IS NOT NULL')
-      .andWhere('DATE(c.ended_at) BETWEEN :from AND :to', range)
+      .andWhere('c.ended_at >= :start AND c.ended_at < :end', this.csatBounds(range))
+      .andWhere(CSAT_NOT_PREVIEW)
       .groupBy('agentId')
       .orderBy('rated', 'DESC')
       .getRawMany<{ agentId: string | null; rated: string; avg: string }>();
@@ -1529,7 +1556,8 @@ export class AgentService {
       .addSelect(AgentService.CSAT_AGENT_EXPR, 'attributedAgentId')
       .where('c.tenant_id = :tenantId', { tenantId })
       .andWhere('c.csat_rating IS NOT NULL')
-      .andWhere('DATE(c.ended_at) BETWEEN :from AND :to', range);
+      .andWhere('c.ended_at >= :start AND c.ended_at < :end', this.csatBounds(range))
+      .andWhere(CSAT_NOT_PREVIEW);
     if (opts.rating != null) qb.andWhere('c.csat_rating = :rating', { rating: opts.rating });
     if (opts.agentId != null) {
       qb.andWhere(`${AgentService.CSAT_AGENT_EXPR} = :agentId`, { agentId: opts.agentId });

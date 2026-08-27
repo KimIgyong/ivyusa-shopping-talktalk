@@ -88,8 +88,14 @@ describe('AgentService — CSAT statistics', () => {
     });
     const dump = flat(h.calls);
     expect(dump).toContain('"tenantId":7');
-    expect(dump).toContain('BETWEEN :from AND :to');
-    expect(dump).toContain('"from":"2026-08-01"');
+    // Half-open instants, not DATE(c.ended_at) BETWEEN …: wrapping the column
+    // in a function rules out the index (AN-260826 P2). The upper bound is the
+    // next midnight, which covers the whole of `to` without naming 23:59:59.
+    expect(dump).toContain('c.ended_at >= :start AND c.ended_at < :end');
+    expect(dump).toContain('"start":"2026-08-01 00:00:00"');
+    expect(dump).toContain('"end":"2026-08-27 00:00:00"');
+    // Sandbox threads are not customer conversations.
+    expect(dump).toContain("ps.channel = 'preview'");
     expect(dump).toContain('csat_rating = 5');
   });
 

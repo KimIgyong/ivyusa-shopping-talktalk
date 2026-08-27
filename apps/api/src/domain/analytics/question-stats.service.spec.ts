@@ -273,3 +273,57 @@ describe('cluster maths', () => {
     expect(merged[0]).toBeCloseTo(0.1);
   });
 });
+
+describe('daysToAggregate — filling a day the run slept through (AN-260826 P2)', () => {
+  const build = (opts: { covered: string[]; asked: string[] }) => {
+    const statQb = {
+      select: () => statQb,
+      where: () => statQb,
+      getRawMany: async () => opts.covered.map((statDate) => ({ statDate })),
+    } as Record<string, unknown>;
+    const msgQb = {
+      select: () => msgQb,
+      where: () => msgQb,
+      andWhere: () => msgQb,
+      groupBy: () => msgQb,
+      getRawMany: async () => opts.asked.map((day) => ({ day })),
+    } as Record<string, unknown>;
+    const svc = new QuestionStatsService(
+      { createQueryBuilder: () => msgQb } as never,
+      {} as never,
+      {} as never,
+      { createQueryBuilder: () => statQb } as never,
+      {} as never,
+      {} as never,
+      { get: (_k: string, d: unknown) => d } as never,
+    );
+    return svc as unknown as { daysToAggregate: () => Promise<string[]> };
+  };
+
+  const dayKey = (back: number) =>
+    new Date(Date.now() - back * 86_400_000).toISOString().slice(0, 10);
+
+  it('always runs yesterday, even when it is already covered', async () => {
+    // Re-running is an upsert, and the normal job must not stop working because
+    // an earlier run happened to finish.
+    const svc = build({ covered: [dayKey(1)], asked: [dayKey(1)] });
+
+    expect(await svc.daysToAggregate()).toEqual([dayKey(1)]);
+  });
+
+  it('fills an uncovered day that has questions', async () => {
+    // The interval is anchored to boot, so a restart can shift it past a whole
+    // day. Before this the day stayed empty for good.
+    const svc = build({ covered: [dayKey(1)], asked: [dayKey(3), dayKey(1)] });
+
+    expect(await svc.daysToAggregate()).toEqual([dayKey(3), dayKey(1)]);
+  });
+
+  it('leaves a day nobody wrote in alone', async () => {
+    // A day with no customer questions legitimately has no rows — treating that
+    // as a gap would re-run the whole lookback window every night forever.
+    const svc = build({ covered: [], asked: [dayKey(1)] });
+
+    expect(await svc.daysToAggregate()).toEqual([dayKey(1)]);
+  });
+});

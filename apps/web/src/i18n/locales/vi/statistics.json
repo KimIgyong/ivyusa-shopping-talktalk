@@ -83,7 +83,8 @@
     "empty": "Không có cuộc trò chuyện trong khoảng này.",
     "emptyHuman": "Không có cuộc nào chuyển tới nhân viên trong khoảng này.",
     "aiHint": "Phiên không gán trợ lý được tính cho trợ lý mặc định — chính là bên đã trả lời.",
-    "humanHint": "Tính từ các cuộc được giao, không phải từ điểm số đã lưu."
+    "humanHint": "Tính từ các cuộc được giao, không phải từ điểm số đã lưu.",
+    "deleted": "Trợ lý đã xóa (#{{id}})"
   },
   "resolution": {
     "title": "Cuộc trò chuyện kết thúc thế nào",

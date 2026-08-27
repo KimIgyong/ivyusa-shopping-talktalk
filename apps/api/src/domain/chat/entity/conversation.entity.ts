@@ -9,6 +9,7 @@ import { bigintTransformer } from '../../../global/util/transformers';
 @Index('idx_conv_tenant_status_id', ['tenantId', 'status', 'id'])
 // Queue pinning (PLN-260826) — mirrors sql/260826-conversation-pin.sql.
 @Index('idx_conv_tenant_pinned', ['tenantId', 'pinnedAt'])
+@Index('idx_conv_tenant_ended', ['tenantId', 'endedAt'])
 @Entity('conversations')
 export class Conversation {
   @PrimaryGeneratedColumn({ type: 'bigint' })
