@@ -195,7 +195,10 @@
       "title": "Gorgias",
       "subtitle": "Helpdesk — los chats escalados pueden transferirse como tickets de Gorgias."
     },
-    "syncing": "Sincronizando…"
+    "syncing": "Sincronizando…",
+    "syncProducts": "Importar productos",
+    "syncOrders": "Sincronizar pedidos",
+    "syncHint": "Importa el catálogo/pedidos a ShopTalk. Tras importar productos, regístralos como conocimiento en el menú Conocimiento para las respuestas del widget."
   },
   "install": {
     "subtitle": "Añade el widget de chat a tu tienda. Elige tu plataforma.",
