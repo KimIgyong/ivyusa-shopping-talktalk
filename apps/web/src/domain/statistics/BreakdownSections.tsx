@@ -89,7 +89,20 @@ export function AgentSection({ from, to }: RangeProps) {
   const { data, isLoading, error } = useAgentStats(from, to);
 
   const columns = (kind: 'ai' | 'human'): Column<AgentRow>[] => [
-    { key: 'name', header: t('agents.name'), render: (r) => r.name },
+    {
+      key: 'name',
+      header: t('agents.name'),
+      // A deleted agent still owns the conversations it answered; the row says
+      // so rather than showing an id nobody can look up.
+      render: (r) =>
+        r.name.startsWith('deleted:') ? (
+          <span className="text-gray-400">
+            {t('agents.deleted', { id: r.name.slice('deleted:#'.length) })}
+          </span>
+        ) : (
+          r.name
+        ),
+    },
     {
       key: 'conversations',
       header: t('agents.conversations'),
