@@ -133,6 +133,8 @@ export class TenantMapper {
       status: c.status,
       configured: c.secretEnc != null,
       updatedAt: c.updatedAt ?? null,
+      lastTestedAt: c.lastTestedAt ?? null,
+      detail: c.detail ?? null,
     };
   }
 

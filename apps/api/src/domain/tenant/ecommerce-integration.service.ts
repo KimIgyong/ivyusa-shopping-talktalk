@@ -51,8 +51,7 @@ export class EcommerceIntegrationService {
   async getSettings(tenantId: number, provider: string): Promise<IntegrationSettingsResponse> {
     const p = this.assertProvider(provider);
     const cred = await this.credRepo.findOne({ where: { tenantId, provider: p } });
-    const status = await this.integrationService.findByName(p);
-    return EcommerceIntegrationMapper.toSettings(p, this.parseConfig(cred), cred ?? null, status ?? null);
+    return EcommerceIntegrationMapper.toSettings(p, this.parseConfig(cred), cred ?? null);
   }
 
   /**
@@ -81,11 +80,15 @@ export class EcommerceIntegrationService {
     }
 
     const secretEnc = encryptSecret(JSON.stringify(merged));
+    // Saving credentials is NOT a connection — a real test decides that
+    // (FIX-260827). Changing the credential also invalidates any prior test.
     if (cred) {
       cred.secretEnc = secretEnc;
-      cred.status = 'connected';
+      cred.status = 'unknown';
+      cred.detail = null;
+      cred.lastTestedAt = null;
     } else {
-      cred = this.credRepo.create({ tenantId, provider: p, secretEnc, status: 'connected' });
+      cred = this.credRepo.create({ tenantId, provider: p, secretEnc, status: 'unknown' });
     }
     await this.credRepo.save(cred);
     return this.getSettings(tenantId, p);
@@ -96,7 +99,15 @@ export class EcommerceIntegrationService {
     const p = this.assertProvider(provider);
     const cred = await this.credRepo.findOne({ where: { tenantId, provider: p } });
     const result = await probeEcommerce(p, this.parseConfig(cred));
-    await this.integrationService.upsert(p, result.ok ? 'connected' : 'error', result.detail.slice(0, 255));
+    // Record the outcome on THIS tenant's credential — the per-tenant source of
+    // truth the tiles/dashboard read (FIX-260827). No global write: that table
+    // is provider-keyed and would leak one tenant's result to another.
+    if (cred) {
+      cred.status = result.ok ? 'connected' : 'error';
+      cred.detail = result.detail.slice(0, 255);
+      cred.lastTestedAt = new Date();
+      await this.credRepo.save(cred);
+    }
     return result;
   }
 }

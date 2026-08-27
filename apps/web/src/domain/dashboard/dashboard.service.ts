@@ -33,6 +33,7 @@ export interface RecentOrder {
 
 export const dashboardService = {
   dashboard: () => apiGet<DashboardData>('/analytics/dashboard'),
-  integrations: () => apiGet<IntegrationStatus[]>('/integrations/status'),
+  // Per-tenant integration status only — no global/mock rows (FIX-260827).
+  integrations: () => apiGet<IntegrationStatus[]>('/tenants/me/integrations'),
   recentOrders: () => apiGet<RecentOrder[]>('/admin/orders', { page: 1, size: 5 }),
 };

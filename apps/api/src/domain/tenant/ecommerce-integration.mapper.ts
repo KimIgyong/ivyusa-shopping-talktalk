@@ -1,6 +1,5 @@
 import { GenericIntegrationProvider, INTEGRATION_FIELDS } from '@ivy/types';
 import { IntegrationCredential } from './entity/integration-credential.entity';
-import { IntegrationStatusEntity } from '../integration/entity/integration-status.entity';
 import { IntegrationSettingsResponse } from './dto/response/tenant.response';
 
 /** Shapes the generic integration settings view. Secret values are never returned. */
@@ -9,7 +8,6 @@ export class EcommerceIntegrationMapper {
     provider: GenericIntegrationProvider,
     config: Record<string, string>,
     cred: IntegrationCredential | null,
-    status: IntegrationStatusEntity | null,
   ): IntegrationSettingsResponse {
     const fields: Record<string, string | null> = {};
     const secrets: Record<string, boolean> = {};
@@ -28,10 +26,12 @@ export class EcommerceIntegrationMapper {
         configured: cred?.secretEnc != null,
         updatedAt: cred?.updatedAt ?? null,
       },
+      // Per-tenant connection state — 'connected' only after a real test
+      // (FIX-260827); a saved-but-untested credential is 'unknown'.
       integration: {
-        status: status?.status ?? null,
-        lastSyncAt: status?.lastSyncAt ?? null,
-        detail: status?.detail ?? null,
+        status: cred?.status ?? null,
+        lastSyncAt: cred?.lastTestedAt ?? null,
+        detail: cred?.detail ?? null,
       },
     };
   }

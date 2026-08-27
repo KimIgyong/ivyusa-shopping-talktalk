@@ -676,11 +676,14 @@ export class TenantService {
       action: cred ? 'tenant.credential_rotated' : 'tenant.credential_created',
       target: provider,
     });
+    // Saving is not a verified connection (FIX-260827) — a test sets 'connected'.
     if (cred) {
       cred.secretEnc = secretEnc;
-      cred.status = 'connected';
+      cred.status = 'unknown';
+      cred.detail = null;
+      cred.lastTestedAt = null;
     } else {
-      cred = this.credRepo.create({ tenantId, provider, secretEnc, status: 'connected' });
+      cred = this.credRepo.create({ tenantId, provider, secretEnc, status: 'unknown' });
     }
     return this.credRepo.save(cred);
   }
