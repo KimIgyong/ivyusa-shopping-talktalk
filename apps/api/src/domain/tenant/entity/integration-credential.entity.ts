@@ -20,6 +20,14 @@ export class IntegrationCredential {
   @Column({ type: 'varchar', length: 16, default: 'connected' })
   status: string;
 
+  /** When the connection was last verified by a real test (null = never tested). */
+  @Column({ name: 'last_tested_at', type: 'datetime', nullable: true })
+  lastTestedAt: Date | null;
+
+  /** Last test/sync outcome message for this tenant's credential (per-tenant). */
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  detail: string | null;
+
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 }

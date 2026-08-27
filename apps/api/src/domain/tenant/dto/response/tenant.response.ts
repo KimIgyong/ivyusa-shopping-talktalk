@@ -29,6 +29,8 @@ export interface CredentialResponse {
   status: string;
   configured: boolean;
   updatedAt: Date | null;
+  lastTestedAt: Date | null;
+  detail: string | null;
 }
 
 /** Shopify connection settings view — secrets are never exposed (only flags). */

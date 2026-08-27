@@ -42,7 +42,7 @@ import {
   UpdateTenantWorkflowModeRequest,
 } from './dto/request/tenant.request';
 import { Paginated } from '../../global/interceptor/transform.interceptor';
-import { AdminOnly, RequireCapability, RequireRank } from '../../global/decorator/auth.decorator';
+import { AdminOnly, Auth, RequireCapability, RequireRank } from '../../global/decorator/auth.decorator';
 import { Public } from '../../global/decorator/public.decorator';
 import { CurrentUser } from '../../global/decorator/current-user.decorator';
 import { BusinessException } from '../../global/exception/business.exception';
@@ -354,6 +354,18 @@ export class TenantController {
   @RequireCapability(CAPABILITY.INTEGRATION_CREDENTIALS_MANAGE)
   @ApiOperation({ summary: 'List this tenant integration credential statuses' })
   async listCredentials(@CurrentUser() user: Principal) {
+    const tenantId = this.tenantId(user);
+    const creds = await this.tenantService.listCredentials(tenantId);
+    return TenantMapper.toCredentialList(creds);
+  }
+
+  @Get('me/integrations')
+  @Auth()
+  @ApiOperation({ summary: "This tenant's own integration statuses (dashboard, read-only)" })
+  async listMyIntegrations(@CurrentUser() user: Principal) {
+    // Per-tenant integration status for the dashboard — any tenant user may read
+    // it (no secrets exposed), unlike the credential-management list above
+    // (FIX-260827). System admins have no tenant scope here.
     const tenantId = this.tenantId(user);
     const creds = await this.tenantService.listCredentials(tenantId);
     return TenantMapper.toCredentialList(creds);
