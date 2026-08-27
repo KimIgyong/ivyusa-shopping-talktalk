@@ -46,3 +46,13 @@ per-tenant 진실은 `integration_credentials`(tenant+provider). 이걸 소스�
 ## 예방 패턴
 - 멀티테넌트 상태는 **테넌트 스코프**로 저장/조회. provider-name 전역 키는 테넌트 격리를 깬다.
 - "연결됨"은 **테스트 성공**의 결과여야 하며, 자격증명 저장의 부수효과가 아니다.
+
+## 검증 (스테이징, 2026-08-27)
+- 마이그레이션 SQL 선적용(last_tested_at·detail 컬럼 확인) → 코드 배포, 부팅 정상.
+- **skyliving(id5, odoo만 연결)**:
+  - 대시보드 `GET /tenants/me/integrations` → **`[{provider:odoo, status:connected}]` 단 1건**
+    (목업·타 테넌트 없음). ✅
+  - 설정 타일: odoo `configured=true status=connected`; **cafe24/haravan/woocommerce `configured=false
+    status=null`**(→ [연결됨] 아님). ✅ 핵심 증상 해소.
+  - odoo 재테스트 → `status=connected, lastTested=<시각>, detail="Connected (uid 2)"`(per-tenant 테스트 게이트 실증). ✅
+- 검증용 skyliving 사용자(id19) invited 원복.
