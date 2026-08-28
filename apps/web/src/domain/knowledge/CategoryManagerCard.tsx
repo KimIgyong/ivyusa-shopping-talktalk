@@ -34,7 +34,10 @@ import type { KbCategoryRow } from './knowledge.service';
 export function CategoryManagerCard() {
   const { t } = useTranslation('knowledge');
   const { t: tc } = useTranslation('common');
-  const rows = useCategoryRows();
+  // Group tab (PLN-260829 D2-a): every management action needs a group
+  // context, so there is no "all" tab here — counsel is the landing tab.
+  const [group, setGroup] = useState('counsel');
+  const rows = useCategoryRows(group);
   const createCategory = useCreateCategory();
   const renameCategory = useRenameCategory();
   const mergeCategories = useMergeCategories();
@@ -140,6 +143,30 @@ export function CategoryManagerCard() {
         </div>
       }
     >
+      <div className="mb-3 flex flex-wrap gap-1 border-b border-gray-200">
+        {(['counsel', 'product', 'operation'] as const).map((g) => (
+          <button
+            key={g}
+            type="button"
+            onClick={() => {
+              setGroup(g);
+              // Selections are rows of the previous tab — stale ids would act
+              // on a category the operator can no longer see.
+              setMergeFrom([]);
+              setMergeInto('');
+              setRenaming(null);
+              setScoping(null);
+            }}
+            className={`-mb-px border-b-2 px-3 py-2 text-sm ${
+              group === g
+                ? 'border-primary-600 font-medium text-primary-700'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            {t(`group.${g}`)}
+          </button>
+        ))}
+      </div>
       {rows.isLoading ? <p className="text-sm text-gray-500">{tc('loading')}</p> : null}
       {rows.error ? (
         <p className="text-sm text-red-600">{(rows.error as Error).message}</p>
@@ -181,7 +208,7 @@ export function CategoryManagerCard() {
               disabled={!newName.trim() || createCategory.isPending}
               onClick={() =>
                 createCategory.mutate(
-                  { name: newName.trim() },
+                  { name: newName.trim(), doc_group: group },
                   {
                     onSuccess: () => {
                       setNewName('');

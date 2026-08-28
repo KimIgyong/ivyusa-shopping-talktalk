@@ -550,8 +550,11 @@ export class KnowledgeController {
   @Get('categories')
   @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
   @ApiOperation({ summary: "This tenant's document categories with live document counts" })
-  async listCategories(@CurrentUser() user: Principal) {
-    return this.kbCategories.list(this.tenantUser(user).tenantId);
+  async listCategories(@CurrentUser() user: Principal, @Query('group') group?: string) {
+    return this.kbCategories.list(
+      this.tenantUser(user).tenantId,
+      group && (Object.values(DOC_GROUP) as string[]).includes(group) ? group : DOC_GROUP.COUNSEL,
+    );
   }
 
   @Post('categories')
@@ -562,6 +565,7 @@ export class KnowledgeController {
       this.tenantUser(user).tenantId,
       body.name,
       body.label ?? null,
+      body.doc_group ?? DOC_GROUP.COUNSEL,
     );
     return KnowledgeMapper.toCategory(row);
   }

@@ -178,6 +178,8 @@ export class ReorderRequest {
 export class CreateCategoryRequest {
   @IsString() @MinLength(1) @MaxLength(64) name: string;
   @IsOptional() @IsString() @MaxLength(128) label?: string;
+  /** counsel (default) | product | operation — the manager tab it was created on. */
+  @IsOptional() @IsIn(Object.values(DOC_GROUP)) doc_group?: string;
 }
 
 /** PUT /knowledge/categories/:id/rename */

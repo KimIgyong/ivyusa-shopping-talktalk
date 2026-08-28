@@ -345,9 +345,11 @@ export class RagService {
     // old narrowing (PR #342 met the same flip from the other side).
     if (aiAgentId != null) {
       qb.andWhere(
-        `(kb.category IS NULL OR kb.category NOT IN
-           (SELECT c.name FROM kb_categories c
+        `(kb.category IS NULL OR NOT EXISTS
+           (SELECT 1 FROM kb_categories c
              WHERE c.tenant_id = :scopeTenantId
+               AND c.doc_group = kb.doc_group
+               AND c.name = kb.category
                AND c.origin <> 'catalog'
                AND JSON_LENGTH(c.agent_ids) > 0
                AND NOT JSON_CONTAINS(c.agent_ids, CAST(:scopeAgentId AS JSON))))`,

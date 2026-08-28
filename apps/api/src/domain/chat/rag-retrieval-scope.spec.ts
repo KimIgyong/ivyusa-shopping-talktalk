@@ -79,14 +79,22 @@ describe('RagService retrieval scope', () => {
       expect(scope).toContain('JSON_CONTAINS(c.agent_ids');
     });
 
-    it('phrases it as NOT IN the excluded set, never IN the allowed one', async () => {
+    it('phrases it as exclusion of the scoped set, never as an allow-list', async () => {
       // The difference is what happens to everything nobody has scoped: with an
       // IN test a tenant that never opens the screen would lose its whole
       // knowledge base the moment one category was narrowed.
       const scope = await scopeOf(7);
 
-      expect(scope).toContain('kb.category NOT IN');
+      expect(scope).toContain('NOT EXISTS');
       expect(scope).toContain('JSON_LENGTH(c.agent_ids) > 0');
+    });
+
+    it('matches the excluded category as a (group, name) pair (PLN-260829 D2-e)', async () => {
+      // The same string may exist in another group as a different category —
+      // a name-only match would darken both when only one was narrowed.
+      const scope = await scopeOf(7);
+      expect(scope).toContain('c.doc_group = kb.doc_group');
+      expect(scope).toContain('c.name = kb.category');
     });
 
     it('leaves uncategorised documents alone', async () => {

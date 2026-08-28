@@ -208,7 +208,7 @@ export class CatalogSyncService {
     }
 
     for (const name of producedCategories) {
-      await this.categories.ensure(tenantId, name, CATEGORY_ORIGIN.CATALOG);
+      await this.categories.ensure(tenantId, name, CATEGORY_ORIGIN.CATALOG, DOC_GROUP.PRODUCT);
     }
 
     this.logger.log(
