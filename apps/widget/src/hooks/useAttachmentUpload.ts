@@ -52,7 +52,22 @@ function uploadErrorMessage(
 export function useAttachmentUpload(sessionToken: string | null) {
   const { t } = useTranslation();
   const [pending, setPending] = useState<PendingUpload[]>([]);
+  /**
+   * Synchronous mirror of `pending`. `add` used to fill its `accepted` list
+   * inside the setState updater — which React 18 only runs eagerly while the
+   * update queue is empty. Any other in-flight update deferred the updater to
+   * render time, `accepted` stayed empty, and the upload silently never
+   * started: the chip sat at 0% forever (found on-device, FIX-260828). All
+   * mutations go through `apply` so decisions can be made on `pendingRef`
+   * synchronously and the updater passed to React stays pure.
+   */
+  const pendingRef = useRef<PendingUpload[]>([]);
   const counter = useRef(0);
+
+  const apply = useCallback((mutate: (prev: PendingUpload[]) => PendingUpload[]) => {
+    pendingRef.current = mutate(pendingRef.current);
+    setPending(pendingRef.current);
+  }, []);
 
   const reject = useCallback(
     (file: File): string | null => {
@@ -74,46 +89,45 @@ export function useAttachmentUpload(sessionToken: string | null) {
     async (files: File[]): Promise<string | null> => {
       if (!sessionToken || !files.length) return null;
 
+      // Decide everything against the synchronous mirror, then hand React a
+      // pure append — see pendingRef above.
       let firstError: string | null = null;
       const accepted: { key: string; file: File }[] = [];
+      const entries: PendingUpload[] = [];
 
-      setPending((prev) => {
-        const room = MAX_PER_MESSAGE - prev.length;
-        if (room <= 0) {
-          firstError = t('chat.attachment.tooMany', { max: MAX_PER_MESSAGE });
-          return prev;
+      const room = MAX_PER_MESSAGE - pendingRef.current.length;
+      if (room <= 0) {
+        return t('chat.attachment.tooMany', { max: MAX_PER_MESSAGE });
+      }
+      for (const file of files.slice(0, room)) {
+        const problem = reject(file);
+        if (problem) {
+          firstError = firstError ?? problem;
+          continue;
         }
-        const next = [...prev];
-        for (const file of files.slice(0, room)) {
-          const problem = reject(file);
-          if (problem) {
-            firstError = firstError ?? problem;
-            continue;
-          }
-          const key = `up-${counter.current++}`;
-          accepted.push({ key, file });
-          next.push({
-            key,
-            name: file.name,
-            progress: 0,
-            previewUrl: file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined,
-          });
-        }
-        if (files.length > room) {
-          firstError = firstError ?? t('chat.attachment.tooMany', { max: MAX_PER_MESSAGE });
-        }
-        return next;
-      });
+        const key = `up-${counter.current++}`;
+        accepted.push({ key, file });
+        entries.push({
+          key,
+          name: file.name,
+          progress: 0,
+          previewUrl: file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined,
+        });
+      }
+      if (files.length > room) {
+        firstError = firstError ?? t('chat.attachment.tooMany', { max: MAX_PER_MESSAGE });
+      }
+      apply((prev) => [...prev, ...entries]);
 
       await Promise.all(
         accepted.map(async ({ key, file }) => {
           try {
             const attachment = await uploadAttachment(sessionToken, file, (percent) =>
-              setPending((prev) =>
+              apply((prev) =>
                 prev.map((p) => (p.key === key ? { ...p, progress: percent } : p)),
               ),
             );
-            setPending((prev) =>
+            apply((prev) =>
               prev.map((p) => (p.key === key ? { ...p, progress: 100, attachment } : p)),
             );
           } catch (err) {
@@ -121,7 +135,7 @@ export function useAttachmentUpload(sessionToken: string | null) {
             // picked this file on purpose and deserves a retry, not a silent
             // disappearance (dev-kit §4.3).
             const message = uploadErrorMessage(err, file.name, t);
-            setPending((prev) =>
+            apply((prev) =>
               prev.map((p) => (p.key === key ? { ...p, error: message } : p)),
             );
           }
@@ -130,23 +144,26 @@ export function useAttachmentUpload(sessionToken: string | null) {
 
       return firstError;
     },
-    [reject, sessionToken, t],
+    [apply, reject, sessionToken, t],
   );
 
-  const remove = useCallback((key: string) => {
-    setPending((prev) => {
-      const gone = prev.find((p) => p.key === key);
-      if (gone?.previewUrl) URL.revokeObjectURL(gone.previewUrl);
-      return prev.filter((p) => p.key !== key);
-    });
-  }, []);
+  const remove = useCallback(
+    (key: string) => {
+      apply((prev) => {
+        const gone = prev.find((p) => p.key === key);
+        if (gone?.previewUrl) URL.revokeObjectURL(gone.previewUrl);
+        return prev.filter((p) => p.key !== key);
+      });
+    },
+    [apply],
+  );
 
   const clear = useCallback(() => {
-    setPending((prev) => {
+    apply((prev) => {
       for (const p of prev) if (p.previewUrl) URL.revokeObjectURL(p.previewUrl);
       return [];
     });
-  }, []);
+  }, [apply]);
 
   /** Only fully uploaded files can be sent; anything still in flight is not ready. */
   const ready = pending.filter((p) => p.attachment).map((p) => p.attachment as ChatAttachment);

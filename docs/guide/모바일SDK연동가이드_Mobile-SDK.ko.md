@@ -11,8 +11,13 @@
 WebView로 아래 주소를 엽니다.
 
 ```
-https://talk.example.com/widget/?embed=1&mode=app&shop=<스토어도메인>&locale=vi
+https://talk.example.com/widget/?embed=1&mode=app&shop=<스토어도메인>
 ```
+
+> ⚠️ 언어는 URL이 아니라 **브리지 명령**으로 지정합니다(아래 `action:'locale'`) — 위젯은
+> `locale` URL 파라미터를 읽지 않습니다(수동 선택 → 기기 언어 → en 순으로 자동 결정).
+> 실기기 검증(SM-G991N, 2026-08-28)에서 확인된 사실이며, 이전 판의 `&locale=vi` 예시는
+> 동작하지 않는 파라미터였습니다.
 
 `mode=app`이 하는 일:
 
@@ -116,7 +121,36 @@ func userContentController(_ c: WKUserContentController, didReceive m: WKScriptM
 }
 ```
 
-## 6. Android — 요지
+## 6. Android — Kotlin SDK (AAR, 권장)
+
+Android는 완성된 라이브러리가 있습니다 (`sdk/android`, PLN-260827). AAR 파일을 받아
+`libs/`에 넣으면 아래가 전부입니다 — §6-수동의 브리지·파일선택기·외부링크·키보드 처리를
+라이브러리가 대신합니다.
+
+```kotlin
+dependencies {
+    implementation(files("libs/shoptalk-android-0.1.0.aar"))
+    implementation("androidx.core:core-ktx:1.15.0")        // 이미 있다면 생략
+    implementation("androidx.fragment:fragment-ktx:1.8.5")  // 이미 있다면 생략
+}
+```
+
+```kotlin
+val chat = ShopTalkChatFragment.newInstance(
+    ShopTalkConfig(widgetUrl = "https://talk.example.com/widget/", shop = "<스토어도메인>", locale = "vi")
+)
+chat.identify(ShopTalkUser(userId = uid, hash = serverSignedHash)) // hash는 §3대로 서버 서명
+chat.listener = object : ShopTalkListener {
+    override fun onCloseRequest() { supportFragmentManager.popBackStack() } // 필수
+}
+supportFragmentManager.commit { replace(R.id.container, chat) }
+```
+
+제어는 `chat.open(ShopTalkTab.ORDERS)` · `chat.setLocale("vi")` · `chat.logout()`.
+위젯이 뜨기 전에 불러도 유실되지 않습니다(라이브러리 큐 + 위젯 큐 양방향).
+§7 체크리스트 중 라이브러리 책임이 아닌 것은 **시크릿을 앱에 넣지 않기**뿐입니다.
+
+## 6-수동. Android — 직접 통합(SDK 미사용 시)
 
 ```kotlin
 class ShopTalkBridge(private val onMessage: (String) -> Unit) {
