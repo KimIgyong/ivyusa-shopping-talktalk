@@ -15,47 +15,70 @@ describe('parseYoutubeId', () => {
 });
 
 describe('fetchYoutubeTranscript', () => {
-  const page = (player: Record<string, unknown>) =>
-    `<html><script>var ytInitialPlayerResponse = ${JSON.stringify(player)};var other = 1;</script></html>`;
+  const player = (tracks: unknown[]) => ({
+    videoDetails: { title: 'Hotel Admin 안내' },
+    captions: { playerCaptionsTracklistRenderer: { captionTracks: tracks } },
+  });
 
   afterEach(() => {
     (global.fetch as jest.Mock | undefined)?.mockRestore?.();
   });
 
-  it('prefers a manual track over asr and decodes the srv1 payload', async () => {
-    const player = {
-      videoDetails: { title: 'Hotel Admin 안내 — {중괄호}; 포함' },
-      captions: {
-        playerCaptionsTracklistRenderer: {
-          captionTracks: [
-            { baseUrl: 'https://yt/asr', languageCode: 'ko', kind: 'asr' },
-            { baseUrl: 'https://yt/manual', languageCode: 'ko' },
-          ],
-        },
-      },
-    };
+  it('prefers a manual track over asr and decodes timedtext-v3 <p> payloads', async () => {
     global.fetch = jest.fn(async (url: string) => ({
       ok: true,
+      json: async () =>
+        player([
+          { baseUrl: 'https://yt/asr', languageCode: 'ko', kind: 'asr' },
+          { baseUrl: 'https://yt/manual', languageCode: 'ko' },
+        ]),
       text: async () =>
         String(url).startsWith('https://yt/manual')
-          ? '<transcript><text start="0" dur="2">리뷰 답글은 &amp;quot;1회&amp;quot;만</text><text start="2" dur="2">등록할 수 있습니다</text></transcript>'
-          : page(player),
+          ? '<?xml version="1.0"?><timedtext format="3"><body>' +
+            '<p t="0" d="2"><s>리뷰 답글은</s> <s>&amp;quot;1회&amp;quot;만</s></p>' +
+            '<p t="2" d="2">등록할 수 있습니다</p></body></timedtext>'
+          : '',
     })) as unknown as typeof fetch;
 
     const out = await fetchYoutubeTranscript('https://youtu.be/dQw4w9WgXcQ');
     expect(out.track).toBe('ko');
-    expect(out.title).toContain('중괄호');
+    expect(out.title).toBe('Hotel Admin 안내');
     expect(out.text).toBe('리뷰 답글은 &quot;1회&quot;만 등록할 수 있습니다');
-    // The manual track was fetched, not the asr one.
-    expect((global.fetch as jest.Mock).mock.calls.map((c) => String(c[0]))).toEqual(
-      expect.arrayContaining([expect.stringContaining('https://yt/manual')]),
+    const urls = (global.fetch as jest.Mock).mock.calls.map((c) => String(c[0]));
+    expect(urls).toEqual(
+      expect.arrayContaining([expect.stringContaining('youtubei/v1/player'), 'https://yt/manual']),
     );
+  });
+
+  it('still reads the older srv1 <text> shape', async () => {
+    global.fetch = jest.fn(async (url: string) => ({
+      ok: true,
+      json: async () => player([{ baseUrl: 'https://yt/t', languageCode: 'en' }]),
+      text: async () =>
+        String(url) === 'https://yt/t'
+          ? '<transcript><text start="0" dur="2">check-in from 3pm</text></transcript>'
+          : '',
+    })) as unknown as typeof fetch;
+    const out = await fetchYoutubeTranscript('https://youtu.be/dQw4w9WgXcQ');
+    expect(out.text).toBe('check-in from 3pm');
   });
 
   it('maps a caption-less video to the specific code', async () => {
     global.fetch = jest.fn(async () => ({
       ok: true,
-      text: async () => page({ videoDetails: { title: 'no captions' } }),
+      json: async () => ({ videoDetails: { title: 'no captions' } }),
+      text: async () => '',
+    })) as unknown as typeof fetch;
+    await expect(fetchYoutubeTranscript('https://youtu.be/dQw4w9WgXcQ')).rejects.toMatchObject({
+      errorCode: 'E5070',
+    });
+  });
+
+  it('maps an empty caption body to the specific code', async () => {
+    global.fetch = jest.fn(async (url: string) => ({
+      ok: true,
+      json: async () => player([{ baseUrl: 'https://yt/t', languageCode: 'en' }]),
+      text: async () => (String(url) === 'https://yt/t' ? '' : 'x'),
     })) as unknown as typeof fetch;
     await expect(fetchYoutubeTranscript('https://youtu.be/dQw4w9WgXcQ')).rejects.toMatchObject({
       errorCode: 'E5070',
