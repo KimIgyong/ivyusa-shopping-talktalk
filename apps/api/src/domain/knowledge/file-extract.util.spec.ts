@@ -1,10 +1,16 @@
 import { Workbook } from 'exceljs';
 
-jest.mock('pdf-parse', () => jest.fn(), { virtual: false });
+const mockGetText = jest.fn();
+jest.mock('pdf-parse', () => ({
+  // v2 class API — mirrored so the spec exercises the real calling convention.
+  PDFParse: class {
+    getText = mockGetText;
+    destroy = jest.fn(async () => undefined);
+  },
+}));
 jest.mock('mammoth', () => ({ extractRawText: jest.fn() }));
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const pdfParseMock = require('pdf-parse') as jest.Mock;
+const pdfParseMock = mockGetText;
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const mammothMock = require('mammoth') as { extractRawText: jest.Mock };
 
