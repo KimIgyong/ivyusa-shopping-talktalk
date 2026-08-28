@@ -31,6 +31,17 @@ const MIN_INTERVAL_MS = 350;
 export const LIST_CEILING = 1000;
 
 /**
+ * Positive-integer env override, else the shipped default (REQ-260828 C4).
+ * Read at module load — a cap change is a deploy-time decision, not a
+ * per-request one. Kit lesson D-1: operational constants must be
+ * env-overridable or the only fix for a mis-sized cap is a release.
+ */
+export function envInt(name: string, fallback: number): number {
+  const raw = Number(process.env[name]);
+  return Number.isInteger(raw) && raw > 0 ? raw : fallback;
+}
+
+/**
  * Requests one page's blocks may cost.
  *
  * Depth alone does not bound this: every block with children costs a request,
@@ -39,7 +50,7 @@ export const LIST_CEILING = 1000;
  * everything has been fetched. Stopping early and saying so beats a sync that
  * runs for hours.
  */
-export const MAX_REQUESTS_PER_PAGE = 30;
+export const MAX_REQUESTS_PER_PAGE = envInt('NOTION_MAX_REQUESTS_PER_PAGE', 30);
 
 /** A request that never settles would hold a sync open indefinitely. */
 const REQUEST_TIMEOUT_MS = 30_000;
