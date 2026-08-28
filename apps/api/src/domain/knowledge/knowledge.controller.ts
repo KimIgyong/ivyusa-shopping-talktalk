@@ -32,6 +32,7 @@ import { UsageTypeService } from './usage-type.service';
 import { KbCategoryService } from './kb-category.service';
 import { KnowledgeMapper } from './knowledge.mapper';
 import { DOC_GROUP } from './entity/kb-document.entity';
+import { decodeUploadName } from '../../global/util/upload-name.util';
 import {
   ApproveIngestRequest,
   ApproveProposalRequest,
@@ -398,7 +399,7 @@ export class KnowledgeController {
       actor.tenantId,
       file.buffer.toString('utf8'),
       actor.userId,
-      file.originalname,
+      decodeUploadName(file.originalname),
     );
   }
 
@@ -424,7 +425,7 @@ export class KnowledgeController {
     return this.knowledgeService.importBulk(
       actor.tenantId,
       body.doc_group ?? DOC_GROUP.COUNSEL,
-      file,
+      { ...file, originalname: decodeUploadName(file.originalname) },
       actor.userId,
     );
   }
@@ -445,7 +446,11 @@ export class KnowledgeController {
   ) {
     const actor = this.tenantUser(user);
     if (!file) throw new BusinessException(ERROR_CODE.VALIDATION_FAILED, HttpStatus.BAD_REQUEST);
-    return this.ingest.startFile(actor.tenantId, file, body.doc_group ?? DOC_GROUP.COUNSEL);
+    return this.ingest.startFile(
+      actor.tenantId,
+      { ...file, originalname: decodeUploadName(file.originalname) },
+      body.doc_group ?? DOC_GROUP.COUNSEL,
+    );
   }
 
   @Post('ingest/video')
