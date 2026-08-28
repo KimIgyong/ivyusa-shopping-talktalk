@@ -250,6 +250,21 @@ export class KnowledgeController {
     return this.notionCredentials.test(this.tenantUser(user).tenantId, body.target_id);
   }
 
+  @Get('sources/:id/runs')
+  @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
+  @ApiOperation({ summary: "One source's sync-run history (from the audit log)" })
+  async sourceRuns(
+    @CurrentUser() user: Principal,
+    @Param('id', ParseIntPipe) id: number,
+    @Query('limit') limit?: string,
+  ) {
+    return this.knowledgeService.listSourceRuns(
+      this.tenantUser(user).tenantId,
+      id,
+      limit ? Number(limit) : undefined,
+    );
+  }
+
   @Post('sources/:id/sync')
   @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
   @ApiOperation({ summary: 'Pull a knowledge source into the RAG corpus' })

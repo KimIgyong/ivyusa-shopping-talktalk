@@ -297,6 +297,8 @@ export interface DocumentListParams {
   size: number;
   category?: string;
   group?: string;
+  /** Restrict to one knowledge source's documents (conversion-history modal). */
+  sourceId?: string;
   // Server-side filters/sort (PLN-260826-KB-Documents-List-UI).
   /** '1' visible only | '0' hidden only. */
   active?: string;
@@ -304,6 +306,15 @@ export interface DocumentListParams {
   status?: string;
   sort?: 'title' | 'updated';
   order?: 'asc' | 'desc';
+}
+
+/** One sync run from the audit log (PLN-260828). `result` carries the counts
+ * (created/updated/…, dropped/truncated/embedded, error) as recorded. */
+export interface SourceRun {
+  at: string;
+  actorId: number | null;
+  status: string; // ok | failed
+  result: Partial<SyncResult> & Record<string, unknown>;
 }
 
 /** Distinct values present for this tenant — filter select options. */
@@ -337,6 +348,7 @@ export const knowledgeService = {
       size: params.size,
       ...(params.category ? { category: params.category } : {}),
       ...(params.group ? { group: params.group } : {}),
+      ...(params.sourceId ? { source_id: params.sourceId } : {}),
       ...(params.active ? { active: params.active } : {}),
       ...(params.source ? { source: params.source } : {}),
       ...(params.status ? { status: params.status } : {}),
@@ -344,6 +356,9 @@ export const knowledgeService = {
     }),
   documentFacets: (): Promise<DocumentFacets> =>
     apiGet<DocumentFacets>('/knowledge/documents/facets'),
+  /** Sync-run history of one source, newest first (PLN-260828). */
+  sourceRuns: (id: string, limit = 20): Promise<SourceRun[]> =>
+    apiGet<SourceRun[]>(`/knowledge/sources/${id}/runs`, { limit }),
   document: (id: string) => apiGet<KnowledgeDocumentDetail>(`/knowledge/documents/${id}`),
   createDocument: (body: {
     title: string;

@@ -182,6 +182,16 @@ export function useDocuments(params: DocumentListParams) {
   });
 }
 
+/** Sync-run history for the conversion-history modal (PLN-260828). */
+export function useSourceRuns(id: string | null) {
+  const tenantKey = useTenantKey();
+  return useQuery({
+    queryKey: ['knowledge', tenantKey, 'source-runs', id],
+    queryFn: () => knowledgeService.sourceRuns(id as string),
+    enabled: !!id,
+  });
+}
+
 /** Filter-select options — distinct source/status values for this tenant. */
 export function useDocumentFacets() {
   const tenantKey = useTenantKey();

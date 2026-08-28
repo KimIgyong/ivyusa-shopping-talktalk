@@ -24,6 +24,7 @@ import { CatalogSyncPreview, CatalogSyncService } from './catalog-sync.service';
 import { UsageGuideService, UsageGuideSummary } from './usage-guide.service';
 import { SourceSyncService } from './source-sync.service';
 import { IntegrationCredential } from '../tenant/entity/integration-credential.entity';
+import { AuditLog } from '../audit/entity/audit-log.entity';
 import { decryptSecret } from '../../global/util/crypto.util';
 import { REVISION_KIND } from './entity/kb-document-revision.entity';
 import { BusinessException } from '../../global/exception/business.exception';
@@ -60,6 +61,9 @@ export class KnowledgeService {
     private readonly sourceSync: SourceSyncService,
     @InjectRepository(IntegrationCredential)
     private readonly credRepo: Repository<IntegrationCredential>,
+    // Optional: run-history reads (PLN-260828-Source-Conversion-History).
+    @InjectRepository(AuditLog)
+    private readonly auditRepo?: Repository<AuditLog>,
   ) {}
 
   // ---- Sources ----
@@ -722,6 +726,7 @@ export class KnowledgeService {
       await this.revisions.recordAudit(tenantId, 0, 'knowledge.source_synced', actorUserId, {
         sourceId,
         type: source.type,
+        status: result.guardedEmpty ? 'failed' : 'ok',
         ...result,
         embedded,
         embedFailed: failed,
@@ -746,8 +751,58 @@ export class KnowledgeService {
         failed: 0,
         error: ((e as Error).message || String(e)).slice(0, 200),
       });
+      // The run history must show failures too — until now only successes
+      // were audited, which made every history read look all-green.
+      await this.revisions.recordAudit(tenantId, 0, 'knowledge.source_synced', actorUserId, {
+        sourceId,
+        type: source.type,
+        status: 'failed',
+        error: ((e as Error).message || String(e)).slice(0, 200),
+      });
       throw e;
     }
+  }
+
+  /**
+   * Sync-run history for one source (PLN-260828-Source-Conversion-History).
+   * Read from the audit log — every run already writes its full result there,
+   * so the history costs no new table. Filtered on the metadata sourceId
+   * (JSON) so rows recorded before this feature still appear.
+   */
+  async listSourceRuns(
+    tenantId: number,
+    sourceId: number,
+    limit = 20,
+  ): Promise<
+    Array<{
+      at: Date;
+      actorId: number | null;
+      status: string;
+      result: Record<string, unknown>;
+    }>
+  > {
+    await this.findSource(tenantId, sourceId);
+    if (!this.auditRepo) return [];
+    const rows = await this.auditRepo
+      .createQueryBuilder('a')
+      .where('a.tenant_id = :tenantId', { tenantId })
+      .andWhere('a.action = :action', { action: 'knowledge.source_synced' })
+      .andWhere("JSON_EXTRACT(a.metadata, '$.sourceId') = :sourceId", { sourceId })
+      .orderBy('a.id', 'DESC')
+      .take(Math.min(Math.max(limit, 1), 100))
+      .getMany();
+    return rows.map((r) => {
+      const meta = (r.metadata ?? {}) as Record<string, unknown>;
+      const { sourceId: _s, type: _t, status, ...result } = meta;
+      return {
+        at: r.createdAt,
+        actorId: r.actorId != null && Number(r.actorId) !== 0 ? Number(r.actorId) : null,
+        // Rows from before this feature carry no status — they were only ever
+        // written on success.
+        status: typeof status === 'string' ? status : 'ok',
+        result,
+      };
+    });
   }
 
   // ---- Helpers ----
