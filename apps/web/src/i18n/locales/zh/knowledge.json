@@ -392,5 +392,10 @@
     "embedded": "已索引",
     "pending": "待处理"
   },
-  "notionShareHint": "Notion 页面尚未与集成共享 — 请在 Notion 中打开页面，⋯ → Connections 添加该集成。"
+  "notionShareHint": "Notion 页面尚未与集成共享 — 请在 Notion 中打开页面，⋯ → Connections 添加该集成。",
+  "deleteSource": "删除来源",
+  "deleteSourceConfirm": "将删除来源“{{name}}”。是否继续?",
+  "deleteSourceDocsNote": "该来源的文档不会被删除——它们将被停用并从检索中排除。您可以在文档列表中重新启用。",
+  "sourceDeleted": "来源已删除——{{count}} 篇文档已停用",
+  "registerKey": "注册密钥"
 }

@@ -392,5 +392,10 @@
     "pending": "대기"
   },
   "notionShareHint": "노션 페이지가 통합에 공유되지 않았습니다 — 노션에서 페이지 ⋯ → 연결(Connections)에 통합을 추가하세요.",
-  "groupColumn": "그룹"
+  "groupColumn": "그룹",
+  "deleteSource": "소스 삭제",
+  "deleteSourceConfirm": "\"{{name}}\" 소스를 삭제합니다. 계속할까요?",
+  "deleteSourceDocsNote": "이 소스의 문서는 삭제되지 않고 비활성화되어 검색에서 제외됩니다. 문서 목록에서 다시 활성화할 수 있습니다.",
+  "sourceDeleted": "소스 삭제 완료 — 문서 {{count}}건 비활성화",
+  "registerKey": "키 등록"
 }

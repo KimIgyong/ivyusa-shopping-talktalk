@@ -14,7 +14,7 @@ import type { UsageGuide, UsageType } from './knowledge.service';
 import { Progress } from '@/components/Progress';
 import { Pagination } from '@/components/Pagination';
 import { FormRow, Input, Select } from '@/components/Field';
-import { ArrowDown, ArrowUp, ExternalLink, MoreHorizontal } from 'lucide-react';
+import { ArrowDown, ArrowUp, ExternalLink, MoreHorizontal, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { toast } from '@/store/toast-store';
 import { KnowledgeQaPanel } from './KnowledgeQaPanel';
@@ -51,6 +51,7 @@ import {
   useDocument,
   useCreateDocument,
   useImportProducts,
+  useDeleteSource,
   useBulkImport,
   useCatalogSyncPreview,
   useSyncCatalog,
@@ -395,6 +396,18 @@ export function KnowledgePage() {
   const [docTitle, setDocTitle] = useState('');
   const [docCategory, setDocCategory] = useState('');
   const [docContent, setDocContent] = useState('');
+  // Explicit group select (PLN-260829 P1-7) — the active tab is only the
+  // default; deciding the group invisibly caused silent mis-filing.
+  const [docGroup, setDocGroup] = useState('counsel');
+  const openDoc = () => {
+    setDocGroup(group || 'counsel');
+    setDocOpen(true);
+  };
+
+  // Source deletion (PLN-260829 P1-1): two-step confirm; documents are
+  // deactivated server-side, never deleted.
+  const [sourceToDelete, setSourceToDelete] = useState<KnowledgeSource | null>(null);
+  const deleteSource = useDeleteSource();
 
   const closeSource = () => {
     setSourceOpen(false);
@@ -425,9 +438,7 @@ export function KnowledgePage() {
 
   const saveDoc = () => {
     createDocument.mutate(
-      // The active group tab decides where a hand-written document lands
-      // (PLN-260828 D8); the All tab keeps the counsel default.
-      { title: docTitle, category: docCategory, content: docContent, doc_group: group || undefined },
+      { title: docTitle, category: docCategory, content: docContent, doc_group: docGroup },
       { onSuccess: closeDoc },
     );
   };
@@ -548,6 +559,22 @@ export function KnowledgePage() {
       key: 'createdAt',
       header: t('created'),
       render: (r) => (r.createdAt ? new Date(r.createdAt).toLocaleDateString() : '—'),
+    },
+    {
+      key: 'delete',
+      header: '',
+      className: 'w-10 text-right',
+      render: (r) => (
+        <button
+          type="button"
+          aria-label={t('deleteSource')}
+          title={t('deleteSource')}
+          onClick={() => setSourceToDelete(r)}
+          className="rounded p-1 text-gray-400 hover:bg-red-50 hover:text-red-600"
+        >
+          <Trash2 className="h-4 w-4" />
+        </button>
+      ),
     },
   ];
 
@@ -674,7 +701,7 @@ export function KnowledgePage() {
           {/* A source of either type is impossible without its credential, so
               both cards sit beside the source list rather than on a screen an
               operator would have to know to visit. */}
-          <div className="mt-4 grid gap-3 md:grid-cols-2">
+          <div className="mt-4 space-y-2">
             <SourceCredentialCard
               title={t('gdriveCredential')}
               connected={!!gdriveCred.data?.connected}
@@ -945,7 +972,7 @@ export function KnowledgePage() {
                 </Button>
               )}
               <AddDocumentHelp />
-              <Button onClick={() => setDocOpen(true)}>{t('addDocument')}</Button>
+              <Button onClick={openDoc}>{t('addDocument')}</Button>
             </div>
           }
         >
@@ -1486,6 +1513,36 @@ export function KnowledgePage() {
       </Modal>
 
       <Modal
+        open={sourceToDelete !== null}
+        onClose={() => setSourceToDelete(null)}
+        title={t('deleteSource')}
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setSourceToDelete(null)}>
+              {tc('cancel')}
+            </Button>
+            <Button
+              variant="danger"
+              disabled={deleteSource.isPending}
+              onClick={() =>
+                sourceToDelete &&
+                deleteSource.mutate(sourceToDelete.id, { onSuccess: () => setSourceToDelete(null) })
+              }
+            >
+              {deleteSource.isPending ? tc('loading') : tc('delete')}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-2 text-sm">
+          <p>{t('deleteSourceConfirm', { name: sourceToDelete?.name ?? '' })}</p>
+          {/* The documents survive as inactive — say so, or the deletion reads
+              as destroying the knowledge itself. */}
+          <p className="text-xs text-warning">{t('deleteSourceDocsNote')}</p>
+        </div>
+      </Modal>
+
+      <Modal
         open={sourceOpen}
         onClose={closeSource}
         title={t('addSource')}
@@ -1598,6 +1655,13 @@ export function KnowledgePage() {
           </>
         }
       >
+        <FormRow label={t('groupColumn')}>
+          <Select value={docGroup} onChange={(e) => setDocGroup(e.target.value)}>
+            <option value="counsel">{t('group.counsel')}</option>
+            <option value="product">{t('group.product')}</option>
+            <option value="operation">{t('group.operation')}</option>
+          </Select>
+        </FormRow>
         <FormRow label={t('title_column')}>
           <Input value={docTitle} onChange={(e) => setDocTitle(e.target.value)} />
         </FormRow>

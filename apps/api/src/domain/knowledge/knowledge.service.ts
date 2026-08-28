@@ -148,9 +148,45 @@ export class KnowledgeService {
     return this.sourceRepo.save(source);
   }
 
-  async deleteSource(tenantId: number, id: number): Promise<void> {
-    await this.findSource(tenantId, id);
+  /**
+   * Delete a source, deactivating its documents first (PLN-260829 P1-1).
+   *
+   * A bare row delete used to orphan the documents: they stayed active with a
+   * dangling source_id, and the designated-exclusion subquery could never
+   * filter them again. Deactivating keeps them reviewable and re-activatable
+   * from the document list; hard-deleting knowledge is the operator's call,
+   * one document at a time.
+   */
+  async deleteSource(
+    tenantId: number,
+    id: number,
+    actorUserId: number | null = null,
+  ): Promise<{ deactivatedDocuments: number }> {
+    const source = await this.findSource(tenantId, id);
+    const docs = await this.docRepo.find({ where: { tenantId, sourceId: id, active: 1 } });
+    if (docs.length > 0) {
+      await this.docRepo.update({ tenantId, sourceId: id, active: 1 }, { active: 0 });
+      if (this.qdrant.enabled) {
+        for (const doc of docs) {
+          // Retrieval reads MySQL's active flag too, so a failed flip here is
+          // shadow state, not a leak — reindexAll() reconciles it.
+          this.qdrant
+            .setActive(Number(doc.id), false)
+            .catch((e) => this.logger.warn(`qdrant setActive(${doc.id}) failed: ${e.message}`));
+        }
+      }
+    }
     await this.sourceRepo.delete({ id, tenantId });
+    await this.revisions.recordAudit(tenantId, 0, 'knowledge.source_deleted', actorUserId, {
+      sourceId: id,
+      sourceName: source.name,
+      sourceType: source.type,
+      deactivatedDocuments: docs.length,
+    });
+    this.logger.log(
+      `source ${id} ("${source.name}") deleted; ${docs.length} document(s) deactivated`,
+    );
+    return { deactivatedDocuments: docs.length };
   }
 
   // ---- Documents ----

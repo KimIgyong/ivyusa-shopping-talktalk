@@ -11,8 +11,13 @@ import {
   MinLength,
 } from 'class-validator';
 
-/** Knowledge source ingestion modes (FR-064). */
-export const KNOWLEDGE_SOURCE_TYPES = ['board', 'repository', 'gdrive', 'notion'] as const;
+/**
+ * Knowledge source ingestion modes (FR-064). board/repository were removed
+ * (PLN-260829 P1-3): no adapter exists, every registered row stayed empty, and
+ * createSource already refused them — this promotes the refusal to the DTO.
+ * Legacy rows of those types still list, update and delete normally.
+ */
+export const KNOWLEDGE_SOURCE_TYPES = ['gdrive', 'notion'] as const;
 
 // ---- Sources ----
 

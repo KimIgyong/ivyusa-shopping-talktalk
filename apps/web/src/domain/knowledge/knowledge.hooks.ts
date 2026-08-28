@@ -42,6 +42,26 @@ export function useSetSourceStatus() {
   });
 }
 
+/**
+ * Delete a source (PLN-260829 P1-1). Its documents are deactivated server-side,
+ * so the document/category lists move too — invalidate all three.
+ */
+export function useDeleteSource() {
+  const qc = useQueryClient();
+  const tenantKey = useTenantKey();
+  const { t } = useTranslation('knowledge');
+  return useMutation({
+    mutationFn: (id: string) => knowledgeService.deleteSource(id),
+    onSuccess: (r) => {
+      qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'sources'] });
+      qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'documents'] });
+      qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'categories'] });
+      toast.success(t('sourceDeleted', { count: r.deactivatedDocuments }));
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+}
+
 /** Drive service-account key: status, registration, removal, connection test. */
 export function useGdriveCredential() {
   const tenantKey = useTenantKey();
