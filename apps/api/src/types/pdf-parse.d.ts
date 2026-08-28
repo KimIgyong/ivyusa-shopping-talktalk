@@ -1,5 +1,11 @@
-/** pdf-parse ships no types; only the one call the ingest extractor makes is declared. */
+/** pdf-parse (v2) ships no root types; only what the ingest extractor uses is declared. */
 declare module 'pdf-parse' {
-  function pdfParse(buffer: Buffer): Promise<{ text: string }>;
-  export = pdfParse;
+  export interface PdfTextResult {
+    text: string;
+  }
+  export class PDFParse {
+    constructor(options: { data: Uint8Array });
+    getText(): Promise<PdfTextResult>;
+    destroy(): Promise<void>;
+  }
 }

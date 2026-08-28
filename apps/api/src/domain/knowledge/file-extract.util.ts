@@ -51,16 +51,19 @@ export async function extractText(filename: string, buffer: Buffer): Promise<Ext
 }
 
 async function extractPdf(buffer: Buffer): Promise<string> {
-  // CJS require on purpose: pdf-parse's index runs a debug harness when it is
-  // the entry module; required from here `module.parent` is set and it is just
-  // the parser. Lazy so the (heavy) dependency loads only when a PDF arrives.
+  // pdf-parse v2 is a class API (`PDFParse` + getText) — the v1 function-call
+  // shape passed the mocked unit tests and then failed on the first real PDF.
+  // Lazy require so the heavy dependency loads only when a PDF arrives.
   // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const pdfParse = require('pdf-parse') as (b: Buffer) => Promise<{ text: string }>;
+  const { PDFParse } = require('pdf-parse') as typeof import('pdf-parse');
+  const parser = new PDFParse({ data: new Uint8Array(buffer) });
   try {
-    const parsed = await pdfParse(buffer);
+    const parsed = await parser.getText();
     return parsed.text ?? '';
   } catch {
     throw new BusinessException(ERROR_CODE.INGEST_EXTRACT_FAILED, HttpStatus.BAD_REQUEST);
+  } finally {
+    await parser.destroy().catch(() => undefined);
   }
 }
 
