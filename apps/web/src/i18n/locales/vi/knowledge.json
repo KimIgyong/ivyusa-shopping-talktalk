@@ -357,5 +357,6 @@
   "docStatus": {
     "embedded": "Đã lập chỉ mục",
     "pending": "Đang chờ"
-  }
+  },
+  "notionShareHint": "Trang Notion chưa được chia sẻ với integration — mở trang trong Notion, ⋯ → Connections và thêm integration."
 }

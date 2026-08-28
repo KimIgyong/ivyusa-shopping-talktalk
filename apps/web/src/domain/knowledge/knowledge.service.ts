@@ -40,6 +40,8 @@ export interface SyncResult {
   /** Documents stored with only part of their source content. */
   truncated?: number;
   elapsedMs?: number;
+  /** Why a failed run failed (clamped server-side, REQ-260828 B1). */
+  error?: string;
 }
 
 export interface KnowledgeSource {
@@ -48,6 +50,9 @@ export interface KnowledgeSource {
   name: string;
   status: string; // active/inactive
   designated: number;
+  /** Source config as stored (e.g. Notion targetId) — used by the card's
+   * target-aware connection test (REQ-260828 B2). */
+  configJson?: Record<string, unknown> | null;
   /** False when the type has no working adapter yet — shown as "준비중". */
   supported?: boolean;
   lastSyncAt?: string | null;

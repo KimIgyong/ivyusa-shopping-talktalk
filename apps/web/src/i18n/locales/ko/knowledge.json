@@ -357,5 +357,6 @@
   "docStatus": {
     "embedded": "색인완료",
     "pending": "대기"
-  }
+  },
+  "notionShareHint": "노션 페이지가 통합에 공유되지 않았습니다 — 노션에서 페이지 ⋯ → 연결(Connections)에 통합을 추가하세요."
 }

@@ -357,5 +357,6 @@
   "docStatus": {
     "embedded": "Embedded",
     "pending": "Pending"
-  }
+  },
+  "notionShareHint": "The Notion page isn't shared with the integration — open the page in Notion, ⋯ → Connections, and add the integration."
 }

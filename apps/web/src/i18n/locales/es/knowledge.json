@@ -357,5 +357,6 @@
   "docStatus": {
     "embedded": "Indexado",
     "pending": "Pendiente"
-  }
+  },
+  "notionShareHint": "La página de Notion no está compartida con la integración: en Notion, abre la página, ⋯ → Connections y añade la integración."
 }

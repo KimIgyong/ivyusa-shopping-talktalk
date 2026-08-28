@@ -357,5 +357,6 @@
   "docStatus": {
     "embedded": "已索引",
     "pending": "待处理"
-  }
+  },
+  "notionShareHint": "Notion 页面尚未与集成共享 — 请在 Notion 中打开页面，⋯ → Connections 添加该集成。"
 }
