@@ -158,7 +158,8 @@
   "group": {
     "all": "All",
     "counsel": "CounselInfo",
-    "product": "ProductInfo"
+    "product": "ProductInfo",
+    "operation": "OperationInfo"
   },
   "importRequiredColumns": "Required columns: Product Name · Handle · Detail",
   "importUpsertHint": "Existing products are matched by Handle and updated — no duplicates.",
@@ -170,6 +171,21 @@
   "importInvalid": "Skipped",
   "importEmbedded": "Indexed",
   "importRow": "Row {{n}}",
+  "bulkImport": "Bulk import",
+  "bulkImportColumns": "Required columns: category · title · content",
+  "bulkImportOptional": "Optional columns: external_key (update key on re-upload) · source_url",
+  "bulkImportUpsert": "Rows with the same external_key (or the same title) update the existing document instead of duplicating it.",
+  "bulkImportEncoding": "CSV must be UTF-8. In Excel, save as 'CSV UTF-8' or upload the .xlsx file itself.",
+  "bulkImportSampleCsv": "CSV sample",
+  "bulkImportSampleXlsx": "Excel sample",
+  "bulkImportDone": "Bulk import finished: {{created}} created · {{updated}} updated",
+  "bulkImportError": {
+    "E5061": "Unsupported file type — upload a .csv or .xlsx file.",
+    "E5062": "The CSV is not UTF-8 — save as 'CSV UTF-8' or upload the .xlsx.",
+    "E5063": "Required columns are missing (category, title, content).",
+    "E5064": "Too many rows (maximum 5,000).",
+    "E5065": "The file has no data rows."
+  },
   "openProductPage": "Open product page",
   "sync": "Sync",
   "lastSync": "Last sync",
@@ -375,5 +391,6 @@
     "embedded": "Embedded",
     "pending": "Pending"
   },
-  "notionShareHint": "The Notion page isn't shared with the integration — open the page in Notion, ⋯ → Connections, and add the integration."
+  "notionShareHint": "The Notion page isn't shared with the integration — open the page in Notion, ⋯ → Connections, and add the integration.",
+  "groupColumn": "Group"
 }

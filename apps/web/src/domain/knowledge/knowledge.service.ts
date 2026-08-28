@@ -69,7 +69,7 @@ export interface KnowledgeDocument {
   title: string;
   active: number;
   status: string; // embedded/pending
-  /** counsel | product */
+  /** counsel | product | operation */
   docGroup?: string;
   externalKey?: string | null;
   createdAt?: string;
@@ -226,6 +226,11 @@ export interface ProductImportResult {
   errors: Array<{ row: number; reason: string }>;
 }
 
+/** Generic counsel/operation bulk import (PLN-260828 D3). */
+export interface BulkImportResult extends ProductImportResult {
+  docGroup: string;
+}
+
 /** One side of a conflicting pair, as rendered on the review card. */
 export interface ConflictDoc {
   id: string;
@@ -365,6 +370,8 @@ export const knowledgeService = {
     category: string;
     content: string;
     source_id?: number;
+    /** counsel (default) | product | operation — the group tab the operator was on. */
+    doc_group?: string;
     /** Where the answer came from (e.g. the conversation it was written from). */
     source_url?: string;
   }) =>
@@ -393,6 +400,12 @@ export const knowledgeService = {
     // Left to the browser on purpose: setting Content-Type by hand drops the
     // multipart boundary and the server sees an empty body.
     return apiPostForm<ProductImportResult>('/knowledge/documents/import/product', form);
+  },
+  bulkImport: (file: File, docGroup: string) => {
+    const form = new FormData();
+    form.append('file', file);
+    form.append('doc_group', docGroup);
+    return apiPostForm<BulkImportResult>('/knowledge/documents/import/bulk', form);
   },
   previewCatalogSync: () =>
     apiGet<CatalogSyncPreview>('/knowledge/documents/import/catalog/preview'),

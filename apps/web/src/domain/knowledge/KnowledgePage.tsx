@@ -16,6 +16,7 @@ import { Pagination } from '@/components/Pagination';
 import { FormRow, Input, Select } from '@/components/Field';
 import { ArrowDown, ArrowUp, ExternalLink, MoreHorizontal } from 'lucide-react';
 import { cn } from '@/lib/cn';
+import { toast } from '@/store/toast-store';
 import { KnowledgeQaPanel } from './KnowledgeQaPanel';
 import {
   AddDocumentHelp,
@@ -50,6 +51,7 @@ import {
   useDocument,
   useCreateDocument,
   useImportProducts,
+  useBulkImport,
   useCatalogSyncPreview,
   useSyncCatalog,
   useCatalogSyncStatus,
@@ -297,6 +299,40 @@ export function KnowledgePage() {
   const [importFile, setImportFile] = useState<File | null>(null);
   const importProducts = useImportProducts();
 
+  // Counsel/operation bulk upload (PLN-260828). The active tab is the target
+  // group, so the modal never asks the operator to pick one.
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkFile, setBulkFile] = useState<File | null>(null);
+  const bulkImport = useBulkImport();
+  const closeBulk = () => {
+    setBulkOpen(false);
+    setBulkFile(null);
+    bulkImport.reset();
+  };
+  const runBulkImport = () => {
+    if (!bulkFile) return;
+    bulkImport.mutate(
+      { file: bulkFile, docGroup: group },
+      {
+        onSuccess: (r) => {
+          if (r.invalid || r.embedFailed) {
+            toast.error(
+              `${t('bulkImportDone', { created: r.created, updated: r.updated })} · ${t('importInvalid')} ${r.invalid + r.embedFailed}`,
+            );
+          } else {
+            toast.success(t('bulkImportDone', { created: r.created, updated: r.updated }));
+          }
+        },
+        onError: (err: Error & { code?: string }) => {
+          // The five file-level rejections carry an Exxxx the UI localizes;
+          // anything else falls back to the server's English message.
+          const known = err.code && ['E5061', 'E5062', 'E5063', 'E5064', 'E5065'].includes(err.code);
+          toast.error(known ? t(`bulkImportError.${err.code}`) : err.message);
+        },
+      },
+    );
+  };
+
   const [catalogOpen, setCatalogOpen] = useState(false);
   const catalogPreview = useCatalogSyncPreview(catalogOpen);
   const syncCatalog = useSyncCatalog();
@@ -389,7 +425,9 @@ export function KnowledgePage() {
 
   const saveDoc = () => {
     createDocument.mutate(
-      { title: docTitle, category: docCategory, content: docContent },
+      // The active group tab decides where a hand-written document lands
+      // (PLN-260828 D8); the All tab keeps the counsel default.
+      { title: docTitle, category: docCategory, content: docContent, doc_group: group || undefined },
       { onSuccess: closeDoc },
     );
   };
@@ -535,6 +573,18 @@ export function KnowledgePage() {
   // finding and opening documents, so the title gets the remaining ~80% and
   // everything secondary (visibility/source/status/delete) moves into ⋯.
   const docColumns: Column<KnowledgeDocument>[] = [
+    // The group column only earns its width on the All tab — on a group tab
+    // every row would repeat the tab's own label.
+    ...(group === ''
+      ? [
+          {
+            key: 'docGroup',
+            header: t('groupColumn'),
+            className: 'w-28 whitespace-nowrap',
+            render: (r) => (r.docGroup ? <Badge>{t(`group.${r.docGroup}`)}</Badge> : '—'),
+          } as Column<KnowledgeDocument>,
+        ]
+      : []),
     {
       key: 'category',
       header: t('category'),
@@ -887,6 +937,13 @@ export function KnowledgePage() {
               <Button variant="secondary" onClick={() => setImportOpen(true)}>
                 {t('importProducts')}
               </Button>
+              {/* Bulk import targets the active tab's group; product has its
+                  own importer, and on the All tab the target would be a guess. */}
+              {(group === 'counsel' || group === 'operation') && (
+                <Button variant="secondary" onClick={() => setBulkOpen(true)}>
+                  {t('bulkImport')}
+                </Button>
+              )}
               <AddDocumentHelp />
               <Button onClick={() => setDocOpen(true)}>{t('addDocument')}</Button>
             </div>
@@ -900,6 +957,7 @@ export function KnowledgePage() {
               { key: '', label: t('group.all'), count: Object.values(groupTotals).reduce((a, b) => a + b, 0) },
               { key: 'counsel', label: t('group.counsel'), count: groupTotals.counsel ?? 0 },
               { key: 'product', label: t('group.product'), count: groupTotals.product ?? 0 },
+              { key: 'operation', label: t('group.operation'), count: groupTotals.operation ?? 0 },
             ].map((g) => (
               <button
                 key={g.key || 'all'}
@@ -1352,6 +1410,72 @@ export function KnowledgePage() {
           {(importProducts.data?.errors.length ?? 0) > 0 && (
             <ul className="max-h-40 space-y-1 overflow-y-auto rounded border border-warning/40 bg-amber-50 p-2 text-xs">
               {importProducts.data!.errors.slice(0, 20).map((e, i) => (
+                <li key={i}>
+                  {t('importRow', { n: e.row })}: {e.reason}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </Modal>
+
+      <Modal
+        open={bulkOpen}
+        onClose={closeBulk}
+        title={`${t('bulkImport')} — ${t(`group.${group || 'counsel'}`)}`}
+        footer={
+          <>
+            <Button variant="ghost" onClick={closeBulk}>
+              {tc('close')}
+            </Button>
+            <Button disabled={!bulkFile || bulkImport.isPending} onClick={runBulkImport}>
+              {bulkImport.isPending ? tc('loading') : t('import')}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-3 text-sm">
+          {/* A described format is still guesswork until you see one. */}
+          <div className="flex gap-3">
+            <a
+              className="text-sm font-medium text-primary hover:underline"
+              href="/samples/kb-bulk-import-sample.csv"
+              download
+            >
+              ⬇ {t('bulkImportSampleCsv')}
+            </a>
+            <a
+              className="text-sm font-medium text-primary hover:underline"
+              href="/samples/kb-bulk-import-sample.xlsx"
+              download
+            >
+              ⬇ {t('bulkImportSampleXlsx')}
+            </a>
+          </div>
+          <p className="text-xs text-gray-500">{t('bulkImportColumns')}</p>
+          <p className="text-xs text-gray-500">{t('bulkImportOptional')}</p>
+          <p className="text-xs text-gray-500">{t('bulkImportUpsert')}</p>
+          <p className="text-xs text-warning">{t('bulkImportEncoding')}</p>
+          <input
+            type="file"
+            accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            onChange={(e) => setBulkFile(e.target.files?.[0] ?? null)}
+            className="block w-full text-sm text-gray-700 file:mr-3 file:rounded-lg file:border-0 file:bg-primary-600 file:px-3 file:py-2 file:text-sm file:text-white"
+          />
+
+          {bulkImport.data && (
+            <dl className="grid grid-cols-3 gap-2 rounded-lg bg-gray-50 p-3 text-xs">
+              <Stat label={t('importParsed')} value={bulkImport.data.parsed} />
+              <Stat label={t('importCreated')} value={bulkImport.data.created} />
+              <Stat label={t('importUpdated')} value={bulkImport.data.updated} />
+              <Stat label={t('importSkipped')} value={bulkImport.data.skipped} />
+              <Stat label={t('importInvalid')} value={bulkImport.data.invalid} />
+              <Stat label={t('importEmbedded')} value={bulkImport.data.embedded} />
+            </dl>
+          )}
+          {(bulkImport.data?.errors.length ?? 0) > 0 && (
+            <ul className="max-h-40 space-y-1 overflow-y-auto rounded border border-warning/40 bg-amber-50 p-2 text-xs">
+              {bulkImport.data!.errors.slice(0, 20).map((e, i) => (
                 <li key={i}>
                   {t('importRow', { n: e.row })}: {e.reason}
                 </li>

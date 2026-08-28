@@ -158,7 +158,8 @@
   "group": {
     "all": "すべて",
     "counsel": "相談情報",
-    "product": "商品情報"
+    "product": "商品情報",
+    "operation": "OperationInfo"
   },
   "importRequiredColumns": "必須列：商品名 ・ Handle ・ 詳細",
   "importUpsertHint": "既存の商品はHandleで照合して更新します。重複は作成されません。",
@@ -170,6 +171,22 @@
   "importInvalid": "スキップ",
   "importEmbedded": "インデックス済み",
   "importRow": "{{n}}行目",
+  "bulkImport": "一括登録",
+  "bulkImportColumns": "必須列: category · title · content",
+  "bulkImportOptional": "任意列: external_key（再アップロード時の更新キー） · source_url",
+  "bulkImportUpsert": "同じ external_key（なければ同じタイトル）の行は重複作成せず既存文書を更新します。",
+  "bulkImportEncoding": "CSVはUTF-8のみ対応です。Excelでは「CSV UTF-8」で保存するか、.xlsxファイルをそのままアップロードしてください。",
+  "bulkImportSampleCsv": "CSVサンプル",
+  "bulkImportSampleXlsx": "Excelサンプル",
+  "bulkImportDone": "一括登録完了: 作成 {{created}} · 更新 {{updated}}",
+  "bulkImportError": {
+    "E5061": "対応していないファイル形式です。.csv または .xlsx をアップロードしてください。",
+    "E5062": "CSVがUTF-8ではありません。「CSV UTF-8」で保存するか .xlsx をアップロードしてください。",
+    "E5063": "必須列（category, title, content）がありません。",
+    "E5064": "行数が多すぎます（最大5,000行）。",
+    "E5065": "データ行がありません。"
+  },
+  "groupColumn": "グループ",
   "openProductPage": "商品ページを開く",
   "sync": "同期",
   "lastSync": "最終同期",

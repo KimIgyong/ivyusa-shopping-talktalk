@@ -158,7 +158,8 @@
   "group": {
     "all": "Tất cả",
     "counsel": "Thông tin tư vấn",
-    "product": "Thông tin sản phẩm"
+    "product": "Thông tin sản phẩm",
+    "operation": "OperationInfo"
   },
   "importRequiredColumns": "Cột bắt buộc: Tên sản phẩm · Handle · Chi tiết",
   "importUpsertHint": "Sản phẩm đã có được đối chiếu theo Handle và cập nhật — không tạo bản trùng.",
@@ -170,6 +171,22 @@
   "importInvalid": "Đã bỏ qua",
   "importEmbedded": "Đã lập chỉ mục",
   "importRow": "Dòng {{n}}",
+  "bulkImport": "Nhập hàng loạt",
+  "bulkImportColumns": "Cột bắt buộc: category · title · content",
+  "bulkImportOptional": "Cột tùy chọn: external_key (khóa cập nhật khi tải lại) · source_url",
+  "bulkImportUpsert": "Các hàng có cùng external_key (hoặc cùng tiêu đề) sẽ cập nhật tài liệu hiện có thay vì tạo bản sao.",
+  "bulkImportEncoding": "CSV phải là UTF-8. Trong Excel, hãy lưu dạng 'CSV UTF-8' hoặc tải lên chính tệp .xlsx.",
+  "bulkImportSampleCsv": "Tệp mẫu CSV",
+  "bulkImportSampleXlsx": "Tệp mẫu Excel",
+  "bulkImportDone": "Nhập hàng loạt hoàn tất: tạo {{created}} · cập nhật {{updated}}",
+  "bulkImportError": {
+    "E5061": "Định dạng tệp không được hỗ trợ — hãy tải lên tệp .csv hoặc .xlsx.",
+    "E5062": "CSV không phải UTF-8 — lưu dạng 'CSV UTF-8' hoặc tải lên tệp .xlsx.",
+    "E5063": "Thiếu cột bắt buộc (category, title, content).",
+    "E5064": "Quá nhiều hàng (tối đa 5.000).",
+    "E5065": "Tệp không có hàng dữ liệu nào."
+  },
+  "groupColumn": "Nhóm",
   "openProductPage": "Mở trang sản phẩm",
   "sync": "Đồng bộ",
   "lastSync": "Đồng bộ lần cuối",

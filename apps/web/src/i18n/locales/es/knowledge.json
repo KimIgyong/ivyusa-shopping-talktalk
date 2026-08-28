@@ -158,7 +158,8 @@
   "group": {
     "all": "Todos",
     "counsel": "CounselInfo",
-    "product": "ProductInfo"
+    "product": "ProductInfo",
+    "operation": "OperationInfo"
   },
   "importRequiredColumns": "Columnas requeridas: Product Name · Handle · Detail",
   "importUpsertHint": "Los productos existentes se identifican por Handle y se actualizan — sin duplicados.",
@@ -170,6 +171,21 @@
   "importInvalid": "Omitidas",
   "importEmbedded": "Indexados",
   "importRow": "Fila {{n}}",
+  "bulkImport": "Importación masiva",
+  "bulkImportColumns": "Columnas requeridas: category · title · content",
+  "bulkImportOptional": "Columnas opcionales: external_key (clave de actualización al resubir) · source_url",
+  "bulkImportUpsert": "Las filas con el mismo external_key (o el mismo título) actualizan el documento existente en lugar de duplicarlo.",
+  "bulkImportEncoding": "El CSV debe ser UTF-8. En Excel, guárdelo como 'CSV UTF-8' o suba el archivo .xlsx directamente.",
+  "bulkImportSampleCsv": "Muestra CSV",
+  "bulkImportSampleXlsx": "Muestra Excel",
+  "bulkImportDone": "Importación completada: {{created}} creados · {{updated}} actualizados",
+  "bulkImportError": {
+    "E5061": "Tipo de archivo no compatible: suba un archivo .csv o .xlsx.",
+    "E5062": "El CSV no es UTF-8: guárdelo como 'CSV UTF-8' o suba el .xlsx.",
+    "E5063": "Faltan columnas requeridas (category, title, content).",
+    "E5064": "Demasiadas filas (máximo 5.000).",
+    "E5065": "El archivo no tiene filas de datos."
+  },
   "openProductPage": "Abrir página del producto",
   "sync": "Sincronizar",
   "lastSync": "Última sincronización",
@@ -375,5 +391,6 @@
     "embedded": "Indexado",
     "pending": "Pendiente"
   },
-  "notionShareHint": "La página de Notion no está compartida con la integración: en Notion, abre la página, ⋯ → Connections y añade la integración."
+  "notionShareHint": "La página de Notion no está compartida con la integración: en Notion, abre la página, ⋯ → Connections y añade la integración.",
+  "groupColumn": "Grupo"
 }

@@ -48,6 +48,7 @@ describe('KnowledgeService — syncSource failure reason', () => {
       {} as never, // conflicts
       revisions as never,
       {} as never, // productImport
+      {} as never, // bulkImport
       {} as never, // catalogSync
       {} as never, // usageGuides
       sourceSync as never,

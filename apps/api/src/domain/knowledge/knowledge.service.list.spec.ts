@@ -38,6 +38,7 @@ describe('KnowledgeService — document list filters/sort/facets', () => {
       {} as never, // conflicts
       {} as never, // revisions
       {} as never, // productImport
+      {} as never, // bulkImport
       {} as never, // catalogSync
       {} as never, // usageGuides
       {} as never, // sourceSync
