@@ -1,4 +1,5 @@
 import {
+  envInt,
   MAX_REQUESTS_PER_PAGE,
   NotionAuthError,
   NotionClient,
@@ -258,5 +259,20 @@ describe('NotionClient', () => {
   it('passes Notion’s own wording through rather than inventing one', async () => {
     fetchMock.mockResolvedValueOnce(errRes(400, 'validation_error', 'body.page_size should be ≤ 100'));
     await expect(client.me('t')).rejects.toThrow('body.page_size should be ≤ 100');
+  });
+});
+
+describe('envInt (REQ-260828 C4 — env-overridable caps)', () => {
+  afterEach(() => delete process.env.NOTION_TEST_CAP);
+
+  it('uses a positive-integer override and falls back on garbage', () => {
+    process.env.NOTION_TEST_CAP = '120';
+    expect(envInt('NOTION_TEST_CAP', 30)).toBe(120);
+    for (const bad of ['0', '-5', '1.5', 'abc', '']) {
+      process.env.NOTION_TEST_CAP = bad;
+      expect(envInt('NOTION_TEST_CAP', 30)).toBe(30);
+    }
+    delete process.env.NOTION_TEST_CAP;
+    expect(envInt('NOTION_TEST_CAP', 30)).toBe(30);
   });
 });

@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { KnowledgeSource } from '../entity/knowledge-source.entity';
 import { SourceAdapter, SourceFetch, SourceItem } from '../source-adapter.interface';
-import { NotionClient, NotionPageRef } from '../notion.client';
+import { envInt, NotionClient, NotionPageRef } from '../notion.client';
 import { NotionCredentialService, NOTION_PROVIDER } from '../notion-credential.service';
 import { blocksToText } from '../notion-block-text.util';
 import { extractNotionId } from '../notion.util';
@@ -23,7 +23,7 @@ import { extractNotionId } from '../notion.util';
  * counted and reported — a truncated sync that looks complete is the failure
  * mode worth engineering against.
  */
-export const MAX_PAGES_PER_SYNC = 200;
+export const MAX_PAGES_PER_SYNC = envInt('NOTION_MAX_PAGES_PER_SYNC', 200);
 
 const truncate = (value: string, max: number): string =>
   value.length > max ? value.slice(0, max) : value;
