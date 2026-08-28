@@ -392,5 +392,10 @@
     "embedded": "索引済み",
     "pending": "待機中"
   },
-  "notionShareHint": "Notionページがインテグレーションに共有されていません — Notionでページの ⋯ → コネクト(Connections)にインテグレーションを追加してください。"
+  "notionShareHint": "Notionページがインテグレーションに共有されていません — Notionでページの ⋯ → コネクト(Connections)にインテグレーションを追加してください。",
+  "deleteSource": "ソース削除",
+  "deleteSourceConfirm": "ソース「{{name}}」を削除します。続行しますか?",
+  "deleteSourceDocsNote": "このソースの文書は削除されず、無効化されて検索から除外されます。文書一覧から再度有効化できます。",
+  "sourceDeleted": "ソース削除完了 — 文書{{count}}件を無効化",
+  "registerKey": "キー登録"
 }

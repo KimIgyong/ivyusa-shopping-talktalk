@@ -392,5 +392,10 @@
     "pending": "Pending"
   },
   "notionShareHint": "The Notion page isn't shared with the integration — open the page in Notion, ⋯ → Connections, and add the integration.",
-  "groupColumn": "Group"
+  "groupColumn": "Group",
+  "deleteSource": "Delete source",
+  "deleteSourceConfirm": "Delete the source \"{{name}}\". Continue?",
+  "deleteSourceDocsNote": "This source's documents are not deleted — they are deactivated and excluded from retrieval. You can re-activate them from the document list.",
+  "sourceDeleted": "Source deleted — {{count}} document(s) deactivated",
+  "registerKey": "Register key"
 }

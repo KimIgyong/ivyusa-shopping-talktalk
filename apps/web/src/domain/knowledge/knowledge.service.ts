@@ -346,6 +346,9 @@ export const knowledgeService = {
     apiPost<KnowledgeSource>('/knowledge/sources', body),
   setSourceStatus: (id: string, status: 'active' | 'inactive') =>
     apiPatch<KnowledgeSource>(`/knowledge/sources/${id}`, { status }),
+  /** Deletes the source; its documents are deactivated, not deleted (PLN-260829). */
+  deleteSource: (id: string) =>
+    apiDelete<{ deleted: boolean; deactivatedDocuments: number }>(`/knowledge/sources/${id}`),
   syncSource: (id: string) => apiPost<SyncResult>(`/knowledge/sources/${id}/sync`, {}),
   documents: (params: DocumentListParams): Promise<Paginated<KnowledgeDocument>> =>
     apiGetList<KnowledgeDocument>('/knowledge/documents', {

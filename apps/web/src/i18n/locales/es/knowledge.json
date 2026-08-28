@@ -392,5 +392,10 @@
     "pending": "Pendiente"
   },
   "notionShareHint": "La página de Notion no está compartida con la integración: en Notion, abre la página, ⋯ → Connections y añade la integración.",
-  "groupColumn": "Grupo"
+  "groupColumn": "Grupo",
+  "deleteSource": "Eliminar fuente",
+  "deleteSourceConfirm": "Se eliminará la fuente \"{{name}}\". ¿Continuar?",
+  "deleteSourceDocsNote": "Los documentos de esta fuente no se eliminan: se desactivan y quedan fuera de la búsqueda. Puede reactivarlos desde la lista de documentos.",
+  "sourceDeleted": "Fuente eliminada — {{count}} documento(s) desactivados",
+  "registerKey": "Registrar clave"
 }

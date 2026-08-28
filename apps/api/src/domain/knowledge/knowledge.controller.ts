@@ -169,10 +169,15 @@ export class KnowledgeController {
 
   @Delete('sources/:id')
   @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
-  @ApiOperation({ summary: 'Delete a knowledge source' })
+  @ApiOperation({ summary: 'Delete a knowledge source (its documents are deactivated, not deleted)' })
   async deleteSource(@CurrentUser() user: Principal, @Param('id', ParseIntPipe) id: number) {
-    await this.knowledgeService.deleteSource(this.tenantUser(user).tenantId, id);
-    return { deleted: true };
+    const actor = this.tenantUser(user);
+    const { deactivatedDocuments } = await this.knowledgeService.deleteSource(
+      actor.tenantId,
+      id,
+      actor.userId,
+    );
+    return { deleted: true, deactivatedDocuments };
   }
 
   // ---- Google Drive credential (PLN-260815 G1) ----
