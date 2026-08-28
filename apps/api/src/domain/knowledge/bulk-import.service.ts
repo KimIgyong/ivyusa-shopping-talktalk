@@ -215,7 +215,7 @@ export class BulkImportService {
     // Keep kb_categories describing reality. ensure() creates only when absent
     // — an existing category keeps its agent scope and hidden flag untouched.
     for (const name of categoriesSeen) {
-      await this.categories.ensure(tenantId, name, CATEGORY_ORIGIN.MANUAL);
+      await this.categories.ensure(tenantId, name, CATEGORY_ORIGIN.MANUAL, docGroup);
     }
 
     return { result, touchedIds };

@@ -41,7 +41,7 @@ export type CategoryOrigin = (typeof CATEGORY_ORIGIN)[keyof typeof CATEGORY_ORIG
  * is contained by routing every writer through `KbCategoryService.ensure()`.
  */
 @Entity('kb_categories')
-@Unique('uk_kb_category', ['tenantId', 'name'])
+@Unique('uk_kb_category', ['tenantId', 'docGroup', 'name'])
 export class KbCategory {
   @PrimaryGeneratedColumn({ type: 'bigint' })
   id: number;
@@ -53,6 +53,15 @@ export class KbCategory {
   /** The exact string stored in `kb_documents.category`. */
   @Column({ type: 'varchar', length: 64 })
   name: string;
+
+  /**
+   * The document group this category belongs to (PLN-260829 D2-c). A category
+   * is meaningful only inside one group — "배송" under counsel and "배송" under
+   * operation are different things with different agent scopes — so the name
+   * is unique per (tenant, group), not per tenant.
+   */
+  @Column({ name: 'doc_group', type: 'varchar', length: 16, default: 'counsel' })
+  docGroup: string;
 
   /**
    * Display name, when the stored value is not what an operator wants to read

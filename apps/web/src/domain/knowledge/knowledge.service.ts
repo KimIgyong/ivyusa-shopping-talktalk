@@ -434,8 +434,8 @@ export const knowledgeService = {
       keywords,
       ...(excludeId ? { exclude_id: Number(excludeId) } : {}),
     }),
-  categoryRows: () => apiGet<KbCategoryRow[]>('/knowledge/categories'),
-  createCategory: (body: { name: string; label?: string }) =>
+  categoryRows: (group: string) => apiGet<KbCategoryRow[]>('/knowledge/categories', { group }),
+  createCategory: (body: { name: string; label?: string; doc_group: string }) =>
     apiPost<KbCategoryRow>('/knowledge/categories', body),
   renameCategory: (id: string, name: string) =>
     apiPut<KbCategoryRow>(`/knowledge/categories/${id}/rename`, { name }),

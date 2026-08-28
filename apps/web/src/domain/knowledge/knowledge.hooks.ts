@@ -698,11 +698,12 @@ export function usePreviewUsageType() {
 
 // ---- Categories (PLN-260824 B축) ----
 
-export function useCategoryRows() {
+export function useCategoryRows(group: string) {
   const tenantKey = useTenantKey();
   return useQuery({
-    queryKey: ['knowledge', tenantKey, 'categories'],
-    queryFn: () => knowledgeService.categoryRows(),
+    // Group in the key: each manager tab is its own list (PLN-260829 D2-a).
+    queryKey: ['knowledge', tenantKey, 'categories', group],
+    queryFn: () => knowledgeService.categoryRows(group),
   });
 }
 
@@ -710,7 +711,8 @@ export function useCreateCategory() {
   const invalidate = useTaxonomyInvalidator('categories');
   const { t } = useTranslation('knowledge');
   return useMutation({
-    mutationFn: (v: { name: string; label?: string }) => knowledgeService.createCategory(v),
+    mutationFn: (v: { name: string; label?: string; doc_group: string }) =>
+      knowledgeService.createCategory(v),
     onSuccess: () => {
       invalidate();
       toast.success(t('categorySaved'));

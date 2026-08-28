@@ -183,7 +183,10 @@ export function KnowledgePage() {
   // Always fetched ungrouped: the tab counts need every group, and the category
   // list is derived from the same rows.
   const categories = useCategories();
-  const categoryRows = useCategoryRows();
+  // Explicit group select for Add KB-Document (PLN-260829 P1-7/D2-d).
+  // Declared here because the category suggestions below follow it.
+  const [docGroup, setDocGroup] = useState('counsel');
+  const categoryRows = useCategoryRows(docGroup);
   const allCounts = categories.data ?? [];
   const groupTotals = allCounts.reduce<Record<string, number>>((acc, c) => {
     acc[c.group] = (acc[c.group] ?? 0) + c.total;
@@ -209,15 +212,22 @@ export function KnowledgePage() {
     setCategory('');
     setPage(1);
   };
-  // What this tenant actually uses, plus what it has registered.
-  const categorySuggestions = [
+  // What this tenant actually uses in that group, plus what it has registered
+  // there (PLN-260829 D2-d) — a suggestion from another group would file the
+  // document under a category that group does not own.
+  const suggestionsFor = (g?: string) => [
     ...new Set([
-      ...allCounts.map((c) => c.category).filter((c): c is string => !!c),
+      ...allCounts
+        .filter((c) => !g || c.group === g)
+        .map((c) => c.category)
+        .filter((c): c is string => !!c),
       // Registered but not yet used: a category created for documents that have
-      // not been filed yet would otherwise be impossible to pick.
-      ...(categoryRows.data ?? []).filter((c) => !c.hidden).map((c) => c.name),
+      // not been filed yet would otherwise be impossible to pick. The rows are
+      // fetched for the add-modal's group.
+      ...(g === docGroup ? (categoryRows.data ?? []).filter((c) => !c.hidden).map((c) => c.name) : []),
     ]),
   ];
+  const categorySuggestions = suggestionsFor(docGroup);
   const selectCategory = (value: string) => {
     setCategory(value);
     setPage(1);
@@ -396,9 +406,6 @@ export function KnowledgePage() {
   const [docTitle, setDocTitle] = useState('');
   const [docCategory, setDocCategory] = useState('');
   const [docContent, setDocContent] = useState('');
-  // Explicit group select (PLN-260829 P1-7) — the active tab is only the
-  // default; deciding the group invisibly caused silent mis-filing.
-  const [docGroup, setDocGroup] = useState('counsel');
   const openDoc = () => {
     setDocGroup(group || 'counsel');
     setDocOpen(true);
@@ -1823,7 +1830,7 @@ export function KnowledgePage() {
                       list="kb-categories-edit"
                     />
                     <datalist id="kb-categories-edit">
-                      {categorySuggestions.map((c) => (
+                      {suggestionsFor(detail.data?.docGroup).map((c) => (
                         <option key={c} value={c} />
                       ))}
                     </datalist>

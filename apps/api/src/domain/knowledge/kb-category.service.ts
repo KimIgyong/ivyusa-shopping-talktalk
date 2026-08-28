@@ -46,12 +46,12 @@ export class KbCategoryService {
    * Counts come from the documents, not from the table, so a row whose
    * documents were all moved reads 0 instead of claiming its old total.
    */
-  async list(tenantId: number): Promise<KbCategorySummary[]> {
+  async list(tenantId: number, docGroup: string): Promise<KbCategorySummary[]> {
     const rows = await this.repo.find({
-      where: { tenantId },
+      where: { tenantId, docGroup },
       order: { sortOrder: 'ASC', name: 'ASC' },
     });
-    const counts = await this.countsFor(tenantId);
+    const counts = await this.countsFor(tenantId, docGroup);
 
     const summaries = rows.map((r) => ({
       id: String(r.id),
@@ -93,10 +93,15 @@ export class KbCategoryService {
    * ingestion, manual document edits. Cheap and idempotent by design: the
    * alternative is a table that slowly stops describing reality.
    */
-  async ensure(tenantId: number, name: string, origin: CategoryOrigin): Promise<void> {
+  async ensure(
+    tenantId: number,
+    name: string,
+    origin: CategoryOrigin,
+    docGroup: string,
+  ): Promise<void> {
     const clean = name.trim();
     if (!clean) return;
-    const existing = await this.repo.findOne({ where: { tenantId, name: clean } });
+    const existing = await this.repo.findOne({ where: { tenantId, docGroup, name: clean } });
     if (existing) {
       // Promote, never demote. One catalogue document under a name is enough to
       // make a rename bounce back — sync rewrites the category of everything it
@@ -110,22 +115,28 @@ export class KbCategoryService {
       return;
     }
     await this.repo
-      .save(this.repo.create({ tenantId, name: clean, origin, sortOrder: 0, hidden: 0 }))
+      .save(this.repo.create({ tenantId, docGroup, name: clean, origin, sortOrder: 0, hidden: 0 }))
       // A concurrent sync may have inserted the same pair; the unique key is
       // the arbiter and losing that race is not an error worth failing a sync for.
       .catch((e) => this.logger.warn(`ensure(${clean}) lost the race: ${(e as Error).message}`));
   }
 
-  async create(tenantId: number, name: string, label?: string | null): Promise<KbCategory> {
+  async create(
+    tenantId: number,
+    name: string,
+    label: string | null,
+    docGroup: string,
+  ): Promise<KbCategory> {
     const clean = name.trim();
     if (!clean || clean.length > 64) {
       throw new BusinessException(ERROR_CODE.VALIDATION_FAILED, HttpStatus.BAD_REQUEST);
     }
-    const existing = await this.repo.findOne({ where: { tenantId, name: clean } });
+    const existing = await this.repo.findOne({ where: { tenantId, docGroup, name: clean } });
     if (existing) throw new BusinessException(ERROR_CODE.VALIDATION_FAILED, HttpStatus.CONFLICT);
     return this.repo.save(
       this.repo.create({
         tenantId,
+        docGroup,
         name: clean,
         label: label?.trim() || null,
         origin: CATEGORY_ORIGIN.MANUAL,
@@ -157,7 +168,9 @@ export class KbCategoryService {
     }
     if (clean === row.name) return row;
 
-    const collision = await this.repo.findOne({ where: { tenantId, name: clean } });
+    const collision = await this.repo.findOne({
+      where: { tenantId, docGroup: row.docGroup, name: clean },
+    });
     // Renaming onto an existing name is a merge, and a merge moves documents
     // the operator did not select. Make them say so.
     if (collision) throw new BusinessException(ERROR_CODE.VALIDATION_FAILED, HttpStatus.CONFLICT);
@@ -165,7 +178,13 @@ export class KbCategoryService {
     const from = row.name;
     await this.dataSource.transaction(async (m) => {
       await m.update(KbCategory, { id: row.id }, { name: clean });
-      await m.update(KbDocument, { tenantId, category: from }, { category: clean });
+      // Scoped to the row's group: the same string may exist in another group
+      // and those documents are a different category by definition (D2-e).
+      await m.update(
+        KbDocument,
+        { tenantId, docGroup: row.docGroup, category: from },
+        { category: clean },
+      );
     });
     this.logger.log(`category renamed: ${from} -> ${clean} (tenant ${tenantId})`);
     return this.find(tenantId, id);
@@ -185,6 +204,10 @@ export class KbCategoryService {
         // Same bounce-back as rename: sync would refile these next run.
         throw new BusinessException(ERROR_CODE.VALIDATION_FAILED, HttpStatus.BAD_REQUEST);
       }
+      // A cross-group merge would silently move documents between groups.
+      if (row.docGroup !== into.docGroup) {
+        throw new BusinessException(ERROR_CODE.VALIDATION_FAILED, HttpStatus.BAD_REQUEST);
+      }
       sources.push(row);
     }
     if (!sources.length) return { moved: 0 };
@@ -194,7 +217,7 @@ export class KbCategoryService {
       for (const src of sources) {
         const res = await m.update(
           KbDocument,
-          { tenantId, category: src.name },
+          { tenantId, docGroup: into.docGroup, category: src.name },
           { category: into.name },
         );
         moved += res.affected ?? 0;
@@ -265,17 +288,20 @@ export class KbCategoryService {
   /** Only an empty category can be removed — deleting one in use would strand its documents. */
   async remove(tenantId: number, id: number): Promise<void> {
     const row = await this.find(tenantId, id);
-    const inUse = await this.docRepo.count({ where: { tenantId, category: row.name } });
+    const inUse = await this.docRepo.count({
+      where: { tenantId, docGroup: row.docGroup, category: row.name },
+    });
     if (inUse > 0) throw new BusinessException(ERROR_CODE.VALIDATION_FAILED, HttpStatus.CONFLICT);
     await this.repo.delete({ id: row.id });
   }
 
-  private async countsFor(tenantId: number): Promise<Map<string, number>> {
+  private async countsFor(tenantId: number, docGroup: string): Promise<Map<string, number>> {
     const rows = await this.docRepo
       .createQueryBuilder('d')
       .select('d.category', 'category')
       .addSelect('COUNT(*)', 'count')
       .where('d.tenant_id = :tenantId', { tenantId })
+      .andWhere('d.doc_group = :docGroup', { docGroup })
       .andWhere('d.category IS NOT NULL')
       .andWhere("d.category <> ''")
       .groupBy('d.category')
