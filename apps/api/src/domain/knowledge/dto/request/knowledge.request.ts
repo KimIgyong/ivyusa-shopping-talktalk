@@ -101,6 +101,27 @@ export class BulkImportRequest {
   @IsOptional() @IsIn(BULK_IMPORT_GROUPS as readonly string[]) doc_group?: string;
 }
 
+// ---- AI ingest (PLN-260829 3차) ----
+
+/** Multipart form fields riding along the ingest file upload. */
+export class IngestFileRequest {
+  /** counsel (default) | product | operation. */
+  @IsOptional() @IsIn(Object.values(DOC_GROUP)) doc_group?: string;
+}
+
+export class IngestVideoRequest {
+  @IsString() @MaxLength(512) video_url: string;
+  @IsOptional() @IsIn(Object.values(DOC_GROUP)) doc_group?: string;
+}
+
+/**
+ * The operator-reviewed drafts to save. Field-level validation happens in the
+ * service (trim/length/non-empty) — the array shape is all the DTO pins down.
+ */
+export class ApproveIngestRequest {
+  @IsArray() articles: Array<{ title: string; category: string; content: string }>;
+}
+
 export class UpdateDocumentRequest {
   @IsOptional() @IsString() title?: string;
   @IsOptional() @IsString() content?: string;

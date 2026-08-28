@@ -231,6 +231,39 @@ export interface BulkImportResult extends ProductImportResult {
   docGroup: string;
 }
 
+// ---- AI ingest (PLN-260829 3차) ----
+
+export interface IngestDraft {
+  title: string;
+  category: string;
+  content: string;
+  /** A parse-failure fallback draft — the whole chunk, review carefully. */
+  fallback: boolean;
+}
+
+export interface IngestJob {
+  id: string;
+  status: 'running' | 'ready' | 'consumed' | 'failed';
+  phase: 'extracting' | 'analyzing' | 'done';
+  analyzed: number;
+  analyzeTotal: number;
+  sourceLabel: string;
+  sourceKind: string;
+  docGroup: string;
+  truncated: boolean;
+  drafts: IngestDraft[];
+  /** An Exxxx code (localizable) or free text. */
+  error: string | null;
+  result: Record<string, unknown> | null;
+}
+
+export interface IngestApproveResult {
+  saved: number;
+  embedded: number;
+  embedFailed: number;
+  docGroup: string;
+}
+
 /** One side of a conflicting pair, as rendered on the review card. */
 export interface ConflictDoc {
   id: string;
@@ -404,6 +437,17 @@ export const knowledgeService = {
     // multipart boundary and the server sees an empty body.
     return apiPostForm<ProductImportResult>('/knowledge/documents/import/product', form);
   },
+  ingestFile: (file: File, docGroup: string) => {
+    const form = new FormData();
+    form.append('file', file);
+    form.append('doc_group', docGroup);
+    return apiPostForm<IngestJob>('/knowledge/ingest/file', form);
+  },
+  ingestVideo: (videoUrl: string, docGroup: string) =>
+    apiPost<IngestJob>('/knowledge/ingest/video', { video_url: videoUrl, doc_group: docGroup }),
+  ingestStatus: () => apiGet<IngestJob | null>('/knowledge/ingest/status'),
+  approveIngest: (articles: Array<{ title: string; category: string; content: string }>) =>
+    apiPost<IngestApproveResult>('/knowledge/ingest/approve', { articles }),
   bulkImport: (file: File, docGroup: string) => {
     const form = new FormData();
     form.append('file', file);

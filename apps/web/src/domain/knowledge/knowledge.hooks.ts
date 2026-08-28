@@ -619,6 +619,49 @@ export function useBulkImport() {
   });
 }
 
+// ---- AI ingest (PLN-260829 3차) ----
+
+/** Start analyzing an uploaded file. Toasts live in the modal (it localizes codes). */
+export function useIngestFile() {
+  return useMutation({
+    mutationFn: (v: { file: File; docGroup: string }) =>
+      knowledgeService.ingestFile(v.file, v.docGroup),
+  });
+}
+
+export function useIngestVideo() {
+  return useMutation({
+    mutationFn: (v: { url: string; docGroup: string }) =>
+      knowledgeService.ingestVideo(v.url, v.docGroup),
+  });
+}
+
+/** Poll while the modal is open and a run is live; idle otherwise. */
+export function useIngestStatus(enabled: boolean) {
+  const tenantKey = useTenantKey();
+  return useQuery({
+    queryKey: ['knowledge', tenantKey, 'ingest-status'],
+    queryFn: () => knowledgeService.ingestStatus(),
+    enabled,
+    refetchInterval: (query) =>
+      query.state.data?.status === 'running' ? 1500 : false,
+  });
+}
+
+export function useApproveIngest() {
+  const qc = useQueryClient();
+  const tenantKey = useTenantKey();
+  return useMutation({
+    mutationFn: (articles: Array<{ title: string; category: string; content: string }>) =>
+      knowledgeService.approveIngest(articles),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'documents'] });
+      qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'categories'] });
+      qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'ingest-status'] });
+    },
+  });
+}
+
 // ---- Usage types (PLN-260824 A축) ----
 
 export function useUsageTypes() {

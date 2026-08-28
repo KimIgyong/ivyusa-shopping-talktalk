@@ -18,6 +18,7 @@ import { ArrowDown, ArrowUp, ExternalLink, MoreHorizontal, Trash2 } from 'lucide
 import { cn } from '@/lib/cn';
 import { toast } from '@/store/toast-store';
 import { KnowledgeQaPanel } from './KnowledgeQaPanel';
+import { AiIngestModal } from './AiIngestModal';
 import {
   AddDocumentHelp,
   CatalogSyncHelp,
@@ -309,6 +310,9 @@ export function KnowledgePage() {
   const [importOpen, setImportOpen] = useState(false);
   const [importFile, setImportFile] = useState<File | null>(null);
   const importProducts = useImportProducts();
+
+  // AI import (PLN-260829 3차) — file/video → drafts → review → documents.
+  const [aiImportOpen, setAiImportOpen] = useState(false);
 
   // Counsel/operation bulk upload (PLN-260828). The active tab is the target
   // group, so the modal never asks the operator to pick one.
@@ -978,6 +982,9 @@ export function KnowledgePage() {
                   {t('bulkImport')}
                 </Button>
               )}
+              <Button variant="secondary" onClick={() => setAiImportOpen(true)}>
+                {t('aiImport')}
+              </Button>
               <AddDocumentHelp />
               <Button onClick={openDoc}>{t('addDocument')}</Button>
             </div>
@@ -1452,6 +1459,12 @@ export function KnowledgePage() {
           )}
         </div>
       </Modal>
+
+      <AiIngestModal
+        open={aiImportOpen}
+        onClose={() => setAiImportOpen(false)}
+        defaultGroup={group || 'counsel'}
+      />
 
       <Modal
         open={bulkOpen}
