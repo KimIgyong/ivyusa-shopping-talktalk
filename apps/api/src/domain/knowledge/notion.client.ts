@@ -146,7 +146,14 @@ export class NotionClient {
       const db = await this.request<Record<string, unknown>>(token, `/databases/${id}`);
       return { kind: 'database', ref: toRef(db), archived: db.archived === true };
     } catch (e) {
-      if (!(e instanceof NotionRequestError) || e.status !== 404) throw e;
+      if (!(e instanceof NotionRequestError)) throw e;
+      // 404 covers the unshared/nonexistent case. A page that IS shared
+      // answers the database probe with 400 validation_error
+      // "…is a page, not a database…" instead — real-workspace behavior the
+      // mocked tests never exercised; without this the fallback never ran for
+      // any shared page (FIX-260828, found on go2joy's first live sync).
+      const notADatabase = e.status === 400 && /is a page, not a database/i.test(e.message);
+      if (e.status !== 404 && !notADatabase) throw e;
     }
     const page = await this.request<Record<string, unknown>>(token, `/pages/${id}`);
     return { kind: 'page', ref: toRef(page), archived: page.archived === true };

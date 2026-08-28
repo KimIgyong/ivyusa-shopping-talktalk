@@ -84,6 +84,36 @@ describe('NotionClient', () => {
     expect(fetchMock.mock.calls[1][0]).toBe(`https://api.notion.com/v1/pages/${DASHED}`);
   });
 
+  it('falls through on 400 "is a page, not a database" — the SHARED-page answer', async () => {
+    // A page the integration can see answers the database probe with 400
+    // validation_error, not 404 — go2joy's first live sync proved the
+    // 404-only fallback never ran for any shared page (FIX-260828).
+    fetchMock
+      .mockResolvedValueOnce(
+        errRes(
+          400,
+          'validation_error',
+          'Provided ID 8968fee0-bb54-8347-a35e-01756b4cc89c is a page, not a database. Use the retrieve page API instead',
+        ),
+      )
+      .mockResolvedValueOnce(
+        res({
+          id: DASHED,
+          url: 'https://www.notion.so/Manual-abc',
+          properties: { Name: { type: 'title', title: [{ plain_text: 'Manual' }] } },
+        }),
+      );
+    const target = await client.retrieveTarget('t', ID);
+    expect(target.kind).toBe('page');
+    expect(fetchMock.mock.calls[1][0]).toBe(`https://api.notion.com/v1/pages/${DASHED}`);
+  });
+
+  it('still surfaces other 400s instead of masking them as "page"', async () => {
+    fetchMock.mockResolvedValueOnce(errRes(400, 'validation_error', 'body failed validation'));
+    await expect(client.retrieveTarget('t', ID)).rejects.toMatchObject({ status: 400 });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
   it('reads a database title from the top level', async () => {
     fetchMock.mockResolvedValueOnce(res({ id: DASHED, title: [{ plain_text: 'FAQ' }] }));
     const target = await client.retrieveTarget('t', ID);
