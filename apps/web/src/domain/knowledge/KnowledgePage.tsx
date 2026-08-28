@@ -26,6 +26,7 @@ import {
 import { SourceCredentialCard } from './SourceCredentialCard';
 import { UsageTypeEditor } from './UsageTypeEditor';
 import { CategoryManagerCard } from './CategoryManagerCard';
+import { SourceHistoryModal } from './SourceHistoryModal';
 import { GapTasksSection } from './GapTasksSection';
 import { ConflictReview } from './ConflictReview';
 import { RevisionHistory } from './RevisionHistory';
@@ -284,6 +285,8 @@ export function KnowledgePage() {
   };
 
   const [sourceOpen, setSourceOpen] = useState(false);
+  // Conversion-history modal (PLN-260828): which source's history is open.
+  const [historyFor, setHistoryFor] = useState<KnowledgeSource | null>(null);
   const [sourceName, setSourceName] = useState('');
   const [sourceType, setSourceType] = useState<SourceType>(SOURCE_TYPE.GDRIVE);
   const [folderId, setFolderId] = useState('');
@@ -402,7 +405,22 @@ export function KnowledgePage() {
   };
 
   const sourceColumns: Column<KnowledgeSource>[] = [
-    { key: 'name', header: t('name'), render: (r) => r.name },
+    {
+      key: 'name',
+      header: t('name'),
+      // The name opens the conversion history — what this source turned into
+      // knowledge, run by run (PLN-260828).
+      render: (r) => (
+        <button
+          type="button"
+          className="text-left font-medium text-primary-600 hover:underline"
+          onClick={() => setHistoryFor(r)}
+          title={t('history.open')}
+        >
+          {r.name}
+        </button>
+      ),
+    },
     { key: 'type', header: t('type'), render: (r) => r.type },
     {
       key: 'status',
@@ -985,7 +1003,19 @@ export function KnowledgePage() {
           </div>
         </Card>
 
-        {/* Row more-menu (⋯): fixed so the table's scroll container cannot
+        {/* Conversion history of one source (PLN-260828). Keyed by source so
+          the doc-list page resets between sources. */}
+      <SourceHistoryModal
+        key={historyFor?.id ?? 'none'}
+        source={historyFor}
+        onClose={() => setHistoryFor(null)}
+        onOpenDocument={(id) => {
+          setHistoryFor(null);
+          setDetailId(id);
+        }}
+      />
+
+      {/* Row more-menu (⋯): fixed so the table's scroll container cannot
             clip it. Holds everything the old columns held — visibility toggle,
             source, status, product link, delete (PLN-260826). */}
         {moreFor &&

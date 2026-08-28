@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { KnowledgeSource } from './entity/knowledge-source.entity';
+import { AuditLog } from '../audit/entity/audit-log.entity';
 import { KbDocument } from './entity/kb-document.entity';
 import { KbBoardPost } from './entity/kb-board-post.entity';
 import { KbFile } from './entity/kb-file.entity';
@@ -43,6 +44,7 @@ import { ModerationModule } from '../moderation/moderation.module';
   imports: [
     TypeOrmModule.forFeature([
       KnowledgeSource,
+      AuditLog,
       KbDocument,
       KbBoardPost,
       KbFile,
