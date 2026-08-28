@@ -397,5 +397,32 @@
   "deleteSourceConfirm": "Se eliminará la fuente \"{{name}}\". ¿Continuar?",
   "deleteSourceDocsNote": "Los documentos de esta fuente no se eliminan: se desactivan y quedan fuera de la búsqueda. Puede reactivarlos desde la lista de documentos.",
   "sourceDeleted": "Fuente eliminada — {{count}} documento(s) desactivados",
-  "registerKey": "Registrar clave"
+  "registerKey": "Registrar clave",
+  "aiImport": "Importación IA",
+  "ingestFileTab": "Subir archivo",
+  "ingestVideoTab": "URL de video",
+  "ingestGroupCounsel": "manual de soporte",
+  "ingestGroupProduct": "recomendación de productos",
+  "ingestGroupOperation": "manual de operaciones",
+  "ingestFileHint": "pdf · docx · xlsx · csv, hasta 15MB. La IA segmenta el contenido en borradores.",
+  "ingestVideoHint": "Solo videos de YouTube con subtítulos públicos.",
+  "ingestStart": "Iniciar análisis",
+  "ingestExtracting": "Extrayendo texto…",
+  "ingestAnalyzing": "IA analizando",
+  "ingestTruncated": "La fuente superó 200.000 caracteres; el exceso fue recortado.",
+  "ingestReviewHint": "Análisis de \"{{source}}\". Seleccione los borradores y ajuste títulos/categorías.",
+  "ingestFallback": "revisar",
+  "ingestSelectDraft": "Seleccionar borrador",
+  "ingestShowContent": "Ver contenido",
+  "ingestHideContent": "Ocultar contenido",
+  "ingestSave": "Guardar {{count}} seleccionados",
+  "ingestNoDrafts": "No se produjeron borradores.",
+  "ingestDone": "Importación IA completada: {{saved}} guardados · {{embedded}} indexados",
+  "ingestError": {
+    "E5066": "Tipo de archivo no compatible (.pdf/.docx/.xlsx/.csv).",
+    "E5067": "No se pudo leer texto del archivo (los escaneados no tienen capa de texto).",
+    "E5068": "El archivo no contiene texto legible.",
+    "E5069": "Ya hay un análisis en curso; espere a que termine.",
+    "E5070": "No hay transcripción disponible (subtítulos desactivados o no es YouTube)."
+  }
 }

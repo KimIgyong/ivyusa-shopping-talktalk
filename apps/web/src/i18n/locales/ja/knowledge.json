@@ -397,5 +397,32 @@
   "deleteSourceConfirm": "ソース「{{name}}」を削除します。続行しますか?",
   "deleteSourceDocsNote": "このソースの文書は削除されず、無効化されて検索から除外されます。文書一覧から再度有効化できます。",
   "sourceDeleted": "ソース削除完了 — 文書{{count}}件を無効化",
-  "registerKey": "キー登録"
+  "registerKey": "キー登録",
+  "aiImport": "AIインポート",
+  "ingestFileTab": "ファイル",
+  "ingestVideoTab": "動画URL",
+  "ingestGroupCounsel": "相談マニュアル",
+  "ingestGroupProduct": "商品推薦用",
+  "ingestGroupOperation": "運営マニュアル",
+  "ingestFileHint": "pdf · docx · xlsx · csv、最大15MB。AIが内容を記事単位に分割して下書きを作成します。",
+  "ingestVideoHint": "公開字幕のあるYouTube動画のみ対応します。",
+  "ingestStart": "分析開始",
+  "ingestExtracting": "テキスト抽出中…",
+  "ingestAnalyzing": "AI分析中",
+  "ingestTruncated": "原文が200,000文字を超えたため超過分は切り捨てられました。",
+  "ingestReviewHint": "「{{source}}」の分析結果です。保存する下書きを選び、タイトル・カテゴリを調整してください。",
+  "ingestFallback": "要確認",
+  "ingestSelectDraft": "下書きを選択",
+  "ingestShowContent": "本文を表示",
+  "ingestHideContent": "本文を閉じる",
+  "ingestSave": "選択{{count}}件を保存",
+  "ingestNoDrafts": "下書きは作成されませんでした。",
+  "ingestDone": "AIインポート完了: 保存 {{saved}} · 埋め込み {{embedded}}",
+  "ingestError": {
+    "E5066": "対応していないファイル形式です(.pdf/.docx/.xlsx/.csv)。",
+    "E5067": "ファイルからテキストを読み取れませんでした(スキャン文書にはテキスト層がありません)。",
+    "E5068": "読み取れるテキストがありません。",
+    "E5069": "分析が実行中です。完了後に再試行してください。",
+    "E5070": "字幕を取得できません(字幕無効、またはYouTube動画ではありません)。"
+  }
 }

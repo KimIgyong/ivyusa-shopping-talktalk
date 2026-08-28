@@ -397,5 +397,32 @@
   "deleteSourceConfirm": "Sẽ xóa nguồn \"{{name}}\". Tiếp tục?",
   "deleteSourceDocsNote": "Tài liệu của nguồn này không bị xóa — chúng bị vô hiệu hóa và loại khỏi tìm kiếm. Bạn có thể kích hoạt lại từ danh sách tài liệu.",
   "sourceDeleted": "Đã xóa nguồn — {{count}} tài liệu bị vô hiệu hóa",
-  "registerKey": "Đăng ký khóa"
+  "registerKey": "Đăng ký khóa",
+  "aiImport": "Nhập bằng AI",
+  "ingestFileTab": "Tải tệp lên",
+  "ingestVideoTab": "URL video",
+  "ingestGroupCounsel": "cẩm nang tư vấn",
+  "ingestGroupProduct": "gợi ý sản phẩm",
+  "ingestGroupOperation": "cẩm nang vận hành",
+  "ingestFileHint": "pdf · docx · xlsx · csv, tối đa 15MB. AI sẽ tách nội dung thành các bài viết nháp.",
+  "ingestVideoHint": "Chỉ hỗ trợ video YouTube có phụ đề công khai.",
+  "ingestStart": "Bắt đầu phân tích",
+  "ingestExtracting": "Đang trích xuất văn bản…",
+  "ingestAnalyzing": "AI đang phân tích",
+  "ingestTruncated": "Nguồn vượt quá 200.000 ký tự; phần thừa đã bị cắt.",
+  "ingestReviewHint": "Kết quả phân tích \"{{source}}\". Chọn bản nháp cần lưu và chỉnh tiêu đề/danh mục.",
+  "ingestFallback": "cần kiểm tra",
+  "ingestSelectDraft": "Chọn bản nháp",
+  "ingestShowContent": "Xem nội dung",
+  "ingestHideContent": "Thu gọn",
+  "ingestSave": "Lưu {{count}} mục đã chọn",
+  "ingestNoDrafts": "Không tạo được bản nháp nào.",
+  "ingestDone": "Nhập bằng AI hoàn tất: lưu {{saved}} · nhúng {{embedded}}",
+  "ingestError": {
+    "E5066": "Định dạng tệp không được hỗ trợ (.pdf/.docx/.xlsx/.csv).",
+    "E5067": "Không đọc được văn bản từ tệp (tài liệu scan không có lớp văn bản).",
+    "E5068": "Tệp không có văn bản đọc được.",
+    "E5069": "Đang có phân tích chạy — hãy chờ hoàn tất.",
+    "E5070": "Không có phụ đề (phụ đề bị tắt hoặc không phải video YouTube)."
+  }
 }

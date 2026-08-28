@@ -210,6 +210,27 @@ export const ERROR_CODE = {
   BULK_IMPORT_TOO_MANY_ROWS: { code: 'E5064', message: 'Too many rows (maximum 5,000)' },
   BULK_IMPORT_EMPTY: { code: 'E5065', message: 'The file has no data rows' },
 
+  // E5066-E5070 — AI file/video ingest (PLN-260829 3차). Split so the operator
+  // learns WHICH of five different problems to fix (fail-classification).
+  INGEST_UNSUPPORTED_FILE: {
+    code: 'E5066',
+    message: 'Unsupported file type — upload .pdf, .docx, .xlsx or .csv',
+  },
+  /** Typically a scanned PDF: pages are images, there is no text layer to read. */
+  INGEST_EXTRACT_FAILED: {
+    code: 'E5067',
+    message: 'Could not read text from the file (a scanned document has no text layer)',
+  },
+  INGEST_EMPTY: { code: 'E5068', message: 'The file contains no readable text' },
+  INGEST_JOB_RUNNING: {
+    code: 'E5069',
+    message: 'An analysis is already running for this store — wait for it to finish',
+  },
+  INGEST_NO_TRANSCRIPT: {
+    code: 'E5070',
+    message: 'No transcript available for this video (captions are disabled or the URL is not a YouTube video)',
+  },
+
   // E9xxx — system
   INTERNAL_ERROR: { code: 'E9001', message: 'Internal server error' },
   EXTERNAL_SERVICE_ERROR: { code: 'E9002', message: 'External service error' },

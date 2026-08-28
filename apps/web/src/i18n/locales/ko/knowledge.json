@@ -397,5 +397,32 @@
   "deleteSourceConfirm": "\"{{name}}\" 소스를 삭제합니다. 계속할까요?",
   "deleteSourceDocsNote": "이 소스의 문서는 삭제되지 않고 비활성화되어 검색에서 제외됩니다. 문서 목록에서 다시 활성화할 수 있습니다.",
   "sourceDeleted": "소스 삭제 완료 — 문서 {{count}}건 비활성화",
-  "registerKey": "키 등록"
+  "registerKey": "키 등록",
+  "aiImport": "AI 임포트",
+  "ingestFileTab": "파일 업로드",
+  "ingestVideoTab": "영상 URL",
+  "ingestGroupCounsel": "상담매뉴얼",
+  "ingestGroupProduct": "상품추천용",
+  "ingestGroupOperation": "운영매뉴얼",
+  "ingestFileHint": "pdf · docx · xlsx · csv, 최대 15MB. AI가 내용을 아티클 단위로 분할해 초안을 만듭니다.",
+  "ingestVideoHint": "공개 자막이 있는 YouTube 영상만 지원합니다(자막 없는 영상은 분석 불가).",
+  "ingestStart": "분석 시작",
+  "ingestExtracting": "텍스트 추출 중…",
+  "ingestAnalyzing": "AI 분석 중",
+  "ingestTruncated": "원문이 200,000자를 초과해 초과분은 절단되었습니다.",
+  "ingestReviewHint": "\"{{source}}\" 분석 결과입니다. 저장할 초안을 선택하고 제목·카테고리를 다듬으세요.",
+  "ingestFallback": "검수 필요",
+  "ingestSelectDraft": "초안 선택",
+  "ingestShowContent": "본문 보기",
+  "ingestHideContent": "본문 접기",
+  "ingestSave": "선택 {{count}}건 저장",
+  "ingestNoDrafts": "생성된 초안이 없습니다.",
+  "ingestDone": "AI 임포트 완료: 저장 {{saved}} · 임베딩 {{embedded}}",
+  "ingestError": {
+    "E5066": "지원하지 않는 파일 형식입니다(.pdf/.docx/.xlsx/.csv).",
+    "E5067": "파일에서 텍스트를 읽지 못했습니다(스캔 문서는 텍스트 레이어가 없습니다).",
+    "E5068": "파일에 읽을 수 있는 텍스트가 없습니다.",
+    "E5069": "이미 분석이 진행 중입니다. 완료 후 다시 시도하세요.",
+    "E5070": "이 영상의 자막을 가져올 수 없습니다(자막 비활성 또는 YouTube 영상이 아님)."
+  }
 }

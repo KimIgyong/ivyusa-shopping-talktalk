@@ -397,5 +397,32 @@
   "deleteSourceConfirm": "Delete the source \"{{name}}\". Continue?",
   "deleteSourceDocsNote": "This source's documents are not deleted — they are deactivated and excluded from retrieval. You can re-activate them from the document list.",
   "sourceDeleted": "Source deleted — {{count}} document(s) deactivated",
-  "registerKey": "Register key"
+  "registerKey": "Register key",
+  "aiImport": "AI import",
+  "ingestFileTab": "File upload",
+  "ingestVideoTab": "Video URL",
+  "ingestGroupCounsel": "support manual",
+  "ingestGroupProduct": "product recommendation",
+  "ingestGroupOperation": "operations manual",
+  "ingestFileHint": "pdf · docx · xlsx · csv, up to 15MB. AI segments the content into draft articles.",
+  "ingestVideoHint": "YouTube videos with public captions only (caption-less videos cannot be analyzed).",
+  "ingestStart": "Start analysis",
+  "ingestExtracting": "Extracting text…",
+  "ingestAnalyzing": "AI analyzing",
+  "ingestTruncated": "The source exceeded 200,000 characters; the excess was cut.",
+  "ingestReviewHint": "Analysis of \"{{source}}\". Select the drafts to save and polish titles/categories.",
+  "ingestFallback": "needs review",
+  "ingestSelectDraft": "Select draft",
+  "ingestShowContent": "Show content",
+  "ingestHideContent": "Hide content",
+  "ingestSave": "Save {{count}} selected",
+  "ingestNoDrafts": "No drafts were produced.",
+  "ingestDone": "AI import finished: {{saved}} saved · {{embedded}} embedded",
+  "ingestError": {
+    "E5066": "Unsupported file type (.pdf/.docx/.xlsx/.csv).",
+    "E5067": "Could not read text from the file (scanned documents have no text layer).",
+    "E5068": "The file contains no readable text.",
+    "E5069": "An analysis is already running — wait for it to finish.",
+    "E5070": "No transcript available (captions disabled, or not a YouTube video)."
+  }
 }

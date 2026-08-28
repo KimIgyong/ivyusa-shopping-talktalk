@@ -13,6 +13,8 @@ import { KbConflictService } from './kb-conflict.service';
 import { KbRevisionService } from './kb-revision.service';
 import { ProductImportService } from './product-import.service';
 import { BulkImportService } from './bulk-import.service';
+import { KnowledgeIngestService } from './knowledge-ingest.service';
+import { KnowledgeIngestJobService } from './knowledge-ingest-job.service';
 import { CatalogSyncService } from './catalog-sync.service';
 import { CatalogSyncJobService } from './catalog-sync-job.service';
 import { AnswerProposalService } from './answer-proposal.service';
@@ -82,6 +84,8 @@ import { ModerationModule } from '../moderation/moderation.module';
     KbRevisionService,
     ProductImportService,
     BulkImportService,
+    KnowledgeIngestService,
+    KnowledgeIngestJobService,
     CatalogSyncService,
     CatalogSyncJobService,
     AnswerProposalService,

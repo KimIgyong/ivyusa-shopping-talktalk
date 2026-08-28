@@ -25,6 +25,7 @@ import { CurrentUser } from '../../global/decorator/current-user.decorator';
 import { BusinessException } from '../../global/exception/business.exception';
 import { ERROR_CODE } from '../../global/constant/error-code.constant';
 import { KnowledgeService } from './knowledge.service';
+import { KnowledgeIngestService } from './knowledge-ingest.service';
 import { GdriveCredentialService } from './gdrive-credential.service';
 import { NotionCredentialService } from './notion-credential.service';
 import { UsageTypeService } from './usage-type.service';
@@ -32,9 +33,12 @@ import { KbCategoryService } from './kb-category.service';
 import { KnowledgeMapper } from './knowledge.mapper';
 import { DOC_GROUP } from './entity/kb-document.entity';
 import {
+  ApproveIngestRequest,
   ApproveProposalRequest,
   AskKnowledgeRequest,
   BulkImportRequest,
+  IngestFileRequest,
+  IngestVideoRequest,
   CreateCategoryRequest,
   CreateDocumentRequest,
   CreateSourceRequest,
@@ -79,6 +83,7 @@ export class KnowledgeController {
     private readonly notionCredentials: NotionCredentialService,
     private readonly usageTypes: UsageTypeService,
     private readonly kbCategories: KbCategoryService,
+    private readonly ingest: KnowledgeIngestService,
   ) {}
 
   // ---- Knowledge-gap proposals (P5, 결정 9: human approval only) ----
@@ -422,6 +427,49 @@ export class KnowledgeController {
       file,
       actor.userId,
     );
+  }
+
+  // ---- AI ingest (PLN-260829 3차) ----
+
+  @Post('ingest/file')
+  @HttpCode(HttpStatus.ACCEPTED)
+  @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
+  @UseInterceptors(
+    FileInterceptor('file', { limits: { fileSize: 15 * 1024 * 1024, files: 1 } }),
+  )
+  @ApiOperation({ summary: 'Analyze a pdf/docx/xlsx/csv into draft articles (async)' })
+  async ingestFile(
+    @CurrentUser() user: Principal,
+    @Body() body: IngestFileRequest,
+    @UploadedFile() file?: { originalname: string; mimetype: string; size: number; buffer: Buffer },
+  ) {
+    const actor = this.tenantUser(user);
+    if (!file) throw new BusinessException(ERROR_CODE.VALIDATION_FAILED, HttpStatus.BAD_REQUEST);
+    return this.ingest.startFile(actor.tenantId, file, body.doc_group ?? DOC_GROUP.COUNSEL);
+  }
+
+  @Post('ingest/video')
+  @HttpCode(HttpStatus.ACCEPTED)
+  @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
+  @ApiOperation({ summary: 'Analyze a YouTube transcript into draft articles (async, R5 P1)' })
+  async ingestVideo(@CurrentUser() user: Principal, @Body() body: IngestVideoRequest) {
+    const actor = this.tenantUser(user);
+    return this.ingest.startVideo(actor.tenantId, body.video_url, body.doc_group ?? DOC_GROUP.COUNSEL);
+  }
+
+  @Get('ingest/status')
+  @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
+  @ApiOperation({ summary: 'Progress and drafts of the running (or most recent) ingest' })
+  async ingestStatus(@CurrentUser() user: Principal) {
+    return this.ingest.status(this.tenantUser(user).tenantId);
+  }
+
+  @Post('ingest/approve')
+  @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
+  @ApiOperation({ summary: 'Save the reviewed drafts as knowledge documents' })
+  async approveIngest(@CurrentUser() user: Principal, @Body() body: ApproveIngestRequest) {
+    const actor = this.tenantUser(user);
+    return this.ingest.approve(actor.tenantId, body.articles ?? [], actor.userId);
   }
 
   @Get('documents/import/catalog/preview')
