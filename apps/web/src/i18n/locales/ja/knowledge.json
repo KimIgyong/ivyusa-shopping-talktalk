@@ -357,5 +357,6 @@
   "docStatus": {
     "embedded": "索引済み",
     "pending": "待機中"
-  }
+  },
+  "notionShareHint": "Notionページがインテグレーションに共有されていません — Notionでページの ⋯ → コネクト(Connections)にインテグレーションを追加してください。"
 }

@@ -734,7 +734,9 @@ export class KnowledgeService {
       return { ...result, embedded, embedFailed: failed };
     } catch (e) {
       // Record the failure so the console shows a red state instead of a stale
-      // "last synced" timestamp that suggests everything is fine.
+      // "last synced" timestamp that suggests everything is fine. The reason
+      // travels too (REQ-260828 B1) — a red row without a why sent the go2joy
+      // operator to us instead of to Notion's share menu.
       await this.sourceSync.recordSyncState(source, 'failed', {
         fetched: 0,
         created: 0,
@@ -742,6 +744,7 @@ export class KnowledgeService {
         skipped: 0,
         hidden: 0,
         failed: 0,
+        error: ((e as Error).message || String(e)).slice(0, 200),
       });
       throw e;
     }

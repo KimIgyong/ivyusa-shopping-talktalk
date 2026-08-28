@@ -286,6 +286,8 @@ describe('SourceSyncService — empty-listing guard for external sources', () =>
     expect(result.guardedEmpty).toBe(true);
     expect(result.hidden).toBe(0);
     expect(saved).toHaveLength(0);
+    // The refusal carries its reason (REQ-260828 B1) — the console prints it.
+    expect(result.error).toContain('check the source');
   });
 
   it('still hides normally when the source returned something', async () => {

@@ -459,6 +459,16 @@ export function KnowledgePage() {
                 {t('syncTruncated', { count: c.truncated })}
               </span>
             )}
+            {/* Why it failed (REQ-260828 B1) — a red timestamp alone sent the
+                operator to us instead of to the actual fix. */}
+            {!!c?.error && (
+              <span className="max-w-md text-xs text-error" title={c.error}>
+                {c.error}
+              </span>
+            )}
+            {!!c?.error && /object_not_found|shared with your integration/i.test(c.error) && (
+              <span className="max-w-md text-xs text-gray-500">{t('notionShareHint')}</span>
+            )}
           </div>
         );
       },
@@ -630,7 +640,19 @@ export function KnowledgePage() {
               }}
               onSave={(value, clear) => saveNotionCred.mutate(value, { onSuccess: clear })}
               onRemove={() => deleteNotionCred.mutate()}
-              onTest={() => testNotion.mutate(undefined)}
+              // Target-aware test (REQ-260828 B2): a token-only probe answered
+              // 200 while every sync 404'd — so when a Notion source exists,
+              // its target is probed too and the message names both halves.
+              onTest={() =>
+                testNotion.mutate(
+                  (sources.data ?? []).find(
+                    (src) =>
+                      src.type === 'notion' &&
+                      src.status === 'active' &&
+                      typeof src.configJson?.targetId === 'string',
+                  )?.configJson?.targetId as string | undefined,
+                )
+              }
             />
           </div>
         </Card>

@@ -35,6 +35,13 @@ export interface SyncResult {
   truncated?: number;
   /** How long the pull took. Notion syncs are minutes, not milliseconds. */
   elapsedMs?: number;
+  /**
+   * Why a failed run failed, clamped short (REQ-260828 B1). Without this the
+   * console showed a red timestamp over zeroed counts and the actual reason
+   * (e.g. Notion's "share the page with your integration") lived only in the
+   * server log — the go2joy case exactly.
+   */
+  error?: string;
 }
 
 /**
@@ -197,6 +204,7 @@ export class SourceSyncService {
     const liveDocs = existing.filter((d) => d.active === 1).length;
     if (items.length === 0 && liveDocs > 0 && adapter.trustEmptyListing === false) {
       result.guardedEmpty = true;
+      result.error = `Source returned 0 items while ${liveDocs} document(s) are live — hiding refused; check the source's access.`;
       this.logger.warn(
         `source ${source.id} (${source.type}) returned 0 items while ${liveDocs} document(s) are live — ` +
           `refusing to hide them; check the source's access`,
