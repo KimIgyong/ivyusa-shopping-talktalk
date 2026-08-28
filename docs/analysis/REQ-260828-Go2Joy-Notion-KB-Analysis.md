@@ -68,3 +68,115 @@ E1 DB 타깃 행별 문서화 · E2 페이지+하위 수집 · E3 100건 초과 
 ## 7. 권고 진행 순서
 
 **A(운영 조치·오늘 가능) → 성공 확인 후 B를 1PR로(스키마 무변경) → C는 운영 관측 후 판단.** 구현 대공사는 불필요 — 파이프라인은 완성돼 있고, go2joy는 노션 공유 한 번이면 첫 실 워크스페이스 검증 사례가 된다.
+
+---
+
+# 상세 편 (계속) — 작업 항목별 설계·운영 절차·검증 계획
+
+## 8. 작업 항목 상세 설계
+
+### B1. 동기화 실패 사유 콘솔 표시 (P1)
+
+**현재 코드 경로** — `knowledge.service.syncSource`의 catch 블록이 `recordSyncState(source, 'failed', {전부 0})`만 저장하고 예외를 재던짐. 에러 메시지는 HTTP 응답(토스트 1회성)과 서버 로그에만 존재 — 운영자가 소스 목록에서 보는 것은 빨간 시각+0값 카운트뿐이라 "왜"를 알 수 없다(go2joy 사례에서 실증).
+
+**설계**:
+- `SyncResult`에 선택 필드 `error?: string` 추가(소스: `source-sync.service.ts`의 타입). catch에서
+  `recordSyncState(source, 'failed', { …zeros, error: clamp(e.message, 200) })` — `NotionRequestError`는 이미
+  Notion 원문 메시지를 200자로 들고 있음. **guardedEmpty 실패 경로에도** `error: 'empty listing guarded'`류 사유 저장.
+- 매퍼는 `lastSyncResult` 통과 방식이라 무수정. 콘솔 `KnowledgePage` lastSync 셀의 dropped/truncated 밑에
+  `{c?.error && <span class=text-error>…}` 한 줄 추가. **404 미공유 패턴은 안내 문구로 매핑**: 메시지에
+  `object_not_found`/`shared with your integration` 포함 시 i18n `notionShareHint`("노션에서 페이지 ⋯ → Connections에
+  통합을 추가하세요")를 원문과 함께 표시 — `notion-credential.service.test()`가 이미 쓰는 안내와 동일 문구 재사용.
+- 스키마 무변경(`last_sync_result` JSON 컬럼에 필드 추가일 뿐). 과거 행은 error 없음 → 미표시(하위 호환).
+- 유닛: catch 경로가 error를 저장하는지, 200자 클램프, guardedEmpty 사유.
+
+### B2. Sources 카드 [연결 테스트]에 대상 검사 결합 (P1)
+
+**현재** — 카드의 onTest는 `testNotion.mutate(undefined)` = 토큰 전용(`/users/me`). 대상 도달 검사는 소스 추가 모달의 버튼에만 있어, **이미 만들어진 소스**의 대상은 재검사 경로가 없다. go2joy에서 "테스트 200 + 동기화 404"가 공존한 직접 원인.
+
+**설계**(둘 중 택1 — 구현 시 확정):
+- 안①(권장, 서버 무수정): 카드 onTest에서 테넌트의 활성 notion 소스 목록을 조회해 **첫 소스의 targetId를 test에 동봉**.
+  응답 메시지에 소스명 병기("토큰 OK · '{source}' 대상 도달 OK/실패: …"). 소스가 없으면 현행 토큰 전용.
+- 안②: 소스 행에 [검사] 버튼 추가(소스별 targetId로 test 호출) — 노션·gdrive 공통화 가능하나 UI 면적 증가.
+- 유닛: 소스 존재 시 target_id 동봉, 부재 시 미동봉.
+
+### C1. 동기화 생성 카테고리의 정합·에이전트 스코프 (P2 — go2joy에 실질 영향)
+
+- 동기화는 `category = 소스명`("Hướng dẫn sử dụng Hotel Admin")을 문서에 기록하지만 `kb_categories`에는
+  행을 만들지 않음(카탈로그 동기화만 `ensure()` 호출) → 분류 관리 화면에 **드리프트(미등록 카테고리)**로 나타나고
+  `agent_ids` 스코프가 없어 **모든 에이전트에게 공개**된다.
+- go2joy는 호텔 파트너/게스트 에이전트가 분리된 테넌트 — "Hotel Admin 사용법" 지식이 게스트 에이전트 답변에
+  인용되면 안 되는 경우 스코프 지정 필요. **단기(운영)**: 첫 동기화 성공 후 분류 관리에서 해당 카테고리를
+  파트너 에이전트로 스코프 지정. **중기(코드)**: 동기화가 `KbCategoryService.ensure()`를 호출하되
+  ⚠️ **기존 행의 스코프를 덮어쓰지 않는 ensure여야 함** — kb-agent-scoping 구현 때 "ensure가 범위를 덮으면
+  동기화마다 풀림" 함정이 이미 확인돼 있음(8/26). 신규 생성 시에만 기본(빈=전체)으로.
+
+### C2. `source` 필드 하드코딩 해소 (P2)
+
+- `source-sync.service.ts`가 `source='knowledge_store'` 고정 — 문서 목록의 출처 필터(8/26 신설 facets)에서 노션
+  문서를 구분 못 함. 어댑터가 소스 유형을 선언하게(`'notion'`/`'google_drive'`) 바꾸면 facets에 자동 반영
+  (DISTINCT 방식이라 코드 추가 불필요). ⚠️ 파급 2건 확인 필요: ① RAG의 `knowledge_store` 타이브레이크 보너스
+  (`rag.service.ts` — 노션 문서가 보너스를 잃는 것이 의도인지), ② 기존 문서의 소급 여부(재동기화가 갱신하므로
+  자연 수렴 — 마이그레이션 불필요).
+
+### C3. 주기 자동 동기화 (P2)
+
+- 현재 수동 전용(REQ-260821에서 의도적 범위 제외). 도입 시: 기존 커머스 동기화 스케줄러 패턴
+  (`Scheduled*SyncService` — interval + 테넌트 순회) 복제, 소스별 `sync_interval`(기본 off), 실패 연속 N회 시
+  중단+알림. **비동기 실행·중복 방지 락(C4)이 선행 조건** — 30분마다 70초 HTTP 블로킹을 스케줄러가 반복하면 안 됨.
+
+### C4. 동기화 비동기화 + 실행 락 (P2)
+
+- 현재 HTTP 요청 안에서 동기 실행(200페이지≈70s+), 동시 클릭 락 없음. 설계: 카탈로그 동기화의 잡 패턴
+  (`catalog-sync-job.service` — 시작→상태 폴링) 재사용, Redis `NX` 락(`kbsync:{sourceId}`) + 콘솔은 진행 중 표시.
+  B1의 error 저장과 결합하면 잡 결과 확인 UX가 완성됨.
+
+### C5. `config_json` 수정 허용 (P2-)
+
+- 현재 targetId 오타 시 소스 삭제→재생성(문서는 externalKey 기반이라 재생성 소스로 재동기화하면 복원되지만
+  source_id가 끊긴 기존 문서가 고아로 남음). `UpdateSourceRequest`에 `config_json` 추가 +
+  `adapter.validateConfig` 재검증이면 소규모.
+
+### D. AI 가공 등록 (선택 — 별도 REQ/PLN 필요)
+
+- 후보 형태: ① 동기화 후 장문 페이지를 Q&A 단위로 분할(청킹 개선), ② AI 요약을 본문 앞에 부기,
+  ③ 카테고리 자동 분류. 비용(페이지당 LLM 1+회)·모더레이션·재동기화 시 재가공 정책이 쟁점.
+  **현 하이브리드 RAG(30,000자 임베딩+키워드)로 우선 운영해 보고, 인용 품질이 낮을 때만 도입 판단 권장.**
+
+## 9. go2joy 운영 절차 (A 상세 — 코드 무변경)
+
+1. **노션(go2joy 측, "Truc connection" 통합 소유자)**: 대상 페이지 "Hướng dẫn sử dụng Hotel Admin" 우상단
+   `⋯ → 연결(Connections) → Truc connection 추가`. 하위 페이지는 자동 상속. 페이지가 통합과 **같은
+   워크스페이스**에 있는지 확인(다른 워크스페이스면 그쪽에 통합을 새로 설치해야 함).
+   - VI 안내: `Mở trang Notion → menu ⋯ (góc trên bên phải) → Connections → thêm "Truc connection"`.
+2. **콘솔 확인(우리 측)**: /knowledge → 소스 추가 모달의 [연결 테스트]에 대상 URL을 넣어 도달 확인
+   (B2 전까지는 이 경로가 유일한 대상 검사) → 기존 소스 7 행에서 ↻ 동기화.
+3. **판정**: 소스 행 카운트(created>0), 문서 목록에 카테고리 "Hướng dẫn…" 문서들 embedded 확인,
+   dropped/truncated 표시 여부 기록. 위젯(go2joy 파트너 페이지)에서 해당 내용 질문 → 인용 확인.
+4. **후속**: C1 단기 조치로 카테고리 에이전트 스코프 지정(파트너 에이전트 한정 필요 시).
+   결과를 E1~E3/E6 검증 기록으로 RPT화. 필요 시 GUIDE 문서(KO/VI 스크린샷) 별도 작성.
+
+## 10. 검증 계획 (E2E 매핑)
+
+| # | 항목 | 방법 | 판정 |
+|---|---|---|---|
+| V1(=E2) | 페이지 타깃 자신+직계 하위 수집 | 소스 7 재동기화 | fetched = 1+하위 수, 문서 제목 대조 |
+| V2(=E6) | 실문서 블록 변환 품질 | 생성 문서 본문 열람 | 표/토글/콜아웃 렌더, skipped 유형은 로그 대조 |
+| V3(=E1/E3) | DB 타깃·100건 초과 커서 | go2joy에 DB 타깃 소스 1개 추가(가능 시) | 행별 문서·hasMore 동작 |
+| V4(=E4) | 미공유 404 안내 | **8/28 실증 완료** ✅ | Notion 원문 메시지 확인됨 |
+| V5(=E5) | 연결 해제 시 빈 목록 가드 | 검증 후 통합 연결 임시 해제→재동기화 | hidden=0·failed 처리, 문서 보존 |
+| V6(=E7) | 레이트리밋 실측 | V1 동기화 elapsedMs 기록 | 429 재시도 발생 여부 로그 |
+| V7 | 임베딩·인용 | 위젯 실질문 | 인용 소스에 노션 문서 |
+
+## 11. 규모 추정·의존성
+
+| 항목 | 규모 | 의존성 |
+|---|---|---|
+| A 운영 조치 | 0.5일(대부분 go2joy 대기) | go2joy 노션 관리자 |
+| B1+B2 | 1PR·소(스키마 무변경, 유닛 포함 반나절) | 없음 — A와 병행 가능 |
+| C1 ensure+스코프 | 소~중 | ensure 덮어쓰기 함정 검토 |
+| C2 source 구분 | 소 | RAG 보너스 의도 확인 |
+| C3 자동 동기화 | 중 | **C4 선행** |
+| C4 비동기+락 | 중 | 없음 |
+| C5 config 수정 | 소 | 없음 |
+| D AI 가공 | 대(별도 REQ/PLN) | 운영 데이터로 필요성 판단 |
