@@ -191,6 +191,25 @@ export const ERROR_CODE = {
   /** Three team pins per tenant — unpin one before pinning another. */
   PIN_LIMIT_REACHED: { code: 'E5060', message: 'Pin limit reached (3 per store)' },
 
+  // E5061-E5065 — knowledge bulk import (PLN-260828). Split on purpose: a
+  // single "validation failed" told operators nothing about WHICH of five
+  // very different problems to fix (fail-classification lesson, PR #281).
+  BULK_IMPORT_UNSUPPORTED_FILE: {
+    code: 'E5061',
+    message: 'Unsupported file type — upload a .csv or .xlsx file',
+  },
+  /** Korean Excel saves CSV as CP949 by default; re-export as UTF-8 or upload the .xlsx. */
+  BULK_IMPORT_ENCODING: {
+    code: 'E5062',
+    message: 'CSV is not UTF-8 encoded — save as "CSV UTF-8" or upload the Excel file itself',
+  },
+  BULK_IMPORT_MISSING_COLUMNS: {
+    code: 'E5063',
+    message: 'Required columns are missing (category, title, content)',
+  },
+  BULK_IMPORT_TOO_MANY_ROWS: { code: 'E5064', message: 'Too many rows (maximum 5,000)' },
+  BULK_IMPORT_EMPTY: { code: 'E5065', message: 'The file has no data rows' },
+
   // E9xxx — system
   INTERNAL_ERROR: { code: 'E9001', message: 'Internal server error' },
   EXTERNAL_SERVICE_ERROR: { code: 'E9002', message: 'External service error' },

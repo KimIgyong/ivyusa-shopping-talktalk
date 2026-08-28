@@ -1,0 +1,4 @@
+﻿category,title,content,external_key,source_url
+faq,환불 정책 안내 (Refund Policy),주문 후 7일 이내 미개봉 상품은 전액 환불됩니다. 단순 변심 반품 배송비는 고객 부담입니다. (Unopened items are fully refundable within 7 days of order.),FAQ-REFUND-01,
+배송,배송 기간 안내 (Shipping Time),"평일 오후 2시 이전 주문은 당일 출고되며, 도서산간 지역은 1~2일 추가 소요됩니다.",FAQ-SHIP-01,
+운영,관리자 비밀번호 재설정 (Reset Admin Password),관리자 로그인 화면에서 [비밀번호 찾기]를 누르고 등록된 이메일로 재설정 링크를 받습니다.,OPS-ADMIN-01,https://example.com/manual/password-reset

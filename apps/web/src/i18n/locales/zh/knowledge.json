@@ -158,7 +158,8 @@
   "group": {
     "all": "全部",
     "counsel": "咨询信息",
-    "product": "商品信息"
+    "product": "商品信息",
+    "operation": "OperationInfo"
   },
   "importRequiredColumns": "必需列：商品名称 · Handle · 详情",
   "importUpsertHint": "已有商品按 Handle 匹配并更新，不会产生重复。",
@@ -170,6 +171,22 @@
   "importInvalid": "已跳过",
   "importEmbedded": "已建立索引",
   "importRow": "第 {{n}} 行",
+  "bulkImport": "批量导入",
+  "bulkImportColumns": "必填列：category · title · content",
+  "bulkImportOptional": "可选列:external_key(重新上传时的更新键) · source_url",
+  "bulkImportUpsert": "具有相同 external_key(或相同标题)的行将更新现有文档,而不会重复创建。",
+  "bulkImportEncoding": "CSV 仅支持 UTF-8。在 Excel 中请另存为“CSV UTF-8”,或直接上传 .xlsx 文件。",
+  "bulkImportSampleCsv": "CSV 示例",
+  "bulkImportSampleXlsx": "Excel 示例",
+  "bulkImportDone": "批量导入完成:创建 {{created}} · 更新 {{updated}}",
+  "bulkImportError": {
+    "E5061": "不支持的文件类型——请上传 .csv 或 .xlsx 文件。",
+    "E5062": "CSV 不是 UTF-8 编码——请另存为“CSV UTF-8”或上传 .xlsx。",
+    "E5063": "缺少必填列(category、title、content)。",
+    "E5064": "行数过多(最多 5,000 行)。",
+    "E5065": "文件没有数据行。"
+  },
+  "groupColumn": "分组",
   "openProductPage": "打开商品页面",
   "sync": "同步",
   "lastSync": "上次同步",

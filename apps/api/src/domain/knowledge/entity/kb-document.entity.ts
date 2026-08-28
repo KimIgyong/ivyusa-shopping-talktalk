@@ -8,14 +8,23 @@ import {
 } from 'typeorm';
 import { bigintTransformer } from '../../../global/util/transformers';
 
-/** Top-level document groups (PLN-260804 D2). */
+/** Top-level document groups (PLN-260804 D2; operation: PLN-260828 D1). */
 export const DOC_GROUP = {
   /** Support/policy knowledge — everything that predates the split. */
   COUNSEL: 'counsel',
   /** Product catalogue knowledge. */
   PRODUCT: 'product',
+  /** Operational how-to knowledge — admin/partner manuals, runbooks. */
+  OPERATION: 'operation',
 } as const;
 export type DocGroup = (typeof DOC_GROUP)[keyof typeof DOC_GROUP];
+
+/**
+ * Groups the generic bulk importer accepts — product has its own dedicated
+ * pipeline. Lives here, not in the service: a constant exported from a service
+ * file has already caused a circular-import boot crash tsc could not catch.
+ */
+export const BULK_IMPORT_GROUPS = [DOC_GROUP.COUNSEL, DOC_GROUP.OPERATION] as const;
 
 /** kb_documents — knowledge base documents for RAG (FR-064). */
 // FULLTEXT for the RAG retriever (PERF-2); ngram parser so ko (CJK) tokenizes.

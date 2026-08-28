@@ -65,6 +65,8 @@ export class KnowledgeMapper {
       id: d.id,
       source: d.source,
       sourceId: d.sourceId ?? null,
+      docGroup: d.docGroup,
+      externalKey: d.externalKey ?? null,
       category: d.category ?? null,
       title: d.title,
       content: d.content ?? null,

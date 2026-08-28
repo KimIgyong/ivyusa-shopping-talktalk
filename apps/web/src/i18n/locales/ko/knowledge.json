@@ -158,7 +158,8 @@
   "group": {
     "all": "전체",
     "counsel": "CounselInfo",
-    "product": "ProductInfo"
+    "product": "ProductInfo",
+    "operation": "OperationInfo"
   },
   "importRequiredColumns": "필수 컬럼: Product Name · Handle · Detail",
   "importUpsertHint": "기존 상품은 Handle 기준으로 갱신됩니다 — 중복 생성되지 않습니다.",
@@ -170,6 +171,21 @@
   "importInvalid": "건너뜀",
   "importEmbedded": "색인",
   "importRow": "{{n}}행",
+  "bulkImport": "일괄등록",
+  "bulkImportColumns": "필수 컬럼: category · title · content",
+  "bulkImportOptional": "선택 컬럼: external_key(재업로드 시 갱신 키) · source_url",
+  "bulkImportUpsert": "같은 external_key(없으면 같은 제목)의 행은 중복 생성 없이 기존 문서를 갱신합니다.",
+  "bulkImportEncoding": "CSV는 UTF-8만 지원합니다. 한국어 엑셀에서는 'CSV UTF-8'로 저장하거나 .xlsx 파일을 그대로 업로드하세요.",
+  "bulkImportSampleCsv": "CSV 샘플",
+  "bulkImportSampleXlsx": "Excel 샘플",
+  "bulkImportDone": "일괄등록 완료: 생성 {{created}} · 갱신 {{updated}}",
+  "bulkImportError": {
+    "E5061": "지원하지 않는 파일 형식입니다. .csv 또는 .xlsx 파일을 업로드하세요.",
+    "E5062": "CSV가 UTF-8이 아닙니다. 'CSV UTF-8'로 저장하거나 엑셀 파일(.xlsx)을 업로드하세요.",
+    "E5063": "필수 컬럼(category, title, content)이 없습니다.",
+    "E5064": "행이 너무 많습니다(최대 5,000행).",
+    "E5065": "데이터 행이 없습니다."
+  },
   "openProductPage": "상품 페이지 열기",
   "sync": "동기화",
   "lastSync": "마지막 동기화",
@@ -375,5 +391,6 @@
     "embedded": "색인완료",
     "pending": "대기"
   },
-  "notionShareHint": "노션 페이지가 통합에 공유되지 않았습니다 — 노션에서 페이지 ⋯ → 연결(Connections)에 통합을 추가하세요."
+  "notionShareHint": "노션 페이지가 통합에 공유되지 않았습니다 — 노션에서 페이지 ⋯ → 연결(Connections)에 통합을 추가하세요.",
+  "groupColumn": "그룹"
 }

@@ -197,6 +197,9 @@ agent_daily_stats, chat_comments, conversation_briefings, chat_groups, chat_grou
 — REQ-260824) + AI (ai_engines, tenant_ai_settings) + mobile push (device_tokens).
 `conversations` also carries team-pin columns `pinned_at`/`pinned_by` (+
 `idx_conv_tenant_pinned`) — queue pinning, max 3 per tenant (PLN-260826, E5060).
+`kb_documents.doc_group` is a closed set `counsel|product|operation` (PLN-260828);
+counsel/operation share the generic bulk import `POST knowledge/documents/import/bulk`
+(CSV/XLSX, E5061–E5065) while product keeps its dedicated catalogue importer.
 
 ### 6.4 Entity Authoring Rules
 Nullable columns specify explicit `type` in `@Column`; `BIGINT` via `bigintTransformer`,

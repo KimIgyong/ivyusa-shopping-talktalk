@@ -1,4 +1,4 @@
-import { DOC_GROUP } from '../../entity/kb-document.entity';
+import { BULK_IMPORT_GROUPS, DOC_GROUP } from '../../entity/kb-document.entity';
 import {
   IsArray,
   IsBoolean,
@@ -73,7 +73,7 @@ export class ListDocumentsQuery {
 
 export class CreateDocumentRequest {
   @IsOptional() @IsInt() source_id?: number;
-  /** counsel (default) | product — a closed set, so reject anything else. */
+  /** counsel (default) | product | operation — a closed set, so reject anything else. */
   @IsOptional() @IsIn(Object.values(DOC_GROUP)) doc_group?: string;
   @IsOptional() @IsString() source?: string; // knowledge_store/google_drive
   @IsString() category: string;
@@ -85,6 +85,15 @@ export class CreateDocumentRequest {
    * later asks why a document says what it says.
    */
   @IsOptional() @IsString() @MaxLength(512) source_url?: string;
+}
+
+/** Multipart form fields riding along the bulk-import file (PLN-260828 D3). */
+export class BulkImportRequest {
+  /**
+   * counsel (default) | operation. Product is deliberately absent — its
+   * catalogue importer owns that group's columns and upsert key.
+   */
+  @IsOptional() @IsIn(BULK_IMPORT_GROUPS as readonly string[]) doc_group?: string;
 }
 
 export class UpdateDocumentRequest {

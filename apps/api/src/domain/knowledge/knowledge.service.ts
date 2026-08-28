@@ -20,6 +20,7 @@ import {
 import { KbConflictService, isStale } from './kb-conflict.service';
 import { KbRevisionService } from './kb-revision.service';
 import { ProductImportService } from './product-import.service';
+import { BulkImportService } from './bulk-import.service';
 import { CatalogSyncPreview, CatalogSyncService } from './catalog-sync.service';
 import { UsageGuideService, UsageGuideSummary } from './usage-guide.service';
 import { SourceSyncService } from './source-sync.service';
@@ -56,6 +57,7 @@ export class KnowledgeService {
     private readonly conflicts: KbConflictService,
     private readonly revisions: KbRevisionService,
     private readonly productImport: ProductImportService,
+    private readonly bulkImport: BulkImportService,
     private readonly catalogSync: CatalogSyncService,
     private readonly usageGuides: UsageGuideService,
     private readonly sourceSync: SourceSyncService,
@@ -523,6 +525,42 @@ export class KnowledgeService {
         `embedded=${embedded} embedFailed=${failed}`,
     );
     return { ...result, embedded, embedFailed: failed };
+  }
+
+  /**
+   * Bulk-import counsel/operation documents from a CSV or XLSX upload
+   * (PLN-260828 D3). Same two-phase shape as the product import: upsert rows
+   * as `pending`, then embed the touched documents in batches.
+   */
+  async importBulk(
+    tenantId: number,
+    docGroup: string,
+    file: { originalname: string; buffer: Buffer },
+    actorUserId: number,
+  ): Promise<Record<string, unknown>> {
+    const parsed = await this.bulkImport.parseFile(file.originalname, file.buffer);
+    const { result, touchedIds } = await this.bulkImport.importRecords(
+      tenantId,
+      docGroup,
+      parsed,
+      actorUserId,
+    );
+    const docs = await this.bulkImport.pendingByIds(tenantId, touchedIds);
+    const { embedded, failed } = await this.embedDocuments(docs);
+
+    await this.revisions.recordAudit(tenantId, 0, 'knowledge.bulk_imported', actorUserId, {
+      filename: file.originalname,
+      docGroup,
+      ...result,
+      embedded,
+      embedFailed: failed,
+    });
+    this.logger.log(
+      `bulk import "${file.originalname}" (${docGroup}): parsed=${result.parsed} ` +
+        `created=${result.created} updated=${result.updated} skipped=${result.skipped} ` +
+        `invalid=${result.invalid} embedded=${embedded} embedFailed=${failed}`,
+    );
+    return { ...result, docGroup, embedded, embedFailed: failed };
   }
 
   /**

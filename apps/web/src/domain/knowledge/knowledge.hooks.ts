@@ -239,6 +239,7 @@ export function useCreateDocument() {
       category: string;
       content: string;
       source_id?: number;
+      doc_group?: string;
       source_url?: string;
     }) => knowledgeService.createDocument(body),
     onSuccess: () => {
@@ -578,6 +579,23 @@ export function useImportProducts() {
       toast[r.invalid || r.embedFailed ? 'error' : 'success'](`Import: ${parts.join(', ')}`);
     },
     onError: (err: Error) => toast.error(err.message),
+  });
+}
+
+/**
+ * Counsel/operation bulk import (PLN-260828 D3). Toasts live in the modal —
+ * it knows the target group and localizes the five file-level error codes.
+ */
+export function useBulkImport() {
+  const qc = useQueryClient();
+  const tenantKey = useTenantKey();
+  return useMutation({
+    mutationFn: (vars: { file: File; docGroup: string }) =>
+      knowledgeService.bulkImport(vars.file, vars.docGroup),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'documents'] });
+      qc.invalidateQueries({ queryKey: ['knowledge', tenantKey, 'categories'] });
+    },
   });
 }
 

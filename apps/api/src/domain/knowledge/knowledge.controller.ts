@@ -30,9 +30,11 @@ import { NotionCredentialService } from './notion-credential.service';
 import { UsageTypeService } from './usage-type.service';
 import { KbCategoryService } from './kb-category.service';
 import { KnowledgeMapper } from './knowledge.mapper';
+import { DOC_GROUP } from './entity/kb-document.entity';
 import {
   ApproveProposalRequest,
   AskKnowledgeRequest,
+  BulkImportRequest,
   CreateCategoryRequest,
   CreateDocumentRequest,
   CreateSourceRequest,
@@ -387,6 +389,33 @@ export class KnowledgeController {
       file.buffer.toString('utf8'),
       actor.userId,
       file.originalname,
+    );
+  }
+
+  @Post('documents/import/bulk')
+  @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
+  @UseInterceptors(
+    FileInterceptor('file', {
+      // Memory storage on purpose — same reasoning as the product import above.
+      limits: { fileSize: 5 * 1024 * 1024, files: 1 },
+    }),
+  )
+  @ApiOperation({ summary: 'Bulk-import documents (CSV/XLSX) into counsel or operation' })
+  async importBulk(
+    @CurrentUser() user: Principal,
+    @Body() body: BulkImportRequest,
+    @UploadedFile() file?: { originalname: string; mimetype: string; size: number; buffer: Buffer },
+  ) {
+    const actor = this.tenantUser(user);
+    if (!file) throw new BusinessException(ERROR_CODE.VALIDATION_FAILED, HttpStatus.BAD_REQUEST);
+    // Extension, not mimetype — browsers label these files inconsistently.
+    // The specific "unsupported file" code is thrown by the parser so the
+    // operator learns which of five different problems to fix.
+    return this.knowledgeService.importBulk(
+      actor.tenantId,
+      body.doc_group ?? DOC_GROUP.COUNSEL,
+      file,
+      actor.userId,
     );
   }
 
