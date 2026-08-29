@@ -119,10 +119,53 @@ export class BoardAttachmentService {
     if (!row) throw new BusinessException(ERROR_CODE.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND);
     await this.repo.delete({ id, tenantId });
     if (row.storagePath) {
+      // Shared-copy guard (B4 P6-7): an ingest original is copied once and
+      // referenced by every approved document — only the LAST reference may
+      // take the bytes with it.
+      const stillReferenced = await this.repo.findOne({
+        where: { tenantId, storagePath: row.storagePath },
+      });
+      if (stillReferenced) return;
       await unlink(this.resolveInRoot(row.storagePath)).catch((e) =>
         this.logger.warn(`board attachment file unlink failed (${row.uuid}): ${(e as Error).message}`),
       );
     }
+  }
+
+  /**
+   * Attach ONE stored copy of a source file to many documents (B4 P6-6): the
+   * bytes are written once under board/, and each document gets its own row
+   * pointing at that path. Deletion is safe via the shared-copy guard above.
+   */
+  async attachSharedCopy(
+    tenantId: number,
+    documentIds: number[],
+    source: { filename: string; mime: string | null; buffer: Buffer },
+    userId: number,
+  ): Promise<number> {
+    if (!documentIds.length) return 0;
+    const rel = join('board', String(tenantId));
+    await mkdir(join(this.root(), rel), { recursive: true });
+    const ext = (source.filename.match(/\.[a-z0-9]+$/i)?.[0] ?? '').toLowerCase();
+    const storagePath = join(rel, `${randomUUID()}${ext}`);
+    await writeFile(join(this.root(), storagePath), source.buffer);
+    for (const documentId of documentIds) {
+      await this.repo.save(
+        this.repo.create({
+          uuid: randomUUID(),
+          tenantId,
+          documentId,
+          kind: BOARD_ATTACHMENT_KIND.FILE,
+          filename: source.filename,
+          mime: source.mime,
+          storagePath,
+          size: source.buffer.length,
+          url: null,
+          createdBy: userId,
+        }),
+      );
+    }
+    return documentIds.length;
   }
 
   /** Delete every attachment of a document (called when the document goes). */

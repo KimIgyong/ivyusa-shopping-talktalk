@@ -441,5 +441,6 @@
   "boardOriginOpen": "打开看板原文",
   "ingestDoneBoard": "已发布 {{saved}} 篇到看板——请审核后采纳至 KB",
   "writeOnBoard": "在看板撰写",
-  "directAddHint": "建议:先在看板撰写并审核后再采纳。直接添加仅用于紧急情况。"
+  "directAddHint": "建议:先在看板撰写并审核后再采纳。直接添加仅用于紧急情况。",
+  "ingestViewBoard": "在看板查看"
 }

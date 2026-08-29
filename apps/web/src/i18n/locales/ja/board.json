@@ -95,5 +95,19 @@
   "noOutgoing": "本文に[[リンク]]はありません。",
   "linkMissing": "未作成",
   "createFromLink": "このタイトルで新規作成",
-  "linkRenameHint": "※ リンクはタイトル基準です — 改名すると旧リンクは未作成と表示されます。"
+  "linkRenameHint": "※ リンクはタイトル基準です — 改名すると旧リンクは未作成と表示されます。",
+  "faqImport": "FAQインポート",
+  "faqImportRun": "インポート",
+  "faqImportHint": "既存のFAQ/Q&A掲示板をCSVまたはExcelでエクスポートしてアップロードしてください。各行が公開状態のボード文書になります。",
+  "faqImportColumns": "必須列: title（質問）, content（回答）",
+  "faqImportOptional": "任意: category1, category2, tags（; 区切り）",
+  "faqImportDupNote": "重複するタイトルはスキップされます。更新はボードで直接編集してください。",
+  "faqImportSampleCsv": "CSVサンプル",
+  "faqImportSampleXlsx": "Excelサンプル",
+  "faqImportDone": "FAQインポート完了: 作成 {{created}} · スキップ {{skipped}}",
+  "faqImportParsed": "行",
+  "faqImportCreated": "作成",
+  "faqImportSkipped": "スキップ",
+  "faqImportInvalid": "エラー",
+  "faqImportRow": "{{n}}行目"
 }

@@ -95,5 +95,19 @@
   "noOutgoing": "正文中没有 [[链接]]。",
   "linkMissing": "未撰写",
   "createFromLink": "以此标题新建文档",
-  "linkRenameHint": "※ 链接基于标题——重命名后旧链接将显示为未撰写。"
+  "linkRenameHint": "※ 链接基于标题——重命名后旧链接将显示为未撰写。",
+  "faqImport": "导入FAQ",
+  "faqImportRun": "导入",
+  "faqImportHint": "将现有的FAQ/问答板导出为CSV或Excel后上传——每一行都会成为已发布的看板文档。",
+  "faqImportColumns": "必填列：title（问题）、content（答案）",
+  "faqImportOptional": "可选：category1、category2、tags（以 ; 分隔）",
+  "faqImportDupNote": "重复标题将被跳过——如需更新，请直接在看板上编辑。",
+  "faqImportSampleCsv": "CSV样例",
+  "faqImportSampleXlsx": "Excel样例",
+  "faqImportDone": "FAQ导入完成：新建 {{created}} · 跳过 {{skipped}}",
+  "faqImportParsed": "行数",
+  "faqImportCreated": "新建",
+  "faqImportSkipped": "跳过",
+  "faqImportInvalid": "错误",
+  "faqImportRow": "第{{n}}行"
 }

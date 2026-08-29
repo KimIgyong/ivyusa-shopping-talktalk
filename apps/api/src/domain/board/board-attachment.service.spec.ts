@@ -12,8 +12,12 @@ describe('BoardAttachmentService', () => {
     let nextId = 1;
     const repo = {
       find: jest.fn(async () => rows),
-      findOne: jest.fn(async ({ where }: any) =>
-        rows.find((r) => String(r.id) === String(where.id) || r.uuid === where.uuid) ?? null),
+      findOne: jest.fn(async ({ where }: any) => {
+        if (where.storagePath !== undefined) {
+          return rows.find((r) => r.storagePath === where.storagePath) ?? null;
+        }
+        return rows.find((r) => String(r.id) === String(where.id) || r.uuid === where.uuid) ?? null;
+      }),
       create: (d: Record<string, unknown>) => d,
       save: jest.fn(async (d: Record<string, unknown>) => {
         const row = { id: nextId++, ...d };
@@ -66,6 +70,41 @@ describe('BoardAttachmentService', () => {
     await expect(h.svc.addLink(1, 5, 'ftp://x/y', undefined, 7)).rejects.toMatchObject({
       errorCode: 'E5073',
     });
+  });
+
+  it('attachSharedCopy writes the bytes once and gives every document its own row', async () => {
+    const h = build();
+    const { writeFile } = jest.requireMock('fs/promises');
+    (writeFile as jest.Mock).mockClear();
+    const n = await h.svc.attachSharedCopy(
+      1,
+      [11, 12, 13],
+      { filename: '원본.pdf', mime: 'application/pdf', buffer: Buffer.from('pdf') },
+      7,
+    );
+    expect(n).toBe(3);
+    expect(writeFile).toHaveBeenCalledTimes(1);
+    expect(h.rows).toHaveLength(3);
+    const paths = new Set(h.rows.map((r) => r.storagePath));
+    expect(paths.size).toBe(1);
+    expect(new Set(h.rows.map((r) => r.uuid)).size).toBe(3);
+  });
+
+  it('removing a shared attachment unlinks the file only at the LAST reference (P6-7)', async () => {
+    const h = build();
+    const { unlink } = jest.requireMock('fs/promises');
+    (unlink as jest.Mock).mockClear();
+    await h.svc.attachSharedCopy(
+      1,
+      [11, 12],
+      { filename: '원본.pdf', mime: 'application/pdf', buffer: Buffer.from('pdf') },
+      7,
+    );
+    const [first, second] = h.rows.map((r) => Number(r.id));
+    await h.svc.remove(1, first);
+    expect(unlink).not.toHaveBeenCalled();
+    await h.svc.remove(1, second);
+    expect(unlink).toHaveBeenCalledTimes(1);
   });
 
   it('signed download refuses a bad signature', async () => {

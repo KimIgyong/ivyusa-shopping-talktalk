@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/Modal';
 import { Button } from '@/components/Button';
@@ -38,12 +39,14 @@ export function AiIngestModal({
 }) {
   const { t } = useTranslation('knowledge');
   const { t: tc } = useTranslation('common');
+  const navigate = useNavigate();
 
   const [group, setGroup] = useState(defaultGroup || 'counsel');
   const [mode, setMode] = useState<'file' | 'video'>('file');
   const [file, setFile] = useState<File | null>(null);
   const [videoUrl, setVideoUrl] = useState('');
   const [drafts, setDrafts] = useState<ReviewDraft[] | null>(null);
+  const [done, setDone] = useState<number | null>(null);
 
   const ingestFile = useIngestFile();
   const ingestVideo = useIngestVideo();
@@ -53,7 +56,10 @@ export function AiIngestModal({
 
   // The tab the modal was opened from is only the starting value.
   useEffect(() => {
-    if (open) setGroup(defaultGroup || 'counsel');
+    if (open) {
+      setGroup(defaultGroup || 'counsel');
+      setDone(null);
+    }
   }, [open, defaultGroup]);
 
   // Drafts become local, editable state exactly once per ready job.
@@ -85,10 +91,11 @@ export function AiIngestModal({
       {
         onSuccess: (r) => {
           // B2 P4-6: approval publishes onto the board — adoption is a
-          // separate reviewed step.
+          // separate reviewed step. Keep the modal open on a done state so
+          // the operator has a direct path to the board (B4 P6-5).
           toast.success(t('ingestDoneBoard', { saved: r.saved }));
           setDrafts(null);
-          onClose();
+          setDone(r.saved);
         },
         onError: (err: Error) => toast.error(err.message),
       },
@@ -110,7 +117,21 @@ export function AiIngestModal({
       onClose={onClose}
       title={`${t('aiImport')} — ${t(`group.${group}`)}`}
       footer={
-        reviewing ? (
+        done !== null ? (
+          <>
+            <Button variant="ghost" onClick={onClose}>
+              {tc('close')}
+            </Button>
+            <Button
+              onClick={() => {
+                onClose();
+                navigate('/knowledge/board');
+              }}
+            >
+              {t('ingestViewBoard')}
+            </Button>
+          </>
+        ) : reviewing ? (
           <>
             <Button variant="ghost" onClick={onClose}>
               {tc('cancel')}
@@ -135,7 +156,12 @@ export function AiIngestModal({
       }
     >
       <div className="space-y-3 text-sm">
-        {!reviewing && (
+        {done !== null && (
+          <div className="rounded-lg bg-green-50 p-4 text-sm text-green-800">
+            {t('ingestDoneBoard', { saved: done })}
+          </div>
+        )}
+        {done === null && !reviewing && (
           <>
             <FormRow label={t('groupColumn')}>
               <Select value={group} onChange={(e) => setGroup(e.target.value)} disabled={running}>
@@ -201,7 +227,7 @@ export function AiIngestModal({
           </>
         )}
 
-        {reviewing && (
+        {done === null && reviewing && (
           <>
             <p className="text-xs text-gray-500">
               {t('ingestReviewHint', { source: job.sourceLabel })}

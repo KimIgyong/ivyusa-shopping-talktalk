@@ -95,5 +95,19 @@
   "noOutgoing": "Sin [[enlaces]] en el cuerpo.",
   "linkMissing": "sin escribir",
   "createFromLink": "Crear un documento con este título",
-  "linkRenameHint": "※ Los enlaces son por título: renombrar muestra los antiguos como sin escribir."
+  "linkRenameHint": "※ Los enlaces son por título: renombrar muestra los antiguos como sin escribir.",
+  "faqImport": "Importar FAQ",
+  "faqImportRun": "Importar",
+  "faqImportHint": "Exporta tu tablón de FAQ/preguntas existente como CSV o Excel y súbelo aquí: cada fila se convierte en un documento publicado del tablero.",
+  "faqImportColumns": "Columnas obligatorias: title (pregunta), content (respuesta)",
+  "faqImportOptional": "Opcional: category1, category2, tags (separadas por ;)",
+  "faqImportDupNote": "Los títulos duplicados se omiten; para actualizar una entrada, edítala en el tablero.",
+  "faqImportSampleCsv": "Muestra CSV",
+  "faqImportSampleXlsx": "Muestra Excel",
+  "faqImportDone": "Importación de FAQ finalizada: {{created}} creadas, {{skipped}} omitidas",
+  "faqImportParsed": "Filas",
+  "faqImportCreated": "Creadas",
+  "faqImportSkipped": "Omitidas",
+  "faqImportInvalid": "Errores",
+  "faqImportRow": "Fila {{n}}"
 }

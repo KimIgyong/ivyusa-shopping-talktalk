@@ -441,5 +441,6 @@
   "boardOriginOpen": "Mở bản gốc trên bảng",
   "ingestDoneBoard": "Đã đăng {{saved}} tài liệu lên bảng — hãy duyệt rồi đưa vào KB",
   "writeOnBoard": "Viết trên bảng",
-  "directAddHint": "Khuyến nghị: viết và duyệt trên bảng trước rồi mới đưa vào. Thêm trực tiếp chỉ dành cho trường hợp khẩn."
+  "directAddHint": "Khuyến nghị: viết và duyệt trên bảng trước rồi mới đưa vào. Thêm trực tiếp chỉ dành cho trường hợp khẩn.",
+  "ingestViewBoard": "Xem trên bảng"
 }

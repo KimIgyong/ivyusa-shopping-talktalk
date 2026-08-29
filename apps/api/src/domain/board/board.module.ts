@@ -10,6 +10,8 @@ import { User } from '../user/entity/user.entity';
 import { BoardService } from './board.service';
 import { BoardAttachmentService } from './board-attachment.service';
 import { BoardCommentService } from './board-comment.service';
+import { BoardImportService } from './board-import.service';
+import { AuditModule } from '../audit/audit.module';
 import { BoardController } from './board.controller';
 
 /** Smart Knowledge Board (PLN-260829 B1) — the curation layer above kb_documents. */
@@ -25,9 +27,12 @@ import { BoardController } from './board.controller';
       BoardComment,
       // Repository only — author/mention names on comments; no UserModule import.
       User,
-    ])],
-  providers: [BoardService, BoardAttachmentService, BoardCommentService],
+    ]),
+    // FAQ import writes an audit entry (B4 P6-1).
+    AuditModule,
+  ],
+  providers: [BoardService, BoardAttachmentService, BoardCommentService, BoardImportService],
   controllers: [BoardController],
-  exports: [BoardService],
+  exports: [BoardService, BoardAttachmentService],
 })
 export class BoardModule {}

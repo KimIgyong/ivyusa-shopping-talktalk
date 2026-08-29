@@ -95,5 +95,19 @@
   "noOutgoing": "No [[links]] in the body.",
   "linkMissing": "not written",
   "createFromLink": "Create a document with this title",
-  "linkRenameHint": "※ Links are by title — renaming a document shows its old links as not written."
+  "linkRenameHint": "※ Links are by title — renaming a document shows its old links as not written.",
+  "faqImport": "FAQ import",
+  "faqImportRun": "Import",
+  "faqImportHint": "Export your existing FAQ/Q&A board as CSV or Excel and upload it here — rows become published board documents.",
+  "faqImportColumns": "Required columns: title (question), content (answer)",
+  "faqImportOptional": "Optional: category1, category2, tags (separated by ;)",
+  "faqImportDupNote": "Duplicate titles are skipped — to update an entry, edit it on the board.",
+  "faqImportSampleCsv": "CSV sample",
+  "faqImportSampleXlsx": "Excel sample",
+  "faqImportDone": "FAQ import finished: {{created}} created, {{skipped}} skipped",
+  "faqImportParsed": "Rows",
+  "faqImportCreated": "Created",
+  "faqImportSkipped": "Skipped",
+  "faqImportInvalid": "Errors",
+  "faqImportRow": "Row {{n}}"
 }

@@ -7,9 +7,11 @@ import { Button } from '@/components/Button';
 import { Badge } from '@/components/Badge';
 import { Table } from '@/components/Table';
 import type { Column } from '@/components/Table';
-import { Input } from '@/components/Field';
+import { Input, Select } from '@/components/Field';
+import { Modal } from '@/components/Modal';
 import { Pagination } from '@/components/Pagination';
-import { useBoardCategoryCounts, useBoardDocuments, useBoardMentions } from './board.hooks';
+import { toast } from '@/store/toast-store';
+import { useBoardCategoryCounts, useBoardDocuments, useBoardMentions, useFaqImport } from './board.hooks';
 import type { BoardDocumentSummary } from './board.service';
 
 const GROUPS = ['counsel', 'product', 'operation'] as const;
@@ -18,6 +20,7 @@ const GROUPS = ['counsel', 'product', 'operation'] as const;
 export function BoardListPage() {
   const { t } = useTranslation('board');
   const { t: tk } = useTranslation('knowledge');
+  const { t: tc } = useTranslation('common');
   const navigate = useNavigate();
 
   const [group, setGroup] = useState('');
@@ -31,6 +34,37 @@ export function BoardListPage() {
 
   const mentionsQ = useBoardMentions();
   const [mentionsOpen, setMentionsOpen] = useState(false);
+
+  const faqImport = useFaqImport();
+  const [faqOpen, setFaqOpen] = useState(false);
+  const [faqGroup, setFaqGroup] = useState('counsel');
+  const [faqFile, setFaqFile] = useState<File | null>(null);
+  const closeFaq = () => {
+    setFaqOpen(false);
+    setFaqFile(null);
+    faqImport.reset();
+  };
+  const runFaqImport = () => {
+    if (!faqFile) return;
+    faqImport.mutate(
+      { file: faqFile, docGroup: faqGroup },
+      {
+        onSuccess: (r) => {
+          if (r.invalid > 0) {
+            toast.warning(
+              `${t('faqImportDone', { created: r.created, skipped: r.skipped })} · ${t('faqImportInvalid')} ${r.invalid}`,
+            );
+          } else {
+            toast.success(t('faqImportDone', { created: r.created, skipped: r.skipped }));
+          }
+        },
+        onError: (err: Error & { code?: string }) => {
+          const known = err.code && ['E5061', 'E5062', 'E5063', 'E5064', 'E5065'].includes(err.code);
+          toast.error(known ? tk(`bulkImportError.${err.code}`) : err.message);
+        },
+      },
+    );
+  };
 
   const documents = useBoardDocuments({
     group: group || undefined,
@@ -170,6 +204,9 @@ export function BoardListPage() {
                 </ul>
               </div>
             )}
+            <Button variant="secondary" onClick={() => setFaqOpen(true)}>
+              {t('faqImport')}
+            </Button>
             <Button onClick={() => navigate('/knowledge/board/new')}>{t('newDocument')}</Button>
           </div>
         }
@@ -294,6 +331,85 @@ export function BoardListPage() {
           </div>
         </div>
       </Card>
+
+      <Modal
+        open={faqOpen}
+        onClose={closeFaq}
+        title={t('faqImport')}
+        footer={
+          <>
+            <Button variant="ghost" onClick={closeFaq}>
+              {tc('close')}
+            </Button>
+            <Button disabled={!faqFile || faqImport.isPending} onClick={runFaqImport}>
+              {faqImport.isPending ? tc('loading') : t('faqImportRun')}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-3 text-sm">
+          <p className="text-gray-600">{t('faqImportHint')}</p>
+          <div className="flex gap-3">
+            <a
+              className="text-sm font-medium text-primary hover:underline"
+              href="/samples/board-faq-import-sample.csv"
+              download
+            >
+              ⬇ {t('faqImportSampleCsv')}
+            </a>
+            <a
+              className="text-sm font-medium text-primary hover:underline"
+              href="/samples/board-faq-import-sample.xlsx"
+              download
+            >
+              ⬇ {t('faqImportSampleXlsx')}
+            </a>
+          </div>
+          <p className="text-xs text-gray-500">{t('faqImportColumns')}</p>
+          <p className="text-xs text-gray-500">{t('faqImportOptional')}</p>
+          <p className="text-xs text-gray-500">{t('faqImportDupNote')}</p>
+          <Select value={faqGroup} onChange={(e) => setFaqGroup(e.target.value)}>
+            {GROUPS.map((g) => (
+              <option key={g} value={g}>
+                {tk(`group.${g}`)}
+              </option>
+            ))}
+          </Select>
+          <input
+            type="file"
+            accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            onChange={(e) => setFaqFile(e.target.files?.[0] ?? null)}
+            className="block w-full text-sm text-gray-700 file:mr-3 file:rounded-lg file:border-0 file:bg-primary-600 file:px-3 file:py-2 file:text-sm file:text-white"
+          />
+
+          {faqImport.data && (
+            <dl className="grid grid-cols-4 gap-2 rounded-lg bg-gray-50 p-3 text-xs">
+              <FaqStat label={t('faqImportParsed')} value={faqImport.data.parsed} />
+              <FaqStat label={t('faqImportCreated')} value={faqImport.data.created} />
+              <FaqStat label={t('faqImportSkipped')} value={faqImport.data.skipped} />
+              <FaqStat label={t('faqImportInvalid')} value={faqImport.data.invalid} />
+            </dl>
+          )}
+          {(faqImport.data?.errors.length ?? 0) > 0 && (
+            <ul className="max-h-40 space-y-1 overflow-y-auto rounded border border-warning/40 bg-amber-50 p-2 text-xs">
+              {faqImport.data!.errors.slice(0, 20).map((e, i) => (
+                <li key={i}>
+                  {t('faqImportRow', { n: e.row })}: {e.reason}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </Modal>
+    </div>
+  );
+}
+
+function FaqStat({ label, value }: { label: string; value: number }) {
+  return (
+    <div>
+      <dt className="text-gray-400">{label}</dt>
+      <dd className="font-medium tabular-nums">{value}</dd>
     </div>
   );
 }
