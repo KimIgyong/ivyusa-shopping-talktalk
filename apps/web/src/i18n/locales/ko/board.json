@@ -95,5 +95,19 @@
   "noOutgoing": "본문에 [[링크]]가 없습니다.",
   "linkMissing": "미작성",
   "createFromLink": "이 제목으로 새 문서 작성",
-  "linkRenameHint": "※ 링크는 제목 기준입니다 — 제목을 바꾸면 기존 링크는 미작성으로 표시됩니다."
+  "linkRenameHint": "※ 링크는 제목 기준입니다 — 제목을 바꾸면 기존 링크는 미작성으로 표시됩니다.",
+  "faqImport": "FAQ 임포트",
+  "faqImportRun": "임포트",
+  "faqImportHint": "기존 FAQ/Q&A 게시판을 CSV나 엑셀로 내보내 업로드하세요 — 각 행이 게시 상태의 보드 문서가 됩니다.",
+  "faqImportColumns": "필수 컬럼: title(질문), content(답변)",
+  "faqImportOptional": "선택: category1, category2, tags(; 구분)",
+  "faqImportDupNote": "중복 제목은 건너뜁니다 — 갱신은 보드에서 직접 수정하세요.",
+  "faqImportSampleCsv": "CSV 샘플",
+  "faqImportSampleXlsx": "엑셀 샘플",
+  "faqImportDone": "FAQ 임포트 완료: 생성 {{created}} · 스킵 {{skipped}}",
+  "faqImportParsed": "행",
+  "faqImportCreated": "생성",
+  "faqImportSkipped": "스킵",
+  "faqImportInvalid": "오류",
+  "faqImportRow": "{{n}}행"
 }

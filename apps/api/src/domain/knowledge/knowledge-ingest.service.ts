@@ -2,7 +2,7 @@ import { HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
-import { mkdir, writeFile } from 'fs/promises';
+import { mkdir, readFile, writeFile } from 'fs/promises';
 import { join, resolve } from 'path';
 import { randomUUID } from 'crypto';
 import { AI_FUNCTION } from '@ivy/types';
@@ -11,6 +11,7 @@ import { KbFile } from './entity/kb-file.entity';
 import { KbCategoryService } from './kb-category.service';
 import { KbRevisionService } from './kb-revision.service';
 import { BoardService } from '../board/board.service';
+import { BoardAttachmentService } from '../board/board-attachment.service';
 import { BOARD_DOC_STATUS } from '../board/entity/board-document.entity';
 import { extractText } from './file-extract.util';
 import { fetchYoutubeTranscript } from './youtube-transcript.util';
@@ -49,6 +50,7 @@ export class KnowledgeIngestService {
     private readonly categories: KbCategoryService,
     private readonly revisions: KbRevisionService,
     private readonly board: BoardService,
+    private readonly attachments: BoardAttachmentService,
     private readonly jobs: KnowledgeIngestJobService,
     private readonly config: ConfigService,
   ) {}
@@ -138,7 +140,7 @@ export class KnowledgeIngestService {
           title,
           content,
           // The tag is how a reviewer later tells machine-drafted entries from
-          // hand-written ones; precise file↔document linking is B4.
+          // hand-written ones.
           tags: ['ai-import'],
           status: BOARD_DOC_STATUS.PUBLISHED,
         },
@@ -146,6 +148,11 @@ export class KnowledgeIngestService {
       );
       boardDocumentIds.push(String(doc.id));
     }
+
+    // B4 P6-6: link the source to every approved document so the reviewer can
+    // open the original from the board. Attachment failure must not undo an
+    // approval that already published the documents — warn and move on.
+    const attachedOriginals = await this.attachOriginal(tenantId, job, boardDocumentIds, actorUserId);
 
     const result = {
       sourceLabel: job.sourceLabel,
@@ -155,6 +162,7 @@ export class KnowledgeIngestService {
       saved: boardDocumentIds.length,
       target: 'board',
       boardDocumentIds,
+      attachedOriginals,
     };
     await this.revisions.recordAudit(tenantId, 0, 'knowledge.file_ingested', actorUserId, result);
     this.jobs.markConsumed(tenantId, result);
@@ -165,6 +173,41 @@ export class KnowledgeIngestService {
   }
 
   // ---- internals ----------------------------------------------------------
+
+  private async attachOriginal(
+    tenantId: number,
+    job: { sourceKind: string; sourceLabel: string; fileId: number | null; sourceUrl: string | null },
+    boardDocumentIds: string[],
+    actorUserId: number,
+  ): Promise<number> {
+    const ids = boardDocumentIds.map(Number);
+    try {
+      if (job.sourceKind === 'youtube' && job.sourceUrl) {
+        for (const id of ids) {
+          await this.attachments.addLink(tenantId, id, job.sourceUrl, job.sourceLabel, actorUserId);
+        }
+        return ids.length;
+      }
+      if (job.fileId) {
+        const original = await this.fileRepo.findOne({ where: { id: job.fileId, tenantId } });
+        if (!original?.storagePath) return 0;
+        const root = resolve(this.config.get<string>('UPLOAD_DIR', './.uploads'));
+        const buffer = await readFile(join(root, original.storagePath));
+        // ONE stored copy under board/, shared by every approved document —
+        // the kb_files original stays where it is, for audit (P6-7).
+        return this.attachments.attachSharedCopy(
+          tenantId,
+          ids,
+          { filename: original.filename, mime: original.mime, buffer },
+          actorUserId,
+        );
+      }
+      return 0;
+    } catch (e) {
+      this.logger.warn(`ingest original attach failed (tenant ${tenantId}): ${(e as Error).message}`);
+      return 0;
+    }
+  }
 
   private async storeOriginal(
     tenantId: number,

@@ -142,6 +142,14 @@ export interface BoardListParams {
   size?: number;
 }
 
+export interface FaqImportResult {
+  parsed: number;
+  created: number;
+  skipped: number;
+  invalid: number;
+  errors: Array<{ row: number; reason: string }>;
+}
+
 export interface BoardDocumentInput {
   doc_group?: string;
   category1: string;
@@ -200,5 +208,11 @@ export const boardService = {
   removeComment: (commentId: string) =>
     apiDelete<{ deleted: true }>(`/board/comments/${commentId}`),
   mentions: () => apiGet<BoardMention[]>('/board/mentions'),
+  importFaq: (file: File, docGroup: string) => {
+    const form = new FormData();
+    form.append('files', file);
+    form.append('doc_group', docGroup);
+    return apiPostForm<FaqImportResult>('/board/import', form);
+  },
   linkGraph: (id: string) => apiGet<BoardLinkGraph>(`/board/documents/${id}/backlinks`),
 };

@@ -12,6 +12,7 @@ describe('KnowledgeIngestService', () => {
     const fileRepo = {
       create: (d: Record<string, unknown>) => d,
       save: jest.fn(async (d: Record<string, unknown>) => ({ id: 42, ...d })),
+      findOne: jest.fn(async () => null),
     };
     const ai = {
       complete: jest.fn(async () => ({
@@ -41,6 +42,10 @@ describe('KnowledgeIngestService', () => {
         return row;
       }),
     };
+    const attachments = {
+      addLink: jest.fn(async () => ({})),
+      attachSharedCopy: jest.fn(async (_t: number, ids: number[]) => ids.length),
+    };
     const jobs = new KnowledgeIngestJobService();
     const config = { get: (_k: string, d: string) => d };
     const svc = new KnowledgeIngestService(
@@ -49,10 +54,11 @@ describe('KnowledgeIngestService', () => {
       categories as never,
       revisions as never,
       board as never,
+      attachments as never,
       jobs,
       config as never,
     );
-    return { svc, jobs, boardCreated, audited, ai, board };
+    return { svc, jobs, boardCreated, audited, ai, board, attachments, fileRepo };
   }
 
   const CSV = Buffer.from('q,a\n환불되나요?,7일 이내 가능합니다', 'utf8');
@@ -112,6 +118,8 @@ describe('KnowledgeIngestService', () => {
     );
 
     expect(result).toMatchObject({ saved: 1, target: 'board', docGroup: 'operation' });
+    // fileRepo.findOne resolves nothing here → no original to attach, quietly 0.
+    expect(result).toMatchObject({ attachedOriginals: 0 });
     expect(h.boardCreated[0]).toMatchObject({
       doc_group: 'operation',
       category1: '정책',
@@ -123,6 +131,85 @@ describe('KnowledgeIngestService', () => {
     expect(h.jobs.get(1)!.status).toBe(INGEST_STATUS.CONSUMED);
     // A second approve of the consumed job must refuse — it would duplicate.
     await expect(h.svc.approve(1, [{ title: 'x', category: 'y', content: 'z' }], 7)).rejects.toThrow();
+  });
+
+  it('approve attaches ONE shared copy of the file original to every document (B4 P6-6)', async () => {
+    const os = jest.requireActual('os') as typeof import('os');
+    const fsp = jest.requireActual('fs/promises') as typeof import('fs/promises');
+    const path = jest.requireActual('path') as typeof import('path');
+    const root = await fsp.mkdtemp(path.join(os.tmpdir(), 'ingest-attach-'));
+    await fsp.mkdir(path.join(root, 'kb-ingest', '1'), { recursive: true });
+    await fsp.writeFile(path.join(root, 'kb-ingest', '1', 'orig.csv'), CSV);
+
+    const h = build(
+      '{"articles":[{"title":"A","category":"faq","content":"a"},{"title":"B","category":"faq","content":"b"}]}',
+    );
+    (h.fileRepo.findOne as jest.Mock).mockResolvedValue({
+      filename: 'faq.csv',
+      mime: 'text/csv',
+      storagePath: path.join('kb-ingest', '1', 'orig.csv'),
+    });
+    // Route UPLOAD_DIR at the temp root so the real original bytes are read.
+    const svc = h.svc as unknown as { config: { get: (k: string, d: string) => string } };
+    svc.config = { get: (k: string, d: string) => (k === 'UPLOAD_DIR' ? root : d) };
+
+    await h.svc.startFile(1, file, 'counsel');
+    await flush();
+    const result = await h.svc.approve(
+      1,
+      [
+        { title: 'A', category: 'faq', content: 'a' },
+        { title: 'B', category: 'faq', content: 'b' },
+      ],
+      7,
+    );
+    expect(result).toMatchObject({ saved: 2, attachedOriginals: 2 });
+    expect(h.attachments.attachSharedCopy).toHaveBeenCalledTimes(1);
+    const [, ids, source] = (h.attachments.attachSharedCopy as jest.Mock).mock.calls[0];
+    expect(ids).toEqual([1, 2]);
+    expect(source).toMatchObject({ filename: 'faq.csv', mime: 'text/csv' });
+    expect(Buffer.isBuffer(source.buffer)).toBe(true);
+    await fsp.rm(root, { recursive: true, force: true });
+  });
+
+  it('a youtube source links the video URL onto every approved document', async () => {
+    const h = build('{"articles":[{"title":"영상 요약","category":"faq","content":"본문"}]}');
+    h.jobs.start(
+      1,
+      {
+        sourceLabel: '설정 안내 영상',
+        sourceKind: 'youtube',
+        docGroup: 'operation',
+        fileId: null,
+        sourceUrl: 'https://youtu.be/abc123',
+      },
+      async () => [{ title: '영상 요약', category: 'faq', content: '본문', fallback: false }],
+    );
+    await flush();
+    const result = await h.svc.approve(1, [{ title: '영상 요약', category: 'faq', content: '본문' }], 7);
+    expect(result).toMatchObject({ saved: 1, attachedOriginals: 1 });
+    expect(h.attachments.addLink).toHaveBeenCalledWith(
+      1,
+      1,
+      'https://youtu.be/abc123',
+      '설정 안내 영상',
+      7,
+    );
+    expect(h.attachments.attachSharedCopy).not.toHaveBeenCalled();
+  });
+
+  it('an attachment failure never undoes the approval (warn-only)', async () => {
+    const h = build('{"articles":[{"title":"T","category":"faq","content":"b"}]}');
+    (h.fileRepo.findOne as jest.Mock).mockResolvedValue({
+      filename: 'faq.csv',
+      mime: 'text/csv',
+      storagePath: 'kb-ingest/1/missing.csv',
+    });
+    await h.svc.startFile(1, file, 'counsel');
+    await flush();
+    // readFile on the missing path throws inside attachOriginal → caught.
+    const result = await h.svc.approve(1, [{ title: 'T', category: 'faq', content: 'b' }], 7);
+    expect(result).toMatchObject({ saved: 1, attachedOriginals: 0 });
   });
 
   it('approve with an incomplete article rejects before anything is written', async () => {

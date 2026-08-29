@@ -441,5 +441,6 @@
   "boardOriginOpen": "Abrir original del tablero",
   "ingestDoneBoard": "{{saved}} documento(s) publicados en el tablero — revise y adopte al KB",
   "writeOnBoard": "Escribir en el tablero",
-  "directAddHint": "Recomendado: escriba y revise primero en el tablero. La adición directa es para emergencias."
+  "directAddHint": "Recomendado: escriba y revise primero en el tablero. La adición directa es para emergencias.",
+  "ingestViewBoard": "Ver en el tablero"
 }

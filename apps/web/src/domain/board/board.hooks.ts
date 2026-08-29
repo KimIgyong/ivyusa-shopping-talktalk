@@ -41,6 +41,16 @@ export function useBoardInvalidatorExported() {
   };
 }
 
+export function useFaqImport() {
+  const invalidate = useBoardInvalidatorExported();
+  return useMutation({
+    mutationFn: (v: { file: File; docGroup: string }) => boardService.importFaq(v.file, v.docGroup),
+    onSuccess: () => {
+      invalidate();
+    },
+  });
+}
+
 export function useCreateBoardDocument() {
   const invalidate = useBoardInvalidatorExported();
   const { t } = useTranslation('board');

@@ -95,5 +95,19 @@
   "noOutgoing": "Không có [[liên kết]] trong nội dung.",
   "linkMissing": "chưa viết",
   "createFromLink": "Tạo tài liệu với tiêu đề này",
-  "linkRenameHint": "※ Liên kết theo tiêu đề — đổi tên sẽ hiển thị liên kết cũ là chưa viết."
+  "linkRenameHint": "※ Liên kết theo tiêu đề — đổi tên sẽ hiển thị liên kết cũ là chưa viết.",
+  "faqImport": "Nhập FAQ",
+  "faqImportRun": "Nhập",
+  "faqImportHint": "Xuất bảng FAQ/Hỏi đáp hiện có ra CSV hoặc Excel rồi tải lên đây — mỗi dòng trở thành một tài liệu bảng đã xuất bản.",
+  "faqImportColumns": "Cột bắt buộc: title (câu hỏi), content (câu trả lời)",
+  "faqImportOptional": "Tùy chọn: category1, category2, tags (phân cách bằng ;)",
+  "faqImportDupNote": "Tiêu đề trùng sẽ bị bỏ qua — muốn cập nhật, hãy sửa trực tiếp trên bảng.",
+  "faqImportSampleCsv": "Mẫu CSV",
+  "faqImportSampleXlsx": "Mẫu Excel",
+  "faqImportDone": "Nhập FAQ hoàn tất: tạo {{created}}, bỏ qua {{skipped}}",
+  "faqImportParsed": "Dòng",
+  "faqImportCreated": "Đã tạo",
+  "faqImportSkipped": "Bỏ qua",
+  "faqImportInvalid": "Lỗi",
+  "faqImportRow": "Dòng {{n}}"
 }

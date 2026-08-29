@@ -441,5 +441,6 @@
   "boardOriginOpen": "보드 원본 열기",
   "ingestDoneBoard": "보드에 {{saved}}건 게시되었습니다 — 검토 후 KB로 채택하세요",
   "writeOnBoard": "보드에 작성",
-  "directAddHint": "권장: 지식은 보드에서 먼저 작성·검토 후 채택하세요. 이 직접 추가는 긴급 수정용입니다."
+  "directAddHint": "권장: 지식은 보드에서 먼저 작성·검토 후 채택하세요. 이 직접 추가는 긴급 수정용입니다.",
+  "ingestViewBoard": "보드에서 보기"
 }

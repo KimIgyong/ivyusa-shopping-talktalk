@@ -26,6 +26,7 @@ import { decodeUploadName } from '../../global/util/upload-name.util';
 import { BoardService, BoardActor } from './board.service';
 import { BoardAttachmentService, UploadedBoardFile } from './board-attachment.service';
 import { BoardCommentService } from './board-comment.service';
+import { BoardImportService } from './board-import.service';
 import { BoardMapper } from './board.mapper';
 import {
   AddBoardLinkRequest,
@@ -49,6 +50,7 @@ export class BoardController {
     private readonly board: BoardService,
     private readonly attachments: BoardAttachmentService,
     private readonly comments: BoardCommentService,
+    private readonly faqImport: BoardImportService,
   ) {}
 
   /** Narrow to a tenant user, keeping the rank the delete rule needs. */
@@ -65,6 +67,25 @@ export class BoardController {
   @ApiOperation({ summary: "This tenant's Smart Knowledge Board (created on first touch)" })
   async getBoard(@CurrentUser() user: Principal) {
     return BoardMapper.toBoard(await this.board.ensureDefault(this.actor(user).tenantId));
+  }
+
+  @Post('import')
+  @UseInterceptors(FilesInterceptor('files', 1, { limits: { fileSize: 5 * 1024 * 1024 } }))
+  @ApiOperation({ summary: 'Import an exported FAQ/Q&A CSV or XLSX as published board documents' })
+  async importFaq(
+    @CurrentUser() user: Principal,
+    @Body() body: { doc_group?: string },
+    @UploadedFiles() files?: UploadedBoardFile[],
+  ) {
+    const a = this.actor(user);
+    const file = files?.[0];
+    if (!file) throw new BusinessException(ERROR_CODE.VALIDATION_FAILED, HttpStatus.BAD_REQUEST);
+    return this.faqImport.importFaq(
+      a.tenantId,
+      body.doc_group ?? 'counsel',
+      { ...file, originalname: decodeUploadName(file.originalname) },
+      a,
+    );
   }
 
   @Get('documents')
