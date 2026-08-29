@@ -125,6 +125,28 @@ const pending: HostMessage[] = [];
 /** Long enough for a real burst, short enough not to hold a leak. */
 const MAX_PENDING = 20;
 
+let flushTimer: ReturnType<typeof setTimeout> | null = null;
+
+/**
+ * Flush the pre-mount queue on the next tick, to EVERY handler subscribed by
+ * then. It used to flush synchronously into the one handler that subscribed
+ * first — which on a real device meant a native identify sent before mount was
+ * delivered only to the identity hook and never reached the command hook that
+ * acts on it (found on-device, FIX-260828). One tick lets every hook of the
+ * same render commit subscribe before anything is handed out.
+ */
+function scheduleFlush(): void {
+  if (flushTimer !== null || pending.length === 0) return;
+  flushTimer = setTimeout(() => {
+    flushTimer = null;
+    if (handlers.size === 0) return; // subscriber vanished — keep holding
+    const queued = pending.splice(0, pending.length);
+    for (const message of queued) {
+      for (const handler of handlers) handler(message, { origin: null });
+    }
+  }, 0);
+}
+
 function deliver(message: HostMessage, origin: string | null): void {
   if (handlers.size === 0) {
     if (pending.length < MAX_PENDING) pending.push(message);
@@ -157,11 +179,9 @@ export function onHostMessage(handler: Handler): () => void {
   window.addEventListener('message', onWindowMessage);
   handlers.add(handler);
 
-  // Anything the host said while nobody was listening arrives now, in order.
-  if (pending.length) {
-    const queued = pending.splice(0, pending.length);
-    for (const message of queued) handler(message, { origin: null });
-  }
+  // Anything the host said while nobody was listening arrives next tick, in
+  // order, to all subscribers — see scheduleFlush.
+  scheduleFlush();
 
   return () => {
     window.removeEventListener('message', onWindowMessage);

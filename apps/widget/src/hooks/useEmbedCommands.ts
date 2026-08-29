@@ -1,10 +1,17 @@
 import { useEffect } from 'react';
 import { useWidgetStore, type TabKey } from '../store/widgetStore';
-import { ensureSession, identify as identifyRequest } from '../services/sessionService';
+import {
+  ensureSession,
+  identify as identifyRequest,
+  setSessionLanguage,
+} from '../services/sessionService';
 import { getParentOrigin, getShopDomain } from './useSession';
 import { hostPresent, onHostMessage, postToHost } from '../lib/host-bridge';
+import i18n, { LANG_STORAGE_KEY, SUPPORTED_LANGUAGES } from '../i18n/i18n';
 
 const TABS: TabKey[] = ['chat', 'orders', 'notifications'];
+
+type IdentifyUser = { userId: string; hash: string; name?: string; email?: string; phone?: string };
 
 /**
  * Host-application commands (PLN-260819 S3).
@@ -21,13 +28,47 @@ export function useEmbedCommands(): void {
   useEffect(() => {
     if (!hostPresent()) return; // standalone — no host to take commands from
 
+    // A native host sends identify/locale the moment `ivy:ready` fires, which
+    // routinely beats the session ensure round-trip. Both used to be silently
+    // dropped when no token existed yet (found on-device, FIX-260828) — so the
+    // last of each is parked here and replayed as soon as the token lands.
+    let pendingIdentify: IdentifyUser | null = null;
+    let pendingSessionLocale: string | null = null;
+
+    async function runIdentify(token: string, user: IdentifyUser) {
+      const store = useWidgetStore.getState();
+      try {
+        const res = await identifyRequest(token, user);
+        store.setAuthenticated(res.authenticated);
+        postToHost({ type: 'ivy:event', event: 'identified', ok: true });
+      } catch {
+        // A rejected signature leaves the visitor a guest: they can still ask
+        // a question, which is the part that must never depend on identity.
+        postToHost({ type: 'ivy:event', event: 'identified', ok: false });
+      }
+    }
+
+    const stopTokenWatch = useWidgetStore.subscribe((state, prev) => {
+      const token = state.sessionToken;
+      if (!token || token === prev.sessionToken) return;
+      if (pendingSessionLocale) {
+        setSessionLanguage(token, pendingSessionLocale.toUpperCase()).catch(() => {});
+        pendingSessionLocale = null;
+      }
+      if (pendingIdentify) {
+        const user = pendingIdentify;
+        pendingIdentify = null;
+        void runIdentify(token, user);
+      }
+    });
+
     async function onMessage(raw: Record<string, unknown>) {
       const d = raw as {
         type?: string;
         action?: string;
         tab?: string | null;
         locale?: string;
-        user?: { userId: string; hash: string; name?: string; email?: string; phone?: string };
+        user?: IdentifyUser;
       };
       const store = useWidgetStore.getState();
 
@@ -43,9 +84,27 @@ export function useEmbedCommands(): void {
           case 'toggle':
             store.setPanelOpen(!store.panelOpen);
             return;
-          case 'locale':
-            if (d.locale) store.setLanguage(d.locale.toUpperCase());
+          case 'locale': {
+            // Full language switch, exactly what the in-widget switcher does —
+            // setLanguage alone changed the AI reply language but left the UI
+            // in the auto-detected one (found on-device, FIX-260828). The host's
+            // choice is persisted like a manual pick so the session-ensure sync
+            // does not immediately override it with the server-side language.
+            const code = (d.locale || '').toLowerCase();
+            if (!(SUPPORTED_LANGUAGES as readonly string[]).includes(code)) return;
+            void i18n.changeLanguage(code);
+            store.setLanguage(code);
+            document.documentElement.lang = code;
+            try {
+              localStorage.setItem(LANG_STORAGE_KEY, code);
+            } catch {
+              /* ignore storage failures */
+            }
+            const token = useWidgetStore.getState().sessionToken;
+            if (token) setSessionLanguage(token, code.toUpperCase()).catch(() => {});
+            else pendingSessionLocale = code;
             return;
+          }
           case 'logout': {
             // Clearing the token is not enough: useEnsureSession runs once on
             // mount, so nothing would re-open a session and the widget would sit
@@ -71,23 +130,22 @@ export function useEmbedCommands(): void {
 
       if (d.type === 'ivy:identify' && d.user?.userId && d.user?.hash) {
         const token = useWidgetStore.getState().sessionToken;
-        // identify binds an EXISTING session, so it waits for one. A host that
-        // calls it during page load would otherwise silently no-op.
-        if (!token) return;
-        try {
-          const res = await identifyRequest(token, d.user);
-          store.setAuthenticated(res.authenticated);
-          postToHost({ type: 'ivy:event', event: 'identified', ok: true });
-        } catch {
-          // A rejected signature leaves the visitor a guest: they can still ask
-          // a question, which is the part that must never depend on identity.
-          postToHost({ type: 'ivy:event', event: 'identified', ok: false });
+        // identify binds an EXISTING session. Before one exists the request is
+        // parked, not dropped — the token watcher above replays it.
+        if (!token) {
+          pendingIdentify = d.user;
+          return;
         }
+        await runIdentify(token, d.user);
       }
     }
 
-    return onHostMessage((message) => {
+    const stopMessages = onHostMessage((message) => {
       void onMessage(message);
     });
+    return () => {
+      stopMessages();
+      stopTokenWatch();
+    };
   }, []);
 }

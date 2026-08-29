@@ -167,8 +167,32 @@ test('a message sent before anything is listening is not lost', async () => {
 
   const seen = [];
   mod.onHostMessage((msg) => seen.push(msg));
+  // Delivery is deferred one tick so every hook of the same commit subscribes
+  // first (FIX-260828).
+  assert.equal(seen.length, 0);
+  await new Promise((resolve) => setTimeout(resolve, 0));
   assert.equal(seen.length, 1);
   assert.equal(seen[0].user.userId, 'early');
+});
+
+test('a queued message reaches every subscriber, not just the first', async () => {
+  // The regression seen on-device: identify queued pre-mount was flushed into
+  // the identity hook alone, so the command hook that acts on it never saw it.
+  const { mod, w } = await load({ ReactNativeWebView: { postMessage() {} } });
+  w.__shoptalkHost(JSON.stringify({ type: 'ivy:identify', user: { userId: 'early' } }));
+
+  const first = [];
+  const second = [];
+  mod.onHostMessage((msg) => first.push(msg));
+  mod.onHostMessage((msg) => second.push(msg));
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.equal(first.length, 1);
+  assert.equal(second.length, 1);
+
+  // A live (post-flush) message still reaches both, immediately.
+  w.__shoptalkHost(JSON.stringify({ type: 'ivy:ready' }));
+  assert.equal(first.length, 2);
+  assert.equal(second.length, 2);
 });
 
 test('app mode is read from the URL', async () => {

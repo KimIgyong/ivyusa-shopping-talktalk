@@ -77,7 +77,13 @@ export function WidgetPanel() {
         'flex flex-col overflow-hidden bg-white shadow-lg focus:outline-none',
         // mobile: full-width bottom sheet; desktop: floating card
         'fixed inset-x-0 bottom-0 top-0 rounded-none',
-        'sm:inset-auto sm:bottom-24 sm:right-5 sm:top-auto sm:h-[600px] sm:w-[404px] sm:rounded-xl',
+        // In app mode the host app owns the whole screen, so the panel always
+        // fills it — the sm: floating card left a landscape phone showing the
+        // chat pinned to the right half of a blank page (found on-device,
+        // FIX-260828).
+        ...(isAppMode()
+          ? []
+          : ['sm:inset-auto sm:bottom-24 sm:right-5 sm:top-auto sm:h-[600px] sm:w-[404px] sm:rounded-xl']),
       ].join(' ')}
       role="dialog"
       aria-modal="true"
