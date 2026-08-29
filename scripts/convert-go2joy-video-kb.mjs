@@ -18,9 +18,14 @@
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 
-const positional = process.argv.slice(2).filter((a) => !a.startsWith('--'));
-const langArg = process.argv.find((a) => a.startsWith('--lang'));
-const lang = langArg ? (langArg.split('=')[1] ?? process.argv[process.argv.indexOf(langArg) + 1]) : 'vi';
+const argv = process.argv.slice(2);
+const langAt = argv.findIndex((a) => a.startsWith('--lang'));
+// `--lang vi` puts the value in its OWN argv slot: without dropping it too, it
+// is read as the input path and `node … --lang vi` dies on ENOENT.
+const inlineLang = langAt >= 0 ? argv[langAt].split('=')[1] : undefined;
+const lang = langAt < 0 ? 'vi' : (inlineLang ?? argv[langAt + 1]);
+const consumed = new Set(langAt < 0 ? [] : inlineLang ? [langAt] : [langAt, langAt + 1]);
+const positional = argv.filter((a, i) => !consumed.has(i) && !a.startsWith('--'));
 const input = positional[0] ?? 'reference/hoteladminvideoguidevien.md';
 const output = positional[1] ?? `go2joy-video-kb.${lang}.csv`;
 if (!['vi', 'en'].includes(lang)) throw new Error(`unknown --lang "${lang}" (vi|en)`);
@@ -64,11 +69,15 @@ const unitalic = (s) => s.trim().replace(/^\*(.*)\*$/s, '$1').trim();
  * separator is the same string in both editions (a bare UI label, a dash).
  */
 const discarded = [];
+/** `<br>`, `<br/>`, `<br />` — a variant must split, never fall through. */
+const BREAK = /<br\s*\/?>/i;
+
 function halve(text) {
-  const at = text.indexOf('<br>');
-  if (at < 0) return text.trim();
+  const m = text.match(BREAK);
+  if (!m) return text.trim();
+  const at = m.index;
   const vi = text.slice(0, at).trim();
-  const en = unitalic(text.slice(at + 4));
+  const en = unitalic(text.slice(at + m[0].length));
   // Keep the half we drop: the only honest way to prove the two editions
   // really separated is to look for the other language in the output. Halves
   // that are byte-identical carry no evidence — a screen path built purely
@@ -247,7 +256,7 @@ const survivors = articles.flatMap((a) => {
   const own = new Set(`${a.title}\n${a.content}`.split('\n').map(bare));
   return (a.dropped ?? []).filter((d) => d.length > 12 && own.has(d)).map((d) => `${a.key}: ${d}`);
 });
-const leaked = articles.filter((a) => a.content.includes('<br>') || a.title.includes('<br>'));
+const leaked = articles.filter((a) => BREAK.test(a.content) || BREAK.test(a.title));
 const overlong = articles.filter((a) => a.title.length > 255);
 console.log(`${articles.length} articles (${lang}) → ${output}`);
 const byCategory = new Map();
@@ -255,7 +264,7 @@ for (const a of articles) byCategory.set(a.category, (byCategory.get(a.category)
 for (const [c, n] of byCategory) console.log(`  ${String(n).padStart(2)}  ${c}`);
 console.log(`  chars: ${articles.reduce((s, a) => s + a.content.length, 0)}`);
 if (leaked.length || survivors.length) {
-  console.error(`\nLEAK: ${leaked.length} article(s) with a raw <br>, ${survivors.length} phrase(s) from the other language:`);
+  console.error(`\nLEAK: ${leaked.length} article(s) with a raw line break, ${survivors.length} phrase(s) from the other language:`);
   for (const a of leaked.slice(0, 5)) console.error(`  ${a.key}`);
   for (const d of survivors.slice(0, 5)) console.error(`  "${d.slice(0, 80)}"`);
   process.exit(1);

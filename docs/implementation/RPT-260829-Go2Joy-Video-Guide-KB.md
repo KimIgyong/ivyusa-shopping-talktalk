@@ -5,10 +5,26 @@ TCR `TCR-260829-Go2Joy-Video-Guide-KB.md`
 
 | | |
 |---|---|
-| 코드 변경 | 변환 스크립트 1개 신설(`scripts/convert-go2joy-video-kb.mjs`) + 원본 md 저장소 편입 |
+| PR | **#456** (squash) |
+| main 커밋 | 스쿼시 머지 후 기재 |
 | 스키마 변경 | **없음** — 애플리케이션 무수정, 마이그레이션 0건 |
-| 스테이징 데이터 | **등재 완료** 2026-08-29 10:40 UTC — go2joy(tenant 4) `operation` 그룹 **104건 신규**(61 → 165) |
-| 프로덕션 | 미배포(환경 미구축) |
+| 스테이징(코드) | 재배포 불필요 — 애플리케이션 코드 무변경(스크립트·문서·원본 md만) |
+| 스테이징(데이터) | **등재 완료** 2026-08-29 10:40 UTC — go2joy(tenant 4) `operation` **104건 신규**(61 → 165) |
+| 프로덕션 | 미배포(환경 미구축). 프로덕션 구축 시 같은 CSV를 해당 테넌트에 재업로드하면 동일 결과 |
+
+### 변경 파일
+
+| 파일 | 종류 |
+|---|---|
+| `scripts/convert-go2joy-video-kb.mjs` | 신설 — md → 언어별 일괄등록 CSV 변환기(자체검사 포함) |
+| `reference/hoteladminvideoguidevien.md` | 신설 — 원본(변환 재현용, 기존 go2joy 매뉴얼 md와 동일 정책) |
+| `docs/analysis/REQ-260829-Go2Joy-Video-Guide-KB.md` | 신설 |
+| `docs/plan/PLN-260829-Go2Joy-Video-Guide-KB.md` | 신설 |
+| `docs/test/TCR-260829-Go2Joy-Video-Guide-KB.md` | 신설 |
+| `docs/implementation/RPT-260829-Go2Joy-Video-Guide-KB.md` | 신설(이 문서) |
+
+생성물 CSV(`go2joy-video-kb.{vi,en}.csv`)는 커밋하지 않는다 — 스크립트로 언제든 재생성되며
+원본과 어긋난 사본이 남는 편이 더 나쁘다.
 
 ## 1. 무엇을 했나
 
@@ -56,6 +72,16 @@ TCR `TCR-260829-Go2Joy-Video-Guide-KB.md`
 | 멱등 | 동일 CSV 재업로드 → created 0 / **skipped 52** |
 | 전수 확인 | 영상 문서 104건, 키 누락 0, 전부 embedded·active, operation 총 165건 |
 | RAG 스모크 3/3 | 정산 완료→**Video 27** / Coupon Back 생성→**Video 39** / 프론트 직원 생성→**Video 48**. 답변에 실제 클릭 경로·화면 라벨 포함 |
+| CI | typecheck · test · build PASS (앱 코드 무변경) |
+
+### 리뷰 반영 (CodeRabbit, PR #456)
+
+| 지적 | 판단 | 조치 |
+|---|---|---|
+| `--lang vi`(공백형)에서 값 `vi`가 입력 경로로 먹힌다 | **타당 — 실제 결함**. §5에 적어둔 재실행 명령이 그대로 ENOENT로 죽었다 | 소비한 argv 슬롯을 위치인자에서 제외, 문서의 명령으로 재현 확인 |
+| `<br />` 변형이 오면 양쪽 언어가 그대로 복사되고 누출 검사도 못 잡는다 | 타당(방어) | 분리·검사 모두 `/<br\s*\/?>/i` 정규식으로 통일 |
+| PLN 멱등 기대치가 CSV 단위와 합계를 섞었다 | 타당 | CSV 1개 = 52건으로 정정 |
+| RPT에 PR·SHA·파일 목록이 없다 | 타당(사내 표준) | 상단 추적표·변경 파일표 추가 |
 
 ## 5. 재실행 절차 (원본 개정 시)
 

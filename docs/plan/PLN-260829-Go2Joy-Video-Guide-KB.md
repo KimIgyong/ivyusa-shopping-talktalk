@@ -50,7 +50,8 @@ REQ: `docs/analysis/REQ-260829-Go2Joy-Video-Guide-KB.md` · 브랜치 `session/g
 7. `smoke.notion@amoeba.group`(tenant go2joy) 로그인 → `POST /knowledge/documents/import/bulk`
    (`doc_group=operation`) VI·EN 각 1회
 8. 결과 확인: created 52 + 52, 임베딩 status=embedded, 카테고리 신설 6종 노출
-9. **멱등 확인**: 같은 CSV 재업로드 → 0 created / 104 updated(또는 skipped) — 중복 0
+9. **멱등 확인**: CSV 하나(52건)를 그대로 재업로드 → created 0 / updated 또는 skipped **52** — 중복 0
+   (VI·EN 둘 다 재업로드해야 합계 104)
 10. RAG 스모크 3문항(VI/EN): 정산 완료 처리, 쿠폰 100% 후원 생성, 직원 계정 생성 →
     해당 Video 문서가 인용되는지
 
