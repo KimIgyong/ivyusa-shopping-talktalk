@@ -45,7 +45,7 @@
   "linkAdded": "Đã thêm liên kết",
   "tagPlaceholder": "Nhập thẻ rồi Enter",
   "removeTag": "Xóa thẻ",
-  "wikilinkHint": "Liên kết tài liệu khác bằng [[Tiêu đề]] (backlink sắp có)",
+  "wikilinkHint": "Liên kết tài liệu khác bằng [[Tiêu đề]] — xem backlink ở bảng Liên kết",
   "attachError": {
     "E5071": "Định dạng tệp không được hỗ trợ.",
     "E5072": "Tối đa 10 tệp mỗi lần tải.",
