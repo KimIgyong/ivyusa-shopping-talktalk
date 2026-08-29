@@ -424,5 +424,8 @@
     "E5068": "Tệp không có văn bản đọc được.",
     "E5069": "Đang có phân tích chạy — hãy chờ hoàn tất.",
     "E5070": "Không có phụ đề (phụ đề bị tắt hoặc không phải video YouTube)."
-  }
+  },
+  "boardBannerTitle": "Smart Knowledge Board",
+  "boardBannerBody": "Tri thức được viết và duyệt trên bảng trước. Tính năng đưa vào KB sẽ sớm ra mắt.",
+  "boardBannerCta": "Mở bảng"
 }

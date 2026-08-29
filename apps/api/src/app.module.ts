@@ -37,6 +37,7 @@ import { RestockModule } from './domain/restock/restock.module';
 import { SubscriptionModule } from './domain/subscription/subscription.module';
 import { InquiryModule } from './domain/inquiry/inquiry.module';
 import { KnowledgeModule } from './domain/knowledge/knowledge.module';
+import { BoardModule } from './domain/board/board.module';
 import { CampaignModule } from './domain/campaign/campaign.module';
 import { CjmModule } from './domain/cjm/cjm.module';
 import { IntegrationModule } from './domain/integration/integration.module';
@@ -106,6 +107,7 @@ import { ShopifyProxyModule } from './domain/shopify-proxy/shopify-proxy.module'
     SubscriptionModule,
     InquiryModule,
     KnowledgeModule,
+    BoardModule,
     CampaignModule,
     CjmModule,
     IntegrationModule,
