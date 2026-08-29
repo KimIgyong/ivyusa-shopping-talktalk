@@ -67,7 +67,7 @@ export class KnowledgeIngestService {
   ): Promise<IngestJob> {
     // Extension gate up front so an unsupported file fails the REQUEST, not the
     // job the operator would have to poll to see fail.
-    if (!/\.(pdf|docx|xlsx|csv)$/i.test(file.originalname)) {
+    if (!/\.(pdf|docx|xlsx|csv|md|markdown)$/i.test(file.originalname)) {
       throw new BusinessException(ERROR_CODE.INGEST_UNSUPPORTED_FILE, HttpStatus.BAD_REQUEST);
     }
     const stored = await this.storeOriginal(tenantId, file);

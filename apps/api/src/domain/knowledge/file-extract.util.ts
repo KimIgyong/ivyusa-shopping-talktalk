@@ -7,7 +7,7 @@ import { ERROR_CODE } from '../../global/constant/error-code.constant';
 /**
  * Plain-text extraction for the AI ingest pipeline (PLN-260829 3차 S1).
  *
- * Four formats, text layer only. Scanned PDFs (image pages, no text layer) come
+ * Five formats, text layer only. Scanned PDFs (image pages, no text layer) come
  * out empty and are refused with the specific reason — OCR is out of scope.
  * Everything past MAX_CHARS is cut, reported via `truncated` rather than
  * failing: the operator decides whether a partial manual is worth ingesting.
@@ -15,7 +15,7 @@ import { ERROR_CODE } from '../../global/constant/error-code.constant';
 export interface ExtractedText {
   text: string;
   truncated: boolean;
-  /** pdf | docx | xlsx | csv */
+  /** pdf | docx | xlsx | csv | md | markdown */
   kind: string;
 }
 
@@ -38,11 +38,20 @@ export async function extractText(filename: string, buffer: Buffer): Promise<Ext
     case 'csv':
       text = extractCsv(buffer);
       break;
+    case 'md':
+    case 'markdown':
+      text = extractMarkdown(buffer);
+      break;
     default:
       throw new BusinessException(ERROR_CODE.INGEST_UNSUPPORTED_FILE, HttpStatus.BAD_REQUEST);
   }
-  const clean = text.replace(/\u0000/g, '').trim();
-  if (!clean) throw new BusinessException(ERROR_CODE.INGEST_EMPTY, HttpStatus.BAD_REQUEST);
+  const stripped = text.replace(/\u0000/g, '');
+  // Markdown trims NEWLINES only: a leading four-space indent is a code block
+  // and trailing double-spaces are a hard line break — trim() would silently
+  // change what the document means.
+  const clean =
+    ext === 'md' || ext === 'markdown' ? stripped.replace(/^\n+|\n+$/g, '') : stripped.trim();
+  if (!clean.trim()) throw new BusinessException(ERROR_CODE.INGEST_EMPTY, HttpStatus.BAD_REQUEST);
   return {
     text: clean.slice(0, INGEST_MAX_CHARS),
     truncated: clean.length > INGEST_MAX_CHARS,
@@ -94,6 +103,23 @@ async function extractXlsx(buffer: Buffer): Promise<string> {
     });
   });
   return lines.join('\n');
+}
+
+/**
+ * Markdown is kept AS MARKDOWN (PLN-260829-Markdown D2): board documents store
+ * MD source, so stripping headings/tables here would lose the table and the
+ * segmentation signal the LLM reads. Only the YAML front matter goes — it is
+ * metadata that otherwise pollutes the first chunk into a junk article (D3).
+ */
+function extractMarkdown(buffer: Buffer): string {
+  const raw = buffer.toString('utf8').replace(/^\uFEFF/, '');
+  // Same stance as CSV: a CP949-saved .md decodes to U+FFFD, and ingesting
+  // mojibake is worse than refusing it with the extraction reason.
+  if (raw.includes('\uFFFD')) {
+    throw new BusinessException(ERROR_CODE.INGEST_EXTRACT_FAILED, HttpStatus.BAD_REQUEST);
+  }
+  // Leading `---` block only: a `---` further down is a horizontal rule.
+  return raw.replace(/^---\r?\n[\s\S]*?\r?\n---(\r?\n|$)/, '');
 }
 
 function extractCsv(buffer: Buffer): string {

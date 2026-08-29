@@ -404,7 +404,7 @@
   "ingestGroupCounsel": "manual de soporte",
   "ingestGroupProduct": "recomendación de productos",
   "ingestGroupOperation": "manual de operaciones",
-  "ingestFileHint": "pdf · docx · xlsx · csv, hasta 15MB. La IA segmenta el contenido en borradores.",
+  "ingestFileHint": "pdf · docx · xlsx · csv · md, hasta 15MB. La IA segmenta el contenido en borradores.",
   "ingestVideoHint": "Solo videos de YouTube con subtítulos públicos.",
   "ingestStart": "Iniciar análisis",
   "ingestExtracting": "Extrayendo texto…",
@@ -419,7 +419,7 @@
   "ingestNoDrafts": "No se produjeron borradores.",
   "ingestDone": "Importación IA completada: {{saved}} guardados · {{embedded}} indexados",
   "ingestError": {
-    "E5066": "Tipo de archivo no compatible (.pdf/.docx/.xlsx/.csv).",
+    "E5066": "Tipo de archivo no compatible (.pdf/.docx/.xlsx/.csv/.md).",
     "E5067": "No se pudo leer texto del archivo (los escaneados no tienen capa de texto).",
     "E5068": "El archivo no contiene texto legible.",
     "E5069": "Ya hay un análisis en curso; espere a que termine.",

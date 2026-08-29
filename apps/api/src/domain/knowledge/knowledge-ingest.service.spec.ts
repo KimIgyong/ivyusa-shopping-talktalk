@@ -98,6 +98,23 @@ describe('KnowledgeIngestService', () => {
     await expect(h.svc.startFile(1, file, 'counsel')).rejects.toMatchObject({ errorCode: 'E5069' });
   });
 
+  it('a markdown upload passes the extension gate and analyzes as markdown', async () => {
+    const h = build('{"articles":[{"title":"체크인","category":"faq","content":"오후 3시부터"}]}');
+    const md = Buffer.from('# 체크인 안내\n\n오후 3시부터입니다', 'utf8');
+    await h.svc.startFile(
+      1,
+      { originalname: 'manual.md', mimetype: 'text/markdown', size: md.length, buffer: md },
+      'operation',
+    );
+    await flush();
+    const job = h.jobs.get(1)!;
+    expect(job.status).toBe(INGEST_STATUS.READY);
+    expect(job.sourceLabel).toBe('manual.md');
+    // The chunk handed to the model still carries the markdown heading.
+    const prompt = (h.ai.complete as jest.Mock).mock.calls[0][0].messages[0].content as string;
+    expect(prompt).toContain('# 체크인 안내');
+  });
+
   it('an unsupported extension fails the request, not the job', async () => {
     const h = build('x');
     await expect(
