@@ -59,6 +59,38 @@ describe('extractText', () => {
     expect((await extractText('manual.docx', Buffer.from('x'))).text).toBe('운영 매뉴얼 본문');
   });
 
+  it('keeps markdown as markdown — headings, lists and tables survive', async () => {
+    const md = ['# 체크인 안내', '', '- 오후 3시부터', '', '| 항목 | 값 |', '| --- | --- |', '| 주차 | 무료 |'].join('\n');
+    const out = await extractText('guide.md', Buffer.from(md, 'utf8'));
+    expect(out.kind).toBe('md');
+    expect(out.text).toContain('# 체크인 안내');
+    expect(out.text).toContain('- 오후 3시부터');
+    expect(out.text).toContain('| 주차 | 무료 |');
+  });
+
+  it('drops the leading YAML front matter but keeps a later horizontal rule', async () => {
+    const md = '---\nname: kb\ndescription: meta\n---\n# 본문\n\n앞 절\n\n---\n\n뒷 절';
+    const out = await extractText('doc.markdown', Buffer.from(md, 'utf8'));
+    expect(out.kind).toBe('markdown');
+    expect(out.text).not.toContain('description: meta');
+    expect(out.text.startsWith('# 본문')).toBe(true);
+    expect(out.text).toContain('---\n\n뒷 절');
+  });
+
+  it('strips a UTF-8 BOM and refuses a CP949-saved markdown', async () => {
+    const bom = await extractText('bom.md', Buffer.from('\uFEFF# 제목', 'utf8'));
+    expect(bom.text).toBe('# 제목');
+
+    const cp949 = Buffer.from([0x23, 0x20, 0xb0, 0xa1, 0xb3, 0xaa]);
+    await expect(extractText('mojibake.md', cp949)).rejects.toMatchObject({ errorCode: 'E5067' });
+  });
+
+  it('an empty markdown file is refused as unreadable, not ingested blank', async () => {
+    await expect(extractText('blank.md', Buffer.from('   \n\n', 'utf8'))).rejects.toMatchObject({
+      errorCode: 'E5068',
+    });
+  });
+
   it('rejects unsupported extensions up front', async () => {
     await expect(extractText('video.mp4', Buffer.from('x'))).rejects.toMatchObject({
       errorCode: 'E5066',

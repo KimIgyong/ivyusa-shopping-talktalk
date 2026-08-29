@@ -404,7 +404,7 @@
   "ingestGroupCounsel": "相談マニュアル",
   "ingestGroupProduct": "商品推薦用",
   "ingestGroupOperation": "運営マニュアル",
-  "ingestFileHint": "pdf · docx · xlsx · csv、最大15MB。AIが内容を記事単位に分割して下書きを作成します。",
+  "ingestFileHint": "pdf · docx · xlsx · csv · md、最大15MB。AIが内容を記事単位に分割して下書きを作成します。",
   "ingestVideoHint": "公開字幕のあるYouTube動画のみ対応します。",
   "ingestStart": "分析開始",
   "ingestExtracting": "テキスト抽出中…",
@@ -419,7 +419,7 @@
   "ingestNoDrafts": "下書きは作成されませんでした。",
   "ingestDone": "AIインポート完了: 保存 {{saved}} · 埋め込み {{embedded}}",
   "ingestError": {
-    "E5066": "対応していないファイル形式です(.pdf/.docx/.xlsx/.csv)。",
+    "E5066": "対応していないファイル形式です(.pdf/.docx/.xlsx/.csv/.md)。",
     "E5067": "ファイルからテキストを読み取れませんでした(スキャン文書にはテキスト層がありません)。",
     "E5068": "読み取れるテキストがありません。",
     "E5069": "分析が実行中です。完了後に再試行してください。",

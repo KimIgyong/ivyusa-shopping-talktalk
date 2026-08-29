@@ -214,7 +214,7 @@ export const ERROR_CODE = {
   // learns WHICH of five different problems to fix (fail-classification).
   INGEST_UNSUPPORTED_FILE: {
     code: 'E5066',
-    message: 'Unsupported file type — upload .pdf, .docx, .xlsx or .csv',
+    message: 'Unsupported file type — upload .pdf, .docx, .xlsx, .csv or .md',
   },
   /** Typically a scanned PDF: pages are images, there is no text layer to read. */
   INGEST_EXTRACT_FAILED: {

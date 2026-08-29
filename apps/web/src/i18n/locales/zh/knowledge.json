@@ -404,7 +404,7 @@
   "ingestGroupCounsel": "咨询手册",
   "ingestGroupProduct": "商品推荐",
   "ingestGroupOperation": "运营手册",
-  "ingestFileHint": "pdf · docx · xlsx · csv,最大 15MB。AI 会将内容拆分为草稿文章。",
+  "ingestFileHint": "pdf · docx · xlsx · csv · md,最大 15MB。AI 会将内容拆分为草稿文章。",
   "ingestVideoHint": "仅支持带公开字幕的 YouTube 视频。",
   "ingestStart": "开始分析",
   "ingestExtracting": "正在提取文本…",
@@ -419,7 +419,7 @@
   "ingestNoDrafts": "未生成任何草稿。",
   "ingestDone": "AI 导入完成:保存 {{saved}} · 嵌入 {{embedded}}",
   "ingestError": {
-    "E5066": "不支持的文件类型(.pdf/.docx/.xlsx/.csv)。",
+    "E5066": "不支持的文件类型(.pdf/.docx/.xlsx/.csv/.md)。",
     "E5067": "无法从文件读取文本(扫描件没有文本层)。",
     "E5068": "文件没有可读取的文本。",
     "E5069": "已有分析正在进行,请等待完成。",

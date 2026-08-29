@@ -404,7 +404,7 @@
   "ingestGroupCounsel": "support manual",
   "ingestGroupProduct": "product recommendation",
   "ingestGroupOperation": "operations manual",
-  "ingestFileHint": "pdf · docx · xlsx · csv, up to 15MB. AI segments the content into draft articles.",
+  "ingestFileHint": "pdf · docx · xlsx · csv · md, up to 15MB. AI segments the content into draft articles.",
   "ingestVideoHint": "YouTube videos with public captions only (caption-less videos cannot be analyzed).",
   "ingestStart": "Start analysis",
   "ingestExtracting": "Extracting text…",
@@ -419,7 +419,7 @@
   "ingestNoDrafts": "No drafts were produced.",
   "ingestDone": "AI import finished: {{saved}} saved · {{embedded}} embedded",
   "ingestError": {
-    "E5066": "Unsupported file type (.pdf/.docx/.xlsx/.csv).",
+    "E5066": "Unsupported file type (.pdf/.docx/.xlsx/.csv/.md).",
     "E5067": "Could not read text from the file (scanned documents have no text layer).",
     "E5068": "The file contains no readable text.",
     "E5069": "An analysis is already running — wait for it to finish.",
