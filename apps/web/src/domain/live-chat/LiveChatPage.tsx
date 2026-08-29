@@ -396,12 +396,23 @@ export function LiveChatPage() {
   };
 
   return (
-    <div>
-      <PageHeader title={t('title')} subtitle={t('subtitle')} />
+    // Viewport-locked page (PLN-260829): the body never scrolls here — only
+    // the three inner regions (list, transcript, context) do. 112px = global
+    // header (64) + main padding (48); a mismatch (e.g. the password banner)
+    // shrinks the grid instead of overflowing into a body scroll, which is
+    // what used to push every pane header off screen.
+    <div className="flex h-[calc(100dvh-112px)] flex-col">
+      <div className="shrink-0">
+        <PageHeader title={t('title')} subtitle={t('subtitle')} />
+      </div>
 
-      <div className="grid h-[calc(100vh-220px)] grid-cols-12 gap-4">
+      <div className="grid min-h-0 flex-1 grid-cols-12 gap-4">
         {/* Session list */}
-        <div className="col-span-3 overflow-y-auto rounded-lg border border-gray-200 bg-white">
+        <div className="col-span-3 min-h-0 overflow-y-auto rounded-lg border border-gray-200 bg-white">
+          {/* Title, filters and search stay pinned while the list below
+              scrolls (PLN-260829 R1). Opaque bg is required — the rows slide
+              underneath. */}
+          <div className="sticky top-0 z-10 bg-white">
           <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3 text-sm font-medium text-gray-600">
             <span>
               {scope === 'groups'
@@ -499,6 +510,7 @@ export function LiveChatPage() {
                 className="w-full rounded-lg border border-gray-200 py-1.5 pl-8 pr-2 text-xs text-gray-700 outline-none focus:border-primary-400 focus:ring-1 focus:ring-primary-400"
               />
             </div>
+          </div>
           </div>
           {/* Group tab: timeline/project list (REQ-260824). */}
           {scope === 'groups' && (
@@ -704,7 +716,7 @@ export function LiveChatPage() {
         </div>
 
         {/* Message thread */}
-        <div className="col-span-6 flex flex-col rounded-lg border border-gray-200 bg-white">
+        <div className="col-span-6 flex min-h-0 flex-col rounded-lg border border-gray-200 bg-white">
           {/* Group room replaces the thread pane while a group is open. */}
           {selectedGroup && (
             <GroupRoom groupId={selectedGroup} onDissolved={() => setSelectedGroup(null)} />
@@ -839,7 +851,7 @@ export function LiveChatPage() {
                 aria-relevant="additions"
                 aria-busy={convoLoading}
                 aria-label={t('messageThread')}
-                className="flex-1 space-y-3 overflow-y-auto p-4"
+                className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4"
               >
                 {convoLoading && (
                   <Loader2 className="mx-auto h-5 w-5 animate-spin text-gray-400" />
@@ -1205,7 +1217,7 @@ export function LiveChatPage() {
         </div>
 
         {/* Context + briefing */}
-        <div className="col-span-3 space-y-4 overflow-y-auto">
+        <div className="col-span-3 min-h-0 space-y-4 overflow-y-auto">
           {/* A group asks a different question than a thread does: not "what is
               this conversation about" but "what does this relationship look
               like". So the briefing gives way to the journey report here, and
