@@ -439,5 +439,7 @@
   },
   "boardOriginNote": "Este documento fue adoptado del Smart Knowledge Board. Editar aquí lo divergirá del original.",
   "boardOriginOpen": "Abrir original del tablero",
-  "ingestDoneBoard": "{{saved}} documento(s) publicados en el tablero — revise y adopte al KB"
+  "ingestDoneBoard": "{{saved}} documento(s) publicados en el tablero — revise y adopte al KB",
+  "writeOnBoard": "Escribir en el tablero",
+  "directAddHint": "Recomendado: escriba y revise primero en el tablero. La adición directa es para emergencias."
 }

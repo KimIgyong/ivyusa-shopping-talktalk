@@ -212,3 +212,63 @@ export function useSimulateGolden() {
       toast.error(err.code === 'E4017' ? t('goldenEmpty') : err.message),
   });
 }
+
+// ---- Collaboration (B3) ----
+
+export function useBoardComments(id: string | null) {
+  const tenantKey = useTenantKey();
+  return useQuery({
+    queryKey: ['board', tenantKey, 'comments', id],
+    queryFn: () => boardService.comments(id!),
+    enabled: id !== null,
+  });
+}
+
+export function useAddBoardComment() {
+  const qc = useQueryClient();
+  const tenantKey = useTenantKey();
+  const { t } = useTranslation('board');
+  return useMutation({
+    mutationFn: (v: { id: string; body: string; mentionIds: number[] }) =>
+      boardService.addComment(v.id, v.body, v.mentionIds),
+    onSuccess: (_r, v) => {
+      qc.invalidateQueries({ queryKey: ['board', tenantKey, 'comments', v.id] });
+      qc.invalidateQueries({ queryKey: ['board', tenantKey, 'mentions'] });
+      toast.success(t('commentAdded'));
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+}
+
+export function useRemoveBoardComment() {
+  const qc = useQueryClient();
+  const tenantKey = useTenantKey();
+  const { t } = useTranslation('board');
+  return useMutation({
+    mutationFn: (v: { commentId: string; documentId: string }) =>
+      boardService.removeComment(v.commentId),
+    onSuccess: (_r, v) => {
+      qc.invalidateQueries({ queryKey: ['board', tenantKey, 'comments', v.documentId] });
+      toast.success(t('commentRemoved'));
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+}
+
+export function useBoardMentions(enabled = true) {
+  const tenantKey = useTenantKey();
+  return useQuery({
+    queryKey: ['board', tenantKey, 'mentions'],
+    queryFn: () => boardService.mentions(),
+    enabled,
+  });
+}
+
+export function useBoardLinkGraph(id: string | null) {
+  const tenantKey = useTenantKey();
+  return useQuery({
+    queryKey: ['board', tenantKey, 'links', id],
+    queryFn: () => boardService.linkGraph(id!),
+    enabled: id !== null,
+  });
+}

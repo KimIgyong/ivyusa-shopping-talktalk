@@ -439,5 +439,7 @@
   },
   "boardOriginNote": "This document was adopted from the Smart Knowledge Board. Editing here diverges from the board original.",
   "boardOriginOpen": "Open board original",
-  "ingestDoneBoard": "{{saved}} document(s) published to the board — review and adopt into KB"
+  "ingestDoneBoard": "{{saved}} document(s) published to the board — review and adopt into KB",
+  "writeOnBoard": "Write on board",
+  "directAddHint": "Recommended: write and review on the board first, then adopt. Direct add is for emergencies."
 }

@@ -79,5 +79,21 @@
   "reopened": "已恢复为已发布",
   "repromote": "重新采纳",
   "revisionBehind": "修订未同步",
-  "statusAll": "全部"
+  "statusAll": "全部",
+  "comments": "评论",
+  "noComments": "暂无评论。",
+  "commentPlaceholder": "输入 @ 可标记同事",
+  "commentSubmit": "发布",
+  "commentAdded": "评论已发布",
+  "commentRemoved": "评论已删除",
+  "mentionsMe": "我",
+  "noMentions": "没有提及您的评论。",
+  "linkPanel": "链接",
+  "backlinksTitle": "链接到此文档的文档",
+  "noBacklinks": "暂无反向链接。",
+  "outgoingTitle": "本文档中的链接",
+  "noOutgoing": "正文中没有 [[链接]]。",
+  "linkMissing": "未撰写",
+  "createFromLink": "以此标题新建文档",
+  "linkRenameHint": "※ 链接基于标题——重命名后旧链接将显示为未撰写。"
 }

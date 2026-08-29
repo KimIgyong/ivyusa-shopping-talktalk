@@ -81,6 +81,29 @@ export interface GoldenAbResult {
   summary: { questions: number; cited: number; avgDelta: number };
 }
 
+export interface BoardComment {
+  id: string;
+  body: string;
+  mentions: Array<{ id: string; name: string }>;
+  authorUserId: string;
+  authorName: string;
+  createdAt: string;
+}
+
+export interface BoardMention {
+  id: string;
+  documentId: string;
+  documentTitle: string;
+  body: string;
+  authorUserId: string;
+  createdAt: string;
+}
+
+export interface BoardLinkGraph {
+  backlinks: Array<{ id: string; title: string }>;
+  outgoing: Array<{ title: string; documentId: string | null }>;
+}
+
 export interface PromoteResult {
   kbDocumentId: string;
   category: string;
@@ -171,4 +194,11 @@ export const boardService = {
     apiPost<SimulateResult>(`/board/documents/${id}/simulate`, { question, language }),
   simulateGolden: (id: string) =>
     apiPost<GoldenAbResult>(`/board/documents/${id}/simulate/golden`, {}),
+  comments: (id: string) => apiGet<BoardComment[]>(`/board/documents/${id}/comments`),
+  addComment: (id: string, body: string, mentionIds: number[]) =>
+    apiPost<BoardComment>(`/board/documents/${id}/comments`, { body, mention_ids: mentionIds }),
+  removeComment: (commentId: string) =>
+    apiDelete<{ deleted: true }>(`/board/comments/${commentId}`),
+  mentions: () => apiGet<BoardMention[]>('/board/mentions'),
+  linkGraph: (id: string) => apiGet<BoardLinkGraph>(`/board/documents/${id}/backlinks`),
 };

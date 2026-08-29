@@ -79,5 +79,21 @@
   "reopened": "De vuelta a publicado",
   "repromote": "Re-adoptar",
   "revisionBehind": "revisión pendiente",
-  "statusAll": "Todos"
+  "statusAll": "Todos",
+  "comments": "Comentarios",
+  "noComments": "Sin comentarios.",
+  "commentPlaceholder": "Escriba @ para etiquetar a un compañero",
+  "commentSubmit": "Publicar",
+  "commentAdded": "Comentario publicado",
+  "commentRemoved": "Comentario eliminado",
+  "mentionsMe": "yo",
+  "noMentions": "Ningún comentario le menciona.",
+  "linkPanel": "Enlaces",
+  "backlinksTitle": "Documentos que enlazan aquí",
+  "noBacklinks": "Sin backlinks.",
+  "outgoingTitle": "Enlaces de este documento",
+  "noOutgoing": "Sin [[enlaces]] en el cuerpo.",
+  "linkMissing": "sin escribir",
+  "createFromLink": "Crear un documento con este título",
+  "linkRenameHint": "※ Los enlaces son por título: renombrar muestra los antiguos como sin escribir."
 }

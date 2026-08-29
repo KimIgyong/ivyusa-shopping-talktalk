@@ -24,7 +24,7 @@ export class BoardReviewController {
     if (user.actorType !== 'user') {
       throw new BusinessException(ERROR_CODE.FORBIDDEN, HttpStatus.FORBIDDEN);
     }
-    return { tenantId: user.tenantId, userId: user.userId };
+    return { tenantId: user.tenantId, userId: Number(user.userId) };
   }
 
   @Post('documents/:id/promote')

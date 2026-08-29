@@ -5,8 +5,11 @@ import { BoardDocument } from './entity/board-document.entity';
 import { BoardDocumentRevision } from './entity/board-document-revision.entity';
 import { BoardAttachment } from './entity/board-attachment.entity';
 import { KbDocument } from '../knowledge/entity/kb-document.entity';
+import { BoardComment } from './entity/board-comment.entity';
+import { User } from '../user/entity/user.entity';
 import { BoardService } from './board.service';
 import { BoardAttachmentService } from './board-attachment.service';
+import { BoardCommentService } from './board-comment.service';
 import { BoardController } from './board.controller';
 
 /** Smart Knowledge Board (PLN-260829 B1) — the curation layer above kb_documents. */
@@ -19,8 +22,11 @@ import { BoardController } from './board.controller';
       // Repository only — the revision-behind check compares against the
       // adopted KB row (B2 P4-3); no KnowledgeModule import.
       KbDocument,
+      BoardComment,
+      // Repository only — author/mention names on comments; no UserModule import.
+      User,
     ])],
-  providers: [BoardService, BoardAttachmentService],
+  providers: [BoardService, BoardAttachmentService, BoardCommentService],
   controllers: [BoardController],
   exports: [BoardService],
 })

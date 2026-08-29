@@ -1009,7 +1009,14 @@ export function KnowledgePage() {
                 {t('aiImport')}
               </Button>
               <AddDocumentHelp />
-              <Button onClick={openDoc}>{t('addDocument')}</Button>
+              {/* Knowledge starts on the board (B3 P5-6); direct add stays for
+                  emergencies (D-1: no hard block). */}
+              <Button onClick={() => navigate(`/knowledge/board/new?group=${group || 'counsel'}`)}>
+                {t('writeOnBoard')}
+              </Button>
+              <Button variant="ghost" onClick={openDoc}>
+                {t('addDocument')}
+              </Button>
             </div>
           }
         >
@@ -1698,6 +1705,7 @@ export function KnowledgePage() {
           </>
         }
       >
+        <p className="mb-2 text-xs text-warning">{t('directAddHint')}</p>
         <FormRow label={t('groupColumn')}>
           <Select value={docGroup} onChange={(e) => setDocGroup(e.target.value)}>
             <option value="counsel">{t('group.counsel')}</option>

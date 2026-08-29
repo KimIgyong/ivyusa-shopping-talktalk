@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import MDEditor from '@uiw/react-md-editor';
 import '@uiw/react-md-editor/markdown-editor.css';
@@ -12,6 +12,7 @@ import { FormRow, Input, Select } from '@/components/Field';
 import { useJobLabels } from '@/domain/users/users.hooks';
 import { useAuthStore } from '@/store/auth-store';
 import { SimulationModal } from './SimulationModal';
+import { BoardCollabPanels } from './BoardCollabPanels';
 import {
   useAddBoardLink,
   useBoardDocument,
@@ -40,6 +41,7 @@ export function BoardDocumentPage() {
   const { t: tc } = useTranslation('common');
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
   const isNew = id === 'new';
   const docId = isNew ? null : (id ?? null);
 
@@ -62,11 +64,13 @@ export function BoardDocumentPage() {
     principal?.actorType === 'user' && (principal.rank === 'master' || principal.rank === 'director');
   const [simOpen, setSimOpen] = useState(false);
 
-  const [group, setGroup] = useState('counsel');
+  // ?group=&title= prefill (P5-8) — the missing-wikilink shortcut and the
+  // knowledge-page CTA both land here with context.
+  const [group, setGroup] = useState(searchParams.get('group') || 'counsel');
   const [category1, setCategory1] = useState('');
   const [category2, setCategory2] = useState('');
   const [teamLabel, setTeamLabel] = useState('');
-  const [title, setTitle] = useState('');
+  const [title, setTitle] = useState(searchParams.get('title') || '');
   const [content, setContent] = useState('');
   const [tags, setTags] = useState<string[]>([]);
   const [tagDraft, setTagDraft] = useState('');
@@ -334,6 +338,8 @@ export function BoardDocumentPage() {
             </ul>
           </div>
         )}
+
+        {!isNew && docId && <BoardCollabPanels documentId={docId} docGroup={group} />}
 
         <div className="mt-4 flex justify-end gap-2">
           <Button variant="secondary" disabled={!canSave || saving} onClick={() => save()}>
