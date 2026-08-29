@@ -7,13 +7,11 @@ import { join, resolve } from 'path';
 import { randomUUID } from 'crypto';
 import { AI_FUNCTION } from '@ivy/types';
 import { AiGatewayService } from '../../infrastructure/external/ai/ai-gateway.service';
-import { KbDocument } from './entity/kb-document.entity';
 import { KbFile } from './entity/kb-file.entity';
-import { CATEGORY_ORIGIN } from './entity/kb-category.entity';
 import { KbCategoryService } from './kb-category.service';
 import { KbRevisionService } from './kb-revision.service';
-import { REVISION_KIND } from './entity/kb-document-revision.entity';
-import { KnowledgeService } from './knowledge.service';
+import { BoardService } from '../board/board.service';
+import { BOARD_DOC_STATUS } from '../board/entity/board-document.entity';
 import { extractText } from './file-extract.util';
 import { fetchYoutubeTranscript } from './youtube-transcript.util';
 import {
@@ -46,12 +44,11 @@ export class KnowledgeIngestService {
   private readonly logger = new Logger(KnowledgeIngestService.name);
 
   constructor(
-    @InjectRepository(KbDocument) private readonly docRepo: Repository<KbDocument>,
     @InjectRepository(KbFile) private readonly fileRepo: Repository<KbFile>,
     private readonly ai: AiGatewayService,
     private readonly categories: KbCategoryService,
     private readonly revisions: KbRevisionService,
-    private readonly knowledge: KnowledgeService,
+    private readonly board: BoardService,
     private readonly jobs: KnowledgeIngestJobService,
     private readonly config: ConfigService,
   ) {}
@@ -110,8 +107,10 @@ export class KnowledgeIngestService {
   }
 
   /**
-   * Save the drafts the operator selected (possibly edited). Consumes the job:
-   * a second approve of the same run would duplicate every article.
+   * Publish the drafts the operator selected onto the Smart Knowledge Board
+   * (B2 P4-6 — REQ C2: external material lands on the board first; adoption
+   * into KB is the reviewer's separate call). Consumes the job: a second
+   * approve of the same run would duplicate every article.
    */
   async approve(
     tenantId: number,
@@ -123,49 +122,44 @@ export class KnowledgeIngestService {
       throw new BusinessException(ERROR_CODE.VALIDATION_FAILED, HttpStatus.BAD_REQUEST);
     }
 
-    const keyBase = job.fileId != null ? `FILE-${job.fileId}` : `ING-${job.id.slice(0, 8)}`;
-    const docs: KbDocument[] = [];
-    for (const [i, a] of articles.entries()) {
+    const boardDocumentIds: string[] = [];
+    for (const a of articles) {
       const title = a.title.trim().slice(0, 255);
       const category = a.category.trim().slice(0, 64);
       const content = a.content.trim();
       if (!title || !category || !content) {
         throw new BusinessException(ERROR_CODE.VALIDATION_FAILED, HttpStatus.BAD_REQUEST);
       }
-      await this.categories.ensure(tenantId, category, CATEGORY_ORIGIN.MANUAL, job.docGroup);
-      const saved = await this.docRepo.save(
-        this.docRepo.create({
-          tenantId,
-          docGroup: job.docGroup,
-          externalKey: `${keyBase}-${i + 1}`,
-          source: job.sourceKind,
-          category,
+      const doc = await this.board.create(
+        tenantId,
+        {
+          doc_group: job.docGroup,
+          category1: category,
           title,
           content,
-          sourceUrl: job.sourceUrl,
-          active: 1,
-          status: 'pending',
-          embeddingRef: null,
-        }),
+          // The tag is how a reviewer later tells machine-drafted entries from
+          // hand-written ones; precise file↔document linking is B4.
+          tags: ['ai-import'],
+          status: BOARD_DOC_STATUS.PUBLISHED,
+        },
+        { userId: actorUserId, rank: 'staff' },
       );
-      await this.revisions.record(tenantId, saved, null, REVISION_KIND.CREATE, actorUserId);
-      docs.push(saved);
+      boardDocumentIds.push(String(doc.id));
     }
 
-    const { embedded, failed } = await this.knowledge.embedDocuments(docs);
     const result = {
       sourceLabel: job.sourceLabel,
       sourceKind: job.sourceKind,
       docGroup: job.docGroup,
       drafted: job.drafts.length,
-      saved: docs.length,
-      embedded,
-      embedFailed: failed,
+      saved: boardDocumentIds.length,
+      target: 'board',
+      boardDocumentIds,
     };
     await this.revisions.recordAudit(tenantId, 0, 'knowledge.file_ingested', actorUserId, result);
     this.jobs.markConsumed(tenantId, result);
     this.logger.log(
-      `ingest approved (tenant ${tenantId}): "${job.sourceLabel}" → saved=${docs.length} embedded=${embedded}`,
+      `ingest approved (tenant ${tenantId}): "${job.sourceLabel}" → board docs=${boardDocumentIds.length}`,
     );
     return result;
   }

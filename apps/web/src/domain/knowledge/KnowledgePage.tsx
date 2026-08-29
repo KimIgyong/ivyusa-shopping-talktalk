@@ -625,6 +625,17 @@ export function KnowledgePage() {
         ]
       : []),
     {
+      // Origin badge (B2 P4-7): board-adopted vs direct vs pipeline documents.
+      key: 'source',
+      header: t('sourceColumn'),
+      className: 'w-24 whitespace-nowrap',
+      render: (r) => (
+        <Badge tone={r.source === 'board' ? 'success' : 'gray'}>
+          {t(`sourceBadge.${r.source}`, { defaultValue: r.source })}
+        </Badge>
+      ),
+    },
+    {
       key: 'category',
       header: t('category'),
       className: 'w-32 whitespace-nowrap',
@@ -1840,6 +1851,20 @@ export function KnowledgePage() {
                 {t('markReviewed')}
               </Button>
             </div>
+            {detail.data?.externalKey?.startsWith('BRD-') && (
+              <div className="mb-2 rounded-md bg-primary-50 px-3 py-2 text-xs text-primary-800">
+                {t('boardOriginNote')}{' '}
+                <button
+                  type="button"
+                  className="font-medium underline"
+                  onClick={() =>
+                    navigate(`/knowledge/board/${detail.data!.externalKey!.slice(4)}`)
+                  }
+                >
+                  {t('boardOriginOpen')}
+                </button>
+              </div>
+            )}
             {editing ? (
               /* Saving re-embeds when the content changed (updateDocument), so a
                  corrected source is searchable again straight away. */

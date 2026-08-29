@@ -31,7 +31,7 @@ export function useBoardDocument(id: string | null) {
   });
 }
 
-function useBoardInvalidator() {
+export function useBoardInvalidatorExported() {
   const qc = useQueryClient();
   const tenantKey = useTenantKey();
   return (id?: string) => {
@@ -42,7 +42,7 @@ function useBoardInvalidator() {
 }
 
 export function useCreateBoardDocument() {
-  const invalidate = useBoardInvalidator();
+  const invalidate = useBoardInvalidatorExported();
   const { t } = useTranslation('board');
   return useMutation({
     mutationFn: (body: BoardDocumentInput) => boardService.create(body),
@@ -55,7 +55,7 @@ export function useCreateBoardDocument() {
 }
 
 export function useUpdateBoardDocument() {
-  const invalidate = useBoardInvalidator();
+  const invalidate = useBoardInvalidatorExported();
   const { t } = useTranslation('board');
   return useMutation({
     mutationFn: (v: { id: string; body: Partial<BoardDocumentInput> }) =>
@@ -69,7 +69,7 @@ export function useUpdateBoardDocument() {
 }
 
 export function useDeleteBoardDocument() {
-  const invalidate = useBoardInvalidator();
+  const invalidate = useBoardInvalidatorExported();
   const { t } = useTranslation('board');
   return useMutation({
     mutationFn: (id: string) => boardService.remove(id),
@@ -91,7 +91,7 @@ export function useBoardRevisions(id: string | null) {
 }
 
 export function useRestoreBoardRevision() {
-  const invalidate = useBoardInvalidator();
+  const invalidate = useBoardInvalidatorExported();
   const qc = useQueryClient();
   const tenantKey = useTenantKey();
   const { t } = useTranslation('board');
@@ -108,7 +108,7 @@ export function useRestoreBoardRevision() {
 }
 
 export function useUploadBoardAttachments() {
-  const invalidate = useBoardInvalidator();
+  const invalidate = useBoardInvalidatorExported();
   const { t } = useTranslation('board');
   return useMutation({
     mutationFn: (v: { id: string; files: File[] }) => boardService.upload(v.id, v.files),
@@ -124,7 +124,7 @@ export function useUploadBoardAttachments() {
 }
 
 export function useAddBoardLink() {
-  const invalidate = useBoardInvalidator();
+  const invalidate = useBoardInvalidatorExported();
   const { t } = useTranslation('board');
   return useMutation({
     mutationFn: (v: { id: string; url: string; label?: string }) =>
@@ -139,7 +139,7 @@ export function useAddBoardLink() {
 }
 
 export function useRemoveBoardAttachment() {
-  const invalidate = useBoardInvalidator();
+  const invalidate = useBoardInvalidatorExported();
   const { t } = useTranslation('board');
   return useMutation({
     mutationFn: (v: { attachmentId: string; documentId: string }) =>
@@ -149,5 +149,66 @@ export function useRemoveBoardAttachment() {
       toast.success(t('attachmentRemoved'));
     },
     onError: (err: Error) => toast.error(err.message),
+  });
+}
+
+// ---- Review: adoption + simulation (B2) ----
+
+export function usePromoteBoardDocument() {
+  const invalidate = useBoardInvalidatorExported();
+  const qc = useQueryClient();
+  const { t } = useTranslation('board');
+  return useMutation({
+    mutationFn: (v: { id: string; category?: string }) => boardService.promote(v.id, v.category),
+    onSuccess: (r, v) => {
+      invalidate(v.id);
+      qc.invalidateQueries({ queryKey: ['knowledge'] });
+      if (r.embedFailed) toast.error(t('promotedNotIndexed'));
+      else toast.success(t('promoted', { category: r.category }));
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+}
+
+export function useRejectBoardDocument() {
+  const invalidate = useBoardInvalidatorExported();
+  const { t } = useTranslation('board');
+  return useMutation({
+    mutationFn: (id: string) => boardService.reject(id),
+    onSuccess: (_r, id) => {
+      invalidate(id);
+      toast.success(t('rejected'));
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+}
+
+export function useReopenBoardDocument() {
+  const invalidate = useBoardInvalidatorExported();
+  const { t } = useTranslation('board');
+  return useMutation({
+    mutationFn: (id: string) => boardService.reopen(id),
+    onSuccess: (_r, id) => {
+      invalidate(id);
+      toast.success(t('reopened'));
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+}
+
+export function useSimulateBoardDocument() {
+  return useMutation({
+    mutationFn: (v: { id: string; question: string; language?: string }) =>
+      boardService.simulate(v.id, v.question, v.language),
+    onError: (err: Error) => toast.error(err.message),
+  });
+}
+
+export function useSimulateGolden() {
+  const { t } = useTranslation('board');
+  return useMutation({
+    mutationFn: (id: string) => boardService.simulateGolden(id),
+    onError: (err: Error & { code?: string }) =>
+      toast.error(err.code === 'E4017' ? t('goldenEmpty') : err.message),
   });
 }

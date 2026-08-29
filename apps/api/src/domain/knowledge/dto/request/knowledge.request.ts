@@ -101,6 +101,19 @@ export class BulkImportRequest {
   @IsOptional() @IsIn(BULK_IMPORT_GROUPS as readonly string[]) doc_group?: string;
 }
 
+// ---- Board review (PLN-260829 B2) ----
+
+export class PromoteBoardDocumentRequest {
+  /** Overrides the default KB category mapping (2nd level, else 1st). */
+  @IsOptional() @IsString() @MaxLength(64) category?: string;
+}
+
+export class SimulateBoardDocumentRequest {
+  @IsString() @MinLength(1) question: string;
+  @IsOptional() @IsString() language?: string;
+  @IsOptional() @IsInt() ai_agent_id?: number;
+}
+
 // ---- AI ingest (PLN-260829 3차) ----
 
 /** Multipart form fields riding along the ingest file upload. */

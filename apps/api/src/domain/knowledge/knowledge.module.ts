@@ -13,6 +13,11 @@ import { KbRevisionService } from './kb-revision.service';
 import { ProductImportService } from './product-import.service';
 import { BulkImportService } from './bulk-import.service';
 import { KnowledgeIngestService } from './knowledge-ingest.service';
+import { BoardReviewService } from './board-review.service';
+import { BoardReviewController } from './board-review.controller';
+import { BoardDocument } from '../board/entity/board-document.entity';
+import { GoldenQuestion } from '../ai-coach/entity/golden-question.entity';
+import { BoardModule } from '../board/board.module';
 import { KnowledgeIngestJobService } from './knowledge-ingest-job.service';
 import { CatalogSyncService } from './catalog-sync.service';
 import { CatalogSyncJobService } from './catalog-sync-job.service';
@@ -66,17 +71,24 @@ import { ModerationModule } from '../moderation/moderation.module';
       // Repository only — category scope validates the agent ids it is handed
       // against this tenant's agents; no AiEngineModule import.
       AiAgent,
+      // Repository only — board review reads/updates board rows and golden
+      // questions for the A/B; the dependency arrow stays knowledge → board.
+      BoardDocument,
+      GoldenQuestion,
     ]),
     // RagService answers the console's knowledge questions; Chat does not depend
     // on Knowledge, so this stays acyclic.
     ChatModule,
     ModerationModule,
+    // Ingest approval publishes drafts onto the board (B2 P4-6).
+    BoardModule,
     // Knowledge edits were the one privileged action leaving no audit trail.
     AuditModule,
   ],
-  controllers: [KnowledgeController, AgentKnowledgeController],
+  controllers: [KnowledgeController, AgentKnowledgeController, BoardReviewController],
   providers: [
     KnowledgeService,
+    BoardReviewService,
     KnowledgeGapService,
     KbConflictService,
     KbRevisionService,

@@ -84,11 +84,9 @@ export function AiIngestModal({
       picked.map((d) => ({ title: d.title, category: d.category, content: d.content })),
       {
         onSuccess: (r) => {
-          if (r.embedFailed) {
-            toast.error(t('ingestDone', { saved: r.saved, embedded: r.embedded }));
-          } else {
-            toast.success(t('ingestDone', { saved: r.saved, embedded: r.embedded }));
-          }
+          // B2 P4-6: approval publishes onto the board — adoption is a
+          // separate reviewed step.
+          toast.success(t('ingestDoneBoard', { saved: r.saved }));
           setDrafts(null);
           onClose();
         },

@@ -427,5 +427,17 @@
   },
   "boardBannerTitle": "Smart Knowledge Board",
   "boardBannerBody": "Tri thức được viết và duyệt trên bảng trước. Tính năng đưa vào KB sẽ sớm ra mắt.",
-  "boardBannerCta": "Mở bảng"
+  "boardBannerCta": "Mở bảng",
+  "sourceBadge": {
+    "knowledge_store": "trực tiếp",
+    "board": "bảng",
+    "file_upload": "tệp",
+    "youtube": "YouTube",
+    "google_drive": "Drive",
+    "notion": "Notion",
+    "product_catalog": "danh mục"
+  },
+  "boardOriginNote": "Tài liệu này được đưa vào từ Smart Knowledge Board. Sửa tại đây sẽ lệch khỏi bản gốc trên bảng.",
+  "boardOriginOpen": "Mở bản gốc trên bảng",
+  "ingestDoneBoard": "Đã đăng {{saved}} tài liệu lên bảng — hãy duyệt rồi đưa vào KB"
 }

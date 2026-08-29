@@ -81,7 +81,8 @@ export class BoardController {
     const a = this.actor(user);
     const doc = await this.board.get(a.tenantId, id);
     const files = await this.attachments.listFor(a.tenantId, id);
-    return BoardMapper.toDocument(doc, files);
+    const review = await this.board.reviewMeta(a.tenantId, doc);
+    return { ...BoardMapper.toDocument(doc, files), ...review };
   }
 
   @Post('documents')

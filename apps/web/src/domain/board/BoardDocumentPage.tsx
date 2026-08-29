@@ -10,9 +10,14 @@ import { Badge } from '@/components/Badge';
 import { Modal } from '@/components/Modal';
 import { FormRow, Input, Select } from '@/components/Field';
 import { useJobLabels } from '@/domain/users/users.hooks';
+import { useAuthStore } from '@/store/auth-store';
+import { SimulationModal } from './SimulationModal';
 import {
   useAddBoardLink,
   useBoardDocument,
+  usePromoteBoardDocument,
+  useRejectBoardDocument,
+  useReopenBoardDocument,
   useBoardRevisions,
   useCreateBoardDocument,
   useDeleteBoardDocument,
@@ -47,6 +52,15 @@ export function BoardDocumentPage() {
   const addLink = useAddBoardLink();
   const removeAttachment = useRemoveBoardAttachment();
   const restore = useRestoreBoardRevision();
+  const promote = usePromoteBoardDocument();
+  const rejectDoc = useRejectBoardDocument();
+  const reopenDoc = useReopenBoardDocument();
+  const principal = useAuthStore((st) => st.principal);
+  // Adoption/simulation are knowledge-manager powers (B2 P4-8). Mirrors the
+  // server matrix: KNOWLEDGE_SOURCE_MANAGE = master + director.
+  const canReview =
+    principal?.actorType === 'user' && (principal.rank === 'master' || principal.rank === 'director');
+  const [simOpen, setSimOpen] = useState(false);
 
   const [group, setGroup] = useState('counsel');
   const [category1, setCategory1] = useState('');
@@ -124,9 +138,49 @@ export function BoardDocumentPage() {
           <div className="flex items-center gap-2">
             {!isNew && (
               <>
-                <Badge tone={status === 'published' ? 'info' : 'gray'}>
+                <Badge tone={status === 'promoted' ? 'success' : status === 'published' ? 'info' : status === 'rejected' ? 'warning' : 'gray'}>
                   {t(`statusValue.${status}`)}
                 </Badge>
+                {detail.data?.revisionBehind && (
+                  <Badge tone="warning">{t('revisionBehind')}</Badge>
+                )}
+                {canReview && status === 'published' && (
+                  <>
+                    <Button variant="secondary" onClick={() => setSimOpen(true)}>
+                      {t('simulation')}
+                    </Button>
+                    <Button
+                      disabled={promote.isPending}
+                      onClick={() => docId && promote.mutate({ id: docId })}
+                    >
+                      {t('promote')}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      disabled={rejectDoc.isPending}
+                      onClick={() => docId && rejectDoc.mutate(docId)}
+                    >
+                      {t('reject')}
+                    </Button>
+                  </>
+                )}
+                {canReview && status === 'promoted' && (
+                  <>
+                    {detail.data?.revisionBehind && (
+                      <Button disabled={promote.isPending} onClick={() => docId && promote.mutate({ id: docId })}>
+                        {t('repromote')}
+                      </Button>
+                    )}
+                    <Button variant="ghost" onClick={() => docId && reopenDoc.mutate(docId)}>
+                      {t('reopen')}
+                    </Button>
+                  </>
+                )}
+                {canReview && status === 'rejected' && (
+                  <Button variant="ghost" onClick={() => docId && reopenDoc.mutate(docId)}>
+                    {t('reopen')}
+                  </Button>
+                )}
                 <Button variant="ghost" onClick={() => setHistoryOpen(true)}>
                   {t('history')}
                 </Button>
@@ -317,6 +371,20 @@ export function BoardDocumentPage() {
           <Input value={linkLabel} onChange={(e) => setLinkLabel(e.target.value)} />
         </FormRow>
       </Modal>
+
+      {docId && (
+        <SimulationModal
+          open={simOpen}
+          onClose={() => setSimOpen(false)}
+          documentId={docId}
+          documentTitle={detail.data?.title ?? ''}
+          canPromote={canReview}
+          onPromote={() => {
+            promote.mutate({ id: docId });
+            setSimOpen(false);
+          }}
+        />
+      )}
 
       <Modal open={historyOpen} onClose={() => setHistoryOpen(false)} title={t('history')}
         footer={<Button variant="ghost" onClick={() => setHistoryOpen(false)}>{tc('close')}</Button>}

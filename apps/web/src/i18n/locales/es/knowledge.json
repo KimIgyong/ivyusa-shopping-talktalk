@@ -427,5 +427,17 @@
   },
   "boardBannerTitle": "Smart Knowledge Board",
   "boardBannerBody": "El conocimiento se escribe y revisa primero en el tablero. La adopción al KB llegará pronto.",
-  "boardBannerCta": "Abrir tablero"
+  "boardBannerCta": "Abrir tablero",
+  "sourceBadge": {
+    "knowledge_store": "directo",
+    "board": "tablero",
+    "file_upload": "archivo",
+    "youtube": "YouTube",
+    "google_drive": "Drive",
+    "notion": "Notion",
+    "product_catalog": "catálogo"
+  },
+  "boardOriginNote": "Este documento fue adoptado del Smart Knowledge Board. Editar aquí lo divergirá del original.",
+  "boardOriginOpen": "Abrir original del tablero",
+  "ingestDoneBoard": "{{saved}} documento(s) publicados en el tablero — revise y adopte al KB"
 }
