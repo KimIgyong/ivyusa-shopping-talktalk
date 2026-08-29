@@ -41,6 +41,7 @@ migration_audit_context.sql	column	audit_logs	ip
 migration_audit_context.sql	column	audit_logs	request_id
 migration_audit_context.sql	column	audit_logs	result
 migration_audit_context.sql	column	audit_logs	metadata
+migration_board_comments.sql	table	board_comments	-
 migration_chat_comments.sql	table	chat_comments	-
 migration_chat_groups.sql	table	chat_groups	-
 migration_chat_groups.sql	table	chat_group_members	-

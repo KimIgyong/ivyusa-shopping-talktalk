@@ -79,5 +79,21 @@
   "reopened": "Đã về trạng thái đã đăng",
   "repromote": "Đưa vào lại",
   "revisionBehind": "chưa cập nhật bản sửa",
-  "statusAll": "Tất cả"
+  "statusAll": "Tất cả",
+  "comments": "Bình luận",
+  "noComments": "Chưa có bình luận.",
+  "commentPlaceholder": "Gõ @ để gắn thẻ đồng nghiệp",
+  "commentSubmit": "Đăng",
+  "commentAdded": "Đã đăng bình luận",
+  "commentRemoved": "Đã xóa bình luận",
+  "mentionsMe": "tôi",
+  "noMentions": "Không có bình luận nào nhắc đến bạn.",
+  "linkPanel": "Liên kết",
+  "backlinksTitle": "Tài liệu liên kết đến đây",
+  "noBacklinks": "Không có backlink.",
+  "outgoingTitle": "Liên kết trong tài liệu",
+  "noOutgoing": "Không có [[liên kết]] trong nội dung.",
+  "linkMissing": "chưa viết",
+  "createFromLink": "Tạo tài liệu với tiêu đề này",
+  "linkRenameHint": "※ Liên kết theo tiêu đề — đổi tên sẽ hiển thị liên kết cũ là chưa viết."
 }

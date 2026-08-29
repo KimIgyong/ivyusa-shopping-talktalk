@@ -9,7 +9,7 @@ import { Table } from '@/components/Table';
 import type { Column } from '@/components/Table';
 import { Input } from '@/components/Field';
 import { Pagination } from '@/components/Pagination';
-import { useBoardCategoryCounts, useBoardDocuments } from './board.hooks';
+import { useBoardCategoryCounts, useBoardDocuments, useBoardMentions } from './board.hooks';
 import type { BoardDocumentSummary } from './board.service';
 
 const GROUPS = ['counsel', 'product', 'operation'] as const;
@@ -28,6 +28,9 @@ export function BoardListPage() {
   const [search, setSearch] = useState('');
   const [searchDraft, setSearchDraft] = useState('');
   const [page, setPage] = useState(1);
+
+  const mentionsQ = useBoardMentions();
+  const [mentionsOpen, setMentionsOpen] = useState(false);
 
   const documents = useBoardDocuments({
     group: group || undefined,
@@ -135,7 +138,41 @@ export function BoardListPage() {
       <PageHeader title={t('title')} subtitle={t('subtitle')} />
       <Card
         title={t('documents')}
-        action={<Button onClick={() => navigate('/knowledge/board/new')}>{t('newDocument')}</Button>}
+        action={
+          <div className="relative flex items-center gap-2">
+            <Button variant="ghost" size="sm" onClick={() => setMentionsOpen((v) => !v)}>
+              @{t('mentionsMe')}
+              <span className="ml-1 tabular-nums">{mentionsQ.data?.length ?? 0}</span>
+            </Button>
+            {mentionsOpen && (
+              <div className="absolute right-0 top-full z-10 mt-1 w-96 rounded-md border border-gray-200 bg-white p-2 text-sm shadow-lg">
+                <ul className="max-h-80 space-y-2 overflow-y-auto">
+                  {(mentionsQ.data ?? []).map((m) => (
+                    <li key={m.id} className="border-b border-gray-100 pb-1.5 last:border-0">
+                      <button
+                        type="button"
+                        className="w-full text-left"
+                        onClick={() => navigate(`/knowledge/board/${m.documentId}`)}
+                      >
+                        <span className="block truncate text-xs font-medium text-primary-700">
+                          {m.documentTitle}
+                        </span>
+                        <span className="block truncate text-xs text-gray-600">{m.body}</span>
+                        <span className="text-[10px] text-gray-400">
+                          {new Date(m.createdAt).toLocaleString()}
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                  {!mentionsQ.data?.length && (
+                    <li className="py-2 text-xs text-gray-400">{t('noMentions')}</li>
+                  )}
+                </ul>
+              </div>
+            )}
+            <Button onClick={() => navigate('/knowledge/board/new')}>{t('newDocument')}</Button>
+          </div>
+        }
       >
         <div className="mb-3 flex flex-wrap gap-1 border-b border-gray-200">
           {[

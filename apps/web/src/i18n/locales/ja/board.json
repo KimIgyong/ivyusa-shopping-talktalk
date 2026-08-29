@@ -79,5 +79,21 @@
   "reopened": "公開に戻しました",
   "repromote": "再採用",
   "revisionBehind": "改訂未反映",
-  "statusAll": "すべて"
+  "statusAll": "すべて",
+  "comments": "コメント",
+  "noComments": "コメントはありません。",
+  "commentPlaceholder": "@でチームメンバーをタグ付けできます",
+  "commentSubmit": "投稿",
+  "commentAdded": "コメントを投稿しました",
+  "commentRemoved": "コメントを削除しました",
+  "mentionsMe": "自分",
+  "noMentions": "自分をメンションしたコメントはありません。",
+  "linkPanel": "リンク",
+  "backlinksTitle": "この文書へのリンク",
+  "noBacklinks": "バックリンクはありません。",
+  "outgoingTitle": "この文書のリンク",
+  "noOutgoing": "本文に[[リンク]]はありません。",
+  "linkMissing": "未作成",
+  "createFromLink": "このタイトルで新規作成",
+  "linkRenameHint": "※ リンクはタイトル基準です — 改名すると旧リンクは未作成と表示されます。"
 }

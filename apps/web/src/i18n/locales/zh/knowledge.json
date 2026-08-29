@@ -439,5 +439,7 @@
   },
   "boardOriginNote": "该文档采纳自 Smart Knowledge Board。在此直接编辑将与看板原文产生分歧。",
   "boardOriginOpen": "打开看板原文",
-  "ingestDoneBoard": "已发布 {{saved}} 篇到看板——请审核后采纳至 KB"
+  "ingestDoneBoard": "已发布 {{saved}} 篇到看板——请审核后采纳至 KB",
+  "writeOnBoard": "在看板撰写",
+  "directAddHint": "建议:先在看板撰写并审核后再采纳。直接添加仅用于紧急情况。"
 }

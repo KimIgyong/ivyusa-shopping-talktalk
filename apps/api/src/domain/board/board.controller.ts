@@ -25,9 +25,11 @@ import { ERROR_CODE } from '../../global/constant/error-code.constant';
 import { decodeUploadName } from '../../global/util/upload-name.util';
 import { BoardService, BoardActor } from './board.service';
 import { BoardAttachmentService, UploadedBoardFile } from './board-attachment.service';
+import { BoardCommentService } from './board-comment.service';
 import { BoardMapper } from './board.mapper';
 import {
   AddBoardLinkRequest,
+  CreateBoardCommentRequest,
   CreateBoardDocumentRequest,
   ListBoardDocumentsQuery,
   UpdateBoardDocumentRequest,
@@ -46,6 +48,7 @@ export class BoardController {
   constructor(
     private readonly board: BoardService,
     private readonly attachments: BoardAttachmentService,
+    private readonly comments: BoardCommentService,
   ) {}
 
   /** Narrow to a tenant user, keeping the rank the delete rule needs. */
@@ -53,7 +56,9 @@ export class BoardController {
     if (user.actorType !== 'user') {
       throw new BusinessException(ERROR_CODE.FORBIDDEN, HttpStatus.FORBIDDEN);
     }
-    return { tenantId: user.tenantId, userId: user.userId, rank: user.rank };
+    // Number() at the boundary: the JWT hands userId as a string, and both
+    // the author-delete comparison and JSON_CONTAINS(mentions) are strict.
+    return { tenantId: user.tenantId, userId: Number(user.userId), rank: user.rank };
   }
 
   @Get()
@@ -112,7 +117,66 @@ export class BoardController {
     const a = this.actor(user);
     await this.board.remove(a.tenantId, id, a);
     await this.attachments.removeAllFor(a.tenantId, id);
+    await this.comments.removeAllFor(a.tenantId, id);
     return { deleted: true };
+  }
+
+  @Get('documents/:id/backlinks')
+  @ApiOperation({ summary: 'Who links here + where this document links (B3 P5-4)' })
+  async backlinks(@CurrentUser() user: Principal, @Param('id', ParseIntPipe) id: number) {
+    const a = this.actor(user);
+    const doc = await this.board.get(a.tenantId, id);
+    return this.board.linkGraph(a.tenantId, doc);
+  }
+
+  @Get('documents/:id/comments')
+  @ApiOperation({ summary: 'Comments on a board document, oldest first' })
+  async listComments(@CurrentUser() user: Principal, @Param('id', ParseIntPipe) id: number) {
+    const a = this.actor(user);
+    await this.board.get(a.tenantId, id);
+    return this.comments.listFor(a.tenantId, id);
+  }
+
+  @Post('documents/:id/comments')
+  @ApiOperation({ summary: 'Comment with optional @mentions (tenant users only)' })
+  async addComment(
+    @CurrentUser() user: Principal,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: CreateBoardCommentRequest,
+  ) {
+    const a = this.actor(user);
+    await this.board.get(a.tenantId, id);
+    return this.comments.create(a.tenantId, id, body.body, body.mention_ids ?? [], a);
+  }
+
+  @Delete('comments/:id')
+  @ApiOperation({ summary: 'Delete a comment (author or master/director)' })
+  async removeComment(@CurrentUser() user: Principal, @Param('id', ParseIntPipe) id: number) {
+    const a = this.actor(user);
+    await this.comments.remove(a.tenantId, id, a);
+    return { deleted: true };
+  }
+
+  @Get('mentions')
+  @ApiOperation({ summary: "The caller's mention inbox (most recent 50)" })
+  async mentions(@CurrentUser() user: Principal) {
+    const a = this.actor(user);
+    const rows = await this.comments.mentionsFor(a.tenantId, a.userId);
+    // The inbox needs the document title to be navigable.
+    const docIds = [...new Set(rows.map((r) => Number(r.documentId)))];
+    const titles = new Map<number, string>();
+    for (const docId of docIds) {
+      const doc = await this.board.get(a.tenantId, docId).catch(() => null);
+      if (doc) titles.set(docId, doc.title);
+    }
+    return rows.map((r) => ({
+      id: String(r.id),
+      documentId: String(r.documentId),
+      documentTitle: titles.get(Number(r.documentId)) ?? '',
+      body: r.body,
+      authorUserId: String(r.authorUserId),
+      createdAt: r.createdAt,
+    }));
   }
 
   @Get('documents/:id/revisions')

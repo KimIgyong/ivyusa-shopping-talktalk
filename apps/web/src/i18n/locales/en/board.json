@@ -79,5 +79,21 @@
   "reopened": "Back to published",
   "repromote": "Re-adopt",
   "revisionBehind": "revision behind",
-  "statusAll": "All statuses"
+  "statusAll": "All statuses",
+  "comments": "Comments",
+  "noComments": "No comments yet.",
+  "commentPlaceholder": "Type @ to tag a teammate",
+  "commentSubmit": "Post",
+  "commentAdded": "Comment posted",
+  "commentRemoved": "Comment removed",
+  "mentionsMe": "me",
+  "noMentions": "No comments mention you.",
+  "linkPanel": "Links",
+  "backlinksTitle": "Documents linking here",
+  "noBacklinks": "No backlinks.",
+  "outgoingTitle": "Links in this document",
+  "noOutgoing": "No [[links]] in the body.",
+  "linkMissing": "not written",
+  "createFromLink": "Create a document with this title",
+  "linkRenameHint": "※ Links are by title — renaming a document shows its old links as not written."
 }

@@ -439,5 +439,7 @@
   },
   "boardOriginNote": "この文書はSmart Knowledge Boardから採用されました。ここで直接編集するとボード原本と分岐します。",
   "boardOriginOpen": "ボード原本を開く",
-  "ingestDoneBoard": "ボードに{{saved}}件を公開しました — レビュー後にKBへ採用してください"
+  "ingestDoneBoard": "ボードに{{saved}}件を公開しました — レビュー後にKBへ採用してください",
+  "writeOnBoard": "ボードで作成",
+  "directAddHint": "推奨: 知識はまずボードで作成・レビューしてから採用してください。直接追加は緊急用です。"
 }

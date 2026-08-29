@@ -1220,3 +1220,14 @@ CREATE TABLE IF NOT EXISTS board_attachments (
   UNIQUE KEY uk_board_att_uuid (uuid),
   KEY idx_board_att_doc (tenant_id, document_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+CREATE TABLE IF NOT EXISTS board_comments (
+  id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  tenant_id BIGINT NOT NULL,
+  document_id BIGINT NOT NULL,
+  body TEXT NOT NULL,
+  mentions JSON NULL,
+  author_user_id BIGINT NOT NULL,
+  created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  KEY idx_board_comments_doc (tenant_id, document_id),
+  KEY idx_board_comments_tenant (tenant_id, id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

@@ -1,6 +1,6 @@
 import { HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { USER_RANK } from '@ivy/types';
 import { Board } from './entity/board.entity';
 import { BOARD_DOC_STATUS, BoardDocument } from './entity/board-document.entity';
@@ -144,6 +144,39 @@ export class BoardService {
     return {
       kbDocumentId: String(kb.id),
       revisionBehind: doc.title !== kb.title || (doc.content ?? '') !== (kb.content ?? ''),
+    };
+  }
+
+  /**
+   * Link graph for the detail panel (B3 P5-4): who links here (JSON_CONTAINS
+   * on the stored wikilink targets) and where this document's own [[links]]
+   * land — a target with no document yet is the Obsidian-style invitation to
+   * write it.
+   */
+  async linkGraph(
+    tenantId: number,
+    doc: BoardDocument,
+  ): Promise<{
+    backlinks: Array<{ id: string; title: string }>;
+    outgoing: Array<{ title: string; documentId: string | null }>;
+  }> {
+    const backRows = await this.docRepo
+      .createQueryBuilder('d')
+      .where('d.tenant_id = :tenantId', { tenantId })
+      .andWhere('JSON_CONTAINS(d.links, :title)', { title: JSON.stringify(doc.title) })
+      .orderBy('d.updated_at', 'DESC')
+      .take(50)
+      .getMany();
+    const targets = doc.links ?? [];
+    const found = targets.length
+      ? await this.docRepo.find({ where: { tenantId, title: In(targets) } })
+      : [];
+    const byTitle = new Map(found.map((d) => [d.title, String(d.id)]));
+    return {
+      backlinks: backRows
+        .filter((d) => String(d.id) !== String(doc.id))
+        .map((d) => ({ id: String(d.id), title: d.title })),
+      outgoing: targets.map((t) => ({ title: t, documentId: byTitle.get(t) ?? null })),
     };
   }
 

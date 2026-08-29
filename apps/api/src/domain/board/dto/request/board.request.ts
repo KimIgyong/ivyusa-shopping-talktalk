@@ -46,6 +46,12 @@ export class ListBoardDocumentsQuery {
   @IsOptional() @IsString() size?: string;
 }
 
+export class CreateBoardCommentRequest {
+  @IsString() @MinLength(1) body: string;
+  /** Tenant user ids the author tagged; server re-validates ownership. */
+  @IsOptional() @IsArray() mention_ids?: number[];
+}
+
 export class AddBoardLinkRequest {
   @IsString() @MaxLength(1024) url: string;
   @IsOptional() @IsString() @MaxLength(255) label?: string;
