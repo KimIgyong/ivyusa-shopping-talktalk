@@ -21,11 +21,16 @@ REQ: `docs/analysis/REQ-260829-AI-Ingest-Markdown.md`
    - `switch(ext)`에 `case 'md': case 'markdown': text = extractMarkdown(buffer); break;`
    - `extractMarkdown(buffer)`: `toString('utf8')` → 선두 BOM(`﻿`) 제거 → `�` 포함 시
      `INGEST_EXTRACT_FAILED` → 선두 프런트매터 블록 제거 → 그대로 반환
-   - `ExtractedText.kind` 주석 `pdf | docx | xlsx | csv | md` (`.markdown`도 kind는 `markdown` 그대로 —
-     표시용 문자열일 뿐 분기 없음)
+   - `ExtractedText.kind` 주석 `pdf | docx | xlsx | csv | md | markdown` — `.markdown`의 kind는
+     `markdown`(확장자 그대로. 표시용 문자열일 뿐 소비처 분기는 없다)
+   - 공통 후처리의 `trim()`은 마크다운에 **줄바꿈만** 적용 — 선두 4칸 들여쓰기(코드블록)와
+     말미 두 칸(강제 줄바꿈)은 의미가 있어 공백을 지우면 문서 뜻이 바뀐다
 2. `domain/knowledge/knowledge-ingest.service.ts:70` — 게이트 정규식에 `|md|markdown`
 3. `domain/knowledge/knowledge.controller.ts:441` — `@ApiOperation` 요약 5종 표기
-4. `global/constant/error-code.constant.ts:217` — E5066 메시지 `.pdf, .docx, .xlsx, .csv or .md`
+4. `global/constant/error-code.constant.ts:217` — E5066 메시지에 `.md/.markdown`
+   - **별칭 표기 범위**: 계약 표면(E5066 실패 문구·Swagger)은 `.markdown`까지 명시하고, 화면 안내
+     문구(`ingestFileHint`)는 `md`로 요약해 둔다 — 파일 선택창이 이미 두 확장자를 모두 열어주므로
+     운영자가 막히는 지점이 없고, 정확도가 필요한 곳은 "왜 거절됐는지" 읽는 실패 문구다
 
 ## S2 — 콘솔 UI·문구 (apps/web) — **UI 변경**
 

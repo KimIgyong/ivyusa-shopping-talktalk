@@ -45,8 +45,13 @@ export async function extractText(filename: string, buffer: Buffer): Promise<Ext
     default:
       throw new BusinessException(ERROR_CODE.INGEST_UNSUPPORTED_FILE, HttpStatus.BAD_REQUEST);
   }
-  const clean = text.replace(/\u0000/g, '').trim();
-  if (!clean) throw new BusinessException(ERROR_CODE.INGEST_EMPTY, HttpStatus.BAD_REQUEST);
+  const stripped = text.replace(/\u0000/g, '');
+  // Markdown trims NEWLINES only: a leading four-space indent is a code block
+  // and trailing double-spaces are a hard line break — trim() would silently
+  // change what the document means.
+  const clean =
+    ext === 'md' || ext === 'markdown' ? stripped.replace(/^\n+|\n+$/g, '') : stripped.trim();
+  if (!clean.trim()) throw new BusinessException(ERROR_CODE.INGEST_EMPTY, HttpStatus.BAD_REQUEST);
   return {
     text: clean.slice(0, INGEST_MAX_CHARS),
     truncated: clean.length > INGEST_MAX_CHARS,

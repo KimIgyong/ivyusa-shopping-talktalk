@@ -85,6 +85,15 @@ describe('extractText', () => {
     await expect(extractText('mojibake.md', cp949)).rejects.toMatchObject({ errorCode: 'E5067' });
   });
 
+  it('keeps markdown-significant whitespace that trim() would eat', async () => {
+    // Leading four-space indent = a code block; trailing double-space = a hard
+    // line break. Only the surrounding newlines may go.
+    const md = '\n\n    npm run db:up\n\n마지막 줄  \n\n';
+    const out = await extractText('snippet.md', Buffer.from(md, 'utf8'));
+    expect(out.text.startsWith('    npm run db:up')).toBe(true);
+    expect(out.text.endsWith('마지막 줄  ')).toBe(true);
+  });
+
   it('an empty markdown file is refused as unreadable, not ingested blank', async () => {
     await expect(extractText('blank.md', Buffer.from('   \n\n', 'utf8'))).rejects.toMatchObject({
       errorCode: 'E5068',

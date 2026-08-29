@@ -438,7 +438,7 @@ export class KnowledgeController {
   @UseInterceptors(
     FileInterceptor('file', { limits: { fileSize: 15 * 1024 * 1024, files: 1 } }),
   )
-  @ApiOperation({ summary: 'Analyze a pdf/docx/xlsx/csv/md into draft articles (async)' })
+  @ApiOperation({ summary: 'Analyze a pdf/docx/xlsx/csv/md(.markdown) into draft articles (async)' })
   async ingestFile(
     @CurrentUser() user: Principal,
     @Body() body: IngestFileRequest,
