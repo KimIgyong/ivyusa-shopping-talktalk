@@ -45,7 +45,7 @@
   "linkAdded": "Link added",
   "tagPlaceholder": "Type a tag, press Enter",
   "removeTag": "Remove tag",
-  "wikilinkHint": "Link other board documents with [[Document Title]] (backlinks coming soon)",
+  "wikilinkHint": "Link other board documents with [[Document Title]] — see backlinks in the Links panel",
   "attachError": {
     "E5071": "Unsupported file type (pdf·docx·xlsx·csv·png·jpg·webp·zip·rar).",
     "E5072": "Up to 10 files per upload.",

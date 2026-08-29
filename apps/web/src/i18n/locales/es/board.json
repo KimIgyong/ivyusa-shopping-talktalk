@@ -45,7 +45,7 @@
   "linkAdded": "Enlace añadido",
   "tagPlaceholder": "Escriba una etiqueta y Enter",
   "removeTag": "Quitar etiqueta",
-  "wikilinkHint": "Enlace otros documentos con [[Título]] (backlinks próximamente)",
+  "wikilinkHint": "Enlace otros documentos con [[Título]] — vea los backlinks en el panel de Enlaces",
   "attachError": {
     "E5071": "Tipo de archivo no compatible.",
     "E5072": "Máximo 10 archivos por carga.",

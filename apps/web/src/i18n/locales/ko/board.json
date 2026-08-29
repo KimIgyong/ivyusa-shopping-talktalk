@@ -45,7 +45,7 @@
   "linkAdded": "링크가 추가되었습니다",
   "tagPlaceholder": "태그 입력 후 Enter",
   "removeTag": "태그 제거",
-  "wikilinkHint": "[[문서 제목]]으로 다른 보드 문서를 연결할 수 있습니다 (백링크는 곧 제공)",
+  "wikilinkHint": "[[문서 제목]]으로 다른 보드 문서를 연결할 수 있습니다 — 우측 링크 패널에서 백링크를 확인하세요",
   "attachError": {
     "E5071": "지원하지 않는 파일 형식입니다 (pdf·docx·xlsx·csv·png·jpg·webp·zip·rar).",
     "E5072": "한 번에 최대 10개까지 업로드할 수 있습니다.",
