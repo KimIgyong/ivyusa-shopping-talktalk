@@ -427,5 +427,17 @@
   },
   "boardBannerTitle": "Smart Knowledge Board",
   "boardBannerBody": "모든 지식은 보드에서 먼저 작성·검토됩니다. 게시된 문서를 KB로 채택하는 기능은 곧 제공됩니다.",
-  "boardBannerCta": "보드 열기"
+  "boardBannerCta": "보드 열기",
+  "sourceBadge": {
+    "knowledge_store": "직접",
+    "board": "보드",
+    "file_upload": "파일",
+    "youtube": "YouTube",
+    "google_drive": "Drive",
+    "notion": "Notion",
+    "product_catalog": "카탈로그"
+  },
+  "boardOriginNote": "이 문서는 Smart Knowledge Board에서 채택되었습니다. 여기서 직접 수정하면 보드 원본과 분기됩니다.",
+  "boardOriginOpen": "보드 원본 열기",
+  "ingestDoneBoard": "보드에 {{saved}}건 게시되었습니다 — 검토 후 KB로 채택하세요"
 }

@@ -1,6 +1,5 @@
 import { KnowledgeIngestService } from './knowledge-ingest.service';
 import { KnowledgeIngestJobService, INGEST_STATUS } from './knowledge-ingest-job.service';
-import { KbDocument } from './entity/kb-document.entity';
 
 /** Draft analysis + approve semantics (PLN-260829 3차). */
 describe('KnowledgeIngestService', () => {
@@ -8,17 +7,8 @@ describe('KnowledgeIngestService', () => {
 
   function build(completeText: string | ((call: number) => string)) {
     let calls = 0;
-    const saved: KbDocument[] = [];
-    const ensured: Array<[string, string]> = [];
+    const boardCreated: Array<Record<string, unknown>> = [];
     const audited: Array<Record<string, unknown>> = [];
-    const docRepo = {
-      create: (d: Partial<KbDocument>) => d as KbDocument,
-      save: jest.fn(async (d: KbDocument) => {
-        const withId = { ...d, id: saved.length + 1 } as KbDocument;
-        saved.push(withId);
-        return withId;
-      }),
-    };
     const fileRepo = {
       create: (d: Record<string, unknown>) => d,
       save: jest.fn(async (d: Record<string, unknown>) => ({ id: 42, ...d })),
@@ -37,9 +27,6 @@ describe('KnowledgeIngestService', () => {
         { name: 'faq', hidden: false },
         { name: '숨김', hidden: true },
       ]),
-      ensure: jest.fn(async (_t: number, name: string, _o: string, group: string) => {
-        ensured.push([name, group]);
-      }),
     };
     const revisions = {
       record: jest.fn(async () => null),
@@ -47,22 +34,25 @@ describe('KnowledgeIngestService', () => {
         audited.push(meta);
       }),
     };
-    const knowledge = {
-      embedDocuments: jest.fn(async (docs: KbDocument[]) => ({ embedded: docs.length, failed: 0 })),
+    const board = {
+      create: jest.fn(async (_t: number, body: Record<string, unknown>) => {
+        const row = { id: boardCreated.length + 1, ...body };
+        boardCreated.push(row);
+        return row;
+      }),
     };
     const jobs = new KnowledgeIngestJobService();
     const config = { get: (_k: string, d: string) => d };
     const svc = new KnowledgeIngestService(
-      docRepo as never,
       fileRepo as never,
       ai as never,
       categories as never,
       revisions as never,
-      knowledge as never,
+      board as never,
       jobs,
       config as never,
     );
-    return { svc, jobs, saved, ensured, audited, ai, knowledge };
+    return { svc, jobs, boardCreated, audited, ai, board };
   }
 
   const CSV = Buffer.from('q,a\n환불되나요?,7일 이내 가능합니다', 'utf8');
@@ -110,7 +100,7 @@ describe('KnowledgeIngestService', () => {
     expect(h.jobs.get(1)).toBeNull();
   });
 
-  it('approve saves the reviewed drafts, embeds them, audits, and consumes the job', async () => {
+  it('approve publishes the reviewed drafts onto the board and consumes the job (B2 P4-6)', async () => {
     const h = build('{"articles":[{"title":"환불 안내","category":"faq","content":"본문"}]}');
     await h.svc.startFile(1, file, 'operation');
     await flush();
@@ -121,19 +111,15 @@ describe('KnowledgeIngestService', () => {
       7,
     );
 
-    expect(result).toMatchObject({ saved: 1, embedded: 1, embedFailed: 0, docGroup: 'operation' });
-    expect(h.saved[0]).toMatchObject({
-      docGroup: 'operation',
-      source: 'file_upload',
-      externalKey: 'FILE-42-1',
+    expect(result).toMatchObject({ saved: 1, target: 'board', docGroup: 'operation' });
+    expect(h.boardCreated[0]).toMatchObject({
+      doc_group: 'operation',
+      category1: '정책',
       title: '환불 안내(수정)',
-      category: '정책',
-      status: 'pending',
-      active: 1,
+      status: 'published',
+      tags: ['ai-import'],
     });
-    expect(h.ensured).toEqual([['정책', 'operation']]);
-    expect(h.knowledge.embedDocuments).toHaveBeenCalledTimes(1);
-    expect(h.audited[0]).toMatchObject({ saved: 1 });
+    expect(h.audited[0]).toMatchObject({ saved: 1, target: 'board' });
     expect(h.jobs.get(1)!.status).toBe(INGEST_STATUS.CONSUMED);
     // A second approve of the consumed job must refuse — it would duplicate.
     await expect(h.svc.approve(1, [{ title: 'x', category: 'y', content: 'z' }], 7)).rejects.toThrow();
@@ -146,6 +132,6 @@ describe('KnowledgeIngestService', () => {
     await expect(
       h.svc.approve(1, [{ title: '', category: 'faq', content: 'x' }], 7),
     ).rejects.toThrow();
-    expect(h.saved).toHaveLength(0);
+    expect(h.boardCreated).toHaveLength(0);
   });
 });

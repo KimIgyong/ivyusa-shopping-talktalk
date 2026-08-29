@@ -50,7 +50,7 @@
     "conflictWarning": "Some sources below contradict each other — settle it in Conflict review before trusting this answer.",
     "agentAll": "All (operator view)"
   },
-  "sourceColumn": "Source",
+  "sourceColumn": "Origin",
   "staleBadge": "Review due",
   "sourceUrl": "Original URL",
   "effectiveFrom": "Effective from",
@@ -427,5 +427,17 @@
   },
   "boardBannerTitle": "Smart Knowledge Board",
   "boardBannerBody": "Knowledge is written and reviewed on the board first. Adopting published documents into the KB is coming next.",
-  "boardBannerCta": "Open board"
+  "boardBannerCta": "Open board",
+  "sourceBadge": {
+    "knowledge_store": "direct",
+    "board": "board",
+    "file_upload": "file",
+    "youtube": "YouTube",
+    "google_drive": "Drive",
+    "notion": "Notion",
+    "product_catalog": "catalog"
+  },
+  "boardOriginNote": "This document was adopted from the Smart Knowledge Board. Editing here diverges from the board original.",
+  "boardOriginOpen": "Open board original",
+  "ingestDoneBoard": "{{saved}} document(s) published to the board — review and adopt into KB"
 }

@@ -427,5 +427,17 @@
   },
   "boardBannerTitle": "Smart Knowledge Board",
   "boardBannerBody": "知识先在看板上编写与审核。采纳至 KB 的功能即将推出。",
-  "boardBannerCta": "打开看板"
+  "boardBannerCta": "打开看板",
+  "sourceBadge": {
+    "knowledge_store": "直接",
+    "board": "看板",
+    "file_upload": "文件",
+    "youtube": "YouTube",
+    "google_drive": "Drive",
+    "notion": "Notion",
+    "product_catalog": "目录"
+  },
+  "boardOriginNote": "该文档采纳自 Smart Knowledge Board。在此直接编辑将与看板原文产生分歧。",
+  "boardOriginOpen": "打开看板原文",
+  "ingestDoneBoard": "已发布 {{saved}} 篇到看板——请审核后采纳至 KB"
 }

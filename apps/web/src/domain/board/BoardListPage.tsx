@@ -24,6 +24,7 @@ export function BoardListPage() {
   const [category1, setCategory1] = useState('');
   const [category2, setCategory2] = useState('');
   const [tag, setTag] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
   const [search, setSearch] = useState('');
   const [searchDraft, setSearchDraft] = useState('');
   const [page, setPage] = useState(1);
@@ -33,6 +34,7 @@ export function BoardListPage() {
     category1: category1 || undefined,
     category2: category2 || undefined,
     tag: tag || undefined,
+    status: statusFilter || undefined,
     search: search || undefined,
     page,
   });
@@ -205,6 +207,25 @@ export function BoardListPage() {
                   ))}
               </div>
             ))}
+            <div className="mt-3 flex flex-wrap gap-1">
+              {['', 'draft', 'published', 'promoted', 'rejected'].map((st) => (
+                <button
+                  key={st || 'all'}
+                  type="button"
+                  onClick={() => {
+                    setStatusFilter(st);
+                    setPage(1);
+                  }}
+                  className={`rounded-full px-2 py-0.5 text-xs ${
+                    statusFilter === st
+                      ? 'bg-primary-600 text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  {st ? t(`statusValue.${st}`) : t('statusAll')}
+                </button>
+              ))}
+            </div>
             {tag && (
               <button
                 type="button"

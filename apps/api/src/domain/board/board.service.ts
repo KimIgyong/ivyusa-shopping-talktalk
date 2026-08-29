@@ -8,7 +8,7 @@ import {
   BOARD_REVISION_KIND,
   BoardDocumentRevision,
 } from './entity/board-document-revision.entity';
-import { DOC_GROUP } from '../knowledge/entity/kb-document.entity';
+import { DOC_GROUP, KbDocument } from '../knowledge/entity/kb-document.entity';
 import { Paginated } from '../../global/interceptor/transform.interceptor';
 import { buildPagination, normalizePage } from '@ivy/common';
 import { BoardMapper } from './board.mapper';
@@ -57,6 +57,7 @@ export class BoardService {
     @InjectRepository(BoardDocument) private readonly docRepo: Repository<BoardDocument>,
     @InjectRepository(BoardDocumentRevision)
     private readonly revRepo: Repository<BoardDocumentRevision>,
+    @InjectRepository(KbDocument) private readonly kbRepo: Repository<KbDocument>,
   ) {}
 
   /**
@@ -125,6 +126,25 @@ export class BoardService {
       category2: r.c2,
       total: Number(r.total),
     }));
+  }
+
+  /**
+   * Adoption state for the detail view (B2 P4-3): whether the board copy has
+   * moved past what the KB carries. Compared by CONTENT (title+body), not
+   * timestamps — second-granularity clocks miss a quick edit-after-promote,
+   * and a reviewer's category override must not read as forever-behind.
+   */
+  async reviewMeta(
+    tenantId: number,
+    doc: BoardDocument,
+  ): Promise<{ kbDocumentId: string | null; revisionBehind: boolean }> {
+    if (doc.promotedDocumentId == null) return { kbDocumentId: null, revisionBehind: false };
+    const kb = await this.kbRepo?.findOne({ where: { id: doc.promotedDocumentId, tenantId } });
+    if (!kb) return { kbDocumentId: null, revisionBehind: false };
+    return {
+      kbDocumentId: String(kb.id),
+      revisionBehind: doc.title !== kb.title || (doc.content ?? '') !== (kb.content ?? ''),
+    };
   }
 
   async get(tenantId: number, id: number): Promise<BoardDocument> {

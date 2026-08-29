@@ -259,9 +259,10 @@ export interface IngestJob {
 
 export interface IngestApproveResult {
   saved: number;
-  embedded: number;
-  embedFailed: number;
   docGroup: string;
+  /** B2: approval publishes onto the board — these are board document ids. */
+  target: 'board';
+  boardDocumentIds: string[];
 }
 
 /** One side of a conflicting pair, as rendered on the review card. */

@@ -39,6 +39,53 @@ export interface BoardDocumentDetail extends BoardDocumentSummary {
   content: string;
   links: string[];
   attachments: BoardAttachment[];
+  /** Adoption state (B2): the KB row this was promoted into, if any. */
+  kbDocumentId?: string | null;
+  /** The board copy moved past what the KB carries — re-promote to sync. */
+  revisionBehind?: boolean;
+}
+
+// ---- Review: adoption + simulation (B2) ----
+
+export interface SimulateSource {
+  id: number;
+  title: string;
+  category: string | null;
+  similarity: number | null;
+  snippet: string;
+  candidate: boolean;
+}
+
+export interface SimulateResult {
+  answer: string;
+  confidence: number;
+  blocked: boolean;
+  candidateCited: boolean;
+  candidateSimilarity: number | null;
+  sources: SimulateSource[];
+}
+
+export interface GoldenAbItem {
+  question: string;
+  language: string;
+  baseConfidence?: number;
+  withConfidence?: number;
+  delta?: number;
+  candidateCited?: boolean;
+  candidateSimilarity?: number | null;
+  failed?: boolean;
+}
+
+export interface GoldenAbResult {
+  items: GoldenAbItem[];
+  summary: { questions: number; cited: number; avgDelta: number };
+}
+
+export interface PromoteResult {
+  kbDocumentId: string;
+  category: string;
+  embedded: number;
+  embedFailed: number;
 }
 
 export interface BoardRevision {
@@ -116,4 +163,12 @@ export const boardService = {
     apiPost<BoardAttachment>(`/board/documents/${id}/attachments/link`, { url, label }),
   removeAttachment: (attachmentId: string) =>
     apiDelete<{ deleted: true }>(`/board/attachments/${attachmentId}`),
+  promote: (id: string, category?: string) =>
+    apiPost<PromoteResult>(`/board/documents/${id}/promote`, category ? { category } : {}),
+  reject: (id: string) => apiPost<{ rejected: true }>(`/board/documents/${id}/reject`, {}),
+  reopen: (id: string) => apiPost<{ reopened: true }>(`/board/documents/${id}/reopen`, {}),
+  simulate: (id: string, question: string, language?: string) =>
+    apiPost<SimulateResult>(`/board/documents/${id}/simulate`, { question, language }),
+  simulateGolden: (id: string) =>
+    apiPost<GoldenAbResult>(`/board/documents/${id}/simulate/golden`, {}),
 };

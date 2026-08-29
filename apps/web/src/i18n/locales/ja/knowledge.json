@@ -50,7 +50,7 @@
     "conflictWarning": "以下の参照元の一部が互いに矛盾しています。この回答を信頼する前に、矛盾レビューで解消してください。",
     "agentAll": "すべて（運用者ビュー）"
   },
-  "sourceColumn": "ソース",
+  "sourceColumn": "出所",
   "staleBadge": "見直し期限",
   "sourceUrl": "元のURL",
   "effectiveFrom": "適用開始日",
@@ -427,5 +427,17 @@
   },
   "boardBannerTitle": "Smart Knowledge Board",
   "boardBannerBody": "知識はまずボードで作成・レビューします。KBへの採用機能は近日提供です。",
-  "boardBannerCta": "ボードを開く"
+  "boardBannerCta": "ボードを開く",
+  "sourceBadge": {
+    "knowledge_store": "直接",
+    "board": "ボード",
+    "file_upload": "ファイル",
+    "youtube": "YouTube",
+    "google_drive": "Drive",
+    "notion": "Notion",
+    "product_catalog": "カタログ"
+  },
+  "boardOriginNote": "この文書はSmart Knowledge Boardから採用されました。ここで直接編集するとボード原本と分岐します。",
+  "boardOriginOpen": "ボード原本を開く",
+  "ingestDoneBoard": "ボードに{{saved}}件を公開しました — レビュー後にKBへ採用してください"
 }

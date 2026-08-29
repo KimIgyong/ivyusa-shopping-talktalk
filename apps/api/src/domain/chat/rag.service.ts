@@ -26,12 +26,24 @@ export interface RetrievedChunk {
   snippet: string;
   /** Dense similarity (dot, normalized vectors) when the vector leg saw this doc. */
   similarity: number | null;
+  /** A simulation candidate injected by the board review (PLN-260829 B2) — not a stored KB document. */
+  candidate?: boolean;
+}
+
+/** A not-yet-adopted board document, ranked as if it were knowledge (B2 P4-4). */
+export interface RagCandidateInput {
+  title: string;
+  content: string;
+  category: string | null;
+  group: string;
 }
 
 export interface RagAnswer {
   text: string;
   confidence: number;
   citations: RetrievedChunk[];
+  /** Every injected candidate with its rank/similarity — cited or not (B2). */
+  candidateResults?: RetrievedChunk[];
   tokensIn: number;
   tokensOut: number;
 }
@@ -395,6 +407,7 @@ export class RagService {
     preferGroup?: string,
     retrievalQuery?: string,
     aiAgentId?: number | null,
+    extraCandidates?: RagCandidateInput[],
   ): Promise<RagAnswer> {
     // The caller decides the group preference; RAG only applies it. Keeping the
     // judgement out of here means the chat path can use its intent label and
@@ -412,7 +425,8 @@ export class RagService {
     // thing, and the operator view silently lost every scoped category
     // (found in the staging smoke, T9).
     const scopeAgentId = aiAgentId ?? null;
-    const { chunks, vectorProvider } = await this.retrieveHybrid(
+    // eslint-disable-next-line prefer-const
+    let { chunks, vectorProvider } = await this.retrieveHybrid(
       tenantId,
       retrievalQuery?.trim() || query,
       RagService.TOP_K,
@@ -421,6 +435,13 @@ export class RagService {
       // be retrieved as well (REQ-260826 R2).
       scopeAgentId,
     );
+    // Simulation candidates (B2): scored in the same embedding space and merged
+    // by similarity, but NEVER written to Qdrant — a document an operator is
+    // still judging must not be reachable from a real customer turn. Absent the
+    // parameter this block is dead code and the production path is unchanged.
+    if (extraCandidates?.length) {
+      chunks = await this.mergeCandidates(retrievalQuery?.trim() || query, chunks, extraCandidates);
+    }
     // Numbered so the model can name the items it actually used (see CITED_LINE).
     const context = chunks
       .map((c, i) => `[${i + 1}] [${c.category ?? 'general'}] ${c.title}: ${c.snippet}`)
@@ -477,9 +498,58 @@ export class RagService {
       // No marker (older/odd model output) → keep every citation, i.e. exactly
       // the previous behavior, rather than silently dropping all the links.
       citations: cited ? chunks.filter((_, i) => cited.includes(i + 1)) : chunks,
+      // The simulation needs the candidate's similarity even when the model
+      // did NOT cite it — "ranked 0.31, unused" is the finding.
+      ...(extraCandidates?.length ? { candidateResults: chunks.filter((c) => c.candidate) } : {}),
       tokensIn: res.tokensIn,
       tokensOut: res.tokensOut,
     };
+  }
+
+  /** Cosine-rank the candidates against the query and merge (B2 P4-4). */
+  private async mergeCandidates(
+    query: string,
+    chunks: RetrievedChunk[],
+    candidates: RagCandidateInput[],
+  ): Promise<RetrievedChunk[]> {
+    const [qEmb, cEmb] = await Promise.all([
+      this.ai.embed([query], 'query'),
+      this.ai.embed(
+        candidates.map((c) => `${c.title}\n${c.content}`.slice(0, 30_000)),
+        'document',
+      ),
+    ]);
+    const q = qEmb.vectors[0];
+    const cosine = (v: number[]): number => {
+      let dot = 0;
+      let nq = 0;
+      let nv = 0;
+      for (let i = 0; i < Math.min(q.length, v.length); i++) {
+        dot += q[i] * v[i];
+        nq += q[i] * q[i];
+        nv += v[i] * v[i];
+      }
+      const denom = Math.sqrt(nq) * Math.sqrt(nv);
+      return denom > 0 ? dot / denom : 0;
+    };
+    const candidateChunks: RetrievedChunk[] = candidates.map((c, i) => ({
+      // Negative synthetic ids — they can never collide with (or load) a real
+      // kb_documents row downstream.
+      id: -(i + 1),
+      title: c.title,
+      category: c.category,
+      source: 'board',
+      group: c.group,
+      url: null,
+      snippet: c.content.slice(0, 400),
+      similarity: cosine(cEmb.vectors[i]),
+      candidate: true,
+    }));
+    // Candidates are always in the context — the question being answered is
+    // "what happens once this IS knowledge" — but they take their honest rank.
+    return [...chunks, ...candidateChunks].sort(
+      (a, b) => (b.similarity ?? -1) - (a.similarity ?? -1),
+    );
   }
 
   /**
