@@ -123,6 +123,10 @@ migration_scenario_overrides.sql	column	tenant_ai_config	scenario_overrides
 migration_session_alias.sql	column	sessions	alias
 migration_session_auto_reply.sql	column	sessions	auto_reply_mode
 migration_session_language_locked.sql	column	sessions	language_locked
+migration_smart_knowledge_board.sql	table	boards	-
+migration_smart_knowledge_board.sql	table	board_documents	-
+migration_smart_knowledge_board.sql	table	board_document_revisions	-
+migration_smart_knowledge_board.sql	table	board_attachments	-
 migration_source_sync_state.sql	column	knowledge_sources	last_sync_at
 migration_source_sync_state.sql	column	knowledge_sources	last_sync_status
 migration_tenant_privacy_notice.sql	column	tenants	privacy_policy_url

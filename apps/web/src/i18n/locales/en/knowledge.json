@@ -424,5 +424,8 @@
     "E5068": "The file contains no readable text.",
     "E5069": "An analysis is already running — wait for it to finish.",
     "E5070": "No transcript available (captions disabled, or not a YouTube video)."
-  }
+  },
+  "boardBannerTitle": "Smart Knowledge Board",
+  "boardBannerBody": "Knowledge is written and reviewed on the board first. Adopting published documents into the KB is coming next.",
+  "boardBannerCta": "Open board"
 }

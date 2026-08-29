@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { PageHeader } from '@/components/PageHeader';
 import { Card } from '@/components/Card';
@@ -104,6 +104,7 @@ const SOURCE_TYPES = Object.values(SOURCE_TYPE);
 
 export function KnowledgePage() {
   const { t } = useTranslation('knowledge');
+  const navigate = useNavigate();
   const { t: tc } = useTranslation('common');
   const sources = useSources();
   const createSource = useCreateSource();
@@ -687,6 +688,17 @@ export function KnowledgePage() {
       <PageHeader title={t('title')} subtitle={t('subtitle')} />
 
       <ProcessGuide />
+
+      {/* Knowledge starts on the board (PLN-260829 B1-7); adoption arrives in B2. */}
+      <div className="mb-4 flex items-center gap-3 rounded-lg border border-primary-200 bg-primary-50 px-4 py-3">
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-medium text-primary-800">{t('boardBannerTitle')}</p>
+          <p className="text-xs text-primary-700">{t('boardBannerBody')}</p>
+        </div>
+        <Button size="sm" onClick={() => navigate('/knowledge/board')}>
+          {t('boardBannerCta')}
+        </Button>
+      </div>
 
       {/* Knowledge-gap proposal inbox (P5) — renders nothing when empty. */}
       <GapTasksSection />

@@ -3,7 +3,6 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { KnowledgeSource } from './entity/knowledge-source.entity';
 import { AuditLog } from '../audit/entity/audit-log.entity';
 import { KbDocument } from './entity/kb-document.entity';
-import { KbBoardPost } from './entity/kb-board-post.entity';
 import { KbFile } from './entity/kb-file.entity';
 import { KbConflict } from './entity/kb-conflict.entity';
 import { KbDocumentRevision } from './entity/kb-document-revision.entity';
@@ -49,7 +48,6 @@ import { ModerationModule } from '../moderation/moderation.module';
       KnowledgeSource,
       AuditLog,
       KbDocument,
-      KbBoardPost,
       KbFile,
       KbConflict,
       KbDocumentRevision,

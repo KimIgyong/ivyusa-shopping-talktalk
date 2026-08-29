@@ -231,6 +231,14 @@ export const ERROR_CODE = {
     message: 'No transcript available for this video (captions are disabled or the URL is not a YouTube video)',
   },
 
+  // E5071-E5073 — Smart Knowledge Board (PLN-260829 B1).
+  BOARD_ATTACHMENT_UNSUPPORTED: {
+    code: 'E5071',
+    message: 'Unsupported attachment type (pdf, docx, xlsx, csv, png, jpg, webp, zip, rar)',
+  },
+  BOARD_ATTACHMENT_LIMIT: { code: 'E5072', message: 'Too many attachments in one upload (maximum 10)' },
+  BOARD_LINK_INVALID: { code: 'E5073', message: 'The link must be an http(s) URL' },
+
   // E9xxx — system
   INTERNAL_ERROR: { code: 'E9001', message: 'Internal server error' },
   EXTERNAL_SERVICE_ERROR: { code: 'E9002', message: 'External service error' },

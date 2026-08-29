@@ -25,6 +25,8 @@ const WorkLogPage = lazy(() => import('@/domain/work-log/WorkLogPage').then((m) 
 const StatisticsPage = lazy(() => import('@/domain/statistics/StatisticsPage').then((m) => ({ default: m.StatisticsPage })));
 const AiSettingsPage = lazy(() => import('@/domain/ai-settings/AiSettingsPage').then((m) => ({ default: m.AiSettingsPage })));
 const KnowledgePage = lazy(() => import('@/domain/knowledge/KnowledgePage').then((m) => ({ default: m.KnowledgePage })));
+const BoardListPage = lazy(() => import('@/domain/board/BoardListPage').then((m) => ({ default: m.BoardListPage })));
+const BoardDocumentPage = lazy(() => import('@/domain/board/BoardDocumentPage').then((m) => ({ default: m.BoardDocumentPage })));
 const CustomersPage = lazy(() => import('@/domain/customers/CustomersPage').then((m) => ({ default: m.CustomersPage })));
 const OrdersPage = lazy(() => import('@/domain/orders/OrdersPage').then((m) => ({ default: m.OrdersPage })));
 const ProductsPage = lazy(() => import('@/domain/products/ProductsPage').then((m) => ({ default: m.ProductsPage })));
@@ -93,6 +95,8 @@ const router = createBrowserRouter([
       { path: '/statistics', element: <StatisticsPage /> },
       { path: '/ai-setting', element: <AiSettingsPage /> },
       { path: '/knowledge', element: <KnowledgePage /> },
+      { path: '/knowledge/board', element: <BoardListPage /> },
+      { path: '/knowledge/board/:id', element: <BoardDocumentPage /> },
       { path: '/customers', element: <CustomersPage /> },
       { path: '/orders', element: <OrdersPage /> },
       { path: '/products', element: <ProductsPage /> },
