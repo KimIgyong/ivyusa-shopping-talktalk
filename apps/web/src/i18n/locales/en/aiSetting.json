@@ -96,7 +96,14 @@
     "followUpId": "action id",
     "followUpLabel": "label",
     "postAction": "After the reply",
-    "url": "URL"
+    "url": "URL",
+    "utterance": "Customer's line",
+    "utteranceHint": "Shown in the thread as if the customer had typed it when they press the button.",
+    "defaultShownHint": "The shipped text is filled in. Edit it to override; leave it as is and nothing is saved.",
+    "edited": "edited",
+    "revert": "Restore defaults",
+    "followUpsDefault": "Built-in chips: {{chips}}",
+    "followUpsNone": "none"
   },
   "handoff": {
     "title": "Agent handoff",
@@ -313,5 +320,31 @@
     "all": "All agents (shared)",
     "selected": "Selected agents only",
     "saveHint": "Takes effect when you save the scenario buttons."
+  },
+  "scriptRuns": "Runs the built-in script “{{script}}”",
+  "scriptNone": "No built-in script — the label is sent as a chat message (AI answers it)",
+  "scripts": {
+    "title": "Built-in conversations",
+    "hint": "Every script shopTalk ships with, including the ones a customer only reaches through a follow-up chip.",
+    "viaButton": "Menu button · {{action}}",
+    "viaFollowUp": "Follow-up chip only",
+    "edited": "{{count}} language(s) edited",
+    "default": "default copy",
+    "view": "View / edit",
+    "close": "Close",
+    "saved": "Conversation copy saved."
+  },
+  "effective": {
+    "title": "What {{agent}} says",
+    "hint": "The values in effect for this agent. Each one is edited in the section it belongs to, below.",
+    "greeting": "Greeting",
+    "greetingDefault": "Tenant widget copy (no agent-specific greeting)",
+    "moreLangs": "+{{count}} more language(s)",
+    "persona": "Persona",
+    "personaDefault": "Shipped default",
+    "rules": "Response rules",
+    "rulesCount": "{{total}} rule(s), {{custom}} of them your own",
+    "buttons": "Buttons shown",
+    "noButtons": "None enabled for this agent"
   }
 }

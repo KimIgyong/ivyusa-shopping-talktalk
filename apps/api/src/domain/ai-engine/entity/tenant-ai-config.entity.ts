@@ -106,6 +106,13 @@ export const DENY_MODE = {
 export type DenyMode = (typeof DENY_MODE)[keyof typeof DENY_MODE];
 
 export interface ScenarioOverride {
+  /**
+   * The line echoed into the thread as the shopper's own words. Editable since
+   * PLN-260903: on a non-retail tenant the shipped phrasing ("How long does
+   * shipping take?") is put in the customer's mouth, and only the tenant can
+   * say what their customer would actually ask.
+   */
+  utterance?: LocalizedText;
   reply?: LocalizedText;
   followUps?: Array<{ id: string; label: LocalizedText }>;
   postAction?: ScenarioPostAction;

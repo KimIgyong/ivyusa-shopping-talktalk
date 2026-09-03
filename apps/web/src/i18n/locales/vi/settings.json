@@ -64,7 +64,8 @@
       "notifications": "Thông báo",
       "orders": "Đơn hàng",
       "chat": "Trò chuyện"
-    }
+    },
+    "defaultCopy": "Mặc định:"
   },
   "shopify": {
     "title": "Kết nối Shopify",

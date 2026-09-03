@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Check, FileText, Paperclip, Send, Sparkles, Headphones, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { WIDGET_COPY_DEFAULTS } from '../../../../../packages/types/src/common/widget-copy';
 import { useWidgetStore } from '../../store/widgetStore';
 import { useChat } from '../../hooks/useChat';
 import { useScenario } from '../../hooks/useScenario';
@@ -102,15 +103,19 @@ export function ChatTab() {
   // tenant's shoppers must never be welcomed to "IVY USA").
   const widgetCopy = useWidgetStore((s) => s.widgetCopy);
   const shopName = widgetCopy?.displayName || t('appName');
+  // The default text comes from the shared registry rather than this app's
+  // i18n bundle, so the console shows the very string a shopper would see
+  // (PLN-260903 S2). Same wording as before — one source instead of two.
+  const defaultCopy = (field: 'firstVisit' | 'loginGreeting'): string =>
+    (WIDGET_COPY_DEFAULTS[field] as Record<string, string>)[language.toUpperCase()] ??
+    WIDGET_COPY_DEFAULTS[field].EN;
+
   const greetingFor = (name: string | null): string => {
-    if (name) {
-      const custom = pickCopy(widgetCopy?.loginGreeting, language);
-      return custom
-        ? fill(fill(custom, '{name}', name), '{shop}', shopName)
-        : t('chat.welcomeNamed', { name, shop: shopName });
-    }
-    const custom = pickCopy(widgetCopy?.firstVisit, language);
-    return custom ? fill(custom, '{shop}', shopName) : t('chat.welcome', { shop: shopName });
+    const template = name
+      ? (pickCopy(widgetCopy?.loginGreeting, language) ?? defaultCopy('loginGreeting'))
+      : (pickCopy(widgetCopy?.firstVisit, language) ?? defaultCopy('firstVisit'));
+    const withShop = fill(template, '{shop}', shopName);
+    return name ? fill(withShop, '{name}', name) : withShop;
   };
 
   // Requirement 4 (PLN-260808-Widget-Greetings): when the shopper signs in

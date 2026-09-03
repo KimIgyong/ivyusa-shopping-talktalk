@@ -17,6 +17,7 @@ import type {
 import { LanguageTabs } from '../ai-settings/LanguageTabs';
 // Runtime table from the registry source (see apps/web/src/i18n/i18n.ts for why).
 import { LANGUAGE_TIMEZONES } from '../../../../../packages/types/src/common/language';
+import { WIDGET_COPY_DEFAULTS } from '../../../../../packages/types/src/common/widget-copy';
 // Same source-path import as the language registry above: a value import of the
 // package entry point breaks the browser build (CJS `export *`).
 import {
@@ -506,6 +507,16 @@ export function WidgetBehaviorCard() {
 
   const copyDirty = copyDraft != null && JSON.stringify(copyDraft) !== JSON.stringify(storedCopy);
 
+  /**
+   * The shipped greeting for the selected language, shown BELOW the field
+   * rather than inside it (PLN-260903 S2-9): an operator has to be able to read
+   * what a shopper sees today, but filling the field would mark the form dirty
+   * and freeze today's default into this tenant's row on the next save.
+   */
+  const defaultCopy = (field: 'firstVisit' | 'loginGreeting') =>
+    (WIDGET_COPY_DEFAULTS[field] as Record<string, string>)[copyLang] ??
+    WIDGET_COPY_DEFAULTS[field].EN;
+
   const dirty =
     data != null &&
     (value !== data.loginMode ||
@@ -569,7 +580,11 @@ export function WidgetBehaviorCard() {
             onChange={(e) => setCopyText('firstVisit', e.target.value)}
           />
         </FormRow>
-        <p className="mb-3 text-xs text-gray-400">{t('widgetBehavior.firstVisitHint')}</p>
+        <p className="text-xs text-gray-400">{t('widgetBehavior.firstVisitHint')}</p>
+        <p className="mb-3 text-xs text-gray-400">
+          <span className="text-gray-500">{t('widgetBehavior.defaultCopy')}</span>{' '}
+          {defaultCopy('firstVisit')}
+        </p>
         <FormRow label={t('widgetBehavior.loginGreeting')}>
           <textarea
             className="w-full rounded-lg border border-gray-200 p-2 text-sm focus:border-primary-400 focus:outline-none"
@@ -580,7 +595,11 @@ export function WidgetBehaviorCard() {
             onChange={(e) => setCopyText('loginGreeting', e.target.value)}
           />
         </FormRow>
-        <p className="mb-4 text-xs text-gray-400">{t('widgetBehavior.loginGreetingHint')}</p>
+        <p className="text-xs text-gray-400">{t('widgetBehavior.loginGreetingHint')}</p>
+        <p className="mb-4 text-xs text-gray-400">
+          <span className="text-gray-500">{t('widgetBehavior.defaultCopy')}</span>{' '}
+          {defaultCopy('loginGreeting')}
+        </p>
 
         <Button
           onClick={() =>

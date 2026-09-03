@@ -64,7 +64,8 @@
       "notifications": "Notificaciones",
       "orders": "Pedidos",
       "chat": "Chat"
-    }
+    },
+    "defaultCopy": "Predeterminado:"
   },
   "shopify": {
     "title": "Conexión de Shopify",

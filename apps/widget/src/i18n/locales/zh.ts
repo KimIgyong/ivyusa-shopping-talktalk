@@ -33,10 +33,6 @@ export const zh: Translation = {
   },
 
   chat: {
-    welcome:
-      '您好！欢迎来到 {{shop}}。今天有什么可以帮您？请从下方选择一个主题，或直接输入您的问题。',
-    welcomeNamed:
-      '{{name}}，您好！欢迎回到 {{shop}}。今天有什么可以帮您？请从下方选择一个主题，或直接输入您的问题。',
     aiDisclosure:
       '本聊天由 AI 提供支持。您发送的消息将由美国的第三方 AI 服务提供商处理以生成回复。',
     citations: '参考资料',

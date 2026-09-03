@@ -96,7 +96,14 @@
     "followUpId": "アクションID",
     "followUpLabel": "ラベル",
     "postAction": "返信のあと",
-    "url": "URL"
+    "url": "URL",
+    "utterance": "お客様の発話",
+    "utteranceHint": "ボタンを押すと、お客様が入力したかのように会話に表示される文です。",
+    "defaultShownHint": "既定の文言が入力されています。書き換えると上書きされ、そのままなら保存されません。",
+    "edited": "変更済み",
+    "revert": "既定値に戻す",
+    "followUpsDefault": "既定のチップ: {{chips}}",
+    "followUpsNone": "なし"
   },
   "handoff": {
     "title": "担当者への引き継ぎ",
@@ -313,5 +320,31 @@
     "all": "全エージェント共通",
     "selected": "選択したエージェントのみ",
     "saveHint": "シナリオボタンの保存時に適用されます。"
+  },
+  "scriptRuns": "組み込みスクリプト「{{script}}」を実行します",
+  "scriptNone": "組み込みスクリプトなし — ラベルがチャットメッセージとして送信され、AIが回答します",
+  "scripts": {
+    "title": "既定の会話文",
+    "hint": "shopTalkに組み込まれた全スクリプト。フォローアップのチップからしか到達できないものも含みます。",
+    "viaButton": "メニューボタン · {{action}}",
+    "viaFollowUp": "フォローアップ専用",
+    "edited": "{{count}}言語を変更",
+    "default": "既定の文言",
+    "view": "表示・編集",
+    "close": "閉じる",
+    "saved": "会話文を保存しました。"
+  },
+  "effective": {
+    "title": "{{agent}} に適用される設定",
+    "hint": "このエージェントに実際に適用されている値です。各項目は下の該当セクションで編集します。",
+    "greeting": "あいさつ",
+    "greetingDefault": "テナントのウィジェット文言を使用（専用あいさつなし）",
+    "moreLangs": "他 {{count}} 言語",
+    "persona": "ペルソナ",
+    "personaDefault": "既定値",
+    "rules": "応答ルール",
+    "rulesCount": "{{total}}件中 {{custom}}件が独自",
+    "buttons": "表示ボタン",
+    "noButtons": "このエージェントに表示されるボタンはありません"
   }
 }

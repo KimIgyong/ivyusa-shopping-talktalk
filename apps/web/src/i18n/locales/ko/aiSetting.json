@@ -96,7 +96,14 @@
     "followUpId": "액션 ID",
     "followUpLabel": "라벨",
     "postAction": "답변 후 이동",
-    "url": "URL"
+    "url": "URL",
+    "utterance": "고객 발화",
+    "utteranceHint": "버튼을 누르면 고객이 직접 입력한 것처럼 대화에 표시되는 문장입니다.",
+    "defaultShownHint": "기본 문구가 채워져 있습니다. 고치면 그 내용으로 덮어쓰고, 그대로 두면 저장되지 않습니다.",
+    "edited": "수정됨",
+    "revert": "기본값으로 되돌리기",
+    "followUpsDefault": "기본 후속 칩: {{chips}}",
+    "followUpsNone": "없음"
   },
   "handoff": {
     "title": "상담원 연결",
@@ -313,5 +320,31 @@
     "all": "모든 에이전트 공통",
     "selected": "선택한 에이전트만",
     "saveHint": "시나리오 버튼을 저장할 때 적용됩니다."
+  },
+  "scriptRuns": "내장 스크립트 “{{script}}” 실행",
+  "scriptNone": "내장 스크립트 없음 — 라벨이 채팅 메시지로 전송되어 AI가 답변합니다",
+  "scripts": {
+    "title": "기본 대화내용",
+    "hint": "샵톡이 기본 제공하는 모든 스크립트입니다. 후속 칩으로만 도달하는 것까지 포함합니다.",
+    "viaButton": "메뉴 버튼 · {{action}}",
+    "viaFollowUp": "후속 칩 전용",
+    "edited": "{{count}}개 언어 수정됨",
+    "default": "기본값",
+    "view": "보기·편집",
+    "close": "닫기",
+    "saved": "대화 문구를 저장했습니다."
+  },
+  "effective": {
+    "title": "{{agent}}에 적용되는 설정",
+    "hint": "이 에이전트에 실제로 적용되는 값입니다. 각 항목은 아래 해당 섹션에서 수정합니다.",
+    "greeting": "인사말",
+    "greetingDefault": "테넌트 위젯 문구 사용(에이전트 전용 인사말 없음)",
+    "moreLangs": "외 {{count}}개 언어",
+    "persona": "페르소나",
+    "personaDefault": "기본값 사용",
+    "rules": "응답 규칙",
+    "rulesCount": "{{total}}개 중 직접 작성 {{custom}}개",
+    "buttons": "노출 버튼",
+    "noButtons": "이 에이전트에 노출되는 버튼 없음"
   }
 }

@@ -64,7 +64,8 @@
       "notifications": "Notifications",
       "orders": "Orders",
       "chat": "Chat"
-    }
+    },
+    "defaultCopy": "Default:"
   },
   "shopify": {
     "title": "Shopify connection",

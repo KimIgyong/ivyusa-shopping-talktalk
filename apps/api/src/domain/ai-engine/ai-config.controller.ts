@@ -33,6 +33,17 @@ export class AiConfigController {
     return this.aiConfig.getConfig(this.tenantId(user));
   }
 
+  // Declared before any `:param` route would be — and read-only shipped copy,
+  // so it needs no tenant scope beyond the capability check.
+  @Get('defaults')
+  @RequireCapability(CAPABILITY.AI_SETTINGS_MANAGE)
+  @ApiOperation({
+    summary: 'Shipped conversation defaults (scenario scripts, buttons, persona, widget copy)',
+  })
+  defaults() {
+    return AiConfigMapper.toDefaults(this.aiConfig.getDefaults());
+  }
+
   @Put()
   @RequireCapability(CAPABILITY.AI_SETTINGS_MANAGE)
   @ApiOperation({ summary: 'Update tenant AI config' })
