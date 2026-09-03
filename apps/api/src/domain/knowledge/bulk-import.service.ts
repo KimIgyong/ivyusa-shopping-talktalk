@@ -122,7 +122,11 @@ export class BulkImportService {
 
     for (const [i, rec] of input.records.entries()) {
       const rowNo = i + 2; // 1-based, plus the header line
-      const category = col(rec, 'category');
+      // Empty means uncategorized, not invalid: documents without a category
+      // legitimately exist, and the export writes them back as '' — rejecting
+      // the row would break the download → edit → upload round-trip
+      // (PLN-260903 D1).
+      const category = col(rec, 'category') || null;
       const title = col(rec, 'title');
       const content = col(rec, 'content');
       const externalKey = col(rec, 'external_key') || null;
@@ -148,7 +152,7 @@ export class BulkImportService {
       }
       if (externalKey) seenKeys.add(externalKey);
       seenTitles.add(title);
-      categoriesSeen.add(category);
+      if (category) categoriesSeen.add(category);
 
       let found = externalKey ? byKey.get(externalKey) : byTitle.get(title);
       if (!found && externalKey) {
@@ -228,16 +232,16 @@ export class BulkImportService {
   }
 
   private rowProblem(v: {
-    category: string;
+    category: string | null;
     title: string;
     content: string;
     externalKey: string | null;
     sourceUrl: string | null;
   }): string | null {
-    if (!v.category) return 'category is empty';
     if (!v.title) return 'title is empty';
     if (!v.content) return 'content is empty';
-    if (v.category.length > LIMITS.category) return `category exceeds ${LIMITS.category} characters`;
+    if (v.category && v.category.length > LIMITS.category)
+      return `category exceeds ${LIMITS.category} characters`;
     if (v.title.length > LIMITS.title) return `title exceeds ${LIMITS.title} characters`;
     if (v.externalKey && v.externalKey.length > LIMITS.external_key)
       return `external_key exceeds ${LIMITS.external_key} characters`;

@@ -54,6 +54,7 @@ import {
   useImportProducts,
   useDeleteSource,
   useBulkImport,
+  useBulkExport,
   useCatalogSyncPreview,
   useSyncCatalog,
   useCatalogSyncStatus,
@@ -320,6 +321,15 @@ export function KnowledgePage() {
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkFile, setBulkFile] = useState<File | null>(null);
   const bulkImport = useBulkImport();
+
+  // Bulk download (PLN-260903): same columns the importer accepts, so a
+  // downloaded file re-uploads as a no-op until the operator edits it.
+  const [exportMenuOpen, setExportMenuOpen] = useState(false);
+  const bulkExport = useBulkExport();
+  const runExport = (format: 'csv' | 'xlsx') => {
+    setExportMenuOpen(false);
+    bulkExport.mutate({ docGroup: group, format });
+  };
   const closeBulk = () => {
     setBulkOpen(false);
     setBulkFile(null);
@@ -998,9 +1008,41 @@ export function KnowledgePage() {
               <Button variant="secondary" onClick={() => setImportOpen(true)}>
                 {t('importProducts')}
               </Button>
-              {/* Bulk import targets the active tab's group; product has its
-                  own importer, and on the All tab the target would be a guess. */}
-              {(group === 'counsel' || group === 'operation') && (
+              {/* Bulk download + import target the active tab's group; on the
+                  All tab the target would be a guess, so both hide there. */}
+              {group !== '' && (
+                <div className="relative">
+                  <Button
+                    variant="secondary"
+                    disabled={bulkExport.isPending}
+                    onClick={() => setExportMenuOpen((v) => !v)}
+                  >
+                    {bulkExport.isPending ? tc('loading') : t('bulkExport')} ▾
+                  </Button>
+                  {exportMenuOpen && (
+                    <>
+                      <div className="fixed inset-0 z-10" onClick={() => setExportMenuOpen(false)} />
+                      <div className="absolute right-0 z-20 mt-1 w-44 rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
+                        <button
+                          type="button"
+                          className="block w-full px-3 py-2 text-left text-sm hover:bg-gray-50"
+                          onClick={() => runExport('csv')}
+                        >
+                          {t('bulkExportCsv')}
+                        </button>
+                        <button
+                          type="button"
+                          className="block w-full px-3 py-2 text-left text-sm hover:bg-gray-50"
+                          onClick={() => runExport('xlsx')}
+                        >
+                          {t('bulkExportXlsx')}
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+              {group !== '' && (
                 <Button variant="secondary" onClick={() => setBulkOpen(true)}>
                   {t('bulkImport')}
                 </Button>
@@ -1512,26 +1554,58 @@ export function KnowledgePage() {
         }
       >
         <div className="space-y-3 text-sm">
-          {/* A described format is still guesswork until you see one. */}
+          {/* A described format is still guesswork until you see one. Product
+              gets its own example rows; the columns are the same. */}
           <div className="flex gap-3">
             <a
               className="text-sm font-medium text-primary hover:underline"
-              href="/samples/kb-bulk-import-sample.csv"
+              href={
+                group === 'product'
+                  ? '/samples/kb-product-bulk-sample.csv'
+                  : '/samples/kb-bulk-import-sample.csv'
+              }
               download
             >
               ⬇ {t('bulkImportSampleCsv')}
             </a>
             <a
               className="text-sm font-medium text-primary hover:underline"
-              href="/samples/kb-bulk-import-sample.xlsx"
+              href={
+                group === 'product'
+                  ? '/samples/kb-product-bulk-sample.xlsx'
+                  : '/samples/kb-bulk-import-sample.xlsx'
+              }
               download
             >
               ⬇ {t('bulkImportSampleXlsx')}
             </a>
           </div>
+          {/* The universal counsel guide is a full starter KB, not a format
+              sample — counsel tab only (PLN-260903 D6). */}
+          {group === 'counsel' && (
+            <div className="flex gap-3 rounded-lg bg-primary-50 p-2">
+              <span className="text-xs text-gray-600">{t('universalGuideHint')}</span>
+              <a
+                className="shrink-0 text-xs font-medium text-primary hover:underline"
+                href="/samples/universal-counsel-guide.csv"
+                download
+              >
+                ⬇ CSV
+              </a>
+              <a
+                className="shrink-0 text-xs font-medium text-primary hover:underline"
+                href="/samples/universal-counsel-guide.xlsx"
+                download
+              >
+                ⬇ XLSX
+              </a>
+            </div>
+          )}
           <p className="text-xs text-gray-500">{t('bulkImportColumns')}</p>
           <p className="text-xs text-gray-500">{t('bulkImportOptional')}</p>
           <p className="text-xs text-gray-500">{t('bulkImportUpsert')}</p>
+          {group === 'product' && <p className="text-xs text-gray-500">{t('bulkImportProductNote')}</p>}
+          <p className="text-xs text-gray-500">{t('bulkImportSyncedNote')}</p>
           <p className="text-xs text-warning">{t('bulkImportEncoding')}</p>
           <input
             type="file"

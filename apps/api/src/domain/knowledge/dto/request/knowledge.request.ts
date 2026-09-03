@@ -95,8 +95,9 @@ export class CreateDocumentRequest {
 /** Multipart form fields riding along the bulk-import file (PLN-260828 D3). */
 export class BulkImportRequest {
   /**
-   * counsel (default) | operation. Product is deliberately absent — its
-   * catalogue importer owns that group's columns and upsert key.
+   * counsel (default) | operation | product. Product rows here are generic
+   * documents (category/title/content) — shop-export catalogue files still go
+   * through the dedicated importer.
    */
   @IsOptional() @IsIn(BULK_IMPORT_GROUPS as readonly string[]) doc_group?: string;
 }

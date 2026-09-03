@@ -619,6 +619,18 @@ export function useBulkImport() {
   });
 }
 
+/**
+ * Bulk export (PLN-260903). The saved file IS the success feedback (dev-kit
+ * §4.3 self-evident exemption); only failure needs a toast.
+ */
+export function useBulkExport() {
+  return useMutation({
+    mutationFn: (vars: { docGroup: string; format: 'csv' | 'xlsx' }) =>
+      knowledgeService.exportDocuments(vars.docGroup, vars.format),
+    onError: (err: Error) => toast.error(err.message),
+  });
+}
+
 // ---- AI ingest (PLN-260829 3차) ----
 
 /** Start analyzing an uploaded file. Toasts live in the modal (it localizes codes). */
