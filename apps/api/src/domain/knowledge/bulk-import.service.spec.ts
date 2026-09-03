@@ -76,6 +76,13 @@ describe('BulkImportService', () => {
     expect(recorded).toEqual(['create']);
   });
 
+  it('accepts an empty category as uncategorized — the export round-trip depends on it', async () => {
+    const { result } = await importCsv(`${HEADER}\n${row({ category: '' })}`);
+    expect(result).toMatchObject({ created: 1, invalid: 0 });
+    expect(saved[0]).toMatchObject({ category: null });
+    expect(ensured).toEqual([]);
+  });
+
   it('ensures each category exists without touching existing rows', async () => {
     await importCsv(`${HEADER}\n${row()}\n${row({ category: '대시보드', title: '대시보드 조회', key: 'GTJ-DSH-01' })}`);
     expect(ensured.sort()).toEqual(['대시보드', '리뷰 관리']);

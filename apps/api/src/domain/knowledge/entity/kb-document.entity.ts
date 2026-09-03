@@ -20,11 +20,17 @@ export const DOC_GROUP = {
 export type DocGroup = (typeof DOC_GROUP)[keyof typeof DOC_GROUP];
 
 /**
- * Groups the generic bulk importer accepts — product has its own dedicated
- * pipeline. Lives here, not in the service: a constant exported from a service
- * file has already caused a circular-import boot crash tsc could not catch.
+ * Groups the generic bulk importer accepts. Product joined with the bulk
+ * export round-trip (PLN-260903): the dedicated catalogue importer still owns
+ * shop-export files, while this path speaks the document's own vocabulary.
+ * Lives here, not in the service: a constant exported from a service file has
+ * already caused a circular-import boot crash tsc could not catch.
  */
-export const BULK_IMPORT_GROUPS = [DOC_GROUP.COUNSEL, DOC_GROUP.OPERATION] as const;
+export const BULK_IMPORT_GROUPS = [
+  DOC_GROUP.COUNSEL,
+  DOC_GROUP.OPERATION,
+  DOC_GROUP.PRODUCT,
+] as const;
 
 /** kb_documents — knowledge base documents for RAG (FR-064). */
 // FULLTEXT for the RAG retriever (PERF-2); ngram parser so ko (CJK) tokenizes.

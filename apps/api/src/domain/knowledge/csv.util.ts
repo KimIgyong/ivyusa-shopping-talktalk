@@ -65,6 +65,19 @@ export function parseCsv(text: string): string[][] {
 }
 
 /**
+ * Serialize rows back into RFC 4180 CSV — the write half of the reader above,
+ * used by the bulk export so a downloaded file re-imports byte-identically.
+ * CRLF row endings because Excel on Windows still treats lone LF as suspect.
+ * The UTF-8 BOM is the caller's concern (it belongs on the file, not on
+ * every fragment).
+ */
+export function toCsv(headers: string[], rows: string[][]): string {
+  const escape = (cell: string): string =>
+    /[",\r\n]/.test(cell) ? `"${cell.replace(/"/g, '""')}"` : cell;
+  return [headers, ...rows].map((r) => r.map(escape).join(',')).join('\r\n') + '\r\n';
+}
+
+/**
  * Parse into objects keyed by header. Rows with fewer cells than the header
  * are padded rather than rejected — a trailing empty column is common and is
  * not worth failing an import over.

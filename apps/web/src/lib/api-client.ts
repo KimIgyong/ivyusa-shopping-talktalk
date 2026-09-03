@@ -162,6 +162,35 @@ export const apiGetList = async <T>(url: string, params?: unknown): Promise<Pagi
   };
 };
 
+/**
+ * Authenticated file download. The envelope interceptor leaves Blob bodies
+ * alone (no `success` key on a Blob), so this receives the raw bytes; the
+ * filename comes from Content-Disposition so the server names the file.
+ */
+export const apiGetBlob = async (
+  url: string,
+  params?: unknown,
+): Promise<{ blob: Blob; filename: string | null }> => {
+  const res = await http.get<Blob>(url, { params: params as object, responseType: 'blob' });
+  const cd = String(res.headers?.['content-disposition'] ?? '');
+  const star = /filename\*=UTF-8''([^;]+)/i.exec(cd);
+  const plain = /filename="?([^";]+)"?/i.exec(cd);
+  const filename = star ? decodeURIComponent(star[1]) : plain ? plain[1] : null;
+  return { blob: res.data, filename };
+};
+
+/** Hand a downloaded blob to the browser's save flow. */
+export const saveBlob = (blob: Blob, filename: string): void => {
+  const href = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = href;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(href);
+};
+
 export const apiPost = async <T>(url: string, data?: unknown): Promise<T> => {
   const res = await http.post<T>(url, data);
   return res.data;

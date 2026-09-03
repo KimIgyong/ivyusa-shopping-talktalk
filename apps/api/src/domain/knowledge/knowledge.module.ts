@@ -12,6 +12,7 @@ import { KbConflictService } from './kb-conflict.service';
 import { KbRevisionService } from './kb-revision.service';
 import { ProductImportService } from './product-import.service';
 import { BulkImportService } from './bulk-import.service';
+import { BulkExportService } from './bulk-export.service';
 import { KnowledgeIngestService } from './knowledge-ingest.service';
 import { BoardReviewService } from './board-review.service';
 import { BoardReviewController } from './board-review.controller';
@@ -94,6 +95,7 @@ import { ModerationModule } from '../moderation/moderation.module';
     KbRevisionService,
     ProductImportService,
     BulkImportService,
+    BulkExportService,
     KnowledgeIngestService,
     KnowledgeIngestJobService,
     CatalogSyncService,

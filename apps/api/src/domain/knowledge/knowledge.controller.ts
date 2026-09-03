@@ -9,9 +9,11 @@ import {
   Post,
   Put,
   Query,
+  Res,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
+import { Response } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { HttpCode, HttpStatus } from '@nestjs/common';
@@ -31,7 +33,8 @@ import { NotionCredentialService } from './notion-credential.service';
 import { UsageTypeService } from './usage-type.service';
 import { KbCategoryService } from './kb-category.service';
 import { KnowledgeMapper } from './knowledge.mapper';
-import { DOC_GROUP } from './entity/kb-document.entity';
+import { BULK_IMPORT_GROUPS, DOC_GROUP } from './entity/kb-document.entity';
+import { BulkExportService } from './bulk-export.service';
 import { decodeUploadName } from '../../global/util/upload-name.util';
 import {
   ApproveIngestRequest,
@@ -85,6 +88,7 @@ export class KnowledgeController {
     private readonly usageTypes: UsageTypeService,
     private readonly kbCategories: KbCategoryService,
     private readonly ingest: KnowledgeIngestService,
+    private readonly bulkExport: BulkExportService,
   ) {}
 
   // ---- Knowledge-gap proposals (P5, 결정 9: human approval only) ----
@@ -307,6 +311,44 @@ export class KnowledgeController {
   @ApiOperation({ summary: 'Distinct source/status values for the list filter selects' })
   async documentFacets(@CurrentUser() user: Principal) {
     return this.knowledgeService.listDocumentFacets(this.tenantUser(user).tenantId);
+  }
+
+  // Also before `documents/:id` — a literal segment after a :id route is
+  // swallowed silently.
+  @Get('documents/export')
+  @RequireCapability(CAPABILITY.KNOWLEDGE_SOURCE_MANAGE)
+  @ApiOperation({ summary: 'Export a group as CSV/XLSX in the bulk-import column format' })
+  async exportDocuments(
+    @CurrentUser() user: Principal,
+    @Query('doc_group') docGroup: string,
+    @Query('format') format: string,
+    @Res() res: Response,
+  ) {
+    const actor = this.tenantUser(user);
+    // Round-trip contract: only groups the bulk importer accepts back.
+    if (!(BULK_IMPORT_GROUPS as readonly string[]).includes(docGroup)) {
+      throw new BusinessException(ERROR_CODE.VALIDATION_FAILED, HttpStatus.BAD_REQUEST);
+    }
+    if (format !== 'csv' && format !== 'xlsx') {
+      throw new BusinessException(ERROR_CODE.VALIDATION_FAILED, HttpStatus.BAD_REQUEST);
+    }
+    const rows = await this.bulkExport.exportRows(actor.tenantId, docGroup);
+    const buffer =
+      format === 'csv'
+        ? this.bulkExport.toCsvBuffer(rows)
+        : await this.bulkExport.toXlsxBuffer(rows);
+    const stamp = new Date().toISOString().slice(2, 10).replace(/-/g, '');
+    res.setHeader(
+      'Content-Type',
+      format === 'csv'
+        ? 'text/csv; charset=utf-8'
+        : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename*=UTF-8''kb-${docGroup}-${stamp}.${format}`,
+    );
+    res.send(buffer);
   }
 
   // `categories/counts`, not `categories`: this is a report about documents,

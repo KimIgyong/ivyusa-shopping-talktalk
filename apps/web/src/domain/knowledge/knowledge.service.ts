@@ -1,4 +1,4 @@
-import { apiGet, apiGetList, apiPost, apiPostForm, apiPatch, apiPut, apiDelete } from '@/lib/api-client';
+import { apiGet, apiGetBlob, apiGetList, apiPost, apiPostForm, apiPatch, apiPut, apiDelete, saveBlob } from '@/lib/api-client';
 import type { Paginated } from '@/lib/types';
 
 /** Shapes mirror KnowledgeMapper (apps/api knowledge.mapper.ts). */
@@ -454,6 +454,14 @@ export const knowledgeService = {
     form.append('file', file);
     form.append('doc_group', docGroup);
     return apiPostForm<BulkImportResult>('/knowledge/documents/import/bulk', form);
+  },
+  /** Download → edit → bulkImport round-trip (PLN-260903). */
+  exportDocuments: async (docGroup: string, format: 'csv' | 'xlsx') => {
+    const { blob, filename } = await apiGetBlob('/knowledge/documents/export', {
+      doc_group: docGroup,
+      format,
+    });
+    saveBlob(blob, filename ?? `kb-${docGroup}.${format}`);
   },
   previewCatalogSync: () =>
     apiGet<CatalogSyncPreview>('/knowledge/documents/import/catalog/preview'),
