@@ -2,7 +2,7 @@ import { HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import type { LocalizedText, ScenarioConfigResponse } from '@ivy/types';
-import { SESSION_LANGUAGE_CODES } from '@ivy/types';
+import { SESSION_LANGUAGE_CODES, languageBySession } from '@ivy/types';
 import {
   HandoffConfig,
   ScenarioButton,
@@ -18,6 +18,7 @@ import {
   resolveScriptAction,
   isValidFollowUpId,
 } from '../chat/scenario-scripts';
+import { resolveScenarioLabel } from './scenario-label.util';
 import { AiAgentService } from './ai-agent.service';
 import { Session } from '../session/entity/session.entity';
 import { Tenant } from '../tenant/entity/tenant.entity';
@@ -38,14 +39,93 @@ export function personaCacheKey(tenantId: number, aiAgentId?: number | null): st
   return `aicfg:persona:${tenantId}:${aiAgentId ?? 'default'}`;
 }
 
-/** Default scenario buttons (FR-003) seeded when a tenant has no custom set. */
+/**
+ * Default scenario buttons (FR-003) served when a tenant has no custom set.
+ *
+ * Localized since PLN-260903 S3. They used to be English-only strings, so a
+ * tenant that never opened the settings screen showed "Delivery status" to a
+ * Korean shopper — the widget's own translations existed but only applied when
+ * the request FAILED.
+ */
 export const DEFAULT_SCENARIO_BUTTONS: ScenarioButton[] = [
-  { id: 'delivery_status', label: 'Delivery status', action: 'delivery_status', enabled: true },
-  { id: 'cancel_refund', label: 'Cancel / Refund', action: 'cancel_refund', enabled: true },
-  { id: 'product_help', label: 'Product Help', action: 'product_help', enabled: true },
-  { id: 'contact_support', label: 'Contact Support', action: 'contact_support', enabled: true },
-  { id: 'affiliate', label: 'Affiliate', action: 'affiliate', enabled: true },
-  { id: 'my_orders', label: 'My Orders', action: 'my_orders', enabled: true },
+  {
+    id: 'delivery_status',
+    action: 'delivery_status',
+    enabled: true,
+    label: {
+      EN: 'Delivery Status',
+      ES: 'Estado del envío',
+      KO: '배송 조회',
+      VI: 'Tình trạng giao hàng',
+      JA: '配送状況',
+      ZH: '配送状态',
+    },
+  },
+  {
+    id: 'cancel_refund',
+    action: 'cancel_refund',
+    enabled: true,
+    label: {
+      EN: 'Cancel / Refund',
+      ES: 'Cancelar / Reembolsar',
+      KO: '취소 / 환불',
+      VI: 'Hủy / Hoàn tiền',
+      JA: 'キャンセル・返金',
+      ZH: '取消 / 退款',
+    },
+  },
+  {
+    id: 'product_help',
+    action: 'product_help',
+    enabled: true,
+    label: {
+      EN: 'Product Help',
+      ES: 'Ayuda con el producto',
+      KO: '제품 도움말',
+      VI: 'Hỗ trợ sản phẩm',
+      JA: '商品について',
+      ZH: '商品咨询',
+    },
+  },
+  {
+    id: 'contact_support',
+    action: 'contact_support',
+    enabled: true,
+    label: {
+      EN: 'Contact Support',
+      ES: 'Contactar con soporte',
+      KO: '고객 지원 문의',
+      VI: 'Liên hệ hỗ trợ',
+      JA: 'サポートに問い合わせ',
+      ZH: '联系客服',
+    },
+  },
+  {
+    id: 'affiliate',
+    action: 'affiliate',
+    enabled: true,
+    label: {
+      EN: 'Affiliate',
+      ES: 'Afiliados',
+      KO: '제휴',
+      VI: 'Cộng tác viên',
+      JA: 'アフィリエイト',
+      ZH: '推广合作',
+    },
+  },
+  {
+    id: 'my_orders',
+    action: 'my_orders',
+    enabled: true,
+    label: {
+      EN: 'My Orders',
+      ES: 'Mis pedidos',
+      KO: '내 주문',
+      VI: 'Đơn hàng của tôi',
+      JA: '注文履歴',
+      ZH: '我的订单',
+    },
+  },
 ];
 
 export const DEFAULT_PERSONA =
@@ -344,7 +424,13 @@ export class AiConfigService {
     const tenantId = session.tenantId ?? (await this.firstTenantId());
     const row = tenantId ? await this.configRepo.findOne({ where: { tenantId } }) : null;
     const buttons = row?.scenarioButtons ?? DEFAULT_SCENARIO_BUTTONS;
-    const scoped = buttons.filter((b) => b.enabled);
+    // The wire contract is one string per button: resolving here keeps every
+    // widget build — including ones already cached in a shopper's browser —
+    // working unchanged with per-language labels.
+    const lang = languageBySession(session.language)?.session ?? null;
+    const scoped = buttons
+      .filter((b) => b.enabled)
+      .map((b) => ({ ...b, label: resolveScenarioLabel(b.label, lang) }));
     const hasScoping = scoped.some((b) => (b.agentIds ?? []).length > 0);
     if (!hasScoping) return { scenarioButtons: scoped };
     let effectiveAgentId = session.aiAgentId != null ? Number(session.aiAgentId) : null;
@@ -415,6 +501,23 @@ export class AiConfigService {
     return Object.keys(out).length > 0 ? out : null;
   }
 
+  /** Keep a plain label plain; trim a per-language one and drop blank languages. */
+  private trimLabel(label: string | LocalizedText): string | LocalizedText {
+    if (typeof label === 'string') return label.trim().slice(0, 60);
+    const out: LocalizedText = {};
+    for (const lang of SESSION_LANGUAGE_CODES) {
+      const v = label[lang]?.trim();
+      if (v) out[lang] = v.slice(0, 60);
+    }
+    // Every language the same means the tenant meant "one label" — store the
+    // simpler shape so the row does not grow six copies of one word.
+    const values = Object.values(out);
+    if (values.length === SESSION_LANGUAGE_CODES.length && new Set(values).size === 1) {
+      return values[0];
+    }
+    return out;
+  }
+
   /** Strip languages whose text equals the shipped copy (D2). */
   private dropDefaults(
     map: LocalizedText | undefined,
@@ -441,7 +544,7 @@ export class AiConfigService {
 
   private sanitize(buttons: ScenarioButton[]): ScenarioButton[] {
     return buttons
-      .filter((b) => b && typeof b.label === 'string' && b.label.trim().length > 0)
+      .filter((b) => b && resolveScenarioLabel(b.label, null).trim().length > 0)
       .map((b, i) => {
         // Agent scoping (REQ-260825 R5): numeric ids only, deduped; an empty
         // list is stored as ABSENT so unscoped buttons stay byte-identical to
@@ -452,7 +555,7 @@ export class AiConfigService {
         ];
         return {
           id: b.id?.trim() || `btn_${i}`,
-          label: b.label.trim().slice(0, 60),
+          label: this.trimLabel(b.label),
           action: b.action?.trim() || 'message',
           enabled: b.enabled !== false,
           ...(agentIds.length ? { agentIds } : {}),

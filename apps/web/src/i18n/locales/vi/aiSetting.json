@@ -346,5 +346,7 @@
     "rulesCount": "{{total}} quy tắc, {{custom}} do bạn viết",
     "buttons": "Nút hiển thị",
     "noButtons": "Không có nút nào cho trợ lý này"
-  }
+  },
+  "labelLanguage": "Ngôn ngữ của nhãn",
+  "labelLanguageHint": "Nhãn nhập ở đây chỉ áp dụng cho ngôn ngữ đó; các ngôn ngữ khác giữ nguyên."
 }

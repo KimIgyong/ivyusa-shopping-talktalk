@@ -346,5 +346,7 @@
     "rulesCount": "{{total}} rule(s), {{custom}} of them your own",
     "buttons": "Buttons shown",
     "noButtons": "None enabled for this agent"
-  }
+  },
+  "labelLanguage": "Label language",
+  "labelLanguageHint": "A label typed here applies to that language only; the rest keep theirs."
 }

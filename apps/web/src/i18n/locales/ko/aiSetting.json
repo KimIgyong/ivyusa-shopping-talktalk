@@ -346,5 +346,7 @@
     "rulesCount": "{{total}}개 중 직접 작성 {{custom}}개",
     "buttons": "노출 버튼",
     "noButtons": "이 에이전트에 노출되는 버튼 없음"
-  }
+  },
+  "labelLanguage": "라벨 언어",
+  "labelLanguageHint": "여기서 입력한 라벨은 해당 언어에만 적용되고, 나머지 언어는 그대로 유지됩니다."
 }

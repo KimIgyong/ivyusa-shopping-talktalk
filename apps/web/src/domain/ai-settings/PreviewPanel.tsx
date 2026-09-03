@@ -11,6 +11,8 @@ import { previewService } from './preview.service';
 import type { PreviewReply } from './preview.service';
 // Runtime table from the registry source (see apps/web/src/i18n/i18n.ts for why).
 import { LANGUAGES } from '../../../../../packages/types/src/common/language';
+import { scenarioLabelText } from './ai-settings.service';
+import type { ScenarioLang } from './ai-settings.service';
 
 type Role = 'user' | 'ai' | 'system' | 'agent';
 
@@ -264,7 +266,15 @@ export function PreviewPanel({ agentId, onCoach, replayQuestion, onReplayed }: P
 
       {/* Scenario buttons / follow-up quick replies — exercised via the real API. */}
       <div className="mt-2 flex flex-wrap gap-1.5">
-        {(followUps.length > 0 ? followUps : scenarioChips.map((b) => ({ id: b.action, label: b.label }))).map(
+        {/* The preview speaks the language picked above, so its chips resolve
+            the same way the widget's would for that session. */}
+        {(followUps.length > 0
+          ? followUps
+          : scenarioChips.map((b) => ({
+              id: b.action,
+              label: scenarioLabelText(b.label, language.toUpperCase() as ScenarioLang),
+            }))
+        ).map(
           (chip) => (
             <button
               key={chip.id}
