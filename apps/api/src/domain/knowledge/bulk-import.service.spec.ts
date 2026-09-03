@@ -76,6 +76,25 @@ describe('BulkImportService', () => {
     expect(recorded).toEqual(['create']);
   });
 
+  it('matches a stored title with stray whitespace instead of duplicating it', async () => {
+    const { result } = await importCsv(`${HEADER}\n${row({ title: '아시아 배송', key: '' })}`, 'counsel', [
+      {
+        id: 21,
+        tenantId: 1,
+        docGroup: 'counsel',
+        externalKey: null,
+        category: '리뷰 관리',
+        title: '아시아 배송 ',
+        content: '"하나의 리뷰당 답글은 1회만 등록 가능하다."',
+        status: 'embedded',
+      },
+    ]);
+    // The padded title differs from the row's trimmed one, so this lands as a
+    // one-time normalizing update — never as a new document.
+    expect(result).toMatchObject({ created: 0, updated: 1, invalid: 0 });
+    expect(saved[0]).toMatchObject({ id: 21, title: '아시아 배송' });
+  });
+
   it('accepts an empty category as uncategorized — the export round-trip depends on it', async () => {
     const { result } = await importCsv(`${HEADER}\n${row({ category: '' })}`);
     expect(result).toMatchObject({ created: 1, invalid: 0 });

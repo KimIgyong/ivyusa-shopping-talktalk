@@ -111,9 +111,13 @@ export class BulkImportService {
     };
 
     // Existing documents of this group, keyed for in-memory upsert decisions.
+    // Title keys are TRIMMED on both sides: rows arrive cell-trimmed, and a
+    // stored title with stray whitespace ("아시아 배송 " on staging) would
+    // otherwise miss its own exported row and come back as a duplicate
+    // document on every re-upload (found in the PLN-260903 staging smoke).
     const existing = await this.docRepo.find({ where: { tenantId, docGroup } });
     const byKey = new Map(existing.filter((d) => d.externalKey).map((d) => [d.externalKey!, d]));
-    const byTitle = new Map(existing.map((d) => [d.title, d]));
+    const byTitle = new Map(existing.map((d) => [d.title.trim(), d]));
 
     const touchedIds: number[] = [];
     const seenKeys = new Set<string>();
@@ -181,7 +185,7 @@ export class BulkImportService {
           }),
         );
         await this.revisions.record(tenantId, saved, null, REVISION_KIND.CREATE, actorUserId);
-        byTitle.set(saved.title, saved);
+        byTitle.set(saved.title.trim(), saved);
         if (saved.externalKey) byKey.set(saved.externalKey, saved);
         touchedIds.push(Number(saved.id));
         result.created += 1;
