@@ -1,7 +1,6 @@
 import { Body, Controller, Get, Param, ParseIntPipe, Post, Put, Query } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CAPABILITY, Principal } from '@ivy/types';
-import { WIDGET_COPY_DEFAULTS } from '@ivy/types';
 import { AiConfigService } from './ai-config.service';
 import { AiConfigRevisionService } from './ai-config-revision.service';
 import { AiConfigMapper } from './ai-config.mapper';
@@ -42,7 +41,7 @@ export class AiConfigController {
     summary: 'Shipped conversation defaults (scenario scripts, buttons, persona, widget copy)',
   })
   defaults() {
-    return { ...this.aiConfig.getDefaults(), widgetCopy: WIDGET_COPY_DEFAULTS };
+    return AiConfigMapper.toDefaults(this.aiConfig.getDefaults());
   }
 
   @Put()

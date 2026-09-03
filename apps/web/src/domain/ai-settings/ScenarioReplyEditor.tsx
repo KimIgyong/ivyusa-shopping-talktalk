@@ -123,7 +123,11 @@ export function ScenarioReplyEditor({
                 <span className="text-[11px] text-primary-600">{t('editor.edited')}</span>
               )}
             </div>
-            <Input value={effective('utterance')} onChange={(e) => setUtterance(e.target.value)} />
+            <Input
+              aria-label={t('editor.utterance')}
+              value={effective('utterance')}
+              onChange={(e) => setUtterance(e.target.value)}
+            />
             <p className="mt-1 text-[11px] text-gray-400">{t('editor.utteranceHint')}</p>
           </div>
           <div>
@@ -134,6 +138,7 @@ export function ScenarioReplyEditor({
               )}
             </div>
             <textarea
+              aria-label={t('editor.reply')}
               rows={4}
               value={effective('reply')}
               onChange={(e) => setReply(e.target.value)}

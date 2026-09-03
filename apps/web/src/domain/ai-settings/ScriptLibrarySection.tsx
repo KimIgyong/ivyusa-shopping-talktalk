@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
@@ -21,16 +21,26 @@ export function ScriptLibrarySection() {
   const { t } = useTranslation('aiSetting');
   const { t: tc } = useTranslation('common');
   const { data: defaults, isLoading } = useAiConfigDefaults();
-  const { data: config } = useAiConfig();
+  const { data: config, isLoading: configLoading, error: configError } = useAiConfig();
   const updateConfig = useUpdateAiConfig();
 
   const [overrides, setOverrides] = useState<Record<string, ScenarioOverride>>({});
   const [open, setOpen] = useState<string | null>(null);
   const [note, setNote] = useState('');
 
+  // Hydrate ONCE. The defaults load separately and usually first, so without
+  // this an operator could start editing against an empty set and have a later
+  // config arrival overwrite what they typed — and a Save in that window would
+  // have replaced every stored override with `{}`. Saving stays disabled until
+  // the tenant's own config is in hand.
+  const hydrated = useRef(false);
   useEffect(() => {
-    if (config) setOverrides(config.scenarioOverrides ?? {});
+    if (config && !hydrated.current) {
+      hydrated.current = true;
+      setOverrides(config.scenarioOverrides ?? {});
+    }
   }, [config]);
+  const ready = !!config && !configError;
 
   const editedLangs = (action: string) => {
     const ov = overrides[action];
@@ -55,7 +65,12 @@ export function ScriptLibrarySection() {
     <Card title={t('scripts.title')}>
       <div className="space-y-3">
         <p className="text-xs text-gray-400">{t('scripts.hint')}</p>
-        {isLoading && <p className="text-sm text-gray-400">{tc('loading')}</p>}
+        {(isLoading || configLoading) && <p className="text-sm text-gray-400">{tc('loading')}</p>}
+        {configError && (
+          <p className="text-sm text-error">
+            {configError instanceof Error ? configError.message : tc('error')}
+          </p>
+        )}
         {defaults?.scripts.map((script) => {
           const edited = editedLangs(script.action);
           return (
@@ -76,6 +91,7 @@ export function ScriptLibrarySection() {
                   size="sm"
                   variant="ghost"
                   className="ml-auto"
+                  disabled={!ready}
                   onClick={() => setOpen(open === script.action ? null : script.action)}
                 >
                   {open === script.action ? t('scripts.close') : t('scripts.view')}
@@ -101,7 +117,7 @@ export function ScriptLibrarySection() {
             onChange={(e) => setNote(e.target.value)}
             placeholder={t('changeNote')}
           />
-          <Button onClick={save} disabled={updateConfig.isPending}>
+          <Button onClick={save} disabled={!ready || updateConfig.isPending}>
             {updateConfig.isPending ? tc('saving') : tc('save')}
           </Button>
         </div>
