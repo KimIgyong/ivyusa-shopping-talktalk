@@ -14,6 +14,8 @@ import { RegressionSection } from './RegressionSection';
 import { ConfigHistorySection } from './ConfigHistorySection';
 import { ChangeNoteRow } from './ChangeNoteRow';
 import { AnswerReuseSection } from './AnswerReuseSection';
+import { LanguageTabs } from './LanguageTabs';
+import { LANGUAGES } from '../../../../../packages/types/src/common/language';
 import { ScenarioReplyEditor } from './ScenarioReplyEditor';
 import { Link } from 'react-router-dom';
 import {
@@ -35,8 +37,10 @@ import type {
   AiFunctionSetting,
   ModerationRule,
   ScenarioButton,
+  ScenarioLang,
   ScenarioOverride,
 } from './ai-settings.service';
+import { scenarioLabelText } from './ai-settings.service';
 
 const FUNCTION_KEYS = new Set(['chat', 'rag', 'summary', 'assist', 'moderation', 'coach']);
 
@@ -265,6 +269,9 @@ function ScenarioButtonsSection() {
   // Which button's agent-scope modal is open (REQ-260825 R5); index into `buttons`.
   const [scopeFor, setScopeFor] = useState<number | null>(null);
   const [note, setNote] = useState('');
+  // One tab bar for the whole label column: an operator translates a menu
+  // language by language, not button by button.
+  const [labelLang, setLabelLang] = useState<ScenarioLang>('KO');
 
   useEffect(() => {
     if (config) {
@@ -281,6 +288,23 @@ function ScenarioButtonsSection() {
 
   const patch = (i: number, partial: Partial<ScenarioButton>) =>
     setButtons((prev) => prev.map((b, idx) => (idx === i ? { ...b, ...partial } : b)));
+
+  /**
+   * Editing one language of a label that is still a plain string seeds every
+   * language with that string first. Otherwise typing a Korean label would
+   * silently blank the text the other five languages were showing.
+   */
+  const setLabel = (i: number, text: string) =>
+    setButtons((prev) =>
+      prev.map((b, idx) => {
+        if (idx !== i) return b;
+        const base =
+          typeof b.label === 'string'
+            ? Object.fromEntries(LANGUAGES.map((l) => [l.session, b.label as string]))
+            : { ...(b.label ?? {}) };
+        return { ...b, label: { ...base, [labelLang]: text } };
+      }),
+    );
   const removeAt = (i: number) => setButtons((prev) => prev.filter((_, idx) => idx !== i));
   const move = (i: number, dir: -1 | 1) =>
     setButtons((prev) => {
@@ -304,7 +328,7 @@ function ScenarioButtonsSection() {
   const save = () =>
     updateConfig.mutate(
       {
-        scenario_buttons: buttons.filter((b) => b.label.trim().length > 0),
+        scenario_buttons: buttons.filter((b) => scenarioLabelText(b.label, labelLang).trim().length > 0),
         scenario_overrides: overrides,
         note: note.trim() || undefined,
       },
@@ -327,6 +351,11 @@ function ScenarioButtonsSection() {
       {!isLoading && !error && (
         <div className="space-y-3">
           <p className="text-xs text-gray-400">{t('scenarioHint')}</p>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs font-medium text-gray-500">{t('labelLanguage')}</span>
+            <LanguageTabs value={labelLang} onChange={setLabelLang} />
+            <span className="text-[11px] text-gray-400">{t('labelLanguageHint')}</span>
+          </div>
           {buttons.length === 0 && <p className="text-sm text-gray-400">{t('noFunctions')}</p>}
           {buttons.map((btn, i) => (
             <div
@@ -335,7 +364,11 @@ function ScenarioButtonsSection() {
             >
               <div className="min-w-[160px] flex-1">
                 <Label>{t('label')}</Label>
-                <Input value={btn.label} onChange={(e) => patch(i, { label: e.target.value })} />
+                <Input
+                  value={scenarioLabelText(btn.label, labelLang)}
+                  aria-label={t('label')}
+                  onChange={(e) => setLabel(i, e.target.value)}
+                />
               </div>
               {/* Which script this button actually runs. The names differ
                   ("Delivery status" runs `shipping_policy`), and not knowing

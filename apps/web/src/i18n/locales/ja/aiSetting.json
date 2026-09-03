@@ -346,5 +346,7 @@
     "rulesCount": "{{total}}件中 {{custom}}件が独自",
     "buttons": "表示ボタン",
     "noButtons": "このエージェントに表示されるボタンはありません"
-  }
+  },
+  "labelLanguage": "ラベルの言語",
+  "labelLanguageHint": "ここで入力したラベルはその言語にのみ適用され、他の言語はそのままです。"
 }

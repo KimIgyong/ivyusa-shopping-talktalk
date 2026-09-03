@@ -346,5 +346,7 @@
     "rulesCount": "共 {{total}} 条，其中自定义 {{custom}} 条",
     "buttons": "显示的按钮",
     "noButtons": "该助手没有可显示的按钮"
-  }
+  },
+  "labelLanguage": "标签语言",
+  "labelLanguageHint": "此处输入的标签仅适用于该语言，其他语言保持不变。"
 }

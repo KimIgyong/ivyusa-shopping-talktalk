@@ -4,6 +4,7 @@ import { Card } from '@/components/Card';
 import { Badge } from '@/components/Badge';
 import { LANGUAGES } from '../../../../../packages/types/src/common/language';
 import { useAiConfig, useAiConfigDefaults } from './ai-settings.hooks';
+import { scenarioLabelText } from './ai-settings.service';
 import type { AiAgentRow } from './ai-agents.service';
 
 /**
@@ -90,7 +91,7 @@ export function AgentEffectiveSection({ agent }: { agent?: AiAgentRow }) {
           <div className="flex flex-wrap gap-1.5">
             {visibleButtons.map((b) => (
               <Badge key={b.id} tone={b.agentIds?.length ? 'primary' : 'gray'}>
-                {b.label}
+                {scenarioLabelText(b.label, 'KO')}
               </Badge>
             ))}
           </div>

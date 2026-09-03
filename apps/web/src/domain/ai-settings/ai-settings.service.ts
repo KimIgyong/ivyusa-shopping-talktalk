@@ -52,7 +52,8 @@ export interface CreateModerationRule {
 
 export interface ScenarioButton {
   id: string;
-  label: string;
+  /** A string is the same label in every language; a map is per-language. */
+  label: string | Partial<Record<ScenarioLang, string>>;
   action: string;
   enabled: boolean;
   /** AI agents this button shows for (REQ-260825 R5); empty/absent = all agents. */
@@ -61,6 +62,20 @@ export interface ScenarioButton {
 
 /** Session language the console edits copy for — one source of truth with the API. */
 export type ScenarioLang = SessionLanguage;
+
+/**
+ * A button's label in one language. Mirrors the API's resolver: English first,
+ * then any language with text — a button whose own language is blank must
+ * still show something rather than an empty pill.
+ */
+export function scenarioLabelText(
+  label: ScenarioButton['label'] | undefined,
+  lang: ScenarioLang,
+): string {
+  if (typeof label === 'string') return label;
+  if (!label) return '';
+  return label[lang]?.trim() || label.EN?.trim() || Object.values(label).find((v) => v?.trim()) || '';
+}
 
 /** Where the widget sends the shopper after a scripted reply (PLN-AiSetting W2). */
 export interface ScenarioPostAction {

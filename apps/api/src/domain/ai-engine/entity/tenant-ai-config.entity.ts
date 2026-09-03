@@ -5,7 +5,13 @@ import { bigintTransformer } from '../../../global/util/transformers';
 /** Scenario button shown in the widget menu (FR-003 / FN-009). */
 export interface ScenarioButton {
   id: string;
-  label: string;
+  /**
+   * A plain string is the label in every language — the shape every button had
+   * before PLN-260903 S3, kept so nothing needs a migration. A per-language map
+   * is what the console writes now: a tenant serving six languages used to see
+   * whichever one the operator happened to type, on all of them.
+   */
+  label: string | LocalizedText;
   action: string; // delivery_status|cancel_refund|product_help|contact_support|affiliate|my_orders|message
   enabled: boolean;
   /**
