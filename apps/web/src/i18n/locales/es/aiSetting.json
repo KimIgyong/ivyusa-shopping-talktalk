@@ -96,7 +96,14 @@
     "followUpId": "id de acción",
     "followUpLabel": "etiqueta",
     "postAction": "Después de la respuesta",
-    "url": "URL"
+    "url": "URL",
+    "utterance": "Mensaje del cliente",
+    "utteranceHint": "Aparece en la conversación como si el cliente lo hubiera escrito al pulsar el botón.",
+    "defaultShownHint": "El texto original está cargado. Edítalo para sustituirlo; si lo dejas igual no se guarda nada.",
+    "edited": "editado",
+    "revert": "Restaurar valores predeterminados",
+    "followUpsDefault": "Botones integrados: {{chips}}",
+    "followUpsNone": "ninguno"
   },
   "handoff": {
     "title": "Transferencia a agente",
@@ -313,5 +320,31 @@
     "all": "Todos los agentes (común)",
     "selected": "Solo agentes seleccionados",
     "saveHint": "Se aplica al guardar los botones de escenario."
+  },
+  "scriptRuns": "Ejecuta el guion integrado «{{script}}»",
+  "scriptNone": "Sin guion integrado: la etiqueta se envía como mensaje de chat (responde la IA)",
+  "scripts": {
+    "title": "Conversaciones integradas",
+    "hint": "Todos los guiones que incluye shopTalk, incluidos los que solo se alcanzan con un botón de seguimiento.",
+    "viaButton": "Botón del menú · {{action}}",
+    "viaFollowUp": "Solo botón de seguimiento",
+    "edited": "{{count}} idioma(s) editado(s)",
+    "default": "texto original",
+    "view": "Ver / editar",
+    "close": "Cerrar",
+    "saved": "Textos de conversación guardados."
+  },
+  "effective": {
+    "title": "Lo que dice {{agent}}",
+    "hint": "Los valores vigentes para este agente. Cada uno se edita en su sección, más abajo.",
+    "greeting": "Saludo",
+    "greetingDefault": "Texto del widget del inquilino (sin saludo propio)",
+    "moreLangs": "+{{count}} idioma(s) más",
+    "persona": "Persona",
+    "personaDefault": "Valor predeterminado",
+    "rules": "Reglas de respuesta",
+    "rulesCount": "{{total}} regla(s), {{custom}} propias",
+    "buttons": "Botones visibles",
+    "noButtons": "Ninguno activo para este agente"
   }
 }

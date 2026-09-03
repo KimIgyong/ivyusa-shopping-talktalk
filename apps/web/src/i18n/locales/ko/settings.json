@@ -64,7 +64,8 @@
       "notifications": "알림",
       "orders": "주문",
       "chat": "채팅"
-    }
+    },
+    "defaultCopy": "기본 문구:"
   },
   "shopify": {
     "title": "Shopify 연동",

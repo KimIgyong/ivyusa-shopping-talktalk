@@ -33,10 +33,6 @@ export const vi: Translation = {
   },
 
   chat: {
-    welcome:
-      'Xin chào! Chào mừng bạn đến với {{shop}}. Chúng tôi có thể giúp gì cho bạn? Hãy chọn một chủ đề bên dưới hoặc nhập câu hỏi của bạn.',
-    welcomeNamed:
-      'Xin chào {{name}}! Rất vui được gặp lại bạn tại {{shop}}. Chúng tôi có thể giúp gì cho bạn? Hãy chọn một chủ đề bên dưới hoặc nhập câu hỏi của bạn.',
     aiDisclosure:
       'Cuộc trò chuyện này có sử dụng AI. Tin nhắn bạn gửi được xử lý bởi nhà cung cấp dịch vụ AI bên thứ ba tại Hoa Kỳ để tạo câu trả lời.',
     citations: 'Nguồn tham khảo',

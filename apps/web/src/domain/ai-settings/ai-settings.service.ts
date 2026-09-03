@@ -70,6 +70,8 @@ export interface ScenarioPostAction {
 
 /** Tenant edits to a built-in scenario script; blank fields keep the built-in copy. */
 export interface ScenarioOverride {
+  /** The line echoed as the shopper's own words (editable since PLN-260903). */
+  utterance?: Partial<Record<ScenarioLang, string>>;
   reply?: Partial<Record<ScenarioLang, string>>;
   followUps?: Array<{ id: string; label: Partial<Record<ScenarioLang, string>> }>;
   postAction?: ScenarioPostAction;
@@ -108,6 +110,33 @@ export interface HandoffConfig {
   }>;
   /** Issue-board SLA targets (백로그 B2); defaults 24h/4h. */
   sla?: { normalHours?: number; urgentHours?: number };
+}
+
+/**
+ * The copy shopTalk ships with, served by the API (never re-declared here — a
+ * frontend copy drifts from the widget the day either changes, invisibly).
+ */
+export interface ScenarioScriptDefault {
+  action: string;
+  /** Straight from a menu button, or only as a follow-up chip inside a script. */
+  via: 'button' | 'follow_up';
+  buttonAction: string | null;
+  utterance: Partial<Record<ScenarioLang, string>>;
+  reply: Partial<Record<ScenarioLang, string>>;
+  followUps: Array<{ id: string; label: Partial<Record<ScenarioLang, string>> }>;
+}
+
+export interface AiConfigDefaults {
+  scenarioButtons: ScenarioButton[];
+  persona: string;
+  rules: string[];
+  /** Button action → the script it runs; a button missing here runs no script. */
+  scriptByButtonAction: Record<string, string>;
+  scripts: ScenarioScriptDefault[];
+  widgetCopy: {
+    firstVisit: Record<string, string>;
+    loginGreeting: Record<string, string>;
+  };
 }
 
 export interface AiConfig {
@@ -156,6 +185,7 @@ export const aiSettingsService = {
       ...(body.params !== undefined ? { params: body.params } : {}),
     }),
   getConfig: () => apiGet<AiConfig>('/ai-config'),
+  getDefaults: () => apiGet<AiConfigDefaults>('/ai-config/defaults'),
   updateConfig: (body: {
     persona?: string;
     rules?: string[];

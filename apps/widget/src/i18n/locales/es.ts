@@ -33,10 +33,6 @@ export const es: Translation = {
   },
 
   chat: {
-    welcome:
-      '¡Hola! Te damos la bienvenida a {{shop}}. ¿En qué podemos ayudarte hoy? Elige un tema abajo o escribe tu pregunta.',
-    welcomeNamed:
-      '¡Hola {{name}}! Bienvenido de nuevo a {{shop}}. ¿En qué podemos ayudarte hoy? Elige un tema abajo o escribe tu pregunta.',
     aiDisclosure:
       'Este chat funciona con IA. Los mensajes que envías son procesados por un proveedor externo de IA en Estados Unidos para generar respuestas.',
     citations: 'Conocimiento consultado',

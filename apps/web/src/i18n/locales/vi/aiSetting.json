@@ -96,7 +96,14 @@
     "followUpId": "mã hành động",
     "followUpLabel": "nhãn",
     "postAction": "Sau khi trả lời",
-    "url": "URL"
+    "url": "URL",
+    "utterance": "Câu của khách",
+    "utteranceHint": "Hiển thị trong hội thoại như thể khách đã tự nhập khi bấm nút.",
+    "defaultShownHint": "Nội dung mặc định đã được điền sẵn. Sửa để ghi đè; giữ nguyên thì không lưu gì cả.",
+    "edited": "đã sửa",
+    "revert": "Khôi phục mặc định",
+    "followUpsDefault": "Chip mặc định: {{chips}}",
+    "followUpsNone": "không có"
   },
   "handoff": {
     "title": "Chuyển cho nhân viên",
@@ -313,5 +320,31 @@
     "all": "Tất cả agent (dùng chung)",
     "selected": "Chỉ agent đã chọn",
     "saveHint": "Áp dụng khi lưu các nút kịch bản."
+  },
+  "scriptRuns": "Chạy kịch bản có sẵn “{{script}}”",
+  "scriptNone": "Không có kịch bản — nhãn được gửi như một tin nhắn và AI sẽ trả lời",
+  "scripts": {
+    "title": "Hội thoại mặc định",
+    "hint": "Toàn bộ kịch bản shopTalk cung cấp sẵn, kể cả những kịch bản chỉ đến được qua chip tiếp theo.",
+    "viaButton": "Nút menu · {{action}}",
+    "viaFollowUp": "Chỉ qua chip tiếp theo",
+    "edited": "Đã sửa {{count}} ngôn ngữ",
+    "default": "nội dung mặc định",
+    "view": "Xem / sửa",
+    "close": "Đóng",
+    "saved": "Đã lưu nội dung hội thoại."
+  },
+  "effective": {
+    "title": "Nội dung áp dụng cho {{agent}}",
+    "hint": "Các giá trị đang áp dụng cho trợ lý này. Mỗi mục được sửa ở phần tương ứng bên dưới.",
+    "greeting": "Lời chào",
+    "greetingDefault": "Dùng nội dung widget của tenant (không có lời chào riêng)",
+    "moreLangs": "+{{count}} ngôn ngữ khác",
+    "persona": "Nhân cách",
+    "personaDefault": "Mặc định",
+    "rules": "Quy tắc trả lời",
+    "rulesCount": "{{total}} quy tắc, {{custom}} do bạn viết",
+    "buttons": "Nút hiển thị",
+    "noButtons": "Không có nút nào cho trợ lý này"
   }
 }

@@ -10,6 +10,14 @@ import {
   TenantAiConfig,
 } from './entity/tenant-ai-config.entity';
 import { AiAgent } from './entity/ai-agent.entity';
+import {
+  SCENARIOS,
+  SCRIPT_BY_BUTTON_ACTION,
+  BUTTON_ACTION_BY_SCRIPT,
+  SCRIPT_REACH,
+  resolveScriptAction,
+  isValidFollowUpId,
+} from '../chat/scenario-scripts';
 import { AiAgentService } from './ai-agent.service';
 import { Session } from '../session/entity/session.entity';
 import { Tenant } from '../tenant/entity/tenant.entity';
@@ -65,6 +73,23 @@ export const DEFAULT_RULES: string[] = [
   'For payment, refund, cancellation, or personal-data-change requests outside the stated policy, hand off to a human instead of deciding on your own.',
   'Never ask for or repeat passwords, full card numbers, or government IDs.',
 ];
+
+/** Shipped copy handed to the console so it can show defaults, not blanks. */
+export interface AiConfigDefaults {
+  scenarioButtons: ScenarioButton[];
+  persona: string;
+  rules: string[];
+  /** Widget button action → the script it runs (empty for RAG/inline buttons). */
+  scriptByButtonAction: Record<string, string>;
+  scripts: Array<{
+    action: string;
+    via: 'button' | 'follow_up';
+    buttonAction: string | null;
+    utterance: Record<string, string>;
+    reply: Record<string, string>;
+    followUps: Array<{ id: string; label: Record<string, string> }>;
+  }>;
+}
 
 export interface AiConfigResponse {
   persona: string;
@@ -130,7 +155,40 @@ export class AiConfigService {
   ): Promise<ScenarioOverride | null> {
     if (tenantId == null) return null;
     const row = await this.configRepo.findOne({ where: { tenantId } });
-    return row?.scenarioOverrides?.[action] ?? null;
+    const overrides = row?.scenarioOverrides;
+    if (!overrides) return null;
+    // The console used to save a button's edits under the BUTTON action
+    // (`delivery_status`) while this lookup asks for the SCRIPT it runs
+    // (`shipping_policy`), so those edits never reached a shopper. New writes
+    // are normalized (sanitizeOverrides); this second read recovers what is
+    // already stored, without a migration.
+    const legacyKey = BUTTON_ACTION_BY_SCRIPT[action];
+    return overrides[action] ?? (legacyKey ? (overrides[legacyKey] ?? null) : null);
+  }
+
+  /**
+   * The shipped copy behind every scenario: the console renders these as the
+   * starting values instead of blank fields, so an operator can read what the
+   * widget actually says before deciding to change it (PLN-260903 D1/D2).
+   *
+   * Served from the server, never re-declared in the console: a copy in the
+   * frontend drifts from the day it is written and the drift is invisible.
+   */
+  getDefaults(): AiConfigDefaults {
+    return {
+      scenarioButtons: DEFAULT_SCENARIO_BUTTONS,
+      persona: DEFAULT_PERSONA,
+      rules: DEFAULT_RULES,
+      scriptByButtonAction: SCRIPT_BY_BUTTON_ACTION,
+      scripts: Object.entries(SCENARIOS).map(([action, script]) => ({
+        action,
+        via: SCRIPT_REACH[action]?.via ?? 'follow_up',
+        buttonAction: SCRIPT_REACH[action]?.buttonAction ?? null,
+        utterance: script.utterance,
+        reply: script.reply,
+        followUps: script.followUps,
+      })),
+    };
   }
 
   /**
@@ -317,16 +375,31 @@ export class AiConfigService {
     input: Record<string, ScenarioOverride>,
   ): Record<string, ScenarioOverride> | null {
     const out: Record<string, ScenarioOverride> = {};
-    for (const [action, ov] of Object.entries(input ?? {})) {
+    for (const [rawAction, ov] of Object.entries(input ?? {})) {
       if (!ov) continue;
+      // Store under the SCRIPT key the runtime reads, not the button label the
+      // console happened to use (PLN-260903 D3).
+      const action = resolveScriptAction(rawAction);
+      // An action with no shipped script cannot be overridden — `product_help`
+      // was offered in the console for months and went nowhere (D4).
+      if (!SCENARIOS[action]) continue;
+      const builtIn = SCENARIOS[action];
       const entry: ScenarioOverride = {};
 
-      const reply = this.trimLangMap(ov.reply);
+      // Text identical to the shipped copy is not an override: keeping it would
+      // freeze today's default into the tenant's row, so a later copy change
+      // would silently skip them (D2).
+      const reply = this.dropDefaults(this.trimLangMap(ov.reply), builtIn.reply);
       if (reply) entry.reply = reply;
+
+      const utterance = this.dropDefaults(this.trimLangMap(ov.utterance), builtIn.utterance);
+      if (utterance) entry.utterance = utterance;
 
       const followUps = (ov.followUps ?? [])
         .map((f) => ({ id: f.id?.trim(), label: this.trimLangMap(f.label) }))
-        .filter((f): f is { id: string; label: Record<string, string> } => !!f.id && !!f.label);
+        .filter((f): f is { id: string; label: Record<string, string> } => !!f.id && !!f.label)
+        // A chip whose id names nothing renders fine and then fails on tap.
+        .filter((f) => isValidFollowUpId(f.id));
       if (followUps.length) entry.followUps = followUps;
 
       if (ov.postAction && ov.postAction.type && ov.postAction.type !== 'none') {
@@ -340,6 +413,20 @@ export class AiConfigService {
       if (Object.keys(entry).length > 0) out[action] = entry;
     }
     return Object.keys(out).length > 0 ? out : null;
+  }
+
+  /** Strip languages whose text equals the shipped copy (D2). */
+  private dropDefaults(
+    map: LocalizedText | undefined,
+    shipped: Record<string, string>,
+  ): LocalizedText | undefined {
+    if (!map) return undefined;
+    const out: LocalizedText = {};
+    for (const lang of SESSION_LANGUAGE_CODES) {
+      const text = map[lang];
+      if (text && text !== shipped[lang]) out[lang] = text;
+    }
+    return Object.keys(out).length > 0 ? out : undefined;
   }
 
   private trimLangMap(map: LocalizedText | undefined): LocalizedText | undefined {

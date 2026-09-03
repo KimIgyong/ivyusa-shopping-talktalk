@@ -64,7 +64,8 @@
       "notifications": "お知らせ",
       "orders": "注文",
       "chat": "チャット"
-    }
+    },
+    "defaultCopy": "既定の文言:"
   },
   "shopify": {
     "title": "Shopify連携",

@@ -34,6 +34,19 @@ export const useAiConfig = () => {
   return useQuery({ queryKey: ['ai-config', tenantKey], queryFn: aiSettingsService.getConfig });
 };
 
+/**
+ * The shipped copy behind every scenario. Static per deploy, so it is cached
+ * for the session rather than refetched beside the tenant's own config.
+ */
+export const useAiConfigDefaults = () => {
+  const tenantKey = useTenantKey();
+  return useQuery({
+    queryKey: ['ai-config-defaults', tenantKey],
+    queryFn: aiSettingsService.getDefaults,
+    staleTime: Infinity,
+  });
+};
+
 export function useUpdateAiConfig() {
   const qc = useQueryClient();
   const tenantKey = useTenantKey();

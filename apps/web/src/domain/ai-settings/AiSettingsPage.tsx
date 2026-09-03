@@ -23,9 +23,12 @@ import {
   useCreateRule,
   useDeleteRule,
   useAiConfig,
+  useAiConfigDefaults,
   useUpdateAiConfig,
 } from './ai-settings.hooks';
 import { AgentsSection } from './AgentsSection';
+import { AgentEffectiveSection } from './AgentEffectiveSection';
+import { ScriptLibrarySection } from './ScriptLibrarySection';
 import { useAiAgents } from './ai-agents.hooks';
 import type { AiAgentRow } from './ai-agents.service';
 import type {
@@ -73,9 +76,11 @@ export function AiSettingsPage() {
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_400px]">
         <div className="space-y-6">
           <AgentsSection selectedId={selectedAgent?.id ?? null} onSelect={setSelectedAgentId} />
+          <AgentEffectiveSection agent={selectedAgent} />
           <PersonaSection draft={restoreDraft?.persona} agent={selectedAgent} />
           <ResponseRulesSection draft={restoreDraft?.rules} agent={selectedAgent} />
           <ScenarioButtonsSection />
+          <ScriptLibrarySection />
           <AiFunctionsSection />
           <ModerationSection />
           <RegressionSection />
@@ -251,6 +256,7 @@ function ScenarioButtonsSection() {
   const { t } = useTranslation('aiSetting');
   const { t: tc } = useTranslation('common');
   const { data: config, isLoading, error } = useAiConfig();
+  const { data: defaults } = useAiConfigDefaults();
   const updateConfig = useUpdateAiConfig();
   const { data: agents } = useAiAgents();
   const [buttons, setButtons] = useState<ScenarioButton[]>([]);
@@ -266,6 +272,12 @@ function ScenarioButtonsSection() {
       setOverrides(config.scenarioOverrides ?? {});
     }
   }, [config]);
+
+  /** The script a button runs — the key its copy is stored under. */
+  const scriptFor = (action: string): string | undefined =>
+    defaults?.scriptByButtonAction[action];
+  const scriptDefaults = (action: string) =>
+    defaults?.scripts.find((s) => s.action === scriptFor(action));
 
   const patch = (i: number, partial: Partial<ScenarioButton>) =>
     setButtons((prev) => prev.map((b, idx) => (idx === i ? { ...b, ...partial } : b)));
@@ -325,6 +337,14 @@ function ScenarioButtonsSection() {
                 <Label>{t('label')}</Label>
                 <Input value={btn.label} onChange={(e) => patch(i, { label: e.target.value })} />
               </div>
+              {/* Which script this button actually runs. The names differ
+                  ("Delivery status" runs `shipping_policy`), and not knowing
+                  that is what made edits to this button disappear. */}
+              <p className="w-full -mt-1 text-[11px] text-gray-400">
+                {scriptFor(btn.action)
+                  ? t('scriptRuns', { script: scriptFor(btn.action) })
+                  : t('scriptNone')}
+              </p>
               <div className="min-w-[180px] flex-1">
                 <Label>{t('action')}</Label>
                 <Select value={btn.action} onChange={(e) => patch(i, { action: e.target.value })}>
@@ -393,8 +413,15 @@ function ScenarioButtonsSection() {
                 <div className="w-full">
                   <ScenarioReplyEditor
                     action={btn.action}
-                    value={overrides[btn.action] ?? {}}
-                    onChange={(next) => setOverrides((prev) => ({ ...prev, [btn.action]: next }))}
+                    script={scriptDefaults(btn.action)}
+                    scriptActions={defaults?.scripts.map((sc) => sc.action) ?? []}
+                    value={overrides[scriptFor(btn.action) ?? btn.action] ?? {}}
+                    onChange={(next) =>
+                      setOverrides((prev) => ({
+                        ...prev,
+                        [scriptFor(btn.action) ?? btn.action]: next,
+                      }))
+                    }
                   />
                 </div>
               )}

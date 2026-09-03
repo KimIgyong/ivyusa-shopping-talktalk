@@ -64,7 +64,8 @@
       "notifications": "通知",
       "orders": "订单",
       "chat": "聊天"
-    }
+    },
+    "defaultCopy": "默认文案："
   },
   "shopify": {
     "title": "Shopify 连接",

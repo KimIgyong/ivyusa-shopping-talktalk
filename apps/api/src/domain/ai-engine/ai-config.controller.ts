@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Param, ParseIntPipe, Post, Put, Query } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CAPABILITY, Principal } from '@ivy/types';
+import { WIDGET_COPY_DEFAULTS } from '@ivy/types';
 import { AiConfigService } from './ai-config.service';
 import { AiConfigRevisionService } from './ai-config-revision.service';
 import { AiConfigMapper } from './ai-config.mapper';
@@ -31,6 +32,17 @@ export class AiConfigController {
   @ApiOperation({ summary: 'Get tenant AI config (persona/rules/scenario buttons)' })
   get(@CurrentUser() user: Principal) {
     return this.aiConfig.getConfig(this.tenantId(user));
+  }
+
+  // Declared before any `:param` route would be — and read-only shipped copy,
+  // so it needs no tenant scope beyond the capability check.
+  @Get('defaults')
+  @RequireCapability(CAPABILITY.AI_SETTINGS_MANAGE)
+  @ApiOperation({
+    summary: 'Shipped conversation defaults (scenario scripts, buttons, persona, widget copy)',
+  })
+  defaults() {
+    return { ...this.aiConfig.getDefaults(), widgetCopy: WIDGET_COPY_DEFAULTS };
   }
 
   @Put()

@@ -96,7 +96,14 @@
     "followUpId": "操作 ID",
     "followUpLabel": "标签",
     "postAction": "回复之后",
-    "url": "URL"
+    "url": "URL",
+    "utterance": "客户的话",
+    "utteranceHint": "点击按钮后，会像客户自己输入的一样显示在对话中。",
+    "defaultShownHint": "已填入默认文案。修改即覆盖；保持原样则不会保存。",
+    "edited": "已修改",
+    "revert": "恢复默认",
+    "followUpsDefault": "默认后续按钮：{{chips}}",
+    "followUpsNone": "无"
   },
   "handoff": {
     "title": "转接人工客服",
@@ -313,5 +320,31 @@
     "all": "全部客服（共用）",
     "selected": "仅所选客服",
     "saveHint": "保存场景按钮后生效。"
+  },
+  "scriptRuns": "运行内置脚本“{{script}}”",
+  "scriptNone": "无内置脚本 — 标签将作为聊天消息发送，由 AI 回答",
+  "scripts": {
+    "title": "默认对话内容",
+    "hint": "shopTalk 内置的全部脚本，包括只能通过后续按钮到达的脚本。",
+    "viaButton": "菜单按钮 · {{action}}",
+    "viaFollowUp": "仅后续按钮",
+    "edited": "已修改 {{count}} 种语言",
+    "default": "默认文案",
+    "view": "查看 / 编辑",
+    "close": "关闭",
+    "saved": "对话文案已保存。"
+  },
+  "effective": {
+    "title": "{{agent}} 的生效设置",
+    "hint": "该助手实际生效的值。每一项都在下方对应的板块中编辑。",
+    "greeting": "欢迎语",
+    "greetingDefault": "使用租户的挂件文案（无专属欢迎语）",
+    "moreLangs": "另有 {{count}} 种语言",
+    "persona": "人设",
+    "personaDefault": "默认值",
+    "rules": "回复规则",
+    "rulesCount": "共 {{total}} 条，其中自定义 {{custom}} 条",
+    "buttons": "显示的按钮",
+    "noButtons": "该助手没有可显示的按钮"
   }
 }
