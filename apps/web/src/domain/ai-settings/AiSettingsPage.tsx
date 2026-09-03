@@ -471,7 +471,10 @@ function ScenarioButtonsSection() {
             {scopeFor != null && buttons[scopeFor] && (
               <div className="space-y-3">
                 <p className="text-xs text-gray-500">
-                  {t('agentScope.hint', { label: buttons[scopeFor].label || t('label') })}
+                  {t('agentScope.hint', {
+                    label:
+                      scenarioLabelText(buttons[scopeFor].label, labelLang) || t('label'),
+                  })}
                 </p>
                 <label className="flex items-center gap-2 text-sm text-gray-700">
                   <input
