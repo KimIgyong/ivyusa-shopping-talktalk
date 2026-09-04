@@ -1,6 +1,6 @@
 # Sổ tay đăng ký tri thức·cài đặt AI ShopTalk — Pipeline tri thức và vận hành tiếp khách
 
-> Phiên bản 1.0 · 2026-08-24 · Biên soạn dựa trên mã nguồn
+> Phiên bản 1.1 · Bản đầu 2026-08-24 · **cập nhật 2026-09-04** · Biên soạn dựa trên mã nguồn
 > Đối tượng: người vận hành tenant · phụ trách CS (khuyến nghị master/director — Cài đặt AI chỉ dành cho cấp bậc cao)
 > Bản trực tuyến: https://shoptalk.amoeba.site/manual (có bản HTML và bản dịch EN·VI)
 > Ký hiệu: ✅ đã triển khai / 🟡 đang chuẩn bị·lộ trình. Tài liệu tiên quyết: [Sổ tay thiết lập nhanh](quick-setup.vi.md)
@@ -34,7 +34,8 @@ Tin nhắn của khách hàng
   │
   ▼
 ① Phân loại ý định ──── nếu cần đơn hàng·thông tin cá nhân → hướng dẫn xác minh danh tính (đăng nhập)
-  │
+  │               khớp deny-list: quy tắc "Không trả lời" → chuyển ngay /
+  │               quy tắc "Trả lời rồi chuyển" → trả lời qua ②~④ rồi mới chuyển
   ▼
 ② Tìm kiếm tri thức (RAG) ── tìm căn cứ liên quan trong các tài liệu tri thức đã đăng ký
   │
@@ -61,25 +62,69 @@ Tin nhắn của khách hàng
 | Thuật ngữ | Ý nghĩa |
 |---|---|
 | Tài liệu tri thức (document) | Một bài viết AI dùng làm căn cứ trả lời. Gồm tiêu đề·danh mục·nội dung |
+| **Bảng tri thức (board)** | **Lớp biên tập nơi mọi tri thức được viết·duyệt trước** (`/knowledge/board`). Tài liệu đã đăng trở thành căn cứ trả lời sau khi được "đưa vào KB" |
+| Đưa vào KB | Nâng tài liệu trên bảng thành tài liệu kho tri thức (KB). Đưa vào lại sẽ cập nhật cùng một tài liệu (không tạo bản sao) |
 | Embedding | Thao tác lập chỉ mục chuyển tài liệu thành vector tìm kiếm được. Tự động thực hiện khi đăng ký·sửa |
 | RAG | Cách tìm tài liệu liên quan đến câu hỏi và chỉ tạo câu trả lời từ căn cứ đó |
 | Nguồn (source) | Kết nối tự động lấy tài liệu từ bên ngoài (bảng tin·Google Drive·Notion) |
-| Nhóm | Phân loại lớn của tài liệu: **Thông tin tư vấn** (chính sách·FAQ) / **Thông tin sản phẩm** (từ catalog) |
-| Danh mục | Phân loại chi tiết dưới nhóm (faq, policy, product, warranty v.v. — có gợi ý tự động) |
+| Nhóm | 3 phân loại lớn của tài liệu: **CounselInfo** (tư vấn — chính sách·FAQ) / **ProductInfo** (sản phẩm — từ catalog) / **OperationInfo** (cẩm nang vận hành) |
+| Danh mục | Phân loại chi tiết dưới nhóm. Quản lý **theo cặp (nhóm, tên)**; phạm vi agent (§3.5) cũng gắn vào danh mục |
 | Đang bật/hiển thị (active) | Có nằm trong phạm vi tìm kiếm hay không. **Tài liệu tắt không được dùng làm căn cứ trả lời** |
 | Độ tin cậy (confidence) | Chỉ số câu trả lời được căn cứ hỗ trợ đến đâu. Thấp thì chuyển tiếp nhân viên tư vấn |
 
-Bố cục màn hình Kho tri thức (`/knowledge`): bên trái quản lý nguồn·tài liệu, bên phải cố
-định **bảng QA tri thức** và **Rà soát mâu thuẫn**, nên có thể qua lại giữa đăng ký↔kiểm
-chứng trong cùng một màn hình.
+Bố cục màn hình Kho tri thức (`/knowledge`): trên cùng là banner bảng tri thức và **Đề
+xuất bổ sung tri thức**; bên trái quản lý nguồn·hướng dẫn sử dụng·danh mục·tài liệu; bên
+phải cố định **bảng QA (trả lời bằng tri thức)** và **Rà soát mâu thuẫn**, nên có thể qua
+lại giữa đăng ký↔kiểm chứng trong cùng một màn hình. **Các tab nhóm** phía trên danh sách
+tài liệu (Tất cả / CounselInfo / ProductInfo / OperationInfo) quyết định đối tượng thao
+tác của tài liệu·danh mục·công cụ hàng loạt.
 
 ---
 
 ## 2. Đăng ký tri thức
 
-### 2.1 Đăng ký·sửa tài liệu thủ công
+### 2.0 Con đường chuẩn — Smart Knowledge Board (khuyến nghị)
 
-**Quy trình**: thẻ tài liệu → **[Thêm tài liệu]** → nhập `tiêu đề` / `danh mục` / `nội dung` → lưu.
+Con đường chuẩn là viết·duyệt mọi tri thức trên bảng trước, rồi đưa vào KB. Trên thẻ tài
+liệu, **[Viết trên bảng]** là nút chính; [Thêm tài liệu KB] (thêm trực tiếp) chỉ dành cho
+**trường hợp khẩn**.
+
+**Quy trình**: banner **[Mở bảng]** đầu trang `/knowledge` hoặc **[Viết trên bảng]** trên
+thẻ tài liệu →
+1. Viết: `nhóm` (CounselInfo/ProductInfo/OperationInfo) / `Phân loại cấp 1·cấp 2` /
+   `Nhóm (phụ trách)` / `tiêu đề` / `thẻ` / nội dung markdown + tệp đính kèm (tối đa
+   50MB/tệp, có [Chèn vào nội dung]). Viết `[[Tiêu đề tài liệu]]` trong nội dung để liên
+   kết tài liệu bảng khác (xem backlink ở bảng *Liên kết* bên phải — liên kết **theo tiêu
+   đề**, đổi tên sẽ hiển thị liên kết cũ là "chưa viết").
+2. **[Lưu nháp]** (Bản nháp) → **[Đăng]** (Đã đăng) — tài liệu chưa đăng thì không thể
+   đưa vào KB.
+3. **[Mô phỏng]**: nhập câu hỏi của khách để kiểm tra trước khi đưa vào KB xem tài liệu
+   này có được trích dẫn không, cùng độ tin cậy·độ tương đồng. **Golden-set A/B** chạy các
+   câu hỏi kiểm chứng đã đăng ký (§6.3) hai lần — không có và có tài liệu — để cho thấy
+   mức cải thiện (mỗi câu hỏi gọi LLM 2 lần — xác nhận rồi mới chạy).
+4. **[Đưa vào KB]**: người duyệt chọn danh mục (nếu bỏ trống thì dùng phân loại cấp 2 rồi
+   cấp 1) và tài liệu KB được tạo. **Đưa vào lại sẽ cập nhật cùng một tài liệu KB** và tự
+   động embedding lại. Sau khi sửa bản gốc trên bảng, huy hiệu **"chưa cập nhật bản sửa"**
+   hiển thị cho đến khi đưa vào lại.
+5. Cộng tác: **bình luận** bên phải (gõ `@` để nhắc đồng nghiệp — các lần nhắc dồn vào hộp
+   `@tôi` trên danh sách bảng), và **[Tạm hoãn]/[Đưa vào lại]/[Về trạng thái đã đăng]** để
+   chuyển trạng thái qua lại.
+
+**Di trú FAQ hàng loạt**: **[Nhập FAQ]** trên danh sách bảng — xuất bảng FAQ/Hỏi đáp hiện
+có ra CSV/XLSX rồi tải lên; mỗi dòng trở thành một tài liệu bảng ở trạng thái đã đăng (cột
+bắt buộc title·content, tùy chọn category1·category2·tags; tiêu đề trùng bị bỏ qua).
+
+💡 **Mẹo**
+- Sửa tài liệu KB đã đưa vào ngay phía KB sẽ làm nó **lệch** khỏi bản gốc trên bảng — chi
+  tiết tài liệu hiển thị cảnh báo và [Mở bản gốc trên bảng]. Hãy sửa trên bảng rồi đưa vào
+  lại.
+- Nếu mô phỏng báo "không được trích dẫn", hãy bổ sung tiêu đề·nội dung bằng từ ngữ của
+  khách rồi mô phỏng lại — nhanh hơn một bước so với đưa vào KB rồi mới kiểm tra bằng bảng QA.
+
+### 2.1 Đăng ký·sửa tài liệu thủ công (dành cho trường hợp khẩn)
+
+**Quy trình**: thẻ tài liệu → **[Thêm tài liệu KB]** → chọn `nhóm` / nhập `tiêu đề` /
+`danh mục` (gợi ý tự động chỉ hiện danh mục của nhóm đã chọn) / `nội dung` → lưu.
 Bấm tiêu đề để mở cửa sổ chi tiết, và quản lý các mục sau trong **[Sửa]**:
 
 | Trường | Công dụng |
@@ -95,8 +140,14 @@ Bấm tiêu đề để mở cửa sổ chi tiết, và quản lý các mục sa
 - Đưa vào tiêu đề·nội dung **cách nói thực tế của khách hàng** ("giao hàng mất bao lâu",
   "khi nào được hoàn tiền"). Tìm kiếm dựa trên độ tương đồng nên càng gần từ ngữ của khách
   càng dễ khớp.
-- Chính sách phiên bản cũ đừng xóa mà hãy **tắt công tắc hiển thị (vô hiệu)** để loại khỏi
+- Chính sách phiên bản cũ đừng xóa mà hãy **tắt hiển thị (vô hiệu)** để loại khỏi
   căn cứ. Lịch sử còn lại và dễ khôi phục.
+- Danh sách nay **ưu tiên tiêu đề**: các cột là nhóm (chỉ ở tab Tất cả)·**huy hiệu nguồn
+  gốc** (trực tiếp/bảng/tệp/YouTube/Drive/Notion/danh mục)·danh mục·tiêu đề·ngày sửa; công
+  tắc hiển thị·trạng thái·xóa v.v. chuyển vào menu **⋯ (Thêm)** cuối hàng. Bộ lọc hiển
+  thị/nguồn gốc/trạng thái và sắp xếp đều chạy phía máy chủ. Tài liệu trạng thái "đang
+  chờ" **vẫn được dùng ngay trong tìm kiếm từ khóa** — chỉ tìm kiếm ngữ nghĩa phải đợi
+  chỉ mục.
 
 ### 2.2 Tri thức sản phẩm — đồng bộ danh mục sản phẩm · CSV · hướng dẫn sử dụng
 
@@ -157,11 +208,52 @@ Loại được hỗ trợ: bảng tin (board) ✅ · Google Drive ✅ · Notion
 💡 **Mẹo**
 - Nếu kết quả đồng bộ hiện cảnh báo đỏ **dropped/truncated**, nghĩa là trang quá lớn hoặc
   quá sâu nên một phần bị cắt. Hãy mở tài liệu đó kiểm tra phần cuối có nguyên vẹn không,
-  và chia nhỏ bản gốc rồi đồng bộ lại.
+  và chia nhỏ bản gốc rồi đồng bộ lại. Lỗi Notion hiển thị lý do ngay trong ô *Đồng bộ lần
+  cuối* — nếu thấy "trang chưa được chia sẻ với integration", hãy mở trang trong Notion và
+  thêm integration ở ⋯ → Connections.
 - Nếu đồng bộ đột nhiên trả về **0 mục** (bị hủy chia sẻ thư mục, hủy kết nối integration
   v.v.), hệ thống giữ nguyên các tài liệu hiện có mà không ẩn chúng — hãy khôi phục kết nối trước.
 - Bấm vào ô trạng thái của nguồn để bật↔tắt. Nguồn tắt chỉ dừng đồng bộ, các tài liệu đã
   lấy về vẫn còn.
+- **[Xem lịch sử chuyển đổi]** (biểu tượng cạnh tên nguồn): xem lịch sử các lần đồng bộ
+  (thành công/thất bại · tạo/cập nhật/giữ/ẩn · lập chỉ mục · thời gian · lý do) và danh
+  sách tài liệu đã chuyển đổi từ nguồn này.
+- **Xóa nguồn là an toàn** — chỉ nguồn bị xóa; tài liệu của nó không bị xóa mà bị **vô
+  hiệu hóa** và loại khỏi tìm kiếm (có thể bật lại từ danh sách tài liệu).
+
+### 2.4 Tải xuống hàng loạt ↔ nhập hàng loạt (vòng CSV/XLSX)
+
+**[Tải xuống hàng loạt ▾]** (CSV/Excel) và **[Nhập hàng loạt]** trên thẻ tài liệu dùng
+chung một hợp đồng cột: `category · title · content` (bắt buộc) + `external_key ·
+source_url` (tùy chọn). **Hai nút này chỉ xuất hiện khi đã chọn tab nhóm** (ẩn ở tab Tất
+cả — vì phải xác định nhóm đích).
+
+**Quy trình**: chọn tab nhóm → tải tài liệu hiện có bằng [Tải xuống hàng loạt] và chỉnh
+sửa → tải lên lại bằng [Nhập hàng loạt]. Các hàng có cùng `external_key` (hoặc cùng **tiêu
+đề đã cắt khoảng trắng**) sẽ cập nhật tài liệu hiện có thay vì tạo bản sao; hàng không đổi
+bị bỏ qua. Toast kết quả báo số tạo·cập nhật·bỏ qua.
+
+- Tối đa 5.000 hàng / 5MB. CSV **chỉ nhận UTF-8** — từ Excel tiếng Hàn, hãy lưu dạng
+  "CSV UTF-8" hoặc tải lên chính tệp `.xlsx`.
+- Tab CounselInfo có khối tải **Hướng dẫn tư vấn chung** (KB tư vấn khởi đầu dùng ngay) —
+  tải về, chỉnh thời hạn·chi phí theo chính sách cửa hàng rồi tải lên để lấp đầy tri thức
+  ban đầu trong một lần.
+- Tài liệu đến từ nguồn ngoài (danh mục·bảng·Notion·Drive) vẫn sửa được, nhưng **lần đồng
+  bộ tiếp theo có thể ghi đè** — nguyên tắc là sửa ở bản gốc.
+
+### 2.5 Nhập bằng AI (tệp·YouTube → bản nháp → bảng)
+
+**[Nhập bằng AI]** — tải lên tệp (pdf·docx·xlsx·csv·md, tối đa 15MB) hoặc URL YouTube có
+phụ đề công khai, AI sẽ tách nội dung thành **các bản nháp cấp bài viết**.
+
+**Quy trình**: chọn nhóm (cẩm nang tư vấn/gợi ý sản phẩm/cẩm nang vận hành) → tải tệp hoặc
+nhập URL video → **[Bắt đầu phân tích]** (tác vụ chạy nền — có thể rời màn hình) → duyệt
+bản nháp (chọn, chỉnh tiêu đề/danh mục, chú ý huy hiệu "cần kiểm tra") → **[Lưu N mục đã
+chọn]**.
+
+⚠️ Bản nháp đã lưu được đăng **lên bảng**, không vào thẳng KB — hãy duyệt trên bảng rồi
+đưa vào KB (§2.0). Tệp không có lớp văn bản (như PDF scan) và video không có phụ đề thì
+không phân tích được.
 
 ---
 
@@ -181,9 +273,11 @@ Loại được hỗ trợ: bảng tin (board) ✅ · Google Drive ✅ · Notion
 
 ### 3.1 Bảng QA tri thức — nhất định kiểm tra sau khi đăng ký
 
-**Quy trình**: nhập câu hỏi → kiểm tra câu trả lời + **chỉ số độ tin cậy** + **danh sách
-nguồn** (độ tương đồng theo tài liệu) → nếu tài liệu căn cứ sai thì bấm **[Sửa]** cạnh nguồn
-(tài liệu đó mở ngay ở chế độ sửa) → sửa xong bấm **[Hỏi lại]** để kiểm tra lại.
+**Quy trình**: chọn agent (**Tất cả (góc nhìn người vận hành)** hoặc một agent cụ thể —
+kiểm thử đúng theo phạm vi agent §3.5 được thấy) → nhập câu hỏi → kiểm tra câu trả lời +
+**chỉ số độ tin cậy** + **danh sách nguồn** (độ tương đồng theo tài liệu) → nếu tài liệu
+căn cứ sai thì bấm **[Sửa]** cạnh nguồn (tài liệu đó mở ngay ở chế độ sửa) → sửa xong bấm
+**[Hỏi lại]** để kiểm tra lại.
 
 💡 **Mẹo**
 - Nếu câu trả lời hiện huy hiệu **bị kiểm duyệt chặn** nghĩa là vướng quy tắc cấm (§4.5) —
@@ -195,16 +289,16 @@ nguồn** (độ tương đồng theo tài liệu) → nếu tài liệu căn c�
 
 ### 3.2 Rà soát mâu thuẫn
 
-**Quy trình**: bảng *Rà soát mâu thuẫn* bên phải → lọc trạng thái (chờ/đã xử lý/bỏ qua/thất
-bại) → theo từng mục kiểm tra độ tương đồng·thời điểm phát hiện·lý do phán định của hai tài
-liệu → chọn hành động:
+**Quy trình**: bảng *Rà soát mâu thuẫn* bên phải → theo từng mục kiểm tra kết luận (**Mâu
+thuẫn/Trùng lặp/Liên quan**), độ tương đồng và lý do phán định của hai tài liệu → chọn
+hành động:
 
 | Hành động | Tác dụng |
 |---|---|
-| Theo A / Theo B | Giữ bên được chọn và tắt bên còn lại |
+| Theo A · ẩn B / Theo B · ẩn A | Giữ bên được chọn và tắt bên còn lại |
 | Giữ cả hai | Phán định không phải mâu thuẫn — cả hai vẫn bật |
-| Bỏ qua | Đóng mục mâu thuẫn này |
-| Phán định lại | Sửa tài liệu xong yêu cầu đánh giá lại |
+| Không phải mâu thuẫn | Đóng mục mâu thuẫn này |
+| Đánh giá lại cặp này | Sửa tài liệu xong yêu cầu đánh giá lại (mục đánh giá thất bại cũng thử lại tại đây) |
 
 Có thể quét lại toàn bộ tài liệu bằng **[Quét lại]**.
 
@@ -223,19 +317,37 @@ chính sách sau không lặp lại chuyện này.
 khoảng 30 ngày, tài liệu ổn định như thông báo pháp lý đặt dài — khi đó huy hiệu stale trở
 thành danh sách việc cần làm thực thụ.
 
-### 3.4 Hộp đề xuất khoảng trống tri thức · duyệt đề xuất câu trả lời (vòng khép kín)
+### 3.4 Đề xuất bổ sung tri thức · đề xuất câu trả lời (vòng khép kín)
 
-- **Hộp đề xuất bổ sung tri thức** (đầu màn hình, chỉ hiện khi có mục): những chủ đề khách
-  hỏi mà tri thức còn trống được tích lũy thành bản nháp tài liệu. **[Chấp nhận]** (sửa tiêu
-  đề·nội dung rồi xác nhận) hoặc **[Bỏ qua]**.
+- **Đề xuất bổ sung tri thức** (đầu màn hình, chỉ hiện khi có mục): các chủ đề hay bị
+  chuyển tiếp, ý định không có tài liệu căn cứ và cách nhân viên đã xử lý được tích lũy
+  thành ứng viên cho KB. **[Duyệt thành tài liệu tri thức]** (tạo tài liệu sau khi sửa
+  tiêu đề·nội dung) hoặc **[Bỏ qua]** — không có gì được áp dụng tự động.
 - **Đề xuất câu trả lời** (hiện khi có mục chờ): đề xuất đưa câu trả lời thực tế của nhân
   viên tư vấn vào tri thức. Kiểm tra câu hỏi·câu trả lời·liên kết hội thoại nguồn rồi
-  **[Duyệt]** hoặc **[Từ chối]** (bắt buộc ghi lý do).
+  **[Duyệt]** hoặc **[Từ chối]** (lý do hiển thị cho người đề xuất).
 
 💡 **Mẹo**: hai kênh này là con đường để tri thức tự lớn lên. Tạo thói quen dọn sạch mỗi
 tuần một lần sẽ giảm nguyên nhân gốc của "AI cứ chuyển sang nhân viên tư vấn". Trước khi
 duyệt, nhất định kiểm tra **thông tin cá nhân (mã đơn hàng·tên) không còn sót trong câu trả
 lời** — tài liệu tri thức sẽ được tái sử dụng làm căn cứ cho câu trả lời của mọi khách hàng.
+
+### 3.5 Phạm vi agent của danh mục (tri thức theo từng agent)
+
+Mỗi hàng trong thẻ *Danh mục* hiển thị phạm vi hiện tại dưới dạng nút — **"Tất cả agent"**
+(mặc định; phạm vi trống = mở cho tất cả) hoặc **"Agent n/tổng"**.
+
+**Quy trình**: bấm nút → chọn **Tất cả agent (mặc định)** / **Chỉ agent đã chọn** → lưu.
+Thu hẹp phạm vi nghĩa là chỉ agent được chọn mới trích dẫn được tài liệu của danh mục đó
+(tái sử dụng câu trả lời cũng theo cùng phạm vi).
+
+💡 **Mẹo**
+- ⚠️ **Agent tạo sau không thấy được danh mục đã bị thu hẹp** — thêm agent mới thì hãy rà
+  lại các phạm vi.
+- Danh mục sinh từ catalog (thương hiệu) luôn dùng được bởi mọi agent và không thể giới
+  hạn phạm vi.
+- Chọn agent trong bảng QA (§3.1) là cách chắc chắn nhất để kiểm chứng "agent này thực sự
+  thấy gì".
 
 ---
 
@@ -250,7 +362,8 @@ lời** — tài liệu tri thức sẽ được tái sử dụng làm căn cứ
 | Nhân viên mặc định | Agent mà widget dùng khi không chỉ định riêng (luôn hoạt động) |
 | Đoạn mã điểm vào | Đoạn mã cài đặt để mở widget với một agent cụ thể |
 | Persona / quy tắc trả lời | Mô tả giọng điệu·nguyên tắc của bot / danh sách quy tắc nhất định phải tuân thủ (được nạp vào bước ③ pipeline §0) |
-| Nút kịch bản | Nút menu nhanh dưới cùng của widget. Chọn trong 7 loại hành động |
+| Nút kịch bản | Nút menu nhanh dưới cùng của widget. Chọn trong 7 loại hành động; **nhãn quản lý theo từng ngôn ngữ** |
+| Hội thoại mặc định | Chỉnh nội dung phản hồi·chip tiếp theo của **7 kịch bản có sẵn** trong ShopTalk (§4.7) |
 | Chức năng AI (function) | 5 vị trí AI được dùng (chat/rag/summary/assist/moderation) — mỗi vị trí chỉ định một công cụ |
 | Quy tắc kiểm duyệt | Quy tắc cấm kiểm tra tin nhắn gửi đi (bước ④ pipeline §0) |
 | Tái sử dụng câu trả lời | Chức năng phát lại câu trả lời cũ đã duyệt cho cùng câu hỏi, không gọi LLM |
@@ -262,6 +375,16 @@ lời** — tài liệu tri thức sẽ được tái sử dụng làm căn cứ
 bên dưới chuyển thành **của agent đó**. Dùng **[Thêm nhân viên]** đặt tên·mã (chữ thường)
 để tạo agent mới, và quản lý **[Đặt làm mặc định]** / công tắc hoạt động / **[Xóa]**. Sao
 chép **đoạn mã điểm vào** của từng agent và cài lên trang·kênh cụ thể thì bot đó sẽ tiếp khách.
+
+Khi sửa agent, hai trường danh tính hướng tới khách hàng được đặt riêng:
+- **Tên hiển thị trên widget** — hiện ở phần đầu widget (bỏ trống thì dùng tên hiển thị
+  của cửa hàng).
+- **Tin nhắn phản hồi đầu tiên** — viết theo từng tab ngôn ngữ. Là bong bóng đầu tiên của
+  phiên được gán agent này; ngôn ngữ bỏ trống dùng tin nhắn đầu chung của cửa hàng.
+
+Ngay dưới thẻ agent, thẻ **"Cài đặt áp dụng cho {agent}"** tóm tắt dạng chỉ đọc **các giá
+trị thực sự được áp dụng** (kể cả giá trị mặc định thay thế) cho lời chào·persona·quy tắc
+trả lời·nút hiển thị — việc chỉnh sửa làm ở từng mục tương ứng.
 
 💡 **Mẹo**
 - Agent được **gán một lần khi phiên bắt đầu** — đổi đoạn mã giữa chừng cũng không đổi bot
@@ -286,8 +409,17 @@ thêm từng dòng bằng [Thêm quy tắc] (dòng trống bị loại khi lưu)
 
 ### 4.3 Nút kịch bản
 
-**Quy trình**: từng hàng chỉnh `nhãn` (tối đa 60 ký tự) / `hành động` / ô chọn `đang bật` /
-thứ tự (↑↓). 7 loại hành động:
+**Quy trình**: chọn tab **Ngôn ngữ của nhãn** (6 ngôn ngữ) ở trên, rồi từng hàng chỉnh
+`nhãn` (tối đa 60 ký tự) / `hành động` / ô chọn `đang bật` / thứ tự (↑↓) / **[Agent]**
+(agent nào hiển thị nút này — tất cả agent dùng chung hoặc chỉ agent đã chọn).
+- **Nhãn theo từng ngôn ngữ**: nhãn nhập chỉ áp dụng cho tab ngôn ngữ đang chọn; các ngôn
+  ngữ khác giữ nguyên. 6 nút mặc định (Tình trạng giao hàng·Hủy / Hoàn tiền·Hỗ trợ sản
+  phẩm·Liên hệ hỗ trợ·Cộng tác viên·Đơn hàng của tôi) có sẵn nhãn cho cả 6 ngôn ngữ.
+- Gợi ý dưới mỗi nhãn cho biết **kịch bản có sẵn** mà nút thực sự chạy — "không có kịch
+  bản" nghĩa là nhãn được gửi làm tin nhắn chat và AI trả lời. Chỉnh nội dung kịch bản ở
+  §4.7 Hội thoại mặc định.
+
+7 loại hành động:
 
 | Hành động | Hành vi thực tế trong widget |
 |---|---|
@@ -300,7 +432,9 @@ thứ tự (↑↓). 7 loại hành động:
 | Gửi tin nhắn | **Gửi nguyên văn nhãn làm câu hỏi** → AI trả lời dựa trên tri thức |
 
 Bấm **[Sửa câu trả lời]** để chỉnh nội dung phản hồi theo từng hành động bằng **tab 6 ngôn
-ngữ** (có chấm đánh dấu đã viết hay chưa) và cấu hình các nút tiếp theo (nhãn·hành động·URL).
+ngữ** và cấu hình các chip tiếp theo (nhãn·hành động·URL). Trình soạn mở với nội dung mặc
+định **đã điền sẵn trong ô** — sửa thì ghi đè, để nguyên thì không lưu gì. **[Khôi phục
+mặc định]** đưa về ban đầu bất cứ lúc nào.
 
 💡 **Mẹo**
 - Muốn biến câu hỏi thường gặp thành nút, hãy dùng hành động **Gửi tin nhắn** với nhãn là
@@ -334,8 +468,12 @@ nền tảng → **stub** (trả lời demo) — tự động hạ bậc theo th
 - ⚠️ **temperature không được áp dụng cho công cụ Anthropic (Claude).** Các mô hình Claude
   hiện hành từ chối tham số lấy mẫu nên hệ thống chủ đích không gửi. Nhập cũng bị bỏ qua;
   chỉ áp dụng cho các công cụ dòng OpenAI.
-- Còn huy hiệu `stub` thì chưa phải chất lượng dịch vụ thật — đăng ký công cụ là quyền của
-  quản trị viên nền tảng (`/admin/ai-engines`).
+- Còn huy hiệu `stub` thì chưa phải chất lượng dịch vụ thật. Công cụ (engine) đến từ hai
+  nơi: **engine riêng của tenant** (thẻ *Engine AI* trong [Cài đặt gian hàng → Cài đặt cơ
+  bản] — đăng ký bằng API key của bạn, được ưu tiên hơn engine nền tảng, chi phí tính vào
+  tài khoản của bạn) và engine nền tảng cung cấp (quản trị viên nền tảng đăng ký ở
+  `/admin/ai-engines`). Mức sử dụng thực tế xem ở thẻ *Mức dùng AI* cùng tab (kèm cảnh báo
+  số lần rơi về stub).
 - Mô hình embedding cho tìm kiếm tri thức không có trong màn hình này — được máy chủ quản
   lý dùng chung cho mọi tenant.
 
@@ -370,12 +508,34 @@ chỉ mục đang bật), sửa/xóa từng mục, hoặc **[Tắt tất cả]**
 💡 **Mẹo**: câu trả lời tái sử dụng được gửi ngay cho cùng câu hỏi mà không gọi LLM nên
 nhanh và rẻ, nhưng **khi chính sách thay đổi, câu trả lời cũ có thể vẫn được gửi nguyên
 xi.** Hãy đưa việc tìm·sửa hoặc tắt các mục liên quan vào danh sách kiểm tra mỗi khi sửa
-chính sách. Câu trả lời tái sử dụng vẫn phải qua kiểm duyệt.
+chính sách. Câu trả lời tái sử dụng vẫn phải qua kiểm duyệt, và cũng tuân theo phạm vi
+agent của danh mục (§3.5).
+
+### 4.7 Hội thoại mặc định (7 kịch bản có sẵn)
+
+Thẻ *Hội thoại mặc định* liệt kê **toàn bộ kịch bản ShopTalk cung cấp sẵn** — không chỉ
+các kịch bản do nút kịch bản chạy mà cả **những kịch bản khách chỉ đến được qua chip tiếp
+theo** — tổng cộng 7 (hủy/hoàn tiền · hủy đơn · chính sách hoàn tiền · trả/đổi hàng ·
+chính sách giao hàng · trợ giúp đơn hàng · trợ giúp sản phẩm chung).
+
+**Quy trình**: bấm **[Xem / sửa]** trên hàng kịch bản → chọn ngôn ngữ → chỉnh `Câu của
+khách` (câu hiển thị trong hội thoại như thể khách tự nhập khi bấm nút) / `nội dung phản
+hồi` / `chip tiếp theo` / `sau khi trả lời` (ở lại chat·mở đơn hàng của tôi·mở biểu mẫu
+liên hệ·mở thẻ cộng tác viên·kết nối nhân viên·mở URL) → lưu.
+
+💡 **Mẹo**
+- Huy hiệu trên mỗi hàng cho biết đường tiếp cận: **"Nút menu · {hành động}"** (chạy bằng
+  nút kịch bản) vs **"Chỉ qua chip tiếp theo"**. Số ngôn ngữ đã sửa ("Đã sửa n ngôn ngữ")
+  cũng hiển thị.
+- Nội dung mặc định mở với ô đã điền sẵn — để nguyên thì không lưu gì, sửa thì ghi đè.
+  **[Khôi phục mặc định]** đưa về ban đầu.
+- Đảm bảo nội dung kịch bản cố định và chính sách trong tài liệu tri thức **không lệch
+  nhau** — sửa chính sách thì cập nhật cùng lúc (danh sách kiểm tra §7).
 
 ---
 
 ## 5. Cài đặt tiếp khách live chat
-*(Mục *Chuyển tiếp tư vấn* trên trang **[Cài đặt gian hàng]** — đã được chuyển từ màn hình Cài đặt AI sang đây)*
+*(Thẻ *Chuyển cho nhân viên* trong tab **[Cài đặt gian hàng] → Cài đặt cơ bản** — đã được chuyển từ màn hình Cài đặt AI sang đây)*
 
 **Thuật ngữ**
 
@@ -389,15 +549,20 @@ chính sách. Câu trả lời tái sử dụng vẫn phải qua kiểm duyệt.
 
 ### 5.1 Người phụ trách·giờ làm việc·hướng dẫn ngoài giờ
 
-**Quy trình**: trong mục *Chuyển tiếp tư vấn*
-1. **Chỉ định người phụ trách** — tích chọn nhân viên tư vấn sẽ nhận chuyển tiếp
-2. Công tắc **Dùng giờ làm việc** → múi giờ·giờ bắt đầu/kết thúc·ngày trong tuần, khi cần thêm công tắc **giờ nghỉ**
-3. **Email tiếp nhận ngoài giờ** — địa chỉ nhận câu hỏi ngoài giờ làm việc (hiển thị cảnh báo nếu chưa cấu hình SMTP)
-4. **Nội dung hướng dẫn ngoài giờ** — viết theo từng tab ngôn ngữ
-5. **SLA** — nhập mục tiêu phản hồi thường/khẩn cấp (giờ, 1~168h) — là tiêu chuẩn cho huy hiệu trễ ⚠️/🔥 trên bảng yêu cầu
-6. **Chuyển tiếp bắt buộc theo chính sách (deny-list)** — đăng ký quy tắc từ khóa (phân tách
-   bằng phẩy) + loại yêu cầu + nhãn phụ trách. Tin nhắn khớp sẽ được **chuyển thẳng đến
-   nhân viên tư vấn mà không qua AI**, và yêu cầu (issue) được tạo sẽ tự động gán loại·nhãn
+**Quy trình**: trong thẻ *Chuyển cho nhân viên*
+1. **Nhân viên được phân công** — tích chọn nhân viên tư vấn sẽ nhận chuyển tiếp (bỏ
+   trống thì báo cho mọi nhân viên; ai nhận trước người đó tiếp)
+2. Công tắc **Chỉ kết nối trong giờ làm việc** → múi giờ·giờ bắt đầu/kết thúc·ngày trong
+   tuần, khi cần thêm công tắc **giờ nghỉ** (câu hỏi trong giờ nghỉ xử lý như ngoài giờ)
+3. **Email ngoài giờ** — địa chỉ nhận câu hỏi ngoài giờ làm việc (hiển thị cảnh báo nếu chưa cấu hình SMTP)
+4. **Thông báo ngoài giờ gửi cho khách hàng** — viết theo từng tab ngôn ngữ (bỏ trống thì dùng nội dung mặc định)
+5. **Mục tiêu SLA của bảng yêu cầu** — thường/khẩn cấp (giờ, 1~168h; mặc định 24h/4h) — là
+   tiêu chuẩn cho huy hiệu trễ ⚠️/🔥 trên bảng
+6. **Chuyển tiếp bắt buộc theo chính sách (deny-list)** — đăng ký quy tắc từ khóa (phân
+   tách bằng phẩy) + loại yêu cầu + nhãn phụ trách + **cách hiển thị với khách**. Hai chế
+   độ: **Không trả lời** (chuyển ngay không phản hồi, mặc định) / **Trả lời rồi chuyển**
+   (trả lời từ kho tri thức trước rồi vẫn chuyển) — kiểu nào nhân viên cũng được gọi, và
+   yêu cầu (issue) được tạo sẽ tự động gán loại·nhãn
 
 💡 **Mẹo**
 - Đặt **múi giờ** của giờ làm việc chính xác theo cửa hàng — cửa hàng ở Mỹ mà để giờ Hàn
@@ -416,7 +581,7 @@ Các trường hợp AI chuyển sang nhân viên tư vấn:
 | **Độ tin cậy thấp** | Kèm câu "Tôi kết nối bạn với nhân viên tư vấn nhé?" vào câu trả lời và đưa vào hàng chờ |
 | **Bị kiểm duyệt chặn** | Không hiển thị câu trả lời AI, hướng dẫn kết nối nhân viên tư vấn rồi đưa vào hàng chờ |
 | **Khách yêu cầu** | Nút kịch bản *Liên hệ hỗ trợ* hoặc yêu cầu rõ ràng → vào hàng chờ ngay |
-| **Chuyển tiếp bắt buộc theo chính sách (deny-list)** | Tin nhắn khớp từ khóa đã đăng ký vào hàng chờ **ngay lập tức, không có phản hồi AI** — tin nhắn vẫn được lưu·hiển thị bình thường, và yêu cầu được đóng dấu loại·nhãn (đây không phải chức năng chặn tin nhắn) |
+| **Chuyển tiếp bắt buộc theo chính sách (deny-list)** | Quy tắc "Không trả lời": vào hàng chờ **ngay lập tức, không có phản hồi AI**. Quy tắc "Trả lời rồi chuyển": trả lời từ tri thức trước rồi vào hàng chờ. Tin nhắn vẫn được lưu·hiển thị bình thường, và yêu cầu được đóng dấu loại·nhãn (đây không phải chức năng chặn tin nhắn) |
 
 💡 **Mẹo**
 - Ngưỡng độ tin cậy không điều chỉnh được trên màn hình (chính sách trong mã) — nếu chuyển
@@ -450,7 +615,8 @@ thoại đó vào phần huấn luyện.
 
 💡 **Mẹo**: đã đổi cấu hình thì sau khi lưu phải bắt đầu bằng **[Phiên mới]** mới thấy hội
 thoại với cấu hình mới. Hãy đổi ngôn ngữ để kiểm tra các câu hỏi chính — ngôn ngữ trả lời
-theo ngôn ngữ phiên.
+theo ngôn ngữ phiên. Phiên xem thử **không được tính vào số hội thoại của dashboard·thống
+kê** — cứ thoải mái kiểm thử.
 
 ### 6.2 Huấn luyện AI
 
@@ -473,7 +639,9 @@ dài quá. Gói trong 3 câu") → xem xét nội dung thay đổi trong **thẻ
 **Quy trình**: thẻ *Kiểm tra hồi quy* → đăng ký câu hỏi vàng (10~20 câu đại diện) →
 **[Chạy ngay]** → trong danh sách các lần chạy gần đây bấm **[So với lần trước]** để so
 sánh song song thay đổi của câu trả lời. **[Đo độ dao động]** cho thấy mức dao động của
-cùng một câu hỏi.
+cùng một câu hỏi. Các câu hỏi đăng ký ở đây cũng được **golden-set A/B của phần mô phỏng
+trên bảng tri thức** (§2.0) tái sử dụng — làm thước đo mức cải thiện của tài liệu trước
+khi đưa vào KB.
 
 💡 **Mẹo**
 - Đưa vào câu hỏi vàng: ① câu hỏi gắn trực tiếp với doanh thu (giao hàng·hoàn tiền) ② câu
@@ -487,26 +655,37 @@ cùng một câu hỏi.
 ## 7. Danh sách kiểm tra vận hành
 
 **Khi chính sách thay đổi** (ví dụ: sửa phí giao hàng)
-- [ ] Sửa tài liệu tri thức liên quan (tự động embedding lại) + tắt phiên bản cũ
-- [ ] Kiểm tra nội dung câu trả lời cố định của kịch bản (Tình trạng giao hàng·Hủy/Hoàn tiền)
+- [ ] Sửa bản gốc trên bảng → **[Đưa vào lại]** (tài liệu đăng ký trực tiếp thì sửa tài
+  liệu — tự động embedding lại) + tắt phiên bản cũ
+- [ ] Kiểm tra nội dung Hội thoại mặc định (chính sách giao hàng·hủy/hoàn tiền và các kịch
+  bản có sẵn khác, §4.7)
 - [ ] Tìm các mục tái sử dụng câu trả lời → sửa/tắt câu trả lời cũ
 - [ ] Kiểm tra 3 câu hỏi đại diện bằng bảng QA → chạy hồi quy câu hỏi vàng
 - [ ] Cập nhật ngày hiệu lực·chu kỳ rà soát của tài liệu
 
 **Thói quen hằng tuần**
-- [ ] Dọn hộp đề xuất bổ sung tri thức·đề xuất câu trả lời (§3.4)
+- [ ] Dọn Đề xuất bổ sung tri thức·đề xuất câu trả lời (§3.4)
 - [ ] Xử lý các mục chờ trong Rà soát mâu thuẫn (§3.2)
-- [ ] Rà soát tài liệu có huy hiệu `stale` (§3.3)
+- [ ] Rà soát tài liệu có huy hiệu `stale` và huy hiệu "chưa cập nhật bản sửa" trên bảng
+  (§3.3·§2.0)
 - [ ] Chủ đề hay bị chuyển tiếp trong live chat → bổ sung tri thức
+- [ ] Nếu vừa tạo agent AI mới, rà lại phạm vi agent của các danh mục (§3.5)
 
 ---
 
 ## 8. FAQ / Xử lý sự cố
 
 **Q. Đã đăng ký tài liệu mà AI không biết nội dung đó.**
-Kiểm tra ① tài liệu có đang bật (hiển thị ON) không ② tài liệu có xuất hiện trong danh sách
-nguồn của bảng QA không. Nếu không hiện, hãy bổ sung tiêu đề·nội dung bằng từ ngữ của khách
-hàng. Cũng kiểm tra kết quả đồng bộ danh mục sản phẩm có mục embedding thất bại không.
+Kiểm tra ① có phải chỉ đăng lên bảng mà **chưa đưa vào KB** không (tài liệu bảng chưa đưa
+vào thì chưa là căn cứ trả lời) ② tài liệu có đang bật (hiển thị ON) không ③ danh mục có
+bị **phạm vi agent** che khỏi agent hiện tại không (§3.5 — kiểm chứng bằng cách chọn đúng
+agent trong bảng QA) ④ tài liệu có xuất hiện trong danh sách nguồn của bảng QA không. Nếu
+không hiện, hãy bổ sung tiêu đề·nội dung bằng từ ngữ của khách hàng. Cũng kiểm tra kết quả
+đồng bộ danh mục sản phẩm có mục embedding thất bại không.
+
+**Q. Đã chạy Nhập bằng AI mà danh sách tài liệu không có gì.**
+Bản nháp của Nhập bằng AI được đăng **lên bảng**, không vào thẳng KB. Phải duyệt trên bảng
+rồi **[Đưa vào KB]** thì mới xuất hiện trong danh sách tài liệu·căn cứ trả lời (§2.5).
 
 **Q. AI cứ chuyển sang nhân viên tư vấn.**
 Kiểm tra độ tin cậy·nguồn của câu hỏi đó trong bảng QA. Không có tài liệu căn cứ thì đăng

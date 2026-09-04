@@ -1,6 +1,6 @@
 # Sổ tay thiết lập nhanh ShopTalk — Từ khi mở tenant đến phiên tư vấn đầu tiên
 
-> Phiên bản 1.0 · 2026-08-24 · Biên soạn dựa trên mã nguồn
+> Phiên bản 1.1 · Bản đầu 2026-08-24 · **Cập nhật 2026-09-04** · Biên soạn dựa trên mã nguồn
 > Đối tượng: **Quản trị viên nền tảng** (chương 1) · **Quản trị viên tenant mới** (chương 2~8)
 > Bản trực tuyến: https://shoptalk.amoeba.site/manual (có bản HTML và bản dịch EN·VI)
 > Ký hiệu: ✅ đã triển khai / 🟡 đang chuẩn bị·lộ trình. URL staging chuẩn `https://shoptalk.amoeba.site`
@@ -61,7 +61,7 @@ tri thức·AI, xem [Sổ tay đăng ký tri thức·cài đặt AI](knowledge-a
 | Tên | ✅ | Tên hiển thị của cửa hàng |
 | Đường dẫn đăng nhập (slug) | — | Để trống sẽ tự tạo từ tên. Khi nhập sẽ tự chuyển thành chữ thường |
 | Tên miền cửa hàng | ✅ | Tên miền đại diện của cửa hàng. Shopify là `*.myshopify.com`, Cafe24 là tên miền của mall v.v. — **dùng chung cho mọi nền tảng** |
-| Gói dịch vụ | ✅ | `starter` / `growth` / `enterprise` — menu được cung cấp mặc định khác nhau theo gói |
+| Gói dịch vụ | ✅ | `starter` / `growth` / `enterprise` / `custom` — menu được cung cấp mặc định khác nhau theo gói. Sau khi mở, đổi tại **[Gói & add-on]** trên hàng của tenant (add-on quy trình yêu cầu base/bridge/native cũng ở đó) |
 
 💡 **Mẹo — quy tắc slug**: chỉ chữ thường·số·gạch ngang, không được trùng với tên màn hình
 của bảng điều khiển (`admin`, `login`, `dashboard`, `settings` v.v. — các từ dành riêng).
@@ -164,11 +164,18 @@ viên (admin hoặc master của cửa hàng).
 ---
 
 ## 3. Tích hợp nền tảng thương mại
-*(Menu trái của bảng điều khiển **[Cài đặt gian hàng]** → thẻ Tích hợp cửa hàng)*
+*(Menu trái của bảng điều khiển **[Cài đặt gian hàng]** → tab **Tích hợp nền tảng**)*
 
-Trong ô Tích hợp cửa hàng của trang cài đặt, bấm **[Cấu hình]** của nền tảng cần dùng để
-mở cửa sổ tích hợp. Sau khi lưu thông tin xác thực, nhất định phải xác nhận bằng
-**[Kiểm tra kết nối]**.
+> Trang cài đặt nay gồm **7 tab**: Cài đặt cơ bản (công cụ AI · mức dùng · storefront ·
+> chuyển cho nhân viên) / Cài đặt widget / Tích hợp nền tảng / Marketing & Helpdesk /
+> Kênh nhắn tin / Cài đặt khác / Thông báo quyền riêng tư. Chương này là tab
+> *Tích hợp nền tảng*, chương 4 là tab *Cài đặt widget*.
+
+Trong các ô của tab Tích hợp nền tảng, bấm **[Cấu hình]** của nền tảng cần dùng để mở cửa
+sổ tích hợp. Nút **[Hướng dẫn kết nối]** ở góc trên bên phải của tab chỉ rõ tìm thông tin
+xác thực của từng nền tảng ở đâu.
+⚠️ **Lưu ≠ đã kết nối**: sau khi lưu thông tin xác thực, trạng thái là "Chưa kiểm tra" —
+phải qua được **[Kiểm tra kết nối]** mới thành "Đã kết nối" (thất bại là "Lỗi").
 
 | Thuật ngữ | Ý nghĩa |
 |---|---|
@@ -178,7 +185,7 @@ mở cửa sổ tích hợp. Sau khi lưu thông tin xác thực, nhất định
 
 ### 3.1 Cafe24 ✅
 
-**Đường khuyến nghị — thẻ kết nối OAuth**: tại thẻ *Kết nối Cafe24* trên trang cài đặt
+**Đường khuyến nghị — thẻ kết nối OAuth**: tại thẻ *Cafe24 (OAuth)* của tab Tích hợp nền tảng
 1. Nhập `mall ID` (phần mallID trong `mallID.cafe24.com`)
 2. **[Kết nối]** → chuyển đến trang ủy quyền của Cafe24 → đăng nhập·chấp thuận quyền → tự động quay lại bảng điều khiển
 3. Xác nhận huy hiệu Đã kết nối rồi chạy **[Đồng bộ ngay]** (đơn hàng) / **[Đồng bộ sản phẩm]**
@@ -188,12 +195,11 @@ này trong câu trả lời, phải chạy riêng **Đồng bộ từ danh mục
 ở màn hình [Kho tri thức] — xem [Sổ tay tri thức·AI chương 2.2](knowledge-ai.vi.md).
 
 Đường thủ công (khi đã có sẵn token): cũng có thể nhập trực tiếp `mall_id` +
-`access_token` (+ client_id/secret) vào hộp thoại cafe24 của ô Tích hợp cửa hàng. Kết nối
-OAuth là cách chuẩn.
+`access_token` (+ client_id/secret) vào hộp thoại của ô Cafe24. Kết nối OAuth là cách chuẩn.
 
 ### 3.2 Shopify ✅
 
-Hộp thoại Shopify của ô Tích hợp cửa hàng:
+Hộp thoại của ô Shopify:
 
 | Trường | Bắt buộc |
 |---|---|
@@ -205,24 +211,28 @@ Sau khi lưu, chạy theo thứ tự **[Kiểm tra kết nối] → [Đồng b�
 Phải đăng ký webhook thì thay đổi trạng thái đơn hàng·giao hàng mới được phản ánh vào thông
 báo của widget theo thời gian thực. Quy trình cấp token xem hướng dẫn tích hợp Shopify.
 
-### 3.3 Odoo ✅ (thông tin xác thực·kiểm tra kết nối) 🟡 (đồng bộ thời gian thực)
+### 3.3 Odoo · WooCommerce · Haravan ✅
 
-Nhập `URL máy chủ` / `tên DB` / `tên người dùng` / `API Key` vào hộp thoại odoo và kiểm tra
-kết nối. Đồng bộ dữ liệu thời gian thực đang ở giai đoạn chuẩn bị.
+Nhập thông tin xác thực vào hộp thoại của từng ô (Odoo: `URL máy chủ` / `tên DB` /
+`tên người dùng` / `API Key`), qua được **[Kiểm tra kết nối]** rồi lấy dữ liệu bằng
+**[Nhập sản phẩm] / [Đồng bộ đơn hàng]** trong cùng hộp thoại. Để AI dùng các sản phẩm
+đã nhập trong câu trả lời, vẫn phải chạy riêng đồng bộ danh mục ở màn hình [Kho tri thức]
+(giống mẹo ở 3.1).
 
 ### 3.4 URL storefront
 
-Nhập **địa chỉ trang dành cho khách hàng** của cửa hàng vào thẻ *Cửa hàng (storefront)*.
-Nếu chưa đặt, liên kết sản phẩm trong widget sẽ bị vô hiệu (thẻ hiển thị cảnh báo).
+Nhập **địa chỉ trang dành cho khách hàng** của cửa hàng vào thẻ *Cửa hàng (storefront)*
+trên **tab Cài đặt cơ bản**. Nếu chưa đặt, liên kết sản phẩm trong widget sẽ bị vô hiệu
+(thẻ hiển thị cảnh báo).
 
-> Ngoài ra WooCommerce·Haravan (thương mại), Klaviyo·Yotpo (marketing), Gorgias (helpdesk),
-> các kênh nhắn tin (Telegram·Gmail v.v.) cũng được tích hợp bằng ô/thẻ theo cùng cách.
+> Ngoài ra Klaviyo·Yotpo (marketing)·Gorgias (helpdesk) nằm ở tab *Marketing & Helpdesk*,
+> các kênh nhắn tin (Telegram·Viber·Gmail v.v.) ở tab *Kênh nhắn tin* — cùng kiểu ô/thẻ.
 > Tài liệu này lược bỏ phần đó.
 
 ---
 
 ## 4. Cài đặt·cài lên trang widget trò chuyện
-*(Các thẻ widget trên trang **[Cài đặt gian hàng]**)*
+*(**[Cài đặt gian hàng] → tab Cài đặt widget**)*
 
 ### 4.1 Cài widget lên trang
 
@@ -250,7 +260,7 @@ xuất hiện ở góc dưới bên phải là cách xác minh chắc chắn nh�
 | Cách đăng nhập | `redirect` (chuyển đến trang đăng nhập của cửa hàng rồi quay lại, mặc định) / `popup` (đăng nhập bằng cửa sổ popup) |
 | Múi giờ | Múi giờ chuẩn của cửa hàng — dùng cho hiển thị giờ làm việc v.v. |
 | Tên hiển thị | Tên cửa hàng hiện trên đầu widget (tối đa 80 ký tự) |
-| Lời chào lần đầu truy cập / Lời chào khi đã đăng nhập | Viết riêng theo từng tab ngôn ngữ (EN/ES/KO) (tối đa 500 ký tự) |
+| Lời chào lần đầu truy cập / Lời chào khi đã đăng nhập | Viết riêng theo **6 tab ngôn ngữ** (EN/ES/KO/VI/JA/ZH) (tối đa 500 ký tự) — nội dung mặc định hiển thị dưới ô nhập ("Nội dung mặc định:") |
 
 💡 **Mẹo**: nếu để trống lời chào cho một ngôn ngữ, nội dung mặc định sẽ được gửi. Có thể
 viết kỹ trước cho một ngôn ngữ chủ lực, phần còn lại điền sau cũng được.
@@ -289,13 +299,15 @@ phải. Ở giai đoạn mở tenant chỉ cần kiểm tra ba điều.
 2. Đăng ký tối thiểu 2~3 mục trong **Quy tắc trả lời**
    (ví dụ: "Không khẳng định hoàn tiền đã hoàn tất", "Không cam đoan ngày giao hàng cụ thể")
 3. Kiểm tra công cụ áp dụng của từng chức năng trong thẻ **Chức năng AI** — **nếu thấy huy hiệu
-   `stub` nghĩa là chưa kết nối công cụ thật**. Hãy đề nghị quản trị viên nền tảng đăng ký
-   công cụ (`/admin/ai-engines`).
+   `stub` nghĩa là chưa kết nối công cụ thật**. Hai cách khắc phục: ① đăng ký **công cụ
+   riêng bằng API key của mình** tại thẻ *Công cụ AI* trong [Cài đặt gian hàng → Cài đặt
+   cơ bản] (ưu tiên hơn công cụ của nền tảng; chi phí tính vào tài khoản của mình)
+   ② đề nghị quản trị viên nền tảng đăng ký công cụ chung (`/admin/ai-engines`).
 
 💡 **Mẹo**: nút kịch bản (menu nhanh dưới cùng của widget) đã có sẵn 6 loại mặc định
 (Tình trạng giao hàng·Hủy/Hoàn tiền·Hỗ trợ sản phẩm·Liên hệ hỗ trợ·Cộng tác viên·Đơn hàng
-của tôi) được áp dụng tự động, nên ở giai đoạn mở tenant không cần đụng đến. Cách viết
-persona·quy tắc và toàn bộ cài đặt AI: xem
+của tôi) được áp dụng tự động **kèm nhãn cho cả 6 ngôn ngữ**, nên ở giai đoạn mở tenant
+không cần đụng đến. Cách viết persona·quy tắc và toàn bộ cài đặt AI: xem
 [Sổ tay tri thức·AI chương 4](knowledge-ai.vi.md).
 
 ---
@@ -304,19 +316,27 @@ persona·quy tắc và toàn bộ cài đặt AI: xem
 *(Menu trái **[Kho tri thức]**)*
 
 AI **chỉ trả lời từ tri thức đã đăng ký**. Nếu chưa có tri thức, đa số câu hỏi sẽ bị chuyển
-sang nhân viên tư vấn, nên ở giai đoạn mở tenant hãy đăng ký 3~5 tài liệu chính sách cốt lõi.
+sang nhân viên tư vấn, nên hãy nạp tri thức chính sách cốt lõi ngay ở giai đoạn mở tenant.
+Con đường nhanh nhất là **Hướng dẫn tư vấn chung**:
 
-1. Thẻ tài liệu → **[Thêm tài liệu]** → nhập `tiêu đề` / `danh mục` (tự gợi ý) / `nội dung` → lưu
-   - Tài liệu đầu tiên nên có: **Chính sách giao hàng · Chính sách hủy/hoàn tiền · Quy trình đổi/trả · Câu hỏi thường gặp**
-   - Khi lưu, tài liệu được tự động embedding (lập chỉ mục tìm kiếm)
-2. Nhập những câu khách hàng có thể hỏi vào **bảng QA tri thức** bên phải để kiểm tra câu
-   trả lời·nguồn trích dẫn·độ tin cậy
-   - Nếu tài liệu vừa đăng ký xuất hiện trong danh sách nguồn là thành công
+1. Trên các tab nhóm phía trên thẻ tài liệu, chọn **CounselInfo** → **[Nhập hàng loạt]** →
+   tải về **Hướng dẫn tư vấn chung** (KB tư vấn khởi đầu dùng ngay, cỡ 90 dòng) dạng
+   CSV/XLSX từ khối hướng dẫn
+2. Chỉnh thời hạn·phí·chính sách theo cửa hàng của mình → tải lên trong cùng cửa sổ →
+   kiểm tra số dòng tạo mới/cập nhật
+   - Giao hàng·hủy/hoàn tiền·đổi/trả·FAQ được nạp trong một lần. Sửa lại file rồi tải
+     lên lần nữa sẽ **cập nhật không tạo trùng** (round-trip)
+3. Tài liệu riêng lẻ đăng ký bằng **[Viết trên bảng]** (khuyến nghị — đăng rồi
+   [Đưa vào KB]) hoặc **[Thêm tài liệu KB]** (dùng khi gấp)
+4. Nhập những câu khách hàng có thể hỏi vào **bảng QA tri thức** bên phải để kiểm tra câu
+   trả lời·nguồn trích dẫn·độ tin cậy — nếu tài liệu vừa đăng ký xuất hiện trong danh sách
+   nguồn là thành công
 
 💡 **Mẹo**: đưa vào tiêu đề·nội dung **cách nói thực tế của khách hàng** (ví dụ: "giao hàng
-mất bao lâu") sẽ tăng tỷ lệ khớp khi tìm kiếm. Đăng ký hàng loạt tri thức sản phẩm (đồng bộ
-danh mục sản phẩm·CSV), tích hợp nguồn ngoài (Google Drive·Notion), kiểm chứng·quản lý chất
-lượng được đề cập trong [Sổ tay tri thức·AI](knowledge-ai.vi.md).
+mất bao lâu") sẽ tăng tỷ lệ khớp khi tìm kiếm. Quy trình bảng tri thức, đăng ký hàng loạt
+tri thức sản phẩm (đồng bộ danh mục·CSV), nhập bằng AI (pdf·docx·md·YouTube), tích hợp
+nguồn ngoài (Google Drive·Notion), kiểm chứng·quản lý chất lượng được đề cập trong
+[Sổ tay tri thức·AI](knowledge-ai.vi.md).
 
 ---
 
@@ -325,9 +345,10 @@ lượng được đề cập trong [Sổ tay tri thức·AI](knowledge-ai.vi.md
 - **Mời thành viên**: menu **[Người dùng]** → [Mời người dùng] → chọn email·cấp bậc
   (director/manager/staff)·nhãn công việc → **hộp thoại mật khẩu tạm thời** giống chương 1
   hiện ra (hiển thị 1 lần·tự tay chuyển giao). Quyền truy cập từng menu điều chỉnh theo
-  cấp bậc tại thẻ *Quyền truy cập menu* trong [Cài đặt gian hàng] (chỉ master).
-- **Chuyển tiếp tư vấn (handoff)**: trong mục *Chuyển tiếp tư vấn* của [Cài đặt gian hàng],
-  chỉ định nhân viên tư vấn phụ trách, giờ làm việc, email tiếp nhận ngoài giờ. Chi tiết xem
+  cấp bậc tại thẻ *Quyền truy cập menu* trong [Cài đặt gian hàng → Cài đặt khác] (chỉ master).
+- **Chuyển cho nhân viên (handoff)**: trong thẻ *Chuyển cho nhân viên* của [Cài đặt gian
+  hàng → Cài đặt cơ bản], chỉ định nhân viên tư vấn phụ trách, giờ làm việc, email chuyển
+  tiếp ngoài giờ. Chi tiết xem
   [Sổ tay tri thức·AI chương 5](knowledge-ai.vi.md).
 
 ---
@@ -336,12 +357,13 @@ lượng được đề cập trong [Sổ tay tri thức·AI](knowledge-ai.vi.md
 
 - [ ] Tạo tenant + mời quản trị viên·chuyển giao mật khẩu tạm (admin)
 - [ ] Đăng nhập lần đầu → đổi mật khẩu → đăng ký MFA
-- [ ] Tích hợp nền tảng: lưu thông tin xác thực + **kiểm tra kết nối đạt** + (Shopify) đăng ký webhook
-- [ ] Đặt URL storefront
+- [ ] Tích hợp nền tảng: lưu thông tin xác thực + **kiểm tra kết nối đạt** (trạng thái
+  "Đã kết nối") + (Shopify) đăng ký webhook
+- [ ] Đặt URL storefront (tab Cài đặt cơ bản)
 - [ ] Cài đoạn mã widget → **xác nhận launcher hiển thị trên cửa hàng thật**
 - [ ] Viết tên hiển thị·lời chào
 - [ ] Lưu persona·quy tắc trả lời, xác nhận công cụ AI không phải `stub`
-- [ ] Đăng ký từ 3 tài liệu chính sách cốt lõi trở lên → kiểm tra câu trả lời bằng bảng QA
+- [ ] Tải lên Hướng dẫn tư vấn chung (hoặc đăng ký từ 3 tài liệu chính sách cốt lõi trở lên) → kiểm tra câu trả lời bằng bảng QA
 - [ ] Hỏi trực tiếp trong widget để xác nhận câu trả lời AI + hiển thị nguồn (đầu-cuối)
 
 ---
@@ -363,8 +385,10 @@ có trong danh sách tên miền được phép của thẻ Embed không (nếu 
 storefront) ③ làm mới bộ nhớ đệm trình duyệt.
 
 **Q. Câu trả lời của AI máy móc một cách kỳ lạ.**
-Xem thẻ Chức năng AI có huy hiệu `stub` không. Stub là bộ trả lời demo. Hãy đề nghị quản
-trị viên nền tảng đăng ký công cụ thật.
+Xem thẻ Chức năng AI có huy hiệu `stub` không. Stub là bộ trả lời demo. Hãy đăng ký công
+cụ riêng tại thẻ *Công cụ AI* trong [Cài đặt gian hàng → Cài đặt cơ bản], hoặc đề nghị
+quản trị viên nền tảng đăng ký công cụ chung. Cảnh báo "dự phòng n lần" trong thẻ
+*Mức dùng AI* cũng là dấu hiệu tương tự.
 
 **Q. AI cứ chuyển sang "kết nối nhân viên tư vấn".**
 Nhiều khả năng chưa có tài liệu tri thức về chủ đề đó hoặc tài liệu đang tắt. Đăng ký tài

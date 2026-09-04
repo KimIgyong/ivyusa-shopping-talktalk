@@ -1,6 +1,6 @@
 # ShopTalk Knowledge & AI Setup Manual — The Knowledge Pipeline and Customer-Response Operations
 
-> Version 1.0 · 2026-08-24 · Written against the code
+> Version 1.1 · First edition 2026-08-24 · **updated 2026-09-04** · Written against the code
 > Audience: tenant operators · CS staff (master/director recommended — AI settings are restricted to senior ranks)
 > Online edition: https://shoptalk.amoeba.site/manual (HTML edition plus EN·VI translations)
 > Legend: ✅ implemented / 🟡 in preparation·roadmap. Prerequisite: [Quick Setup Manual](quick-setup.en.md)
@@ -33,7 +33,8 @@ Customer message
   │
   ▼
 ① Intent classification ── if orders/personal data are needed → identity-verification (login) prompt
-  │
+  │               on a deny-list match: "No answer" rule → hand off immediately /
+  │               "Answer, then hand off" rule → answer via ②–④, then hand off
   ▼
 ② Knowledge search (RAG) ── find relevant evidence in the registered knowledge documents
   │
@@ -60,26 +61,70 @@ Customer message
 | Term | Meaning |
 |---|---|
 | Knowledge document | One piece of text the AI uses as answer evidence. Consists of title, category, and body |
+| **Knowledge board** | The **curation layer where every piece of knowledge is written and reviewed first** (`/knowledge/board`). A published board document becomes answer evidence once "adopted" into the KB |
+| KB adoption | Promoting a board document into a knowledge-base (KB) document. Re-adopting updates the same document (no duplicates) |
 | Embedding | The indexing job that turns a document into a searchable vector. Performed automatically on create/update |
 | RAG | The method of searching for documents related to the question and answering only from that evidence |
 | Source | A connection that imports documents automatically from outside (board·Google Drive·Notion) |
-| Group | Top-level document classification: **support** (policy·FAQ) / **product** (from the catalog) |
-| Category | Sub-classification under a group (faq, policy, product, warranty, etc. — autocomplete presets provided) |
+| Group | Three top-level document classifications: **CounselInfo** (support — policy·FAQ) / **ProductInfo** (product — from the catalog) / **OperationInfo** (operations manuals) |
+| Category | Sub-classification under a group. Managed **per (group, name)**; the agent scope (§3.5) also hangs on the category |
 | Active/visible | Whether the document is included in search. **Inactive documents are never used as answer evidence** |
 | Confidence | A score of how well the answer is supported by evidence. Low values hand off to an agent |
 
-Layout of the knowledge screen (`/knowledge`): source & document management on the left, and
-the **knowledge QA panel** and **conflict review** pinned on the right, so you can move
-between registering and verifying on one screen.
+Layout of the knowledge screen (`/knowledge`): the board banner and **knowledge gap
+proposals** at the top; sources, usage guides, categories, and document management on the
+left; and the **QA panel (Answer with knowledge)** and **conflict review** pinned on the
+right, so you can move between registering and verifying on one screen. The **group tabs**
+above the document list (All / CounselInfo / ProductInfo / OperationInfo) decide what the
+documents, categories, and bulk tools operate on.
 
 ---
 
 ## 2. Registering Knowledge
 
-### 2.1 Manual document creation & editing
+### 2.0 The standard path — Smart Knowledge Board (recommended)
 
-**Procedure**: documents card → **[Add document]** → enter `title` / `category` / `content`
-→ save. Clicking a title opens the detail dialog; **[Edit]** manages the following:
+The standard path is to write and review every piece of knowledge on the board first, then
+adopt it into the KB. **[Write on board]** is the primary button on the documents card;
+[Add KB-Document] (direct add) is **for emergencies only**.
+
+**Procedure**: the **[Open board]** banner at the top of `/knowledge`, or **[Write on
+board]** on the documents card →
+1. Write: `group` (CounselInfo/ProductInfo/OperationInfo) / `Category (1st·2nd)` / `Team` /
+   `title` / `tags` / markdown body + attachments (50MB per file, [Insert into body]
+   available). Writing `[[Document Title]]` in the body links to another board document
+   (check backlinks in the *Links* panel on the right — links are **by title**, so renaming
+   a document shows its old links as "not written").
+2. **[Save draft]** (Draft) → **[Publish]** (Published) — an unpublished document cannot be
+   adopted.
+3. **[Simulation]**: enter a customer question to check, before adopting, whether this
+   document gets cited, plus confidence and similarity. **Golden-set A/B** runs the
+   registered verification questions (§6.3) once without and once with the document to show
+   the improvement delta (2 LLM calls per question — confirm before running).
+4. **[Adopt to KB]**: the reviewer picks a category (if unset, 2nd-level then 1st-level
+   classification is used) and a KB document is created. **Re-adopting updates the same KB
+   document** and re-embeds automatically. After editing the board original, a **"revision
+   behind"** badge shows until you re-adopt.
+5. Collaboration: **comments** on the right (type `@` to mention a teammate — mentions pile
+   up in the `@me` inbox on the board list), and **[Hold]/[Re-adopt]/[Back to published]**
+   to move the status back and forth.
+
+**Bulk FAQ migration**: **[FAQ import]** on the board list — export your existing FAQ/Q&A
+board as CSV/XLSX and upload it; each row becomes a published board document (required
+columns title·content, optional category1·category2·tags; duplicate titles are skipped).
+
+💡 **Tips**
+- Editing an adopted KB document on the KB side makes it **diverge** from the board
+  original — the document detail shows a warning and [Open board original]. Revise on the
+  board and re-adopt instead.
+- If the simulation says "not cited", reinforce the title/body with customer vocabulary and
+  simulate again — one step faster than adopting first and checking in the QA panel.
+
+### 2.1 Manual document creation & editing (for emergencies)
+
+**Procedure**: documents card → **[Add KB-Document]** → choose the `group` / enter `title`
+/ `category` (autocomplete offers only the chosen group's) / `content` → save. Clicking a
+title opens the detail dialog; **[Edit]** manages the following:
 
 | Field | Purpose |
 |---|---|
@@ -94,8 +139,14 @@ between registering and verifying on one screen.
 - Include **customers' actual phrasing** ("how long does shipping take", "when do I get my
   refund") in titles and bodies. Search is similarity-based, so the closer to customer
   vocabulary, the better it hits.
-- Instead of deleting outdated policies, **turn the visibility toggle off (inactive)** to
+- Instead of deleting outdated policies, **turn visibility off (inactive)** to
   exclude them from evidence. History is preserved and reverting is easy.
+- The list is now **title-first**: group (All tab only), **origin badge** (direct/board/
+  file/YouTube/Drive/Notion/catalog), category, title, and updated date are the columns;
+  the visibility toggle, status, delete, and the rest moved to the **⋯ (More)** menu at the
+  row's end. The visibility/origin/status filters and sorting are all server-side. A
+  document whose status is "Pending" is **already used in keyword search** — only semantic
+  search waits for the index.
 
 ### 2.2 Product knowledge — catalog sync · CSV · usage guides
 
@@ -158,11 +209,53 @@ Supported types: board ✅ · Google Drive ✅ · Notion ✅ · the GitHub repos
 💡 **Tips**
 - If a red **dropped/truncated** warning appears in the sync result, the page was too large
   or too deep and part of it was cut off. Open the document, check that its ending is
-  intact, split the original, and sync again.
+  intact, split the original, and sync again. A Notion failure shows its reason right in
+  the *last sync* cell — if you see "not shared with your integration", open the page in
+  Notion and add the integration under ⋯ → Connections.
 - If a sync suddenly imports **0 items** (folder unshared, integration disconnected, etc.),
   the existing documents are left as-is rather than hidden — restore the connection first.
 - Clicking a source's status cell toggles active↔inactive. An inactive source only stops
   syncing; already-imported documents remain.
+- **[View conversion history]** (icon next to the source name): shows the sync-run history
+  (ok/failed · created/updated/kept/hidden · indexed · elapsed · reason) and the list of
+  documents converted from this source.
+- **Deleting a source is safe** — only the source is removed; its documents are not deleted
+  but **deactivated** and dropped from search (they can be reactivated from the document
+  list).
+
+### 2.4 Bulk download ↔ bulk import (CSV/XLSX round trip)
+
+**[Bulk download ▾]** (CSV/Excel) and **[Bulk import]** on the documents card share one
+column contract: `category · title · content` (required) + `external_key · source_url`
+(optional). **Both buttons appear only after selecting a group tab** (hidden on the All
+tab — the target group must be decided).
+
+**Procedure**: pick a group tab → download the current documents with [Bulk download] and
+edit them → re-upload with [Bulk import]. Rows with the same `external_key` (or, failing
+that, the same **trimmed title**) update the existing document instead of duplicating it,
+and unchanged rows are ignored. The result toast reports created·updated·skipped counts.
+
+- Up to 5,000 rows / 5MB. CSV must be **UTF-8 only** — from Korean Excel, save as
+  "CSV UTF-8" or upload the `.xlsx` itself.
+- The CounselInfo tab has a **universal counsel guide** download block (a ready-made
+  starter support KB) — download it, adjust deadlines and costs to your store's policy,
+  and upload it to fill your initial knowledge in one pass.
+- Documents that came from an external source (catalog·board·Notion·Drive) can be edited
+  too, but **the next sync may overwrite your edits** — fixing the original is the rule.
+
+### 2.5 AI import (file·YouTube → drafts → board)
+
+**[AI import]** — upload a file (pdf·docx·xlsx·csv·md, up to 15MB) or a YouTube URL with
+public captions, and the AI splits the content into **article-level drafts**.
+
+**Procedure**: choose a group (support manual/product recommendation/operations manual) →
+upload a file or enter a video URL → **[Start analysis]** (a background job — you can leave
+the screen) → review the drafts (select, edit titles/categories, watch for the "needs
+review" badge) → **[Save N selected]**.
+
+⚠️ Saved drafts are published **to the board**, not the KB — review them on the board and
+adopt them into the KB (§2.0). Files without a text layer (like scanned PDFs) and videos
+without captions cannot be analyzed.
 
 ---
 
@@ -182,10 +275,11 @@ Supported types: board ✅ · Google Drive ✅ · Notion ✅ · the GitHub repos
 
 ### 3.1 Knowledge QA panel — always verify after registering
 
-**Procedure**: enter a question → check the answer + **confidence score** + **source list**
-(similarity per document) → if an evidence document is wrong, press **[Fix]** next to the
-source (that document opens directly in edit mode) → after fixing, re-check with
-**[Ask again]**.
+**Procedure**: pick an agent (**All (operator view)** or a specific agent — testing with
+the actual view that the agent scope §3.5 allows) → enter a question → check the answer +
+**confidence score** + **source list** (similarity per document) → if an evidence document
+is wrong, press **[Fix]** next to the source (that document opens directly in edit mode) →
+after fixing, re-check with **[Ask again]**.
 
 💡 **Tips**
 - If the answer carries a **blocked by moderation** badge, it hit a moderation rule (§4.5) —
@@ -197,16 +291,16 @@ source (that document opens directly in edit mode) → after fixing, re-check wi
 
 ### 3.2 Conflict review
 
-**Procedure**: right-hand *conflict review* panel → status filter (pending/resolved/
-dismissed/failed) → per item, check the two documents' similarity, detection time, and the
-verdict rationale → choose an action:
+**Procedure**: right-hand *conflict review* panel → per item, check the verdict
+(**Contradicts/Duplicate/Related**), the two documents' similarity, and the verdict
+rationale → choose an action:
 
 | Action | Behavior |
 |---|---|
-| Keep A / Keep B | Keep the chosen one and deactivate the other |
+| Follow A · hide B / Follow B · hide A | Keep the chosen one and deactivate the other |
 | Keep both | Judged not a contradiction — both stay active |
-| Dismiss | Close this conflict item |
-| Re-judge | Request a new verdict after fixing the documents |
+| Not a conflict | Close this conflict item |
+| Re-judge this pair | Request a new verdict after fixing the documents (failed verdicts retry here too) |
 
 **[Re-scan]** re-checks all documents.
 
@@ -226,20 +320,38 @@ surviving document so the same thing doesn't repeat at the next revision.
 interval of around 30 days and stable ones (legal notices) a long one, and the stale badges
 become a practical to-do list.
 
-### 3.4 Knowledge gap proposals inbox · answer proposal approval (closed loop)
+### 3.4 Knowledge gap proposals · answer proposals (closed loop)
 
-- **Knowledge gap proposals** (top of the screen, shown only when there are items): topics
-  from customer questions where the knowledge was empty accumulate as document drafts.
-  **[Accept]** (confirm after editing title·content) or **[Dismiss]**.
+- **Knowledge gap proposals** (top of the screen, shown only when there are items):
+  escalation-heavy topics, intents with no evidence document, and agents' resolutions
+  accumulate as KB candidates. **[Approve as KB doc]** (create the document after editing
+  title·content) or **[Dismiss]** — nothing is applied automatically.
 - **Answer proposals** (shown when items are pending): proposals to promote an agent's real
   answer into knowledge. Check the question, answer, and source-conversation link, then
-  **[Approve]** or **[Reject]** (reason required).
+  **[Approve]** or **[Reject]** (the reason is shown to whoever proposed it).
 
 💡 **Tip**: These two are the channels through which the knowledge grows on its own. Making
 a weekly routine of emptying them reduces the root cause of "the AI keeps handing off to
 agents". Before approving, always check **that no personal data (order numbers·names)
 remains in the answer** — knowledge documents are reused as evidence for every customer's
 answers.
+
+### 3.5 Category agent scope (per-agent knowledge)
+
+Each row of the *categories* card shows its current scope as a button — **"All agents"**
+(default; an empty scope = visible to everyone) or **"Agents n/total"**.
+
+**Procedure**: click the button → choose **All agents (default)** / **Selected agents
+only** → save. Narrowing the scope means only the selected agents can cite that category's
+documents (answer reuse follows the same scope).
+
+💡 **Tips**
+- ⚠️ **Agents created later cannot see a narrowed category** — recheck the scopes whenever
+  you add a new agent.
+- Categories generated from the catalog (brands) are always usable by every agent and
+  cannot be scoped.
+- The agent selector in the QA panel (§3.1) is the surest way to verify "what this agent
+  actually sees".
 
 ---
 
@@ -254,7 +366,8 @@ answers.
 | Default agent | The agent used by widgets with no specific assignment (always active) |
 | Entry snippet | An installation code fragment that launches the widget with a specific agent |
 | Persona / response rules | The bot's tone·principles description / the list of rules it must obey (injected at pipeline ③ in §0) |
-| Scenario buttons | The quick-menu buttons at the bottom of the widget. Choose among 7 actions |
+| Scenario buttons | The quick-menu buttons at the bottom of the widget. Choose among 7 actions; **labels are managed per language** |
+| Built-in conversations | Editing the response copy·follow-up chips of the **7 built-in scripts** ShopTalk ships with (§4.7) |
 | AI function | The 5 places AI is used (chat/rag/summary/assist/moderation) — an engine is assigned per place |
 | Moderation rules | The rules that inspect outbound messages (pipeline ④ in §0) |
 | Answer reuse | Replaying an approved past answer for the same question without an LLM call |
@@ -267,6 +380,16 @@ rules cards below to **that agent's**. Use **[Add]** to create a new agent with 
 code (lowercase), and manage **[Set as default]** / the active toggle / **[Delete]**. Copy
 each agent's **entry snippet** and install it on a specific page/channel so that bot
 responds there.
+
+Two customer-facing identity fields are set separately when editing an agent:
+- **Widget display name** — shown in the widget header (falls back to the store display
+  name when empty).
+- **First response message** — written per language tab. The first bubble of a session
+  assigned to this agent; empty languages fall back to the store-wide first message.
+
+Right below the agents card, the **"Settings applied to {agent}"** card is a read-only
+summary of **which values actually apply** (including default fallbacks) for the greeting,
+persona, response rules, and exposed buttons — editing happens in each section.
 
 💡 **Tips**
 - An agent is **assigned once at session start** — swapping snippets mid-conversation does
@@ -292,8 +415,17 @@ added one line at a time via [Add rule] (blank lines are removed on save).
 
 ### 4.3 Scenario buttons
 
-**Procedure**: per row, edit the `label` (max 60 chars) / `action` / `enabled` checkbox /
-order (↑↓). The 7 actions:
+**Procedure**: pick a **Label language** tab (6 languages) at the top, then per row edit
+the `label` (max 60 chars) / `action` / `enabled` checkbox / order (↑↓) / **[Agents]** (the
+agents that show this button — shared by all agents, or selected agents only).
+- **Labels are per language**: what you type applies only to the selected language tab; the
+  others keep theirs. The 6 default buttons (Delivery Status·Cancel / Refund·Product
+  Help·Contact Support·Affiliate·My Orders) ship with labels in all 6 languages.
+- The hint under each label names the **built-in script** the button actually runs — "no
+  built-in script" means the label is sent as a chat message and the AI answers. Script
+  copy is edited in §4.7 Built-in conversations.
+
+The 7 actions:
 
 | Action | Actual behavior in the widget |
 |---|---|
@@ -306,7 +438,9 @@ order (↑↓). The 7 actions:
 | Send message | **Sends the label text verbatim as the question** → the AI answers from knowledge |
 
 Pressing **[Edit reply]** lets you edit each action's response copy across **6 language
-tabs** (dots mark which are written) and configure follow-up buttons (label·action·URL).
+tabs** and configure follow-up chips (label·action·URL). The editor opens with the shipped
+default copy **filled into the field** — change it to override, leave it untouched and
+nothing is saved. **[Reset to default]** restores it at any time.
 
 💡 **Tips**
 - To turn a frequent question into a button, use the **Send message** action with the label
@@ -341,8 +475,12 @@ What the 5 functions do:
 - ⚠️ **temperature is not applied to Anthropic (Claude) engines.** Current Claude models
   reject the sampling parameter, so the system deliberately does not send it. Entering a
   value is ignored; it applies only to OpenAI-family engines.
-- A lingering `stub` badge means you are not at production quality — engine registration is
-  a platform-administrator permission (`/admin/ai-engines`).
+- A lingering `stub` badge means you are not at production quality. Engines come from two
+  places: **tenant-owned engines** (the *AI engine* card under [Tenant Settings → Basic
+  settings] — registered with your own API key, preferred over platform engines, billed to
+  your own account) and platform-provided engines (registered by the platform administrator
+  at `/admin/ai-engines`). Check actual usage in the *AI usage* card on the same tab
+  (including the stub-fallback count warning).
 - The embedding model for knowledge search is not on this screen — it is managed
   server-side, shared across all tenants.
 
@@ -378,12 +516,34 @@ confirmation).
 💡 **Tip**: A reused answer goes out instantly for the same question without an LLM call —
 fast and cheap — but **when a policy changes, a stale answer can go out unchanged.** Put
 "search and update/deactivate the related items" on your policy-revision checklist. Reused
-answers still pass moderation.
+answers still pass moderation, and they follow the category agent scope (§3.5) too.
+
+### 4.7 Built-in conversations (the 7 built-in scripts)
+
+The *Built-in conversations* card lists **every script ShopTalk ships with** — not only the
+ones scenario buttons run, but also **those a customer only reaches through a follow-up
+chip** — 7 in total (cancel/refund · order cancellation · refund policy · return/exchange ·
+shipping policy · order help · general product help).
+
+**Procedure**: **[View / edit]** on a script row → choose a language → edit the
+`Customer's line` (the sentence shown in the thread as if the customer had typed it when
+they press the button) / `response copy` / `follow-up chips` / `after the answer` (stay in
+chat·open my orders·open the inquiry form·open the partnership card·connect to an
+agent·open a URL) → save.
+
+💡 **Tips**
+- Each row's badge tells you how it is reached: **"Menu button · {action}"** (run by a
+  scenario button) vs **"Follow-up chip only"**. The number of edited languages ("n
+  language(s) edited") is shown too.
+- The default copy opens filled into the field — leave it and nothing is saved; change it
+  and it overrides. **[Reset to default]** restores it.
+- Keep the fixed script copy and the knowledge documents' policy **from drifting apart** —
+  update both together when a policy is revised (§7 checklist).
 
 ---
 
 ## 5. Live Chat Customer-Response Settings
-*(the *Agent handoff* section of the **[Settings]** page — relocated here from the AI settings screen)*
+*(the *Agent handoff* card on the **[Tenant Settings] → Basic settings** tab — relocated from the AI settings screen)*
 
 **Terms**
 
@@ -397,18 +557,22 @@ answers still pass moderation.
 
 ### 5.1 Assignees · business hours · off-hours notice
 
-**Procedure**: in the *Agent handoff* section
-1. **Assignees** — check the agents who receive handoffs
-2. **Business hours** toggle → timezone·start/end times·weekdays, plus a **break time**
-   toggle if needed
-3. **Off-hours intake email** — the address that receives inquiries outside business hours
+**Procedure**: in the *Agent handoff* card
+1. **Assigned agents** — check the agents who receive handoffs (leave empty to notify every
+   agent; whoever accepts first responds)
+2. **Business-hours-only** toggle → timezone·start/end times·weekdays, plus a **break
+   time** toggle if needed (break-time inquiries are treated the same as off-hours)
+3. **Off-hours email** — the address that receives inquiries outside business hours
    (a warning shows if SMTP is not configured)
-4. **Off-hours notice copy** — written per language tab
-5. **SLA** — normal/urgent response targets (hours, 1–168h) — the basis of the issue
-   board's ⚠️/🔥 delay badges
+4. **Off-hours message to the customer** — written per language tab (default wording when
+   left blank)
+5. **Issue-board SLA targets** — normal/urgent (hours, 1–168h; defaults 24h/4h) — the
+   basis of the board's ⚠️/🔥 delay badges
 6. **Policy-forced handoff (deny-list)** — register keyword (comma-separated) + inquiry
-   type + duty-label rules. A matched message is delivered **straight to an agent without
-   passing through the AI**, and the created issue gets the type·label stamped automatically
+   type + duty label + **customer-visible mode** rules. Two modes: **No answer** (hand off
+   immediately without replying, the default) / **Answer, then hand off** (reply from the
+   knowledge base first, then hand off anyway) — an agent is called either way, and the
+   created issue gets the type·label stamped automatically
 
 💡 **Tips**
 - Set the business-hours **timezone** precisely to the store's — a US store left on Korean
@@ -427,7 +591,7 @@ When the AI hands off to an agent:
 | **Low confidence** | Appends "Shall I connect you to an agent?" to the answer and queues it |
 | **Blocked by moderation** | The AI answer is withheld; an agent-connection notice is shown, then queued |
 | **Customer request** | The scenario's *Contact support* or an explicit request → queued immediately |
-| **Policy-forced handoff (deny-list)** | A message matching the registered keywords goes to the queue **immediately, with no AI response** — the message is stored·displayed normally, and the issue is stamped with type·label (this is not a message-blocking feature) |
+| **Policy-forced handoff (deny-list)** | "No answer" rule: to the queue **immediately, with no AI response**. "Answer, then hand off" rule: answers from knowledge first, then queues. The message is stored·displayed normally, and the issue is stamped with type·label (this is not a message-blocking feature) |
 
 💡 **Tips**
 - The confidence threshold is not adjustable on screen (code policy) — if handoffs are
@@ -462,7 +626,8 @@ conversation turn to coaching.
 
 💡 **Tip**: After changing settings, save and then start with **[New session]** to see a
 conversation with the new settings applied. Check your key questions across languages —
-the answer language follows the session language.
+the answer language follows the session language. Preview sessions are **not counted in
+the dashboard·statistics conversation totals** — test freely.
 
 ### 6.2 AI coaching
 
@@ -483,8 +648,10 @@ explanation is too long. Keep it under 3 sentences") → review the changes in t
 
 **Procedure**: *regression check* card → register golden questions (10–20 representative
 ones) → **[Run now]** → in the recent-runs list, **[Compare with previous]** to see answer
-changes side by side. **[Variability measurement]** shows how much the same question's
-answer fluctuates.
+changes side by side. **[Measure variance]** shows how much the same question's
+answer fluctuates. The questions registered here are also reused by the knowledge board's
+**simulation golden-set A/B** (§2.0) — the yardstick for measuring a document's improvement
+before adopting it.
 
 💡 **Tips**
 - Put into the golden questions: ① questions tied directly to revenue (shipping·refunds)
@@ -499,26 +666,36 @@ answer fluctuates.
 ## 7. Operations Checklist
 
 **When a policy changes** (e.g. shipping-fee revision)
-- [ ] Update the related knowledge documents (re-embedding is automatic) + deactivate old versions
-- [ ] Check the scenario fixed answers (track shipping·cancel/refund) copy
+- [ ] Edit the board original → **[Re-adopt]** (for directly registered documents, edit the
+  document — re-embedding is automatic) + deactivate old versions
+- [ ] Check the built-in conversations copy (shipping policy·cancel/refund and the other
+  built-in scripts, §4.7)
 - [ ] Search answer-reuse items → fix/deactivate stale answers
 - [ ] Verify 3 representative questions in the QA panel → run the golden-question regression
 - [ ] Update the documents' effective date·review interval
 
 **Weekly routine**
-- [ ] Empty the knowledge gap proposals inbox·answer proposals (§3.4)
+- [ ] Empty the knowledge gap proposals·answer proposals (§3.4)
 - [ ] Process pending conflict-review items (§3.2)
-- [ ] Review `stale`-badged documents (§3.3)
+- [ ] Review `stale`-badged documents and the board's "revision behind" badges (§3.3·§2.0)
 - [ ] Topics with frequent handoffs in live chat → reinforce the knowledge
+- [ ] If you created a new AI agent, recheck the category agent scopes (§3.5)
 
 ---
 
 ## 8. FAQ / Troubleshooting
 
 **Q. I registered a document but the AI doesn't know its content.**
-Check ① the document is active (visibility ON) ② the document appears in the QA panel's
+Check ① whether you only published it to the board without **adopting it into the KB** (a
+board document is not answer evidence until adopted) ② the document is active (visibility
+ON) ③ whether an **agent scope** on its category hides it from the current agent (§3.5 —
+verify with that agent selected in the QA panel) ④ the document appears in the QA panel's
 source list. If it doesn't, reinforce the title/body with customer vocabulary. Also check
 whether the catalog sync result reported embedding failures.
+
+**Q. I ran an AI import but nothing shows in the document list.**
+AI-import drafts are published **to the board**, not the KB. They appear in the document
+list·answer evidence only after you review and **[Adopt to KB]** on the board (§2.5).
 
 **Q. The AI keeps handing off to agents.**
 Check the question's confidence and sources in the QA panel. If there is no evidence
