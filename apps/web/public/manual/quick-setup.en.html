@@ -115,7 +115,7 @@ figure.shot figcaption{padding:8px 16px;font-size:13px;color:var(--muted);border
 <header class="hero">
   <div class="eyebrow">ShopTalk User Manual · 1/2</div>
   <h1>ShopTalk Quick Setup Manual</h1>
-  <div class="meta"><span>Version 1.0 · 2026-08-24 · Written against the code</span><span>Audience: platform administrators (Ch. 1) · new tenant administrators (Ch. 2–8)</span></div>
+  <div class="meta"><span>Version 1.1 · First published 2026-08-24 · Updated 2026-09-04 · Written against the code</span><span>Audience: platform administrators (Ch. 1) · new tenant administrators (Ch. 2–8)</span></div>
   <p class="lead">This manual covers the shortest path from opening a new store (tenant) to <strong>the chat widget actually serving customers</strong>.
   The staging base URL is <code>https://shoptalk.amoeba.site</code>; time required is about 5 minutes of admin work + about 30 minutes of initial tenant setup.
   For in-depth knowledge and AI configuration, see the <em>Knowledge &amp; AI Setup Manual</em> (Part 2).</p>
@@ -168,7 +168,7 @@ figure.shot figcaption{padding:8px 16px;font-size:13px;color:var(--muted);border
     <tr><td>Name</td><td>✅</td><td>Display name of the store</td></tr>
     <tr><td>Login path (slug)</td><td>—</td><td>Auto-derived from the name if left blank. Lowercased automatically when typed</td></tr>
     <tr><td>Shop domain</td><td>✅</td><td>The store's primary domain — <strong>shared across all platforms</strong></td></tr>
-    <tr><td>Plan</td><td>✅</td><td>starter / growth / enterprise — the default menus provided differ by plan</td></tr>
+    <tr><td>Plan</td><td>✅</td><td>starter / growth / enterprise / custom — the default menus provided differ by plan. After creation, change it via <strong>[Plan &amp; add-ons]</strong> on the tenant row (incl. the issue-workflow add-on base/bridge/native)</td></tr>
   </table></div>
   <div class="callout"><span class="c-label">💡 Slug rules</span>
   <p>Lowercase letters, digits, and hyphens only; it cannot collide with console screen names (reserved words such as <code>admin</code>, <code>login</code>, <code>dashboard</code>, <code>settings</code>).
@@ -245,46 +245,53 @@ figure.shot figcaption{padding:8px 16px;font-size:13px;color:var(--muted);border
 
 <section id="ch3">
   <div class="ch"><span class="num">03</span><h2>Commerce Platform Integration</h2></div>
-  <span class="actor">Console [Settings] → store integration cards</span>
+  <span class="actor">Console [Tenant Settings] → Platform integrations tab</span>
+  <p>Settings is now organised into <strong>7 tabs</strong>: Basic settings (AI engines·usage·storefront·agent handoff) / Widget settings /
+  Platform integrations / Marketing &amp; helpdesk / Messenger channels / Other settings / Privacy notice.
+  This chapter is the <em>Platform integrations</em> tab; Chapter 4 is the <em>Widget settings</em> tab.
+  The <strong>[Integration guide]</strong> button at the top right of the tab explains where to find each platform's credentials.</p>
+  <div class="callout warn"><span class="c-label">⚠️ Saving ≠ connected</span>
+  <p>After saving credentials the status is "Not tested". It becomes "Connected" only when <strong>[Test connection]</strong> passes ("Error" on failure).</p></div>
   <div class="terms"><div class="t-label">Terms</div>
   <div class="tablewrap"><table>
     <tr><td>Credential</td><td>Keys/tokens for platform API access. Stored encrypted; after saving, only "Configured" is shown</td></tr>
     <tr><td>Test connection</td><td>A button that makes one real API call with the saved credentials to verify their validity</td></tr>
     <tr><td>Sync</td><td>The job that pulls the platform's order·product data into the ShopTalk cache</td></tr>
   </table></div></div>
-  <figure class="shot"><img src="img/settings-stores.en.jpg" alt="The store integration tiles on [Settings] — enter credentials via each platform's [Configure] button" loading="lazy"><figcaption>The store integration tiles on [Settings] — enter credentials via each platform's [Configure] button</figcaption></figure>
+  <figure class="shot"><img src="img/settings-stores.en.jpg" alt="The Platform integrations tab of [Tenant Settings] — enter credentials via each platform's [Configure] button" loading="lazy"><figcaption>The Platform integrations tab of [Tenant Settings] — enter credentials via each platform's [Configure] button</figcaption></figure>
 
   <h3>3.1 Cafe24 — OAuth connection (recommended) ✅</h3>
   <ol class="steps">
-    <li>In the <em>Cafe24 connection</em> card of the Settings page, enter the <code>mall ID</code> (the mallID part of <code>mallID.cafe24.com</code>)</li>
+    <li>In the <em>Cafe24 (OAuth)</em> card of the Platform integrations tab, enter the <code>mall ID</code> (the mallID part of <code>mallID.cafe24.com</code>)</li>
     <li><strong>[Connect]</strong> → the Cafe24 authorization page → sign in and approve → automatically returned to the console</li>
     <li>Confirm the Connected badge, then run <strong>[Sync now]</strong> (orders) / <strong>[Import products]</strong></li>
   </ol>
   <div class="callout"><span class="c-label">💡 Tip</span>
   <p>Product sync fills only the product <strong>cache</strong>. For the AI to use these products in answers, you must separately run
   <strong>Sync from catalog</strong> (preview → run) on the [Knowledge] screen — see Ch. 2.2 of the Part 2 manual.
-  If you already hold a token, you can also enter it manually in the cafe24 modal of the store integration tile, but the OAuth connection is the standard.</p></div>
+  If you already hold a token, you can also enter it manually in the Cafe24 tile’s modal, but the OAuth connection is the standard.</p></div>
 
   <h3>3.2 Shopify ✅</h3>
-  <p>Shopify modal in the store integration tile: <code>shop domain</code> (required, <code>*.myshopify.com</code>) ·
+  <p>The Shopify tile’s modal: <code>shop domain</code> (required, <code>*.myshopify.com</code>) ·
   <code>Admin API Access Token</code> (required) · API Key/Secret (optional).</p>
   <p>After saving, run <strong>[Test connection] → [Sync now] → [Register webhooks]</strong> in that order.
   Webhooks must be registered for order·shipping status changes to reach widget notifications in real time.</p>
 
-  <h3>3.3 Odoo — credentials·connection test ✅ / real-time sync 🟡</h3>
-  <p>In the odoo tile modal, enter <code>server URL</code> / <code>DB name</code> / <code>username</code> / <code>API Key</code> and test the connection.
-  Real-time data sync is in preparation.</p>
+  <h3>3.3 Odoo · WooCommerce · Haravan ✅</h3>
+  <p>Enter the credentials in each tile’s modal (Odoo: <code>server URL</code> / <code>DB name</code> / <code>username</code> / <code>API Key</code>),
+  pass <strong>[Test connection]</strong>, then pull data with <strong>[Import products] / [Sync orders]</strong> in the same modal.
+  For the AI to use the imported products, the catalog sync on [Knowledge] is still required separately (same as the tip in 3.1).</p>
 
   <h3>3.4 Storefront URL</h3>
-  <p>Enter the store's <strong>customer-facing site address</strong> in the <em>Storefront</em> card.
+  <p>Enter the store's <strong>customer-facing site address</strong> in the <em>Storefront</em> card on the <strong>Basic settings tab</strong>.
   If unset, the widget's product links are disabled (the card shows a warning).</p>
-  <p style="color:var(--muted);font-size:14px">Other integrations — WooCommerce·Haravan (commerce), Klaviyo·Yotpo (marketing), Gorgias (helpdesk),
-  messenger channels (Telegram·Gmail, etc.) — connect through the same kind of tiles/cards.</p>
+  <p style="color:var(--muted);font-size:14px">Other integrations — Klaviyo·Yotpo (marketing) and Gorgias (helpdesk) live on the <em>Marketing &amp; helpdesk</em> tab;
+  messenger channels (Telegram·Viber·Gmail, etc.) on the <em>Messenger channels</em> tab — the same kind of tiles/cards.</p>
 </section>
 
 <section id="ch4">
   <div class="ch"><span class="num">04</span><h2>Chat Widget Setup &amp; Installation</h2></div>
-  <span class="actor">The widget cards on the [Settings] page</span>
+  <span class="actor">[Tenant Settings] → Widget settings tab</span>
 
   <h3>4.1 Install the widget</h3>
   <p>In the <strong>installation guide card</strong>, pick the platform tab (Shopify / Cafe24 / WooCommerce / Odoo) to see
@@ -310,7 +317,7 @@ figure.shot figcaption{padding:8px 16px;font-size:13px;color:var(--muted);border
     <tr><td>Login method</td><td><code>redirect</code> (go to the shop login page and return, default) / <code>popup</code></td></tr>
     <tr><td>Timezone</td><td>The store's timezone — used for business-hours display, etc.</td></tr>
     <tr><td>Display name</td><td>The store name shown in the widget header (max 80 characters)</td></tr>
-    <tr><td>First-visit greeting / post-login greeting</td><td>Written per language tab (EN/ES/KO) (max 500 characters)</td></tr>
+    <tr><td>First-visit greeting / post-login greeting</td><td>Written across <strong>6 language tabs</strong> (EN/ES/KO/VI/JA/ZH) (max 500 characters) — the shipped default is shown under the field as "Default copy:"</td></tr>
   </table></div>
   <div class="callout"><span class="c-label">💡 Tip</span>
   <p>If a greeting is left empty for a language, the default copy is used. It is fine to write one primary language carefully first and fill in the rest later.</p></div>
@@ -340,11 +347,12 @@ figure.shot figcaption{padding:8px 16px;font-size:13px;color:var(--muted);border
       (e.g. "You are the friendly, concise assistant of OO Mall. Answer only from the provided knowledge.")</li>
     <li>Register at least 2–3 <strong>response rules</strong> (e.g. "Never state that a refund is complete")</li>
     <li>Check the applied engine in the <strong>AI functions</strong> card — a <code>stub</code> badge means no real engine is connected.
-      Ask the platform administrator to register engines (<code>/admin/ai-engines</code>)</li>
+      Either ① register <strong>your own engine with your own API key</strong> in the <em>AI engines</em> card of [Tenant Settings → Basic settings]
+      (takes priority over platform engines; billed to your account), or ② ask the platform administrator to register a shared engine (<code>/admin/ai-engines</code>)</li>
   </ol>
   <div class="callout"><span class="c-label">💡 Tip</span>
-  <p>The scenario buttons (the quick menu at the bottom of the widget) come with 6 defaults (track shipping·cancel/refund·product help·contact support·partnership·my orders)
-  applied automatically, so you do not need to touch them at the setup stage.</p></div>
+  <p>The scenario buttons (the quick menu at the bottom of the widget) come with 6 defaults (Delivery Status·Cancel / Refund·Product Help·Contact Support·Affiliate·My Orders)
+  applied automatically <strong>with labels in all 6 languages</strong>, so you do not need to touch them at the setup stage.</p></div>
   <figure class="shot"><img src="img/ai-setting.en.jpg" alt="AI settings — the agent &amp; persona cards (left) and the preview &amp; coaching studio (right)" loading="lazy"><figcaption>AI settings — the agent &amp; persona cards (left) and the preview &amp; coaching studio (right)</figcaption></figure>
 </section>
 
@@ -352,16 +360,19 @@ figure.shot figcaption{padding:8px 16px;font-size:13px;color:var(--muted);border
   <div class="ch"><span class="num">06</span><h2>Initial Knowledge Entry</h2></div>
   <span class="actor">Left menu [Knowledge]</span>
   <p>The AI answers <strong>only from registered knowledge</strong>. Without knowledge, most questions get handed to agents,
-  so register the 3–5 core policy documents at the setup stage.</p>
+  so fill in the core policy knowledge at the setup stage. The fastest path is the <strong>universal counsel guide</strong>.</p>
   <ol class="steps">
-    <li>In the documents card, <strong>[Add document]</strong> → enter title / category (autocomplete) / content → save.
-      Recommended first documents: <strong>shipping policy · cancellation/refund policy · exchange/return procedure · FAQ</strong>. On save, the document is search-indexed (embedded) automatically.</li>
+    <li>In the group tabs above the documents card, pick <strong>CounselInfo</strong> → <strong>[Bulk import]</strong> → download the
+      <strong>universal counsel guide</strong> (a ready-made starter counsel KB, ~90 rows) as CSV/XLSX from the highlighted block</li>
+    <li>Adjust deadlines·fees·policies to your store → upload it in the same dialog → check the created/updated counts.
+      Shipping·cancellation/refund·exchange/return·FAQ get filled in one pass, and re-uploading the edited file <strong>updates without duplicates</strong> (round-trip)</li>
+    <li>Register individual documents via <strong>[Write on board]</strong> (recommended — publish, then [Adopt to KB]) or <strong>[Add KB-Document]</strong> (for urgent fixes)</li>
     <li>In the <strong>knowledge QA panel</strong> on the right, type questions a customer would ask and check the answer·sources·confidence —
       if the document you just registered appears in the source list, you succeeded</li>
   </ol>
   <div class="callout"><span class="c-label">💡 Tip</span>
   <p>Including <strong>the phrasing customers actually use</strong> (e.g. "how long does shipping take") in document titles and bodies raises search hit rates.
-  Bulk product knowledge, external source integration, and quality management are covered in the Part 2 manual.</p></div>
+  The knowledge board workflow, bulk product knowledge, AI import (pdf·docx·md·YouTube), external sources, and quality management are covered in the Part 2 manual.</p></div>
   <figure class="shot"><img src="img/knowledge.en.jpg" alt="The Knowledge screen — sources &amp; credentials (left) and the knowledge QA panel (right)" loading="lazy"><figcaption>The Knowledge screen — sources &amp; credentials (left) and the knowledge QA panel (right)</figcaption></figure>
 </section>
 
@@ -370,8 +381,8 @@ figure.shot figcaption{padding:8px 16px;font-size:13px;color:var(--muted);border
   <ul>
     <li><strong>Invite team members</strong>: [Users] menu → [Invite user] → choose email·rank (director/manager/staff)·duty labels →
       the same <strong>temporary password modal</strong> as in Ch. 1 (shown once·deliver directly). Per-menu access is adjusted per rank in
-      the <em>Menu access</em> card of [Settings] (master only).</li>
-    <li><strong>Handoff settings</strong>: in the <em>Agent handoff</em> section of [Settings], assign the responsible agents·business hours·off-hours intake
+      the <em>Menu access</em> card of [Tenant Settings → Other settings] (master only).</li>
+    <li><strong>Agent handoff</strong>: in the <em>Agent handoff</em> card of [Tenant Settings → Basic settings], assign the responsible agents·working hours·off-hours forwarding
       email — details in Ch. 5 of the Part 2 manual.</li>
   </ul>
 </section>
@@ -381,12 +392,12 @@ figure.shot figcaption{padding:8px 16px;font-size:13px;color:var(--muted);border
   <ul class="check">
     <li>Tenant created + administrator invited·temp password delivered (admin)</li>
     <li>First login → password changed → MFA enrolled</li>
-    <li>Platform integration: credentials saved + <strong>connection test passed</strong> + (Shopify) webhooks registered</li>
-    <li>Storefront URL configured</li>
+    <li>Platform integration: credentials saved + <strong>connection test passed</strong> (status "Connected") + (Shopify) webhooks registered</li>
+    <li>Storefront URL configured (Basic settings tab)</li>
     <li>Widget snippet installed → <strong>launcher confirmed visible on the live shop</strong></li>
     <li>Display name·greetings written</li>
     <li>Persona·response rules saved; AI engine confirmed not <code>stub</code></li>
-    <li>3+ core policy documents registered → answers verified in the QA panel</li>
+    <li>Universal counsel guide uploaded (or 3+ core policy documents registered) → answers verified in the QA panel</li>
     <li>Asked a question directly in the widget and confirmed AI answer + sources (end-to-end)</li>
   </ul>
 </section>
@@ -402,7 +413,7 @@ figure.shot figcaption{padding:8px 16px;font-size:13px;color:var(--muted);border
     <dt>Q. The widget does not appear on the shop.</dt>
     <dd>Check, in order: ① the snippet is on the actually deployed page ② the domain is included in the allowed domains ③ refresh the browser cache.</dd>
     <dt>Q. AI answers feel oddly mechanical.</dt>
-    <dd>Check whether the AI functions card shows a <code>stub</code> badge. The stub is a demo responder. Ask for real engine registration.</dd>
+    <dd>Check whether the AI functions card shows a <code>stub</code> badge. The stub is a demo responder. Register your own engine in the <em>AI engines</em> card of [Tenant Settings → Basic settings], or ask the platform administrator for a shared one.</dd>
     <dt>Q. The AI keeps handing off to "connect to an agent".</dt>
     <dd>Most likely there is no knowledge document on that topic, or it is inactive. Register documents as in Ch. 6 and verify with the QA panel.</dd>
     <dt>Q. I changed settings but the widget looks the same.</dt>

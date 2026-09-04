@@ -115,7 +115,7 @@ figure.shot figcaption{padding:8px 16px;font-size:13px;color:var(--muted);border
 <header class="hero">
   <div class="eyebrow">ShopTalk 사용자설명서 · 1/2</div>
   <h1>샵톡 간단 세팅 매뉴얼</h1>
-  <div class="meta"><span>버전 1.0 · 2026-08-24 · 코드 기준 작성</span><span>대상: 플랫폼 관리자(1장) · 신규 테넌트 관리자(2~8장)</span></div>
+  <div class="meta"><span>버전 1.1 · 2026-08-24 최초 · 현행화 2026-09-04 · 코드 기준 작성</span><span>대상: 플랫폼 관리자(1장) · 신규 테넌트 관리자(2~8장)</span></div>
   <p class="lead">새 상점(테넌트)을 개설해 <strong>채팅 위젯이 실제로 고객 응대를 시작하기까지</strong>의 최단 경로를 다룹니다.
   스테이징 기준 URL은 <code>https://shoptalk.amoeba.site</code>, 소요 시간은 어드민 작업 약 5분 + 테넌트 첫 세팅 약 30분입니다.
   지식·AI를 깊이 설정하는 방법은 <em>지식 등록·AI 설정 매뉴얼</em>(2편)을 보세요.</p>
@@ -167,7 +167,7 @@ figure.shot figcaption{padding:8px 16px;font-size:13px;color:var(--muted);border
     <tr><td>이름</td><td>✅</td><td>상점 표시 이름</td></tr>
     <tr><td>로그인 경로(slug)</td><td>—</td><td>비우면 이름에서 자동 파생. 입력 시 자동 소문자화</td></tr>
     <tr><td>쇼핑몰 도메인</td><td>✅</td><td>상점 대표 도메인 — <strong>모든 플랫폼 공용</strong></td></tr>
-    <tr><td>요금제</td><td>✅</td><td>starter / growth / enterprise — 플랜에 따라 기본 제공 메뉴가 다름</td></tr>
+    <tr><td>요금제</td><td>✅</td><td>starter / growth / enterprise / custom — 플랜에 따라 기본 제공 메뉴가 다름. 개설 후에는 행의 <strong>[요금제/애드온]</strong>에서 변경(이슈 워크플로우 애드온 base/bridge/native 포함)</td></tr>
   </table></div>
   <div class="callout"><span class="c-label">💡 슬러그 규칙</span>
   <p>소문자·숫자·하이픈만 가능하며, 콘솔 화면 이름(<code>admin</code>, <code>login</code>, <code>dashboard</code>, <code>settings</code> 등 예약어)과 겹칠 수 없습니다.
@@ -244,46 +244,52 @@ figure.shot figcaption{padding:8px 16px;font-size:13px;color:var(--muted);border
 
 <section id="ch3">
   <div class="ch"><span class="num">03</span><h2>커머스 플랫폼 연동</h2></div>
-  <span class="actor">콘솔 [설정] → 스토어 연동 카드</span>
+  <span class="actor">콘솔 [테넌트 설정] → 플랫폼 연동 탭</span>
+  <p>설정은 이제 <strong>7개 탭</strong>입니다: 기본 설정(AI 엔진·사용량·스토어프론트·상담원 연결) / 위젯 설정 / 플랫폼 연동 /
+  마케팅·헬프데스크 / 메신저 채널 / 기타 설정 / 개인정보 안내. 이 장은 <em>플랫폼 연동</em> 탭, 4장은 <em>위젯 설정</em> 탭입니다.
+  탭 우상단 <strong>[연동 가이드]</strong>가 플랫폼별 자격증명 찾는 법을 알려줍니다.</p>
+  <div class="callout warn"><span class="c-label">⚠️ 저장 ≠ 연결</span>
+  <p>자격증명을 저장하면 상태가 "미테스트"입니다. <strong>[연결 테스트]</strong>를 통과해야 "연결됨"이 됩니다(실패 시 "오류").</p></div>
   <div class="terms"><div class="t-label">용어</div>
   <div class="tablewrap"><table>
     <tr><td>자격증명</td><td>플랫폼 API 접근용 키·토큰. 암호화 저장되며 저장 후에는 "설정됨"으로만 표시</td></tr>
     <tr><td>연결 테스트</td><td>저장한 자격증명으로 실제 API를 1회 호출해 유효성을 확인하는 버튼</td></tr>
     <tr><td>동기화</td><td>플랫폼의 주문·상품 데이터를 샵톡 캐시로 가져오는 작업</td></tr>
   </table></div></div>
-  <figure class="shot"><img src="img/settings-stores.ko.jpg" alt="[설정] 스토어 연동 타일 — 플랫폼별 [설정] 버튼으로 자격증명 입력" loading="lazy"><figcaption>[설정] 스토어 연동 타일 — 플랫폼별 [설정] 버튼으로 자격증명 입력</figcaption></figure>
+  <figure class="shot"><img src="img/settings-stores.ko.jpg" alt="[테넌트 설정] 플랫폼 연동 탭 — 플랫폼별 [설정] 버튼으로 자격증명 입력" loading="lazy"><figcaption>[테넌트 설정] 플랫폼 연동 탭 — 플랫폼별 [설정] 버튼으로 자격증명 입력</figcaption></figure>
 
   <h3>3.1 Cafe24 — OAuth 연결(권장) ✅</h3>
   <ol class="steps">
-    <li>설정 페이지의 <em>Cafe24 연결</em> 카드에서 <code>몰 ID</code> 입력 (<code>몰ID.cafe24.com</code>의 몰ID 부분)</li>
+    <li>플랫폼 연동 탭의 <em>Cafe24 (OAuth)</em> 카드에서 <code>몰 ID</code> 입력 (<code>몰ID.cafe24.com</code>의 몰ID 부분)</li>
     <li><strong>[연결]</strong> → Cafe24 인가 페이지 → 로그인·권한 승인 → 콘솔 자동 복귀</li>
     <li>연결됨 배지 확인 후 <strong>[지금 동기화]</strong>(주문) / <strong>[상품 동기화]</strong> 실행</li>
   </ol>
   <div class="callout"><span class="c-label">💡 팁</span>
   <p>상품 동기화는 상품 <strong>캐시</strong>까지만 채웁니다. 이 상품들을 AI가 답변에 쓰게 하려면 [지식] 화면의
   <strong>카탈로그 동기화</strong>(미리보기→실행)를 별도로 실행해야 합니다 — 2편 매뉴얼 2.2장 참조.
-  토큰을 이미 보유했다면 스토어 연동 타일의 cafe24 모달에 수동 입력할 수도 있지만 OAuth 연결이 표준입니다.</p></div>
+  토큰을 이미 보유했다면 Cafe24 타일의 모달에 수동 입력할 수도 있지만 OAuth 연결이 표준입니다.</p></div>
 
   <h3>3.2 Shopify ✅</h3>
-  <p>스토어 연동 타일의 Shopify 모달: <code>쇼핑몰 도메인</code>(필수, <code>*.myshopify.com</code>) ·
+  <p>Shopify 타일의 모달: <code>쇼핑몰 도메인</code>(필수, <code>*.myshopify.com</code>) ·
   <code>Admin API Access Token</code>(필수) · API Key/Secret(선택).</p>
   <p>저장 후 <strong>[연결 테스트] → [지금 동기화] → [웹훅 등록]</strong> 순으로 실행합니다.
   웹훅을 등록해야 주문·배송 상태 변화가 실시간으로 위젯 알림에 반영됩니다.</p>
 
-  <h3>3.3 Odoo — 자격증명·연결 테스트 ✅ / 실시간 동기화 🟡</h3>
-  <p>odoo 타일 모달에 <code>서버 URL</code> / <code>DB 이름</code> / <code>사용자명</code> / <code>API Key</code>를 입력하고 연결 테스트합니다.
-  실시간 데이터 동기화는 준비 단계입니다.</p>
+  <h3>3.3 Odoo · WooCommerce · Haravan ✅</h3>
+  <p>각 타일 모달에 자격증명(Odoo: <code>서버 URL</code> / <code>DB 이름</code> / <code>사용자명</code> / <code>API Key</code>)을 입력하고
+  <strong>[연결 테스트]</strong>를 통과시킨 뒤, 같은 모달의 <strong>[상품 가져오기] / [주문 동기화]</strong>로 데이터를 가져옵니다.
+  가져온 상품을 AI가 쓰려면 [지식]의 카탈로그 동기화가 별도로 필요합니다(3.1 팁과 동일).</p>
 
   <h3>3.4 스토어프론트 URL</h3>
-  <p><em>스토어프론트</em> 카드에 상점의 <strong>고객용 사이트 주소</strong>를 입력하세요.
+  <p><strong>기본 설정 탭</strong>의 <em>스토어프론트</em> 카드에 상점의 <strong>고객용 사이트 주소</strong>를 입력하세요.
   미설정 시 위젯의 상품 링크가 비활성화됩니다(카드에 경고 표시).</p>
-  <p style="color:var(--muted);font-size:14px">그 외 WooCommerce·Haravan(커머스), Klaviyo·Yotpo(마케팅), Gorgias(헬프데스크),
-  메신저 채널(텔레그램·Gmail 등)도 같은 방식의 타일/카드로 연동합니다.</p>
+  <p style="color:var(--muted);font-size:14px">그 외 Klaviyo·Yotpo(마케팅)·Gorgias(헬프데스크)는 <em>마케팅·헬프데스크</em> 탭,
+  메신저 채널(텔레그램·바이버·Gmail 등)은 <em>메신저 채널</em> 탭에서 같은 방식의 타일/카드로 연동합니다.</p>
 </section>
 
 <section id="ch4">
   <div class="ch"><span class="num">04</span><h2>채팅위젯 설정·설치</h2></div>
-  <span class="actor">[설정] 페이지의 위젯 카드들</span>
+  <span class="actor">[테넌트 설정] → 위젯 설정 탭</span>
 
   <h3>4.1 위젯 설치</h3>
   <p><strong>설치 가이드 카드</strong>에서 플랫폼 탭(Shopify / Cafe24 / WooCommerce / Odoo)을 선택하면
@@ -309,7 +315,7 @@ figure.shot figcaption{padding:8px 16px;font-size:13px;color:var(--muted);border
     <tr><td>로그인 방식</td><td><code>redirect</code>(쇼핑몰 로그인 페이지로 이동 후 복귀, 기본) / <code>popup</code></td></tr>
     <tr><td>타임존</td><td>상점 기준 시간대 — 영업시간 표시 등에 사용</td></tr>
     <tr><td>표시 이름</td><td>위젯 헤더에 보이는 상점 이름 (최대 80자)</td></tr>
-    <tr><td>첫 방문 인사 / 로그인 후 인사</td><td>언어 탭(EN/ES/KO)별 각각 작성 (최대 500자)</td></tr>
+    <tr><td>첫 방문 인사 / 로그인 후 인사</td><td><strong>6개 언어 탭</strong>(EN/ES/KO/VI/JA/ZH)별 각각 작성 (최대 500자) — 필드 아래 "기본 문구:"로 기본값 표시</td></tr>
   </table></div>
   <div class="callout"><span class="c-label">💡 팁</span>
   <p>인사말을 언어별로 비워두면 기본 문구가 나갑니다. 주력 언어 하나만 먼저 정성껏 쓰고 나머지는 나중에 채워도 됩니다.</p></div>
@@ -339,11 +345,12 @@ figure.shot figcaption{padding:8px 16px;font-size:13px;color:var(--muted);border
       (예: "OO몰의 친절하고 간결한 상담사입니다. 제공된 지식에서만 답하세요.")</li>
     <li><strong>응답 규칙</strong>에 최소 2~3개 등록 (예: "환불 완료를 단정하지 말 것")</li>
     <li><strong>AI 기능</strong> 카드에서 적용 엔진 확인 — <code>stub</code> 배지가 보이면 실제 엔진 미연결.
-      플랫폼 관리자에게 엔진 등록(<code>/admin/ai-engines</code>)을 요청</li>
+      ① [테넌트 설정 → 기본 설정]의 <em>AI 엔진</em> 카드에 내 API 키로 자체 엔진 등록(플랫폼 엔진보다 우선, 비용은 우리 계정으로 청구)
+      ② 또는 플랫폼 관리자에게 공용 엔진 등록(<code>/admin/ai-engines</code>)을 요청</li>
   </ol>
   <div class="callout"><span class="c-label">💡 팁</span>
-  <p>시나리오 버튼(위젯 하단 빠른 메뉴)은 기본 6종(배송 조회·취소/환불·상품 도움말·고객 지원 문의·제휴·내 주문)이
-  자동 적용되므로 개설 단계에서 손대지 않아도 됩니다.</p></div>
+  <p>시나리오 버튼(위젯 하단 빠른 메뉴)은 기본 6종(배송 조회·취소/환불·제품 도움말·고객 지원 문의·제휴·내 주문)이
+  <strong>6개 언어 라벨과 함께</strong> 자동 적용되므로 개설 단계에서 손대지 않아도 됩니다.</p></div>
   <figure class="shot"><img src="img/ai-setting.ko.jpg" alt="AI 설정 — 에이전트·페르소나 카드(좌)와 미리보기·코칭 스튜디오(우)" loading="lazy"><figcaption>AI 설정 — 에이전트·페르소나 카드(좌)와 미리보기·코칭 스튜디오(우)</figcaption></figure>
 </section>
 
@@ -351,16 +358,19 @@ figure.shot figcaption{padding:8px 16px;font-size:13px;color:var(--muted);border
   <div class="ch"><span class="num">06</span><h2>지식 최초 입력</h2></div>
   <span class="actor">좌측 메뉴 [지식]</span>
   <p>AI는 <strong>등록된 지식에서만</strong> 답합니다. 지식이 없으면 대부분의 질문이 상담원에게 넘어가므로,
-  개설 단계에서 핵심 정책 문서 3~5건은 등록하세요.</p>
+  개설 단계에서 핵심 정책 지식부터 채우세요. 가장 빠른 경로는 <strong>범용 상담가이드</strong>입니다.</p>
   <ol class="steps">
-    <li>문서 카드의 <strong>[문서 추가]</strong> → 제목 / 카테고리(자동완성) / 내용 입력 → 저장.
-      권장 최초 문서: <strong>배송 정책 · 취소/환불 정책 · 교환/반품 절차 · FAQ</strong>. 저장 시 자동으로 검색 색인(임베딩)됩니다.</li>
+    <li>문서 카드 위 그룹 탭에서 <strong>CounselInfo</strong> 선택 → <strong>[일괄등록]</strong> → 안내 블록의
+      <strong>범용 상담가이드</strong>(바로 쓰는 기본 상담 KB, 90행 규모)를 CSV/XLSX로 다운로드</li>
+    <li>기한·비용·정책을 상점에 맞게 수정 → 같은 창에 업로드 → 생성·갱신 건수 확인.
+      배송·취소/환불·교환/반품·FAQ가 한 번에 채워지고, 같은 파일을 고쳐 다시 올리면 <strong>중복 없이 갱신</strong>됩니다(라운드트립)</li>
+    <li>개별 문서는 <strong>[보드에 작성]</strong>(권장 — 게시 후 [KB 채택]) 또는 <strong>[지식베이스문서 추가]</strong>(긴급용)로 등록</li>
     <li>오른쪽 <strong>지식 QA 패널</strong>에 고객이 물을 법한 질문을 입력해 답변·출처·신뢰도 확인 —
       방금 등록한 문서가 출처 목록에 뜨면 성공</li>
   </ol>
   <div class="callout"><span class="c-label">💡 팁</span>
   <p>문서 제목·본문에 <strong>고객이 실제 쓰는 표현</strong>(예: "배송 얼마나 걸려요")을 포함하면 검색 적중률이 올라갑니다.
-  상품 지식 대량 등록·외부 소스 연동·품질 관리는 2편 매뉴얼에서 다룹니다.</p></div>
+  지식 보드 워크플로우·상품 지식 대량 등록·AI 임포트(pdf·docx·md·YouTube)·외부 소스 연동·품질 관리는 2편 매뉴얼에서 다룹니다.</p></div>
   <figure class="shot"><img src="img/knowledge.ko.jpg" alt="지식 화면 — 소스·자격증명(좌)과 지식 QA 패널(우)" loading="lazy"><figcaption>지식 화면 — 소스·자격증명(좌)과 지식 QA 패널(우)</figcaption></figure>
 </section>
 
@@ -369,8 +379,8 @@ figure.shot figcaption{padding:8px 16px;font-size:13px;color:var(--muted);border
   <ul>
     <li><strong>팀원 초대</strong>: [사용자] 메뉴 → [사용자 초대] → 이메일·직급(director/manager/staff)·직무 라벨 선택 →
       1장과 동일한 <strong>임시 비밀번호 모달</strong>(1회 표시·직접 전달). 메뉴별 접근 권한은
-      [설정]의 <em>메뉴 접근 권한</em> 카드(master 전용)에서 직급별로 조정합니다.</li>
-    <li><strong>상담 전환(핸드오프)</strong>: [설정]의 <em>상담 전환</em> 섹션에서 담당 상담원·영업시간·영업시간 외 접수
+      [테넌트 설정 → 기타 설정]의 <em>메뉴 접근권한</em> 카드(master 전용)에서 직급별로 조정합니다.</li>
+    <li><strong>상담원 연결(핸드오프)</strong>: [테넌트 설정 → 기본 설정]의 <em>상담원 연결</em> 카드에서 담당 상담원·근무시간·근무시간 외 전달
       이메일을 지정합니다 — 상세는 2편 매뉴얼 5장.</li>
   </ul>
 </section>
@@ -380,12 +390,12 @@ figure.shot figcaption{padding:8px 16px;font-size:13px;color:var(--muted);border
   <ul class="check">
     <li>테넌트 생성 + 관리자 초대·임시비번 전달 (어드민)</li>
     <li>첫 로그인 → 비밀번호 변경 → MFA 등록</li>
-    <li>플랫폼 연동: 자격증명 저장 + <strong>연결 테스트 통과</strong> + (Shopify) 웹훅 등록</li>
-    <li>스토어프론트 URL 설정</li>
+    <li>플랫폼 연동: 자격증명 저장 + <strong>연결 테스트 통과</strong>(상태 "연결됨" 확인) + (Shopify) 웹훅 등록</li>
+    <li>스토어프론트 URL 설정 (기본 설정 탭)</li>
     <li>위젯 스니펫 설치 → <strong>실제 쇼핑몰에서 런처 표시 확인</strong></li>
     <li>표시 이름·인사말 작성</li>
     <li>페르소나·응답 규칙 저장, AI 엔진 <code>stub</code> 아님 확인</li>
-    <li>핵심 정책 문서 3건 이상 등록 → QA 패널로 답변 확인</li>
+    <li>범용 상담가이드 업로드(또는 핵심 정책 문서 3건 이상 등록) → QA 패널로 답변 확인</li>
     <li>위젯에서 직접 질문해 AI 답변 + 출처 표시 확인 (엔드투엔드)</li>
   </ul>
 </section>
@@ -401,7 +411,7 @@ figure.shot figcaption{padding:8px 16px;font-size:13px;color:var(--muted);border
     <dt>Q. 위젯이 쇼핑몰에 안 뜹니다.</dt>
     <dd>① 스니펫이 실제 배포된 페이지에 있는지 ② 허용 도메인에 해당 도메인이 포함되는지 ③ 브라우저 캐시 새로고침 순으로 확인하세요.</dd>
     <dt>Q. AI 답변이 이상하게 기계적입니다.</dt>
-    <dd>AI 기능 카드에 <code>stub</code> 배지가 있는지 보세요. 스텁은 데모용 응답기입니다. 실제 엔진 등록을 요청하세요.</dd>
+    <dd>AI 기능 카드에 <code>stub</code> 배지가 있는지 보세요. 스텁은 데모용 응답기입니다. [테넌트 설정 → 기본 설정]의 <em>AI 엔진</em> 카드에 자체 엔진을 등록하거나 플랫폼 관리자에게 공용 엔진 등록을 요청하세요.</dd>
     <dt>Q. AI가 자꾸 "상담원 연결"로 넘깁니다.</dt>
     <dd>해당 주제의 지식 문서가 없거나 비활성 상태일 가능성이 큽니다. 6장대로 문서를 등록하고 QA 패널로 확인하세요.</dd>
     <dt>Q. 설정을 바꿨는데 위젯이 그대로입니다.</dt>

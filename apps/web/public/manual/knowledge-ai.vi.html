@@ -116,7 +116,7 @@ figure.shot figcaption{padding:8px 16px;font-size:13px;color:var(--muted);border
 <header class="hero">
   <div class="eyebrow">Sổ tay người dùng ShopTalk · 2/2</div>
   <h1>Sổ tay tri thức·cài đặt AI ShopTalk</h1>
-  <div class="meta"><span>Phiên bản 1.0 · 2026-08-24 · Biên soạn dựa trên mã nguồn</span><span>Đối tượng: người vận hành tenant · phụ trách CS (Cài đặt AI: master/director)</span></div>
+  <div class="meta"><span>Phiên bản 1.1 · Bản đầu 2026-08-24 · cập nhật 2026-09-04 · Biên soạn dựa trên mã nguồn</span><span>Đối tượng: người vận hành tenant · phụ trách CS (Cài đặt AI: master/director)</span></div>
   <p class="lead">Trình bày cách nhập và kiểm chứng tri thức sẽ sử dụng, cài đặt AI, và cấu hình tiếp khách trong live chat thực tế.
   Mỗi chương sắp xếp theo thứ tự <strong>giải thích thuật ngữ → quy trình → 💡 mẹo vận hành</strong>. Quy trình mở tenant xem trước <em>Sổ tay thiết lập nhanh</em> (tập 1).</p>
   <p class="lead">⚠ Bản dịch AI, đang chờ hiệu đính bởi người bản ngữ. Bản tiếng Hàn là bản chuẩn.</p>
@@ -143,6 +143,8 @@ figure.shot figcaption{padding:8px 16px;font-size:13px;color:var(--muted);border
   <pre><code>Tin nhắn khách hàng
   ▼
 ① Phân loại ý định ─── cần đơn hàng·thông tin cá nhân → hướng dẫn xác minh danh tính (đăng nhập)
+  │              khớp deny-list: quy tắc "Không trả lời" → chuyển ngay /
+  │              quy tắc "Trả lời rồi chuyển" → trả lời qua ②~④ rồi mới chuyển
   ▼
 ② Tìm kiếm tri thức (RAG) ─ tìm căn cứ liên quan trong tài liệu tri thức đã đăng ký
   ▼
@@ -164,23 +166,59 @@ figure.shot figcaption{padding:8px 16px;font-size:13px;color:var(--muted);border
   <div class="terms"><div class="t-label">Thuật ngữ</div>
   <div class="tablewrap"><table>
     <tr><td>Tài liệu tri thức</td><td>Một bài viết AI dùng làm căn cứ trả lời. Gồm tiêu đề·danh mục·nội dung</td></tr>
+    <tr><td>Bảng tri thức (board)</td><td><strong>Lớp biên tập nơi mọi tri thức được viết·duyệt trước</strong> (<code>/knowledge/board</code>) — tài liệu đã đăng trở thành căn cứ khi được "đưa vào KB"</td></tr>
+    <tr><td>Đưa vào KB</td><td>Nâng tài liệu bảng thành tài liệu KB — đưa vào lại sẽ cập nhật cùng tài liệu (không tạo bản sao)</td></tr>
     <tr><td>Embedding</td><td>Thao tác lập chỉ mục chuyển tài liệu thành vector tìm kiếm được. Tự động khi đăng ký·sửa</td></tr>
     <tr><td>RAG</td><td>Cách tìm tài liệu liên quan đến câu hỏi và chỉ tạo câu trả lời từ căn cứ đó</td></tr>
     <tr><td>Nguồn</td><td>Kết nối tự động lấy tài liệu từ bên ngoài (bảng tin·Google Drive·Notion)</td></tr>
-    <tr><td>Nhóm</td><td>Phân loại lớn: <strong>Thông tin tư vấn</strong> (chính sách·FAQ) / <strong>Thông tin sản phẩm</strong> (từ catalog)</td></tr>
-    <tr><td>Danh mục</td><td>Phân loại chi tiết dưới nhóm (faq, policy, product, warranty v.v. có gợi ý tự động)</td></tr>
+    <tr><td>Nhóm</td><td>3 phân loại lớn: <strong>CounselInfo</strong> (tư vấn) / <strong>ProductInfo</strong> (sản phẩm) / <strong>OperationInfo</strong> (vận hành)</td></tr>
+    <tr><td>Danh mục</td><td>Phân loại chi tiết dưới nhóm — quản lý <strong>theo cặp (nhóm, tên)</strong>, phạm vi agent (mục 3.5) cũng gắn vào danh mục</td></tr>
     <tr><td>Đang bật/hiển thị</td><td>Có nằm trong phạm vi tìm kiếm hay không — <strong>tài liệu tắt không được dùng làm căn cứ trả lời</strong></td></tr>
     <tr><td>Độ tin cậy</td><td>Chỉ số câu trả lời được căn cứ hỗ trợ đến đâu. Thấp thì chuyển tiếp nhân viên tư vấn</td></tr>
   </table></div></div>
-  <p>Màn hình Kho tri thức (<code>/knowledge</code>): bên trái quản lý nguồn·tài liệu, bên phải cố định <strong>bảng QA tri thức</strong> và
-  <strong>Rà soát mâu thuẫn</strong>, nên có thể qua lại giữa đăng ký↔kiểm chứng trong một màn hình.</p>
+  <p>Màn hình Kho tri thức (<code>/knowledge</code>): trên cùng là banner bảng tri thức và <strong>Đề xuất bổ sung tri thức</strong>;
+  bên trái quản lý nguồn·hướng dẫn sử dụng·danh mục·tài liệu; bên phải cố định <strong>bảng QA (trả lời bằng tri thức)</strong> và
+  <strong>Rà soát mâu thuẫn</strong>, nên có thể qua lại giữa đăng ký↔kiểm chứng trong một màn hình.
+  <strong>Các tab nhóm</strong> phía trên danh sách tài liệu (Tất cả/CounselInfo/ProductInfo/OperationInfo) quyết định đối tượng
+  thao tác của tài liệu·danh mục·công cụ hàng loạt.</p>
 </section>
 
 <section id="ch2">
   <div class="ch"><span class="num">02</span><h2>Đăng ký tri thức</h2></div>
 
-  <h3>2.1 Đăng ký·sửa tài liệu thủ công</h3>
-  <p>Thẻ tài liệu → <strong>[Thêm tài liệu]</strong> → nhập tiêu đề / danh mục / nội dung → lưu.
+  <h3>2.0 Con đường chuẩn — Smart Knowledge Board (khuyến nghị)</h3>
+  <p>Con đường chuẩn là viết·duyệt mọi tri thức trên bảng trước, rồi đưa vào KB.
+  <strong>[Viết trên bảng]</strong> là nút chính trên thẻ tài liệu; [Thêm tài liệu KB] (thêm trực tiếp) chỉ dành cho
+  <strong>trường hợp khẩn</strong>.</p>
+  <ol class="steps">
+    <li>Viết: nhóm / Phân loại cấp 1·cấp 2 / Nhóm phụ trách / tiêu đề / thẻ / nội dung markdown + tệp đính kèm (50MB/tệp).
+      <code>[[Tiêu đề tài liệu]]</code> trong nội dung liên kết tài liệu bảng khác (xem backlink ở bảng <em>Liên kết</em> —
+      liên kết <strong>theo tiêu đề</strong>; đổi tên sẽ hiển thị liên kết cũ là "chưa viết")</li>
+    <li><strong>[Lưu nháp]</strong> (Bản nháp) → <strong>[Đăng]</strong> (Đã đăng) — tài liệu chưa đăng thì không thể đưa vào KB</li>
+    <li><strong>[Mô phỏng]</strong>: kiểm tra bằng câu hỏi của khách, trước khi đưa vào KB, xem tài liệu này có được trích dẫn
+      không, cùng độ tin cậy·độ tương đồng. <strong>Golden-set A/B</strong> chạy các câu hỏi kiểm chứng (mục 6.3) không có/có
+      tài liệu để cho thấy mức cải thiện (mỗi câu 2 lần gọi LLM)</li>
+    <li><strong>[Đưa vào KB]</strong>: người duyệt chọn danh mục (bỏ trống thì dùng phân loại cấp 2 → cấp 1) → tạo tài liệu KB.
+      <strong>Đưa vào lại sẽ cập nhật cùng tài liệu KB</strong> và embedding lại — sửa bản gốc trên bảng thì huy hiệu
+      <strong>"chưa cập nhật bản sửa"</strong> hiển thị cho đến khi đưa vào lại</li>
+    <li>Cộng tác: <strong>bình luận</strong> bên phải (<code>@</code> nhắc đồng nghiệp — dồn vào hộp @tôi trên danh sách bảng),
+      và <strong>[Tạm hoãn]/[Đưa vào lại]/[Về trạng thái đã đăng]</strong> để chuyển trạng thái</li>
+  </ol>
+  <p><strong>Di trú FAQ hàng loạt</strong>: <strong>[Nhập FAQ]</strong> trên danh sách bảng — xuất bảng FAQ/Hỏi đáp hiện có ra
+  CSV/XLSX rồi tải lên; mỗi dòng thành một tài liệu bảng đã đăng (bắt buộc title·content, tùy chọn
+  category1·category2·tags; tiêu đề trùng bị bỏ qua).</p>
+  <div class="callout"><span class="c-label">💡 Mẹo</span>
+  <ul>
+    <li>Sửa tài liệu KB đã đưa vào ngay phía KB sẽ làm nó <strong>lệch</strong> khỏi bản gốc trên bảng — chi tiết hiển thị cảnh báo
+      và [Mở bản gốc trên bảng]. Hãy sửa trên bảng rồi đưa vào lại.</li>
+    <li>Mô phỏng báo "không được trích dẫn" thì bổ sung tiêu đề·nội dung bằng từ ngữ của khách rồi mô phỏng lại — nhanh hơn
+      một bước so với đưa vào KB rồi mới kiểm tra bằng bảng QA.</li>
+  </ul></div>
+  <figure class="shot"><img src="img/knowledge-board.en.jpg" alt="Smart Knowledge Board — danh sách tài liệu với bộ lọc nhóm·phân loại·trạng thái, hiển thị bài đã đăng và đã đưa vào KB" loading="lazy"><figcaption>Smart Knowledge Board — danh sách tài liệu với bộ lọc nhóm·phân loại·trạng thái, hiển thị bài đã đăng và đã đưa vào KB</figcaption></figure>
+
+  <h3>2.1 Đăng ký·sửa tài liệu thủ công (dành cho trường hợp khẩn)</h3>
+  <p>Thẻ tài liệu → <strong>[Thêm tài liệu KB]</strong> → chọn nhóm / nhập tiêu đề / danh mục (gợi ý tự động chỉ hiện danh mục
+  của nhóm đã chọn) / nội dung → lưu.
   Bấm tiêu đề để mở cửa sổ chi tiết, quản lý các mục sau trong <strong>[Sửa]</strong>.</p>
   <div class="tablewrap"><table>
     <tr><th>Trường</th><th>Công dụng</th></tr>
@@ -193,7 +231,11 @@ figure.shot figcaption{padding:8px 16px;font-size:13px;color:var(--muted);border
   <ul>
     <li>1 tài liệu = 1 chủ đề. Thay vì dồn "giao hàng+hoàn tiền+đổi hàng" vào một tài liệu, tách ra đăng ký thì tìm kiếm mới chính xác.</li>
     <li>Đưa vào tiêu đề·nội dung <strong>cách nói thực tế của khách hàng</strong> ("giao hàng mất bao lâu") — tìm kiếm theo độ tương đồng nên càng gần từ ngữ của khách càng khớp.</li>
-    <li>Chính sách phiên bản cũ đừng xóa mà <strong>tắt công tắc hiển thị (OFF)</strong> để loại khỏi căn cứ. Lịch sử còn lại và dễ khôi phục.</li>
+    <li>Chính sách phiên bản cũ đừng xóa mà <strong>tắt hiển thị (OFF)</strong> để loại khỏi căn cứ. Lịch sử còn lại và dễ khôi phục.</li>
+    <li>Danh sách nay <strong>ưu tiên tiêu đề</strong>: các cột là nhóm (chỉ tab Tất cả)·<strong>huy hiệu nguồn gốc</strong>
+      (trực tiếp/bảng/tệp/YouTube/Drive/Notion/danh mục)·danh mục·tiêu đề·ngày sửa; công tắc hiển thị·trạng thái·xóa chuyển
+      vào menu <strong>⋯ (Thêm)</strong>. Bộ lọc·sắp xếp chạy phía máy chủ. Tài liệu "đang chờ" <strong>vẫn được dùng ngay
+      trong tìm kiếm từ khóa</strong>.</li>
   </ul></div>
   <figure class="shot"><img src="img/knowledge.en.jpg" alt="Màn hình Kho tri thức — nguồn·thông tin xác thực (trái) và QA tri thức·rà soát mâu thuẫn (phải)" loading="lazy"><figcaption>Màn hình Kho tri thức — nguồn·thông tin xác thực (trái) và QA tri thức·rà soát mâu thuẫn (phải)</figcaption></figure>
 
@@ -238,10 +280,36 @@ figure.shot figcaption{padding:8px 16px;font-size:13px;color:var(--muted);border
   <p>Loại được hỗ trợ: bảng tin ✅ · Google Drive ✅ · Notion ✅ · nguồn kho lưu trữ GitHub (repository) <strong>không được hỗ trợ</strong>.</p>
   <div class="callout"><span class="c-label">💡 Mẹo</span>
   <ul>
-    <li>Thấy cảnh báo đỏ <strong>dropped/truncated</strong> nghĩa là trang quá lớn hoặc quá sâu nên một phần bị cắt — kiểm tra phần cuối tài liệu đó và chia nhỏ bản gốc rồi đồng bộ lại.</li>
+    <li>Thấy cảnh báo đỏ <strong>dropped/truncated</strong> nghĩa là trang quá lớn hoặc quá sâu nên một phần bị cắt — kiểm tra phần cuối tài liệu đó và chia nhỏ bản gốc rồi đồng bộ lại.
+      Lỗi Notion hiển thị lý do ngay trong ô <em>Đồng bộ lần cuối</em> ("chưa chia sẻ với integration" → trong Notion, trang ⋯ → Connections → thêm integration).</li>
     <li>Đồng bộ đột nhiên được <strong>0 mục</strong> (hủy chia sẻ thư mục·hủy kết nối integration v.v.) thì các tài liệu hiện có được giữ nguyên, không bị ẩn — hãy khôi phục kết nối trước.</li>
     <li>Bấm ô trạng thái của nguồn = bật↔tắt. Nguồn tắt chỉ dừng đồng bộ, tài liệu đã lấy về vẫn còn.</li>
+    <li><strong>[Xem lịch sử chuyển đổi]</strong> cạnh tên nguồn: lịch sử các lần đồng bộ (thành công/thất bại · tạo/cập nhật/giữ/ẩn · lập chỉ mục · thời gian · lý do) và tài liệu đã chuyển đổi từ nguồn này.</li>
+    <li><strong>Xóa nguồn là an toàn</strong> — chỉ nguồn bị xóa; tài liệu của nó bị <strong>vô hiệu hóa</strong> chứ không bị xóa (bật lại từ danh sách tài liệu).</li>
   </ul></div>
+
+  <h3>2.4 Tải xuống hàng loạt ↔ nhập hàng loạt (vòng CSV/XLSX)</h3>
+  <p><strong>[Tải xuống hàng loạt ▾]</strong> (CSV/Excel) và <strong>[Nhập hàng loạt]</strong> dùng chung một hợp đồng cột:
+  <code>category · title · content</code> (bắt buộc) + <code>external_key · source_url</code> (tùy chọn).
+  <strong>Hai nút chỉ xuất hiện khi đã chọn tab nhóm</strong> (ẩn ở tab Tất cả).</p>
+  <p>Chọn tab nhóm → tải về bằng [Tải xuống hàng loạt] và chỉnh sửa → tải lên lại bằng [Nhập hàng loạt].
+  Hàng có cùng <code>external_key</code> (hoặc cùng <strong>tiêu đề đã cắt khoảng trắng</strong>) cập nhật tài liệu hiện có;
+  hàng không đổi bị bỏ qua — toast kết quả báo số tạo·cập nhật·bỏ qua.</p>
+  <ul>
+    <li>Tối đa 5.000 hàng/5MB. CSV <strong>chỉ nhận UTF-8</strong> — từ Excel tiếng Hàn, lưu dạng "CSV UTF-8" hoặc tải lên chính tệp <code>.xlsx</code>.</li>
+    <li>Tab CounselInfo có khối <strong>Hướng dẫn tư vấn chung</strong> (KB tư vấn khởi đầu dùng ngay) — tải về, chỉnh thời hạn·chi phí theo chính sách cửa hàng rồi tải lên để lấp đầy tri thức ban đầu trong một lần.</li>
+    <li>Tài liệu từ nguồn ngoài (danh mục·bảng·Notion·Drive) vẫn sửa được, nhưng <strong>lần đồng bộ tiếp theo có thể ghi đè</strong> — nguyên tắc là sửa ở bản gốc.</li>
+  </ul>
+
+  <h3>2.5 Nhập bằng AI (tệp·YouTube → bản nháp → bảng)</h3>
+  <p><strong>[Nhập bằng AI]</strong> — tải lên tệp (pdf·docx·xlsx·csv·md, tối đa 15MB) hoặc URL YouTube có phụ đề công khai,
+  AI sẽ tách nội dung thành <strong>các bản nháp cấp bài viết</strong>.</p>
+  <p>Chọn nhóm (cẩm nang tư vấn/gợi ý sản phẩm/cẩm nang vận hành) → tải tệp/URL → <strong>[Bắt đầu phân tích]</strong>
+  (chạy nền — có thể rời màn hình) → duyệt bản nháp (chọn, chỉnh tiêu đề/danh mục, chú ý huy hiệu "cần kiểm tra") →
+  <strong>[Lưu N mục đã chọn]</strong>.</p>
+  <div class="callout warn"><span class="c-label">⚠️ Bản nháp đã lưu đi lên bảng</span>
+  <p>Được đăng <strong>lên bảng</strong>, không vào thẳng KB — hãy duyệt rồi đưa vào KB tại đó (mục 2.0).
+  Tệp không có lớp văn bản (PDF scan) và video không phụ đề thì không phân tích được.</p></div>
 </section>
 
 <section id="ch3">
@@ -258,7 +326,8 @@ figure.shot figcaption{padding:8px 16px;font-size:13px;color:var(--muted);border
   </table></div></div>
 
   <h3>3.1 Bảng QA tri thức — nhất định kiểm tra sau khi đăng ký</h3>
-  <p>Nhập câu hỏi → kiểm tra câu trả lời + <strong>chỉ số độ tin cậy</strong> + <strong>danh sách nguồn</strong> → tài liệu căn cứ sai thì bấm
+  <p>Chọn agent (<strong>Tất cả (góc nhìn người vận hành)</strong> hoặc agent cụ thể — kiểm thử đúng theo phạm vi agent mục 3.5)
+  → nhập câu hỏi → kiểm tra câu trả lời + <strong>chỉ số độ tin cậy</strong> + <strong>danh sách nguồn</strong> → tài liệu căn cứ sai thì bấm
   <strong>[Sửa]</strong> cạnh nguồn (tài liệu đó mở ngay ở chế độ sửa) → sửa xong bấm <strong>[Hỏi lại]</strong> để kiểm tra lại.</p>
   <figure class="shot"><img src="img/knowledge-qa.en.jpg" alt="Bảng QA tri thức — câu trả lời·độ tin cậy·nguồn (độ tương đồng) và nút [Sửa] theo từng tài liệu" loading="lazy"><figcaption>Bảng QA tri thức — câu trả lời·độ tin cậy·nguồn (độ tương đồng) và nút [Sửa] theo từng tài liệu</figcaption></figure>
   <div class="callout"><span class="c-label">💡 Mẹo</span>
@@ -269,14 +338,14 @@ figure.shot figcaption{padding:8px 16px;font-size:13px;color:var(--muted);border
   </ul></div>
 
   <h3>3.2 Rà soát mâu thuẫn</h3>
-  <p>Bảng <em>Rà soát mâu thuẫn</em> → lọc trạng thái (chờ/đã xử lý/bỏ qua/thất bại) → theo từng mục kiểm tra độ tương đồng·thời điểm phát hiện·lý do phán định → chọn hành động.
+  <p>Bảng <em>Rà soát mâu thuẫn</em> → theo từng mục kiểm tra kết luận (<strong>Mâu thuẫn/Trùng lặp/Liên quan</strong>), độ tương đồng và lý do phán định → chọn hành động.
   Có thể quét lại toàn bộ bằng <strong>[Quét lại]</strong>.</p>
   <div class="tablewrap"><table>
     <tr><th>Hành động</th><th>Tác dụng</th></tr>
-    <tr><td>Theo A / Theo B</td><td>Giữ bên được chọn và tắt bên còn lại</td></tr>
+    <tr><td>Theo A · ẩn B / Theo B · ẩn A</td><td>Giữ bên được chọn và tắt bên còn lại</td></tr>
     <tr><td>Giữ cả hai</td><td>Phán định không phải mâu thuẫn — cả hai vẫn bật</td></tr>
-    <tr><td>Bỏ qua</td><td>Đóng mục mâu thuẫn này</td></tr>
-    <tr><td>Phán định lại</td><td>Sửa tài liệu xong yêu cầu đánh giá lại</td></tr>
+    <tr><td>Không phải mâu thuẫn</td><td>Đóng mục mâu thuẫn này</td></tr>
+    <tr><td>Đánh giá lại cặp này</td><td>Sửa tài liệu xong yêu cầu đánh giá lại (mục thất bại cũng thử lại tại đây)</td></tr>
   </table></div>
   <div class="callout"><span class="c-label">💡 Mẹo</span>
   <p>Mâu thuẫn thường sinh ra do <strong>khi sửa chính sách mà không gỡ phiên bản cũ</strong>. Đừng dừng ở "Theo A" — hãy ghi
@@ -290,18 +359,30 @@ figure.shot figcaption{padding:8px 16px;font-size:13px;color:var(--muted);border
   <p>Tài liệu hay thay đổi như phí giao hàng·khuyến mãi đặt chu kỳ rà soát ngắn khoảng 30 ngày, tài liệu ổn định như thông báo pháp lý
   đặt dài — huy hiệu stale sẽ trở thành danh sách việc cần làm thực thụ.</p></div>
 
-  <h3>3.4 Hộp đề xuất khoảng trống tri thức · duyệt đề xuất câu trả lời (vòng khép kín)</h3>
+  <h3>3.4 Đề xuất bổ sung tri thức · đề xuất câu trả lời (vòng khép kín)</h3>
   <ul>
-    <li><strong>Hộp đề xuất bổ sung tri thức</strong> (trên cùng, chỉ hiện khi có mục): chủ đề mà tri thức còn trống được tích lũy thành bản nháp tài liệu —
-      <strong>[Chấp nhận]</strong> (sửa tiêu đề·nội dung rồi xác nhận) / <strong>[Bỏ qua]</strong></li>
+    <li><strong>Đề xuất bổ sung tri thức</strong> (trên cùng, chỉ hiện khi có mục): chủ đề hay bị chuyển tiếp, ý định không có tài liệu
+      căn cứ và cách nhân viên đã xử lý được tích lũy thành ứng viên KB —
+      <strong>[Duyệt thành tài liệu tri thức]</strong> (tạo tài liệu sau khi sửa tiêu đề·nội dung) / <strong>[Bỏ qua]</strong>. Không có gì áp dụng tự động</li>
     <li><strong>Đề xuất câu trả lời</strong> (hiện khi có mục chờ): đề xuất đưa câu trả lời thực tế của nhân viên tư vấn vào tri thức —
-      kiểm tra câu hỏi·câu trả lời·liên kết hội thoại nguồn rồi <strong>[Duyệt]</strong> / <strong>[Từ chối]</strong> (bắt buộc lý do)</li>
+      kiểm tra câu hỏi·câu trả lời·liên kết hội thoại nguồn rồi <strong>[Duyệt]</strong> / <strong>[Từ chối]</strong> (lý do hiển thị cho người đề xuất)</li>
   </ul>
   <div class="callout warn"><span class="c-label">⚠️ Kiểm tra thông tin cá nhân trước khi duyệt</span>
   <p>Nhất định kiểm tra mã đơn hàng·tên v.v. không còn sót trong câu trả lời — tài liệu tri thức được tái sử dụng làm căn cứ cho câu trả lời của mọi khách hàng.</p></div>
   <div class="callout"><span class="c-label">💡 Mẹo</span>
   <p>Hai kênh này là con đường để tri thức tự lớn lên. Tạo thói quen dọn sạch mỗi tuần một lần
   sẽ giảm nguyên nhân gốc của "AI cứ chuyển sang nhân viên tư vấn".</p></div>
+
+  <h3>3.5 Phạm vi agent của danh mục (tri thức theo từng agent)</h3>
+  <p>Mỗi hàng trong thẻ <em>Danh mục</em> hiển thị phạm vi dưới dạng nút — <strong>"Tất cả agent"</strong> (mặc định; phạm vi trống = mở cho tất cả)
+  hoặc <strong>"Agent n/tổng"</strong>. Bấm nút → chọn <strong>Tất cả agent (mặc định)</strong> / <strong>Chỉ agent đã chọn</strong> → lưu.
+  Thu hẹp nghĩa là chỉ agent được chọn mới trích dẫn được tài liệu của danh mục đó (tái sử dụng câu trả lời cũng theo cùng phạm vi).</p>
+  <div class="callout"><span class="c-label">💡 Mẹo</span>
+  <ul>
+    <li>⚠️ <strong>Agent tạo sau không thấy được danh mục đã thu hẹp</strong> — thêm agent mới thì rà lại các phạm vi.</li>
+    <li>Danh mục sinh từ catalog (thương hiệu) luôn dùng được bởi mọi agent và không thể giới hạn.</li>
+    <li>Chọn agent trong bảng QA (mục 3.1) là cách chắc chắn nhất để kiểm chứng "agent này thực sự thấy gì".</li>
+  </ul></div>
 </section>
 
 <section id="ch4">
@@ -313,7 +394,8 @@ figure.shot figcaption{padding:8px 16px;font-size:13px;color:var(--muted);border
     <tr><td>Nhân viên mặc định</td><td>Agent mà widget dùng khi không chỉ định riêng (luôn hoạt động)</td></tr>
     <tr><td>Đoạn mã điểm vào</td><td>Đoạn mã cài đặt để mở widget với một agent cụ thể</td></tr>
     <tr><td>Persona / quy tắc trả lời</td><td>Mô tả giọng điệu·nguyên tắc của bot / danh sách quy tắc phải tuân thủ (nạp vào bước ③ pipeline)</td></tr>
-    <tr><td>Nút kịch bản</td><td>Nút menu nhanh dưới cùng của widget — chọn trong 7 loại hành động</td></tr>
+    <tr><td>Nút kịch bản</td><td>Nút menu nhanh dưới cùng của widget — chọn trong 7 loại hành động; <strong>nhãn theo từng ngôn ngữ</strong></td></tr>
+    <tr><td>Hội thoại mặc định</td><td>Chỉnh nội dung phản hồi·chip tiếp theo của <strong>7 kịch bản có sẵn</strong> (mục 4.7)</td></tr>
     <tr><td>Chức năng AI</td><td>5 vị trí AI được dùng (chat/rag/summary/assist/moderation) — mỗi vị trí chỉ định công cụ</td></tr>
     <tr><td>Quy tắc kiểm duyệt</td><td>Quy tắc cấm kiểm tra tin nhắn gửi đi (bước ④ pipeline)</td></tr>
     <tr><td>Tái sử dụng câu trả lời</td><td>Phát lại câu trả lời cũ đã duyệt cho cùng câu hỏi, không gọi LLM</td></tr>
@@ -325,6 +407,11 @@ figure.shot figcaption{padding:8px 16px;font-size:13px;color:var(--muted);border
   <p>Chọn một agent trong thẻ <em>Nhân viên AI</em> thì các thẻ persona·quy tắc trả lời bên dưới chuyển thành <strong>của agent đó</strong>.
   Dùng <strong>[Thêm nhân viên]</strong> đặt tên·mã (chữ thường) để tạo, quản lý <strong>[Đặt làm mặc định]</strong>·công tắc hoạt động·<strong>[Xóa]</strong>,
   sao chép <strong>đoạn mã điểm vào</strong> để cài lên trang·kênh cụ thể.</p>
+  <p>Khi sửa agent, hai trường danh tính hướng tới khách được đặt riêng: <strong>Tên hiển thị trên widget</strong> (hiện ở đầu widget —
+  bỏ trống thì dùng tên cửa hàng) và <strong>Tin nhắn phản hồi đầu tiên</strong> (theo tab ngôn ngữ — bong bóng đầu của phiên được gán agent này;
+  ngôn ngữ bỏ trống dùng tin nhắn đầu chung của cửa hàng).
+  Dưới thẻ agent, thẻ <strong>"Cài đặt áp dụng cho {agent}"</strong> tóm tắt dạng chỉ đọc <strong>các giá trị thực sự áp dụng</strong>
+  (kể cả giá trị mặc định thay thế) cho lời chào·persona·quy tắc·nút hiển thị.</p>
   <div class="callout"><span class="c-label">💡 Mẹo</span>
   <ul>
     <li>Agent được <strong>gán một lần khi phiên bắt đầu</strong> — đổi đoạn mã giữa chừng cũng không đổi bot của phiên đang chạy.</li>
@@ -343,8 +430,12 @@ figure.shot figcaption{padding:8px 16px;font-size:13px;color:var(--muted);border
   </ul></div>
 
   <h3>4.3 Nút kịch bản</h3>
-  <p>Từng hàng chỉnh nhãn (tối đa 60 ký tự) / hành động / ô chọn đang bật / thứ tự (↑↓).
-  Trong <strong>[Sửa câu trả lời]</strong>, chỉnh nội dung phản hồi theo hành động bằng <strong>tab 6 ngôn ngữ</strong> và cấu hình nút tiếp theo (nhãn·hành động·URL).</p>
+  <p>Chọn tab <strong>Ngôn ngữ của nhãn</strong> (6 ngôn ngữ) ở trên, rồi từng hàng chỉnh nhãn (tối đa 60 ký tự) / hành động /
+  ô chọn đang bật / thứ tự (↑↓) / <strong>[Agent]</strong> (agent nào hiển thị nút này — dùng chung hoặc chỉ agent đã chọn).
+  Nhãn theo <strong>từng ngôn ngữ</strong>: nhãn nhập chỉ áp dụng cho tab đang chọn (6 nút mặc định có sẵn nhãn cả 6 ngôn ngữ).
+  Gợi ý dưới mỗi nhãn cho biết <strong>kịch bản có sẵn</strong> mà nút chạy — "không có kịch bản" nghĩa là nhãn được gửi làm tin nhắn chat.
+  Trong <strong>[Sửa câu trả lời]</strong>, chỉnh nội dung phản hồi theo hành động bằng <strong>tab 6 ngôn ngữ</strong> và cấu hình chip tiếp theo
+  (nhãn·hành động·URL) — trình soạn mở với nội dung mặc định đã điền sẵn; sửa thì ghi đè, để nguyên thì không lưu ([Khôi phục mặc định] có sẵn).</p>
   <div class="tablewrap"><table>
     <tr><th>Hành động</th><th>Hành vi thực tế trong widget</th></tr>
     <tr><td>Tình trạng giao hàng</td><td>Câu trả lời cố định về chính sách giao hàng + nút tiếp theo</td></tr>
@@ -378,7 +469,10 @@ figure.shot figcaption{padding:8px 16px;font-size:13px;color:var(--muted);border
   <p>Các mô hình Claude hiện hành từ chối tham số lấy mẫu nên hệ thống chủ đích không gửi.
   Nhập cũng bị bỏ qua; chỉ áp dụng cho các công cụ dòng OpenAI. <strong>max_tokens</strong> áp dụng bình thường (trả lời chat khuyến nghị 512~1024).</p></div>
   <div class="callout"><span class="c-label">💡 Mẹo</span>
-  <p>Còn huy hiệu <code>stub</code> thì chưa phải chất lượng dịch vụ thật — đăng ký công cụ là quyền của quản trị viên nền tảng.
+  <p>Còn huy hiệu <code>stub</code> thì chưa phải chất lượng dịch vụ thật. Engine đến từ hai nơi:
+  <strong>engine riêng của tenant</strong> (thẻ <em>Engine AI</em> trong [Cài đặt gian hàng → Cài đặt cơ bản] — API key của bạn,
+  ưu tiên hơn engine nền tảng, chi phí tính vào tài khoản của bạn) và engine nền tảng (<code>/admin/ai-engines</code>).
+  Mức dùng thực tế xem ở thẻ <em>Mức dùng AI</em> cùng tab (kèm cảnh báo số lần rơi về stub).
   Mô hình embedding cho tìm kiếm tri thức không có trong màn hình này (dùng chung mọi tenant, máy chủ quản lý).</p></div>
 
   <h3>4.5 Quy tắc kiểm duyệt (cấm)</h3>
@@ -404,12 +498,28 @@ figure.shot figcaption{padding:8px 16px;font-size:13px;color:var(--muted);border
   <p>Trong thẻ <em>Tái sử dụng câu trả lời</em>: tìm các cặp hỏi-đáp đã lưu (lọc chỉ mục đang bật), sửa/xóa từng mục, <strong>[Tắt tất cả]</strong> để dừng hàng loạt.</p>
   <div class="callout"><span class="c-label">💡 Mẹo</span>
   <p>Câu trả lời tái sử dụng được gửi ngay không gọi LLM nên nhanh và rẻ, nhưng <strong>khi chính sách thay đổi, câu trả lời cũ có thể vẫn được gửi nguyên xi.</strong>
-  Hãy đưa việc sửa/tắt các mục liên quan vào danh sách kiểm tra mỗi khi sửa chính sách. Câu trả lời tái sử dụng vẫn qua kiểm duyệt.</p></div>
+  Hãy đưa việc sửa/tắt các mục liên quan vào danh sách kiểm tra mỗi khi sửa chính sách. Câu trả lời tái sử dụng vẫn qua kiểm duyệt,
+  và cũng theo phạm vi agent của danh mục (mục 3.5).</p></div>
+
+  <h3>4.7 Hội thoại mặc định (7 kịch bản có sẵn)</h3>
+  <p>Thẻ <em>Hội thoại mặc định</em> liệt kê <strong>toàn bộ kịch bản ShopTalk cung cấp sẵn</strong> — kể cả
+  <strong>những kịch bản khách chỉ đến được qua chip tiếp theo</strong> — tổng cộng 7 (hủy/hoàn tiền · hủy đơn ·
+  chính sách hoàn tiền · trả/đổi hàng · chính sách giao hàng · trợ giúp đơn hàng · trợ giúp sản phẩm chung).</p>
+  <p><strong>[Xem / sửa]</strong> trên hàng → chọn ngôn ngữ → chỉnh Câu của khách (hiển thị như thể khách tự nhập khi bấm nút) /
+  nội dung phản hồi / chip tiếp theo / hành động sau trả lời (ở lại chat·đơn hàng của tôi·biểu mẫu liên hệ·thẻ cộng tác viên·
+  kết nối nhân viên·mở URL) → lưu.</p>
+  <div class="callout"><span class="c-label">💡 Mẹo</span>
+  <ul>
+    <li>Huy hiệu trên mỗi hàng cho biết đường tiếp cận: <strong>"Nút menu · {hành động}"</strong> vs <strong>"Chỉ qua chip tiếp theo"</strong>;
+      số ngôn ngữ đã sửa cũng hiển thị.</li>
+    <li>Nội dung mặc định mở với ô đã điền sẵn — để nguyên thì không lưu, sửa thì ghi đè. [Khôi phục mặc định] đưa về ban đầu.</li>
+    <li>Đảm bảo nội dung kịch bản cố định và chính sách trong tài liệu tri thức không lệch nhau — sửa chính sách thì cập nhật cùng lúc (mục 7).</li>
+  </ul></div>
 </section>
 
 <section id="ch5">
   <div class="ch"><span class="num">05</span><h2>Cài đặt tiếp khách live chat</h2></div>
-  <span class="actor">Mục Chuyển tiếp tư vấn trên trang [Cài đặt gian hàng]</span>
+  <span class="actor">Thẻ Chuyển cho nhân viên trong tab [Cài đặt gian hàng] → Cài đặt cơ bản</span>
   <div class="terms"><div class="t-label">Thuật ngữ</div>
   <div class="tablewrap"><table>
     <tr><td>Escalation (chuyển tiếp)</td><td>Việc AI đẩy hội thoại sang hàng chờ nhân viên tư vấn</td></tr>
@@ -421,13 +531,15 @@ figure.shot figcaption{padding:8px 16px;font-size:13px;color:var(--muted);border
 
   <h3>5.1 Người phụ trách·giờ làm việc·hướng dẫn ngoài giờ</h3>
   <ol class="steps">
-    <li><strong>Chỉ định người phụ trách</strong> — tích chọn nhân viên tư vấn sẽ nhận chuyển tiếp</li>
-    <li>Công tắc <strong>Dùng giờ làm việc</strong> → múi giờ·bắt đầu/kết thúc·ngày trong tuần, khi cần công tắc <strong>giờ nghỉ</strong></li>
-    <li><strong>Email tiếp nhận ngoài giờ</strong> — địa chỉ nhận câu hỏi ngoài giờ làm việc (hiển thị cảnh báo nếu chưa cấu hình SMTP)</li>
-    <li><strong>Nội dung hướng dẫn ngoài giờ</strong> — viết theo từng tab ngôn ngữ</li>
-    <li><strong>SLA</strong> — mục tiêu phản hồi thường/khẩn cấp (giờ, 1~168h)</li>
-    <li><strong>Chuyển tiếp bắt buộc theo chính sách (deny-list)</strong> — đăng ký quy tắc từ khóa (phân tách bằng phẩy) + loại yêu cầu + nhãn phụ trách.
-      Tin nhắn khớp được <strong>chuyển thẳng đến nhân viên tư vấn, không qua AI</strong>, và yêu cầu (issue) được tạo sẽ tự động gán loại·nhãn.</li>
+    <li><strong>Nhân viên được phân công</strong> — tích chọn nhân viên nhận chuyển tiếp (bỏ trống thì báo cho mọi nhân viên; ai nhận trước người đó tiếp)</li>
+    <li>Công tắc <strong>Chỉ kết nối trong giờ làm việc</strong> → múi giờ·bắt đầu/kết thúc·ngày trong tuần, khi cần công tắc <strong>giờ nghỉ</strong> (giờ nghỉ xử lý như ngoài giờ)</li>
+    <li><strong>Email ngoài giờ</strong> — địa chỉ nhận câu hỏi ngoài giờ làm việc (hiển thị cảnh báo nếu chưa cấu hình SMTP)</li>
+    <li><strong>Thông báo ngoài giờ gửi cho khách hàng</strong> — viết theo từng tab ngôn ngữ (bỏ trống thì dùng mặc định)</li>
+    <li><strong>Mục tiêu SLA của bảng yêu cầu</strong> — thường/khẩn cấp (giờ, 1~168h; mặc định 24h/4h)</li>
+    <li><strong>Chuyển tiếp bắt buộc theo chính sách (deny-list)</strong> — đăng ký quy tắc từ khóa (phân tách bằng phẩy) + loại yêu cầu + nhãn phụ trách +
+      <strong>cách hiển thị với khách</strong>. Hai chế độ: <strong>Không trả lời</strong> (chuyển ngay, mặc định) /
+      <strong>Trả lời rồi chuyển</strong> (trả lời từ tri thức trước rồi vẫn chuyển) — kiểu nào nhân viên cũng được gọi,
+      và yêu cầu (issue) được tạo sẽ tự động gán loại·nhãn.</li>
   </ol>
   <figure class="shot"><img src="img/handoff-settings.en.jpg" alt="Mục Chuyển tiếp tư vấn (handoff) trong [Cài đặt gian hàng] — nhân viên phụ trách·giờ làm việc·hướng dẫn ngoài giờ" loading="lazy"><figcaption>Mục Chuyển tiếp tư vấn (handoff) trong [Cài đặt gian hàng] — nhân viên phụ trách·giờ làm việc·hướng dẫn ngoài giờ</figcaption></figure>
   <div class="callout"><span class="c-label">💡 Mẹo</span>
@@ -443,7 +555,7 @@ figure.shot figcaption{padding:8px 16px;font-size:13px;color:var(--muted);border
     <tr><td><strong>Độ tin cậy thấp</strong></td><td>Kèm câu "Tôi kết nối bạn với nhân viên tư vấn nhé?" vào câu trả lời và đưa vào hàng chờ</td></tr>
     <tr><td><strong>Bị kiểm duyệt chặn</strong></td><td>Không hiển thị câu trả lời AI, hướng dẫn kết nối nhân viên tư vấn rồi vào hàng chờ</td></tr>
     <tr><td><strong>Khách yêu cầu</strong></td><td>Nút kịch bản Liên hệ hỗ trợ hoặc yêu cầu rõ ràng → vào hàng chờ ngay</td></tr>
-    <tr><td><strong>Chuyển tiếp bắt buộc theo chính sách</strong></td><td>Khớp từ khóa đã đăng ký thì vào hàng chờ <strong>ngay lập tức, không có phản hồi AI</strong> — tin nhắn vẫn được lưu·hiển thị bình thường, yêu cầu được đóng dấu loại·nhãn (không phải chức năng chặn tin nhắn)</td></tr>
+    <tr><td><strong>Chuyển tiếp bắt buộc theo chính sách</strong></td><td>Quy tắc "Không trả lời": vào hàng chờ <strong>ngay lập tức, không có phản hồi AI</strong>. Quy tắc "Trả lời rồi chuyển": trả lời từ tri thức trước rồi vào hàng chờ. Tin nhắn vẫn được lưu·hiển thị bình thường, yêu cầu được đóng dấu loại·nhãn (không phải chức năng chặn tin nhắn)</td></tr>
   </table></div>
   <div class="callout"><span class="c-label">💡 Mẹo</span>
   <p>Ngưỡng độ tin cậy không điều chỉnh được trên màn hình (chính sách trong mã). Chuyển tiếp thường xuyên thì cách ứng phó đúng không phải là chỉnh ngưỡng
@@ -470,7 +582,8 @@ figure.shot figcaption{padding:8px 16px;font-size:13px;color:var(--muted);border
   Bấm <strong>[Huấn luyện câu này]</strong> trên từng phản hồi để đính lượt đó vào phần huấn luyện.</p>
   <div class="callout"><span class="c-label">💡 Mẹo</span>
   <p>Đã đổi cấu hình thì sau khi lưu phải bắt đầu bằng <strong>[Phiên mới]</strong> mới thấy hội thoại với cấu hình mới.
-  Ngôn ngữ trả lời theo ngôn ngữ phiên, hãy đổi ngôn ngữ để kiểm tra các câu hỏi chính.</p></div>
+  Ngôn ngữ trả lời theo ngôn ngữ phiên, hãy đổi ngôn ngữ để kiểm tra các câu hỏi chính.
+  Phiên xem thử <strong>không được tính vào số hội thoại của dashboard·thống kê</strong>.</p></div>
 
   <h3>6.2 Huấn luyện AI</h3>
   <p>Tab <strong>Huấn luyện AI</strong> → chọn chủ đề hoặc [Chủ đề mới] → kiểm tra lượt tham chiếu rồi ra chỉ dẫn bằng ngôn ngữ tự nhiên
@@ -487,7 +600,7 @@ figure.shot figcaption{padding:8px 16px;font-size:13px;color:var(--muted);border
   <h3>6.3 Kiểm tra hồi quy (câu hỏi vàng)</h3>
   <p>Thẻ <em>Kiểm tra hồi quy</em> → đăng ký câu hỏi vàng (10~20 câu đại diện) → <strong>[Chạy ngay]</strong> →
   bấm <strong>[So với lần trước]</strong> trong danh sách các lần chạy gần đây để so sánh song song thay đổi câu trả lời. <strong>[Đo độ dao động]</strong> cho thấy
-  mức dao động của cùng một câu hỏi.</p>
+  mức dao động của cùng một câu hỏi. Các câu hỏi đăng ký ở đây cũng được <strong>golden-set A/B của phần mô phỏng trên bảng</strong> (mục 2.0) tái sử dụng.</p>
   <div class="callout"><span class="c-label">💡 Mẹo</span>
   <ul>
     <li>Đưa vào câu hỏi vàng: ① câu hỏi gắn trực tiếp doanh thu (giao hàng·hoàn tiền) ② câu từng bị trả lời sai ③ câu thuộc diện chính sách sắp sửa đổi.</li>
@@ -500,18 +613,19 @@ figure.shot figcaption{padding:8px 16px;font-size:13px;color:var(--muted);border
   <div class="ch"><span class="num">07</span><h2>Danh sách kiểm tra vận hành</h2></div>
   <h3>Khi chính sách thay đổi (ví dụ: sửa phí giao hàng)</h3>
   <ul class="check">
-    <li>Sửa tài liệu tri thức liên quan (tự động embedding lại) + tắt phiên bản cũ</li>
-    <li>Kiểm tra nội dung câu trả lời cố định của kịch bản (Tình trạng giao hàng·Hủy/Hoàn tiền)</li>
+    <li>Sửa bản gốc trên bảng → [Đưa vào lại] (tài liệu đăng ký trực tiếp thì sửa tài liệu — tự động embedding lại) + tắt phiên bản cũ</li>
+    <li>Kiểm tra nội dung Hội thoại mặc định (chính sách giao hàng·hủy/hoàn tiền và các kịch bản có sẵn khác, mục 4.7)</li>
     <li>Tìm các mục tái sử dụng câu trả lời → sửa/tắt câu trả lời cũ</li>
     <li>Kiểm tra 3 câu hỏi đại diện bằng bảng QA → chạy hồi quy câu hỏi vàng</li>
     <li>Cập nhật ngày hiệu lực·chu kỳ rà soát của tài liệu</li>
   </ul>
   <h3>Thói quen hằng tuần</h3>
   <ul class="check">
-    <li>Dọn hộp đề xuất bổ sung tri thức·đề xuất câu trả lời (mục 3.4)</li>
+    <li>Dọn Đề xuất bổ sung tri thức·đề xuất câu trả lời (mục 3.4)</li>
     <li>Xử lý các mục chờ trong Rà soát mâu thuẫn (mục 3.2)</li>
-    <li>Rà soát tài liệu có huy hiệu <code>stale</code> (mục 3.3)</li>
+    <li>Rà soát tài liệu có huy hiệu <code>stale</code> và huy hiệu "chưa cập nhật bản sửa" trên bảng (mục 3.3·2.0)</li>
     <li>Chủ đề hay bị chuyển tiếp trong live chat → bổ sung tri thức</li>
+    <li>Vừa tạo agent AI mới thì rà lại phạm vi agent của các danh mục (mục 3.5)</li>
   </ul>
 </section>
 
@@ -519,8 +633,13 @@ figure.shot figcaption{padding:8px 16px;font-size:13px;color:var(--muted);border
   <div class="ch"><span class="num">08</span><h2>FAQ / Xử lý sự cố</h2></div>
   <dl class="faq">
     <dt>Q. Đã đăng ký tài liệu mà AI không biết nội dung đó.</dt>
-    <dd>Kiểm tra ① tài liệu có đang bật (hiển thị ON) không ② tài liệu có xuất hiện trong danh sách nguồn của bảng QA không.
+    <dd>Kiểm tra ① có phải chỉ đăng lên bảng mà chưa đưa vào KB không (chưa đưa vào thì chưa là căn cứ trả lời)
+    ② tài liệu có đang bật (hiển thị ON) không ③ danh mục có bị phạm vi agent che khỏi agent hiện tại không
+    (mục 3.5 — kiểm chứng bằng cách chọn đúng agent trong bảng QA) ④ tài liệu có xuất hiện trong danh sách nguồn của bảng QA không.
     Không hiện thì bổ sung tiêu đề·nội dung bằng từ ngữ của khách. Cũng kiểm tra kết quả đồng bộ danh mục sản phẩm có mục embedding thất bại không.</dd>
+    <dt>Q. Đã chạy Nhập bằng AI mà danh sách tài liệu không có gì.</dt>
+    <dd>Bản nháp của Nhập bằng AI được đăng <strong>lên bảng</strong>, không vào thẳng KB. Phải duyệt trên bảng rồi [Đưa vào KB]
+    thì mới xuất hiện trong danh sách tài liệu·căn cứ trả lời (mục 2.5).</dd>
     <dt>Q. AI cứ chuyển sang nhân viên tư vấn.</dt>
     <dd>Kiểm tra độ tin cậy·nguồn của câu hỏi đó trong bảng QA. Không có tài liệu căn cứ thì đăng ký là lời giải;
     có mà độ tin cậy thấp thì tách nhỏ tài liệu và bổ sung từ ngữ.</dd>
@@ -543,7 +662,7 @@ figure.shot figcaption{padding:8px 16px;font-size:13px;color:var(--muted);border
 
 <div class="next">
   <strong>Xem cùng →</strong> <a href="quick-setup.vi.html"><em>Sổ tay thiết lập nhanh ShopTalk</em></a> (tập 1): mở tenant·đăng nhập lần đầu·tích hợp nền tảng·cài widget.
-  Tham chiếu toàn bộ màn hình xem <a href="user-manual.vi.html">Sổ tay người dùng tổng hợp</a> (v2.0).
+  Tham chiếu toàn bộ màn hình xem <a href="user-manual.vi.html">Sổ tay người dùng tổng hợp</a> (v2.1).
 </div>
 
 </main>

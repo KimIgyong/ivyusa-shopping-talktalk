@@ -1,6 +1,6 @@
 # Widget trò chuyện·hỗ trợ khách hàng ShopTalk — Sổ tay người dùng (tổng hợp)
 
-> Phiên bản 2.0.0 · Bản đầu 2026-07-01 · **Sửa đổi toàn diện 2026-08-24** (dựa trên mã nguồn)
+> Phiên bản 2.1.0 · Bản đầu 2026-07-01 · Sửa đổi toàn diện 2026-08-24 · **Cập nhật 2026-09-04** (dựa trên mã nguồn)
 > Đối tượng: người vận hành tenant · nhân viên tư vấn · quản trị viên nền tảng
 > Quy ước ký hiệu: **✅ đã triển khai / 🟡 đang chuẩn bị·lộ trình**. Ghi trung thực theo mã nguồn thực tế.
 >
@@ -20,13 +20,13 @@
 5. [Bảng yêu cầu](#5-bảng-yêu-cầu)
 6. [Lịch sử hội thoại](#6-lịch-sử-hội-thoại)
 7. [Nhật ký công việc](#7-nhật-ký-công-việc)
-8. [Thống kê câu hỏi](#8-thống-kê-câu-hỏi)
+8. [Thống kê](#8-thống-kê)
 9. [Tổng quan](#9-tổng-quan)
 10. [Khách hàng·đơn hàng·sản phẩm](#10-khách-hàngđơn-hàngsản-phẩm)
 11. [Chiến dịch](#11-chiến-dịch)
 12. [Đánh giá](#12-đánh-giá)
 13. [Tri thức·cài đặt AI (liên kết)](#13-tri-thứccài-đặt-ai)
-14. [Cài đặt (liên kết)](#14-cài-đặt)
+14. [Cài đặt gian hàng](#14-cài-đặt-gian-hàng)
 15. [Thông báo quyền riêng tư·Trang của tôi](#15-thông-báo-quyền-riêng-tưtrang-của-tôi)
 16. [Bảng điều khiển quản trị viên nền tảng](#16-bảng-điều-khiển-quản-trị-viên-nền-tảng)
 17. [FAQ / Xử lý sự cố](#17-faq--xử-lý-sự-cố)
@@ -64,14 +64,13 @@ Bấm logo ở thanh bên sẽ mở **danh sách thẻ các màn hình truy cậ
 | Bảng yêu cầu | `/issues` | Bảng kanban ticket yêu cầu (tenant dùng quy trình native) |
 | Lịch sử hội thoại | `/history` | Tra cứu hội thoại cũ·kiểm tra căn cứ |
 | Nhật ký công việc | `/work-log` | Truy vết kiểm tra thao tác của nhân viên tư vấn |
-| Thống kê | `/statistics` | Thống kê câu hỏi của khách hàng |
-| Cài đặt AI | `/ai-setting` | Agent·persona·quy tắc·kịch bản·công cụ·kiểm duyệt·huấn luyện |
-| Kho tri thức | `/knowledge` | Tài liệu tri thức·nguồn·kiểm chứng |
+| Thống kê | `/statistics` | Phân tích câu hỏi·kênh·nhân viên·kết quả·hài lòng·khung giờ |
+| Cài đặt AI | `/ai-setting` | Agent·persona·quy tắc·kịch bản·hội thoại mặc định·nối công cụ·kiểm duyệt·huấn luyện |
+| Kho tri thức | `/knowledge` | Bảng tri thức (`/knowledge/board`)·tài liệu·nguồn·kiểm chứng |
 | Khách hàng / Đơn hàng / Sản phẩm | `/customers` `/orders` `/products` | Tra cứu·quản lý dữ liệu đệm |
 | Chiến dịch / Đánh giá | `/campaigns` `/reviews` | Quản lý gửi tin·đánh giá |
 | Người dùng | `/users` | Mời thành viên·cấp bậc·nhãn |
-| Cài đặt gian hàng | `/settings` | Tích hợp·widget·chuyển tiếp tư vấn·quyền menu |
-| Thông báo quyền riêng tư | `/privacy-notice` | URL chính sách·phiên bản đồng ý |
+| Cài đặt gian hàng | `/settings` | 7 tab: Cài đặt cơ bản / Cài đặt widget / Tích hợp nền tảng / Marketing & Helpdesk / Kênh nhắn tin / Cài đặt khác / Thông báo quyền riêng tư (§14) |
 | Trang của tôi | `/my-page` | Hồ sơ·mật khẩu·MFA |
 | Quản trị | `/admin/*` | Quản lý nền tảng (chỉ quản trị viên hệ thống) |
 
@@ -134,7 +133,9 @@ Bấm logo ở thanh bên sẽ mở **danh sách thẻ các màn hình truy cậ
 
 ```
 Tin nhắn khách hàng → phân loại ý định (cần thông tin cá nhân → hướng dẫn xác minh danh tính)
-  → khớp chuyển tiếp bắt buộc theo chính sách (deny-list) → chuyển thẳng nhân viên tư vấn, không qua AI
+  → khớp chuyển tiếp bắt buộc theo chính sách (deny-list):
+      quy tắc "Không trả lời" → chuyển thẳng nhân viên tư vấn, không qua AI
+      quy tắc "Trả lời rồi chuyển" → trả lời từ tri thức trước, rồi vẫn chuyển tiếp
   → tìm kiếm tri thức (RAG) → tạo câu trả lời (persona+quy tắc, tính độ tin cậy) → kiểm duyệt
   → độ tin cậy đủ: trả lời khách + nguồn / thiếu·bị chặn·khách yêu cầu: hàng chờ nhân viên tư vấn
 ```
@@ -152,11 +153,18 @@ mới mỗi 5 giây.
 
 ### 4.1 Hàng chờ (trái)
 - Phạm vi: **Tất cả / Cần nhân viên / Đã kết thúc** (mặc định Tất cả — hội thoại AI đang
-  tiếp cũng hiển thị).
-- Lọc kênh: widget·Telegram·Viber·Zalo·LINE·WhatsApp·Kakao·SMS·email. Tìm theo tên/email khách.
+  tiếp cũng hiển thị). Tab **Nhóm** ở hàng thứ hai là gộp nhóm phiên (§4.5).
+- Lọc kênh + **lọc theo AI agent** (tất cả agent / từng agent). Tìm theo tên/email khách.
+  Kênh: Widget·Telegram·Viber·Zalo·LINE·WhatsApp·WeChat·KakaoTalk·SMS·Email — hội thoại
+  đến qua btbz relay cũng hiển thị đúng tên messenger gốc. **SMS chỉ nhận**: có huy hiệu
+  và ô trả lời bị tắt.
 - Mỗi hàng: **bí danh phiên** (nhân viên tư vấn sửa được nội tuyến; chưa đặt thì tên
-  khách→email→ID phiên), huy hiệu kênh·trạng thái, chip "tự động trả lời OFF", tin nhắn
-  cuối, thời gian trôi qua từ khi mở/trả lời cuối.
+  khách→email→ID phiên), huy hiệu kênh·trạng thái, chip AI agent được gán, chip "tự động
+  trả lời OFF", tin nhắn cuối, thời gian trôi qua.
+- **Ghim**: rê chuột lên hàng để hiện biểu tượng ghim. Hội thoại được ghim luôn nằm đầu
+  danh sách — **dùng chung cả nhóm, tối đa 3 mỗi cửa hàng** (cái thứ 4 bị từ chối; hãy bỏ
+  ghim một cái trước).
+- Hàng bộ lọc·tìm kiếm được giữ cố định khi cuộn; chỉ vùng bên trong của 3 khung cuộn riêng.
 
 ### 4.2 Hội thoại (giữa)
 - **Điều khiển tự động trả lời** ở phần đầu: `theo mặc định kênh / tự động / duyệt rồi gửi
@@ -165,7 +173,16 @@ mới mỗi 5 giây.
   kể cài đặt này.
 - Nút: **[Nhận]** (tiếp nhận — gán phụ trách), **[Trả về AI]** (chỉ khi ở trạng thái nhân
   viên — giao hội thoại lại cho AI, có hộp xác nhận), **[Kết thúc]**, **[Đồng bộ]** (làm
-  mới thủ công).
+  mới thủ công), **[Ghim/Bỏ ghim]**, **[Chỉ định]** (đổi phụ trách sang AI agent khác hoặc
+  nhân viên — đổi AI agent áp dụng **từ câu trả lời tiếp theo**).
+- **4 thao tác trên tin nhắn khách** — hiện khi rê chuột lên bong bóng của khách (ẩn khi
+  AI đang tự động trả lời hội thoại):
+  | Thao tác | Tác dụng |
+  |---|---|
+  | Dịch | Chọn ngôn ngữ → bong bóng bản dịch **chỉ hiển thị trong bảng điều khiển** ngay dưới bản gốc (khách không thấy) |
+  | Tra cứu kiến thức | Sao chép nội dung tin nhắn vào bảng tra cứu tri thức bên phải và truy vấn ngay |
+  | Trả lời trích dẫn | Hiện chip trích dẫn phía trên ô soạn — khi gửi, phần trích dẫn được ghép vào tin nhắn |
+  | Ghi nhận tin nhắn này thành sự cố | Tạo issue từ đoạn trích+loại+ghi chú (nếu hội thoại đã có issue thì thêm thành ghi chú) |
 - **Chế độ duyệt rồi gửi**: bản nháp của AI hiện trong bảng có thể chỉnh sửa (kèm độ tin
   cậy), bấm **[Duyệt gửi]** thì gửi đi dưới danh nghĩa nhân viên tư vấn (kiểm duyệt·kiểm
   tra áp dụng như nhau). Cũng có thể [Hủy bỏ].
@@ -178,6 +195,7 @@ mới mỗi 5 giây.
 
 ### 4.3 Ngữ cảnh (phải)
 - **Tóm tắt của AI**: tóm tắt hội thoại đến hiện tại·ý định·cảm xúc·hành động khuyến nghị.
+  (Khi chọn một nhóm, chỗ này trở thành bảng **báo cáo hành trình khách hàng** — §4.5.)
 - **Tra cứu tri thức**: hỏi trực tiếp kho tri thức ngay trong hội thoại (một cú bấm dùng
   tin nhắn cuối của khách) → xem câu trả lời·nguồn (huy hiệu stale/mâu thuẫn, lối tắt đến
   tài liệu) → **[Gửi cho khách] / [Sửa rồi gửi] (điền vào ô soạn) / [Đề xuất vào kho tri
@@ -198,6 +216,23 @@ mới mỗi 5 giây.
   thì kết thúc. Hội thoại quá 7 ngày được kết thúc lặng lẽ. Hội thoại đang chờ hồi âm email
   không bị tự động kết thúc.
 
+### 4.5 Gộp nhóm phiên & báo cáo hành trình khách hàng
+- **[Chọn]** ở đầu danh sách → tích 2 phiên trở lên → **[Tạo nhóm]**. 2 loại: **dòng thời
+  gian** (các phiên của một khách theo thứ tự thời gian) / **dự án** (hội thoại của các bên
+  liên quan cùng một vụ việc). Có thể tạo nhóm mới hoặc thêm vào nhóm sẵn có.
+- **Phòng nhóm** (vào từ tab *Nhóm* của hàng chờ): toàn bộ phiên thành viên gộp thành một
+  dòng thời gian. Gửi tin là **1:1** — phải chọn **người nhận** trước. Trong cài đặt nhóm
+  có thể gỡ thành viên hoặc **giải tán nhóm**; giải tán vẫn giữ nguyên mọi hội thoại và
+  tin nhắn.
+- **Báo cáo hành trình khách hàng** (bảng bên phải khi chọn nhóm): **[Tạo báo cáo]** (toàn
+  bộ / khoảng thời gian) → ① Tóm tắt ② Lịch sử tiếp xúc ③ Họ hỏi gì ④ Thời gian giải quyết
+  ⑤ Hành trình (5A) ⑥ Nhu cầu (giả thuyết) ⑦ Hành động tiếp theo. **Số liệu do mã nguồn
+  đếm; AI chỉ viết phần diễn giải** — nhóm lớn mất vài chục giây, có thể rời màn hình.
+  Chọn 2 báo cáo cũ để **phân tích so sánh** (có cảnh báo khi khác phiên bản tiêu chí).
+- **Tiêu chí viết báo cáo** (bật/tắt từng mục·số câu hỏi hàng đầu·trần mẫu·độ dài trích
+  dẫn·cụm từ cấm) quản lý tại *Tiêu chí báo cáo hành trình* trong [Cài đặt gian hàng →
+  Cài đặt khác] (chỉ master). Lưu sẽ tạo phiên bản mới; báo cáo cũ giữ phiên bản lúc viết.
+
 ---
 
 ## 5. Bảng yêu cầu
@@ -217,7 +252,11 @@ Là **bảng kanban** quản lý yêu cầu dưới dạng ticket (issue).
   giải quyết/từ chối có thể mở lại.
 - Bấm thẻ → xem trước 10 lượt hội thoại gần nhất (chỉ đọc, việc xem được ghi vào kiểm tra)
   → [Mở phiên] để vào live chat.
-- Giờ chuẩn SLA đặt tại mục Chuyển tiếp tư vấn trong [Cài đặt gian hàng] (thường/khẩn cấp, 1~168 giờ).
+- Thao tác **[Ghi nhận tin nhắn này thành sự cố]** trong live chat (§4.2) cũng tạo issue.
+- Giờ chuẩn SLA đặt tại thẻ *Kết nối nhân viên tư vấn* trong [Cài đặt gian hàng → Cài đặt
+  cơ bản] (thường/khẩn cấp, 1~168 giờ, mặc định 24h/4h).
+- Chế độ quy trình (native hay không) là cài đặt **Gói/Add-on** của quản trị viên nền tảng
+  (§16) — nếu chỉ được cấp menu mà chưa bật chế độ thì chỉ hiển thị màn hình thông báo.
 
 ---
 
@@ -246,17 +285,35 @@ Cột: thời gian·nhân viên tư vấn·hành động·đối tượng·kết
 
 ---
 
-## 8. Thống kê câu hỏi
-*(`/statistics`)*
+## 8. Thống kê
+*(`/statistics` · bộ lọc thời gian dùng chung, mặc định 30 ngày gần nhất)*
 
-Tổng hợp câu hỏi của khách hàng theo 4 tab chiều — **ý định / tài liệu / từ khóa / cụm**
-(mặc định 30 ngày gần nhất, ảnh chụp theo ngày).
+6 mục cấp cao — **Phân tích câu hỏi / Kênh / Nhân viên / Kết quả / Mức độ hài lòng /
+Khung giờ**.
 
-- Biểu đồ xu hướng (số câu hỏi theo ngày) + bảng: nhãn·số câu hỏi·tỷ trọng·**tỷ lệ
-  escalation**·**không có nguồn**·**độ tin cậy trung bình**.
-- **Dấu ⚠ chú ý**: hàng có tỷ lệ escalation từ 25% trở lên hoặc độ tin cậy trung bình thấp
-  — hãy dùng làm **danh sách cần bổ sung tri thức**. Ở tab tài liệu, bấm hàng để đến tài
-  liệu tri thức tương ứng.
+- **Phân tích câu hỏi**: 4 tab con (**ý định / tri thức đã dùng / từ khóa / nhóm câu hỏi
+  tương tự**). Biểu đồ xu hướng + bảng (số lượng·tỷ trọng·**tỷ lệ chuyển tiếp**·**không có
+  nguồn**·**độ tin cậy trung bình**). Hàng có dấu ⚠ là hàng chuyển tiếp cao hoặc tin cậy
+  thấp — **danh sách ưu tiên bổ sung tri thức** (ở *tri thức đã dùng*, bấm hàng để đến tài
+  liệu). Dựa trên ảnh chụp theo ngày nên số liệu vẫn còn khi log hội thoại bị xóa; nếu
+  tổng hợp ngưng quá 2 ngày sẽ có biểu ngữ cảnh báo.
+- **Kênh**: theo từng kênh — số hội thoại·tin nhắn của khách·**tin nhắn mỗi hội thoại
+  (trung vị)**·chuyển nhân viên. Hãy xem trung vị trước — một hội thoại hàng trăm lượt sẽ
+  kéo lệch hẳn giá trị trung bình.
+- **Nhân viên**: bảng **AI agent** và bảng **nhân viên tư vấn**. Hội thoại·câu trả lời đã
+  gửi·đã giải quyết·mức hài lòng (hiển thị kèm số lượt đánh giá — mẫu mỏng thì diễn giải
+  thận trọng).
+- **Kết quả**: cách các hội thoại đã kết thúc. Giải quyết (khách đánh giá / nhân viên đóng
+  / đóng sau xác nhận) vs chưa giải quyết (đang diễn ra / kết thúc không thao tác đóng /
+  **khách nói câu cuối**). **Cùng định nghĩa** với báo cáo hành trình và Tổng quan — hội
+  thoại mà khách nói câu cuối tức là còn câu hỏi, không tính là giải quyết.
+- **Mức độ hài lòng**: điểm trung bình·số phản hồi·tỷ lệ phản hồi·phân bố 1~5 + bảng
+  **theo nhân viên / theo phiên** (bộ lọc điểm·nhân viên).
+- **Khung giờ**: lưới thứ×giờ (tin nhắn của khách) — tính theo **múi giờ của tenant**, có
+  cảnh báo dùng UTC khi tenant chưa đặt múi giờ.
+
+Các mục Kênh·Nhân viên·Kết quả·Khung giờ tính trực tiếp từ log hội thoại nên **không tra
+được quá hạn lưu trữ** (Phân tích câu hỏi·Mức độ hài lòng là ảnh chụp nên còn nguyên).
 
 ---
 
@@ -265,8 +322,12 @@ Tổng hợp câu hỏi của khách hàng theo 4 tab chiều — **ý định /
 
 - 6 KPI (mỗi cái liên kết đến màn hình tương ứng): tư vấn đang diễn ra · thông báo hôm nay
   · tỷ lệ AI tự giải quyết · Top N chưa giải quyết · tổng hội thoại · tổng đơn hàng.
-- Xếp hạng **câu hỏi phổ biến**, **trạng thái tích hợp** (huy hiệu theo nhà cung cấp),
-  **5 đơn hàng gần nhất**.
+- **Tỷ lệ AI tự giải quyết** = phần các hội thoại đã kết thúc mà câu hỏi của khách không
+  còn treo lại — cùng định nghĩa với mục *Kết quả* của Thống kê và báo cáo hành trình. Số
+  hội thoại chỉ đếm hội thoại khách thật, **loại trừ phiên xem thử của Cài đặt AI**.
+- Xếp hạng **câu hỏi phổ biến**, **trạng thái tích hợp** (huy hiệu theo nhà cung cấp —
+  Shopify·Cafe24·Odoo·Haravan·Klaviyo·Yotpo·Notion·Google Drive v.v.; "đã kết nối" nghĩa
+  là **đã qua kiểm tra kết nối**, không phải chỉ lưu thông tin, §14), **5 đơn hàng gần nhất**.
 
 ---
 
@@ -322,17 +383,43 @@ thích chuyên sâu theo màn hình xem AI-SETTINGS-GUIDE.
 Tóm tắt điểm cốt lõi:
 - AI **chỉ trả lời từ các tài liệu tri thức đang bật**. Chuyển tiếp thường xuyên nghĩa là
   thiếu tri thức.
+- Con đường chuẩn của tri thức: soạn và duyệt trên **Smart Knowledge Board**
+  (`/knowledge/board`) trước, rồi **chấp nhận** vào KB (có mô phỏng trước khi chấp nhận).
+  Thêm tài liệu trực tiếp chỉ dành cho sửa khẩn cấp.
+- Tri thức chia theo 3 nhóm (CounselInfo / ProductInfo / OperationInfo) × danh mục; **phạm
+  vi agent** của danh mục có thể giới hạn tri thức cho từng AI agent cụ thể.
+- Công cụ hàng loạt: **tải xuống ↔ đăng ký hàng loạt** (vòng khứ hồi CSV/XLSX), **AI
+  import** (pdf·docx·xlsx·csv·md·phụ đề YouTube → duyệt bản nháp → đăng lên bảng).
 - Mọi tin nhắn gửi đi (AI·nhân viên tư vấn) đều qua kiểm duyệt. Khi lỗi sẽ **chặn** một
   cách an toàn.
 - Huấn luyện AI·thay đổi cấu hình đi qua **cổng phê duyệt** — hãy xem xét đề xuất rồi mới
   áp dụng.
 
-## 14. Cài đặt
+## 14. Cài đặt gian hàng
 
-Tích hợp nền tảng (Cafe24 OAuth·Shopify·Odoo v.v.), cài đặt widget·nội dung·tab·chủ đề,
-chính sách kênh thông báo, **chuyển tiếp tư vấn (người phụ trách·giờ làm việc·email ngoài
-giờ·SLA·chuyển tiếp bắt buộc theo chính sách)**, quyền truy cập menu — tất cả nằm trong
-`/settings`.
+`/settings` đã được tổ chức lại thành **7 tab** (trước đây là một màn "Cài đặt" duy nhất).
+Tab cũng là đơn vị cấp menu — tab mà quản trị viên nền tảng không cấp sẽ không hiển thị.
+
+| Tab | Nội dung |
+|---|---|
+| Cài đặt cơ bản | **Công cụ AI** (đăng ký công cụ riêng của tenant — ưu tiên hơn công cụ nền tảng; kiểm tra kết nối·đặt mặc định; gọi bằng khóa của bạn thì tính phí vào tài khoản của bạn) · **Mức dùng AI** (số lần gọi/token theo kỳ và trục, cảnh báo rơi về stub — không ước tính tiền) · Cửa hàng (storefront) · **Kết nối nhân viên tư vấn** (người phụ trách·giờ làm việc·giờ nghỉ·email/nội dung ngoài giờ·SLA·chuyển tiếp bắt buộc theo chính sách) |
+| Cài đặt widget | Chủ đề · bố cục tab · hành vi (tên hiển thị·lời chào — **6 tab ngôn ngữ**, kèm nội dung mặc định) · Nhúng/SDK · hướng dẫn cài lên cửa hàng |
+| Tích hợp nền tảng | Các ô Shopify · Cafe24 · WooCommerce · Odoo · Haravan + nút **[Hướng dẫn tích hợp]** góc phải trên (tìm từng thông tin xác thực ở đâu) |
+| Marketing & Helpdesk | Klaviyo · Yotpo · Gorgias |
+| Kênh nhắn tin | Telegram · Viber · trung tâm AmoebaTalk · btbz messenger relay · Gmail (Zalo·LINE·WhatsApp sắp hỗ trợ) |
+| Cài đặt khác | Kênh thông báo · quyền truy cập menu (master) · tiêu chí báo cáo hành trình (master, §4.5) · thông tin xác thực đã lưu |
+| Thông báo quyền riêng tư | URL chính sách · phiên bản thông báo đồng ý (§15) |
+
+- **Đã lưu ≠ đã kết nối**: lưu thông tin xác thực thì trạng thái là "chưa kiểm tra". Chỉ
+  khi **[Kiểm tra kết nối]** đạt mới thành "đã kết nối" ("lỗi" nếu thất bại) — huy hiệu
+  tích hợp trên Tổng quan cũng theo trạng thái này.
+- Odoo·WooCommerce·Haravan lấy dữ liệu bằng **[Nhập sản phẩm] / [Đồng bộ đơn hàng]** trong
+  hộp cấu hình (Cafe24 có thẻ OAuth riêng; Shopify có [Đồng bộ ngay]+[Đăng ký webhook]).
+  Để AI dùng được sản phẩm đã nhập, cần thêm bước đồng bộ catalog trong [Kho tri thức]
+  (§10.3).
+- Quy tắc **chuyển tiếp bắt buộc theo chính sách (deny-list)** có 2 chế độ hiển thị với
+  khách: **Không trả lời** (chuyển thẳng, không qua AI — mặc định) / **Trả lời rồi
+  chuyển** (trả lời từ tri thức trước rồi vẫn chuyển) — kiểu nào nhân viên cũng được gọi.
 → [Sổ tay thiết lập nhanh chương 3~4](quick-setup.vi.md) ·
 hướng dẫn cài đặt widget
 
@@ -340,9 +427,10 @@ hướng dẫn cài đặt widget
 
 ## 15. Thông báo quyền riêng tư·Trang của tôi
 
-- **Thông báo quyền riêng tư** (`/privacy-notice`, master/director): quản lý URL chính sách
-  xử lý và **phiên bản thông báo đồng ý**. ⚠️ **Nâng phiên bản sẽ hiển thị lại biểu ngữ
-  đồng ý cho tất cả khách hàng**, nên chỉ nâng khi thực sự thay đổi nội dung thông báo.
+- **Thông báo quyền riêng tư** (một tab của [Cài đặt gian hàng], `/settings/privacy` — địa
+  chỉ cũ `/privacy-notice` tự chuyển hướng; master/director): quản lý URL chính sách xử lý
+  và **phiên bản thông báo đồng ý**. ⚠️ **Nâng phiên bản sẽ hiển thị lại biểu ngữ đồng ý
+  cho tất cả khách hàng**, nên chỉ nâng khi thực sự thay đổi nội dung thông báo.
 - **Trang của tôi** (`/my-page`): hồ sơ (cấp bậc·nhãn·workspace), đổi mật khẩu, đăng ký/gỡ MFA.
 
 ---
@@ -353,10 +441,15 @@ hướng dẫn cài đặt widget
 | Màn hình | Đường dẫn | Công dụng |
 |---|---|---|
 | Tổng quan | `/admin` | Số tenant·trạng thái tích hợp |
-| Gian hàng | `/admin/tenants` | Tạo (tên·slug·tên miền·gói) · **menu được cung cấp** · tạm ngưng/kích hoạt |
+| Gian hàng | `/admin/tenants` | Tạo (tên·slug·tên miền·gói) · **Gói/Add-on** · **menu được cung cấp** · tạm ngưng/kích hoạt |
 | Người dùng của tenant | `/admin/tenants/…/users` | Mời · **cấp mật khẩu tạm thời (hiển thị 1 lần·không gửi mail)** · đặt lại MFA · tạm ngưng |
 | Công cụ AI | `/admin/ai-engines` | Đăng ký công cụ (nhà cung cấp·mô hình·khóa API)·quản lý kích hoạt — tenant chọn theo từng chức năng |
 | Nhật ký kiểm tra | `/admin/audit` | Truy vết thao tác đặc quyền (cấp mật khẩu tạm·đổi quyền·xem PII v.v.) |
+
+- Hộp thoại **Gói/Add-on**: gói (`starter`/`growth`/`enterprise`/`custom` — mỗi gói có bộ
+  menu mặc định; đổi gói vẫn giữ các ghi đè theo từng menu) + **add-on quy trình issue**
+  (`base` không dùng / `bridge` nối helpdesk ngoài / `native` bật bảng issue·kanban).
+  Trong danh sách, chế độ khác base hiển thị huy hiệu "Issues: {chế độ}" ở cột gói.
 
 Chi tiết quy trình mở tenant: [Sổ tay thiết lập nhanh chương 1](quick-setup.vi.md).
 
@@ -367,8 +460,10 @@ Chi tiết quy trình mở tenant: [Sổ tay thiết lập nhanh chương 1](qui
 **Q. Bot cứ chuyển sang nhân viên tư vấn.**
 Thiếu tri thức là nguyên nhân phổ biến nhất. Xác định nguyên nhân bằng các hàng ⚠ trong
 Thống kê (`/statistics`) và bảng QA tri thức, rồi bổ sung tài liệu. Cũng kiểm tra xem từ
-khóa đó có nằm trong deny-list (chuyển tiếp bắt buộc theo chính sách) không — trường hợp
-này AI bị bỏ qua một cách có chủ đích.
+khóa đó có nằm trong deny-list (chuyển tiếp bắt buộc theo chính sách) không — quy tắc
+"Không trả lời" bỏ qua AI một cách có chủ đích, còn quy tắc "Trả lời rồi chuyển" thì dù
+đã trả lời vẫn gọi nhân viên. Danh mục của tài liệu cũng có thể mang **phạm vi agent**
+khiến agent hiện tại không thấy tri thức đó.
 
 **Q. Câu trả lời của nhân viên tư vấn không gửi được.**
 Là kiểm duyệt chặn. Đổi cách diễn đạt rồi thử lại; nếu quy tắc quá gắt, đề nghị master điều chỉnh.
@@ -378,8 +473,19 @@ Là tự động kết thúc hội thoại bị bỏ quên (30 phút im lặng �
 gửi tin nhắn lại sẽ bắt đầu phiên tư vấn mới.
 
 **Q. Không thấy bảng yêu cầu.**
-Chỉ dành cho tenant có chế độ quy trình native. Nếu menu hoàn toàn không có, hãy kiểm tra
-menu được cung cấp/quyền theo cấp bậc (2 tầng).
+Chỉ dành cho tenant có chế độ quy trình native — kiểm tra cài đặt **Gói/Add-on** của quản
+trị viên nền tảng có phải `native` không. Nếu menu hoàn toàn không có, hãy kiểm tra menu
+được cung cấp/quyền theo cấp bậc (2 tầng).
+
+**Q. Màn hình cài đặt trông khác với mô tả cũ.**
+Từ 2026-08-24, `/settings` được tổ chức lại thành **7 tab** (Cài đặt gian hàng, §14).
+Chuyển tiếp tư vấn nay ở thẻ **Kết nối nhân viên tư vấn** trong tab *Cài đặt cơ bản*,
+quyền truy cập menu chuyển sang tab *Cài đặt khác*.
+
+**Q. Số liệu Tổng quan/Thống kê giảm so với trước.**
+Có thể là bình thường — số hội thoại nay **loại trừ phiên xem thử của Cài đặt AI**, và với
+định nghĩa "giải quyết" đã thống nhất, hội thoại mà khách nói câu cuối không còn được tính
+là giải quyết (§8·§9).
 
 **Q. Đã đổi cài đặt widget mà không thấy phản ánh.**
 Widget đọc cấu hình mới từ **phiên tiếp theo của khách hàng**. Hãy đóng-mở lại widget hoặc
@@ -406,4 +512,5 @@ Bình thường — ẩn chỉ loại khỏi hiển thị trên cửa hàng, cò
 *Tài liệu liên quan: [Sổ tay thiết lập nhanh](quick-setup.vi.md) ·
 [Sổ tay đăng ký tri thức·cài đặt AI](knowledge-ai.vi.md) ·
 hướng dẫn cài đặt widget · AI-SETTINGS-GUIDE ·
+hướng dẫn tích hợp ứng dụng di động (WebView·Android SDK) ·
 tài liệu giới thiệu dịch vụ · SPEC.md*

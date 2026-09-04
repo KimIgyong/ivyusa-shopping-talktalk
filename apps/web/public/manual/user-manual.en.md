@@ -1,6 +1,6 @@
 # ShopTalk Chat & Customer Support Widget — User Manual (Integrated)
 
-> Version 2.0.0 · First edition 2026-07-01 · **Fully revised 2026-08-24** (against the code)
+> Version 2.1.0 · First edition 2026-07-01 · Fully revised 2026-08-24 · **Updated 2026-09-04** (against the code)
 > Audience: tenant operators · agents · platform administrators
 > Legend: **✅ implemented / 🟡 in preparation·roadmap**. Marked honestly against the actual code.
 > ⚠ AI-translated draft pending native review. The Korean edition is authoritative.
@@ -19,13 +19,13 @@
 5. [Issue Board](#5-issue-board)
 6. [Conversation History](#6-conversation-history)
 7. [Work Log](#7-work-log)
-8. [Question Statistics](#8-question-statistics)
+8. [Statistics](#8-statistics)
 9. [Dashboard](#9-dashboard)
 10. [Customers·Orders·Products](#10-customersordersproducts)
 11. [Campaigns](#11-campaigns)
 12. [Reviews](#12-reviews)
 13. [Knowledge & AI Settings (Links)](#13-knowledge--ai-settings)
-14. [Settings (Links)](#14-settings)
+14. [Tenant Settings](#14-tenant-settings)
 15. [Privacy Notice·My Page](#15-privacy-noticemy-page)
 16. [Platform Admin Console](#16-platform-admin-console)
 17. [FAQ / Troubleshooting](#17-faq--troubleshooting)
@@ -64,14 +64,13 @@ Clicking the sidebar logo opens the **card list of accessible screens** (`/menu`
 | Issues | `/issues` | Inquiry-ticket kanban board (native-workflow tenants) |
 | History | `/history` | Browse past conversations·verify evidence |
 | Work log | `/work-log` | Audit trail of agent actions |
-| Statistics | `/statistics` | Customer question statistics |
-| AI settings | `/ai-setting` | Agents·persona·rules·scenarios·engines·moderation·coaching |
-| Knowledge | `/knowledge` | Knowledge documents·sources·validation |
+| Statistics | `/statistics` | Question analytics·channels·agents·outcomes·satisfaction·hours |
+| AI settings | `/ai-setting` | Agents·persona·rules·scenarios·built-in conversations·engine wiring·moderation·coaching |
+| Knowledge | `/knowledge` | Knowledge board (`/knowledge/board`)·documents·sources·validation |
 | Customers / Orders / Products | `/customers` `/orders` `/products` | Browse·manage cached data |
 | Campaigns / Reviews | `/campaigns` `/reviews` | Sending·review management |
 | Users | `/users` | Team invites·ranks·labels |
-| Settings | `/settings` | Integrations·widget·agent handoff·menu access |
-| Privacy notice | `/privacy-notice` | Policy URL·consent version |
+| Tenant settings | `/settings` | 7 tabs: Basic settings / Widget settings / Platform integrations / Marketing & helpdesk / Messenger channels / Other settings / Privacy notice (§14) |
 | My page | `/my-page` | Profile·password·MFA |
 | Admin | `/admin/*` | Platform administration (system administrators only) |
 
@@ -134,7 +133,9 @@ Clicking the sidebar logo opens the **card list of accessible screens** (`/menu`
 
 ```
 Customer message → intent classification (identity-verification prompt if personal data is needed)
-  → if policy-forced handoff (deny-list) matches, straight to an agent with no AI
+  → if policy-forced handoff (deny-list) matches:
+      "No answer" rule → straight to an agent with no AI
+      "Answer, then hand off" rule → answer from knowledge first, then hand off anyway
   → knowledge search (RAG) → answer generation (persona+rules, confidence scoring) → moderation
   → confidence sufficient: answer + sources to the customer / low·blocked·customer request: agent queue
 ```
@@ -151,13 +152,19 @@ Three columns: **queue (left) — conversation (center) — context (right)**. L
 auto-refresh every 5 seconds.
 
 ### 4.1 Queue (left)
-- Scope: **All / Queue / Closed** (default All — conversations the AI is handling are
-  visible too).
-- Channel filter: widget·Telegram·Viber·Zalo·LINE·WhatsApp·Kakao·SMS·email. Customer
-  name/email search.
+- Scope: **All / Needs attention / Closed** (default All — conversations the AI is handling
+  are visible too). The **Groups** tab on the second row is session grouping (§4.5).
+- Channel filter + **AI-agent filter** (all agents / per agent). Customer name/email search.
+  Channels: Widget·Telegram·Viber·Zalo·LINE·WhatsApp·WeChat·KakaoTalk·SMS·Email —
+  conversations arriving through the btbz relay also show their original messenger name.
+  **SMS is receive-only**: it carries a badge and replying is disabled.
 - Each row: **session alias** (editable inline by agents; falls back to customer name →
-  email → session ID), channel·status badges, an "auto-reply OFF" chip, the last message,
-  and elapsed time since creation/last response.
+  email → session ID), channel·status badges, the assigned AI-agent chip, an "auto-reply
+  OFF" chip, the last message, and elapsed time.
+- **Pin**: hover a row to reveal the pin icon. Pinned conversations always sit at the top
+  of the list — **shared by the team, max 3 per store** (a 4th is refused; unpin one first).
+- The filter/search rows stay fixed while scrolling; only the inner area of each of the 3
+  panes scrolls.
 
 ### 4.2 Conversation (center)
 - Header **auto-reply control**: `Follow channel default / Automatic / Send after approval /
@@ -165,7 +172,16 @@ auto-refresh every 5 seconds.
   an agent takes over, agent handling takes precedence regardless of this setting.
 - Buttons: **[Accept]** (take over — assigns ownership), **[Hand back to AI]** (only from
   agent state — returns the conversation to the AI, confirmation modal), **[End]**,
-  **[Sync]** (manual refresh).
+  **[Sync]** (manual refresh), **[Pin/Unpin]**, **[Assign]** (change the owner to another
+  AI agent or a human agent — an AI-agent change applies **from the next response**).
+- **4 customer-message actions** — appear on hover over a customer bubble (hidden while
+  the AI is auto-answering the conversation):
+  | Action | What it does |
+  |---|---|
+  | Translate | Pick a language → a **console-only** translated bubble under the original (invisible to the customer) |
+  | Look up in knowledge | Copies the message into the knowledge-lookup panel on the right and queries it |
+  | Quote reply | Shows a quote chip above the composer — the quotation is assembled into the message on send |
+  | File this message as an issue | Creates an issue from an excerpt+type+memo (added as a memo if this conversation already has an issue) |
 - **Send-after-approval mode**: the AI draft appears in an editable panel (with confidence
   shown); **[Approve & send]** sends it in the agent's name (moderation·audit apply
   identically). **[Discard]** is also available.
@@ -178,6 +194,7 @@ auto-refresh every 5 seconds.
 
 ### 4.3 Context (right)
 - **AI briefing**: summary of the conversation so far·intent·sentiment·recommended actions.
+  (When a group is selected, this spot becomes the **customer journey report** panel — §4.5.)
 - **Knowledge lookup**: ask the knowledge base directly mid-conversation (one click inserts
   the last customer message) → check the answer·sources (stale/conflict badges, document
   shortcuts) → **[Send to customer] / [Edit & send] (fills the composer) / [Propose as
@@ -198,6 +215,26 @@ auto-refresh every 5 seconds.
   after 1 more minute of silence. Conversations older than 7 days are closed quietly.
   Conversations awaiting an email reply are never auto-closed.
 
+### 4.5 Session grouping & customer journey report
+- **[Select]** in the list header → check 2 or more sessions → **[Create group]**. Two
+  types: **timeline** (one customer's sessions in time order) / **project** (conversations
+  of the parties involved in the same case). You can create a new group or add to an
+  existing one.
+- **Group room** (entered from the queue's *Groups* tab): all member sessions merged into
+  one timeline. Sending is **1:1** — pick a **recipient** first. In the group settings you
+  can remove members or **dissolve the group**; dissolving keeps every conversation and
+  message intact.
+- **Customer journey report** (right panel while a group is selected): **[Generate
+  report]** (whole period / custom range) → ① Summary ② Contact history ③ What they ask
+  ④ Resolution time ⑤ Customer path (5A) ⑥ Needs (hypothesis) ⑦ Next actions. **The
+  numbers are counted by code; only the narrative is written by AI** — a large group takes
+  tens of seconds and you may leave the screen. Pick two past reports for a **comparison
+  analysis** (a warning shows when their criteria versions differ).
+- The report's **writing criteria** (section on/off·top-question count·sample cap·quote
+  length·banned phrases) are managed in *Journey report criteria* under [Tenant settings →
+  Other settings] (master only). Saving mints a new version; existing reports keep the
+  version they were written with.
+
 ---
 
 ## 5. Issue Board
@@ -216,8 +253,12 @@ A **kanban board** that manages inquiries as tickets (issues).
   possible after resolve/decline.
 - Card click → a read-only preview of the last 10 turns (viewing is recorded in the audit
   log) → [Open session] enters live chat.
-- SLA baseline hours are set in the Agent handoff section of [Settings] (normal/urgent,
-  1–168 hours).
+- The customer-message action **[File this message as an issue]** in live chat (§4.2) also
+  creates issues.
+- SLA baseline hours are set on the *Agent handoff* card under [Tenant settings → Basic
+  settings] (normal/urgent, 1–168 hours, defaults 24h/4h).
+- The workflow mode (whether native) is the platform administrator's **Plan/Add-ons**
+  setting (§16) — with the menu provided but the mode off, only a notice screen shows.
 
 ---
 
@@ -246,17 +287,37 @@ Columns: time·agent·action·target·result (success/failure).
 
 ---
 
-## 8. Question Statistics
-*(`/statistics`)*
+## 8. Statistics
+*(`/statistics` · one shared date filter, default last 30 days)*
 
-Aggregates customer questions across 4 dimension tabs — **intent / documents / keywords /
-clusters** (default last 30 days, daily snapshots).
+Six top-level sections — **Question analytics / Channels / Agents / Outcomes /
+Satisfaction / Hours**.
 
-- Trend chart (daily question counts) + table: label·question count·share·**escalation
-  rate**·**no source**·**average confidence**.
-- **⚠ attention markers**: rows with an escalation rate of 25%+ or low average confidence —
-  use them as **the list of knowledge to reinforce**. In the documents tab, clicking a row
-  jumps to that knowledge document.
+- **Question analytics**: 4 sub-tabs (**intent / knowledge used / keywords / similar-question
+  groups**). Trend chart + table (count·share·**escalation rate**·**no source**·**average
+  confidence**). ⚠-marked rows have a high escalation rate or low confidence — **your
+  knowledge-reinforcement priority list** (in *knowledge used*, clicking a row jumps to the
+  document). Built on daily snapshots, so the numbers survive conversation-log deletion; a
+  warning banner appears if aggregation has stalled for 2+ days.
+- **Channels**: per-channel conversations·customer messages·**messages per conversation
+  (median)**·agent handoffs. Read the median first — a single conversation with hundreds of
+  turns drags the average far away.
+- **Agents**: an **AI agents** table and a **human agents** table. Conversations·replies
+  sent·resolved·satisfaction (the rating count is shown alongside — interpret thin samples
+  with care).
+- **Outcomes**: how ended conversations finished. Resolved (customer rated / agent closed /
+  closed after confirmation) vs unresolved (in progress / ended without closure / **customer
+  spoke last**). The **same definition** as the customer journey report and the dashboard —
+  a conversation where the customer spoke last still had a question, so it never counts as
+  resolved.
+- **Satisfaction**: average rating·responses·response rate·1–5 distribution + **per-agent /
+  per-session** tables (rating·agent filters).
+- **Hours**: a weekday×hour grid (customer messages) — computed in **the tenant's
+  timezone**, with a warning that UTC is used when no timezone is configured.
+
+The Channels·Agents·Outcomes·Hours sections are computed directly from conversation logs,
+so **history beyond the retention window is not queryable** (Question analytics and
+Satisfaction persist as snapshots).
 
 ---
 
@@ -265,8 +326,14 @@ clusters** (default last 30 days, daily snapshots).
 
 - 6 KPIs (each linking to its screen): conversations in progress · today's notifications ·
   AI resolution rate · unresolved Top N · total conversations · total orders.
-- **Popular questions** ranking, **integration status** (badge per provider), **5 most
-  recent orders**.
+- **AI resolution rate** = the share of ended conversations whose customer question was not
+  left unresolved — the same definition as the statistics *Outcomes* section and the
+  customer journey report. Conversation counts include only real customer conversations,
+  **excluding AI-settings preview sessions**.
+- **Popular questions** ranking, **integration status** (a badge per provider —
+  Shopify·Cafe24·Odoo·Haravan·Klaviyo·Yotpo·Notion·Google Drive, etc.; "connected" means
+  the **connection test passed**, not merely saved credentials, §14), **5 most recent
+  orders**.
 
 ---
 
@@ -325,15 +392,43 @@ For per-screen deep dives, see AI-SETTINGS-GUIDE.
 The essentials:
 - The AI answers **only from active knowledge documents**. Frequent handoffs mean missing
   knowledge.
+- Knowledge follows the standard path of being drafted and reviewed on the **Smart
+  Knowledge Board** (`/knowledge/board`) first, then **adopted** into the KB (with a
+  pre-adoption simulation). Adding documents directly is for emergency fixes.
+- Knowledge is organized by 3 groups (CounselInfo / ProductInfo / OperationInfo) ×
+  categories, and a category's **agent scope** can limit it to specific AI agents.
+- Bulk tools: **bulk download ↔ bulk import** (CSV/XLSX round trip), **AI import**
+  (pdf·docx·xlsx·csv·md·YouTube captions → draft review → board publish).
 - All outbound messages (AI·agent) pass moderation. On error, they are safely **blocked**.
 - AI coaching·settings changes go through an **approval gate** — review proposals before
   applying.
 
-## 14. Settings
+## 14. Tenant Settings
 
-Platform integrations (Cafe24 OAuth·Shopify·Odoo, etc.), widget installation·copy·tabs·
-theme, notification channel policy, **agent handoff (assignees·business hours·off-hours
-email·SLA·policy-forced handoff)**, and menu access all live in `/settings`.
+`/settings` has been reorganized into **7 tabs** (formerly a single "Settings" screen).
+Tabs are also menu-provisioning units — a tab the platform administrator does not provide
+is invisible.
+
+| Tab | Contents |
+|---|---|
+| Basic settings | **AI engines** (register the tenant's own engines — used ahead of platform engines; connection test·default selection; calls on your key are billed to your account) · **AI usage** (calls/tokens by period and axis, stub-fallback warnings — no cost estimates) · Storefront · **Agent handoff** (assignees·business hours·breaks·off-hours email/copy·SLA·policy-forced handoff) |
+| Widget settings | Widget theme · tab layout · behaviour (display name·greetings — **6 language tabs**, with the shipped default copy shown) · Embed/SDK · store install guide |
+| Platform integrations | Shopify · Cafe24 · WooCommerce · Odoo · Haravan tiles + the **[Integration guide]** button top-right (where to find each credential) |
+| Marketing & helpdesk | Klaviyo · Yotpo · Gorgias |
+| Messenger channels | Telegram · Viber · AmoebaTalk hub · btbz messenger relay · Gmail (Zalo·LINE·WhatsApp planned) |
+| Other settings | Notification channels · menu access (master) · journey report criteria (master, §4.5) · stored integration credentials |
+| Privacy notice | Policy URL · consent notice version (§15) |
+
+- **Saved ≠ connected**: saving credentials sets the status to "untested". Only passing the
+  **[Connection test]** flips it to "connected" ("error" on failure) — the dashboard's
+  integration badges follow this status.
+- Odoo·WooCommerce·Haravan pull data via **[Import products] / [Sync orders]** in their
+  config modals (Cafe24 has its dedicated OAuth card; Shopify has [Sync now]+[Register
+  webhooks]). For the AI to use imported products, the catalog sync in [Knowledge] is a
+  separate step (§10.3).
+- **Policy-forced handoff (deny-list)** rules carry one of two customer-facing modes:
+  **No answer** (straight to an agent with no AI — the default) / **Answer, then hand
+  off** (answer from knowledge first, then hand off) — either way an agent is called.
 → [Quick Setup Manual, Chapters 3–4](quick-setup.en.md) ·
 widget settings guide
 
@@ -341,9 +436,10 @@ widget settings guide
 
 ## 15. Privacy Notice·My Page
 
-- **Privacy notice** (`/privacy-notice`, master/director): manages the policy URL and the
-  **consent notice version**. ⚠️ **Bumping the version re-displays the consent banner to
-  every customer** — bump only when the notice actually changes.
+- **Privacy notice** (a tab of [Tenant settings], `/settings/privacy` — the old
+  `/privacy-notice` address redirects automatically; master/director): manages the policy
+  URL and the **consent notice version**. ⚠️ **Bumping the version re-displays the consent
+  banner to every customer** — bump only when the notice actually changes.
 - **My page** (`/my-page`): profile (rank·labels·workspace), password change, MFA
   enroll/remove.
 
@@ -355,10 +451,16 @@ widget settings guide
 | Screen | Path | Purpose |
 |---|---|---|
 | Overview | `/admin` | Tenant count·integration status |
-| Tenants | `/admin/tenants` | Create (name·slug·domain·plan) · **provided menus** · suspend/activate |
+| Tenants | `/admin/tenants` | Create (name·slug·domain·plan) · **Plan/Add-ons** · **provided menus** · suspend/activate |
 | Tenant users | `/admin/tenants/…/users` | Invite · **temporary password issuance (shown once·no email sent)** · MFA reset · suspend |
 | AI engines | `/admin/ai-engines` | Register engines (provider·model·API key)·manage activation — tenants pick per function |
 | Audit log | `/admin/audit` | Tracking privileged actions (temp password issuance·permission changes·PII views, etc.) |
+
+- **Plan/Add-ons** modal: the plan (`starter`/`growth`/`enterprise`/`custom` — each plan
+  presets the provided menus; per-menu overrides survive a plan change) + the **issue
+  workflow add-on** (`base` off / `bridge` external-helpdesk link / `native` issue
+  board·kanban on). In the list, a non-base mode shows as an "Issues: {mode}" badge in the
+  plan column.
 
 Full tenant-creation procedure: [Quick Setup Manual, Chapter 1](quick-setup.en.md).
 
@@ -369,8 +471,10 @@ Full tenant-creation procedure: [Quick Setup Manual, Chapter 1](quick-setup.en.m
 **Q. The bot keeps handing off to agents.**
 Missing knowledge is the most common cause. Find the cause via the ⚠ rows in statistics
 (`/statistics`) and the knowledge QA panel, then reinforce the documents. Also check
-whether the keyword matches the deny-list (policy-forced handoff) — in that case the AI is
-skipped intentionally.
+whether the keyword matches the deny-list (policy-forced handoff) — a "No answer" rule
+skips the AI intentionally, and an "Answer, then hand off" rule calls an agent even after
+answering. The document's category may also carry an **agent scope** that hides that
+knowledge from the current agent.
 
 **Q. An agent's reply won't send.**
 That is a moderation block. Rephrase and retry; if the rules are excessive, ask the master
@@ -381,8 +485,19 @@ That is idle-conversation auto-wrap-up (30 min silence → notice → close, §4
 customer messages again, a new conversation starts.
 
 **Q. I can't see the issue board.**
-It is exclusive to tenants whose workflow mode is native. If the menu itself is missing,
+It is exclusive to tenants whose workflow mode is native — check that the platform
+administrator's **Plan/Add-ons** setting says `native`. If the menu itself is missing,
 check the provided menus/rank permissions (2-tier).
+
+**Q. The settings screen looks different from older descriptions.**
+Since 2026-08-24, `/settings` has been reorganized into **7 tabs** (Tenant settings, §14).
+Agent handoff moved to the **Agent handoff** card on the *Basic settings* tab, and menu
+access moved to the *Other settings* tab.
+
+**Q. Dashboard/statistics numbers dropped compared to before.**
+That can be normal — conversation counts now **exclude AI-settings preview sessions**, and
+with the unified "resolved" definition, conversations where the customer spoke last no
+longer count as resolved (§8·§9).
 
 **Q. I changed widget settings but nothing changed.**
 The widget reads new settings from the customer's **next session**. Close and reopen the
@@ -410,4 +525,5 @@ author.
 *Related documents: [Quick Setup Manual](quick-setup.en.md) ·
 [Knowledge & AI Setup Manual](knowledge-ai.en.md) ·
 widget settings guide · AI-SETTINGS-GUIDE ·
+mobile app integration guide (WebView·Android SDK) ·
 service introduction · SPEC.md*

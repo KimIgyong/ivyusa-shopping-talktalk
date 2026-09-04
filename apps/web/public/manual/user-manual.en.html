@@ -104,7 +104,7 @@ li{margin:4px 0}
 <header class="hero">
   <div class="eyebrow">ShopTalk User Manual · Integrated Reference</div>
   <h1>ShopTalk Integrated User Manual</h1>
-  <div class="meta"><span>Version 2.0.0 · Fully revised 2026-08-24 (against the code)</span><span>Audience: tenant operators · agents · platform administrators</span></div>
+  <div class="meta"><span>Version 2.1.0 · Fully revised 2026-08-24 · Updated 2026-09-04 (against the code)</span><span>Audience: tenant operators · agents · platform administrators</span></div>
   <p class="lead"><strong>The reference manual that walks every screen.</strong> If you are setting up for the first time, start with the
   <a href="quick-setup.en.html">Quick Setup Manual</a> (Part 1); if you are refining knowledge and AI, see the
   <a href="knowledge-ai.en.html">Knowledge &amp; AI Setup Manual</a> (Part 2).
@@ -121,13 +121,13 @@ li{margin:4px 0}
   <a href="#ch5"><span class="n">5</span>Issue board</a>
   <a href="#ch6"><span class="n">6</span>Conversation history</a>
   <a href="#ch7"><span class="n">7</span>Work log</a>
-  <a href="#ch8"><span class="n">8</span>Question statistics</a>
+  <a href="#ch8"><span class="n">8</span>Statistics</a>
   <a href="#ch9"><span class="n">9</span>Dashboard</a>
   <a href="#ch10"><span class="n">10</span>Customers·orders·products</a>
   <a href="#ch11"><span class="n">11</span>Campaigns</a>
   <a href="#ch12"><span class="n">12</span>Reviews</a>
   <a href="#ch13"><span class="n">13</span>Knowledge &amp; AI settings</a>
-  <a href="#ch14"><span class="n">14</span>Settings</a>
+  <a href="#ch14"><span class="n">14</span>Tenant settings</a>
   <a href="#ch15"><span class="n">15</span>Privacy·my page</a>
   <a href="#ch16"><span class="n">16</span>Platform admin</a>
   <a href="#ch17"><span class="n">17</span>FAQ</a>
@@ -161,14 +161,13 @@ li{margin:4px 0}
     <tr><td>Issues</td><td><code>/issues</code></td><td>Inquiry-ticket kanban board (native-workflow tenants)</td></tr>
     <tr><td>History</td><td><code>/history</code></td><td>Browse past conversations·verify evidence</td></tr>
     <tr><td>Work log</td><td><code>/work-log</code></td><td>Audit trail of agent actions</td></tr>
-    <tr><td>Statistics</td><td><code>/statistics</code></td><td>Customer question statistics</td></tr>
-    <tr><td>AI settings</td><td><code>/ai-setting</code></td><td>Agents·persona·rules·scenarios·engines·moderation·coaching</td></tr>
-    <tr><td>Knowledge</td><td><code>/knowledge</code></td><td>Knowledge documents·sources·validation</td></tr>
+    <tr><td>Statistics</td><td><code>/statistics</code></td><td>Question analytics·channels·agents·outcomes·satisfaction·hours</td></tr>
+    <tr><td>AI settings</td><td><code>/ai-setting</code></td><td>Agents·persona·rules·scenarios·built-in conversations·engine wiring·moderation·coaching</td></tr>
+    <tr><td>Knowledge</td><td><code>/knowledge</code></td><td>Knowledge board (<code>/knowledge/board</code>)·documents·sources·validation</td></tr>
     <tr><td>Customers / Orders / Products</td><td><code>/customers</code> <code>/orders</code> <code>/products</code></td><td>Browse·manage cached data</td></tr>
     <tr><td>Campaigns / Reviews</td><td><code>/campaigns</code> <code>/reviews</code></td><td>Sending·review management</td></tr>
     <tr><td>Users</td><td><code>/users</code></td><td>Team invites·ranks·labels</td></tr>
-    <tr><td>Settings</td><td><code>/settings</code></td><td>Integrations·widget·agent handoff·menu access</td></tr>
-    <tr><td>Privacy notice</td><td><code>/privacy-notice</code></td><td>Policy URL·consent version</td></tr>
+    <tr><td>Tenant settings</td><td><code>/settings</code></td><td>7 tabs: Basic settings / Widget settings / Platform integrations / Marketing &amp; helpdesk / Messenger channels / Other settings / Privacy notice</td></tr>
     <tr><td>My page</td><td><code>/my-page</code></td><td>Profile·password·MFA</td></tr>
     <tr><td>Admin</td><td><code>/admin/*</code></td><td>Platform administration (system administrators only)</td></tr>
   </table></div>
@@ -212,7 +211,9 @@ li{margin:4px 0}
 <section id="ch3">
   <div class="ch"><span class="num">03</span><h2>AI Response Flow (Summary)</h2></div>
   <pre><code>Customer message → intent classification (identity-verification prompt if personal data is needed)
-  → if policy-forced handoff (deny-list) matches, straight to an agent with no AI
+  → if policy-forced handoff (deny-list) matches:
+      "No answer" rule → straight to an agent with no AI
+      "Answer, then hand off" rule → answer from knowledge first, then hand off anyway
   → knowledge search (RAG) → answer generation (persona+rules, confidence scoring) → moderation
   → confidence sufficient: answer + sources to the customer / low·blocked·customer request: agent queue</code></pre>
   <ul>
@@ -227,21 +228,24 @@ li{margin:4px 0}
   <p>Three columns: <strong>queue (left) — conversation (center) — context (right)</strong>. Lists auto-refresh every 5 seconds.</p>
   <h3>4.1 Queue (left)</h3>
   <ul>
-    <li>Scope: <strong>All / Queue / Closed</strong> (default All — conversations the AI is handling are shown too)</li>
-    <li>Channel filter: widget·Telegram·Viber·Zalo·LINE·WhatsApp·Kakao·SMS·email + customer name/email search</li>
-    <li>Each row: <strong>session alias</strong> (editable inline), channel·status badges, an "auto-reply OFF" chip, the last message, elapsed time</li>
+    <li>Scope: <strong>All / Needs attention / Closed</strong> (default All — conversations the AI is handling are shown too). The <strong>Groups</strong> tab on the second row is session grouping (4.5)</li>
+    <li>Channel filter + <strong>AI-agent filter</strong> + customer name/email search. Channels: Widget·Telegram·Viber·Zalo·LINE·WhatsApp·WeChat·KakaoTalk·SMS·Email — btbz-relay conversations show their original messenger name. <strong>SMS is receive-only</strong> (badge)</li>
+    <li>Each row: <strong>session alias</strong> (editable inline), channel·status badges, the assigned AI-agent chip, an "auto-reply OFF" chip, the last message, elapsed time</li>
+    <li><strong>Pin</strong>: hover a row for the pin icon — pinned conversations always sit on top, <strong>team-shared, max 3 per store</strong> (a 4th is refused)</li>
+    <li>The filter/search rows stay fixed while scrolling — only the inner area of each of the 3 panes scrolls</li>
   </ul>
   <h3>4.2 Conversation (center)</h3>
   <ul>
     <li><strong>Auto-reply control</strong>: Follow channel default / Automatic / Send after approval / Off + state badge. Once an agent takes over, agent handling takes precedence</li>
-    <li>Buttons: <strong>[Accept]</strong> (take over) · <strong>[Hand back to AI]</strong> (only from agent state, confirmation modal) · <strong>[End]</strong> · [Sync]</li>
+    <li>Buttons: <strong>[Accept]</strong> (take over) · <strong>[Hand back to AI]</strong> (only from agent state, confirmation modal) · <strong>[End]</strong> · [Sync] · <strong>[Pin/Unpin]</strong> · <strong>[Assign]</strong> (change the owner to another AI agent or human agent — an AI-agent change applies from the next response)</li>
+    <li><strong>4 customer-message actions</strong> (hover a customer bubble; hidden while the AI auto-answers): <strong>Translate</strong> (console-only translated bubble) · <strong>Look up in knowledge</strong> (copies into the right panel and queries) · <strong>Quote reply</strong> (quote chip → assembled on send) · <strong>File this message as an issue</strong> (excerpt+type+memo; added as a memo when an issue already exists)</li>
     <li><strong>Send-after-approval mode</strong>: review the AI draft in an editable panel (with confidence) → [Approve &amp; send] (in the agent's name; moderation·audit identical) / [Discard]</li>
     <li><strong>Composing messages</strong>: text + attachments (same limits as the widget). A refused send = moderation block. <strong>The SMS channel is receive-only</strong> (composing disabled)</li>
     <li>Under an AI bubble, <strong>[Save as knowledge]</strong> (master/director) — captures the answer as a knowledge document draft</li>
   </ul>
   <h3>4.3 Context (right)</h3>
   <ul>
-    <li><strong>AI briefing</strong>: summary·intent·sentiment·recommended actions</li>
+    <li><strong>AI briefing</strong>: summary·intent·sentiment·recommended actions (when a group is selected, this spot becomes the <strong>customer journey report</strong> panel — 4.5)</li>
     <li><strong>Knowledge lookup</strong>: ask the knowledge base directly mid-conversation → answer·sources (stale/conflict badges) → [Send to customer] / [Edit &amp; send] / [Propose as knowledge] (queued for approval)</li>
     <li><strong>Customer card</strong>: name·email·phone·tier + customer matching/creation · <strong>recent orders</strong> card</li>
     <li><strong>Issue panel</strong> (native workflow): issue number·status·type·reopen count, [Resolve]/[Decline] (reason required), reassignment, event timeline</li>
@@ -251,6 +255,13 @@ li{margin:4px 0}
   <ul>
     <li><strong>Escalation alarm</strong>: on a new handoff, an alert modal within 10 seconds (reason: low confidence/moderation block/customer request) → [Open chat]</li>
     <li><strong>Idle auto-wrap-up</strong> (server, widget channel only): 30 min silence on both sides → "Is there anything else we can help with?" → closed after 1 more silent minute. Conversations older than 7 days close quietly. Conversations awaiting an email reply are never auto-closed</li>
+  </ul>
+  <h3>4.5 Session grouping·customer journey report</h3>
+  <ul>
+    <li><strong>[Select]</strong> in the list header → check 2+ sessions → <strong>[Create group]</strong>: <strong>timeline</strong> (one customer's sessions) / <strong>project</strong> (parties of one case) — new group or add to an existing one</li>
+    <li><strong>Group room</strong> (the <em>Groups</em> tab): merged timeline of member sessions. Sending is <strong>1:1</strong> — pick a recipient first. Dissolving a group keeps every conversation and message</li>
+    <li><strong>Customer journey report</strong>: [Generate report] → ① Summary ② Contact history ③ What they ask ④ Resolution time ⑤ Customer path (5A) ⑥ Needs (hypothesis) ⑦ Next actions. <strong>Numbers counted by code; only the narrative by AI</strong>. Two reports can be compared (deep-dive)</li>
+    <li>Writing criteria (section on/off·sample cap·banned phrases) live in <em>Journey report criteria</em> under [Tenant settings → Other settings] (master) — saving mints a new version; old reports keep theirs</li>
   </ul>
 </section>
 
@@ -263,7 +274,9 @@ li{margin:4px 0}
     <li>Cards: issue number·type·<strong>SLA badge (⚠️ approaching / 🔥 exceeded)</strong>·reopen count·session alias·customer's last utterance·assignee·urgent/normal toggle</li>
     <li><strong>Declining</strong> requires a reason (policy-impossible/misassigned/spam + memo). Reopening is possible after resolve/decline</li>
     <li>Card click → read-only preview of the last 10 turns (viewing is audit-logged) → [Open session]</li>
-    <li>SLA baseline hours (normal/urgent, 1–168h) are set in the Agent handoff section of [Settings]</li>
+    <li><strong>[File this message as an issue]</strong> in live chat (4.2) also creates issues</li>
+    <li>SLA baseline hours (normal/urgent, 1–168h, defaults 24h/4h) are set on the <em>Agent handoff</em> card under [Tenant settings → Basic settings]</li>
+    <li>The workflow mode (native or not) is the platform administrator's <strong>Plan/Add-ons</strong> setting (Ch. 16) — menu provided without the mode shows only a notice screen</li>
   </ul>
 </section>
 
@@ -286,20 +299,27 @@ li{margin:4px 0}
 </section>
 
 <section id="ch8">
-  <div class="ch"><span class="num">08</span><h2>Question Statistics</h2></div>
-  <span class="actor">/statistics</span>
+  <div class="ch"><span class="num">08</span><h2>Statistics</h2></div>
+  <span class="actor">/statistics · one shared date filter (default 30 days)</span>
   <ul>
-    <li>4 dimension tabs — <strong>intent / documents / keywords / clusters</strong> (default last 30 days, daily snapshots)</li>
-    <li>Trend chart (daily question counts) + table: label·question count·share·<strong>escalation rate</strong>·<strong>no source</strong>·<strong>average confidence</strong></li>
-    <li><strong>⚠ attention markers</strong>: rows with 25%+ escalation rate or low average confidence — use as <strong>the list of knowledge to reinforce</strong>. In the documents tab, clicking a row jumps to that knowledge document</li>
+    <li>6 sections — <strong>Question analytics / Channels / Agents / Outcomes / Satisfaction / Hours</strong></li>
+    <li><strong>Question analytics</strong>: 4 sub-tabs (intent/knowledge used/keywords/similar-question groups) + trend chart. ⚠ rows = high escalation or low confidence — <strong>your knowledge-reinforcement priority list</strong>. Daily snapshots survive log deletion; a banner warns when aggregation stalls 2+ days</li>
+    <li><strong>Channels</strong>: conversations·customer messages·<strong>messages per conversation (median)</strong>·handoffs — read the median first (one huge conversation skews the average)</li>
+    <li><strong>Agents</strong>: an AI-agents table + a human-agents table (conversations·replies·resolved·satisfaction, rating counts alongside)</li>
+    <li><strong>Outcomes</strong>: resolved (customer rated/agent closed/closed after confirmation) vs unresolved (in progress/no closure/<strong>customer spoke last</strong>) — the <strong>same definition</strong> as the journey report and dashboard</li>
+    <li><strong>Satisfaction</strong>: average·responses·response rate·distribution + per-agent/per-session tables</li>
+    <li><strong>Hours</strong>: weekday×hour grid — <strong>in the tenant's timezone</strong> (UTC warning when unset)</li>
+    <li>Channels·Agents·Outcomes·Hours compute from logs — <strong>history beyond retention is not queryable</strong> (Question analytics·Satisfaction persist as snapshots)</li>
   </ul>
+  <figure class="shot"><img src="img/statistics.en.jpg" alt="Statistics — six sections (question analytics, channels, agents, outcomes, CSAT, hours) with the date filter" loading="lazy"><figcaption>Statistics — six sections (question analytics, channels, agents, outcomes, CSAT, hours) with the date filter</figcaption></figure>
 </section>
 
 <section id="ch9">
   <div class="ch"><span class="num">09</span><h2>Dashboard</h2></div>
   <span class="actor">/dashboard</span>
   <p>6 KPIs (each linking to its screen): conversations in progress · today's notifications · AI resolution rate · unresolved Top N · total conversations · total orders.
-  <strong>Popular questions</strong> ranking, <strong>integration status</strong> (badge per provider), <strong>5 most recent orders</strong>.</p>
+  <strong>AI resolution rate</strong> = the share of ended conversations whose question was not left unresolved (same definition as statistics <em>Outcomes</em>·the journey report) — conversation counts <strong>exclude preview sessions</strong>.
+  <strong>Popular questions</strong> ranking, <strong>integration status</strong> (badge per provider — "connected" means the <strong>connection test passed</strong>, not merely saved), <strong>5 most recent orders</strong>.</p>
   <figure class="shot"><img src="img/dashboard.en.jpg" alt="Dashboard — 6 KPIs, popular questions, integration status" loading="lazy"><figcaption>Dashboard — 6 KPIs, popular questions, integration status</figcaption></figure>
 </section>
 
@@ -341,22 +361,39 @@ li{margin:4px 0}
   and the improvement loop (preview·coaching·regression checks) are all organized in the <a href="knowledge-ai.en.html"><strong>Knowledge &amp; AI Setup Manual</strong></a>.</p>
   <ul>
     <li>The AI answers <strong>only from active knowledge documents</strong> — frequent handoffs mean missing knowledge</li>
+    <li>Knowledge is drafted·reviewed on the <strong>Smart Knowledge Board</strong> (<code>/knowledge/board</code>) first, then <strong>adopted</strong> into the KB (with pre-adoption simulation) — direct adds are for emergencies</li>
+    <li>3 groups (CounselInfo/ProductInfo/OperationInfo) × categories — a category's <strong>agent scope</strong> can limit it to specific AI agents</li>
+    <li>Bulk tools: <strong>bulk download ↔ bulk import</strong> (CSV/XLSX round trip) · <strong>AI import</strong> (pdf·docx·xlsx·csv·md·YouTube captions → draft review → board publish)</li>
     <li>All outbound messages (AI·agent) pass moderation — on error, safely <strong>blocked</strong></li>
     <li>AI coaching·settings changes go through an <strong>approval gate</strong> — review proposals before applying</li>
   </ul>
 </section>
 
 <section id="ch14">
-  <div class="ch"><span class="num">14</span><h2>Settings</h2></div>
-  <p>Platform integrations (Cafe24 OAuth·Shopify·Odoo, etc.), widget installation·copy·tabs·theme, notification channel policy,
-  <strong>agent handoff (assignees·business hours·off-hours email·SLA·policy-forced handoff)</strong>, and menu access all live in <code>/settings</code>.
-  → <a href="quick-setup.en.html">Quick Setup Manual, Ch. 3–4</a></p>
+  <div class="ch"><span class="num">14</span><h2>Tenant Settings</h2></div>
+  <p><code>/settings</code> is now <strong>7 tabs</strong> (formerly one "Settings" screen). Tabs are menu-provisioning units — an unprovided tab is invisible.</p>
+  <div class="tablewrap"><table>
+    <tr><th>Tab</th><th>Contents</th></tr>
+    <tr><td>Basic settings</td><td><strong>AI engines</strong> (tenant's own engines — ahead of platform engines; connection test·default) · <strong>AI usage</strong> (calls/tokens, stub-fallback warnings) · Storefront · <strong>Agent handoff</strong> (assignees·business hours·breaks·off-hours email/copy·SLA·deny-list)</td></tr>
+    <tr><td>Widget settings</td><td>Theme · tab layout · behaviour (greetings — 6 language tabs, default copy shown) · Embed/SDK · install guide</td></tr>
+    <tr><td>Platform integrations</td><td>Shopify·Cafe24·WooCommerce·Odoo·Haravan tiles + the <strong>[Integration guide]</strong> button</td></tr>
+    <tr><td>Marketing &amp; helpdesk</td><td>Klaviyo · Yotpo · Gorgias</td></tr>
+    <tr><td>Messenger channels</td><td>Telegram·Viber·AmoebaTalk hub·btbz relay·Gmail</td></tr>
+    <tr><td>Other settings</td><td>Notification channels · menu access (master) · journey report criteria (master) · stored credentials</td></tr>
+    <tr><td>Privacy notice</td><td>Policy URL · consent notice version</td></tr>
+  </table></div>
+  <ul>
+    <li><strong>Saved ≠ connected</strong>: saving shows "untested" — only a passed <strong>[Connection test]</strong> flips it to "connected" ("error" on failure)</li>
+    <li>Odoo·Woo·Haravan sync via the modal's <strong>[Import products]/[Sync orders]</strong> (Cafe24: OAuth card; Shopify: [Sync now]+[Register webhooks]) — AI use still needs the catalog sync in [Knowledge]</li>
+    <li><strong>Deny-list</strong> rules carry 2 modes: <strong>No answer</strong> (straight handoff, default) / <strong>Answer, then hand off</strong> (answer from knowledge, then hand off) — an agent is called either way</li>
+  </ul>
+  <p>→ <a href="quick-setup.en.html">Quick Setup Manual, Ch. 3–4</a></p>
 </section>
 
 <section id="ch15">
   <div class="ch"><span class="num">15</span><h2>Privacy Notice·My Page</h2></div>
   <ul>
-    <li><strong>Privacy notice</strong> (<code>/privacy-notice</code>, master/director): manages the policy URL and the <strong>consent notice version</strong></li>
+    <li><strong>Privacy notice</strong> (a tab of [Tenant settings], <code>/settings/privacy</code> — the old <code>/privacy-notice</code> redirects; master/director): manages the policy URL and the <strong>consent notice version</strong></li>
     <li><strong>My page</strong> (<code>/my-page</code>): profile (rank·labels·workspace), password change, MFA enroll/remove</li>
   </ul>
   <div class="callout warn"><span class="c-label">⚠️ Bumping the consent notice version</span>
@@ -369,11 +406,12 @@ li{margin:4px 0}
   <div class="tablewrap"><table>
     <tr><th>Screen</th><th>Path</th><th>Purpose</th></tr>
     <tr><td>Overview</td><td><code>/admin</code></td><td>Tenant count·integration status</td></tr>
-    <tr><td>Tenants</td><td><code>/admin/tenants</code></td><td>Create (name·slug·domain·plan) · <strong>provided menus</strong> · suspend/activate</td></tr>
+    <tr><td>Tenants</td><td><code>/admin/tenants</code></td><td>Create (name·slug·domain·plan) · <strong>Plan/Add-ons</strong> · <strong>provided menus</strong> · suspend/activate</td></tr>
     <tr><td>Tenant users</td><td><code>/admin/tenants/…/users</code></td><td>Invite · <strong>temporary password issuance (shown once·no email sent)</strong> · MFA reset · suspend</td></tr>
     <tr><td>AI engines</td><td><code>/admin/ai-engines</code></td><td>Register engines (provider·model·API key)·manage activation — tenants pick per function</td></tr>
     <tr><td>Audit log</td><td><code>/admin/audit</code></td><td>Tracking privileged actions (temp password issuance·permission changes·PII views, etc.)</td></tr>
   </table></div>
+  <p><strong>Plan/Add-ons</strong> modal: the plan (starter/growth/enterprise/custom — per-plan menu presets; per-menu overrides survive) + the <strong>issue workflow add-on</strong> (base off / bridge external helpdesk / native issue board·kanban). Non-base modes show an "Issues: {mode}" badge.</p>
   <p>Full tenant-creation procedure: <a href="quick-setup.en.html">Quick Setup Manual, Ch. 1</a>.</p>
   <figure class="shot"><img src="img/admin-temp-password.en.jpg" alt="Admin tenant-user management — the one-time temporary password modal" loading="lazy"><figcaption>Admin tenant-user management — the one-time temporary password modal</figcaption></figure>
 </section>
@@ -383,13 +421,19 @@ li{margin:4px 0}
   <dl class="faq">
     <dt>Q. The bot keeps handing off to agents.</dt>
     <dd>Missing knowledge is the most common cause. Find the cause via the ⚠ rows in statistics and the knowledge QA panel, then reinforce the documents.
-    Also check whether the keyword matches the deny-list (policy-forced handoff) — in that case the AI is skipped intentionally.</dd>
+    Also check whether the keyword matches the deny-list — a "No answer" rule skips the AI intentionally, and an "Answer, then hand off" rule calls an agent even after answering.
+    The document's category may also carry an <strong>agent scope</strong> hiding that knowledge from the current agent.</dd>
     <dt>Q. An agent's reply won't send.</dt>
     <dd>That is a moderation block. Rephrase and retry; if the rules are excessive, ask the master to adjust them.</dd>
     <dt>Q. A conversation closed by itself.</dt>
     <dd>That is idle-conversation auto-wrap-up (30 min silence → notice → close). When the customer messages again, a new conversation starts.</dd>
     <dt>Q. I can't see the issue board.</dt>
-    <dd>It is exclusive to tenants whose workflow mode is native. If the menu itself is missing, check the provided menus/rank permissions (2-tier).</dd>
+    <dd>It is exclusive to tenants whose workflow mode is native — check the admin <strong>Plan/Add-ons</strong> setting says native.
+    If the menu itself is missing, check the provided menus/rank permissions (2-tier).</dd>
+    <dt>Q. The settings screen looks different from older descriptions.</dt>
+    <dd>Since 2026-08-24, /settings is <strong>7 tabs</strong> (Tenant settings, Ch. 14). Agent handoff moved to the Basic settings tab; menu access to the Other settings tab.</dd>
+    <dt>Q. Dashboard/statistics numbers dropped.</dt>
+    <dd>Can be normal — conversation counts now exclude preview sessions, and with the unified "resolved" definition, conversations where the customer spoke last no longer count as resolved (Ch. 8·9).</dd>
     <dt>Q. I changed widget settings but nothing changed.</dt>
     <dd>The widget reads new settings from the customer's next session. Close and reopen the widget, or refresh.</dd>
     <dt>Q. A customer isn't receiving notifications (email, etc.).</dt>
