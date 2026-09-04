@@ -432,7 +432,7 @@
     "E5070": "无法获取字幕(字幕已停用,或不是 YouTube 视频)。"
   },
   "boardBannerTitle": "Smart Knowledge Board",
-  "boardBannerBody": "知识先在看板上编写与审核。采纳至 KB 的功能即将推出。",
+  "boardBannerBody": "知识先在看板上编写与审核。发布文档后，用模拟确认效果，再采纳至 KB。",
   "boardBannerCta": "打开看板",
   "sourceBadge": {
     "knowledge_store": "直接",

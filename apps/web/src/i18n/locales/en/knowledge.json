@@ -432,7 +432,7 @@
     "E5070": "No transcript available (captions disabled, or not a YouTube video)."
   },
   "boardBannerTitle": "Smart Knowledge Board",
-  "boardBannerBody": "Knowledge is written and reviewed on the board first. Adopting published documents into the KB is coming next.",
+  "boardBannerBody": "Knowledge is written and reviewed on the board first. Publish a document, check it with a simulation, then adopt it into the KB.",
   "boardBannerCta": "Open board",
   "sourceBadge": {
     "knowledge_store": "direct",
