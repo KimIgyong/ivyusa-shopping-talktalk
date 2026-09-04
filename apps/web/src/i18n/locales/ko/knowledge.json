@@ -432,7 +432,7 @@
     "E5070": "이 영상의 자막을 가져올 수 없습니다(자막 비활성 또는 YouTube 영상이 아님)."
   },
   "boardBannerTitle": "Smart Knowledge Board",
-  "boardBannerBody": "모든 지식은 보드에서 먼저 작성·검토됩니다. 게시된 문서를 KB로 채택하는 기능은 곧 제공됩니다.",
+  "boardBannerBody": "모든 지식은 보드에서 먼저 작성·검토됩니다. 게시된 문서는 시뮬레이션으로 확인한 뒤 KB로 채택하세요.",
   "boardBannerCta": "보드 열기",
   "sourceBadge": {
     "knowledge_store": "직접",

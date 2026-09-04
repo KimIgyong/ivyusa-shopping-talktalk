@@ -432,7 +432,7 @@
     "E5070": "字幕を取得できません(字幕無効、またはYouTube動画ではありません)。"
   },
   "boardBannerTitle": "Smart Knowledge Board",
-  "boardBannerBody": "知識はまずボードで作成・レビューします。KBへの採用機能は近日提供です。",
+  "boardBannerBody": "知識はまずボードで作成・レビューします。公開した文書はシミュレーションで確認し、KBに採用してください。",
   "boardBannerCta": "ボードを開く",
   "sourceBadge": {
     "knowledge_store": "直接",
